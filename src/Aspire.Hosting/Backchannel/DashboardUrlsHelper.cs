@@ -57,7 +57,7 @@ internal static class DashboardUrlsHelper
         // Find the dashboard resource and get all endpoints
         var appModel = serviceProvider.GetService<DistributedApplicationModel>();
         var dashboardResource = appModel?.Resources.SingleOrDefault(
-            r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)) as IResourceWithEndpoints;
+            r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) as IResourceWithEndpoints;
 
         string? apiBaseUrl = null;
         string? mcpBaseUrl = null;

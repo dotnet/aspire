@@ -230,8 +230,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
             }
 
             if (checkReportSnapshot.Status != value.Status
-                || !string.Equals(checkReportSnapshot.Description, value.Description, StringComparisons.HealthReportPropertyValue)
-                || !string.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString(), StringComparisons.HealthReportPropertyValue))
+                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.Description, value.Description)
+                || !StringComparers.HealthReportPropertyValue.Equals(checkReportSnapshot.ExceptionText, value.Exception?.ToString()))
             {
                 return true;
             }

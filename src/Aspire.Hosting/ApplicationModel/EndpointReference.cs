@@ -53,12 +53,14 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets a value indicating whether the endpoint uses HTTP scheme.
     /// </summary>
-    public bool IsHttp => string.Equals(Scheme, "http", StringComparisons.EndpointAnnotationUriScheme);
+    public bool IsHttp => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "http");
 
     /// <summary>
+    ///
+    /// </summary> <summary>
     /// Gets a value indicating whether the endpoint uses HTTPS scheme.
     /// </summary>
-    public bool IsHttps => string.Equals(Scheme, "https", StringComparisons.EndpointAnnotationUriScheme);
+    public bool IsHttps => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "https");
 
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
@@ -156,7 +158,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         }
 
         _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>()
-            .SingleOrDefault(a => string.Equals(a.Name, EndpointName, StringComparisons.EndpointAnnotationName));
+            .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
         return _endpointAnnotation;
     }
 
@@ -170,7 +172,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
         foreach (var nes in endpointAnnotation.AllAllocatedEndpoints)
         {
-            if (string.Equals(nes.NetworkID.Value, (_contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork).Value, StringComparisons.NetworkID))
+            if (StringComparers.NetworkID.Equals(nes.NetworkID, _contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork))
             {
                 if (!nes.Snapshot.IsValueSet)
                 {
