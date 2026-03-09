@@ -48,10 +48,12 @@ const _endpoint = await postgres.primaryEndpoint.get();
 const _nameRef = await postgres.userNameReference.get();
 const _uri = await postgres.uriExpression.get();
 const _jdbc = await postgres.jdbcConnectionString.get();
+const _cstr = await postgres.connectionStringExpression.get();
 
 // ---- Property access on PostgresDatabaseResource ----
 const _dbName: string = await db.databaseName.get();
 const _dbUri = await db.uriExpression.get();
 const _dbJdbc = await db.jdbcConnectionString.get();
+const _dbCstr = await db.connectionStringExpression.get();
 
 await builder.build().run();

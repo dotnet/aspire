@@ -28,6 +28,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly AgentInitCommand _agentInitCommand;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     private static readonly Option<string> s_nameOption = new("--name", "-n")
     {
@@ -72,7 +74,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IPackagingService packagingService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        AgentInitCommand agentInitCommand,
+        ICliHostEnvironment hostEnvironment)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _prompter = prompter;
@@ -80,6 +84,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _agentInitCommand = agentInitCommand;
+        _hostEnvironment = hostEnvironment;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
@@ -259,6 +265,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         public string? Version { get; init; }
 
+        public string? ChannelName { get; init; }
+
         [MemberNotNullWhen(true, nameof(Version))]
         [MemberNotNullWhen(false, nameof(ErrorMessage))]
         public bool Success => Version is not null;
@@ -304,7 +312,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
                 }
 
-                return new ResolveTemplateVersionResult { Version = package.Version };
+                // Only persist explicit channel names (e.g. local, daily) — implicit channels
+                // (stable/nuget.org) should not be written so aspire add uses its default behavior.
+                var channelName = selectedChannel.Type is PackageChannelType.Explicit ? selectedChannel.Name : null;
+
+                return new ResolveTemplateVersionResult { Version = package.Version, ChannelName = channelName };
             });
     }
 
@@ -330,6 +342,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         var version = parseResult.GetValue(s_versionOption);
+        string? resolvedChannelName = null;
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
@@ -341,6 +354,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             version = resolveResult.Version;
+            resolvedChannelName = resolveResult.ChannelName;
         }
 
         var inputs = new TemplateInputs
@@ -349,7 +363,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Output = parseResult.GetValue(s_outputOption),
             Source = parseResult.GetValue(s_sourceOption),
             Version = version,
-            Channel = parseResult.GetValue(_channelOption),
+            Channel = parseResult.GetValue(_channelOption) ?? resolvedChannelName,
             Language = selectedLanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
@@ -358,7 +372,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
-        return templateResult.ExitCode;
+        var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, templateResult.ExitCode, workspaceRoot, cancellationToken);
     }
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)

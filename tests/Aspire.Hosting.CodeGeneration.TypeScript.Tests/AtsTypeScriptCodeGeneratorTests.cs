@@ -1285,6 +1285,29 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("{ p0: unknown, p1: unknown }", code);
     }
 
+    // ===== Options Interface Merging Tests =====
+
+    [Fact]
+    public async Task Generate_SameMethodNameOnDifferentTypes_MergesOptionsInterface()
+    {
+        // Regression test: When the same method name (e.g., withDataVolume) appears on
+        // multiple resource types with different optional parameters, the generated options
+        // interface must be the union of all parameters across all overloads.
+        // Previously, RegisterOptionsInterface used first-write-wins, so the interface
+        // only included parameters from whichever overload was registered first.
+        var code = GenerateTwoPassCode();
+
+        // Extract just the WithDataVolumeOptions interface for snapshot verification.
+        var interfaceStart = code.IndexOf("export interface WithDataVolumeOptions", StringComparison.Ordinal);
+        Assert.True(interfaceStart >= 0, "WithDataVolumeOptions interface not found in generated code");
+
+        var interfaceEnd = code.IndexOf("}", interfaceStart, StringComparison.Ordinal);
+        var interfaceBody = code[interfaceStart..(interfaceEnd + 1)];
+
+        await Verify(interfaceBody, extension: "ts")
+            .UseFileName("WithDataVolumeOptionsMerged");
+    }
+
     private static int CountOccurrences(string text, string pattern)
     {
         var count = 0;

@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Cli.Commands;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Dashboard.Utils;
 using Aspire.Otlp.Serialization;
@@ -141,11 +140,11 @@ public class TelemetrySpansCommandTests(ITestOutputHelper outputHelper)
 
         var response = new TelemetryApiResponse
         {
-            Data = new TelemetryDataJson { ResourceSpans = resourceSpans },
+            Data = new OtlpTelemetryDataJson { ResourceSpans = resourceSpans },
             TotalCount = entries.Length,
             ReturnedCount = entries.Length
         };
 
-        return JsonSerializer.Serialize(response, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        return JsonSerializer.Serialize(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
     }
 }

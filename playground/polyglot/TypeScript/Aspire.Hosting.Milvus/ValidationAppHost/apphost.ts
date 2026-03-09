@@ -66,4 +66,13 @@ await api.withReference(db);
 // ── 16. withReference: use Milvus server directly ──────────────────────────
 await api.withReference(milvus);
 
+// ---- Property access on MilvusServerResource ----
+const _endpoint = await milvus.primaryEndpoint.get();
+const _host = await milvus.host.get();
+const _port = await milvus.port.get();
+const _token = await milvus.token.get();
+const _uri = await milvus.uriExpression.get();
+
+const _cstr = await milvus.connectionStringExpression.get();
+const _databases = milvus.databases;
 await builder.build().run();

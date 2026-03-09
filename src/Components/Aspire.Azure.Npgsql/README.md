@@ -90,7 +90,7 @@ Also you can pass the `Action<AzureNpgsqlSettings> configureSettings` delegate t
     builder.AddAzureNpgsqlDataSource("postgresdb", settings => settings.DisableHealthChecks = true);
 ```
 
-Use the `AzureNpgsqlSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+Use the `AzureNpgsqlSettings.Credential` property to establish a connection. If no credential is configured, a [default TokenCredential is created based on the current environment](https://aka.ms/aspire/default-azure-credential).
 
 If the connection string contains a username and a password then the credential will be ignored.
 

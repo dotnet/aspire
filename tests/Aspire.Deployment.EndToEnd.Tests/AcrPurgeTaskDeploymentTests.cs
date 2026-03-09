@@ -66,25 +66,6 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire new interactive prompts
-            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-                .FindPattern("> Starter App");
-
-            var waitingForPythonReactTemplateSelected = new CellPatternSearcher()
-                .Find("> Starter App (FastAPI/React)");
-
-            var waitingForProjectNamePrompt = new CellPatternSearcher()
-                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-            var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
-
-            var waitingForUrlsPrompt = new CellPatternSearcher()
-                .Find("Use *.dev.localhost URLs");
-
-            var waitingForRedisPrompt = new CellPatternSearcher()
-                .Find("Use Redis Cache");
-
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -112,26 +93,7 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create Python FastAPI project using aspire new
             output.WriteLine("Step 3: Creating Python FastAPI project...");
-            sequenceBuilder.Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                // Navigate to Starter App (FastAPI/React) - it's the 3rd option
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .WaitUntil(s => waitingForPythonReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // Select Starter App (FastAPI/React)
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type(projectName)
-                .Enter()
-                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Accept default output path
-                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for localhost URLs (default)
-                .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Enter() // Select "No" for Redis Cache
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+            sequenceBuilder.AspireNew(projectName, counter, template: AspireTemplate.PythonReact, useRedisCache: false);
 
             // Step 4: Navigate to project directory
             output.WriteLine("Step 4: Navigating to project directory...");

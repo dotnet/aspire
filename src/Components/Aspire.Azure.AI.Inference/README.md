@@ -54,7 +54,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 
 #### Azure AI Foundry Endpoint
 
-The recommended approach is to use an Endpoint, which works with the `ChatCompletionsClientSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use an Endpoint, which works with the `ChatCompletionsClientSettings.Credential` property to establish a connection. If no credential is configured, a [default TokenCredential is created based on the current environment](https://aka.ms/aspire/default-azure-credential).
 
 ```json
 {

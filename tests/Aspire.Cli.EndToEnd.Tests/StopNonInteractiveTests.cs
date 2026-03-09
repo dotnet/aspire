@@ -26,28 +26,6 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for aspire new prompts
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./TestStopApp): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
-
-        var waitForProjectCreatedSuccessfullyMessage = new CellPatternSearcher()
-            .Find("Project created successfully.");
-
         // Pattern searchers for start/stop commands
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
@@ -71,30 +49,15 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         }
 
         // Create a new project using aspire new
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TestStopApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestStopApp", counter);
 
         // Navigate to the AppHost directory
         sequenceBuilder.Type("cd TestStopApp/TestStopApp.AppHost")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -140,28 +103,6 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for aspire new prompts
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt1 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App1): ");
-
-        var waitingForOutputPathPrompt2 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App2): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
-
         // Pattern searchers for start/stop commands
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
@@ -185,46 +126,16 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         }
 
         // Create first project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App1")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt1.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App1", counter);
 
         // Clear screen before second project creation
         sequenceBuilder.ClearScreen(counter);
 
         // Create second project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App2")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt2.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -233,7 +144,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -279,28 +190,6 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for aspire new prompts
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt1 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App1): ");
-
-        var waitingForOutputPathPrompt2 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App2): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
-
         // Pattern searchers for start/stop commands
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
@@ -324,46 +213,16 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         }
 
         // Create first project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App1")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt1.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App1", counter);
 
         // Clear screen before second project creation
         sequenceBuilder.ClearScreen(counter);
 
         // Create second project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App2")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt2.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -372,7 +231,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -423,33 +282,6 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for aspire new prompts
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        // First project prompts
-        var waitingForProjectNamePrompt1 = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt1 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App1): ");
-
-        // Second project prompts
-        var waitingForProjectNamePrompt2 = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt2 = new CellPatternSearcher()
-            .Find($"Enter the output path: (./App2): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
-
         // Pattern searchers for start/stop commands
         var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
             .Find("AppHost started successfully.");
@@ -473,46 +305,16 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         }
 
         // Create first project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt1.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App1")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt1.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App1", counter);
 
         // Clear screen before second project creation
         sequenceBuilder.ClearScreen(counter);
 
         // Create second project
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter()
-            .WaitUntil(s => waitingForProjectNamePrompt2.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("App2")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt2.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -521,7 +323,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);

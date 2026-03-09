@@ -31,7 +31,8 @@ public static class TestDataBuilder
         bool requiresTestSdk = false,
         bool requiresCliArchive = false,
         string? extraTestArgs = null,
-        string[]? supportedOSes = null)
+        string[]? supportedOSes = null,
+        Dictionary<string, string>? runners = null)
     {
         var metadata = new TestMetadata
         {
@@ -45,7 +46,8 @@ public static class TestDataBuilder
             RequiresTestSdk = requiresTestSdk ? "true" : null,
             RequiresCliArchive = requiresCliArchive ? "true" : null,
             ExtraTestArgs = extraTestArgs,
-            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"]
+            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
+            Runners = runners
         };
 
         var json = JsonSerializer.Serialize(metadata, s_jsonOptions);
@@ -72,7 +74,8 @@ public static class TestDataBuilder
         string? uncollectedTestsHangTimeout = null,
         bool requiresNugets = false,
         bool requiresTestSdk = false,
-        string[]? supportedOSes = null)
+        string[]? supportedOSes = null,
+        Dictionary<string, string>? runners = null)
     {
         var metadata = new TestMetadata
         {
@@ -86,7 +89,8 @@ public static class TestDataBuilder
             UncollectedTestsHangTimeout = uncollectedTestsHangTimeout,
             RequiresNugets = requiresNugets ? "true" : null,
             RequiresTestSdk = requiresTestSdk ? "true" : null,
-            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"]
+            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
+            Runners = runners
         };
 
         var json = JsonSerializer.Serialize(metadata, s_jsonOptions);
@@ -183,7 +187,8 @@ public static class TestDataBuilder
         bool requiresNugets = false,
         bool requiresTestSdk = false,
         bool requiresCliArchive = false,
-        string[]? supportedOSes = null)
+        string[]? supportedOSes = null,
+        Dictionary<string, string>? runners = null)
     {
         return new CanonicalMatrixEntry
         {
@@ -201,7 +206,8 @@ public static class TestDataBuilder
             RequiresNugets = requiresNugets,
             RequiresTestSdk = requiresTestSdk,
             RequiresCliArchive = requiresCliArchive,
-            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"]
+            SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
+            Runners = runners
         };
     }
 
@@ -245,6 +251,9 @@ public static class TestDataBuilder
 
         [JsonPropertyName("supportedOSes")]
         public string[] SupportedOSes { get; set; } = ["windows", "linux", "macos"];
+
+        [JsonPropertyName("runners")]
+        public Dictionary<string, string>? Runners { get; set; }
     }
 
     private sealed class TestPartitionsJson
@@ -315,6 +324,9 @@ public class CanonicalMatrixEntry
 
     [JsonPropertyName("supportedOSes")]
     public string[] SupportedOSes { get; set; } = ["windows", "linux", "macos"];
+
+    [JsonPropertyName("runners")]
+    public Dictionary<string, string>? Runners { get; set; }
 }
 
 /// <summary>

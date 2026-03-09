@@ -4,10 +4,12 @@
 
 .DESCRIPTION
   Takes a flat all_tests matrix JSON (already OS-expanded) and splits it into
-  four dependency-based matrices for GitHub Actions consumption:
+  dependency-based matrices for GitHub Actions consumption:
   1. tests_matrix_no_nugets (primary) — tests with no package dependencies
   2. tests_matrix_no_nugets_overflow — overflow when primary exceeds threshold
-  3. tests_matrix_requires_nugets — tests needing built NuGet packages
+  3. tests_matrix_requires_nugets_{linux,windows,macos} — tests needing built
+     NuGet packages, split by OS so each group can depend on the per-OS CLI
+     archive build that produces its RID-specific DCP/Dashboard NuGets
   4. tests_matrix_requires_cli_archive — tests needing CLI native archives
 
   The overflow mechanism keeps each matrix under GitHub Actions' 256-job limit.
@@ -87,6 +89,22 @@ Write-Host "  - No nugets: $($noNugetEntries.Count)"
 Write-Host "  - Requires nugets: $($nugetEntries.Count)"
 Write-Host "  - Requires CLI archive: $($cliArchiveEntries.Count)"
 
+# Further split nuget entries by OS so test jobs can depend on
+# the per-OS CLI archive build that produces their RID-specific NuGets.
+function Get-OsCategory([string]$runsOn) {
+  if ($runsOn -match 'ubuntu|linux') { return 'linux' }
+  if ($runsOn -match 'windows')      { return 'windows' }
+  if ($runsOn -match 'macos')        { return 'macos' }
+  Write-Warning "Unknown runs-on value '$runsOn', defaulting to 'linux'"
+  return 'linux'
+}
+
+$nugetEntriesLinux   = @($nugetEntries | Where-Object { (Get-OsCategory $_.'runs-on') -eq 'linux' })
+$nugetEntriesWindows = @($nugetEntries | Where-Object { (Get-OsCategory $_.'runs-on') -eq 'windows' })
+$nugetEntriesMacos   = @($nugetEntries | Where-Object { (Get-OsCategory $_.'runs-on') -eq 'macos' })
+
+Write-Host "    ↳ nugets linux: $($nugetEntriesLinux.Count), windows: $($nugetEntriesWindows.Count), macos: $($nugetEntriesMacos.Count)"
+
 # Split no_nugets into primary + overflow
 $noNugetPrimary = @()
 $noNugetOverflow = @()
@@ -103,7 +121,9 @@ if ($noNugetEntries.Count -le $OverflowThreshold) {
 $buckets = @{
   'tests_matrix_no_nugets' = $noNugetPrimary
   'tests_matrix_no_nugets_overflow' = $noNugetOverflow
-  'tests_matrix_requires_nugets' = $nugetEntries
+  'tests_matrix_requires_nugets_linux' = $nugetEntriesLinux
+  'tests_matrix_requires_nugets_windows' = $nugetEntriesWindows
+  'tests_matrix_requires_nugets_macos' = $nugetEntriesMacos
   'tests_matrix_requires_cli_archive' = $cliArchiveEntries
 }
 

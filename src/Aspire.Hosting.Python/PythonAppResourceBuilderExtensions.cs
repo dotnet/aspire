@@ -63,6 +63,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     [OverloadResolutionPriority(1)]
+    [AspireExport("addPythonApp", Description = "Adds a Python script application resource")]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
@@ -98,6 +99,7 @@ public static class PythonAppResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [AspireExport("addPythonModule", Description = "Adds a Python module application resource")]
     public static IResourceBuilder<PythonAppResource> AddPythonModule(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder)
@@ -136,6 +138,7 @@ public static class PythonAppResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [AspireExport("addPythonExecutable", Description = "Adds a Python executable application resource")]
     public static IResourceBuilder<PythonAppResource> AddPythonExecutable(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string executableName)
         => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, DefaultVirtualEnvFolder);
@@ -258,6 +261,7 @@ public static class PythonAppResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    [AspireExport("addUvicornApp", Description = "Adds a Uvicorn-based Python application resource")]
     public static IResourceBuilder<UvicornAppResource> AddUvicornApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
@@ -849,6 +853,7 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithVirtualEnvironment("myenv", createIfNotExists: false);
     /// </code>
     /// </example>
+    [AspireExport("withVirtualEnvironment", Description = "Configures the virtual environment for a Python application")]
     public static IResourceBuilder<T> WithVirtualEnvironment<T>(
         this IResourceBuilder<T> builder, string virtualEnvironmentPath, bool createIfNotExists = true) where T : PythonAppResource
     {
@@ -1056,6 +1061,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExport("withDebugging", Description = "Enables debugging support for a Python application")]
     public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
         => builder.WithVSCodeDebugging();
@@ -1090,6 +1096,7 @@ public static class PythonAppResourceBuilderExtensions
     ///     .WithArgs("main:app", "--reload");
     /// </code>
     /// </example>
+    [AspireExport("withEntrypoint", Description = "Configures the entrypoint for a Python application")]
     public static IResourceBuilder<T> WithEntrypoint<T>(
         this IResourceBuilder<T> builder, EntrypointType entrypointType, string entrypoint) where T : PythonAppResource
     {
@@ -1186,6 +1193,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    [AspireExport("withPip", Description = "Configures pip package installation for a Python application")]
     public static IResourceBuilder<T> WithPip<T>(this IResourceBuilder<T> builder, bool install = true, string[]? installArgs = null)
         where T : PythonAppResource
     {
@@ -1282,6 +1290,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </code>
     /// </example>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    [AspireExport("withUv", Description = "Configures uv package management for a Python application")]
     public static IResourceBuilder<T> WithUv<T>(this IResourceBuilder<T> builder, bool install = true, string[]? args = null)
         where T : PythonAppResource
     {

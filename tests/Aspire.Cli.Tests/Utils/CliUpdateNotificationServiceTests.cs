@@ -43,7 +43,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
@@ -98,7 +98,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
@@ -153,7 +153,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     suggestedVersionTcs.SetResult(newerVersion);
@@ -204,7 +204,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
 
             configure.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.DisplayVersionUpdateNotificationCallback = (newerVersion) =>
                 {
                     Assert.Fail("Should not suggest a preview version when current version is stable.");
