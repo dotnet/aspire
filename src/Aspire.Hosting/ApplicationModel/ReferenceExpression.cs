@@ -141,6 +141,10 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         {
             if (IsConditional)
             {
+                // Yield the condition itself so dependency tracking discovers it as an IResource,
+                // then yield its sub-references if it implements IValueWithReferences.
+                yield return _condition!;
+
                 if (_condition is IValueWithReferences conditionRefs)
                 {
                     foreach (var reference in conditionRefs.References)
