@@ -754,12 +754,18 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private void RegisterConditionalExpressions(ReferenceExpression referenceExpression)
     {
+        if (referenceExpression is { IsConditional: true, Name: string name })
+        {
+            _conditionalExpressions.TryAdd(name, referenceExpression);
+            _manifestResourceNames.Add(name);
+        }
+
         foreach (var provider in referenceExpression.ValueProviders)
         {
-            if (provider is ReferenceExpression { IsConditional: true, Name: string name } conditional)
+            if (provider is ReferenceExpression { IsConditional: true, Name: string nestedName } conditional)
             {
-                _conditionalExpressions.TryAdd(name, conditional);
-                _manifestResourceNames.Add(name);
+                _conditionalExpressions.TryAdd(nestedName, conditional);
+                _manifestResourceNames.Add(nestedName);
             }
         }
     }
