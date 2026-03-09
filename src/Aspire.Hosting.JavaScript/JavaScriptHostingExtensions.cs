@@ -957,13 +957,16 @@ public static class JavaScriptHostingExtensions
         var hasPackageManager = builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
 
         var runtimeExecutable = hasRunScript && hasPackageManager ? pmAnnotation!.ExecutableName : "node";
+        var workingDirectory = builder.Resource.WorkingDirectory;
+        var absoluteScriptPath = Path.GetFullPath(scriptPath, workingDirectory);
 
         return builder.WithDebugSupport(
-            mode => new NodeLaunchConfiguration
+            options => new NodeLaunchConfiguration
             {
-                ScriptPath = scriptPath,
-                Mode = mode,
-                RuntimeExecutable = runtimeExecutable
+                ScriptPath = absoluteScriptPath,
+                Mode = options.Mode,
+                RuntimeExecutable = runtimeExecutable,
+                WorkingDirectory = workingDirectory
             },
             "node");
     }
@@ -982,18 +985,47 @@ public static class JavaScriptHostingExtensions
             packageManager = pmAnnotation.ExecutableName;
         }
 
+        var workingDirectory = builder.Resource.WorkingDirectory;
+
         return builder.WithDebugSupport(
-            mode => new NodeLaunchConfiguration
+            options => new NodeLaunchConfiguration
             {
                 ScriptPath = string.Empty,
-                Mode = mode,
-                RuntimeExecutable = packageManager
+                Mode = options.Mode,
+                RuntimeExecutable = packageManager,
+                WorkingDirectory = workingDirectory
             },
             "node");
     }
 
+    /// <summary>
+    /// Configures a browser debugger for the JavaScript application resource, enabling browser-based debugging
+    /// through a child resource that launches when the parent application is ready.
+    /// </summary>
+    /// <typeparam name="T">The type of the JavaScript application resource.</typeparam>
+    /// <param name="builder">The resource builder for the JavaScript application.</param>
+    /// <param name="browser">The browser to use for debugging. Defaults to <c>"msedge"</c>. Supported values include <c>"msedge"</c> and <c>"chrome"</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
+    /// <remarks>
+    /// This method creates a child <see cref="BrowserDebuggerResource"/> that waits for the parent JavaScript
+    /// application to start, then launches a browser debug session targeting the parent's HTTP or HTTPS endpoint.
+    /// The parent resource must have at least one HTTP or HTTPS endpoint configured.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE extension
+    /// does not support browser debugging.
+    /// </exception>
+    /// <example>
+    /// Add browser debugging to a JavaScript application:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddViteApp("frontend", "./frontend")
+    ///     .WithBrowserDebugger();
+    /// </code>
+    /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    internal static IResourceBuilder<T> WithBrowserDebugger<T>(
+    [AspireExport("withBrowserDebugger", Description = "Configures a browser debugger for the JavaScript application")]
+    public static IResourceBuilder<T> WithBrowserDebugger<T>(
         this IResourceBuilder<T> builder,
         string browser = "msedge")
         where T : JavaScriptAppResource
@@ -1029,9 +1061,9 @@ public static class JavaScriptHostingExtensions
             .WaitFor(builder)
             .ExcludeFromManifest()
             .WithDebugSupport(
-                mode => new BrowserLaunchConfiguration
+                options => new BrowserLaunchConfiguration
                 {
-                    Mode = mode,
+                    Mode = options.Mode,
                     Url = endpointReference.Url,
                     WebRoot = parentResource.WorkingDirectory,
                     Browser = browser

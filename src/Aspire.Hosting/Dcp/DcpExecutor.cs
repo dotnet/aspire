@@ -1323,11 +1323,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            if (executable.SupportsDebugging(_configuration, out _))
             {
+                // Just mark as IDE execution here - the actual launch configuration callback
+                // will be invoked in CreateExecutableAsync after endpoints are allocated.
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
             }
             else
             {
@@ -1745,6 +1746,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
+            }
+
+            // Invoke the debug configuration callback now that endpoints are allocated.
+            // This allows launch configurations to access endpoint URLs that were not
+            // available during PrepareExecutables().
+            // Project resources configure their launch configs in PrepareProjectExecutables() directly,
+            // so we only invoke the annotator for non-project executables here.
+            if (er.ModelResource is not ProjectResource
+                && er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            {
+                var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
+                try
+                {
+                    // Clear any existing launch configurations (needed for restart scenarios).
+                    exe.Annotate(Executable.LaunchConfigurationsAnnotation, string.Empty);
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, new LaunchConfigurationProducerOptions { Mode = mode });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to apply launch configuration for resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
+                    exe.Spec.ExecutionType = ExecutionType.Process;
+                }
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

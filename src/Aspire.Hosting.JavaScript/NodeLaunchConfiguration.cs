@@ -13,4 +13,7 @@ internal sealed class NodeLaunchConfiguration() : ExecutableLaunchConfiguration(
 
     [JsonPropertyName("runtime_executable")]
     public string RuntimeExecutable { get; set; } = string.Empty;
+
+    [JsonPropertyName("working_directory")]
+    public string WorkingDirectory { get; set; } = string.Empty;
 }

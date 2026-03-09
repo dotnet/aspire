@@ -6,7 +6,9 @@ import * as vscode from 'vscode';
 
 function getProjectFile(launchConfig: ExecutableLaunchConfiguration): string {
     if (isNodeLaunchConfiguration(launchConfig)) {
-        return launchConfig.script_path || '';
+        // Use the absolute script path if available, otherwise fall back to working directory.
+        // The working directory ensures cwd is set correctly for package manager mode (npm run dev).
+        return launchConfig.script_path || launchConfig.working_directory || '';
     }
 
     throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
@@ -16,16 +18,27 @@ export const nodeDebuggerExtension: ResourceDebuggerExtension = {
     resourceType: 'node',
     debugAdapter: 'node',
     extensionId: null,
-    getDisplayName: (launchConfiguration: ExecutableLaunchConfiguration) => `Node.js: ${vscode.workspace.asRelativePath(getProjectFile(launchConfiguration))}`,
+    getDisplayName: (launchConfiguration: ExecutableLaunchConfiguration) => {
+        if (isNodeLaunchConfiguration(launchConfiguration)) {
+            const displayPath = launchConfiguration.script_path || launchConfiguration.working_directory || '';
+            return `Node.js: ${displayPath ? vscode.workspace.asRelativePath(displayPath) : 'unknown'}`;
+        }
+        return 'Node.js';
+    },
     getSupportedFileTypes: () => ['.js', '.ts', '.mjs', '.mts', '.cjs', '.cts'],
     getProjectFile: (launchConfig) => getProjectFile(launchConfig),
-    createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
+    createDebugSessionConfigurationCallback: async (launchConfig, args, _env, _launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
         if (!isNodeLaunchConfiguration(launchConfig)) {
             extensionLogOutputChannel.info(`The resource type was not node for ${JSON.stringify(launchConfig)}`);
             throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
         }
 
         debugConfiguration.type = 'node';
+
+        // Use working_directory for cwd if available
+        if (launchConfig.working_directory) {
+            debugConfiguration.cwd = launchConfig.working_directory;
+        }
 
         if (launchConfig.runtime_executable) {
             debugConfiguration.runtimeExecutable = launchConfig.runtime_executable;

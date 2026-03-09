@@ -434,7 +434,7 @@
       <source xml:lang="en">Welcome to Aspire</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.registerMcpServerInWorkspace">
-      <source xml:lang="en">Whether to the Aspire MCP server when a workspace is open.</source>
+      <source xml:lang="en">Whether to register the Aspire MCP server when a workspace is open.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yesLabel">
       <source xml:lang="en">Yes</source>

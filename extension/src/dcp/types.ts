@@ -48,6 +48,7 @@ export interface NodeLaunchConfiguration extends ExecutableLaunchConfiguration {
     type: "node";
     script_path?: string;
     runtime_executable?: string;
+    working_directory?: string;
 }
 
 export function isNodeLaunchConfiguration(obj: any): obj is NodeLaunchConfiguration {
