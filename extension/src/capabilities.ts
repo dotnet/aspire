@@ -12,7 +12,8 @@ export type Capability =
     | 'project' // Support for running C# projects
     | 'ms-dotnettools.csharp' // Older AppHost versions used this extension identifier instead of project
     | 'python' // Support for running Python projects
-    | 'ms-python.python'; // Older AppHost versions used this extension identifier instead of python
+    | 'ms-python.python' // Older AppHost versions used this extension identifier instead of python
+    | 'node'; // Support for running Node.js projects
 
 export type Capabilities = Capability[];
 
@@ -33,6 +34,11 @@ export function isPythonInstalled() {
     return isExtensionInstalled("ms-python.python");
 }
 
+export function isNodeInstalled() {
+    // Node.js debugging uses VS Code's built-in js-debug, no extension needed
+    return true;
+}
+
 export function getSupportedCapabilities(): Capabilities {
     const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli'];
 
@@ -50,6 +56,8 @@ export function getSupportedCapabilities(): Capabilities {
         capabilities.push("python");
         capabilities.push("ms-python.python");
     }
+
+    capabilities.push("node");
 
     return capabilities;
 }

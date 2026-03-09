@@ -4,7 +4,9 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREEXTENSION001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -258,6 +260,8 @@ public static class JavaScriptHostingExtensions
             resourceBuilder.WithNpm();
         }
 
+        resourceBuilder.WithVSCodeDebugging(scriptPath);
+
         if (builder.ExecutionContext.IsRunMode)
         {
             builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
@@ -459,6 +463,8 @@ public static class JavaScriptHostingExtensions
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" })
             .WithBuildScript("build")
             .WithRunScript(runScriptName);
+
+        resourceBuilder.WithVSCodeDebugging();
 
         // ensure the package manager command is set before starting the resource
         if (builder.ExecutionContext.IsRunMode)
@@ -933,6 +939,53 @@ public static class JavaScriptHostingExtensions
     public static IResourceBuilder<TResource> WithRunScript<TResource>(this IResourceBuilder<TResource> resource, string scriptName, string[]? args = null) where TResource : JavaScriptAppResource
     {
         return resource.WithAnnotation(new JavaScriptRunScriptAnnotation(scriptName, args));
+    }
+
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
+        where T : NodeAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+
+        // Check if a run script annotation is present - if so, use package manager instead of direct node
+        var hasRunScript = builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _);
+        var hasPackageManager = builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
+
+        var runtimeExecutable = hasRunScript && hasPackageManager ? pmAnnotation!.ExecutableName : "node";
+
+        return builder.WithDebugSupport(
+            mode => new NodeLaunchConfiguration
+            {
+                ScriptPath = scriptPath,
+                Mode = mode,
+                RuntimeExecutable = runtimeExecutable
+            },
+            "node");
+    }
+
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
+        where T : JavaScriptAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Get package manager info for runtime executable
+        var packageManager = "npm";
+
+        if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
+        {
+            packageManager = pmAnnotation.ExecutableName;
+        }
+
+        return builder.WithDebugSupport(
+            mode => new NodeLaunchConfiguration
+            {
+                ScriptPath = string.Empty,
+                Mode = mode,
+                RuntimeExecutable = packageManager
+            },
+            "node");
     }
 
     private static void AddInstaller<TResource>(IResourceBuilder<TResource> resource, bool install) where TResource : JavaScriptAppResource
