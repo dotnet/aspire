@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>
 
