@@ -15,6 +15,8 @@ internal static partial class DateFormatStringsHelpers
     private readonly record struct CultureDetailsKey(string LongTimePattern, string ShortDatePattern, string NumberDecimalSeparator, TimeFormat timeFormat);
     private sealed record MillisecondFormatStrings(CachedTimeFormatStrings LongTimePattern, CachedTimeFormatStrings ShortDateLongTimePattern);
     private sealed record CachedTimeFormatStrings(string None, string TruncatedMilliseconds, string FullMilliseconds);
+
+    // Cache of format strings for each culture and 12h/24h override combination. Each entry is lazily initialized on demand.
     private static readonly ConcurrentDictionary<CultureDetailsKey, MillisecondFormatStrings> s_formatStrings = new();
 
     // Colon and dot are the only time separators used by registered cultures. Regex checks for both.
