@@ -331,7 +331,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     switch (browserType) {
       case 'simpleBrowser':
-        await this.launchSimpleBrowser(url);
+        this.launchSimpleBrowser(url);
         break;
 
       case 'debugChrome':
@@ -355,12 +355,12 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   /**
-   * Opens the dashboard URL in VS Code's built-in simple browser (webview tab).
-   * The URL is stored so the tab can be found and closed when the debug session ends.
+   * Opens the dashboard URL in VS Code's built-in simple browser.
+   * The URL is stored so we can re-focus and close the tab when the debug session ends.
    */
-  private async launchSimpleBrowser(url: string): Promise<void> {
+  private launchSimpleBrowser(url: string): void {
     this._simpleBrowserDashboardUrl = url;
-    await vscode.commands.executeCommand('simpleBrowser.show', url);
+    vscode.commands.executeCommand('simpleBrowser.show', url);
   }
 
   /**
@@ -437,25 +437,16 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
     extensionLogOutputChannel.info('Closing dashboard browser...');
 
-    // For simple browser, find the tab with undefined input (simple browser tabs lack a typed input)
+    // For simple browser: re-show the same URL to focus the existing tab, then close the active editor.
+    // This works because simpleBrowser.show with the same URL focuses the existing tab rather than opening a new one.
     if (this._simpleBrowserDashboardUrl) {
+      const url = this._simpleBrowserDashboardUrl;
       this._simpleBrowserDashboardUrl = null;
-      for (const group of vscode.window.tabGroups.all) {
-        for (const tab of group.tabs) {
-          if (tab.input === undefined) {
-            extensionLogOutputChannel.info(`Found simple browser tab: label="${tab.label}"`);
-            vscode.window.tabGroups.close(tab).then(
-              () => extensionLogOutputChannel.info('Simple browser tab closed.'),
-              (err) => extensionLogOutputChannel.warn(`Failed to close simple browser tab: ${err}`)
-            );
-            return;
-          }
-        }
-      }
-      extensionLogOutputChannel.warn('Simple browser tab not found. Open tabs: ' +
-        vscode.window.tabGroups.all.flatMap(g => g.tabs).map(t =>
-          `"${t.label}" (input: ${JSON.stringify(t.input)})`
-        ).join(', ')
+      vscode.commands.executeCommand('simpleBrowser.show', url).then(
+        () => vscode.commands.executeCommand('workbench.action.closeActiveEditor'),
+      ).then(
+        () => extensionLogOutputChannel.info('Simple browser tab closed.'),
+        (err) => extensionLogOutputChannel.warn(`Failed to close simple browser tab: ${err}`)
       );
       return;
     }
