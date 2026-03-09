@@ -136,7 +136,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         SelectedItem = viewModel;
     }
 
-    private async Task ViewToolDefinition(ToolDefinitionViewModel toolDefinition)
+    private async Task ViewToolDefinitionAsync(ToolDefinitionViewModel toolDefinition)
     {
         SelectedItem = null;
         OverviewActiveView = OverviewViewKind.Tools;
@@ -144,7 +144,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         toolDefinition.Highlighted = true;
 
         // Allow the UI to render the tools tab before scrolling.
-        await Task.Yield();
+        await Task.Delay(50);
         await JS.InvokeVoidAsync("scrollToElement", toolDefinition.ElementId);
     }
 
