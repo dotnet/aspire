@@ -83,7 +83,7 @@
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.closeDashboardOnDebugEnd">
-      <source xml:lang="en">Close the dashboard browser when the debug session ends. Works with debug browser options (Chrome, Edge, Firefox).</source>
+      <source xml:lang="en">Close the dashboard browser when the debug session ends. Works with simple browser and debug browser options (Chrome, Edge, Firefox).</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespaces">
       <source xml:lang="en">Codespaces</source>
@@ -316,6 +316,9 @@
     <trans-unit id="command.openGlobalSettings">
       <source xml:lang="en">Open global Aspire settings</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.dashboardBrowser.simpleBrowser">
+      <source xml:lang="en">Open in VS Code&apos;s built-in simple browser tab (auto-closes when debugging ends).</source>
+    </trans-unit>
     <trans-unit id="command.openLocalSettings">
       <source xml:lang="en">Open local Aspire settings</source>
     </trans-unit>
@@ -434,7 +437,7 @@
       <source xml:lang="en">Welcome to Aspire</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.registerMcpServerInWorkspace">
-      <source xml:lang="en">Whether to the Aspire MCP server when a workspace is open.</source>
+      <source xml:lang="en">Whether to register the Aspire MCP server when a workspace is open.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yesLabel">
       <source xml:lang="en">Yes</source>
