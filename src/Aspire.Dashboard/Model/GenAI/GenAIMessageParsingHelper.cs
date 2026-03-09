@@ -141,6 +141,12 @@ internal static class GenAIMessageParsingHelper
             },
             "tool_use" => ReadToolUsePart(item),
             "tool_result" => ReadToolResultPart(item),
+            MessagePart.BlobType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.BlobPart),
+            MessagePart.FileType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.FilePart),
+            MessagePart.UriType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.UriPart),
+            MessagePart.ReasoningType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.ReasoningPart),
+            MessagePart.ServerToolCallType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.ServerToolCallPart),
+            MessagePart.ServerToolCallResponseType => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.ServerToolCallResponsePart),
             _ => JsonSerializer.Deserialize(item.GetRawText(), GenAIMessagesContext.Default.GenericPart),
         };
     }
