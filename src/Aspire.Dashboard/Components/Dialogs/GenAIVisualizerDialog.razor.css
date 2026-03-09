@@ -251,7 +251,6 @@
 
 ::deep .tab-container .tools-list fluent-accordion-item.tool-highlighted {
     border: 2px solid var(--accent-fill-rest);
-    border-radius: calc(var(--layer-corner-radius) * 1px);
 }
 
 ::deep .tab-container .tools-list fluent-accordion-item,
