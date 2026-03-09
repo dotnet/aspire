@@ -221,7 +221,7 @@ The `eng/test-configuration.json` configures test retries:
 
 - **Local reruns**: 1 retry
 - **Remote (Helix) reruns**: 3 retries
-- **Retry-on rules**: Matches Docker image pull failures (`open.*docker.*GetImageBlob.*: no such file or directory`)
+- **Retry-on rules**: Matches reported Testcontainers Ryuk image failures (`No such image: .*testcontainers/ryuk:.*`)
 
 ## Known Breakage Patterns (from Real Incidents)
 
