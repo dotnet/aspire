@@ -224,7 +224,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             throw new InvalidOperationException($"Docker Compose file not found at {dockerComposeFilePath}");
         }
 
-        var deployTask = await context.ReportingStep.CreateTaskAsync($"Running docker compose up for **{Name}**", context.CancellationToken).ConfigureAwait(false);
+        var deployTask = await context.ReportingStep.CreateTaskAsync(
+            new MarkdownString($"Running docker compose up for **{Name}**"),
+            context.CancellationToken).ConfigureAwait(false);
         await using (deployTask.ConfigureAwait(false))
         {
             try
@@ -264,7 +266,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                     }
                     else
                     {
-                        await deployTask.CompleteAsync($"Service **{Name}** is now running with Docker Compose locally", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                        await deployTask.CompleteAsync(
+                            new MarkdownString($"Service **{Name}** is now running with Docker Compose locally"),
+                            CompletionState.Completed,
+                            context.CancellationToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -286,7 +291,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             throw new InvalidOperationException($"Docker Compose file not found at {dockerComposeFilePath}");
         }
 
-        var deployTask = await context.ReportingStep.CreateTaskAsync($"Running docker compose down for **{Name}**", context.CancellationToken).ConfigureAwait(false);
+        var deployTask = await context.ReportingStep.CreateTaskAsync(
+            new MarkdownString($"Running docker compose down for **{Name}**"),
+            context.CancellationToken).ConfigureAwait(false);
         await using (deployTask.ConfigureAwait(false))
         {
             try
@@ -318,7 +325,10 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                     }
                     else
                     {
-                        await deployTask.CompleteAsync($"Docker Compose shutdown complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                        await deployTask.CompleteAsync(
+                            new MarkdownString($"Docker Compose shutdown complete for **{Name}**"),
+                            CompletionState.Completed,
+                            context.CancellationToken).ConfigureAwait(false);
                     }
                 }
             }

@@ -143,7 +143,7 @@ public sealed class AzureEnvironmentResource : Resource
         var resourceGroupValue = $"[{resourceGroupName}]({portalUrl})";
 
         ctx.Summary.Add("☁️ Target", "Azure");
-        ctx.Summary.Add("📦 Resource Group", resourceGroupValue);
+        ctx.Summary.Add("📦 Resource Group", new MarkdownString(resourceGroupValue));
         ctx.Summary.Add("🔑 Subscription", subscriptionId);
         ctx.Summary.Add("🌐 Location", location);
     }
