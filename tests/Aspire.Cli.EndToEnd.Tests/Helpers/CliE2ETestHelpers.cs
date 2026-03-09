@@ -504,11 +504,12 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Creates a Hex1b terminal that runs inside a Docker container built from the E2E Dockerfile.
+    /// Creates a Hex1b terminal that runs inside a Docker container built from the shared E2E Dockerfile.
     /// The Dockerfile builds the CLI from source (local dev) or accepts pre-built artifacts (CI).
     /// </summary>
     /// <param name="repoRoot">The repo root directory, used as the Docker build context.</param>
     /// <param name="installMode">The detected install mode, controlling Docker build args and volumes.</param>
+    /// <param name="output">Test output helper for logging configuration details.</param>
     /// <param name="variant">Which Dockerfile variant to use (DotNet or Polyglot).</param>
     /// <param name="mountDockerSocket">Whether to mount the Docker socket for DCP/container access.</param>
     /// <param name="workspace">Optional workspace to mount into the container at /workspace.</param>
@@ -519,6 +520,7 @@ internal static class CliE2ETestHelpers
     internal static Hex1bTerminal CreateDockerTestTerminal(
         string repoRoot,
         DockerInstallMode installMode,
+        ITestOutputHelper output,
         DockerfileVariant variant = DockerfileVariant.DotNet,
         bool mountDockerSocket = false,
         TemporaryWorkspace? workspace = null,
@@ -533,7 +535,17 @@ internal static class CliE2ETestHelpers
             DockerfileVariant.Polyglot => "Dockerfile.e2e-polyglot",
             _ => throw new ArgumentOutOfRangeException(nameof(variant)),
         };
-        var dockerfilePath = Path.Combine(repoRoot, "tests", "Aspire.Cli.EndToEnd.Tests", "docker", dockerfileName);
+        var dockerfilePath = Path.Combine(repoRoot, "tests", "Shared", "Docker", dockerfileName);
+
+        output.WriteLine($"Creating Docker test terminal:");
+        output.WriteLine($"  Test name:      {testName}");
+        output.WriteLine($"  Install mode:   {installMode}");
+        output.WriteLine($"  Variant:        {variant}");
+        output.WriteLine($"  Dockerfile:     {dockerfilePath}");
+        output.WriteLine($"  Workspace:      {workspace?.WorkspaceRoot.FullName ?? "(none)"}");
+        output.WriteLine($"  Docker socket:  {mountDockerSocket}");
+        output.WriteLine($"  Dimensions:     {width}x{height}");
+        output.WriteLine($"  Recording:      {recordingPath}");
 
         var builder = Hex1bTerminal.CreateBuilder()
             .WithHeadless()
@@ -568,6 +580,7 @@ internal static class CliE2ETestHelpers
                     var cliPublishDir = FindLocalCliBinary(repoRoot)
                         ?? throw new InvalidOperationException("SourceBuild mode detected but CLI binary not found");
                     c.Volumes.Add($"{cliPublishDir}:/opt/aspire-cli:ro");
+                    output.WriteLine($"  CLI binary:     {cliPublishDir}");
                 }
 
                 if (installMode == DockerInstallMode.PullRequest)
@@ -578,8 +591,12 @@ internal static class CliE2ETestHelpers
                         c.Environment["GH_TOKEN"] = ghToken;
                     }
 
-                    c.Environment["GITHUB_PR_NUMBER"] = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "";
-                    c.Environment["GITHUB_PR_HEAD_SHA"] = Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA") ?? "";
+                    var prNumber = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "";
+                    var prSha = Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA") ?? "";
+                    c.Environment["GITHUB_PR_NUMBER"] = prNumber;
+                    c.Environment["GITHUB_PR_HEAD_SHA"] = prSha;
+                    output.WriteLine($"  PR number:      {prNumber}");
+                    output.WriteLine($"  PR head SHA:    {prSha}");
                 }
             });
 

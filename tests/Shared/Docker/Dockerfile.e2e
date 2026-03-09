@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Aspire CLI E2E testing (.NET variant).
+# Multi-stage Dockerfile for Aspire E2E testing (.NET variant).
 #
 # Includes: .NET SDK 10.0, Docker CLI (via host socket mount), gh CLI,
 #           Node.js, Python, Aspire install scripts.
