@@ -34,52 +34,100 @@ public class FormatHelpersTests
     }
 
     [Theory]
-    [InlineData("06/15/2009 13:45:30.000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("06/15/2009 13:45:30.123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("06/15/2009 13:45:30.1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
+    [InlineData("06/15/2009 13:45:30.000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("06/15/2009 13:45:30.123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("06/15/2009 13:45:30.1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("06/15/2009 1:45:30.000 PM", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("06/15/2009 1:45:30.123 PM", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("06/15/2009 1:45:30.1234567 PM", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("06/15/2009 1:45:30 PM", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("06/15/2009 1:45:30 PM", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("06/15/2009 13:45:30.000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("06/15/2009 13:45:30.123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("06/15/2009 13:45:30.1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, MillisecondsDisplay includeMilliseconds, string value, TimeFormat timeFormat)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.InvariantCulture));
+        var provider = CreateTimeProvider();
+        provider.SetConfiguredTimeFormat(timeFormat);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, cultureInfo: CultureInfo.InvariantCulture));
     }
 
     [Theory]
-    [InlineData("15.06.2009 13:45:30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.06.2009 13:45:30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15.06.2009 13:45:30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
+    [InlineData("15.06.2009 13:45:30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.06.2009 13:45:30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.06.2009 13:45:30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.06.2009 1:45:30,000 PM", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15.06.2009 1:45:30,123 PM", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.06.2009 1:45:30,1234567 PM", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.06.2009 1:45:30 PM", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15.06.2009 1:45:30 PM", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.06.2009 13:45:30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15.06.2009 13:45:30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15.06.2009 13:45:30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, MillisecondsDisplay includeMilliseconds, string value, TimeFormat timeFormat)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("de-DE")));
+        var provider = CreateTimeProvider();
+        provider.SetConfiguredTimeFormat(timeFormat);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("de-DE")));
     }
 
     [Theory]
-    [InlineData("15.6.2009 13.45.30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.6.2009 13.45.30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15.6.2009 13.45.30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_FinnishCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
+    [InlineData("15.6.2009 13.45.30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.6.2009 13.45.30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.6.2009 13.45.30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15.6.2009 1.45.30,000 ip.", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15.6.2009 1.45.30,123 ip.", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.6.2009 1.45.30,1234567 ip.", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.6.2009 1.45.30 ip.", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15.6.2009 1.45.30 ip.", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15.6.2009 13.45.30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15.6.2009 13.45.30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15.6.2009 13.45.30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15.6.2009 13.45.30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    public void FormatDateTime_WithMilliseconds_FinnishCulture(string expected, MillisecondsDisplay includeMilliseconds, string value, TimeFormat timeFormat)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("fi-FI")));
+        var provider = CreateTimeProvider();
+        provider.SetConfiguredTimeFormat(timeFormat);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("fi-FI")));
     }
 
     [Theory]
-    [InlineData("15/06/2009 1:45:30.000 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15/06/2009 1:45:30.123 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15/06/2009 1:45:30.1234567 pm", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
+    [InlineData("15/06/2009 1:45:30.000 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15/06/2009 1:45:30.123 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15/06/2009 1:45:30.1234567 pm", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwelveHour)]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwelveHour)]
+    [InlineData("15/06/2009 13:45:30.000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15/06/2009 13:45:30.123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15/06/2009 13:45:30.1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15/06/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15/06/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.TwentyFourHour)]
+    [InlineData("15/06/2009 1:45:30.000 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15/06/2009 1:45:30.123 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15/06/2009 1:45:30.1234567 pm", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z", TimeFormat.System)]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z", TimeFormat.System)]
+    public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, MillisecondsDisplay includeMilliseconds, string value, TimeFormat timeFormat)
     {
         var date = GetLocalDateTime(value);
+        var provider = CreateTimeProvider();
+        provider.SetConfiguredTimeFormat(timeFormat);
         // macOS formats with uppercase AM/PM, so ignore case
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")), ignoreWhiteSpaceDifferences: true, ignoreCase: true);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")), ignoreWhiteSpaceDifferences: true, ignoreCase: true);
     }
 
     [Theory]
@@ -130,8 +178,16 @@ public class FormatHelpersTests
     [Theory]
     [InlineData("fi-FI", TimeFormat.TwentyFourHour, MillisecondsDisplay.None, "15.6.2009 13.45.30")]
     [InlineData("fi-FI", TimeFormat.TwentyFourHour, MillisecondsDisplay.Truncated, "15.6.2009 13.45.30,123")]
+    [InlineData("fi-FI", TimeFormat.TwelveHour, MillisecondsDisplay.None, "15.6.2009 1.45.30 ip.")]
+    [InlineData("fi-FI", TimeFormat.TwelveHour, MillisecondsDisplay.Truncated, "15.6.2009 1.45.30,123 ip.")]
+    [InlineData("fi-FI", TimeFormat.System, MillisecondsDisplay.None, "15.6.2009 13.45.30")]
+    [InlineData("fi-FI", TimeFormat.System, MillisecondsDisplay.Truncated, "15.6.2009 13.45.30,123")]
     [InlineData("de-DE", TimeFormat.TwentyFourHour, MillisecondsDisplay.Truncated, "15.06.2009 13:45:30,123")]
+    [InlineData("de-DE", TimeFormat.TwelveHour, MillisecondsDisplay.Truncated, "15.06.2009 1:45:30,123 PM")]
+    [InlineData("de-DE", TimeFormat.System, MillisecondsDisplay.Truncated, "15.06.2009 13:45:30,123")]
+    [InlineData("en-US", TimeFormat.TwentyFourHour, MillisecondsDisplay.Truncated, "6/15/2009 13:45:30.123")]
     [InlineData("en-US", TimeFormat.TwelveHour, MillisecondsDisplay.Truncated, "6/15/2009 1:45:30.123 PM")]
+    [InlineData("en-US", TimeFormat.System, MillisecondsDisplay.Truncated, "6/15/2009 1:45:30.123 PM")]
     public void FormatDateTime_WithTimeFormatPreference_UsesCultureSeparators(string cultureName, TimeFormat format, MillisecondsDisplay includeMilliseconds, string expected)
     {
         var date = GetLocalDateTime("2009-06-15T13:45:30.1234567Z");
@@ -169,26 +225,26 @@ public class FormatHelpersTests
     }
 
     [Theory]
-    [InlineData(true, "13:45:30")]   // Browser reports 24-hour → use 24-hour
-    [InlineData(false, "1:45:30 PM")] // Browser reports 12-hour → use 12-hour
-    public void FormatTime_SystemFormat_UsesBrowserTimeFormat(bool is24HourTime, string expected)
+    [InlineData(TimeFormat.TwentyFourHour, "13:45:30")]   // Browser reports 24-hour → use 24-hour
+    [InlineData(TimeFormat.TwelveHour, "1:45:30 PM")] // Browser reports 12-hour → use 12-hour
+    public void FormatTime_SystemFormat_UsesBrowserTimeFormat(TimeFormat browserTimeFormat, string expected)
     {
         var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
         var provider = CreateTimeProvider();
-        provider.SetBrowserTimeFormat(is24HourTime);
+        provider.SetBrowserTimeFormat(browserTimeFormat);
         // TimeFormat stays at System (default)
 
         Assert.Equal(expected, FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
     }
 
     [Theory]
-    [InlineData(true, "6/15/2009 13:45:30")]   // Browser reports 24-hour
-    [InlineData(false, "6/15/2009 1:45:30 PM")] // Browser reports 12-hour
-    public void FormatDateTime_SystemFormat_UsesBrowserTimeFormat(bool is24HourTime, string expected)
+    [InlineData(TimeFormat.TwentyFourHour, "6/15/2009 13:45:30")]   // Browser reports 24-hour
+    [InlineData(TimeFormat.TwelveHour, "6/15/2009 1:45:30 PM")] // Browser reports 12-hour
+    public void FormatDateTime_SystemFormat_UsesBrowserTimeFormat(TimeFormat browserTimeFormat, string expected)
     {
         var date = GetLocalDateTime("2009-06-15T13:45:30.0000000Z");
         var provider = CreateTimeProvider();
-        provider.SetBrowserTimeFormat(is24HourTime);
+        provider.SetBrowserTimeFormat(browserTimeFormat);
 
         Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
     }

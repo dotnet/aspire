@@ -16,6 +16,9 @@ public class BrowserTimeProvider : TimeProvider, ITimeFormatProvider
 {
     private readonly ILogger _logger;
     private TimeZoneInfo? _browserLocalTimeZone;
+    private TimeFormat? _browserTimeFormat;
+
+    public TimeFormat ConfiguredTimeFormat { get; set; } = TimeFormat.System;
 
     public BrowserTimeProvider(ILoggerFactory loggerFactory)
     {
@@ -39,22 +42,18 @@ public class BrowserTimeProvider : TimeProvider, ITimeFormatProvider
         _browserLocalTimeZone = timeZoneInfo;
     }
 
-    public TimeFormat TimeFormat { get; set; } = TimeFormat.System;
-
     public TimeFormat ResolvedTimeFormat
     {
         get
         {
-            if (TimeFormat == TimeFormat.System)
+            if (ConfiguredTimeFormat == TimeFormat.System)
             {
                 return _browserTimeFormat ?? TimeFormat.System;
             }
 
-            return TimeFormat;
+            return ConfiguredTimeFormat;
         }
     }
-
-    private TimeFormat? _browserTimeFormat;
 
     public void SetBrowserTimeFormat(TimeFormat timeFormat)
     {
@@ -63,6 +62,6 @@ public class BrowserTimeProvider : TimeProvider, ITimeFormatProvider
 
     public void SetConfiguredTimeFormat(TimeFormat timeFormat)
     {
-        TimeFormat = timeFormat;
+        ConfiguredTimeFormat = timeFormat;
     }
 }

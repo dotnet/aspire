@@ -638,8 +638,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTimeFormat">
-        <source>Time Format</source>
-        <target state="new">Time Format</target>
+        <source>Time format</source>
+        <target state="new">Time format</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTimeFormatSystem">
@@ -648,13 +648,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTimeFormatTwelveHour">
-        <source>12-Hour</source>
-        <target state="new">12-Hour</target>
+        <source>12-hour</source>
+        <target state="new">12-hour</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTimeFormatTwentyFourHour">
-        <source>24-Hour</source>
-        <target state="new">24-Hour</target>
+        <source>24-hour</source>
+        <target state="new">24-hour</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogVersion">

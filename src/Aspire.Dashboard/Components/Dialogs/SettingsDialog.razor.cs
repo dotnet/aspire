@@ -49,7 +49,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             // Otherwise, Blazor has fallen back to a supported language
             CultureInfo.CurrentUICulture;
 
-        _timeFormat = TimeProvider.TimeFormat;
+        _timeFormat = TimeProvider.ConfiguredTimeFormat;
 
         _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
 
