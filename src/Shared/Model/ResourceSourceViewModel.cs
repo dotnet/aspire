@@ -10,14 +10,14 @@ internal record ResourceSource(string Value, string OriginalValue)
     public static ResourceSource? GetSourceModel(string? resourceType, IReadOnlyDictionary<string, string?> properties)
     {
         // NOTE project and tools are also executables, so check for those first
-        if (string.Equals(resourceType, KnownResourceTypes.Project, StringComparisons.ResourceType) &&
+        if (StringComparers.ResourceType.Equals(resourceType, KnownResourceTypes.Project) &&
             properties.TryGetValue(KnownProperties.Project.Path, out var projectPath) &&
             !string.IsNullOrEmpty(projectPath))
         {
             return new ResourceSource(Path.GetFileName(projectPath), projectPath);
         }
 
-        if (string.Equals(resourceType, KnownResourceTypes.Tool, StringComparisons.ResourceType) &&
+        if (StringComparers.ResourceType.Equals(resourceType, KnownResourceTypes.Tool) &&
             properties.TryGetValue(KnownProperties.Tool.Package, out var toolPackage) &&
             !string.IsNullOrEmpty(toolPackage))
         {
