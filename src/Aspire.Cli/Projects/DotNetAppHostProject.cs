@@ -476,6 +476,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             context.PackageId,
             context.PackageVersion,
             context.Source,
+            noRestore: false,
             options,
             cancellationToken);
 
