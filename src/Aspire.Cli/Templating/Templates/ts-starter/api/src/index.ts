@@ -1,3 +1,4 @@
+import "./instrumentation.ts";
 import express from "express";
 import { existsSync } from "fs";
 import { join } from "path";
