@@ -128,4 +128,55 @@ public class DistributedApplicationOptionsTests
         var expectedPath = Path.GetFullPath(Path.Join(projectDirectory, "ExplicitlySetName"));
         Assert.Equal(expectedPath, builder.AppHostPath);
     }
+
+    [Fact]
+    public void DashboardApplicationName_UsesProjectDirectoryName_ForSourceFileAppHosts()
+    {
+        var projectDirectory = OperatingSystem.IsWindows() ? @"C:\projects\Contoso\" : "/projects/Contoso/";
+        var appHostFilePath = OperatingSystem.IsWindows() ? @"C:\projects\Contoso\apphost.ts" : "/projects/Contoso/apphost.ts";
+        var options = new DistributedApplicationOptions
+        {
+            ProjectDirectory = projectDirectory,
+            AppHostFilePath = appHostFilePath
+        };
+
+        Assert.Equal("Contoso", options.DashboardApplicationName);
+    }
+
+    [Fact]
+    public void DashboardApplicationName_UsesAppHostDirectory_WhenProjectDirectoryIsNotSet()
+    {
+        var originalEntryPointFilePath = AppContext.GetData("EntryPointFilePath");
+        var appHostFilePath = OperatingSystem.IsWindows() ? @"C:\projects\Tailspin\apphost.cs" : "/projects/Tailspin/apphost.cs";
+
+        try
+        {
+            AppContext.SetData("EntryPointFilePath", appHostFilePath);
+
+            var options = new DistributedApplicationOptions
+            {
+                ProjectDirectory = null
+            };
+
+            Assert.Equal("Tailspin", options.DashboardApplicationName);
+        }
+        finally
+        {
+            AppContext.SetData("EntryPointFilePath", originalEntryPointFilePath);
+        }
+    }
+
+    [Fact]
+    public void DashboardApplicationName_DoesNotOverrideCsprojAppHosts()
+    {
+        var projectDirectory = OperatingSystem.IsWindows() ? @"C:\projects\Fabrikam" : "/projects/Fabrikam";
+        var appHostFilePath = OperatingSystem.IsWindows() ? @"C:\projects\Fabrikam\Fabrikam.AppHost.csproj" : "/projects/Fabrikam/Fabrikam.AppHost.csproj";
+        var options = new DistributedApplicationOptions
+        {
+            ProjectDirectory = projectDirectory,
+            AppHostFilePath = appHostFilePath
+        };
+
+        Assert.Null(options.DashboardApplicationName);
+    }
 }
