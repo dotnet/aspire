@@ -133,7 +133,8 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
     private bool TryGetContainerImageName(IResource resourceInstance, out string? containerImageName)
     {
-        // First try to get the container image name from annotations
+        // Try to get the container image name from the resource's image configuration
+        // (e.g., DockerfileBuildAnnotation image name, ContainerImageAnnotation, etc.)
         if (resourceInstance.TryGetContainerImageName(out containerImageName))
         {
             return true;
