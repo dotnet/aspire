@@ -174,6 +174,7 @@
     flex-direction: column;
     row-gap: 12px;
     width: 100%;
+    margin-bottom: 4px;
 }
 
 ::deep .span-details-layout, ::deep .property-grid-container {
@@ -214,6 +215,11 @@
 
 ::deep .display-error-message {
     color: var(--error);
+}
+
+::deep .error-message-text {
+    color: var(--error);
+    font-weight: 500;
 }
 
 ::deep .display-error-content {

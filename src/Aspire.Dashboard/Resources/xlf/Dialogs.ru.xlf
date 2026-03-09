@@ -277,6 +277,11 @@
         <target state="translated">Инструменты</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIUnexpectedOrTruncatedContent">
+        <source>Unexpected or truncated message content.</source>
+        <target state="new">Unexpected or truncated message content.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
         <target state="translated">Навигация на уровне сайта</target>
