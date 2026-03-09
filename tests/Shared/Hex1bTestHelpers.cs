@@ -279,14 +279,21 @@ internal static class Hex1bTestHelpers
     /// Handles the agent init confirmation prompt that appears after <c>aspire init</c> or <c>aspire new</c>.
     /// Declines the prompt so the command exits cleanly.
     /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="timeout">
+    /// How long to wait for the prompt. This must cover the time for project creation
+    /// (<c>dotnet new</c>) to finish plus the prompt appearing. Defaults to 120 seconds
+    /// to accommodate slow CI environments (e.g., when KinD clusters are running).
+    /// </param>
     internal static Hex1bTerminalInputSequenceBuilder DeclineAgentInitPrompt(
-        this Hex1bTerminalInputSequenceBuilder builder)
+        this Hex1bTerminalInputSequenceBuilder builder,
+        TimeSpan? timeout = null)
     {
         var agentInitPrompt = new CellPatternSearcher()
             .Find("configure AI agent environments");
 
         return builder
-            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+            .WaitUntil(s => agentInitPrompt.Search(s).Count > 0, timeout ?? TimeSpan.FromSeconds(120))
             .Wait(500)
             .Type("n")
             .Enter();

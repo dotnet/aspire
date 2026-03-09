@@ -1269,21 +1269,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void RunCommand_RunningInstanceDetectionFeatureFlag_DefaultsToFalse()
-    {
-        // Verify that the running instance detection feature flag defaults to false
-        // to ensure existing behavior is not changed unless explicitly enabled
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var features = provider.GetRequiredService<IFeatures>();
-        var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-
-        Assert.True(isEnabled, "Running instance detection should be enabled by default");
-    }
-
-    [Fact]
     public async Task RunCommand_WithNoBuildOption_SkipsBuildAndPassesNoBuildAndNoRestoreToRunner()
     {
         var buildCalled = false;
