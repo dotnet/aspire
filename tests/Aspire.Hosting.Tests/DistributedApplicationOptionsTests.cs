@@ -146,24 +146,14 @@ public class DistributedApplicationOptionsTests
     [Fact]
     public void DashboardApplicationName_UsesAppHostDirectory_WhenProjectDirectoryIsNotSet()
     {
-        var originalEntryPointFilePath = AppContext.GetData("EntryPointFilePath");
         var appHostFilePath = OperatingSystem.IsWindows() ? @"C:\projects\Tailspin\apphost.cs" : "/projects/Tailspin/apphost.cs";
-
-        try
+        var options = new DistributedApplicationOptions
         {
-            AppContext.SetData("EntryPointFilePath", appHostFilePath);
+            ProjectDirectory = null,
+            AppHostFilePath = appHostFilePath
+        };
 
-            var options = new DistributedApplicationOptions
-            {
-                ProjectDirectory = null
-            };
-
-            Assert.Equal("Tailspin", options.DashboardApplicationName);
-        }
-        finally
-        {
-            AppContext.SetData("EntryPointFilePath", originalEntryPointFilePath);
-        }
+        Assert.Equal("Tailspin", options.DashboardApplicationName);
     }
 
     [Fact]
