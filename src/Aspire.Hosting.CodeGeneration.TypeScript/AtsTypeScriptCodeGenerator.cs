@@ -122,6 +122,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Mapping of enum type IDs to TypeScript enum names
     private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
 
+    // Set of DTO type IDs that need callback marshalling before being passed to RPC
+    private readonly HashSet<string> _dtosNeedingMarshalling = new(StringComparer.Ordinal);
+
+    // Map from DTO type ID to AtsDtoTypeInfo for property lookup during marshalling
+    private readonly Dictionary<string, AtsDtoTypeInfo> _dtoInfoByTypeId = new(StringComparer.Ordinal);
+
     /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
     /// </summary>
@@ -457,6 +463,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         _generatedOptionsInterfaces.Clear();
         _optionsInterfacesToGenerate.Clear();
         _capabilityOptionsInterfaceMap.Clear();
+        _dtosNeedingMarshalling.Clear();
+        _dtoInfoByTypeId.Clear();
 
         foreach (var builder in resourceBuilders)
         {
@@ -493,6 +501,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate collected options interfaces
         GenerateOptionsInterfaces();
+
+        // Compute which DTOs need callback marshalling and generate marshal functions
+        ComputeDtosNeedingMarshalling(dtoTypes);
+        GenerateDtoMarshalFunctions(dtoTypes);
 
         // Generate type classes (context types and wrapper types)
         foreach (var typeClass in typeClasses)
@@ -1133,7 +1145,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
             else
             {
-                requiredArgs.Add(param.Name);
+                var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type);
+                if (marshaledValue == param.Name)
+                {
+                    requiredArgs.Add(param.Name);
+                }
+                else
+                {
+                    requiredArgs.Add($"{param.Name}: {marshaledValue}");
+                }
             }
         }
 
@@ -1143,10 +1163,17 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         foreach (var param in optionalParams)
         {
             var isCancellation = cancellationParamNames.Contains(param.Name);
-            var argName = param.IsCallback || isCancellation ? $"{param.Name}Id" : param.Name;
+            string argValue;
+            if (param.IsCallback || isCancellation)
+            {
+                argValue = $"{param.Name}Id";
+            }
+            else
+            {
+                argValue = GetMarshalledArgExpression(param.Name, param.Type);
+            }
             var paramName = param.Name;
-            // Use the actual parameter name for the RPC call
-            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{paramName} = {argName};");
+            WriteLine($"        if ({paramName} !== undefined) rpcArgs.{paramName} = {argValue};");
         }
     }
 
@@ -1294,7 +1321,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
-            paramArgs.Add(param.Name);
+            var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type, "client");
+            if (marshaledValue == param.Name)
+            {
+                paramArgs.Add(param.Name);
+            }
+            else
+            {
+                paramArgs.Add($"{param.Name}: {marshaledValue}");
+            }
         }
 
         var paramsString = string.Join(", ", paramDefs);
@@ -2063,12 +2098,21 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var requiredArgs = new List<string> { $"{targetParamName}: this._handle" };
         foreach (var param in requiredParams)
         {
-            requiredArgs.Add(param.Name);
+            var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type);
+            if (marshaledValue == param.Name)
+            {
+                requiredArgs.Add(param.Name);
+            }
+            else
+            {
+                requiredArgs.Add($"{param.Name}: {marshaledValue}");
+            }
         }
         WriteLine($"        const rpcArgs: Record<string, unknown> = {{ {string.Join(", ", requiredArgs)} }};");
         foreach (var param in optionalParams)
         {
-            WriteLine($"        if ({param.Name} !== undefined) rpcArgs.{param.Name} = {param.Name};");
+            var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type);
+            WriteLine($"        if ({param.Name} !== undefined) rpcArgs.{param.Name} = {marshaledValue};");
         }
 
         if (returnType == "void")
@@ -2141,12 +2185,21 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var requiredArgs = new List<string> { $"{firstParamName}: this._handle" };
         foreach (var param in requiredParams)
         {
-            requiredArgs.Add(param.Name);
+            var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type);
+            if (marshaledValue == param.Name)
+            {
+                requiredArgs.Add(param.Name);
+            }
+            else
+            {
+                requiredArgs.Add($"{param.Name}: {marshaledValue}");
+            }
         }
         WriteLine($"        const rpcArgs: Record<string, unknown> = {{ {string.Join(", ", requiredArgs)} }};");
         foreach (var param in optionalParams)
         {
-            WriteLine($"        if ({param.Name} !== undefined) rpcArgs.{param.Name} = {param.Name};");
+            var marshaledValue = GetMarshalledArgExpression(param.Name, param.Type);
+            WriteLine($"        if ({param.Name} !== undefined) rpcArgs.{param.Name} = {marshaledValue};");
         }
 
         if (returnType == "void")
@@ -2803,5 +2856,209 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         return null;
+    }
+
+    // ============================================================================
+    // DTO Callback Marshalling
+    // ============================================================================
+
+    /// <summary>
+    /// Computes which DTO types need callback marshalling before being passed to RPC.
+    /// A DTO needs marshalling if it has callback properties or nested DTOs with callbacks.
+    /// </summary>
+    private void ComputeDtosNeedingMarshalling(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    {
+        foreach (var dto in dtoTypes)
+        {
+            _dtoInfoByTypeId[dto.TypeId] = dto;
+        }
+
+        foreach (var dto in dtoTypes)
+        {
+            if (DtoNeedsMarshalling(dto, new HashSet<string>(StringComparer.Ordinal)))
+            {
+                _dtosNeedingMarshalling.Add(dto.TypeId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks if a DTO type needs marshalling (has callback properties or nested DTOs with callbacks).
+    /// </summary>
+    private bool DtoNeedsMarshalling(AtsDtoTypeInfo dto, HashSet<string> visited)
+    {
+        if (!visited.Add(dto.TypeId))
+        {
+            return false;
+        }
+
+        foreach (var prop in dto.Properties)
+        {
+            if (prop.Type.Category == AtsTypeCategory.Callback)
+            {
+                return true;
+            }
+            if (prop.Type.Category == AtsTypeCategory.Dto &&
+                _dtoInfoByTypeId.TryGetValue(prop.Type.TypeId, out var nestedDto) &&
+                DtoNeedsMarshalling(nestedDto, visited))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Gets a marshalled argument expression, wrapping in a marshal function call if the type is a DTO with callbacks.
+    /// </summary>
+    private string GetMarshalledArgExpression(string argExpr, AtsTypeRef? typeRef, string clientVarName = "this._client")
+    {
+        if (typeRef?.Category == AtsTypeCategory.Dto && _dtosNeedingMarshalling.Contains(typeRef.TypeId))
+        {
+            return $"{GetMarshalFunctionName(typeRef.TypeId)}({argExpr}, {clientVarName})";
+        }
+        return argExpr;
+    }
+
+    /// <summary>
+    /// Gets the marshal function name for a DTO type.
+    /// </summary>
+    private static string GetMarshalFunctionName(string typeId)
+    {
+        return $"marshal{GetDtoInterfaceName(typeId)}";
+    }
+
+    /// <summary>
+    /// Generates TypeScript marshalling functions for DTOs that have callback properties.
+    /// These functions replace callback-typed properties with registered callback IDs.
+    /// </summary>
+    private void GenerateDtoMarshalFunctions(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    {
+        var dtosToMarshal = dtoTypes.Where(d => _dtosNeedingMarshalling.Contains(d.TypeId)).OrderBy(d => d.Name).ToList();
+        if (dtosToMarshal.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// DTO Marshalling Functions");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var dto in dtosToMarshal)
+        {
+            var interfaceName = GetDtoInterfaceName(dto.TypeId);
+            var funcName = GetMarshalFunctionName(dto.TypeId);
+
+            WriteLine($"function {funcName}(dto: {interfaceName}, client: AspireClientRpc): Record<string, unknown> {{");
+            WriteLine("    const result: Record<string, unknown> = {};");
+
+            foreach (var prop in dto.Properties)
+            {
+                var propName = ToCamelCase(prop.Name);
+
+                if (prop.Type.Category == AtsTypeCategory.Callback)
+                {
+                    GenerateDtoCallbackPropertyMarshal(propName, prop.Type);
+                }
+                else if (prop.Type.Category == AtsTypeCategory.Dto && _dtosNeedingMarshalling.Contains(prop.Type.TypeId))
+                {
+                    var nestedMarshalFunc = GetMarshalFunctionName(prop.Type.TypeId);
+                    WriteLine($"    if (dto.{propName} !== undefined) result.{propName} = {nestedMarshalFunc}(dto.{propName}, client);");
+                }
+                else
+                {
+                    WriteLine($"    if (dto.{propName} !== undefined) result.{propName} = dto.{propName};");
+                }
+            }
+
+            WriteLine("    return result;");
+            WriteLine("}");
+            WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Generates the callback registration code for a single callback-typed DTO property.
+    /// </summary>
+    private void GenerateDtoCallbackPropertyMarshal(string propName, AtsTypeRef typeRef)
+    {
+        var callbackParams = typeRef.CallbackParameters;
+        var callbackReturn = typeRef.CallbackReturnType;
+        var hasReturn = callbackReturn != null && callbackReturn.TypeId != AtsConstants.Void;
+
+        string paramSignature;
+        if (callbackParams is null || callbackParams.Count == 0)
+        {
+            paramSignature = "";
+        }
+        else if (callbackParams.Count == 1)
+        {
+            paramSignature = $"{callbackParams[0].Name}Data: unknown";
+        }
+        else
+        {
+            paramSignature = "argsData: unknown";
+        }
+
+        WriteLine($"    if (dto.{propName} !== undefined) {{");
+        WriteLine($"        result.{propName} = registerCallback(async ({paramSignature}) => {{");
+
+        if (callbackParams is null || callbackParams.Count == 0)
+        {
+            var returnPrefix = hasReturn ? "return " : "";
+            WriteLine($"            {returnPrefix}await dto.{propName}!();");
+        }
+        else if (callbackParams.Count == 1)
+        {
+            var cbParam = callbackParams[0];
+            var tsType = MapTypeRefToTypeScript(cbParam.Type);
+
+            if (_wrapperClassNames.TryGetValue(cbParam.Type.TypeId, out var wrapperClassName))
+            {
+                var handleType = GetHandleTypeName(cbParam.Type.TypeId);
+                WriteLine($"            const {cbParam.Name}Handle = wrapIfHandle({cbParam.Name}Data) as {handleType};");
+                WriteLine($"            const {cbParam.Name} = new {wrapperClassName}({cbParam.Name}Handle, client);");
+            }
+            else
+            {
+                WriteLine($"            const {cbParam.Name} = wrapIfHandle({cbParam.Name}Data) as {tsType};");
+            }
+
+            var returnPrefix = hasReturn ? "return " : "";
+            WriteLine($"            {returnPrefix}await dto.{propName}!({cbParam.Name});");
+        }
+        else
+        {
+            var paramNames = callbackParams.Select((_, i) => $"p{i}").ToList();
+            var destructureWithTypes = string.Join(", ", paramNames.Select(p => $"{p}: unknown"));
+
+            WriteLine($"            const args = argsData as {{ {destructureWithTypes} }};");
+
+            var callArgs = new List<string>();
+            for (var i = 0; i < callbackParams.Count; i++)
+            {
+                var cbParam = callbackParams[i];
+                var tsType = MapTypeRefToTypeScript(cbParam.Type);
+
+                if (_wrapperClassNames.TryGetValue(cbParam.Type.TypeId, out var wrapperClassName))
+                {
+                    var handleType = GetHandleTypeName(cbParam.Type.TypeId);
+                    WriteLine($"            const {cbParam.Name}Handle = wrapIfHandle(args.p{i}) as {handleType};");
+                    WriteLine($"            const {cbParam.Name} = new {wrapperClassName}({cbParam.Name}Handle, client);");
+                }
+                else
+                {
+                    WriteLine($"            const {cbParam.Name} = wrapIfHandle(args.p{i}) as {tsType};");
+                }
+                callArgs.Add(cbParam.Name);
+            }
+
+            var returnPrefix = hasReturn ? "return " : "";
+            WriteLine($"            {returnPrefix}await dto.{propName}!({string.Join(", ", callArgs)});");
+        }
+
+        WriteLine("        });");
+        WriteLine("    }");
     }
 }

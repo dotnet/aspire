@@ -589,6 +589,52 @@ export interface WithVolumeOptions {
 }
 
 // ============================================================================
+// DTO Marshalling Functions
+// ============================================================================
+
+function marshalCommandOptions(dto: CommandOptions, client: AspireClientRpc): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    if (dto.description !== undefined) result.description = dto.description;
+    if (dto.parameter !== undefined) result.parameter = dto.parameter;
+    if (dto.confirmationMessage !== undefined) result.confirmationMessage = dto.confirmationMessage;
+    if (dto.iconName !== undefined) result.iconName = dto.iconName;
+    if (dto.iconVariant !== undefined) result.iconVariant = dto.iconVariant;
+    if (dto.isHighlighted !== undefined) result.isHighlighted = dto.isHighlighted;
+    if (dto.updateState !== undefined) {
+        result.updateState = registerCallback(async (argData: unknown) => {
+            const arg = wrapIfHandle(argData) as UpdateCommandStateContextHandle;
+            return await dto.updateState!(arg);
+        });
+    }
+    return result;
+}
+
+function marshalTestDtoWithCallbacks(dto: TestDtoWithCallbacks, client: AspireClientRpc): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    if (dto.name !== undefined) result.name = dto.name;
+    if (dto.updateState !== undefined) {
+        result.updateState = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as TestDtoStateContextHandle;
+            const arg = new TestDtoStateContext(argHandle, client);
+            return await dto.updateState!(arg);
+        });
+    }
+    if (dto.validate !== undefined) {
+        result.validate = registerCallback(async (argData: unknown) => {
+            const arg = wrapIfHandle(argData) as string;
+            return await dto.validate!(arg);
+        });
+    }
+    if (dto.onChanged !== undefined) {
+        result.onChanged = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as string;
+            await dto.onChanged!(obj);
+        });
+    }
+    return result;
+}
+
+// ============================================================================
 // CommandLineArgsCallbackContext
 // ============================================================================
 
@@ -2631,7 +2677,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -3504,7 +3550,7 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -4853,7 +4899,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -6568,7 +6614,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -8408,7 +8454,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -10128,7 +10174,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -11266,7 +11312,7 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -12086,7 +12132,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -13455,7 +13501,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -15393,7 +15439,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -17465,7 +17511,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -19749,7 +19795,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs
@@ -21045,7 +21091,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
             return await executeCommand(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, displayName, executeCommand: executeCommandId };
-        if (commandOptions !== undefined) rpcArgs.commandOptions = commandOptions;
+        if (commandOptions !== undefined) rpcArgs.commandOptions = marshalCommandOptions(commandOptions, this._client);
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting/withCommand',
             rpcArgs

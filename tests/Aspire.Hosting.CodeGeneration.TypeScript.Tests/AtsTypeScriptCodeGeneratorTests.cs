@@ -1197,6 +1197,33 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("=> Promise<void>", code);
     }
 
+    [Fact]
+    public void Generate_DtoWithCallbacks_GeneratesMarshalFunction()
+    {
+        var code = GenerateTwoPassCode();
+
+        // Should generate a marshal function for DTOs with callbacks
+        Assert.Contains("function marshalTestDtoWithCallbacks(dto: TestDtoWithCallbacks, client: AspireClientRpc)", code);
+
+        // Marshal function should use registerCallback for callback properties
+        Assert.Contains("registerCallback(async", code);
+
+        // Plain properties should be copied as-is
+        Assert.Contains("if (dto.name !== undefined) result.name = dto.name;", code);
+    }
+
+    [Fact]
+    public void Generate_CommandOptionsMarshal_RegistersUpdateStateCallback()
+    {
+        var code = GenerateTwoPassCode();
+
+        // CommandOptions from Aspire.Hosting should also get a marshal function
+        Assert.Contains("function marshalCommandOptions(dto: CommandOptions, client: AspireClientRpc)", code);
+
+        // The updateState callback property should be marshalled with registerCallback
+        Assert.Contains("result.updateState = registerCallback(", code);
+    }
+
     // ===== Enum Generation Tests =====
 
     [Fact]

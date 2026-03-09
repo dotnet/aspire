@@ -160,6 +160,35 @@ export interface WithPersistenceOptions {
 }
 
 // ============================================================================
+// DTO Marshalling Functions
+// ============================================================================
+
+function marshalTestDtoWithCallbacks(dto: TestDtoWithCallbacks, client: AspireClientRpc): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    if (dto.name !== undefined) result.name = dto.name;
+    if (dto.updateState !== undefined) {
+        result.updateState = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as TestDtoStateContextHandle;
+            const arg = new TestDtoStateContext(argHandle, client);
+            return await dto.updateState!(arg);
+        });
+    }
+    if (dto.validate !== undefined) {
+        result.validate = registerCallback(async (argData: unknown) => {
+            const arg = wrapIfHandle(argData) as string;
+            return await dto.validate!(arg);
+        });
+    }
+    if (dto.onChanged !== undefined) {
+        result.onChanged = registerCallback(async (objData: unknown) => {
+            const obj = wrapIfHandle(objData) as string;
+            await dto.onChanged!(obj);
+        });
+    }
+    return result;
+}
+
+// ============================================================================
 // TestCallbackContext
 // ============================================================================
 
