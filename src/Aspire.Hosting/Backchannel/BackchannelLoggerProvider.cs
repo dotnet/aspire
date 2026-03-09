@@ -6,9 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Backchannel;
 
-internal interface IBackchannelLoggerProvider : ILoggerProvider;
-
-internal class BackchannelLoggerProvider : IBackchannelLoggerProvider
+internal class BackchannelLoggerProvider : ILoggerProvider
 {
     private readonly Queue<BackchannelLogEntry> _replayBuffer = new();
     private readonly object _lock = new();

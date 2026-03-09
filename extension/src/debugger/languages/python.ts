@@ -22,7 +22,6 @@ export const pythonDebuggerExtension: ResourceDebuggerExtension = {
     getDisplayName: (launchConfiguration: ExecutableLaunchConfiguration) => `Python: ${vscode.workspace.asRelativePath(getProjectFile(launchConfiguration))}`,
     getSupportedFileTypes: () => ['.py'],
     getProjectFile: (launchConfig) => getProjectFile(launchConfig),
-    isDeprecated: true,
     createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
         if (!isPythonLaunchConfiguration(launchConfig)) {
             extensionLogOutputChannel.info(`The resource type was not python for ${JSON.stringify(launchConfig)}`);

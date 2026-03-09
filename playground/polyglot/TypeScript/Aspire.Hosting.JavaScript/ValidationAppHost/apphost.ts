@@ -3,7 +3,6 @@ import { createBuilder } from './.modules/aspire.js';
 const builder = await createBuilder();
 
 const nodeApp = await builder.addNodeApp('node-app', './node-app', 'server.js');
-await nodeApp.withScriptDebugging('server.js');
 await nodeApp.withNpm({ install: false, installCommand: 'install', installArgs: ['--ignore-scripts'] });
 await nodeApp.withBun({ install: false, installArgs: ['--frozen-lockfile'] });
 await nodeApp.withYarn({ install: false, installArgs: ['--immutable'] });
@@ -15,11 +14,9 @@ const javaScriptApp = await builder.addJavaScriptApp('javascript-app', './javasc
 await javaScriptApp.withEnvironment('NODE_ENV', 'development');
 
 const viteApp = await builder.addViteApp('vite-app', './vite-app', { runScriptName: 'dev' });
-await viteApp.withDebugging();
 await viteApp.withViteConfig('./vite.custom.config.ts');
 await viteApp.withPnpm({ install: false, installArgs: ['--prod'] });
 await viteApp.withBuildScript('build', { args: ['--mode', 'production'] });
 await viteApp.withRunScript('dev', { args: ['--host'] });
-await viteApp.withBrowserDebugger({ browser: 'chrome' });
 
 await builder.build().run();

@@ -106,9 +106,9 @@ export default class AspireDcpServer {
                 }
 
                 const launchConfig = payload.launch_configurations[0];
-                const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type);
+                const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
 
-                if (!foundDebuggerExtension && !launchConfig.debugger_properties) {
+                if (!foundDebuggerExtension) {
                     const error: ErrorDetails = {
                         code: 'UnsupportedLaunchConfiguration',
                         message: `Unsupported launch configuration type: ${launchConfig.type}`,
