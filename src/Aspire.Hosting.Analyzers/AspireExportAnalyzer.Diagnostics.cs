@@ -81,6 +81,26 @@ public partial class AspireExportAnalyzer
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{DuplicateExportIdId}",
             customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
+        private const string MissingExportAttributeId = "ASPIRE014";
+        internal static readonly DiagnosticDescriptor s_missingExportAttribute = new(
+            id: MissingExportAttributeId,
+            title: "Extension method missing AspireExport or AspireExportIgnore attribute",
+            messageFormat: "Extension method '{0}' on builder type is missing [AspireExport] or [AspireExportIgnore]: {1}",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{MissingExportAttributeId}");
+
+        private const string ExportNameShouldBeUniqueId = "ASPIRE015";
+        internal static readonly DiagnosticDescriptor s_exportNameShouldBeUnique = new(
+            id: ExportNameShouldBeUniqueId,
+            title: "Export name should be unique for methods targeting a specific resource type",
+            messageFormat: "Export name '{0}' on method '{1}' may collide across integrations because it targets IResourceBuilder<{2}>. Use a unique name like '{3}'.",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportNameShouldBeUniqueId}");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_exportMethodMustBeStatic,
             s_invalidExportIdFormat,
@@ -88,7 +108,9 @@ public partial class AspireExportAnalyzer
             s_parameterTypeMustBeAtsCompatible,
             s_unionRequiresAtLeastTwoTypes,
             s_unionTypeMustBeAtsCompatible,
-            s_duplicateExportId
+            s_duplicateExportId,
+            s_missingExportAttribute,
+            s_exportNameShouldBeUnique
         );
     }
 }

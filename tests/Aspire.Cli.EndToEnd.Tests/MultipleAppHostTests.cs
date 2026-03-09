@@ -9,7 +9,7 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// Tests that <c>aspire run --detach --format json</c> produces well-formed JSON
+/// Tests that <c>aspire start --format json</c> produces well-formed JSON
 /// without human-readable messages polluting stdout.
 /// </summary>
 public sealed class MultipleAppHostTests(ITestOutputHelper output)
@@ -52,7 +52,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         // First: launch the apphost with --detach (interactive, no JSON)
         // Just wait for the command to complete (WaitForSuccessPrompt waits for the shell prompt)
         sequenceBuilder
-            .Type("aspire run --detach")
+            .Type("aspire start")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -63,7 +63,7 @@ public sealed class MultipleAppHostTests(ITestOutputHelper output)
         // stderr is left visible in the terminal for debugging (human-readable messages go to stderr
         // when --format json is used, which is exactly what this PR validates).
         sequenceBuilder
-            .Type("aspire run --detach --format json > output.json")
+            .Type("aspire start --format json > output.json")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

@@ -53,8 +53,8 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -161,7 +161,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Start the AppHost in detached mode (locks the project file)
-        sequenceBuilder.Type("aspire run --detach")
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -244,7 +244,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Start the AppHost in detached mode (locks the project file)
-        sequenceBuilder.Type("aspire run --detach")
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);

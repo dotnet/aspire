@@ -136,6 +136,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>InteractionServiceStrings.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\RestoreCommandStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RestoreCommandStrings.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\TemplatingStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -293,6 +298,13 @@
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>McpCommandStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\RestoreCommandStrings.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>RestoreCommandStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\ExportCommandStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>

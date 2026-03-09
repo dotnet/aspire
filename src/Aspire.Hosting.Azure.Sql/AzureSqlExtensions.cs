@@ -373,6 +373,9 @@ public static class AzureSqlExtensions
     /// Ensure the subnet has outbound network security rules allowing access to Azure Active Directory (port 443)
     /// and SQL (port 443) service tags.
     /// </para>
+    /// <para>
+    /// This method is not available in polyglot app hosts.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Provide a custom ACI subnet for the deployment script:
@@ -386,6 +389,7 @@ public static class AzureSqlExtensions
     /// peSubnet.AddPrivateEndpoint(sql);
     /// </code>
     /// </example>
+    [AspireExportIgnore(Reason = "Azure subnet resources are not currently available to polyglot app hosts.")]
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptSubnet(
         this IResourceBuilder<AzureSqlServerResource> builder,
@@ -434,6 +438,7 @@ public static class AzureSqlExtensions
     /// peSubnet.AddPrivateEndpoint(sql);
     /// </code>
     /// </example>
+    [AspireExport("withAdminDeploymentScriptStorage", Description = "Configures the Azure SQL server to use a specific storage account for deployment scripts")]
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureSqlServerResource> WithAdminDeploymentScriptStorage(
         this IResourceBuilder<AzureSqlServerResource> builder,

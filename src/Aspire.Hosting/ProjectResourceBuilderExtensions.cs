@@ -61,7 +61,9 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <remarks>This method is not available in polyglot app hosts. Use the overload with projectPath instead.</remarks>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Uses IProjectMetadata generic constraint which is a .NET-specific type.")]
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -94,7 +96,9 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <remarks>This method is not available in polyglot app hosts. Use the overload with projectPath and launchProfileName instead.</remarks>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Use the overload with launchProfileName for full control.")]
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -141,7 +145,9 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <remarks>This method is not available in polyglot app hosts. Use the overload with projectPath instead.</remarks>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Uses IProjectMetadata generic constraint which is a .NET-specific type.")]
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -229,7 +235,9 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
+    /// <remarks>This method is not available in polyglot app hosts. Use the overload with projectPath instead.</remarks>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Uses IProjectMetadata generic constraint which is a .NET-specific type.")]
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -273,6 +281,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addProjectWithOptions", Description = "Adds a project resource with configuration options")]
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -318,6 +327,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExport("addCSharpApp", Description = "Adds a C# application resource")]
     public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -353,6 +363,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExport("addCSharpAppWithOptions", Description = "Adds a C# application resource with configuration options")]
     public static IResourceBuilder<CSharpAppResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -765,6 +776,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("disableForwardedHeaders", Description = "Disables forwarded headers for the project")]
     public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -780,6 +792,8 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The project resource builder.</param>
     /// <param name="filter">The filter callback that returns true if and only if the endpoint should be included.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Uses Func<EndpointAnnotation, bool> which is not ATS-compatible.")]
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
@@ -805,6 +819,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("publishAsDockerFileWithConfigure", Description = "Publishes a project as a Docker file with optional container configuration")]
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure = null)
         where T : ProjectResource
     {
@@ -869,7 +884,9 @@ public static class ProjectResourceBuilderExtensions
     /// This method configures the project resource to support debugging via the Aspire debugger.
     /// It sets up the necessary launch configuration based on the provided project path. This method is only necessary for inheritors of ProjectResource.
     /// </remarks>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [AspireExportIgnore(Reason = "Debugging .NET projects from a polyglot host is not meaningful.")]
     public static IResourceBuilder<TProjectResource> WithDebugging<TProjectResource>(this IResourceBuilder<TProjectResource> builder, string projectPath)
         where TProjectResource : ProjectResource
     {

@@ -83,20 +83,33 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action, emoji, allowMarkup).ConfigureAwait(false);
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
-        return value;
+        try
+        {
+            return await _consoleInteractionService.ShowStatusAsync(statusText, action, emoji, allowMarkup).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.ShowStatus(statusText, action, emoji, allowMarkup);
 
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
+        try
+        {
+            _consoleInteractionService.ShowStatus(statusText, action, emoji, allowMarkup);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)

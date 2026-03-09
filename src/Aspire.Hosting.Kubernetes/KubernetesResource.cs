@@ -12,6 +12,7 @@ namespace Aspire.Hosting.Kubernetes;
 /// <summary>
 /// Represents a compute resource for Kubernetes.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public partial class KubernetesResource(string name, IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : Resource(name), IResourceWithParent<KubernetesEnvironmentResource>
 {
     /// <inheritdoc/>

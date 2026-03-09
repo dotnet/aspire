@@ -68,8 +68,8 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -189,8 +189,8 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
             output.WriteLine($"Modified AppHost.cs to add .WithReplicas(2) to apiservice");
         });
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
