@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 // Third-party mock attribute types defined in a separate namespace.
-// These mirror the shape of the official Aspire.Hosting ATS attributes
-// but live in a completely different namespace, simulating what a
-// third-party integration author would define in their own project.
+// These mirror the shape of the official Aspire.Hosting ATS attributes,
+// but their different namespace makes them negative test cases for
+// full-name matching.
 
 namespace Aspire.Hosting.Tests.Ats.ThirdParty;
 

@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// Provides full-name-based discovery of ATS attributes from <see cref="CustomAttributeData"/>,
-/// so that third-party authors can define their own attribute types with matching names and namespace
+/// so that third-party authors can define their own attribute types with the same full name
 /// without requiring a package reference to Aspire.Hosting.
 /// </summary>
 internal static class AttributeDataReader
