@@ -98,7 +98,7 @@ impl ReferenceExpression {
     pub fn to_json(&self) -> Value {
         if self.is_conditional {
             return json!({
-                "$refExpr": {
+                "$expr": {
                     "condition": serialize_value(self.condition.clone().unwrap()),
                     "whenTrue": self.when_true.as_ref().unwrap().to_json(),
                     "whenFalse": self.when_false.as_ref().unwrap().to_json(),
@@ -107,7 +107,7 @@ impl ReferenceExpression {
             });
         }
         json!({
-            "$refExpr": {
+            "$expr": {
                 "format": self.format.as_deref().unwrap_or_default(),
                 "args": self.args.as_deref().unwrap_or_default()
             }

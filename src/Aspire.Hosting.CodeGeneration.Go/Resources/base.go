@@ -78,7 +78,7 @@ func RefExpr(format string, args ...any) *ReferenceExpression {
 func (r *ReferenceExpression) ToJSON() map[string]any {
 	if r.isConditional {
 		return map[string]any{
-			"$refExpr": map[string]any{
+			"$expr": map[string]any{
 				"condition":  SerializeValue(r.Condition),
 				"whenTrue":   r.WhenTrue.ToJSON(),
 				"whenFalse":  r.WhenFalse.ToJSON(),
@@ -87,7 +87,7 @@ func (r *ReferenceExpression) ToJSON() map[string]any {
 		}
 	}
 	return map[string]any{
-		"$refExpr": map[string]any{
+		"$expr": map[string]any{
 			"format": r.Format,
 			"args":   r.Args,
 		},
