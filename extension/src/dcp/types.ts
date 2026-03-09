@@ -54,6 +54,17 @@ export function isNodeLaunchConfiguration(obj: any): obj is NodeLaunchConfigurat
     return obj && obj.type === 'node';
 }
 
+export interface BrowserLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "browser";
+    url?: string;
+    web_root?: string;
+    browser?: string;
+}
+
+export function isBrowserLaunchConfiguration(obj: any): obj is BrowserLaunchConfiguration {
+    return obj && obj.type === 'browser';
+}
+
 export interface EnvVar {
     name: string;
     value: string;

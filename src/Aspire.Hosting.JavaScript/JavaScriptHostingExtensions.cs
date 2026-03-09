@@ -9,6 +9,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.JavaScript;
@@ -27,6 +28,9 @@ namespace Aspire.Hosting;
 public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
+
+    // This must match the value in Aspire.Cli KnownCapabilities.Browser
+    private const string BrowserCapability = "browser";
 
     // This is the order of config files that Vite will look for by default
     // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
@@ -986,6 +990,82 @@ public static class JavaScriptHostingExtensions
                 RuntimeExecutable = packageManager
             },
             "node");
+    }
+
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    internal static IResourceBuilder<T> WithBrowserDebugger<T>(
+        this IResourceBuilder<T> builder,
+        string browser = "msedge")
+        where T : JavaScriptAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Validate that the extension supports browser debugging if we're running in an extension context
+        ValidateBrowserCapability(builder);
+
+        var parentResource = builder.Resource;
+        var debuggerResourceName = $"{parentResource.Name}-browser";
+
+        // Find the parent's HTTP/HTTPS endpoint
+        EndpointAnnotation? endpointAnnotation = null;
+        if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+        {
+            endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
+                ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
+        }
+
+        if (endpointAnnotation is null)
+        {
+            throw new InvalidOperationException(
+                $"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
+        }
+
+        var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
+
+        var debuggerResource = new BrowserDebuggerResource(debuggerResourceName, browser, parentResource.WorkingDirectory);
+
+        builder.ApplicationBuilder.AddResource(debuggerResource)
+            .WithParentRelationship(parentResource)
+            .WaitFor(builder)
+            .ExcludeFromManifest()
+            .WithDebugSupport(
+                mode => new BrowserLaunchConfiguration
+                {
+                    Mode = mode,
+                    Url = endpointReference.Url,
+                    WebRoot = parentResource.WorkingDirectory,
+                    Browser = browser
+                },
+                BrowserCapability);
+
+        return builder;
+    }
+
+    private static void ValidateBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
+    {
+        var configuration = builder.ApplicationBuilder.Configuration;
+
+        try
+        {
+            if (configuration["DEBUG_SESSION_INFO"] is { } debugSessionInfoJson
+                && JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is { } info
+                && info.SupportedLaunchConfigurations is not null
+                && !info.SupportedLaunchConfigurations.Contains(BrowserCapability))
+            {
+                throw new InvalidOperationException(
+                    "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");
+            }
+        }
+        catch (JsonException)
+        {
+            // If we can't parse the debug session info, skip validation
+        }
+    }
+
+    private sealed class DebugSessionCapabilities
+    {
+        [JsonPropertyName("supported_launch_configurations")]
+        public string[]? SupportedLaunchConfigurations { get; set; }
     }
 
     private static void AddInstaller<TResource>(IResourceBuilder<TResource> resource, bool install) where TResource : JavaScriptAppResource

@@ -6,9 +6,7 @@ import * as vscode from 'vscode';
 
 function getProjectFile(launchConfig: ExecutableLaunchConfiguration): string {
     if (isNodeLaunchConfiguration(launchConfig)) {
-        if (launchConfig.script_path) {
-            return launchConfig.script_path;
-        }
+        return launchConfig.script_path || '';
     }
 
     throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
@@ -33,9 +31,10 @@ export const nodeDebuggerExtension: ResourceDebuggerExtension = {
             debugConfiguration.runtimeExecutable = launchConfig.runtime_executable;
         }
 
-        // For package manager script execution (e.g., npm run dev), configure runtimeArgs
+        // For package manager script execution (e.g., npm run dev), use args directly as runtimeArgs.
+        // The args from DCP already contain the full command (e.g., ["run", "dev", "--port", "5173"]).
         if (launchConfig.runtime_executable && launchConfig.runtime_executable !== 'node') {
-            debugConfiguration.runtimeArgs = ['run', ...(args ?? [])];
+            debugConfiguration.runtimeArgs = args ?? [];
             delete debugConfiguration.args;
             delete debugConfiguration.program;
         }
