@@ -12,6 +12,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
 
@@ -277,4 +278,19 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     }
 
     private sealed record ProcessExecutionResult(int ExitCode, string StandardOutput, string StandardError);
+
+    private void DisplayPostCreationInstructions(string outputPath)
+    {
+        var currentDir = _executionContext.WorkingDirectory.FullName;
+        var relativePath = Path.GetRelativePath(currentDir, outputPath);
+
+        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), StringComparison.OrdinalIgnoreCase))
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, $"Run 'cd {relativePath.EscapeMarkup()}' and then 'aspire run' to start your AppHost.");
+        }
+        else
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
+        }
+    }
 }

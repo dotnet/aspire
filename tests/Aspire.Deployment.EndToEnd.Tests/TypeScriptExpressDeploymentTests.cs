@@ -77,7 +77,7 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
                 .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
 
             var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path:");
+                .Find("Enter the output path");
 
             var waitingForUrlsPrompt = new CellPatternSearcher()
                 .Find("Use *.dev.localhost URLs");
@@ -112,12 +112,11 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             }
 
             // Step 3: Create TypeScript Express/React project using aspire new
-            // Navigate down to "Starter App (Express/React)" which is the 4th option
+            // Navigate down to "Starter App (Express/React)" which is the 3rd option (alphabetically sorted)
             output.WriteLine("Step 3: Creating TypeScript Express/React project...");
             sequenceBuilder.Type("aspire new")
                 .Enter()
                 .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .Key(Hex1b.Input.Hex1bKey.DownArrow)
                 .WaitUntil(s => waitingForExpressReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))

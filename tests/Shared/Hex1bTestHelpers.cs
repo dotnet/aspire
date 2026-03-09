@@ -324,7 +324,7 @@ internal static class Hex1bTestHelpers
             .Find("Enter the project name");
 
         var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find("Enter the output path:");
+            .Find("Enter the output path");
 
         var waitingForUrlsPrompt = new CellPatternSearcher()
             .Find("Use *.dev.localhost URLs");
@@ -349,22 +349,22 @@ internal static class Hex1bTestHelpers
                     .Enter();
                 break;
 
-            case AspireTemplate.PythonReact:
-                var pythonReactSelected = new CellPatternSearcher()
-                    .Find("> Starter App (FastAPI/React)");
-                builder.Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
-                    .WaitUntil(s => pythonReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                    .Enter();
-                break;
-
             case AspireTemplate.ExpressReact:
                 var expressReactSelected = new CellPatternSearcher()
                     .Find("> Starter App (Express/React)");
                 builder.Key(Hex1bKey.DownArrow)
                     .Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
                     .WaitUntil(s => expressReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.PythonReact:
+                var pythonReactSelected = new CellPatternSearcher()
+                    .Find("> Starter App (FastAPI/React)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => pythonReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
                     .Enter();
                 break;
 

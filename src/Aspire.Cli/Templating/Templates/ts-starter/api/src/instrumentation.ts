@@ -1,3 +1,15 @@
+/**
+ * OpenTelemetry instrumentation for the Express API.
+ *
+ * When the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is set (automatically
+ * configured by Aspire), this module initializes the OpenTelemetry Node.js SDK to
+ * collect and export distributed traces, metrics, and logs to the Aspire dashboard.
+ *
+ * This file must be imported before any other modules to ensure all libraries
+ * are automatically instrumented.
+ *
+ * @see https://opentelemetry.io/docs/languages/js/getting-started/nodejs/
+ */
 import { env } from 'node:process';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
