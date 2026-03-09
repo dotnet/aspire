@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Processes;
 using Aspire.Cli.Projects;
@@ -24,7 +23,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class AppHostLauncher(
     IProjectLocator projectLocator,
     CliExecutionContext executionContext,
-    IFeatures features,
     IInteractionService interactionService,
     IAuxiliaryBackchannelMonitor backchannelMonitor,
     ILogger<AppHostLauncher> logger,
@@ -150,12 +148,11 @@ internal sealed class AppHostLauncher(
 
     private async Task StopExistingInstancesAsync(FileInfo effectiveAppHostFile, CancellationToken cancellationToken)
     {
-        var runningInstanceDetectionEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         var existingSockets = AppHostHelper.FindMatchingSockets(
             effectiveAppHostFile.FullName,
             executionContext.HomeDirectory.FullName);
 
-        if (runningInstanceDetectionEnabled && existingSockets.Length > 0)
+        if (existingSockets.Length > 0)
         {
             logger.LogDebug("Found {Count} running instance(s) for this AppHost, stopping them first.", existingSockets.Length);
             var manager = new RunningInstanceManager(logger, interactionService, timeProvider);
