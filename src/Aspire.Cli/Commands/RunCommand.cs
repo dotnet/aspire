@@ -140,8 +140,6 @@ internal sealed class RunCommand : BaseCommand
             Debug.Assert(_startDebugSessionOption is not null);
             startDebugSession = parseResult.GetValue(_startDebugSessionOption);
         }
-        // Force option kept for backward compatibility but no longer used since prompt was removed
-        // var force = parseResult.GetValue<bool>("--force");
 
         // Validate that --format is only used with --detach
         if (format == OutputFormat.Json && !detach)
