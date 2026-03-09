@@ -913,7 +913,7 @@
     CapabilityId: Aspire.Hosting/withRemoteImageName,
     MethodName: withRemoteImageName,
     TargetType: {
-      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource,
       IsInterface: true
     },
     ExpandedTargetTypes: [
@@ -927,7 +927,7 @@
     CapabilityId: Aspire.Hosting/withRemoteImageTag,
     MethodName: withRemoteImageTag,
     TargetType: {
-      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource,
+      TypeId: Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource,
       IsInterface: true
     },
     ExpandedTargetTypes: [

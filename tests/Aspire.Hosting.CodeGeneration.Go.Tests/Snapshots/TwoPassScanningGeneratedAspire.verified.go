@@ -1120,7 +1120,7 @@ func (s *CSharpAppResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *CSharpAppResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *CSharpAppResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -1129,11 +1129,11 @@ func (s *CSharpAppResource) WithRemoteImageName(remoteImageName string) (*IResou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *CSharpAppResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *CSharpAppResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -1142,7 +1142,7 @@ func (s *CSharpAppResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -1801,32 +1801,6 @@ func (s *ConnectionStringResource) ExcludeFromMcp() (*IResource, error) {
 	return result.(*IResource), nil
 }
 
-// WithRemoteImageName sets the remote image name for publishing
-func (s *ConnectionStringResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageName"] = SerializeValue(remoteImageName)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageTag sets the remote image tag for publishing
-func (s *ConnectionStringResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
 // WithPipelineStepFactory adds a pipeline step to the resource
 func (s *ConnectionStringResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -2321,32 +2295,6 @@ func (s *ContainerRegistryResource) ExcludeFromMcp() (*IResource, error) {
 		"builder": SerializeValue(s.Handle()),
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageName sets the remote image name for publishing
-func (s *ContainerRegistryResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageName"] = SerializeValue(remoteImageName)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageTag sets the remote image tag for publishing
-func (s *ContainerRegistryResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -3355,7 +3303,7 @@ func (s *ContainerResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *ContainerResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *ContainerResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -3364,11 +3312,11 @@ func (s *ContainerResource) WithRemoteImageName(remoteImageName string) (*IResou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *ContainerResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *ContainerResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -3377,7 +3325,7 @@ func (s *ContainerResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -4671,7 +4619,7 @@ func (s *DotnetToolResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *DotnetToolResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *DotnetToolResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -4680,11 +4628,11 @@ func (s *DotnetToolResource) WithRemoteImageName(remoteImageName string) (*IReso
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *DotnetToolResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *DotnetToolResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -4693,7 +4641,7 @@ func (s *DotnetToolResource) WithRemoteImageTag(remoteImageTag string) (*IResour
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -5991,7 +5939,7 @@ func (s *ExecutableResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *ExecutableResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *ExecutableResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -6000,11 +5948,11 @@ func (s *ExecutableResource) WithRemoteImageName(remoteImageName string) (*IReso
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *ExecutableResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *ExecutableResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -6013,7 +5961,7 @@ func (s *ExecutableResource) WithRemoteImageTag(remoteImageTag string) (*IResour
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -6596,32 +6544,6 @@ func (s *ExternalServiceResource) ExcludeFromMcp() (*IResource, error) {
 	return result.(*IResource), nil
 }
 
-// WithRemoteImageName sets the remote image name for publishing
-func (s *ExternalServiceResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageName"] = SerializeValue(remoteImageName)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageTag sets the remote image tag for publishing
-func (s *ExternalServiceResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
 // WithPipelineStepFactory adds a pipeline step to the resource
 func (s *ExternalServiceResource) WithPipelineStepFactory(stepName string, callback func(...any) any, dependsOn []string, requiredBy []string, tags []string, description string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -6858,6 +6780,18 @@ func (s *ExternalServiceResource) WithCancellableOperation(operation func(...any
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// IComputeResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource.
+type IComputeResource struct {
+	HandleWrapperBase
+}
+
+// NewIComputeResource creates a new IComputeResource.
+func NewIComputeResource(handle *Handle, client *AspireClient) *IComputeResource {
+	return &IComputeResource{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
 }
 
 // IConfiguration wraps a handle for Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration.
@@ -7719,32 +7653,6 @@ func (s *ParameterResource) ExcludeFromMcp() (*IResource, error) {
 		"builder": SerializeValue(s.Handle()),
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageName sets the remote image name for publishing
-func (s *ParameterResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageName"] = SerializeValue(remoteImageName)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithRemoteImageTag sets the remote image tag for publishing
-func (s *ParameterResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["remoteImageTag"] = SerializeValue(remoteImageTag)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -9001,7 +8909,7 @@ func (s *ProjectResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *ProjectResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *ProjectResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -9010,11 +8918,11 @@ func (s *ProjectResource) WithRemoteImageName(remoteImageName string) (*IResourc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *ProjectResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *ProjectResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -9023,7 +8931,7 @@ func (s *ProjectResource) WithRemoteImageTag(remoteImageTag string) (*IResource,
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -10718,7 +10626,7 @@ func (s *TestDatabaseResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *TestDatabaseResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *TestDatabaseResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -10727,11 +10635,11 @@ func (s *TestDatabaseResource) WithRemoteImageName(remoteImageName string) (*IRe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *TestDatabaseResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *TestDatabaseResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -10740,7 +10648,7 @@ func (s *TestDatabaseResource) WithRemoteImageTag(remoteImageTag string) (*IReso
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -12131,7 +12039,7 @@ func (s *TestRedisResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *TestRedisResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *TestRedisResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -12140,11 +12048,11 @@ func (s *TestRedisResource) WithRemoteImageName(remoteImageName string) (*IResou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *TestRedisResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *TestRedisResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -12153,7 +12061,7 @@ func (s *TestRedisResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -13677,7 +13585,7 @@ func (s *TestVaultResource) ExcludeFromMcp() (*IResource, error) {
 }
 
 // WithRemoteImageName sets the remote image name for publishing
-func (s *TestVaultResource) WithRemoteImageName(remoteImageName string) (*IResource, error) {
+func (s *TestVaultResource) WithRemoteImageName(remoteImageName string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -13686,11 +13594,11 @@ func (s *TestVaultResource) WithRemoteImageName(remoteImageName string) (*IResou
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithRemoteImageTag sets the remote image tag for publishing
-func (s *TestVaultResource) WithRemoteImageTag(remoteImageTag string) (*IResource, error) {
+func (s *TestVaultResource) WithRemoteImageTag(remoteImageTag string) (*IComputeResource, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
@@ -13699,7 +13607,7 @@ func (s *TestVaultResource) WithRemoteImageTag(remoteImageTag string) (*IResourc
 	if err != nil {
 		return nil, err
 	}
-	return result.(*IResource), nil
+	return result.(*IComputeResource), nil
 }
 
 // WithPipelineStepFactory adds a pipeline step to the resource
@@ -14171,6 +14079,9 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", func(h *Handle, c *AspireClient) any {
 		return NewIContainerFilesDestinationResource(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource", func(h *Handle, c *AspireClient) any {
+		return NewIComputeResource(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/List<string>", func(h *Handle, c *AspireClient) any {
 		return &AspireList[any]{HandleWrapperBase: NewHandleWrapperBase(h, c)}
