@@ -2,14 +2,14 @@
 param location string = resourceGroup().location
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-09-01' = {
-  name: 'foundry'
+  name: take('foundry-${uniqueString(resourceGroup().id)}', 64)
   location: location
   identity: {
     type: 'SystemAssigned'
   }
   kind: 'AIServices'
   properties: {
-    customSubDomainName: 'foundry'
+    customSubDomainName: toLower(take(concat('foundry', uniqueString(resourceGroup().id)), 24))
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: true
     allowProjectManagement: true
