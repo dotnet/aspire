@@ -92,4 +92,32 @@
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0021</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithImagePushOptions``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Action{Aspire.Hosting.ApplicationModel.ContainerImagePushOptionsCallbackContext})``0:T:Aspire.Hosting.ApplicationModel.IComputeResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0021</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithImagePushOptions``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{Aspire.Hosting.ApplicationModel.ContainerImagePushOptionsCallbackContext,System.Threading.Tasks.Task})``0:T:Aspire.Hosting.ApplicationModel.IComputeResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0021</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithRemoteImageName``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.String)``0:T:Aspire.Hosting.ApplicationModel.IComputeResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0021</DiagnosticId>
+    <Target>M:Aspire.Hosting.ResourceBuilderExtensions.WithRemoteImageTag``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.String)``0:T:Aspire.Hosting.ApplicationModel.IComputeResource</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
