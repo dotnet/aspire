@@ -44,6 +44,16 @@ export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfig
     return obj && obj.type === 'python';
 }
 
+export interface NodeLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "node";
+    script_path?: string;
+    runtime_executable?: string;
+}
+
+export function isNodeLaunchConfiguration(obj: any): obj is NodeLaunchConfiguration {
+    return obj && obj.type === 'node';
+}
+
 export interface EnvVar {
     name: string;
     value: string;

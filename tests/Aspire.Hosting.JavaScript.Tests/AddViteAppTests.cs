@@ -243,7 +243,7 @@ public class AddViteAppTests
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
@@ -268,7 +268,7 @@ public class AddViteAppTests
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);

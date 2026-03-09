@@ -28,7 +28,7 @@ public class AddViteAppWithPnpmTests
         Assert.Equal("run", packageManager.ScriptCommand);
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
@@ -62,7 +62,7 @@ public class AddViteAppWithPnpmTests
         Assert.Equal("run", packageManager.ScriptCommand);
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
@@ -90,7 +90,7 @@ public class AddViteAppWithPnpmTests
         Assert.Equal("npm", nodeResource.Command);
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
@@ -123,7 +123,7 @@ public class AddViteAppWithPnpmTests
         Assert.Equal("run", packageManager.ScriptCommand);
 
         // Get the command line args annotation to inspect the args callback
-        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().Single();
+        var commandLineArgsAnnotation = nodeResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().First();
         var args = new List<object>();
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
