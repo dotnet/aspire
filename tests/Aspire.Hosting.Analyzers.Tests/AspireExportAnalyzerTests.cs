@@ -64,7 +64,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InstanceMethod_ReportsASPIRE007()
+    public async Task InstanceMethod_ReportsASPIREEXPORT001()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_exportMethodMustBeStatic;
 
@@ -85,7 +85,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidIdFormat_WithSlash_ReportsASPIRE008()
+    public async Task InvalidIdFormat_WithSlash_ReportsASPIREEXPORT002()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_invalidExportIdFormat;
 
@@ -106,7 +106,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidIdFormat_WithAtSymbol_ReportsASPIRE008()
+    public async Task InvalidIdFormat_WithAtSymbol_ReportsASPIREEXPORT002()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_invalidExportIdFormat;
 
@@ -127,7 +127,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidReturnType_ReportsASPIRE009()
+    public async Task InvalidReturnType_ReportsASPIREEXPORT003()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_returnTypeMustBeAtsCompatible;
 
@@ -149,7 +149,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidParameterType_ReportsASPIRE010()
+    public async Task InvalidParameterType_ReportsASPIREEXPORT004()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_parameterTypeMustBeAtsCompatible;
 
@@ -411,7 +411,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidCollectionElementType_ReportsASPIRE010()
+    public async Task InvalidCollectionElementType_ReportsASPIREEXPORT004()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_parameterTypeMustBeAtsCompatible;
 
@@ -433,10 +433,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // ASPIRE011 Tests - Union requires at least 2 types
+    // ASPIREEXPORT005 Tests - Union requires at least 2 types
 
     [Fact]
-    public async Task UnionWithSingleType_ReportsASPIRE011()
+    public async Task UnionWithSingleType_ReportsASPIREEXPORT005()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_unionRequiresAtLeastTwoTypes;
 
@@ -457,7 +457,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task UnionWithEmptyTypes_ReportsASPIRE011()
+    public async Task UnionWithEmptyTypes_ReportsASPIREEXPORT005()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_unionRequiresAtLeastTwoTypes;
 
@@ -513,10 +513,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // ASPIRE012 Tests - Union types must be ATS-compatible
+    // ASPIREEXPORT006 Tests - Union types must be ATS-compatible
 
     [Fact]
-    public async Task UnionWithIncompatibleType_ReportsASPIRE012()
+    public async Task UnionWithIncompatibleType_ReportsASPIREEXPORT006()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_unionTypeMustBeAtsCompatible;
 
@@ -538,7 +538,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task UnionWithPlainClass_ReportsASPIRE012()
+    public async Task UnionWithPlainClass_ReportsASPIREEXPORT006()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_unionTypeMustBeAtsCompatible;
 
@@ -599,10 +599,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // ASPIRE013 Tests - No duplicate export IDs for same target type
+    // ASPIREEXPORT007 Tests - No duplicate export IDs for same target type
 
     [Fact]
-    public async Task DuplicateExportIdSameTargetType_ReportsASPIRE013()
+    public async Task DuplicateExportIdSameTargetType_ReportsASPIREEXPORT007()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_duplicateExportId;
 
@@ -682,7 +682,7 @@ public class AspireExportAnalyzerTests
     [Fact]
     public async Task NonExtensionMethod_NoDuplicateCheck()
     {
-        // Non-extension methods with same export ID should not trigger ASPIRE013
+        // Non-extension methods with same export ID should not trigger ASPIREEXPORT007
         // since they don't have a target type in the same way
         var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
             using Aspire.Hosting;
@@ -702,7 +702,7 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // Additional ASPIRE012 tests - valid ATS types in unions
+    // Additional ASPIREEXPORT006 tests - valid ATS types in unions
 
     [Fact]
     public async Task UnionWithIResource_NoDiagnostics()
@@ -765,7 +765,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task UnionWithMultipleInvalidTypes_ReportsMultipleASPIRE012()
+    public async Task UnionWithMultipleInvalidTypes_ReportsMultipleASPIREEXPORT006()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_unionTypeMustBeAtsCompatible;
 
@@ -791,10 +791,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // Additional ASPIRE013 tests - cross-class and multiple duplicates
+    // Additional ASPIREEXPORT007 tests - cross-class and multiple duplicates
 
     [Fact]
-    public async Task DuplicateExportIdAcrossClasses_ReportsASPIRE013()
+    public async Task DuplicateExportIdAcrossClasses_ReportsASPIREEXPORT007()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_duplicateExportId;
 
@@ -824,7 +824,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task ThreeOrMoreDuplicates_ReportsAllASPIRE013()
+    public async Task ThreeOrMoreDuplicates_ReportsAllASPIREEXPORT007()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_duplicateExportId;
 
@@ -854,10 +854,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // Combined ASPIRE011 + ASPIRE012 test
+    // Combined ASPIREEXPORT005 + ASPIREEXPORT006 test
 
     [Fact]
-    public async Task SingleInvalidType_ReportsBothASPIRE011AndASPIRE012()
+    public async Task SingleInvalidType_ReportsBothASPIREEXPORT005AndASPIREEXPORT006()
     {
         var asp011 = AspireExportAnalyzer.Diagnostics.s_unionRequiresAtLeastTwoTypes;
         var asp012 = AspireExportAnalyzer.Diagnostics.s_unionTypeMustBeAtsCompatible;
@@ -882,10 +882,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // ASPIRE014 Tests - Missing export attribute on builder extension methods
+    // ASPIREEXPORT008 Tests - Missing export attribute on builder extension methods
 
     [Fact]
-    public async Task MissingExportAttribute_OnBuilderExtensionMethod_ReportsASPIRE014()
+    public async Task MissingExportAttribute_OnBuilderExtensionMethod_ReportsASPIREEXPORT008()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_missingExportAttribute;
 
@@ -905,7 +905,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task MissingExportAttribute_WithIncompatibleParam_ReportsASPIRE014WithReason()
+    public async Task MissingExportAttribute_WithIncompatibleParam_ReportsASPIREEXPORT008WithReason()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_missingExportAttribute;
 
@@ -926,7 +926,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task MissingExportAttribute_WithOutParam_ReportsASPIRE014WithReason()
+    public async Task MissingExportAttribute_WithOutParam_ReportsASPIREEXPORT008WithReason()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_missingExportAttribute;
 
@@ -1034,10 +1034,10 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
-    // ASPIRE015 Tests - Export name should be unique for target-specific methods
+    // ASPIREEXPORT009 Tests - Export name should be unique for target-specific methods
 
     [Fact]
-    public async Task ExportNameMatchesMethodName_WithConcreteTarget_ReportsASPIRE015()
+    public async Task ExportNameMatchesMethodName_WithConcreteTarget_ReportsASPIREEXPORT009()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_exportNameShouldBeUnique;
 

@@ -44,7 +44,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Try to get AspireExportIgnoreAttribute for ASPIRE014
+        // Try to get AspireExportIgnoreAttribute for ASPIREEXPORT008
         INamedTypeSymbol? aspireExportIgnoreAttribute = null;
         try
         {
@@ -55,7 +55,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Type not found, missing attribute check won't run
         }
 
-        // Try to get AspireUnionAttribute for ASPIRE011/012 validation
+        // Try to get AspireUnionAttribute for ASPIREEXPORT005/006 validation
         INamedTypeSymbol? aspireUnionAttribute = null;
         try
         {
@@ -66,7 +66,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Type not found, union validation won't run
         }
 
-        // Collection for ASPIRE013: track export IDs to detect duplicates
+        // Collection for ASPIREEXPORT007: track export IDs to detect duplicates
         // Key: (exportId, targetTypeFullName), Value: list of (method, location)
         var exportsByKey = new ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>>();
 
@@ -109,7 +109,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // ASPIRE014: Check for missing export attributes on builder extension methods
+        // ASPIREEXPORT008: Check for missing export attributes on builder extension methods
         if (exportAttribute is null && !hasExportIgnore && !isObsolete)
         {
             AnalyzeMissingExportAttribute(context, method, wellKnownTypes, aspireExportAttribute);
@@ -165,14 +165,14 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                     method.Name));
             }
 
-            // Rule 5 (ASPIRE011/012): Validate [AspireUnion] on parameters
+            // Rule 5 (ASPIREEXPORT005/006): Validate [AspireUnion] on parameters
             if (aspireUnionAttribute is not null)
             {
                 AnalyzeUnionAttribute(context, parameter.GetAttributes(), aspireUnionAttribute, wellKnownTypes, aspireExportAttribute);
             }
         }
 
-        // Rule 6 (ASPIRE013): Track export for duplicate detection
+        // Rule 6 (ASPIREEXPORT007): Track export for duplicate detection
         if (exportId is not null && method.IsExtensionMethod && method.Parameters.Length > 0)
         {
             var targetType = method.Parameters[0].Type;
@@ -182,7 +182,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             bag.Add((method, location));
         }
 
-        // Rule 7 (ASPIRE015): Warn when export name may collide across integrations
+        // Rule 7 (ASPIREEXPORT009): Warn when export name may collide across integrations
         if (exportId is not null && method.IsExtensionMethod && method.Parameters.Length > 0)
         {
             AnalyzeExportNameUniqueness(context, method, exportId, wellKnownTypes, location);
@@ -537,7 +537,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Get the types from the constructor argument (params Type[] types)
             if (attr.ConstructorArguments.Length == 0)
             {
-                // No arguments - report ASPIRE011
+                // No arguments - report ASPIREEXPORT005
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.s_unionRequiresAtLeastTwoTypes,
                     attrLocation,
@@ -553,7 +553,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
             var types = typesArg.Values;
 
-            // ASPIRE011: Check that we have at least 2 types
+            // ASPIREEXPORT005: Check that we have at least 2 types
             if (types.Length < 2)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
@@ -562,7 +562,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                     types.Length));
             }
 
-            // ASPIRE012: Check that each type is ATS-compatible
+            // ASPIREEXPORT006: Check that each type is ATS-compatible
             foreach (var typeConstant in types)
             {
                 if (typeConstant.Value is INamedTypeSymbol typeSymbol)
