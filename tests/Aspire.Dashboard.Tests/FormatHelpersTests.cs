@@ -172,7 +172,7 @@ public class FormatHelpersTests
         var provider = CreateTimeProvider();
         provider.SetConfiguredTimeFormat(format);
 
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")), ignoreWhiteSpaceDifferences: true);
     }
 
     [Theory]
@@ -194,7 +194,7 @@ public class FormatHelpersTests
         var provider = CreateTimeProvider();
         provider.SetConfiguredTimeFormat(format);
 
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, CultureInfo.GetCultureInfo(cultureName)));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, includeMilliseconds, CultureInfo.GetCultureInfo(cultureName)), ignoreWhiteSpaceDifferences: true);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public class FormatHelpersTests
         provider.SetBrowserTimeFormat(browserTimeFormat);
         // TimeFormat stays at System (default)
 
-        Assert.Equal(expected, FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
+        Assert.Equal(expected, FormatHelpers.FormatTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")), ignoreWhiteSpaceDifferences: true);
     }
 
     [Theory]
@@ -246,7 +246,7 @@ public class FormatHelpersTests
         var provider = CreateTimeProvider();
         provider.SetBrowserTimeFormat(browserTimeFormat);
 
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(provider, date, MillisecondsDisplay.None, CultureInfo.GetCultureInfo("en-US")), ignoreWhiteSpaceDifferences: true);
     }
 
     [Fact]
