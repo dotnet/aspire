@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="needs-review-translation">Zadejte výstupní cestu:</target>
+        <target state="needs-review-translation">Zadejte výstupní cestu</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">

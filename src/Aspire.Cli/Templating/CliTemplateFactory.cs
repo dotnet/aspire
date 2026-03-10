@@ -290,11 +290,11 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 
         if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), pathComparison))
         {
-            _interactionService.DisplayMessage(KnownEmojis.Information, $"Run 'cd \"{relativePath}\"' and then 'aspire run' to start your AppHost.");
+            _interactionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.RunCdThenAspireRun, relativePath));
         }
         else
         {
-            _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
+            _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRun);
         }
     }
 }
