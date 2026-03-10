@@ -65,23 +65,6 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire new interactive prompts
-            var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-                .FindPattern("> Starter App");
-
-            // Use Find() for literal string with parentheses/slashes
-            var waitingForExpressReactTemplateSelected = new CellPatternSearcher()
-                .Find("> Starter App (Express/React)");
-
-            var waitingForProjectNamePrompt = new CellPatternSearcher()
-                .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-            var waitingForOutputPathPrompt = new CellPatternSearcher()
-                .Find("Enter the output path");
-
-            var waitingForUrlsPrompt = new CellPatternSearcher()
-                .Find("Use *.dev.localhost URLs");
-
             // Pattern searchers for aspire add prompts
             var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
                 .Find("(based on NuGet.config)");
@@ -112,23 +95,8 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             }
 
             // Step 3: Create TypeScript Express/React project using aspire new
-            // Navigate down to "Starter App (Express/React)" which is the 3rd option (alphabetically sorted)
             output.WriteLine("Step 3: Creating TypeScript Express/React project...");
-            sequenceBuilder.Type("aspire new")
-                .Enter()
-                .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .Key(Hex1b.Input.Hex1bKey.DownArrow)
-                .WaitUntil(s => waitingForExpressReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                .Enter() // Select Starter App (Express/React)
-                .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-                .Type(projectName)
-                .Enter()
-                .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Accept default output path
-                .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-                .Enter() // Select "No" for localhost URLs (default)
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+            sequenceBuilder.AspireNew(projectName, counter, template: AspireTemplate.ExpressReact);
 
             // Step 4: Navigate to project directory
             output.WriteLine("Step 4: Navigating to project directory...");
