@@ -80,6 +80,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
+    public bool IsUnsupported { get; set; }
+
+    /// <inheritdoc />
     public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />

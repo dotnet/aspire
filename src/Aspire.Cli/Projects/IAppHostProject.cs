@@ -12,6 +12,7 @@ namespace Aspire.Cli.Projects;
 internal record AppHostValidationResult(
     bool IsValid,
     bool IsPossiblyUnbuildable = false,
+    bool IsUnsupported = false,
     string? Message = null);
 
 /// <summary>
@@ -138,6 +139,11 @@ internal sealed class PublishContext
 /// </summary>
 internal interface IAppHostProject
 {
+    /// <summary>
+    /// Gets or sets whether this project type is unsupported in the current environment.
+    /// </summary>
+    bool IsUnsupported { get; set; }
+
     /// <summary>
     /// Gets the unique identifier for this language (e.g., "csharp", "typescript").
     /// Used for configuration storage and CLI arguments.

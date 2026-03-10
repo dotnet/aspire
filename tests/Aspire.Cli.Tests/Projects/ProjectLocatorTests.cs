@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,8 +26,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-    var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
     }
 
     [Fact]
@@ -961,6 +962,7 @@ builder.Build().Run();");
         IConfigurationService? configurationService = null,
         IAppHostProjectFactory? projectFactory = null,
         ILanguageDiscovery? languageDiscovery = null,
+        IDotNetSdkInstaller? sdkInstaller = null,
         AspireCliTelemetry? telemetry = null)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
@@ -971,6 +973,7 @@ builder.Build().Run();");
             configurationService ?? new TestConfigurationService(),
             projectFactory ?? new TestAppHostProjectFactory(),
             languageDiscovery ?? new TestLanguageDiscovery(),
+            sdkInstaller ?? new TestDotNetSdkInstaller(),
             telemetry ?? TestTelemetryHelper.CreateInitializedTelemetry());
     }
 }

@@ -113,6 +113,7 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
             _factory = factory;
         }
 
+        public bool IsUnsupported { get; set; }
         public string LanguageId => "csharp";
         public string DisplayName => "C# (.NET)";
         public string? AppHostFileName => "AppHost.csproj";

@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -27,6 +28,7 @@ internal sealed class ProjectLocator(
     IConfigurationService configurationService,
     IAppHostProjectFactory projectFactory,
     ILanguageDiscovery languageDiscovery,
+    IDotNetSdkInstaller sdkInstaller,
     AspireCliTelemetry telemetry) : IProjectLocator
 {
 
@@ -66,52 +68,82 @@ internal sealed class ProjectLocator(
 
             logger.LogDebug("Searching for patterns: {Patterns}", string.Join(", ", allPatterns));
 
-            // Process each pattern
+            // Collect all candidates with their handlers across all patterns
+            var candidatesWithHandlers = new List<(FileInfo File, IAppHostProject Handler)>();
+
             foreach (var pattern in allPatterns)
             {
                 var candidateFiles = searchDirectory.GetFiles(pattern, enumerationOptions);
                 logger.LogDebug("Found {CandidateCount} files matching pattern '{Pattern}'", candidateFiles.Length, pattern);
 
-                await Parallel.ForEachAsync(candidateFiles, parallelOptions, async (candidateFile, ct) =>
+                foreach (var candidateFile in candidateFiles)
                 {
                     logger.LogDebug("Checking candidate file {CandidateFile}", candidateFile.FullName);
 
-                    // Check if any handler can handle this file
                     var handler = projectFactory.TryGetProject(candidateFile);
                     if (handler is null)
                     {
                         logger.LogTrace("No handler found for {CandidateFile}", candidateFile.FullName);
-                        return;
+                        continue;
                     }
 
-                    // Validate the candidate file using the handler
-                    var validationResult = await handler.ValidateAppHostAsync(candidateFile, ct);
-
-                    if (validationResult.IsValid)
-                    {
-                        logger.LogDebug("Found {Language} apphost {CandidateFile}", handler.DisplayName, candidateFile.FullName);
-                        var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                        interactionService.DisplaySubtleMessage(relativePath);
-                        lock (lockObject)
-                        {
-                            appHostProjects.Add(candidateFile);
-                        }
-                    }
-                    else if (validationResult.IsPossiblyUnbuildable)
-                    {
-                        var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                        interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
-                        lock (lockObject)
-                        {
-                            unbuildableSuspectedAppHostProjects.Add(candidateFile);
-                        }
-                    }
-                    else
-                    {
-                        logger.LogTrace("File {CandidateFile} is not a valid Aspire host", candidateFile.FullName);
-                    }
-                });
+                    candidatesWithHandlers.Add((candidateFile, handler));
+                }
             }
+
+            // If any candidates are .NET projects, ensure the SDK is available
+            if (candidatesWithHandlers.Any(c => c.Handler is DotNetAppHostProject))
+            {
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, telemetry, cancellationToken))
+                {
+                    logger.LogWarning("The .NET SDK is not available. Marking .NET projects as unsupported.");
+                    foreach (var (_, handler) in candidatesWithHandlers)
+                    {
+                        if (handler is DotNetAppHostProject dotNetHandler)
+                        {
+                            dotNetHandler.IsUnsupported = true;
+                        }
+                    }
+                }
+            }
+
+            await Parallel.ForEachAsync(candidatesWithHandlers, parallelOptions, async (candidate, ct) =>
+            {
+                var (candidateFile, handler) = candidate;
+
+                // Validate the candidate file using the handler
+                var validationResult = await handler.ValidateAppHostAsync(candidateFile, ct);
+
+                if (validationResult.IsValid)
+                {
+                    logger.LogDebug("Found {Language} apphost {CandidateFile}", handler.DisplayName, candidateFile.FullName);
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                    interactionService.DisplaySubtleMessage(relativePath);
+                    lock (lockObject)
+                    {
+                        appHostProjects.Add(candidateFile);
+                    }
+                }
+                else if (validationResult.IsUnsupported)
+                {
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                    interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileUnsupportedInCurrentEnvironment, relativePath));
+                    logger.LogDebug("Skipping unsupported project {CandidateFile}", candidateFile.FullName);
+                }
+                else if (validationResult.IsPossiblyUnbuildable)
+                {
+                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                    interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                    lock (lockObject)
+                    {
+                        unbuildableSuspectedAppHostProjects.Add(candidateFile);
+                    }
+                }
+                else
+                {
+                    logger.LogTrace("File {CandidateFile} is not a valid Aspire host", candidateFile.FullName);
+                }
+            });
 
             // This sort is done here to make results deterministic since we get all the app
             // host information in parallel and the order may vary.
