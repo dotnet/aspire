@@ -678,13 +678,13 @@ class CSharpAppResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -1034,18 +1034,6 @@ class ConnectionStringResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
-        """Sets the remote image name for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageName"] = serialize_value(remote_image_name)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
-
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
-        """Sets the remote image tag for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageTag"] = serialize_value(remote_image_tag)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
-
     def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
         """Adds a pipeline step to the resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -1302,18 +1290,6 @@ class ContainerRegistryResource(ResourceBuilderBase):
         """Excludes the resource from MCP server exposure"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
-
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
-        """Sets the remote image name for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageName"] = serialize_value(remote_image_name)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
-
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
-        """Sets the remote image tag for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageTag"] = serialize_value(remote_image_tag)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
     def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
         """Adds a pipeline step to the resource"""
@@ -1854,13 +1830,13 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -2540,13 +2516,13 @@ class DotnetToolResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -3237,13 +3213,13 @@ class ExecutableResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -3546,18 +3522,6 @@ class ExternalServiceResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
-        """Sets the remote image name for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageName"] = serialize_value(remote_image_name)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
-
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
-        """Sets the remote image tag for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageTag"] = serialize_value(remote_image_tag)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
-
     def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
         """Adds a pipeline step to the resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -3682,6 +3646,12 @@ class ExternalServiceResource(ResourceBuilderBase):
             args["operation"] = operation_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
 
+
+class IComputeResource(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    pass
 
 class IConfiguration(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -4114,18 +4084,6 @@ class ParameterResource(ResourceBuilderBase):
         """Excludes the resource from MCP server exposure"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
-
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
-        """Sets the remote image name for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageName"] = serialize_value(remote_image_name)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
-
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
-        """Sets the remote image tag for publishing"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["remoteImageTag"] = serialize_value(remote_image_tag)
-        return self._client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)
 
     def with_pipeline_step_factory(self, step_name: str, callback: Callable[[PipelineStepContext], None], depends_on: list[str] | None = None, required_by: list[str] | None = None, tags: list[str] | None = None, description: str | None = None) -> IResource:
         """Adds a pipeline step to the resource"""
@@ -4802,13 +4760,13 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -5724,13 +5682,13 @@ class TestDatabaseResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -6460,13 +6418,13 @@ class TestRedisResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -7280,13 +7238,13 @@ class TestVaultResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)
 
-    def with_remote_image_name(self, remote_image_name: str) -> IResource:
+    def with_remote_image_name(self, remote_image_name: str) -> IComputeResource:
         """Sets the remote image name for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageName"] = serialize_value(remote_image_name)
         return self._client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)
 
-    def with_remote_image_tag(self, remote_image_tag: str) -> IResource:
+    def with_remote_image_tag(self, remote_image_tag: str) -> IComputeResource:
         """Sets the remote image tag for publishing"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["remoteImageTag"] = serialize_value(remote_image_tag)
@@ -7511,6 +7469,7 @@ register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosti
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", lambda handle, client: ITestVaultResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", lambda handle, client: IContainerFilesDestinationResource(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource", lambda handle, client: IComputeResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<string>", lambda handle, client: AspireList(handle, client))
 register_handle_wrapper("Aspire.Hosting/Dict<string,any>", lambda handle, client: AspireDict(handle, client))
 register_handle_wrapper("Aspire.Hosting/List<any>", lambda handle, client: AspireList(handle, client))

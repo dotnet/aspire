@@ -287,4 +287,7 @@
   <data name="UnsupportedLanguage" xml:space="preserve">
     <value>Unsupported language: {0}</value>
   </data>
+  <data name="ProjectFileUnsupportedInCurrentEnvironment" xml:space="preserve">
+    <value>Project is not supported in the current environment: {0}</value>
+  </data>
 </root>

@@ -380,5 +380,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UnsupportedLanguage", resourceCulture);
             }
         }
+        public static string ProjectFileUnsupportedInCurrentEnvironment
+        {
+            get
+            {
+                return ResourceManager.GetString("ProjectFileUnsupportedInCurrentEnvironment", resourceCulture);
+            }
+        }
     }
 }

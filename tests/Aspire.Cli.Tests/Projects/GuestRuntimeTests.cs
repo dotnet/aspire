@@ -126,7 +126,6 @@ public class GuestRuntimeTests
         await runtime.PublishAsync(appHostFile, directory, new Dictionary<string, string>(), ["--output", "/out"], launcher, CancellationToken.None);
 
         Assert.Equal("publish-cmd", launcher.LastCommand);
-        // {args} placeholder joins multiple args into a single string
         Assert.Contains(launcher.LastArgs, a => a.Contains("--output") && a.Contains("/out"));
     }
 
@@ -291,9 +290,73 @@ public class GuestRuntimeTests
         var spec = CreateTestSpec();
         var runtime = new GuestRuntime(spec, NullLogger.Instance);
 
-        var exitCode = await runtime.InstallDependenciesAsync(new DirectoryInfo("/tmp"), CancellationToken.None);
+        var (exitCode, output) = await runtime.InstallDependenciesAsync(new DirectoryInfo("/tmp"), CancellationToken.None);
 
         Assert.Equal(0, exitCode);
+        Assert.Empty(output.GetLines());
+    }
+
+    [Fact]
+    public async Task InstallDependenciesAsync_WhenNpmIsMissing_ReturnsNodeInstallMessage()
+    {
+        var runtime = new GuestRuntime(
+            new RuntimeSpec
+            {
+                Language = KnownLanguageId.TypeScript,
+                DisplayName = "TypeScript (Node.js)",
+                CodeGenLanguage = "typescript",
+                DetectionPatterns = ["apphost.ts"],
+                Execute = new CommandSpec { Command = "npx", Args = ["tsx", "{appHostFile}"] },
+                InstallDependencies = new CommandSpec { Command = "npm", Args = ["install"] }
+            },
+            NullLogger.Instance,
+            _ => null);
+
+        var (exitCode, output) = await runtime.InstallDependenciesAsync(new DirectoryInfo(Path.GetTempPath()), CancellationToken.None);
+
+        Assert.Equal(-1, exitCode);
+        Assert.Collection(
+            output.GetLines(),
+            line =>
+            {
+                Assert.Equal("stderr", line.Stream);
+                Assert.Equal("npm is not installed or not found in PATH. Please install Node.js and try again.", line.Line);
+            });
+    }
+
+    [Fact]
+    public async Task RunAsync_WhenNpxIsMissing_ReturnsNodeInstallMessage()
+    {
+        var runtime = new GuestRuntime(
+            new RuntimeSpec
+            {
+                Language = KnownLanguageId.TypeScript,
+                DisplayName = "TypeScript (Node.js)",
+                CodeGenLanguage = "typescript",
+                DetectionPatterns = ["apphost.ts"],
+                Execute = new CommandSpec { Command = "npx", Args = ["tsx", "{appHostFile}"] }
+            },
+            NullLogger.Instance,
+            _ => null);
+
+        var appHostFile = new FileInfo(Path.Combine(Path.GetTempPath(), "apphost.ts"));
+        var (exitCode, output) = await runtime.RunAsync(
+            appHostFile,
+            appHostFile.Directory!,
+            new Dictionary<string, string>(),
+            watchMode: false,
+            runtime.CreateDefaultLauncher(),
+            CancellationToken.None);
+
+        Assert.Equal(-1, exitCode);
+        var resolvedOutput = Assert.IsType<OutputCollector>(output);
+        Assert.Collection(
+            resolvedOutput.GetLines(),
+            line =>
+            {
+                Assert.Equal("stderr", line.Stream);
+                Assert.Equal("npx is not installed or not found in PATH. Please install Node.js and try again.", line.Line);
+            });
     }
 
     private sealed class RecordingLauncher : IGuestProcessLauncher

@@ -223,6 +223,20 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 .ToList();
         }
 
+        // Sort templates alphabetically by description, keeping empty templates at the end
+        templatesForPrompt.Sort((a, b) =>
+        {
+            var aIsEmpty = a.IsEmpty;
+            var bIsEmpty = b.IsEmpty;
+
+            if (aIsEmpty != bIsEmpty)
+            {
+                return aIsEmpty ? 1 : -1;
+            }
+
+            return string.Compare(a.Description, b.Description, StringComparison.OrdinalIgnoreCase);
+        });
+
         return templatesForPrompt.ToArray();
     }
 

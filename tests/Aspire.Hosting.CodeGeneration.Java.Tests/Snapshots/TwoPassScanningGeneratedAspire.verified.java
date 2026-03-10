@@ -1156,19 +1156,19 @@ class CSharpAppResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -1620,22 +1620,6 @@ class ConnectionStringResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs);
     }
 
-    /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
-    }
-
-    /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
-    }
-
     /** Adds a pipeline step to the resource */
     public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -1979,22 +1963,6 @@ class ContainerRegistryResource extends ResourceBuilderBase {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs);
-    }
-
-    /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
-    }
-
-    /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -2735,19 +2703,19 @@ class ContainerResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -3670,19 +3638,19 @@ class DotnetToolResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -4620,19 +4588,19 @@ class ExecutableResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -5035,22 +5003,6 @@ class ExternalServiceResource extends ResourceBuilderBase {
         return (IResource) getClient().invokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs);
     }
 
-    /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
-    }
-
-    /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
-    }
-
     /** Adds a pipeline step to the resource */
     public IResource withPipelineStepFactory(String stepName, Function<Object[], Object> callback, String[] dependsOn, String[] requiredBy, String[] tags, String description) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5214,6 +5166,14 @@ class ExternalServiceResource extends ResourceBuilderBase {
             reqArgs.put("operation", getClient().registerCallback(operation));
         }
         return (IResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withCancellableOperation", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource. */
+class IComputeResource extends HandleWrapperBase {
+    IComputeResource(Handle handle, AspireClient client) {
+        super(handle, client);
     }
 
 }
@@ -5802,22 +5762,6 @@ class ParameterResource extends ResourceBuilderBase {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         return (IResource) getClient().invokeCapability("Aspire.Hosting/excludeFromMcp", reqArgs);
-    }
-
-    /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
-    }
-
-    /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -6725,19 +6669,19 @@ class ProjectResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -7952,19 +7896,19 @@ class TestDatabaseResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -8957,19 +8901,19 @@ class TestRedisResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -10065,19 +10009,19 @@ class TestVaultResource extends ResourceBuilderBase {
     }
 
     /** Sets the remote image name for publishing */
-    public IResource withRemoteImageName(String remoteImageName) {
+    public IComputeResource withRemoteImageName(String remoteImageName) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageName", AspireClient.serializeValue(remoteImageName));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageName", reqArgs);
     }
 
     /** Sets the remote image tag for publishing */
-    public IResource withRemoteImageTag(String remoteImageTag) {
+    public IComputeResource withRemoteImageTag(String remoteImageTag) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("remoteImageTag", AspireClient.serializeValue(remoteImageTag));
-        return (IResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
+        return (IComputeResource) getClient().invokeCapability("Aspire.Hosting/withRemoteImageTag", reqArgs);
     }
 
     /** Adds a pipeline step to the resource */
@@ -10355,6 +10299,7 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", (h, c) -> new TestVaultResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource", (h, c) -> new ITestVaultResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource", (h, c) -> new IContainerFilesDestinationResource(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource", (h, c) -> new IComputeResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/List<string>", (h, c) -> new AspireList(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Dict<string,any>", (h, c) -> new AspireDict(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/List<any>", (h, c) -> new AspireList(h, c));

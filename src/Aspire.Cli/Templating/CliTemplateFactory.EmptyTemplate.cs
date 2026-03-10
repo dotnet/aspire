@@ -99,7 +99,7 @@ internal sealed partial class CliTemplateFactory
         }
 
         _interactionService.DisplaySuccess($"Created {language.DisplayName.EscapeMarkup()} project at {outputPath.EscapeMarkup()}");
-        _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRunToStart);
+        DisplayPostCreationInstructions(outputPath);
 
         return templateResult;
     }

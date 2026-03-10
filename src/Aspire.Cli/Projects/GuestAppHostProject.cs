@@ -81,6 +81,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
+    public bool IsUnsupported { get; set; }
+
+    /// <inheritdoc />
     public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />
@@ -249,6 +252,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
+        if (IsUnsupported)
+        {
+            return Task.FromResult(new AppHostValidationResult(IsValid: false, IsUnsupported: true));
+        }
+
         // Check if the file exists
         if (!appHostFile.Exists)
         {
@@ -1184,10 +1192,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToInstallLanguageDependencies, _resolvedLanguage?.DisplayName ?? "guest"));
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToInstallLanguageDependencies, _resolvedLanguage?.DisplayName ?? "guest"));
+            }
         }
 
         return result;

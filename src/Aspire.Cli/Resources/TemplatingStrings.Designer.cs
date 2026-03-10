@@ -128,7 +128,46 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UseRedisCache_Description", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Using Redis Cache for caching..
+        /// </summary>
+        public static string UseRedisCache_UsingRedisCache {
+            get {
+                return ResourceManager.GetString("UseRedisCache_UsingRedisCache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Using project templates version: {0}.
+        /// </summary>
+        public static string UsingProjectTemplatesVersion {
+            get {
+                return ResourceManager.GetString("UsingProjectTemplatesVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run 'cd "{0}"' and then 'aspire run' to start your AppHost..
+        /// </summary>
+        public static string RunCdThenAspireRun {
+            get {
+                return ResourceManager.GetString("RunCdThenAspireRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run 'aspire run' to start your AppHost..
+        /// </summary>
+        public static string RunAspireRun {
+            get {
+                return ResourceManager.GetString("RunAspireRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yes.
+        /// </summary>
         public static string Yes {
             get {
                 return ResourceManager.GetString("Yes", resourceCulture);
@@ -309,12 +348,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        internal static string NpmNotInstalledOrNotFound {
-            get {
-                return ResourceManager.GetString("NpmNotInstalledOrNotFound", resourceCulture);
-            }
-        }
-
         internal static string UnknownLanguageId {
             get {
                 return ResourceManager.GetString("UnknownLanguageId", resourceCulture);
@@ -324,12 +357,6 @@ namespace Aspire.Cli.Resources {
         internal static string FailedToCreateProjectFiles {
             get {
                 return ResourceManager.GetString("FailedToCreateProjectFiles", resourceCulture);
-            }
-        }
-
-        internal static string RunAspireRunToStart {
-            get {
-                return ResourceManager.GetString("RunAspireRunToStart", resourceCulture);
             }
         }
 

@@ -253,16 +253,17 @@
   <data name="UnableToDetermineAspireVersionForTypeScript" xml:space="preserve">
     <value>Unable to determine Aspire version for the TypeScript starter template.</value>
   </data>
-  <data name="NpmNotInstalledOrNotFound" xml:space="preserve">
-    <value>npm is not installed or not found in PATH. Please install Node.js and try again.</value>
-  </data>
   <data name="UnknownLanguageId" xml:space="preserve">
     <value>Unknown language: '{0}'</value>
   </data>
   <data name="FailedToCreateProjectFiles" xml:space="preserve">
     <value>Failed to create project files: {0}</value>
   </data>
-  <data name="RunAspireRunToStart" xml:space="preserve">
+  <data name="RunCdThenAspireRun" xml:space="preserve">
+    <value>Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</value>
+    <comment>{0} is the relative path to the project directory</comment>
+  </data>
+  <data name="RunAspireRun" xml:space="preserve">
     <value>Run 'aspire run' to start your AppHost.</value>
   </data>
   <data name="UpdateNuGetConfigPrompt" xml:space="preserve">

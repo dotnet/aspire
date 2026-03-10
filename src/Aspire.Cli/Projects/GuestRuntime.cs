@@ -15,16 +15,19 @@ internal sealed class GuestRuntime
 {
     private readonly RuntimeSpec _spec;
     private readonly ILogger _logger;
+    private readonly Func<string, string?> _commandResolver;
 
     /// <summary>
     /// Creates a new GuestRuntime for the given runtime specification.
     /// </summary>
     /// <param name="spec">The runtime specification describing how to execute the guest language.</param>
     /// <param name="logger">Logger for debugging output.</param>
-    public GuestRuntime(RuntimeSpec spec, ILogger logger)
+    /// <param name="commandResolver">Optional command resolver used to locate executables on PATH.</param>
+    public GuestRuntime(RuntimeSpec spec, ILogger logger, Func<string, string?>? commandResolver = null)
     {
         _spec = spec;
         _logger = logger;
+        _commandResolver = commandResolver ?? PathLookupHelper.FindFullPathFromPath;
     }
 
     /// <summary>
@@ -48,28 +51,29 @@ internal sealed class GuestRuntime
     /// </summary>
     /// <param name="directory">The project directory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The exit code from the dependency installation command.</returns>
-    public async Task<int> InstallDependenciesAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    /// <returns>A tuple containing the exit code and captured output from the dependency installation command.</returns>
+    public async Task<(int ExitCode, OutputCollector Output)> InstallDependenciesAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
+        var outputCollector = new OutputCollector();
+
         if (_spec.InstallDependencies is null)
         {
             _logger.LogDebug("No dependency installation configured for {Language}", _spec.Language);
-            return 0;
+            return (0, outputCollector);
         }
 
         var args = ReplacePlaceholders(_spec.InstallDependencies.Args, null, directory, null);
-
         var environmentVariables = _spec.InstallDependencies.EnvironmentVariables ?? new Dictionary<string, string>();
 
         var launcher = CreateDefaultLauncher();
-        var (exitCode, _) = await launcher.LaunchAsync(
+        var (exitCode, output) = await launcher.LaunchAsync(
             _spec.InstallDependencies.Command,
             args,
             directory,
             environmentVariables,
             cancellationToken);
 
-        return exitCode;
+        return (exitCode, output ?? outputCollector);
     }
 
     /// <summary>
@@ -90,7 +94,6 @@ internal sealed class GuestRuntime
         IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
-        // Use watch execute if watch mode is enabled and the spec supports it
         var commandSpec = watchMode && _spec.WatchExecute is not null
             ? _spec.WatchExecute
             : _spec.Execute;
@@ -116,7 +119,6 @@ internal sealed class GuestRuntime
         IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
-        // Use publish execute if available, otherwise fall back to regular execute
         var commandSpec = _spec.PublishExecute ?? _spec.Execute;
 
         return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, publishArgs, launcher, cancellationToken);
@@ -133,7 +135,6 @@ internal sealed class GuestRuntime
     {
         var args = ReplacePlaceholders(commandSpec.Args, appHostFile, directory, additionalArgs);
 
-        // Merge command-specific environment variables from the spec (they take precedence)
         var mergedEnvironment = new Dictionary<string, string>(environmentVariables);
         if (commandSpec.EnvironmentVariables is not null)
         {
@@ -150,7 +151,7 @@ internal sealed class GuestRuntime
     /// <summary>
     /// Creates the default process-based launcher for this runtime.
     /// </summary>
-    public ProcessGuestLauncher CreateDefaultLauncher() => new(_spec.Language, _logger);
+    public ProcessGuestLauncher CreateDefaultLauncher() => new(_spec.Language, _logger, _commandResolver);
 
     /// <summary>
     /// Replaces placeholders in command arguments with actual values.
@@ -169,7 +170,6 @@ internal sealed class GuestRuntime
                 .Replace("{appHostFile}", appHostFile?.FullName ?? "")
                 .Replace("{appHostDir}", directory.FullName);
 
-            // Handle {args} placeholder - replace with additional args or empty
             if (replaced.Contains("{args}"))
             {
                 if (additionalArgs is { Length: > 0 })
@@ -182,14 +182,12 @@ internal sealed class GuestRuntime
                 }
             }
 
-            // Skip empty args that resulted from placeholder replacement
             if (!string.IsNullOrWhiteSpace(replaced))
             {
                 result.Add(replaced);
             }
         }
 
-        // If {args} wasn't in the template and we have additional args, append them
         if (additionalArgs is { Length: > 0 } && !args.Any(a => a.Contains("{args}")))
         {
             result.AddRange(additionalArgs);

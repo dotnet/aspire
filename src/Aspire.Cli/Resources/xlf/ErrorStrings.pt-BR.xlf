@@ -262,6 +262,11 @@
         <target state="translated">O arquivo de projeto não é um projeto AppHost do Aspire.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
+        <source>Project is not supported in the current environment: {0}</source>
+        <target state="new">Project is not supported in the current environment: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
         <target state="translated">O projeto não contém um AppHost do Aspire.</target>

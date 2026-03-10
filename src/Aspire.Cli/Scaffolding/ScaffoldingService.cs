@@ -167,10 +167,18 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(language.LanguageId.Value, cancellationToken);
         var runtime = new GuestRuntime(runtimeSpec, _logger);
 
-        var result = await runtime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await runtime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {language.DisplayName} dependencies.");
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to install {language.DisplayName} dependencies.");
+            }
         }
 
         return result;
