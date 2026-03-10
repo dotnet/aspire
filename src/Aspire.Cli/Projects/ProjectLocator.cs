@@ -38,7 +38,7 @@ internal sealed class ProjectLocator(
         return [..allCandidates.BuildableAppHost, ..allCandidates.UnbuildableSuspectedAppHostProjects];
     }
 
-    private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
+    private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects, bool HasUnsupportedProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
@@ -46,6 +46,7 @@ internal sealed class ProjectLocator(
         {
             var appHostProjects = new List<FileInfo>();
             var unbuildableSuspectedAppHostProjects = new List<FileInfo>();
+            var hasUnsupportedProjects = false;
             var lockObject = new object();
             logger.LogDebug("Searching for project files in {SearchDirectory}", searchDirectory.FullName);
             var enumerationOptions = new EnumerationOptions
@@ -126,6 +127,7 @@ internal sealed class ProjectLocator(
                     var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
                     interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileUnsupportedInCurrentEnvironment, relativePath));
                     logger.LogDebug("Skipping unsupported project {CandidateFile}", candidateFile.FullName);
+                    hasUnsupportedProjects = true;
                 }
                 else if (validationResult.IsPossiblyUnbuildable)
                 {
@@ -146,7 +148,7 @@ internal sealed class ProjectLocator(
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
-            return (appHostProjects, unbuildableSuspectedAppHostProjects);
+            return (appHostProjects, unbuildableSuspectedAppHostProjects, hasUnsupportedProjects);
         });
     }
 
@@ -213,8 +215,13 @@ internal sealed class ProjectLocator(
 
                 if (appHostProjects.Count == 0)
                 {
+                    if (searchResults.HasUnsupportedProjects)
+                    {
+                        throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound, ProjectLocatorFailureReason.UnsupportedProjects);
+                    }
+
                     logger.LogError("No AppHost project files found in directory {Directory}", directory.FullName);
-                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist, ProjectLocatorFailureReason.ProjectFileDoesntExist);
                 }
                 else if (appHostProjects.Count == 1)
                 {
@@ -241,7 +248,7 @@ internal sealed class ProjectLocator(
                     else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.Throw)
                     {
                         logger.LogError("Multiple AppHost project files found in directory {Directory}, throwing exception", directory.FullName);
-                        throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound);
+                        throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound, ProjectLocatorFailureReason.MultipleProjectFilesFound);
                     }
                 }
             }
@@ -252,7 +259,7 @@ internal sealed class ProjectLocator(
                 if (!projectFile.Exists)
                 {
                     logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
-                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist, ProjectLocatorFailureReason.ProjectFileDoesntExist);
                 }
 
                 // Check if any handler can handle this file
@@ -276,7 +283,7 @@ internal sealed class ProjectLocator(
                 }
 
                 // No handler can process this file
-                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist, ProjectLocatorFailureReason.ProjectFileDoesntExist);
             }
         }
 
@@ -296,11 +303,16 @@ internal sealed class ProjectLocator(
 
         if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count == 0)
         {
-            throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
+            if (results.HasUnsupportedProjects)
+            {
+                throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound, ProjectLocatorFailureReason.UnsupportedProjects);
+            }
+
+            throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound, ProjectLocatorFailureReason.NoProjectFileFound);
         }
         else if (results.BuildableAppHost.Count == 0 && results.UnbuildableSuspectedAppHostProjects.Count > 0)
         {
-            throw new ProjectLocatorException(ErrorStrings.AppHostsMayNotBeBuildable);
+            throw new ProjectLocatorException(ErrorStrings.AppHostsMayNotBeBuildable, ProjectLocatorFailureReason.AppHostsMayNotBeBuildable);
         }
         else if (results.BuildableAppHost.Count == 1)
         {
@@ -310,7 +322,7 @@ internal sealed class ProjectLocator(
         {
             selectedAppHost = multipleAppHostProjectsFoundBehavior switch
             {
-                MultipleAppHostProjectsFoundBehavior.Throw => throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound),
+                MultipleAppHostProjectsFoundBehavior.Throw => throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound, ProjectLocatorFailureReason.MultipleProjectFilesFound),
                 MultipleAppHostProjectsFoundBehavior.Prompt => await interactionService.PromptForSelectionAsync(InteractionServiceStrings.SelectAppHostToUse, results.BuildableAppHost, projectFile => $"{projectFile.Name.EscapeMarkup()} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName).EscapeMarkup()})", cancellationToken),
                 MultipleAppHostProjectsFoundBehavior.None => null,
                 _ => selectedAppHost
@@ -364,9 +376,19 @@ internal sealed class ProjectLocator(
 
 }
 
-internal class ProjectLocatorException : System.Exception
+internal class ProjectLocatorException(string message, ProjectLocatorFailureReason failureReason) : System.Exception(message)
 {
-    public ProjectLocatorException(string message) : base(message) { }
+    public ProjectLocatorFailureReason FailureReason { get; } = failureReason;
+}
+
+internal enum ProjectLocatorFailureReason
+{
+    ProjectFileDoesntExist,
+    ProjectFileNotAppHostProject,
+    MultipleProjectFilesFound,
+    NoProjectFileFound,
+    AppHostsMayNotBeBuildable,
+    UnsupportedProjects,
 }
 
 internal record AppHostProjectSearchResult(FileInfo? SelectedProjectFile, List<FileInfo> AllProjectFileCandidates);

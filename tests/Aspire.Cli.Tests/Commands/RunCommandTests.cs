@@ -165,12 +165,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.", Aspire.Cli.Projects.ProjectLocatorFailureReason.ProjectFileDoesntExist);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.", Aspire.Cli.Projects.ProjectLocatorFailureReason.ProjectFileDoesntExist);
         }
     }
 
@@ -218,12 +218,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.NoProjectFileFound);
         }
     }
 
@@ -231,12 +231,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.MultipleProjectFilesFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.MultipleProjectFilesFound);
         }
     }
 
