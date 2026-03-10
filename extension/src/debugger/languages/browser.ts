@@ -21,7 +21,9 @@ export const browserDebuggerExtension: ResourceDebuggerExtension = {
             throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
         }
 
-        debugConfiguration.type = launchConfig.browser || 'msedge';
+        // Map browser name to VS Code js-debug adapter type (pwa- prefix required)
+        const browser = launchConfig.browser || 'msedge';
+        debugConfiguration.type = `pwa-${browser}`;
         debugConfiguration.request = 'launch';
         debugConfiguration.url = launchConfig.url;
         debugConfiguration.webRoot = launchConfig.web_root;
@@ -34,5 +36,6 @@ export const browserDebuggerExtension: ResourceDebuggerExtension = {
         // Remove program/args/cwd since browser debugging doesn't use them
         delete debugConfiguration.program;
         delete debugConfiguration.args;
+        delete debugConfiguration.cwd;
     }
 };
