@@ -252,6 +252,16 @@
         <target state="translated">Tokeny</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIToolCallButtonText">
+        <source>Tool call</source>
+        <target state="new">Tool call</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolDefinitionButtonText">
+        <source>Tool definition</source>
+        <target state="new">Tool definition</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIToolNoParameters">
         <source>No parameters</source>
         <target state="translated">Brak parametrów</target>

@@ -477,7 +477,7 @@
                         @if (item.Type != GenAIItemType.Error)
                         {
                             <div class="message-title">
-                                @GetItemTitle(item)
+                                <GenAIItemTitle Item="@item" ResourceName="@item.ResourceName" ShowIcon="false" />
                             </div>
                         }
                         <span class="defaultHidden">

@@ -262,18 +262,18 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         return true;
     }
 
-    private string GetItemTitle(GenAIItemViewModel e)
-    {
-        return e.Type switch
-        {
-            GenAIItemType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
-            GenAIItemType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
-            GenAIItemType.AssistantMessage or GenAIItemType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
-            GenAIItemType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
-            GenAIItemType.Error => "Error",
-            _ => string.Empty
-        };
-    }
+    //private string GetItemTitle(GenAIItemViewModel e)
+    //{
+    //    return e.Type switch
+    //    {
+    //        GenAIItemType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
+    //        GenAIItemType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
+    //        GenAIItemType.AssistantMessage or GenAIItemType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
+    //        GenAIItemType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
+    //        GenAIItemType.Error => "Error",
+    //        _ => string.Empty
+    //    };
+    //}
 
     private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
     {
