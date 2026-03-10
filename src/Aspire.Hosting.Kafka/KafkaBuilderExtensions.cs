@@ -90,7 +90,7 @@ public static class KafkaBuilderExtensions
     /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
-    [AspireExport("withKafkaUI", Description = "Adds a Kafka UI container to manage the Kafka resource")]
+    [AspireExport("withKafkaUI", Description = "Adds a Kafka UI container to manage the Kafka resource", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, Action<IResourceBuilder<KafkaUIContainerResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

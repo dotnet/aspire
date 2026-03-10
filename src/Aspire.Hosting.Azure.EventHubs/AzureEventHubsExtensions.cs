@@ -173,7 +173,7 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The Azure Event Hub resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureEventHubResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withProperties", Description = "Configures properties of an Azure Event Hub")]
+    [AspireExport("withProperties", Description = "Configures properties of an Azure Event Hub", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureEventHubResource> WithProperties(this IResourceBuilder<AzureEventHubResource> builder, Action<AzureEventHubResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -237,7 +237,7 @@ public static class AzureEventHubsExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [AspireExport("runAsEmulator", Description = "Configures the Azure Event Hubs resource to run with the local emulator")]
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Event Hubs resource to run with the local emulator", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

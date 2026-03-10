@@ -174,7 +174,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("runAsEmulator", Description = "Configures the Azure Storage resource to be emulated using Azurite")]
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Storage resource to be emulated using Azurite", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

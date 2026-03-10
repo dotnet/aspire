@@ -6,7 +6,9 @@ using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Analyzers.Infrastructure;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Aspire.Hosting.Analyzers;
 
@@ -76,6 +78,35 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         // At the end of compilation, report duplicate export IDs
         context.RegisterCompilationEndAction(c => ReportDuplicateExports(c, exportsByKey));
+
+        context.RegisterOperationBlockStartAction(c =>
+        {
+            if (c.OwningSymbol is not IMethodSymbol method ||
+                !method.IsExtensionMethod ||
+                method.Parameters.Length == 0 ||
+                !IsBuilderType(method.Parameters[0].Type, wellKnownTypes) ||
+                !TryGetEffectiveAspireExportAttribute(method, aspireExportAttribute, out var exportAttribute, out var containingTypeExportAttribute) ||
+                IsRunSyncOnBackgroundThreadEnabled(exportAttribute) ||
+                IsRunSyncOnBackgroundThreadEnabled(containingTypeExportAttribute))
+            {
+                return;
+            }
+
+            var synchronousDelegateParameters = method.Parameters
+                .Skip(1)
+                .Where(IsSynchronousDelegateParameter)
+                .ToDictionary(p => p.Name, p => p, StringComparer.Ordinal);
+
+            if (synchronousDelegateParameters.Count == 0)
+            {
+                return;
+            }
+
+            var reportedParameters = new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+            c.RegisterOperationAction(
+                oc => AnalyzeInlineSynchronousDelegateInvocation(oc, method, synchronousDelegateParameters, reportedParameters),
+                OperationKind.Invocation);
+        });
     }
 
     private static void AnalyzeMethod(
@@ -290,6 +321,88 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             method.Name,
             concreteTargetTypeName,
             suggestedName));
+    }
+
+    private static void AnalyzeInlineSynchronousDelegateInvocation(
+        OperationAnalysisContext context,
+        IMethodSymbol method,
+        IReadOnlyDictionary<string, IParameterSymbol> synchronousDelegateParameters,
+        ConcurrentDictionary<string, byte> reportedParameters)
+    {
+        var invocation = (IInvocationOperation)context.Operation;
+
+        if (invocation.TargetMethod.MethodKind != MethodKind.DelegateInvoke ||
+            invocation.Syntax is not InvocationExpressionSyntax invocationSyntax ||
+            IsInsideNestedCallback(invocationSyntax))
+        {
+            return;
+        }
+
+        var parameterName = GetInvokedDelegateParameterName(invocationSyntax);
+        if (parameterName is null || !synchronousDelegateParameters.TryGetValue(parameterName, out var parameter))
+        {
+            return;
+        }
+
+        if (!reportedParameters.TryAdd(parameterName, default))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Diagnostics.s_exportedSyncDelegateInvokedInline,
+            invocationSyntax.GetLocation(),
+            method.Name,
+            parameter.Name));
+    }
+
+    private static bool IsInsideNestedCallback(InvocationExpressionSyntax invocation)
+    {
+        return invocation.Ancestors().Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
+    }
+
+    private static string? GetInvokedDelegateParameterName(InvocationExpressionSyntax invocation)
+    {
+        return invocation.Expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+            MemberAccessExpressionSyntax
+            {
+                Name.Identifier.ValueText: "Invoke",
+                Expression: IdentifierNameSyntax identifier
+            } => identifier.Identifier.ValueText,
+            MemberBindingExpressionSyntax
+            {
+                Name.Identifier.ValueText: "Invoke"
+            } when invocation.Parent is ConditionalAccessExpressionSyntax
+            {
+                Expression: IdentifierNameSyntax identifier
+            } => identifier.Identifier.ValueText,
+            _ => null
+        };
+    }
+
+    private static bool IsSynchronousDelegateParameter(IParameterSymbol parameter)
+    {
+        if (parameter.Type is not INamedTypeSymbol namedType || !IsDelegateType(namedType))
+        {
+            return false;
+        }
+
+        var invokeMethod = namedType.DelegateInvokeMethod;
+        if (invokeMethod is null)
+        {
+            return false;
+        }
+
+        return !IsTaskReturnType(invokeMethod.ReturnType);
+    }
+
+    private static bool IsTaskReturnType(ITypeSymbol type)
+    {
+        return type is INamedTypeSymbol namedType
+            && namedType.Name == "Task"
+            && namedType.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks";
     }
 
     /// <summary>
@@ -609,6 +722,67 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return id;
         }
         return null;
+    }
+
+    private static bool TryGetEffectiveAspireExportAttribute(IMethodSymbol method, INamedTypeSymbol aspireExportAttribute, out AttributeData? exportAttribute, out AttributeData? containingTypeExportAttribute)
+    {
+        foreach (var attr in method.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                exportAttribute = attr;
+                containingTypeExportAttribute = GetContainingTypeAspireExportAttribute(method.ContainingType, aspireExportAttribute);
+                return true;
+            }
+        }
+
+        containingTypeExportAttribute = GetContainingTypeAspireExportAttribute(method.ContainingType, aspireExportAttribute);
+        if (containingTypeExportAttribute is not null)
+        {
+            exportAttribute = containingTypeExportAttribute;
+            return true;
+        }
+
+        exportAttribute = null;
+        containingTypeExportAttribute = null;
+        return false;
+    }
+
+    private static AttributeData? GetContainingTypeAspireExportAttribute(INamedTypeSymbol? type, INamedTypeSymbol aspireExportAttribute)
+    {
+        if (type is null)
+        {
+            return null;
+        }
+
+        foreach (var attr in type.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                return attr;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRunSyncOnBackgroundThreadEnabled(AttributeData? exportAttribute)
+    {
+        if (exportAttribute is null)
+        {
+            return false;
+        }
+
+        foreach (var namedArgument in exportAttribute.NamedArguments)
+        {
+            if (namedArgument.Key == "RunSyncOnBackgroundThread" &&
+                namedArgument.Value.Value is bool enabled)
+            {
+                return enabled;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsAtsCompatibleType(
