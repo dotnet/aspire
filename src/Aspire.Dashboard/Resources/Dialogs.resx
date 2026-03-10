@@ -361,6 +361,9 @@
   <data name="GenAIOutputHeaderText" xml:space="preserve">
     <value>Output</value>
   </data>
+  <data name="GenAILLMBadgeText" xml:space="preserve">
+    <value>LLM</value>
+  </data>
   <data name="GenAIMessageCategoryToolCalls" xml:space="preserve">
     <value>Tool calls</value>
   </data>

@@ -137,6 +137,11 @@
         <target state="translated">Tokeny wejściowe: {0}</target>
         <note>{0} is the number of tokens</note>
       </trans-unit>
+      <trans-unit id="GenAILLMBadgeText">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
         <target state="translated">Wiadomość</target>
