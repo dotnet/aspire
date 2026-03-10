@@ -122,11 +122,6 @@
         <target state="translated">Aucun</target>
         <note />
       </trans-unit>
-      <trans-unit id="NpmNotInstalledOrNotFound">
-        <source>npm is not installed or not found in PATH. Please install Node.js and try again.</source>
-        <target state="new">npm is not installed or not found in PATH. Please install Node.js and try again.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NuGetConfigCreatedConfirmationMessage">
         <source>Created NuGet.config for the selected package channel.</source>
         <target state="translated">Le fichier NuGet.config a été créé pour le canal de packages sélectionné.</target>
@@ -165,11 +160,6 @@
       <trans-unit id="PromptForTFM_UsingForTesting">
         <source>Using {0} for testing.</source>
         <target state="translated">Utilisation de {0} pour les tests.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="RunAspireRunToStart">
-        <source>Run 'aspire run' to start your AppHost.</source>
-        <target state="new">Run 'aspire run' to start your AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAvailableTemplateVersions">
@@ -266,6 +256,7 @@
         <source>Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</source>
         <target state="new">Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</target>
         <note>{0} is the relative path to the project directory</note>
-      </trans-unit>    </body>
+      </trans-unit>
+    </body>
   </file>
 </xliff>
