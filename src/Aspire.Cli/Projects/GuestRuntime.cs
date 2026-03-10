@@ -38,6 +38,12 @@ internal sealed class GuestRuntime
     public string DisplayName => _spec.DisplayName;
 
     /// <summary>
+    /// Gets the extension capability required to launch this language via the VS Code extension.
+    /// Null if this language does not support extension-based launching.
+    /// </summary>
+    public string? ExtensionLaunchCapability => _spec.ExtensionLaunchCapability;
+
+    /// <summary>
     /// Installs dependencies for the guest language project.
     /// </summary>
     /// <param name="directory">The project directory.</param>

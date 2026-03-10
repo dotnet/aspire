@@ -427,11 +427,12 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Check if the extension should launch the guest app host (for VS Code debugging).
             // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
-            // Only use the extension launcher for languages the extension actually supports (currently JS/TS via Node).
+            // The RuntimeSpec declares the required extension capability (e.g., "node" for TypeScript);
+            // only use the extension launcher when the runtime requests it and the extension supports it.
             IGuestProcessLauncher launcher;
-            if (LanguageId == KnownLanguageId.TypeScript
+            if (_guestRuntime!.ExtensionLaunchCapability is { } requiredCapability
                 && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out var extensionBackchannel)
-                && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.Node, cancellationToken))
+                && await extensionBackchannel.HasCapabilityAsync(requiredCapability, cancellationToken))
             {
                 launcher = new ExtensionGuestLauncher(extensionInteractionService, appHostFile, context.StartDebugSession);
             }
