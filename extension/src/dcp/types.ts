@@ -45,7 +45,7 @@ export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfig
 }
 
 export interface NodeLaunchConfiguration extends ExecutableLaunchConfiguration {
-    type: "node";
+    type: "node"; // Provided by VS Code's built-in js-debug, no extension needed
     script_path?: string;
     runtime_executable?: string;
     working_directory?: string;
