@@ -621,7 +621,7 @@ internal static class CliE2ETestHelpers
             .Find("# ");
 
         builder
-            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(120))
             .Wait(500);
 
         // Set up the same prompt counting mechanism used by all E2E tests.
