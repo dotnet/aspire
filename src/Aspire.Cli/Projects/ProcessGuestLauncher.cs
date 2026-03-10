@@ -14,11 +14,13 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
 {
     private readonly string _language;
     private readonly ILogger _logger;
+    private readonly Func<string, string?> _commandResolver;
 
-    public ProcessGuestLauncher(string language, ILogger logger)
+    public ProcessGuestLauncher(string language, ILogger logger, Func<string, string?>? commandResolver = null)
     {
         _language = language;
         _logger = logger;
+        _commandResolver = commandResolver ?? PathLookupHelper.FindFullPathFromPath;
     }
 
     public async Task<(int ExitCode, OutputCollector? Output)> LaunchAsync(
@@ -28,12 +30,11 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
         IDictionary<string, string> environmentVariables,
         CancellationToken cancellationToken)
     {
-        var resolvedCommand = PathLookupHelper.FindFullPathFromPath(command);
-        if (resolvedCommand is null)
+        if (!CommandPathResolver.TryResolveCommand(command, _commandResolver, out var resolvedCommand, out var errorMessage))
         {
             _logger.LogError("Command '{Command}' not found in PATH", command);
             var errorOutput = new OutputCollector();
-            errorOutput.AppendError($"Command '{command}' not found. Please ensure it is installed and in your PATH.");
+            errorOutput.AppendError(errorMessage!);
             return (-1, errorOutput);
         }
 

@@ -1183,10 +1183,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            }
         }
 
         return result;
