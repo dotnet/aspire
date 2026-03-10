@@ -261,6 +261,31 @@ public class GuestRuntimeTests
     }
 
     [Fact]
+    public void ExtensionLaunchCapability_ReturnsSpecValue()
+    {
+        var spec = new RuntimeSpec
+        {
+            Language = "test/runtime",
+            DisplayName = "Test Runtime",
+            CodeGenLanguage = "Test",
+            DetectionPatterns = ["apphost.test"],
+            Execute = new CommandSpec { Command = "test-cmd", Args = ["{appHostFile}"] },
+            ExtensionLaunchCapability = "node"
+        };
+        var runtime = new GuestRuntime(spec, NullLogger.Instance);
+
+        Assert.Equal("node", runtime.ExtensionLaunchCapability);
+    }
+
+    [Fact]
+    public void ExtensionLaunchCapability_DefaultsToNull()
+    {
+        var runtime = new GuestRuntime(CreateTestSpec(), NullLogger.Instance);
+
+        Assert.Null(runtime.ExtensionLaunchCapability);
+    }
+
+    [Fact]
     public async Task InstallDependenciesAsync_WithNoSpec_ReturnsZero()
     {
         var spec = CreateTestSpec();
