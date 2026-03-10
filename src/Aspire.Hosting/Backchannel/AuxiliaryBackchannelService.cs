@@ -174,6 +174,12 @@ internal sealed class AuxiliaryBackchannelService(
         {
             logger.LogDebug("Client connection handler was cancelled");
         }
+        catch (IOException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionReset })
+        {
+            // IOException wrapping a ConnectionReset SocketException is expected when the client
+            // disconnects abruptly (e.g., process exit). This is a normal condition and not an error.
+            logger.LogDebug(ex, "Client disconnected from auxiliary backchannel");
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error handling client connection on auxiliary backchannel");
