@@ -19,7 +19,7 @@
              $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting.'))
              and
              '$(MSBuildProjectName)' != 'Aspire.Hosting.Analyzers'">
-    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
+    <ProjectReference Include="$(MSBuildThisFileDirectory)\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
                     PrivateAssets="all"
                     ReferenceOutputAssembly="false"
                     OutputItemType="Analyzer"
