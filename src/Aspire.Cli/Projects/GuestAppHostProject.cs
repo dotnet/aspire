@@ -251,6 +251,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
+        if (IsUnsupported)
+        {
+            return Task.FromResult(new AppHostValidationResult(IsValid: false, IsUnsupported: true));
+        }
+
         // Check if the file exists
         if (!appHostFile.Exists)
         {

@@ -956,6 +956,74 @@ builder.Build().Run();");
         Assert.Equal(appHostCsFile.FullName, foundFiles[0].FullName);
     }
 
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_ExcludesDotNetProjectsWhenSdkNotAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (false, null, "10.0.100")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Empty(foundFiles);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_IncludesDotNetProjectsWhenSdkAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (true, "10.0.100", "10.0.100")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Single(foundFiles);
+        Assert.Equal(projectFile.FullName, foundFiles[0].FullName);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotCheckSdkWhenNoDotNetProjects()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // No project files at all
+        var sdkCheckCalled = false;
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ =>
+            {
+                sdkCheckCalled = true;
+                return (false, null, "10.0.100");
+            }
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Empty(foundFiles);
+        Assert.False(sdkCheckCalled);
+    }
+
     private static ProjectLocator CreateProjectLocator(
         CliExecutionContext executionContext,
         IInteractionService? interactionService = null,

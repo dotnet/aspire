@@ -92,16 +92,16 @@ internal sealed class ProjectLocator(
             }
 
             // If any candidates are .NET projects, ensure the SDK is available
-            if (candidatesWithHandlers.Any(c => c.Handler is DotNetAppHostProject))
+            if (candidatesWithHandlers.Any(c => c.Handler.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase)))
             {
                 if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, telemetry, cancellationToken))
                 {
                     logger.LogWarning("The .NET SDK is not available. Marking .NET projects as unsupported.");
                     foreach (var (_, handler) in candidatesWithHandlers)
                     {
-                        if (handler is DotNetAppHostProject dotNetHandler)
+                        if (handler.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
                         {
-                            dotNetHandler.IsUnsupported = true;
+                            handler.IsUnsupported = true;
                         }
                     }
                 }

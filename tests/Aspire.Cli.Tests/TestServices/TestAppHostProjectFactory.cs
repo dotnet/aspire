@@ -154,6 +154,11 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
 
         public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
         {
+            if (IsUnsupported)
+            {
+                return Task.FromResult(new AppHostValidationResult(IsValid: false, IsUnsupported: true));
+            }
+
             if (_factory.ValidateAppHostCallback is not null)
             {
                 return Task.FromResult(_factory.ValidateAppHostCallback(appHostFile));
