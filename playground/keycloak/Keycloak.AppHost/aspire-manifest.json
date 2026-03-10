@@ -3,7 +3,7 @@
   "resources": {
     "keycloak": {
       "type": "container.v0",
-      "image": "quay.io/keycloak/keycloak:26.4",
+      "image": "quay.io/keycloak/keycloak:26.5",
       "args": [
         "start",
         "--import-realm"
@@ -53,7 +53,7 @@
         "KEYCLOAK_HTTP": "{keycloak.bindings.http.url}",
         "services__keycloak__http__0": "{keycloak.bindings.http.url}",
         "KEYCLOAK_MANAGEMENT": "{keycloak.bindings.management.url}",
-        "services__keycloak__management__0": "{keycloak.bindings.management.url}"
+        "services__keycloak__http__1": "{keycloak.bindings.management.url}"
       },
       "bindings": {
         "http": {
@@ -78,7 +78,7 @@
         "KEYCLOAK_HTTP": "{keycloak.bindings.http.url}",
         "services__keycloak__http__0": "{keycloak.bindings.http.url}",
         "KEYCLOAK_MANAGEMENT": "{keycloak.bindings.management.url}",
-        "services__keycloak__management__0": "{keycloak.bindings.management.url}",
+        "services__keycloak__http__1": "{keycloak.bindings.management.url}",
         "APISERVICE_HTTP": "{apiservice.bindings.http.url}",
         "services__apiservice__http__0": "{apiservice.bindings.http.url}",
         "APISERVICE_HTTPS": "{apiservice.bindings.https.url}",
