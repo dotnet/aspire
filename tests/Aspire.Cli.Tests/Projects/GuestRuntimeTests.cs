@@ -76,7 +76,7 @@ public class GuestRuntimeTests
         await runtime.RunAsync(appHostFile, directory, envVars, watchMode: false, launcher, CancellationToken.None);
 
         Assert.Equal("my-runner", launcher.LastCommand);
-        Assert.Contains("/tmp/apphost.ts", launcher.LastArgs);
+        Assert.Contains(appHostFile.FullName, launcher.LastArgs);
     }
 
     [Fact]

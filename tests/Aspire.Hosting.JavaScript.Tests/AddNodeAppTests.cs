@@ -520,7 +520,7 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public void ViteApp_WithBrowserDebugger_WithoutEndpoint_ThrowsInvalidOperationException()
+    public void ViteApp_WithBrowserDebugger_WithoutEndpoint_DeferredValidation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -529,10 +529,16 @@ public class AddNodeAppTests
         var resource = new JavaScriptAppResource("jsapp", "npm", tempDir.Path);
         var jsApp = builder.AddResource(resource);
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            jsApp.WithBrowserDebugger());
+        // WithBrowserDebugger no longer throws immediately; endpoint validation is deferred
+        // to when the launch configuration callback is actually invoked at debug time
+        jsApp.WithBrowserDebugger();
 
-        Assert.Contains("does not have an HTTP or HTTPS endpoint", exception.Message);
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // The browser debugger resource should still be created
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
+        Assert.NotNull(browserDebuggerResource);
     }
 
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
