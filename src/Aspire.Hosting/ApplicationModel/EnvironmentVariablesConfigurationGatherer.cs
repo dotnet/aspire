@@ -13,6 +13,17 @@ internal class EnvironmentVariablesExecutionConfigurationGatherer : IExecutionCo
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
+        // If cached unresolved values exist (from Phase 1 container configuration),
+        // replay them into the context instead of re-invoking callbacks.
+        if (resource.TryGetLastAnnotation<CachedExecutionConfigurationAnnotation>(out var cached))
+        {
+            foreach (var kvp in cached.EnvironmentVariables)
+            {
+                context.EnvironmentVariables[kvp.Key] = kvp.Value;
+            }
+            return;
+        }
+
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
             var callbackContext = new EnvironmentCallbackContext(executionContext, resource, context.EnvironmentVariables, cancellationToken)

@@ -1454,7 +1454,7 @@ public static class ResourceExtensions
     /// <summary>
     /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
     /// </summary>
-    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
+    internal static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
     {
         if (value is null || !visitedValues.Add(value))
         {

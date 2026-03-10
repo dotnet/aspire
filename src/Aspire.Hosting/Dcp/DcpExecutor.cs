@@ -159,18 +159,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             AspireEventSource.Instance.DcpModelCreationStart();
 
             PrepareContainerNetworks();
+            PrepareContainers();
+
+            // Phase 1: Fire OnResourceStarting for each container, invoke env/arg callbacks once,
+            // cache the unresolved values, and determine tunnel dependencies.
+            // This must happen before PrepareServices so that cached dependencies are available.
+            await PrepareContainerConfigurationAsync(ct).ConfigureAwait(false);
 
             AspireEventSource.Instance.DcpServiceObjectPreparationStart();
             try
             {
-                await PrepareServicesAsync(ct).ConfigureAwait(false);
+                PrepareServices(ct);
             }
             finally
             {
                 AspireEventSource.Instance.DcpServiceObjectPreparationStop();
             }
 
-            PrepareContainers();
             PrepareExecutables();
 
             await _executorEvents.PublishAsync(new OnResourcesPreparedContext(ct)).ConfigureAwait(false);
@@ -196,7 +201,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var createContainerNetworks = Task.Run(() => CreateAllDcpObjectsAsync<ContainerNetwork>(ct), ct);
 
             var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
-            var (regular, tunnelDependent, regularContainerExes, tunnelDependentContainerExes) = await GetContainerCreationSetsAsync(ct).ConfigureAwait(false);
+
+            // Classify containers using cached configuration from Phase 1.
+            var allContainers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
+            var regular = new List<RenderedModelResource>();
+            var tunnelDependent = new List<RenderedModelResource>();
+
+            foreach (var cr in allContainers)
+            {
+                if (cr.ModelResource.TryGetLastAnnotation<CachedExecutionConfigurationAnnotation>(out var cached) && cached.IsTunnelDependent)
+                {
+                    tunnelDependent.Add(cr);
+                }
+                else
+                {
+                    regular.Add(cr);
+                }
+            }
+
+            var regularContainerExes = _appResources.OfType<RenderedModelResource>()
+                .Where(ar => ar.DcpResource is ContainerExec ce && regular.Any(td => td.DcpResource is Container c && c.Metadata.Name == ce.Spec.ContainerName));
+            var tunnelDependentContainerExes = _appResources.OfType<RenderedModelResource>()
+                .Where(ar => ar.DcpResource is ContainerExec ce && tunnelDependent.Any(td => td.DcpResource is Container c && c.Metadata.Name == ce.Spec.ContainerName));
 
             var createExecutableEndpoints = Task.Run(async () =>
             {
@@ -1170,10 +1196,143 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     /// <summary>
+    /// Phase 1 of container creation: fires <c>OnResourceStarting</c> for each container,
+    /// invokes environment/argument callbacks exactly once, caches unresolved values,
+    /// and determines which containers are tunnel-dependent.
+    /// Must be called after <see cref="PrepareContainers"/> and before <see cref="PrepareServices"/>.
+    /// </summary>
+    private async Task PrepareContainerConfigurationAsync(CancellationToken cancellationToken)
+    {
+        var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
+        if (!containers.Any())
+        {
+            return;
+        }
+
+        foreach (var cr in containers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Fire OnResourceStarting before invoking callbacks, unless explicit startup is configured.
+            var explicitStartup = cr.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true;
+            if (!explicitStartup)
+            {
+                await _executorEvents.PublishAsync(
+                    new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name))
+                    .ConfigureAwait(false);
+            }
+
+            // Invoke env/arg callbacks once and cache the unresolved values.
+            var envVars = new Dictionary<string, object>();
+            var args = new List<object>();
+
+            if (cr.ModelResource.TryGetEnvironmentVariables(out var envCallbacks))
+            {
+                var callbackContext = new EnvironmentCallbackContext(_executionContext, cr.ModelResource, envVars, cancellationToken)
+                {
+                    Logger = _loggerService.GetLogger(cr.ModelResource),
+                };
+
+                foreach (var callback in envCallbacks)
+                {
+                    await callback.Callback(callbackContext).ConfigureAwait(false);
+                }
+            }
+
+            if (cr.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+            {
+                var callbackContext = new CommandLineArgsCallbackContext(args, cr.ModelResource, cancellationToken)
+                {
+                    Logger = _loggerService.GetLogger(cr.ModelResource),
+                    ExecutionContext = _executionContext
+                };
+
+                foreach (var callback in argsCallbacks)
+                {
+                    await callback.Callback(callbackContext).ConfigureAwait(false);
+                }
+            }
+
+            // Determine if this container depends on host resources (for tunnel setup).
+            bool isTunnelDependent = false;
+            if (_options.Value.EnableAspireContainerTunnel)
+            {
+                var dependencies = new HashSet<IResource>();
+                var newDependencies = new HashSet<IResource>();
+                var visited = new HashSet<object>();
+
+                // Collect deps from cached env/arg values.
+                foreach (var value in envVars.Values)
+                {
+                    ResourceExtensions.CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+                }
+                foreach (var value in args)
+                {
+                    ResourceExtensions.CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+                }
+
+                // Also collect annotation-based deps (parent, wait, connection string redirect).
+                CollectAnnotationDependenciesForTunnelCheck(cr.ModelResource, dependencies);
+
+                dependencies.Remove(cr.ModelResource);
+
+                isTunnelDependent = dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is not null);
+            }
+
+            // Cache the unresolved values on the resource.
+            var cachedAnnotation = new CachedExecutionConfigurationAnnotation(envVars, args, isTunnelDependent);
+            cr.ModelResource.Annotations.Add(cachedAnnotation);
+        }
+
+        // Validate persistent tunnel-dependent containers.
+        if (_options.Value.EnableAspireContainerTunnel)
+        {
+            var persistentTunnelDependent = containers.Where(
+                cr => cr.ModelResource.TryGetLastAnnotation<CachedExecutionConfigurationAnnotation>(out var cached) &&
+                      cached.IsTunnelDependent &&
+                      cr.DcpResource is Container c && c.Spec.Persistent is true);
+
+            if (persistentTunnelDependent.Any())
+            {
+                var containerNames = persistentTunnelDependent
+                    .Select(td => td.ModelResource.Name)
+                    .Aggregate(string.Empty, (acc, next) => acc + " '" + next + "'");
+                throw new InvalidOperationException(
+                    $"The following containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Collects annotation-based dependencies (parent, wait, connection string redirect) for tunnel dependency checking.
+    /// </summary>
+    private static void CollectAnnotationDependenciesForTunnelCheck(IResource resource, HashSet<IResource> dependencies)
+    {
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            dependencies.Add(resourceWithParent.Parent);
+        }
+
+        if (resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+        {
+            foreach (var waitAnnotation in waitAnnotations)
+            {
+                dependencies.Add(waitAnnotation.Resource);
+            }
+        }
+
+        if (resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var redirectAnnotation))
+        {
+            dependencies.Add(redirectAnnotation.Resource);
+        }
+    }
+
+    /// <summary>
     /// Creates DCP Service objects that represent services exposed by resources in the model via endpoints (EndpointAnnotations).
     /// </summary>
-    private async Task PrepareServicesAsync(CancellationToken cancellationToken)
+    private void PrepareServices(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
 
         var serviceProducers = _model.Resources
@@ -1235,6 +1394,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         // For container-to-host communication we create a tunnel proxy with a Service/tunnel for each host Endpoint.
+        // Use cached configuration from PrepareContainerConfigurationAsync to determine host dependencies
+        // without re-invoking environment/argument callbacks.
 
         var containers = _model.Resources.Where(r => r.IsContainer());
         if (!containers.Any())
@@ -1242,10 +1403,39 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             return; // No container resources--no need to set up container-to-host tunnels.
         }
 
-        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(containers, _executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+        // Collect host dependencies from cached unresolved values instead of re-invoking callbacks.
+        var hostDependencies = new List<HostResourceWithEndpoints>();
+        var seenResources = new HashSet<string>(StringComparers.ResourceName);
 
-        // Host dependencies are host network resources with endpoints that containers depend on.
-        List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
+        foreach (var container in containers)
+        {
+            if (container.TryGetLastAnnotation<CachedExecutionConfigurationAnnotation>(out var cached))
+            {
+                var dependencies = new HashSet<IResource>();
+                var newDependencies = new HashSet<IResource>();
+                var visited = new HashSet<object>();
+
+                foreach (var value in cached.EnvironmentVariables.Values)
+                {
+                    ResourceExtensions.CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+                }
+                foreach (var value in cached.Arguments)
+                {
+                    ResourceExtensions.CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+                }
+
+                CollectAnnotationDependenciesForTunnelCheck(container, dependencies);
+                dependencies.Remove(container);
+
+                foreach (var dep in dependencies)
+                {
+                    if (AsHostResourceWithEndpoints(dep) is HostResourceWithEndpoints hostDep && seenResources.Add(dep.Name))
+                    {
+                        hostDependencies.Add(hostDep);
+                    }
+                }
+            }
+        }
 
         // Aspire dashboard is special in the context of Open Telemetry ingestion.
         // OTLP exporters do not refer to the OTLP ingestion endpoint via EndpointReference when the model is constructed
@@ -2068,14 +2258,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var modelContainerResource = cr.ModelResource;
             AspireEventSource.Instance.DcpObjectCreationStart(dcpContainerResource.Kind, dcpContainerResource.Metadata.Name);
             cancellationToken.ThrowIfCancellationRequested();
-            var explicitStartup = cr.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true;
-            if (!explicitStartup)
-            {
-                // If explicit startup is configured, we aren't going to start the resource now. A DCP resource WILL be created,
-                // but it will be explicitly set to not start. We don't want to send the BeforeResourceStarted event here as it will
-                // be sent later when the resource is explicitly started via user action or API.
-                await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
-            }
+
+            // Note: OnResourceStarting is fired in PrepareContainerConfigurationAsync for initial creation,
+            // and in StartResourceAsync for restart scenarios. It is not fired here.
 
             await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, _executionContext.ServiceProvider, cancellationToken).ConfigureAwait(false);
 
@@ -2563,6 +2748,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ensure we explicitly start the container
                     c.Spec.Start = true;
 
+                    // Clear cached configuration so callbacks are re-invoked with fresh values on restart.
+                    var cachedAnnotations = appResource.ModelResource.Annotations.OfType<CachedExecutionConfigurationAnnotation>().ToList();
+                    foreach (var cached in cachedAnnotations)
+                    {
+                        appResource.ModelResource.Annotations.Remove(cached);
+                    }
+
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
@@ -2969,69 +3161,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return null;
-    }
-
-    private record struct ContainerCreationSets
-    (
-        IEnumerable<RenderedModelResource> RegularContainers,
-        IEnumerable<RenderedModelResource> TunnelDependentContainers,
-        IEnumerable<RenderedModelResource> RegularContainerExecutables,
-        IEnumerable<RenderedModelResource> TunnelDependentContainerExecutables
-    );
-    /// <summary>
-    /// Determines which containers, and container executables, can be created immediately,
-    /// and which ones depend on a tunnel to the host network.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token that can be used to cancel the whole operation.</param>
-    /// <returns>
-    /// A record grouping container-related resources into sets, dependent on whether they
-    /// require network tunnels to host resources.
-    /// </returns>
-    private async Task<ContainerCreationSets> GetContainerCreationSetsAsync(CancellationToken cancellationToken)
-    {
-        List<RenderedModelResource> regular = new();
-        List<RenderedModelResource> tunnelDependent = new();
-
-        var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
-
-        if (!_options.Value.EnableAspireContainerTunnel)
-        {
-            regular.AddRange(containers);
-        }
-        else
-        {
-            foreach (var cr in containers)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(_executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
-
-                if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
-                {
-                    tunnelDependent.Add(cr);
-                }
-                else
-                {
-                    regular.Add(cr);
-                }
-            }
-        }
-
-        var persistentTunnelDependent = tunnelDependent.Where(td => td.DcpResource is Container c && c.Spec.Persistent is true);
-        if (persistentTunnelDependent.Any())
-        {
-            var containerNames = persistentTunnelDependent.Select(td => td.ModelResource.Name).Aggregate(string.Empty, (acc, next) => acc + " '" + next + "'");
-            throw new InvalidOperationException($"The follwing containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
-        }
-
-        return new ContainerCreationSets(
-            RegularContainers: regular,
-            TunnelDependentContainers: tunnelDependent,
-            RegularContainerExecutables: _appResources.OfType<RenderedModelResource>()
-                .Where(ar => ar.DcpResource is ContainerExec ce && regular.Any(td => td.DcpResource is Container c && c.Metadata.Name == ce.Spec.ContainerName)),
-            TunnelDependentContainerExecutables: _appResources.OfType<RenderedModelResource>()
-                .Where(ar => ar.DcpResource is ContainerExec ce && tunnelDependent.Any(td => td.DcpResource is Container c && c.Metadata.Name == ce.Spec.ContainerName))
-        );
     }
 
     private async Task PublishEndpointAllocatedEventAsync(

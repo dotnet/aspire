@@ -13,6 +13,14 @@ internal class ArgumentsExecutionConfigurationGatherer : IExecutionConfiguration
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
+        // If cached unresolved values exist (from Phase 1 container configuration),
+        // replay them into the context instead of re-invoking callbacks.
+        if (resource.TryGetLastAnnotation<CachedExecutionConfigurationAnnotation>(out var cached))
+        {
+            context.Arguments.AddRange(cached.Arguments);
+            return;
+        }
+
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var callbackContext = new CommandLineArgsCallbackContext(context.Arguments, resource, cancellationToken)
