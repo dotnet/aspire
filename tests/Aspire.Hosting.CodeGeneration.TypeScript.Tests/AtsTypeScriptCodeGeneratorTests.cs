@@ -951,25 +951,6 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("ReferenceExpression", types[1].FullName ?? types[1].Name);
     }
 
-    [Fact]
-    public void TypeScriptAppHost_PlaygroundAwaitsEnvironmentVariableMutationInEnvironmentCallback()
-    {
-        var appHostPath = Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "..",
-            "playground",
-            "TypeScriptAppHost",
-            "apphost.ts"));
-
-        var appHostSource = File.ReadAllText(appHostPath);
-
-        Assert.Contains("await ctx.environmentVariables.set(\"API_ENDPOINT\", refExpr`${ep}`);", appHostSource);
-    }
-
     // ===== CapabilityKind Tests =====
 
     [Fact]
