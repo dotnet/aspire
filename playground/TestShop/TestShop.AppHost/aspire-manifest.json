@@ -34,7 +34,7 @@
     "basketcache": {
       "type": "container.v0",
       "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port},password={basketcache-password.value}",
-      "image": "docker.io/library/redis:8.2",
+      "image": "docker.io/library/redis:8.6",
       "entrypoint": "/bin/sh",
       "args": [
         "-c",
@@ -225,7 +225,7 @@
     },
     "apigateway": {
       "type": "container.v0",
-      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3-preview",
       "entrypoint": "dotnet",
       "args": [
         "/app/yarp.dll"

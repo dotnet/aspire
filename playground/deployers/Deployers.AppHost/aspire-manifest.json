@@ -150,7 +150,7 @@
     "cache": {
       "type": "container.v1",
       "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
-      "image": "docker.io/library/redis:8.2",
+      "image": "docker.io/library/redis:8.6",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "cache-containerapp.module.bicep",
@@ -341,6 +341,7 @@
           "funcstorage6662c_outputs_blobendpoint": "{funcstorage6662c.outputs.blobEndpoint}",
           "funcstorage6662c_outputs_queueendpoint": "{funcstorage6662c.outputs.queueEndpoint}",
           "funcstorage6662c_outputs_tableendpoint": "{funcstorage6662c.outputs.tableEndpoint}",
+          "funcstorage6662c_outputs_datalakeendpoint": "{funcstorage6662c.outputs.dataLakeEndpoint}",
           "eventhubs_outputs_eventhubsendpoint": "{eventhubs.outputs.eventHubsEndpoint}",
           "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
           "cosmosdb_outputs_connectionstring": "{cosmosdb.outputs.connectionString}",
@@ -358,9 +359,11 @@
         "AzureWebJobsStorage__blobServiceUri": "{funcstorage6662c.outputs.blobEndpoint}",
         "AzureWebJobsStorage__queueServiceUri": "{funcstorage6662c.outputs.queueEndpoint}",
         "AzureWebJobsStorage__tableServiceUri": "{funcstorage6662c.outputs.tableEndpoint}",
+        "AzureWebJobsStorage__dataLakeServiceUri": "{funcstorage6662c.outputs.dataLakeEndpoint}",
         "Aspire__Azure__Storage__Blobs__AzureWebJobsStorage__ServiceUri": "{funcstorage6662c.outputs.blobEndpoint}",
         "Aspire__Azure__Storage__Queues__AzureWebJobsStorage__ServiceUri": "{funcstorage6662c.outputs.queueEndpoint}",
         "Aspire__Azure__Data__Tables__AzureWebJobsStorage__ServiceUri": "{funcstorage6662c.outputs.tableEndpoint}",
+        "Aspire__Azure__Storage__Files__DataLake__AzureWebJobsStorage__ServiceUri": "{funcstorage6662c.outputs.dataLakeEndpoint}",
         "myhub__fullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubProducerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
         "Aspire__Azure__Messaging__EventHubs__EventHubConsumerClient__myhub__FullyQualifiedNamespace": "{eventhubs.outputs.eventHubsEndpoint}",
