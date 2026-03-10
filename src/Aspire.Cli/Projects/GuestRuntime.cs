@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Cli.Utils;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
@@ -39,6 +38,12 @@ internal sealed class GuestRuntime
     public string DisplayName => _spec.DisplayName;
 
     /// <summary>
+    /// Gets the extension capability required to launch this language via the VS Code extension.
+    /// Null if this language does not support extension-based launching.
+    /// </summary>
+    public string? ExtensionLaunchCapability => _spec.ExtensionLaunchCapability;
+
+    /// <summary>
     /// Installs dependencies for the guest language project.
     /// </summary>
     /// <param name="directory">The project directory.</param>
@@ -52,47 +57,19 @@ internal sealed class GuestRuntime
             return 0;
         }
 
-        var command = FindCommand(_spec.InstallDependencies.Command);
-        if (command is null)
-        {
-            _logger.LogError("Command '{Command}' not found in PATH", _spec.InstallDependencies.Command);
-            return -1;
-        }
-
         var args = ReplacePlaceholders(_spec.InstallDependencies.Args, null, directory, null);
 
-        _logger.LogDebug("Installing dependencies: {Command} {Args}", command, string.Join(" ", args));
+        var environmentVariables = _spec.InstallDependencies.EnvironmentVariables ?? new Dictionary<string, string>();
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = command,
-            WorkingDirectory = directory.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        var launcher = CreateDefaultLauncher();
+        var (exitCode, _) = await launcher.LaunchAsync(
+            _spec.InstallDependencies.Command,
+            args,
+            directory,
+            environmentVariables,
+            cancellationToken);
 
-        // Use ArgumentList for proper escaping of special characters
-        foreach (var arg in args)
-        {
-            startInfo.ArgumentList.Add(arg);
-        }
-
-        // Add command-specific environment variables from the spec
-        if (_spec.InstallDependencies.EnvironmentVariables is not null)
-        {
-            foreach (var (key, value) in _spec.InstallDependencies.EnvironmentVariables)
-            {
-                startInfo.EnvironmentVariables[key] = value;
-            }
-        }
-
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-        await process.WaitForExitAsync(cancellationToken);
-
-        return process.ExitCode;
+        return exitCode;
     }
 
     /// <summary>
@@ -102,13 +79,15 @@ internal sealed class GuestRuntime
     /// <param name="directory">The project directory.</param>
     /// <param name="environmentVariables">Environment variables to set for the process.</param>
     /// <param name="watchMode">Whether to run in watch mode for hot reload.</param>
+    /// <param name="launcher">Strategy for launching the process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A tuple of the exit code and captured output.</returns>
-    public async Task<(int ExitCode, OutputCollector Output)> RunAsync(
+    /// <returns>A tuple of the exit code and captured output (null when launched via extension).</returns>
+    public async Task<(int ExitCode, OutputCollector? Output)> RunAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
         // Use watch execute if watch mode is enabled and the spec supports it
@@ -116,7 +95,7 @@ internal sealed class GuestRuntime
             ? _spec.WatchExecute
             : _spec.Execute;
 
-        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, null, cancellationToken);
+        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, null, launcher, cancellationToken);
     }
 
     /// <summary>
@@ -126,103 +105,52 @@ internal sealed class GuestRuntime
     /// <param name="directory">The project directory.</param>
     /// <param name="environmentVariables">Environment variables to set for the process.</param>
     /// <param name="publishArgs">Additional arguments for publishing.</param>
+    /// <param name="launcher">Strategy for launching the process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A tuple of the exit code and captured output.</returns>
-    public async Task<(int ExitCode, OutputCollector Output)> PublishAsync(
+    public async Task<(int ExitCode, OutputCollector? Output)> PublishAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         string[]? publishArgs,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
         // Use publish execute if available, otherwise fall back to regular execute
         var commandSpec = _spec.PublishExecute ?? _spec.Execute;
 
-        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+        return await ExecuteCommandAsync(commandSpec, appHostFile, directory, environmentVariables, publishArgs, launcher, cancellationToken);
     }
 
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteCommandAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteCommandAsync(
         CommandSpec commandSpec,
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         string[]? additionalArgs,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
-        var command = FindCommand(commandSpec.Command);
-        if (command is null)
-        {
-            _logger.LogError("Command '{Command}' not found in PATH", commandSpec.Command);
-            var output = new OutputCollector();
-            output.AppendError($"Command '{commandSpec.Command}' not found. Please ensure it is installed and in your PATH.");
-            return (-1, output);
-        }
-
         var args = ReplacePlaceholders(commandSpec.Args, appHostFile, directory, additionalArgs);
 
-        _logger.LogDebug("Executing: {Command} {Args}", command, string.Join(" ", args));
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = command,
-            WorkingDirectory = directory.FullName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        // Use ArgumentList for proper escaping of special characters
-        foreach (var arg in args)
-        {
-            startInfo.ArgumentList.Add(arg);
-        }
-
-        // Add caller-provided environment variables
-        foreach (var (key, value) in environmentVariables)
-        {
-            startInfo.EnvironmentVariables[key] = value;
-        }
-
-        // Add command-specific environment variables from the spec
-        // These take precedence over caller-provided variables
+        // Merge command-specific environment variables from the spec (they take precedence)
+        var mergedEnvironment = new Dictionary<string, string>(environmentVariables);
         if (commandSpec.EnvironmentVariables is not null)
         {
             foreach (var (key, value) in commandSpec.EnvironmentVariables)
             {
-                startInfo.EnvironmentVariables[key] = value;
+                mergedEnvironment[key] = value;
             }
         }
 
-        using var process = new Process { StartInfo = startInfo };
-
-        var outputCollector = new OutputCollector();
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("{Language}({ProcessId}) stdout: {Line}", _spec.Language, process.Id, e.Data);
-                outputCollector.AppendOutput(e.Data);
-            }
-        };
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                _logger.LogDebug("{Language}({ProcessId}) stderr: {Line}", _spec.Language, process.Id, e.Data);
-                outputCollector.AppendError(e.Data);
-            }
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(cancellationToken);
-        return (process.ExitCode, outputCollector);
+        _logger.LogDebug("Launching: {Command} {Args}", commandSpec.Command, string.Join(" ", args));
+        return await launcher.LaunchAsync(commandSpec.Command, args, directory, mergedEnvironment, cancellationToken);
     }
+
+    /// <summary>
+    /// Creates the default process-based launcher for this runtime.
+    /// </summary>
+    public ProcessGuestLauncher CreateDefaultLauncher() => new(_spec.Language, _logger);
 
     /// <summary>
     /// Replaces placeholders in command arguments with actual values.
@@ -268,13 +196,5 @@ internal sealed class GuestRuntime
         }
 
         return result.ToArray();
-    }
-
-    /// <summary>
-    /// Finds the full path to a command in PATH.
-    /// </summary>
-    private static string? FindCommand(string command)
-    {
-        return PathLookupHelper.FindFullPathFromPath(command);
     }
 }
