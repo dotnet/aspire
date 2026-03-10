@@ -95,6 +95,8 @@ internal sealed class ProjectLocator(
             var dotNetCandidate = candidatesWithHandlers.FirstOrDefault(c => c.Handler.LanguageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase));
             if (dotNetCandidate.Handler is { } dotNetHandler)
             {
+                // TODO: Consider moving this check inside the handler.
+                // Would need to support caching and reusing check across validations.
                 if (!await SdkInstallHelper.EnsureSdkInstalledAsync(sdkInstaller, interactionService, telemetry, cancellationToken))
                 {
                     logger.LogWarning("The .NET SDK is not available. Marking .NET projects as unsupported.");
