@@ -450,9 +450,9 @@ public class MSBuildTests
 
         var buildOutput = output.ToString();
 
-        // Build should fail with ASPIREEXPORT002 error
+        // Build should fail with ASPIRE008 error
         Assert.NotEqual(0, process.ExitCode);
-        Assert.Contains("error ASPIREEXPORT002", buildOutput);
+        Assert.Contains("error ASPIRE008", buildOutput);
         Assert.Contains("GenerateAssemblyInfo", buildOutput);
     }
 }
