@@ -1,5 +1,5 @@
 /**
- * OpenTelemetry instrumentation for the Express API.
+ * OpenTelemetry instrumentation for the app.
  *
  * When the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is set (automatically
  * configured by Aspire), this module initializes the OpenTelemetry Node.js SDK to

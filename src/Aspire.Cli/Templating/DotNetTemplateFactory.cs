@@ -252,7 +252,8 @@ internal class DotNetTemplateFactory(
             ApplyDevLocalhostTldOption,
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
-                : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct)
+                : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct),
+            isEmpty: true
             );
     }
 

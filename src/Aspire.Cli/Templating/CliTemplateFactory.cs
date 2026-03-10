@@ -12,7 +12,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
-using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
 
@@ -109,7 +108,8 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                     languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript],
+                isEmpty: true)
         ];
     }
 
@@ -284,9 +284,13 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         var currentDir = _executionContext.WorkingDirectory.FullName;
         var relativePath = Path.GetRelativePath(currentDir, outputPath);
 
-        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), StringComparison.OrdinalIgnoreCase))
+        var pathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), pathComparison))
         {
-            _interactionService.DisplayMessage(KnownEmojis.Information, $"Run 'cd {relativePath.EscapeMarkup()}' and then 'aspire run' to start your AppHost.");
+            _interactionService.DisplayMessage(KnownEmojis.Information, $"Run 'cd \"{relativePath}\"' and then 'aspire run' to start your AppHost.");
         }
         else
         {
