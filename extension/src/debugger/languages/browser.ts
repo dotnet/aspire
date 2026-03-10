@@ -1,5 +1,5 @@
 import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration, isBrowserLaunchConfiguration } from "../../dcp/types";
-import { invalidLaunchConfiguration } from "../../loc/strings";
+import { browserDisplayName, browserLabel, invalidLaunchConfiguration } from "../../loc/strings";
 import { extensionLogOutputChannel } from "../../utils/logging";
 import { ResourceDebuggerExtension } from "../debuggerExtensions";
 
@@ -9,9 +9,9 @@ export const browserDebuggerExtension: ResourceDebuggerExtension = {
     extensionId: null, // built-in to VS Code via js-debug
     getDisplayName: (launchConfiguration: ExecutableLaunchConfiguration) => {
         if (isBrowserLaunchConfiguration(launchConfiguration) && launchConfiguration.url) {
-            return `Browser: ${launchConfiguration.url}`;
+            return browserDisplayName(launchConfiguration.url);
         }
-        return 'Browser';
+        return browserLabel;
     },
     getSupportedFileTypes: () => [],
     getProjectFile: () => '',
