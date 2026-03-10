@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError, processExitedWithCode, lookingForDevkitBuildTask, csharpDevKitNotInstalled } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration, buildFailedForProjectWithError, processExitedWithCode, lookingForDevkitBuildTask, csharpDevKitNotInstalled, dotnetRunApiFailed, dotnetRunApiUnexpectedResponseType } from '../../loc/strings';
 import { ChildProcessWithoutNullStreams, execFile, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
@@ -231,10 +231,10 @@ interface RunApiOutput {
 function getRunApiConfigFromOutput(runApiOutput: string): RunApiOutput {
     const parsed = JSON.parse(runApiOutput);
     if (parsed.$type === 'Error') {
-        throw new Error(`dotnet run-api failed: ${parsed.Message}`);
+        throw new Error(dotnetRunApiFailed(parsed.Message));
     }
     else if (parsed.$type !== 'RunCommand') {
-        throw new Error(`dotnet run-api failed: Unexpected response type '${parsed.$type}'`);
+        throw new Error(dotnetRunApiUnexpectedResponseType(parsed.$type));
     }
 
     return {

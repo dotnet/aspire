@@ -90,6 +90,19 @@ export const selectDirectoryTitle = vscode.l10n.t('Select directory');
 export const selectFileTitle = vscode.l10n.t('Select file');
 export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execute');
 
+// DCP server error strings
+export const missingDcpPrefix = vscode.l10n.t('Missing valid DCP prefix corresponding to an Aspire debug session.');
+export const unsupportedLaunchConfigType = (type: string) => vscode.l10n.t('Unsupported launch configuration type: {0}', type);
+export const noAspireDebugSessionFound = (debugSessionId: string) => vscode.l10n.t('No Aspire debug session found for Debug Session ID {0}', debugSessionId);
+export const failedToStartDebugSessionForRunId = (runId: string) => vscode.l10n.t('Failed to start debug session for run ID {0}', runId);
+
+// Dotnet debugger error strings
+export const dotnetRunApiFailed = (message: string) => vscode.l10n.t('dotnet run-api failed: {0}', message);
+export const dotnetRunApiUnexpectedResponseType = (type: string) => vscode.l10n.t("dotnet run-api failed: Unexpected response type '{0}'", type);
+
+// Command strings
+export const deployPlaceholder = vscode.l10n.t('deploy');
+
 // Status bar strings
 export const statusBarStopped = vscode.l10n.t('Aspire: Stopped');
 export const statusBarError = vscode.l10n.t('Aspire: Error');
