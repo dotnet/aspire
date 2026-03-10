@@ -28,7 +28,7 @@ internal sealed class SequenceCounter
 internal enum AspireTemplate
 {
     /// <summary>
-    /// Starter App (ASP.NET Core/Blazor) — the default first option.
+    /// Starter App (ASP.NET Core/Blazor) — the 1st option (default).
     /// Prompts: template, project name, output path, URLs, Redis, test project.
     /// </summary>
     Starter,
@@ -40,16 +40,16 @@ internal enum AspireTemplate
     JsReact,
 
     /// <summary>
-    /// Starter App (FastAPI/React) — 3rd option.
-    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
-    /// </summary>
-    PythonReact,
-
-    /// <summary>
-    /// Starter App (Express/React) — 4th option.
+    /// Starter App (Express/React) — 3rd option.
     /// Prompts: template, project name, output path, URLs. No Redis or test project prompt.
     /// </summary>
     ExpressReact,
+
+    /// <summary>
+    /// Starter App (FastAPI/React) — 4th option.
+    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
+    /// </summary>
+    PythonReact,
 
     /// <summary>
     /// Empty AppHost — 5th option.
