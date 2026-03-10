@@ -393,10 +393,10 @@ internal sealed class RunCommand : BaseCommand
             InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
-        catch (ConnectionLostException)
+        catch (ConnectionLostException) when (isExtensionHost)
         {
-            // The app host terminated and the backchannel was lost.
-            // This is a normal exit path — not an error.
+            // When the extension manages the AppHost lifecycle (e.g., VS Code debug session),
+            // it terminates the process on stop/restart, causing the backchannel to drop.
             return ExitCodeConstants.Success;
         }
         catch (Exception ex)
