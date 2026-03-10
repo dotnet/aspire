@@ -86,7 +86,7 @@ public sealed class DistributedApplicationOptions
     }
 
     /// <summary>
-    /// The application name to display in the dashboard. For source-file app hosts, this defaults to the app host directory name.
+    /// The application name to display in the dashboard. For source-file app hosts, this defaults to the AppHost directory name.
     /// For other apps, it falls back to the environment's application name.
     /// </summary>
     public string? DashboardApplicationName
