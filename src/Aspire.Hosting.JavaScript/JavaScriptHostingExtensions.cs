@@ -964,7 +964,7 @@ public static class JavaScriptHostingExtensions
                 ScriptPath = absoluteScriptPath,
                 Mode = mode,
                 RuntimeExecutable = runtimeExecutable,
-                WorkingDirectory = workingDirectory
+                WorkingDirectory = Path.GetFullPath(workingDirectory)
             },
             "node");
     }
@@ -983,7 +983,7 @@ public static class JavaScriptHostingExtensions
             packageManager = pmAnnotation.ExecutableName;
         }
 
-        var workingDirectory = builder.Resource.WorkingDirectory;
+        var workingDirectory = Path.GetFullPath(builder.Resource.WorkingDirectory);
 
         return builder.WithDebugSupport(
             mode => new NodeLaunchConfiguration

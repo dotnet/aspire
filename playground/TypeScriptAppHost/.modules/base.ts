@@ -39,24 +39,12 @@ export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './t
  * ```
  */
 export class ReferenceExpression {
-    // Expression mode fields
-    private readonly _format?: string;
-    private readonly _valueProviders?: unknown[];
+    private readonly _format: string;
+    private readonly _valueProviders: unknown[];
 
-    // Handle mode fields (when wrapping a server-returned handle)
-    private readonly _handle?: Handle;
-    private readonly _client?: AspireClient;
-
-    constructor(format: string, valueProviders: unknown[]);
-    constructor(handle: Handle, client: AspireClient);
-    constructor(handleOrFormat: Handle | string, clientOrValueProviders: AspireClient | unknown[]) {
-        if (typeof handleOrFormat === 'string') {
-            this._format = handleOrFormat;
-            this._valueProviders = clientOrValueProviders as unknown[];
-        } else {
-            this._handle = handleOrFormat;
-            this._client = clientOrValueProviders as AspireClient;
-        }
+    private constructor(format: string, valueProviders: unknown[]) {
+        this._format = format;
+        this._valueProviders = valueProviders;
     }
 
     /**
@@ -84,18 +72,13 @@ export class ReferenceExpression {
 
     /**
      * Serializes the reference expression for JSON-RPC transport.
-     * In template-literal mode, uses the $expr format.
-     * In handle mode, delegates to the handle's serialization.
+     * Uses the $expr format recognized by the server.
      */
-    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } } | MarshalledHandle {
-        if (this._handle) {
-            return this._handle.toJSON();
-        }
-
+    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } } {
         return {
             $expr: {
-                format: this._format!,
-                valueProviders: this._valueProviders && this._valueProviders.length > 0 ? this._valueProviders : undefined
+                format: this._format,
+                valueProviders: this._valueProviders.length > 0 ? this._valueProviders : undefined
             }
         };
     }
@@ -104,9 +87,6 @@ export class ReferenceExpression {
      * String representation for debugging.
      */
     toString(): string {
-        if (this._handle) {
-            return `ReferenceExpression(handle)`;
-        }
         return `ReferenceExpression(${this._format})`;
     }
 }

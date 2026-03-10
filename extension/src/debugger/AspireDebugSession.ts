@@ -2,12 +2,13 @@ import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
-import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, ProjectLaunchConfiguration, StartAppHostOptions } from "../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, NodeLaunchConfiguration, ProjectLaunchConfiguration, StartAppHostOptions } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode, aspireDashboard } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
+import { nodeDebuggerExtension } from "./languages/node";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
@@ -224,24 +225,41 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
   }
 
+  private static readonly _nodeAppHostExtensions = ['.js', '.ts', '.mjs', '.mts', '.cjs', '.cts'];
+
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean, options: StartAppHostOptions): Promise<void> {
     try {
-      this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
+      const fileExtension = path.extname(projectFile).toLowerCase();
+      const isNodeAppHost = AspireDebugSession._nodeAppHostExtensions.includes(fileExtension);
 
-      // The CLI sends the full dotnet CLI args (e.g., ["run", "--no-build", "--project", "...", "--", ...appHostArgs]).
-      // Since we launch the apphost directly via the debugger (not via dotnet run), extract only the args after "--".
-      const separatorIndex = args.indexOf('--');
-      const appHostArgs = separatorIndex >= 0 ? args.slice(separatorIndex + 1) : args;
+      const debuggerExtension = isNodeAppHost ? nodeDebuggerExtension : projectDebuggerExtension;
+      this.createDebugAdapterTrackerCore(debuggerExtension.debugAdapter);
+
+      let appHostArgs: string[];
+      let launchConfig;
+
+      if (isNodeAppHost) {
+        // Node apphosts receive args directly, no "--" separator extraction needed
+        appHostArgs = args;
+        launchConfig = { script_path: projectFile, working_directory: path.dirname(projectFile), type: 'node' } as NodeLaunchConfiguration;
+      }
+      else {
+        // The CLI sends the full dotnet CLI args (e.g., ["run", "--no-build", "--project", "...", "--", ...appHostArgs]).
+        // Since we launch the apphost directly via the debugger (not via dotnet run), extract only the args after "--".
+        const separatorIndex = args.indexOf('--');
+        appHostArgs = separatorIndex >= 0 ? args.slice(separatorIndex + 1) : args;
+        launchConfig = { project_path: projectFile, type: 'project' } as ProjectLaunchConfiguration;
+      }
 
       extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${appHostArgs.join(' ')}`);
 
       const appHostDebugSessionConfiguration = await createDebugSessionConfiguration(
         this.configuration,
-        { project_path: projectFile, type: 'project' } as ProjectLaunchConfiguration,
+        launchConfig,
         appHostArgs,
         environment,
-        { debug, forceBuild: options.forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
-        projectDebuggerExtension);
+        { debug, forceBuild: isNodeAppHost ? false : options.forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
+        debuggerExtension);
       const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
       if (!appHostDebugSession) {
