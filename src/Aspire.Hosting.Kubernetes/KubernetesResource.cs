@@ -488,9 +488,6 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         var whenTrueStr = whenTrueResult.ToString() ?? string.Empty;
         var whenFalseStr = whenFalseResult.ToString() ?? string.Empty;
 
-        var trueHasExpression = whenTrueStr.ContainsHelmExpression() || whenTrueResult is HelmValue;
-        var falseHasExpression = whenFalseStr.ContainsHelmExpression() || whenFalseResult is HelmValue;
-
         // Allocate the condition parameter into values.yaml under the parameters section.
         var formattedName = conditionParam.Name.ToHelmValuesSectionName();
         var paramExpression = formattedName.ToHelmParameterExpression(TargetResource.Name);
@@ -502,84 +499,18 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
                 : new HelmValue(paramExpression, conditionParam);
         }
 
+        // Ensure parameter values referenced in branches are populated in values.yaml.
+        AllocateBranchParameters(expr.WhenTrue!);
+        AllocateBranchParameters(expr.WhenFalse!);
+
         // Extract the values path (e.g., .Values.parameters.myapp.enable_tls) from {{ expression }}.
-        var conditionPath = HelmExtensions.ScalarExpressionPattern().Match(paramExpression).Value.Trim();
-        var escapedMatch = EscapeGoTemplateString(expr.MatchValue ?? string.Empty);
+        // Pipe through | lower for case-insensitive comparison, matching .NET's
+        // StringComparison.OrdinalIgnoreCase used in other execution/publish paths.
+        var conditionPath = $"({HelmExtensions.ScalarExpressionPattern().Match(paramExpression).Value.Trim()} | lower)";
+        var escapedMatch = (expr.MatchValue ?? string.Empty).ToLowerInvariant().Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-        if (trueHasExpression || falseHasExpression)
-        {
-            // At least one branch contains a Helm expression (e.g., a parameter reference).
-            // Use {{ if eq ... }}...{{ else }}...{{ end }} syntax since ternary arguments
-            // can't contain nested Helm expressions.
-            if (TryFormatBranch(whenTrueStr, out var trueBranch) && TryFormatBranch(whenFalseStr, out var falseBranch))
-            {
-                // Ensure parameter values referenced in branches are populated in values.yaml.
-                // ProcessValueAsync's "{0}" optimization converts HelmValues to strings via
-                // ToString(), so the ParameterSource is lost. Re-allocate here so the values
-                // flow through AddValuesToHelmSectionAsync.
-                AllocateBranchParameters(expr.WhenTrue!);
-                AllocateBranchParameters(expr.WhenFalse!);
-
-                var ifElseExpression = $"{{{{ if eq {conditionPath} \"{escapedMatch}\" }}}}{trueBranch}{{{{ else }}}}{falseBranch}{{{{ end }}}}";
-                return HelmValue.Literal(ifElseExpression);
-            }
-
-            // A branch contains a complex non-scalar expression that can't be formatted
-            // for if/else — resolve the condition statically as a last resort.
-            var conditionContext = new ValueProviderContext { ExecutionContext = executionContext };
-            var conditionStr = await expr.Condition!.GetValueAsync(conditionContext, default).ConfigureAwait(false);
-
-            var branch = string.Equals(conditionStr, expr.MatchValue, StringComparison.OrdinalIgnoreCase)
-                ? expr.WhenTrue!
-                : expr.WhenFalse!;
-            return await ProcessValueAsync(context, executionContext, branch, embedded).ConfigureAwait(false);
-        }
-
-        // Both branches are plain strings — use the simpler ternary syntax.
-        var escapedTrue = EscapeGoTemplateString(whenTrueStr);
-        var escapedFalse = EscapeGoTemplateString(whenFalseStr);
-
-        var ternaryExpression = $"ternary \"{escapedTrue}\" \"{escapedFalse}\" (eq {conditionPath} \"{escapedMatch}\") {HelmExtensions.PipelineDelimiter} quote"
-            .ToHelmExpression();
-
-        return HelmValue.Literal(ternaryExpression);
-
-        static string EscapeGoTemplateString(string value)
-            => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-    }
-
-    /// <summary>
-    /// Formats a branch value for use inside a Go template if/else block.
-    /// Scalar Helm expressions get <c>| quote</c> appended; literals are wrapped in double quotes.
-    /// Returns <see langword="false"/> if the branch contains a complex non-scalar expression
-    /// that cannot be safely formatted.
-    /// </summary>
-    private static bool TryFormatBranch(string branchValue, out string formatted)
-    {
-        // If the branch is a scalar Helm expression (single {{ expr }}),
-        // add | quote to the pipeline for proper string quoting.
-        var scalarMatch = HelmExtensions.ScalarExpressionPattern().Match(branchValue);
-        if (scalarMatch.Success)
-        {
-            var innerExpr = scalarMatch.Value.TrimEnd();
-            formatted = $"{{{{ {innerExpr} | quote }}}}";
-            return true;
-        }
-
-        // A branch with embedded (non-scalar) Helm expressions can't be safely
-        // formatted for if/else — signal the caller to fall back.
-        if (branchValue.ContainsHelmExpression())
-        {
-            formatted = string.Empty;
-            return false;
-        }
-
-        // Wrap literal values as Go template string expressions with | quote so the
-        // entire if/else block contains only {{ }} segments — no bare double quotes
-        // that would violate YAML plain scalar rules.
-        var escaped = branchValue.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        formatted = $"{{{{ \"{escaped}\" | quote }}}}";
-        return true;
+        var ifElseExpression = $"{{{{ if eq {conditionPath} \"{escapedMatch}\" }}}}{whenTrueStr}{{{{ else }}}}{whenFalseStr}{{{{ end }}}}";
+        return HelmValue.Literal(ifElseExpression);
     }
 
     /// <summary>
