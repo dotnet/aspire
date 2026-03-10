@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure AI Foundry Deployment.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<AzureAIFoundryResource>, IResourceWithConnectionString
 {
     /// <value>"GlobalStandard"</value>
@@ -86,6 +87,8 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     /// <summary>
     /// Gets the parent Azure AI Foundry resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public AzureAIFoundryResource Parent { get; set; }
 
     /// <summary>

@@ -101,7 +101,7 @@ public static class AzureContainerRegistryExtensions
     /// <param name="registryBuilder">The resource builder for the <see cref="AzureContainerRegistryResource"/> to use.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="registryBuilder"/> is null.</exception>
-    [AspireExport("withAzureContainerRegistry", Description = "Configures a compute environment resource to use an Azure Container Registry.")]
+    [AspireExport("withContainerRegistryAzureContainerRegistry", MethodName = "withAzureContainerRegistry", Description = "Configures a compute environment resource to use an Azure Container Registry.")]
     public static IResourceBuilder<T> WithAzureContainerRegistry<T>(this IResourceBuilder<T> builder, IResourceBuilder<AzureContainerRegistryResource> registryBuilder)
         where T : IResource, IComputeEnvironmentResource
     {

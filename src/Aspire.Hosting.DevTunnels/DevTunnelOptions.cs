@@ -6,6 +6,7 @@ namespace Aspire.Hosting.DevTunnels;
 /// <summary>
 /// Options for the dev tunnel resource. Controls the creation and access settings of the underyling dev tunnel.
 /// </summary>
+[AspireDto]
 public sealed class DevTunnelOptions
 {
     /// <summary>

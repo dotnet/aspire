@@ -28,6 +28,7 @@ public static class AzureAIFoundryExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addAzureAIFoundry", Description = "Adds an Azure AI Foundry resource to the distributed application model.")]
     public static IResourceBuilder<AzureAIFoundryResource> AddAzureAIFoundry(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
@@ -47,6 +48,7 @@ public static class AzureAIFoundryExtensions
     /// <param name="modelVersion">The version of the model to deploy.</param>
     /// <param name="format">The format of the model to deploy.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addDeployment", Description = "Adds an Azure AI Foundry deployment resource to an Azure AI Foundry resource.")]
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, string modelName, string modelVersion, string format)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -90,6 +92,7 @@ public static class AzureAIFoundryExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addDeploymentFromModel", MethodName = "addDeployment", Description = "Adds an Azure AI Foundry deployment resource by using an Azure AI Foundry model descriptor.")]
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -108,6 +111,7 @@ public static class AzureAIFoundryExtensions
     /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureAIFoundryDeploymentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withAIFoundryDeploymentProperties", MethodName = "withProperties", Description = "Configures properties of an Azure AI Foundry deployment resource.")]
     public static IResourceBuilder<AzureAIFoundryDeploymentResource> WithProperties(this IResourceBuilder<AzureAIFoundryDeploymentResource> builder, Action<AzureAIFoundryDeploymentResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -123,6 +127,7 @@ public static class AzureAIFoundryExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <returns>A resource builder for the Foundry Local resource.</returns>
+    [AspireExport("runAsFoundryLocal", Description = "Configures the Azure AI Foundry resource to run by using Foundry Local.")]
     public static IResourceBuilder<AzureAIFoundryResource> RunAsFoundryLocal(this IResourceBuilder<AzureAIFoundryResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));

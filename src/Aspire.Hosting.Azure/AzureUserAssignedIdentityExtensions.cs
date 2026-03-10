@@ -57,7 +57,7 @@ public static class AzureUserAssignedIdentityExtensions
     ///     .WithAzureUserAssignedIdentity(identity);
     /// </code>
     /// </example>
-    [AspireExport("withAzureUserAssignedIdentity", Description = "Associates an Azure user-assigned identity with a compute resource")]
+    [AspireExport("withUserAssignedIdentityAzureUserAssignedIdentity", MethodName = "withAzureUserAssignedIdentity", Description = "Associates an Azure user-assigned identity with a compute resource")]
     public static IResourceBuilder<T> WithAzureUserAssignedIdentity<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureUserAssignedIdentityResource> identityResourceBuilder)

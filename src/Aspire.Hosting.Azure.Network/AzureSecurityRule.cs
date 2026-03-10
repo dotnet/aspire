@@ -13,6 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// Security rules control inbound and outbound network traffic for subnets associated with the Network Security Group.
 /// Rules are evaluated in priority order, with lower numbers having higher priority.
 /// </remarks>
+[AspireDto]
 public sealed class AzureSecurityRule
 {
     /// <summary>
