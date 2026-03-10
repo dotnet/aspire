@@ -176,7 +176,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
                 {
                     // Simulate no project found by throwing ProjectLocatorException
-                    throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound);
+                    throw new ProjectLocatorException(ErrorStrings.NoProjectFileFound, ProjectLocatorFailureReason.NoProjectFileFound);
                 }
             };
 
