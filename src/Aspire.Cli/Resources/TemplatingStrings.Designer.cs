@@ -186,12 +186,6 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string UseRedisCache_UsingRedisCache {
-            get {
-                return ResourceManager.GetString("UseRedisCache_UsingRedisCache", resourceCulture);
-            }
-        }
-
         public static string PromptForTFMOptions_Prompt {
             get {
                 return ResourceManager.GetString("PromptForTFMOptions_Prompt", resourceCulture);
@@ -249,12 +243,6 @@ namespace Aspire.Cli.Resources {
         public static string TemplateInstallationFailed {
             get {
                 return ResourceManager.GetString("TemplateInstallationFailed", resourceCulture);
-            }
-        }
-
-        public static string UsingProjectTemplatesVersion {
-            get {
-                return ResourceManager.GetString("UsingProjectTemplatesVersion", resourceCulture);
             }
         }
 
