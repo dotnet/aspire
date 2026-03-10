@@ -16,16 +16,19 @@ internal sealed class GuestRuntime
 {
     private readonly RuntimeSpec _spec;
     private readonly ILogger _logger;
+    private readonly Func<string, string?> _commandResolver;
 
     /// <summary>
     /// Creates a new GuestRuntime for the given runtime specification.
     /// </summary>
     /// <param name="spec">The runtime specification describing how to execute the guest language.</param>
     /// <param name="logger">Logger for debugging output.</param>
-    public GuestRuntime(RuntimeSpec spec, ILogger logger)
+    /// <param name="commandResolver">Optional command resolver used to locate executables on PATH.</param>
+    public GuestRuntime(RuntimeSpec spec, ILogger logger, Func<string, string?>? commandResolver = null)
     {
         _spec = spec;
         _logger = logger;
+        _commandResolver = commandResolver ?? PathLookupHelper.FindFullPathFromPath;
     }
 
     /// <summary>
@@ -43,20 +46,22 @@ internal sealed class GuestRuntime
     /// </summary>
     /// <param name="directory">The project directory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The exit code from the dependency installation command.</returns>
-    public async Task<int> InstallDependenciesAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    /// <returns>A tuple containing the exit code and captured output from the dependency installation command.</returns>
+    public async Task<(int ExitCode, OutputCollector Output)> InstallDependenciesAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
+        var outputCollector = new OutputCollector();
+
         if (_spec.InstallDependencies is null)
         {
             _logger.LogDebug("No dependency installation configured for {Language}", _spec.Language);
-            return 0;
+            return (0, outputCollector);
         }
 
-        var command = FindCommand(_spec.InstallDependencies.Command);
-        if (command is null)
+        if (!CommandPathResolver.TryResolveCommand(_spec.InstallDependencies.Command, _commandResolver, out var command, out var errorMessage))
         {
             _logger.LogError("Command '{Command}' not found in PATH", _spec.InstallDependencies.Command);
-            return -1;
+            outputCollector.AppendError(errorMessage!);
+            return (-1, outputCollector);
         }
 
         var args = ReplacePlaceholders(_spec.InstallDependencies.Args, null, directory, null);
@@ -89,10 +94,32 @@ internal sealed class GuestRuntime
         }
 
         using var process = new Process { StartInfo = startInfo };
+
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                _logger.LogDebug("{Language}({ProcessId}) stdout: {Line}", _spec.Language, process.Id, e.Data);
+                outputCollector.AppendOutput(e.Data);
+            }
+        };
+
+        process.ErrorDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                _logger.LogDebug("{Language}({ProcessId}) stderr: {Line}", _spec.Language, process.Id, e.Data);
+                outputCollector.AppendError(e.Data);
+            }
+        };
+
         process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
         await process.WaitForExitAsync(cancellationToken);
 
-        return process.ExitCode;
+        return (process.ExitCode, outputCollector);
     }
 
     /// <summary>
@@ -149,12 +176,11 @@ internal sealed class GuestRuntime
         string[]? additionalArgs,
         CancellationToken cancellationToken)
     {
-        var command = FindCommand(commandSpec.Command);
-        if (command is null)
+        if (!CommandPathResolver.TryResolveCommand(commandSpec.Command, _commandResolver, out var command, out var errorMessage))
         {
             _logger.LogError("Command '{Command}' not found in PATH", commandSpec.Command);
             var output = new OutputCollector();
-            output.AppendError($"Command '{commandSpec.Command}' not found. Please ensure it is installed and in your PATH.");
+            output.AppendError(errorMessage!);
             return (-1, output);
         }
 
@@ -270,11 +296,4 @@ internal sealed class GuestRuntime
         return result.ToArray();
     }
 
-    /// <summary>
-    /// Finds the full path to a command in PATH.
-    /// </summary>
-    private static string? FindCommand(string command)
-    {
-        return PathLookupHelper.FindFullPathFromPath(command);
-    }
 }

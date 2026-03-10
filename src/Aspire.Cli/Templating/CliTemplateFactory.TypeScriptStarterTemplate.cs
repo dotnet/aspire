@@ -4,6 +4,7 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -60,16 +61,15 @@ internal sealed partial class CliTemplateFactory
                     _logger.LogDebug("Copying embedded TypeScript starter template files to '{OutputPath}'.", outputPath);
                     await CopyTemplateTreeToDiskAsync("ts-starter", outputPath, ApplyAllTokens, cancellationToken);
 
-                    var npmPath = PathLookupHelper.FindFullPathFromPath("npm") ?? PathLookupHelper.FindFullPathFromPath("npm.cmd");
-                    if (npmPath is null)
+                    if (!CommandPathResolver.TryResolveCommand("npm", out var npmPath, out var errorMessage))
                     {
-                        _interactionService.DisplayError("npm is not installed or not found in PATH. Please install Node.js and try again.");
+                        _interactionService.DisplayError(errorMessage!);
                         return new TemplateResult(ExitCodeConstants.InvalidCommand);
                     }
 
                     // Run npm install in the output directory (non-fatal — package may not be published yet)
                     _logger.LogDebug("Running npm install for TypeScript starter in '{OutputPath}'.", outputPath);
-                    var npmInstallResult = await RunProcessAsync(npmPath, "install", outputPath, cancellationToken);
+                    var npmInstallResult = await RunProcessAsync(npmPath!, "install", outputPath, cancellationToken);
                     if (npmInstallResult.ExitCode != 0)
                     {
                         _interactionService.DisplaySubtleMessage("npm install had warnings or errors. You may need to run 'npm install' manually after dependencies are available.");
