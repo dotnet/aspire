@@ -83,8 +83,8 @@
         <note>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</note>
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
-        <source>[yellow]A new version of the Aspire CLI is available: {0}[/]</source>
-        <target state="translated">[黄色]Aspire CLI の新しいバージョンが利用可能です: {0}[/]</target>
+        <source>[yellow]A new version of Aspire is available: {0}[/]</source>
+        <target state="needs-review-translation">[黄色]Aspire CLI の新しいバージョンが利用可能です: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
