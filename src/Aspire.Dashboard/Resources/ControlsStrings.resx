@@ -200,11 +200,7 @@
   <data name="SpanDetailsStartTime" xml:space="preserve">
     <value>Start time &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
-  </data>
-  <data name="ViewLogsLink" xml:space="preserve">
-    <value>View logs</value>
-  </data>
-  <data name="SummaryDetailsViewSplitHorizontal" xml:space="preserve">
+  </data><data name="SummaryDetailsViewSplitHorizontal" xml:space="preserve">
     <value>Split horizontal</value>
   </data>
   <data name="SummaryDetailsViewSplitVertical" xml:space="preserve">
@@ -479,11 +475,7 @@
   </data>
   <data name="ExpandAllSpansText" xml:space="preserve">
     <value>Expand all</value>
-  </data>
-  <data name="ViewStructuredLogsText" xml:space="preserve">
-    <value>View structured logs</value>
-  </data>
-  <data name="ShowHiddenResources" xml:space="preserve">
+  </data><data name="ShowHiddenResources" xml:space="preserve">
     <value>Show hidden resources</value>
   </data>
   <data name="HideHiddenResources" xml:space="preserve">

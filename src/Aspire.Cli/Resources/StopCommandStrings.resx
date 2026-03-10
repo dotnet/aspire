@@ -128,11 +128,7 @@
   </data>
   <data name="AppHostStoppedSuccessfully" xml:space="preserve">
     <value>AppHost stopped successfully.</value>
-  </data>
-  <data name="MultipleAppHostsRunning" xml:space="preserve">
-    <value>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</value>
-  </data>
-  <data name="FailedToStopAppHost" xml:space="preserve">
+  </data><data name="FailedToStopAppHost" xml:space="preserve">
     <value>Failed to stop the AppHost.</value>
   </data>
   <data name="SelectAppHostAction" xml:space="preserve">
@@ -146,5 +142,11 @@
   </data>
   <data name="AllAndProjectMutuallyExclusive" xml:space="preserve">
     <value>The {0} and {1} options cannot be used together.</value>
+  </data>
+  <data name="FoundRunningAppHost" xml:space="preserve">
+    <value>Found running AppHost: {0}</value>
+  </data>
+  <data name="SendingStopSignal" xml:space="preserve">
+    <value>Sending stop signal...</value>
   </data>
 </root>

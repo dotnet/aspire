@@ -62,11 +62,6 @@
         <target state="translated">Inicie sesión en Visual Studio con una cuenta de GitHub que tenga una suscripción de Copilot. Siga los pasos descritos en &lt;a href="{0}" target="_blank"&gt;Agregar cuentas de GitHub a la cadena de claves de Visual Studio&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">Su solicitud estaba limitada. Vuelva a intentarlo más tarde.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">No se pudo enviar la solicitud.</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">Enviar mensaje</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">Reducir cuadro de diálogo</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

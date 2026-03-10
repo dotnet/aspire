@@ -632,11 +632,6 @@
         <target state="translated">檢視</target>
         <note />
       </trans-unit>
-      <trans-unit id="ViewLogsLink">
-        <source>View logs</source>
-        <target state="translated">檢視記錄</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
         <target state="translated">關閉</target>
@@ -650,11 +645,6 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">垂直分割</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ViewStructuredLogsText">
-        <source>View structured logs</source>
-        <target state="translated">檢視結構化記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

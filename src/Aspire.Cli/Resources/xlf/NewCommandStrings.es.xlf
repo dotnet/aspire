@@ -42,6 +42,11 @@
         <target state="translated">El nombre del proyecto que se va a crear.</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoTemplatesAvailable">
+        <source>No templates are available for the current environment.</source>
+        <target state="new">No templates are available for the current environment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">La ruta de salida del proyecto.</target>
@@ -65,11 +70,6 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">El origen de NuGet que se va a usar para las plantillas de proyecto.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(usar plantillas de versión preliminar)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

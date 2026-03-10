@@ -52,11 +52,6 @@ Aspire CLI 收集使用情况数据。该数据由 Microsoft 收集，用于帮�
 详细了解 Aspire CLI 遥测: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">欢迎使用 Aspire!如需详细了解 Aspire，请访问 https://aspire.dev</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">抑制显示启动横幅和遥测通知。</target>

@@ -214,11 +214,7 @@
   </data>
   <data name="SidebarExpandDialog" xml:space="preserve">
     <value>Expand dialog</value>
-  </data>
-  <data name="SidebarShrinkDialog" xml:space="preserve">
-    <value>Shrink dialog</value>
-  </data>
-  <data name="SidebarSendMessage" xml:space="preserve">
+  </data><data name="SidebarSendMessage" xml:space="preserve">
     <value>Send message</value>
   </data>
   <data name="ChatRefreshFollowUpPrompts" xml:space="preserve">
@@ -245,11 +241,7 @@
   </data>
   <data name="ChatRequestErrorReachedLimit" xml:space="preserve">
     <value>Unable to send request</value>
-  </data>
-  <data name="ChatRequestErrorRateLimited" xml:space="preserve">
-    <value>Sorry, your request was rate limited. Please try again later.</value>
-  </data>
-  <data name="ExplainTraceButtonText" xml:space="preserve">
+  </data><data name="ExplainTraceButtonText" xml:space="preserve">
     <value>Explain trace</value>
   </data>
   <data name="ChatRequestErrorCanceled" xml:space="preserve">

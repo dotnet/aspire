@@ -141,11 +141,7 @@
   </data>
   <data name="FailedToRetrieveCachedTemplatePackages" xml:space="preserve">
     <value>Failed to retrieve template packages via cache.</value>
-  </data>
-  <data name="FailedToRetrieveCachedAllAspirePackages" xml:space="preserve">
-    <value>Failed to retrieve all Aspire packages via cache.</value>
-  </data>
-  <data name="FailedToSearchForPackages" xml:space="preserve">
+  </data><data name="FailedToSearchForPackages" xml:space="preserve">
     <value>Failed to search for packages. Exit code: {0}.</value>
     <comment>{0} is a number</comment>
   </data>
@@ -219,11 +215,76 @@
   </data>
   <data name="AppHostsMayNotBeBuildable" xml:space="preserve">
     <value>No buildable app hosts were found, but there may have been unbuildable app hosts.</value>
-  </data>
-  <data name="SingleFileAppHostFeatureNotEnabled" xml:space="preserve">
-    <value>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</value>
-  </data>
-  <data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
+  </data><data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
     <value>This command is not yet supported with single file AppHosts.</value>
+  </data>
+  <data name="CouldNotDetermineCliExecutablePath" xml:space="preserve">
+    <value>Could not determine the CLI executable path.</value>
+  </data>
+  <data name="CouldNotDetermineInstallationPath" xml:space="preserve">
+    <value>Could not determine the installation path.</value>
+  </data>
+  <data name="FailedToPrepareAppHostServer" xml:space="preserve">
+    <value>Failed to prepare AppHost server.</value>
+  </data>
+  <data name="AppHostExitedUnexpectedly" xml:space="preserve">
+    <value>App host exited unexpectedly.</value>
+  </data>
+  <data name="GuestRuntimeNotInitialized" xml:space="preserve">
+    <value>GuestRuntime not initialized.</value>
+  </data>
+  <data name="GuestRuntimeNotInitializedBug" xml:space="preserve">
+    <value>GuestRuntime not initialized. This is a bug.</value>
+  </data>
+  <data name="FailedToBuildAppHostServer" xml:space="preserve">
+    <value>Failed to build AppHost server.</value>
+  </data>
+  <data name="FailedToInstallLanguageDependencies" xml:space="preserve">
+    <value>Failed to install {0} dependencies.</value>
+  </data>
+  <data name="NoBundleInBinary" xml:space="preserve">
+    <value>This CLI binary does not contain an embedded bundle. No extraction needed.</value>
+  </data>
+  <data name="BundleAlreadyExtracted" xml:space="preserve">
+    <value>Bundle is already extracted and up to date. Use --force to re-extract.</value>
+  </data>
+  <data name="BundleExtractedTo" xml:space="preserve">
+    <value>Bundle extracted to {0}</value>
+  </data>
+  <data name="BundleValidationFailed" xml:space="preserve">
+    <value>Bundle was extracted to {0} but layout validation failed.</value>
+  </data>
+  <data name="FailedToBuildCapabilityScanner" xml:space="preserve">
+    <value>Failed to build capability scanner.</value>
+  </data>
+  <data name="FailedToBuildSdkGenerationServer" xml:space="preserve">
+    <value>Failed to build SDK generation server.</value>
+  </data>
+  <data name="FailedToRunAppHost" xml:space="preserve">
+    <value>Failed to run {0} AppHost: {1}</value>
+  </data>
+  <data name="FailedToPublishAppHost" xml:space="preserve">
+    <value>Failed to publish {0} AppHost: {1}</value>
+  </data>
+  <data name="IntegrationProjectNotFound" xml:space="preserve">
+    <value>Integration project not found: {0}</value>
+  </data>
+  <data name="InvalidPackageFormat" xml:space="preserve">
+    <value>Invalid package format '{0}'. Expected PackageName@Version (e.g. Aspire.Hosting.Redis@9.2.0).</value>
+  </data>
+  <data name="InvalidVersionInPackage" xml:space="preserve">
+    <value>Invalid version '{0}' in '{1}'. Expected a valid NuGet version (e.g. 9.2.0).</value>
+  </data>
+  <data name="InvalidIntegrationArgument" xml:space="preserve">
+    <value>Invalid integration argument '{0}'. Expected a .csproj path or PackageName@Version format.</value>
+  </data>
+  <data name="ExpectedCsprojFile" xml:space="preserve">
+    <value>Expected a .csproj file, got: {0}</value>
+  </data>
+  <data name="GeneratedFilesCount" xml:space="preserve">
+    <value>Generated {0} files in {1}</value>
+  </data>
+  <data name="UnsupportedLanguage" xml:space="preserve">
+    <value>Unsupported language: {0}</value>
   </data>
 </root>

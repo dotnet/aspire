@@ -22,14 +22,14 @@
         <target state="translated">Nepovedlo se zastavit hostitele aplikací.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FoundRunningAppHost">
+        <source>Found running AppHost: {0}</source>
+        <target state="new">Found running AppHost: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
         <target state="new">Multiple AppHosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MultipleAppHostsRunning">
-        <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="translated">Je spuštěno více hostitelů aplikací. Pomocí --apphost určete, který z nich se má zastavit, nebo vyberte jednoho z nich:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -40,6 +40,11 @@
       <trans-unit id="SelectAppHostAction">
         <source>stop</source>
         <target state="new">stop</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SendingStopSignal">
+        <source>Sending stop signal...</source>
+        <target state="new">Sending stop signal...</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">

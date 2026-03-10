@@ -77,11 +77,7 @@
   </data>
   <data name="DeprecatedConfigFix" xml:space="preserve">
     <value>Run 'aspire agent init' to update configuration</value>
-  </data>
-  <data name="ConfigUpdatesSelectPrompt" xml:space="preserve">
-    <value>The following agent configurations use the deprecated 'mcp start' command. Update them?</value>
-  </data>
-  <data name="MalformedConfigFileError" xml:space="preserve">
+  </data><data name="MalformedConfigFileError" xml:space="preserve">
     <value>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</value>
   </data>
   <data name="SkippedMalformedConfigFile" xml:space="preserve">
@@ -89,11 +85,7 @@
   </data>
   <data name="ConfigurationCompletedWithErrors" xml:space="preserve">
     <value>Configuration completed with errors. Please fix the reported issues and re-run the command.</value>
-  </data>
-  <data name="SkipNoneDescription" xml:space="preserve">
-    <value>None — skip</value>
-  </data>
-  <data name="InitCommand_WhatToConfigure" xml:space="preserve">
+  </data><data name="InitCommand_WhatToConfigure" xml:space="preserve">
     <value>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</value>
   </data>
   <data name="InitCommand_NothingSelected" xml:space="preserve">

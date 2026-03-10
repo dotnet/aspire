@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Projects;
 
@@ -111,7 +113,7 @@ internal sealed class LanguageService : ILanguageService
             var language = _languageDiscovery.GetLanguageById(explicitLanguageId);
             if (language is null)
             {
-                _interactionService.DisplayError($"Unknown language: '{explicitLanguageId}'");
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.UnknownLanguageError, explicitLanguageId));
                 throw new ArgumentException($"Unknown language: '{explicitLanguageId}'", nameof(explicitLanguageId));
             }
             return _projectFactory.GetProject(language);
@@ -131,7 +133,7 @@ internal sealed class LanguageService : ILanguageService
         if (saveSelection)
         {
             await SetLanguageAsync(selectedLanguage.LanguageId, isGlobal: false, cancellationToken);
-            _interactionService.DisplayMessage(KnownEmojis.CheckMark, $"Language preference saved to local settings: {selectedProject.DisplayName}");
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.LanguagePreferenceSavedToSettings, selectedProject.DisplayName));
         }
 
         return selectedProject;

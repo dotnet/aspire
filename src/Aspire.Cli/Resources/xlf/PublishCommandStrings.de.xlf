@@ -7,16 +7,6 @@
         <target state="needs-review-translation">Generiert Bereitstellungsartefakte für einen Aspire-App-Host. (Vorschau)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Generating artifacts...</source>
-        <target state="translated">Artefakte werden generiert...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InputPromptLoading">
-        <source>Loading...</source>
-        <target state="translated">Wird geladen...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
         <target state="new">Do not build or restore the project before running.</target>

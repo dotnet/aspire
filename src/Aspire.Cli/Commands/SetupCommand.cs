@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 
@@ -52,7 +54,7 @@ internal sealed class SetupCommand : BaseCommand
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(processPath))
         {
-            InteractionService.DisplayError("Could not determine the CLI executable path.");
+            InteractionService.DisplayError(ErrorStrings.CouldNotDetermineCliExecutablePath);
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
@@ -64,7 +66,7 @@ internal sealed class SetupCommand : BaseCommand
 
         if (string.IsNullOrEmpty(installPath))
         {
-            InteractionService.DisplayError("Could not determine the installation path.");
+            InteractionService.DisplayError(ErrorStrings.CouldNotDetermineInstallationPath);
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
@@ -81,19 +83,19 @@ internal sealed class SetupCommand : BaseCommand
         switch (result)
         {
             case BundleExtractResult.NoPayload:
-                InteractionService.DisplayMessage(KnownEmojis.Information, "This CLI binary does not contain an embedded bundle. No extraction needed.");
+                InteractionService.DisplayMessage(KnownEmojis.Information, ErrorStrings.NoBundleInBinary);
                 break;
 
             case BundleExtractResult.AlreadyUpToDate:
-                InteractionService.DisplayMessage(KnownEmojis.CheckMark, "Bundle is already extracted and up to date. Use --force to re-extract.");
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, ErrorStrings.BundleAlreadyExtracted);
                 break;
 
             case BundleExtractResult.Extracted:
-                InteractionService.DisplayMessage(KnownEmojis.CheckMark, $"Bundle extracted to {installPath}");
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, ErrorStrings.BundleExtractedTo, installPath));
                 break;
 
             case BundleExtractResult.ExtractionFailed:
-                InteractionService.DisplayError($"Bundle was extracted to {installPath} but layout validation failed.");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.BundleValidationFailed, installPath));
                 return ExitCodeConstants.FailedToBuildArtifacts;
         }
 

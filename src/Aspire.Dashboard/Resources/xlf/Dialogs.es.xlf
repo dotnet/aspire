@@ -497,11 +497,6 @@
         <target state="translated">Actualizando &lt;code&gt;mcp.json&lt;/code&gt; manualmente</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">MCP de Aspire se puede utilizar con cualquier herramienta de IA que admita servidores MCP HTTP transmisibles.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">A continuación se incluyen detalles importantes para configurar MCP de Aspire. Consulte la documentación de su cliente de IA para saber cómo agregar un servidor MCP.</target>
@@ -666,11 +661,6 @@
         <source>Version: {0}</source>
         <target state="translated">Versión: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">Exportar todo</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

@@ -65,17 +65,7 @@
   </data>
   <data name="SolutionDetected" xml:space="preserve">
     <value>Solution detected: {0}</value>
-  </data>
-  <data name="CreatingAppHostProject" xml:space="preserve">
-    <value>Creating AppHost project...</value>
-  </data>
-  <data name="CreatingServiceDefaultsProject" xml:space="preserve">
-    <value>Creating ServiceDefaults project...</value>
-  </data>
-  <data name="AddingProjectsToSolution" xml:space="preserve">
-    <value>Adding projects to solution...</value>
-  </data>
-  <data name="NoSolutionFoundCreatingSingleFileAppHost" xml:space="preserve">
+  </data><data name="NoSolutionFoundCreatingSingleFileAppHost" xml:space="preserve">
     <value>No solution file found. Creating single-file AppHost...</value>
   </data>
   <data name="AspireInitializationComplete" xml:space="preserve">
@@ -98,5 +88,47 @@
   </data>
   <data name="SolutionAndProjectInSameDirectory" xml:space="preserve">
     <value>The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</value>
+  </data>
+  <data name="FailedToGetProjectsFromSolution" xml:space="preserve">
+    <value>Failed to get projects from solution.</value>
+  </data>
+  <data name="FailedToInstallTemplates" xml:space="preserve">
+    <value>Failed to install Aspire templates.</value>
+  </data>
+  <data name="FailedToFindCreatedProjects" xml:space="preserve">
+    <value>Failed to find created AppHost or ServiceDefaults projects in template output.</value>
+  </data>
+  <data name="SingleFileAppHostTemplateNotFound" xml:space="preserve">
+    <value>Single-file AppHost template not found.</value>
+  </data>
+  <data name="CreatingLanguageAppHost" xml:space="preserve">
+    <value>Creating {0} AppHost...</value>
+  </data>
+  <data name="FailedToCreateAspireProjects" xml:space="preserve">
+    <value>Failed to create Aspire projects. Exit code: {0}</value>
+  </data>
+  <data name="UnknownLanguage" xml:space="preserve">
+    <value>Unknown language: {0}</value>
+  </data>
+  <data name="FailedToAddAppHostToSolution" xml:space="preserve">
+    <value>Failed to add AppHost project to solution. Exit code: {0}</value>
+  </data>
+  <data name="FailedToAddServiceDefaultsToSolution" xml:space="preserve">
+    <value>Failed to add ServiceDefaults project to solution. Exit code: {0}</value>
+  </data>
+  <data name="FailedToAddReference" xml:space="preserve">
+    <value>Failed to add reference to {0}.</value>
+  </data>
+  <data name="FailedToAddServiceDefaultsReference" xml:space="preserve">
+    <value>Failed to add ServiceDefaults reference to {0}.</value>
+  </data>
+  <data name="AppHostAlreadyExists" xml:space="preserve">
+    <value>{0} already exists in this directory.</value>
+  </data>
+  <data name="CreatedAppHost" xml:space="preserve">
+    <value>Created {0}</value>
+  </data>
+  <data name="RunAspireRunToStart" xml:space="preserve">
+    <value>Run 'aspire run' to start your AppHost.</value>
   </data>
 </root>

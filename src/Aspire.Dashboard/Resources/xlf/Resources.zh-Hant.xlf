@@ -72,11 +72,6 @@
         <target state="translated">檢視主控台記錄</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceDetailsViewConsoleLogs">
-        <source>View console logs</source>
-        <target state="translated">檢視主機記錄</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
         <target state="translated">展開子資源</target>

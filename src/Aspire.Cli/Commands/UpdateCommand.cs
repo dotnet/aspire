@@ -120,7 +120,7 @@ internal sealed class UpdateCommand : BaseCommand
 
             if (_cliDownloader is null)
             {
-                InteractionService.DisplayError("CLI self-update is not available in this environment.");
+                InteractionService.DisplayError(UpdateCommandStrings.SelfUpdateNotAvailable);
                 return ExitCodeConstants.InvalidCommand;
             }
 
@@ -287,12 +287,12 @@ internal sealed class UpdateCommand : BaseCommand
             var currentExePath = Environment.ProcessPath;
             if (string.IsNullOrEmpty(currentExePath))
             {
-                InteractionService.DisplayError("Unable to determine the current executable path.");
+                InteractionService.DisplayError(UpdateCommandStrings.UnableToDetermineExecutablePath);
                 return ExitCodeConstants.InvalidCommand;
             }
 
-            InteractionService.DisplayMessage(KnownEmojis.Package, $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage(KnownEmojis.UpButton, $"Updating to channel: {channel}");
+            InteractionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.CurrentCliLocation, currentExePath));
+            InteractionService.DisplayMessage(KnownEmojis.UpButton, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.UpdatingToChannel, channel));
 
             // Download the latest CLI
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(channel, cancellationToken);
@@ -375,7 +375,7 @@ internal sealed class UpdateCommand : BaseCommand
             var backupPath = $"{targetExePath}.old.{unixTimestamp}";
             if (File.Exists(targetExePath))
             {
-                InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, "Backing up current CLI...");
+                InteractionService.DisplayMessage(KnownEmojis.FloppyDisk, UpdateCommandStrings.BackingUpCurrentCli);
                 _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
                 // Clean up old backup files
@@ -388,7 +388,7 @@ internal sealed class UpdateCommand : BaseCommand
             try
             {
                 // Copy new executable to install location
-                InteractionService.DisplayMessage(KnownEmojis.Wrench, $"Installing new CLI to {installDir}...");
+                InteractionService.DisplayMessage(KnownEmojis.Wrench, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.InstallingNewCli, installDir));
                 File.Copy(newExePath, targetExePath, overwrite: true);
 
                 // On Unix systems, ensure the executable bit is set
@@ -415,7 +415,7 @@ internal sealed class UpdateCommand : BaseCommand
                 // Display helpful message about PATH
                 if (!IsInPath(installDir))
                 {
-                    InteractionService.DisplayMessage(KnownEmojis.Information, $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
+                    InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.NotInPath, installDir));
                 }
             }
             catch
@@ -506,7 +506,7 @@ internal sealed class UpdateCommand : BaseCommand
             if (process.ExitCode == 0)
             {
                 var version = output.Trim();
-                InteractionService.DisplaySuccess($"Updated to version: {version}");
+                InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.UpdatedToVersion, version));
                 return version;
             }
             

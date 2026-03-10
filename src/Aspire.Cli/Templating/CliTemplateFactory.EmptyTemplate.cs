@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
@@ -17,14 +18,14 @@ internal sealed partial class CliTemplateFactory
         var languageId = inputs.Language;
         if (string.IsNullOrWhiteSpace(languageId))
         {
-            _interactionService.DisplayError("Language selection is required.");
+            _interactionService.DisplayError(TemplatingStrings.LanguageSelectionRequired);
             return new TemplateResult(ExitCodeConstants.InvalidCommand);
         }
 
         var language = _languageDiscovery.GetLanguageById(languageId);
         if (language is null)
         {
-            _interactionService.DisplayError($"Unknown language: '{languageId}'");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.UnknownLanguageId, languageId));
             return new TemplateResult(ExitCodeConstants.InvalidCommand);
         }
 
@@ -93,12 +94,12 @@ internal sealed partial class CliTemplateFactory
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _interactionService.DisplayError($"Failed to create project files: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.FailedToCreateProjectFiles, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
 
         _interactionService.DisplaySuccess($"Created {language.DisplayName.EscapeMarkup()} project at {outputPath.EscapeMarkup()}");
-        _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
+        _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRunToStart);
 
         return templateResult;
     }

@@ -7,6 +7,11 @@
         <target state="new">No running AppHost found. Use 'aspire run' to start one first.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CreatedNuGetConfig">
+        <source>Created or updated NuGet.config in the project directory with required package sources.</source>
+        <target state="new">Created or updated NuGet.config in the project directory with required package sources.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format for detached AppHost results.</source>
         <target state="new">Output format for detached AppHost results.</target>
@@ -15,6 +20,16 @@
       <trans-unit id="IsolatedOptionDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
         <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LanguagePreferenceSaved">
+        <source>Language preference saved to local settings: {0}</source>
+        <target state="new">Language preference saved to local settings: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LanguagePreferenceSavedToSettings">
+        <source>Language preference saved to local settings: {0}</source>
+        <target state="new">Language preference saved to local settings: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleInScopeAppHosts">
@@ -40,6 +55,16 @@
       <trans-unit id="SelectAppHost">
         <source>Select an AppHost to {0}:</source>
         <target state="new">Select an AppHost to {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownLanguageError">
+        <source>Unknown language: '{0}'</source>
+        <target state="new">Unknown language: '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedNuGetConfig">
+        <source>Updated NuGet.config with required package sources.</source>
+        <target state="new">Updated NuGet.config with required package sources.</target>
         <note />
       </trans-unit>
       <trans-unit id="UsingAppHost">

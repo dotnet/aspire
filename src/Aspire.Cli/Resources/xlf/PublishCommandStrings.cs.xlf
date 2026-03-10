@@ -7,16 +7,6 @@
         <target state="needs-review-translation">Generuje artefakty nasazení pro hostitele aplikací Aspire. (Preview)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Generating artifacts...</source>
-        <target state="translated">Generování artefaktů...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InputPromptLoading">
-        <source>Loading...</source>
-        <target state="translated">Probíhá načítání...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
         <target state="new">Do not build or restore the project before running.</target>

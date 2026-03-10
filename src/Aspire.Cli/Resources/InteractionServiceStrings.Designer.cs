@@ -113,16 +113,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CheckingProjectType", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Codespaces.
-        /// </summary>
-        public static string CodespacesLink {
-            get {
-                return ResourceManager.GetString("CodespacesLink", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to Created settings file at {0}..
         /// </summary>
@@ -149,16 +139,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Dashboard", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Direct.
-        /// </summary>
-        public static string DirectLink {
-            get {
-                return ResourceManager.GetString("DirectLink", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}..
         /// </summary>

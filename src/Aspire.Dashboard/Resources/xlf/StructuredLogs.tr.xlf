@@ -52,11 +52,6 @@
         <target state="translated">İleti filtresi</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsMinimumLogFilter">
-        <source>Minimum log level filter</source>
-        <target state="translated">En düşük günlük düzeyi filtresi</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Yapılandırılmış günlük bulunamadı</target>

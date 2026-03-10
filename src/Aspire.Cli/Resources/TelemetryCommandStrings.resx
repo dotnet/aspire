@@ -143,11 +143,7 @@
   </data>
   <data name="TraceIdOptionDescription" xml:space="preserve">
     <value>Filter by trace ID.</value>
-  </data>
-  <data name="TraceIdArgumentDescription" xml:space="preserve">
-    <value>The trace ID to view. If not specified, lists all traces.</value>
-  </data>
-  <data name="SeverityOptionDescription" xml:space="preserve">
+  </data><data name="SeverityOptionDescription" xml:space="preserve">
     <value>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical).</value>
   </data>
   <data name="HasErrorOptionDescription" xml:space="preserve">
@@ -185,5 +181,8 @@
   </data>
   <data name="HeaderStatus" xml:space="preserve">
     <value>Status</value>
+  </data>
+  <data name="ResourceNotFound" xml:space="preserve">
+    <value>Resource '{0}' not found.</value>
   </data>
 </root>

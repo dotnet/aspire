@@ -9,23 +9,23 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class InitCommandStrings {
-        
+    public class InitCommandStrings {
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal InitCommandStrings() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static System.Resources.ResourceManager ResourceManager {
+        public static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
                     System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Aspire.Cli.Resources.InitCommandStrings", typeof(InitCommandStrings).Assembly);
@@ -34,9 +34,9 @@ namespace Aspire.Cli.Resources {
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static System.Globalization.CultureInfo Culture {
+        public static System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -44,67 +44,49 @@ namespace Aspire.Cli.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         internal static string Description {
             get {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
+
         internal static string SolutionDetected {
             get {
                 return ResourceManager.GetString("SolutionDetected", resourceCulture);
             }
         }
-        
-        internal static string CreatingAppHostProject {
-            get {
-                return ResourceManager.GetString("CreatingAppHostProject", resourceCulture);
-            }
-        }
-        
-        internal static string CreatingServiceDefaultsProject {
-            get {
-                return ResourceManager.GetString("CreatingServiceDefaultsProject", resourceCulture);
-            }
-        }
-        
-        internal static string AddingProjectsToSolution {
-            get {
-                return ResourceManager.GetString("AddingProjectsToSolution", resourceCulture);
-            }
-        }
-        
+
         internal static string NoSolutionFoundCreatingSingleFileAppHost {
             get {
                 return ResourceManager.GetString("NoSolutionFoundCreatingSingleFileAppHost", resourceCulture);
             }
         }
-        
+
         internal static string AspireInitializationComplete {
             get {
                 return ResourceManager.GetString("AspireInitializationComplete", resourceCulture);
             }
         }
-        
+
         internal static string MultipleSolutionsFound {
             get {
                 return ResourceManager.GetString("MultipleSolutionsFound", resourceCulture);
             }
         }
-        
+
         internal static string SolutionAlreadyInitialized {
             get {
                 return ResourceManager.GetString("SolutionAlreadyInitialized", resourceCulture);
             }
         }
-        
+
         internal static string AddingAppHostProjectToSolution {
             get {
                 return ResourceManager.GetString("AddingAppHostProjectToSolution", resourceCulture);
             }
         }
-        
+
         internal static string AddingServiceDefaultsProjectToSolution {
             get {
                 return ResourceManager.GetString("AddingServiceDefaultsProjectToSolution", resourceCulture);
@@ -120,6 +102,90 @@ namespace Aspire.Cli.Resources {
         internal static string SolutionAndProjectInSameDirectory {
             get {
                 return ResourceManager.GetString("SolutionAndProjectInSameDirectory", resourceCulture);
+            }
+        }
+
+        internal static string FailedToGetProjectsFromSolution {
+            get {
+                return ResourceManager.GetString("FailedToGetProjectsFromSolution", resourceCulture);
+            }
+        }
+
+        internal static string FailedToInstallTemplates {
+            get {
+                return ResourceManager.GetString("FailedToInstallTemplates", resourceCulture);
+            }
+        }
+
+        internal static string FailedToFindCreatedProjects {
+            get {
+                return ResourceManager.GetString("FailedToFindCreatedProjects", resourceCulture);
+            }
+        }
+
+        internal static string SingleFileAppHostTemplateNotFound {
+            get {
+                return ResourceManager.GetString("SingleFileAppHostTemplateNotFound", resourceCulture);
+            }
+        }
+
+        internal static string CreatingLanguageAppHost {
+            get {
+                return ResourceManager.GetString("CreatingLanguageAppHost", resourceCulture);
+            }
+        }
+
+        internal static string FailedToCreateAspireProjects {
+            get {
+                return ResourceManager.GetString("FailedToCreateAspireProjects", resourceCulture);
+            }
+        }
+
+        internal static string UnknownLanguage {
+            get {
+                return ResourceManager.GetString("UnknownLanguage", resourceCulture);
+            }
+        }
+
+        internal static string FailedToAddAppHostToSolution {
+            get {
+                return ResourceManager.GetString("FailedToAddAppHostToSolution", resourceCulture);
+            }
+        }
+
+        internal static string FailedToAddServiceDefaultsToSolution {
+            get {
+                return ResourceManager.GetString("FailedToAddServiceDefaultsToSolution", resourceCulture);
+            }
+        }
+
+        internal static string FailedToAddReference {
+            get {
+                return ResourceManager.GetString("FailedToAddReference", resourceCulture);
+            }
+        }
+
+        internal static string FailedToAddServiceDefaultsReference {
+            get {
+                return ResourceManager.GetString("FailedToAddServiceDefaultsReference", resourceCulture);
+            }
+        }
+
+        internal static string AppHostAlreadyExists {
+            get {
+                return ResourceManager.GetString("AppHostAlreadyExists", resourceCulture);
+            }
+        }
+
+        internal static string CreatedAppHost {
+            get {
+                return ResourceManager.GetString("CreatedAppHost", resourceCulture);
+            }
+        }
+
+        internal static string RunAspireRunToStart {
+            get {
+                return ResourceManager.GetString("RunAspireRunToStart", resourceCulture);
             }
         }
     }

@@ -138,11 +138,7 @@
   </data>
   <data name="ConsoleLogsLoadingResources" xml:space="preserve">
     <value>Loading resources ...</value>
-  </data>
-  <data name="ConsoleLogsNoResourceSelected" xml:space="preserve">
-    <value>No resource selected</value>
-  </data>
-  <data name="ConsoleLogsUnknownState" xml:space="preserve">
+  </data><data name="ConsoleLogsUnknownState" xml:space="preserve">
     <value>Unknown state</value>
   </data>
   <data name="LogStatusLabel" xml:space="preserve">
@@ -162,16 +158,7 @@
   </data>
   <data name="ConsoleLogsTimestampShowUtc" xml:space="preserve">
     <value>UTC timestamps</value>
-  </data>
-  <data name="ConsoleLogsPauseActive" xml:space="preserve">
-    <value>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</value>
-    <comment>{0} is a date, {1} is a number</comment>
-  </data>
-  <data name="ConsoleLogsPauseDetails" xml:space="preserve">
-    <value>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</value>
-    <comment>{0} is a date, {1} is a date, {2} is a number.</comment>
-  </data>
-  <data name="ConsoleLogsErrorWatchingLogs" xml:space="preserve">
+  </data><data name="ConsoleLogsErrorWatchingLogs" xml:space="preserve">
     <value>Error watching logs</value>
   </data>
   <data name="ConsoleLogsWrapLogs" xml:space="preserve">

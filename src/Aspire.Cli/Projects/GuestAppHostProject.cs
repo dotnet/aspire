@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -199,7 +200,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             {
                 _interactionService.DisplayLines(buildOutput.GetLines());
             }
-            _interactionService.DisplayError("Failed to prepare AppHost server.");
+            _interactionService.DisplayError(ErrorStrings.FailedToPrepareAppHostServer);
             return false;
         }
 
@@ -375,7 +376,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             if (appHostServerProcess.HasExited)
             {
                 _interactionService.DisplayLines(appHostServerOutputCollector.GetLines());
-                _interactionService.DisplayError("App host exited unexpectedly.");
+                _interactionService.DisplayError(ErrorStrings.AppHostExitedUnexpectedly);
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
@@ -431,7 +432,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // only use the extension launcher when the runtime requests it and the extension supports it.
             if (_guestRuntime is null)
             {
-                _interactionService.DisplayError("GuestRuntime not initialized.");
+                _interactionService.DisplayError(ErrorStrings.GuestRuntimeNotInitialized);
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
@@ -520,7 +521,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Signal that build/preparation failed so RunCommand doesn't hang waiting
             context.BuildCompletionSource?.TrySetResult(false);
             _logger.LogError(ex, "Failed to run {Language} AppHost", DisplayName);
-            _interactionService.DisplayError($"Failed to run {DisplayName} AppHost: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToRunAppHost, DisplayName, ex.Message));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
@@ -681,7 +682,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             if (appHostServerProcess.HasExited)
             {
                 _interactionService.DisplayLines(appHostServerOutputCollector.GetLines());
-                _interactionService.DisplayError("App host exited unexpectedly.");
+                _interactionService.DisplayError(ErrorStrings.AppHostExitedUnexpectedly);
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
@@ -789,7 +790,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to publish {Language} AppHost", DisplayName);
-            _interactionService.DisplayError($"Failed to publish {DisplayName} AppHost: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToPublishAppHost, DisplayName, ex.Message));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
@@ -970,11 +971,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         _interactionService.DisplayEmptyLine();
         if (newSdkVersion is not null)
         {
-            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]Aspire SDK[/] [bold green]{config.SdkVersion.EscapeMarkup()}[/] to [bold green]{newSdkVersion.EscapeMarkup()}[/]", allowMarkup: true);
+            _interactionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.SdkUpdateLine, config.SdkVersion.EscapeMarkup(), newSdkVersion.EscapeMarkup()), allowMarkup: true);
         }
         foreach (var (packageId, currentVersion, newVersion) in updates)
         {
-            _interactionService.DisplayMessage(KnownEmojis.Package, $"[bold yellow]{packageId.EscapeMarkup()}[/] [bold green]{currentVersion.EscapeMarkup()}[/] to [bold green]{newVersion.EscapeMarkup()}[/]", allowMarkup: true);
+            _interactionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.PackageUpdateLine, packageId.EscapeMarkup(), currentVersion.EscapeMarkup(), newVersion.EscapeMarkup()), allowMarkup: true);
         }
         _interactionService.DisplayEmptyLine();
 
@@ -1179,14 +1180,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (_guestRuntime is null)
         {
-            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            _interactionService.DisplayError(ErrorStrings.GuestRuntimeNotInitializedBug);
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
         var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.FailedToInstallLanguageDependencies, _resolvedLanguage?.DisplayName ?? "guest"));
         }
 
         return result;
@@ -1208,7 +1209,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (_guestRuntime is null)
         {
-            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            _interactionService.DisplayError(ErrorStrings.GuestRuntimeNotInitializedBug);
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
@@ -1230,7 +1231,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         if (_guestRuntime is null)
         {
-            _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
+            _interactionService.DisplayError(ErrorStrings.GuestRuntimeNotInitializedBug);
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 

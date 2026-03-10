@@ -7,16 +7,6 @@
         <target state="needs-review-translation">Generuje artefakty wdrożenia dla hosta AppHost platformy Aspire. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Generating artifacts...</source>
-        <target state="translated">Trwa generowanie artefaktów...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InputPromptLoading">
-        <source>Loading...</source>
-        <target state="translated">Trwa ładowanie...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running.</source>
         <target state="new">Do not build or restore the project before running.</target>

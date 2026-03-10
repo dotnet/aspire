@@ -52,11 +52,6 @@ La CLI de Aspire recopila datos de uso. Lo recopila Microsoft y se usa para ayud
 Más información acerca de la telemetría de la CLI de Aspire: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">Bienvenido a Aspire. Obtenga más información sobre Aspire en https://aspire.dev</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Suprima el banner de inicio y el aviso de telemetría.</target>

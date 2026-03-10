@@ -2,9 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../ResourceCommandStrings.resx">
     <body>
+      <trans-unit id="CommandCanceled">
+        <source>Command '{0}' on '{1}' was canceled.</source>
+        <target state="new">Command '{0}' on '{1}' was canceled.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart).</source>
         <target state="translated">Eseguire un comando su una risorsa.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CommandExecutedSuccessfully">
+        <source>Command '{0}' executed successfully on resource '{1}'.</source>
+        <target state="new">Command '{0}' executed successfully on resource '{1}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
@@ -15,6 +25,26 @@
       <trans-unit id="CommandResourceArgumentDescription">
         <source>The name of the resource to execute the command on.</source>
         <target state="translated">Nome della risorsa di destinazione rispetto al quale eseguire il comando.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToActionResource">
+        <source>Failed to {0} resource '{1}': {2}</source>
+        <target state="new">Failed to {0} resource '{1}': {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToExecuteCommand">
+        <source>Failed to execute command '{0}' on resource '{1}': {2}</source>
+        <target state="new">Failed to execute command '{0}' on resource '{1}': {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionCanceled">
+        <source>{0} command for '{1}' was canceled.</source>
+        <target state="new">{0} command for '{1}' was canceled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionSuccessful">
+        <source>Resource '{0}' {1} successfully.</source>
+        <target state="new">Resource '{0}' {1} successfully.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

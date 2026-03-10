@@ -2,31 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../RunCommandStrings.resx">
     <body>
-      <trans-unit id="AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="translated">Možná později</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationNo">
-        <source>No</source>
-        <target state="translated">Ne</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationPrompt">
-        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="translated">Aspire zjistil agentní programovací prostředí (celkem {0}), která je potřeba nakonfigurovat. Chcete teď provést konfiguraci?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Vyberte prostředí agentů, která se mají nakonfigurovat:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationYes">
-        <source>Yes</source>
-        <target state="translated">Ano</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
@@ -92,11 +67,6 @@
         <target state="translated">Nepovedlo se spustit AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ForceArgumentDescription">
-        <source>Stop any running instance of the AppHost without prompting.</source>
-        <target state="translated">Zastavte všechny běžící instance AppHost bez výzvy.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
         <target state="translated">Možnost --format lze použít pouze společně s parametrem --detach.</target>
@@ -110,16 +80,6 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost má hodnotu null.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="JsonArgumentDescription">
-        <source>Output format for detached AppHost results.</source>
-        <target state="needs-review-translation">Výsledek výstupu ve formátu JSON (platný jenom s parametrem --detach).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="IsolatedArgumentDescription">
-        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="translated">Spouštějte v izolovaném režimu s náhodnými porty a izolovanými tajnými kódy uživatelů, což umožňuje, aby několik instancí běželo současně.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
@@ -202,6 +162,11 @@
         <target state="translated">Stav</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="StoppingPreviousInstance">
+        <source>Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</source>
+        <target state="new">Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
         <target state="translated">Při čekání na spuštění hostitele aplikací (AppHost) vypršel časový limit.</target>
@@ -212,14 +177,9 @@
         <target state="translated">Typ</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
-      <trans-unit id="WaitingForAppHostToStart">
-        <source>Waiting for apphost to start...</source>
-        <target state="translated">Čeká se na spuštění hostitele aplikace...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Umožňuje spustit prostředky projektu v režimu kukátka.</target>
+      <trans-unit id="UnrecognizedAppHostType">
+        <source>Unrecognized app host type.</source>
+        <target state="new">Unrecognized app host type.</target>
         <note />
       </trans-unit>
     </body>

@@ -77,6 +77,11 @@
         <target state="translated">Фильтровать по имени ресурса.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' not found.</source>
+        <target state="new">Resource '{0}' not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
         <target state="new">view telemetry for</target>
@@ -90,11 +95,6 @@
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
         <target state="translated">Просмотр диапазонов через API телеметрии панели мониторинга.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">Идентификатор трассировки для просмотра. Если не указан, отображаются все трассировки.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">

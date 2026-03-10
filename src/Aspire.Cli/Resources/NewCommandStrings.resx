@@ -123,11 +123,7 @@
   </data>
   <data name="SelectATemplateVersion" xml:space="preserve">
     <value>Select a template version:</value>
-  </data>
-  <data name="UsePrereleaseTemplates" xml:space="preserve">
-    <value>(use pre-release templates)</value>
-  </data>
-  <data name="EnterTheOutputPath" xml:space="preserve">
+  </data><data name="EnterTheOutputPath" xml:space="preserve">
     <value>Enter the output path:</value>
   </data>
   <data name="EnterTheProjectName" xml:space="preserve">
@@ -150,5 +146,8 @@
   </data>
   <data name="ResolvingTemplateVersion" xml:space="preserve">
     <value>Resolving template version...</value>
+  </data>
+  <data name="NoTemplatesAvailable" xml:space="preserve">
+    <value>No templates are available for the current environment.</value>
   </data>
 </root>

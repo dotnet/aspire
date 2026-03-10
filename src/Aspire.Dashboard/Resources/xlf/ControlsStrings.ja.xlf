@@ -632,11 +632,6 @@
         <target state="translated">表示</target>
         <note />
       </trans-unit>
-      <trans-unit id="ViewLogsLink">
-        <source>View logs</source>
-        <target state="translated">ログの表示</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
         <target state="translated">閉じる</target>
@@ -650,11 +645,6 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">上下に分割する</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ViewStructuredLogsText">
-        <source>View structured logs</source>
-        <target state="translated">構造化ログの表示</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

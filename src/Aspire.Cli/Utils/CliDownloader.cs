@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
@@ -76,10 +77,10 @@ internal class CliDownloader(
             });
 
             // Validate checksum
-            interactionService.DisplayMessage(KnownEmojis.CheckMark, "Validating downloaded file...");
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ValidatingDownloadedFile);
             await ValidateChecksumAsync(archivePath, checksumPath, cancellationToken);
 
-            interactionService.DisplaySuccess("Download completed successfully");
+            interactionService.DisplaySuccess(UpdateCommandStrings.DownloadCompletedSuccessfully);
             return archivePath;
         }
         catch

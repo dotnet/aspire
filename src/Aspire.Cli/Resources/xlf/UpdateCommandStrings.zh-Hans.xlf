@@ -37,6 +37,11 @@
         <target state="new">Applying updates...</target>
         <note />
       </trans-unit>
+      <trans-unit id="BackingUpCurrentCli">
+        <source>Backing up current CLI...</source>
+        <target state="new">Backing up current CLI...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
         <target state="translated">"aspire update" 当前不支持中央包管理。</target>
@@ -72,6 +77,11 @@
         <target state="translated">在 {0} 中找不到 &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt;元素</target>
         <note />
       </trans-unit>
+      <trans-unit id="CurrentCliLocation">
+        <source>Current CLI location: {0}</source>
+        <target state="new">Current CLI location: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">更新 Aspire 项目中的集成。(预览版)</target>
@@ -80,6 +90,11 @@
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
         <target state="translated">若要在 Aspire CLI 作为 .NET 工具安装时对其进行更新，请运行:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadCompletedSuccessfully">
+        <source>Download completed successfully</source>
+        <target state="new">Download completed successfully</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -115,6 +130,11 @@
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
         <target state="translated">注意: 由于 AppHost SDK 无法解析，已采用回退解析生成更新计划。依赖项分析的准确性可能有所降低。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingNewCli">
+        <source>Installing new CLI to {0}...</source>
+        <target state="new">Installing new CLI to {0}...</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
@@ -157,15 +177,20 @@
         <target state="translated">无法写入安装目录“{0}”。请使用提升的权限运行更新(例如，在 Linux/macOS 上使用 sudo)。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NotInPath">
+        <source>Note: {0} is not in your PATH. Add it to use the updated CLI globally.</source>
+        <target state="new">Note: {0} is not in your PATH. Add it to use the updated CLI globally.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
         <target state="translated">包引用没有标识。</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">包引用没有版本。</target>
-        <note />
+      <trans-unit id="PackageUpdateLine">
+        <source>[bold yellow]{0}[/] [bold green]{1}[/] to [bold green]{2}[/]</source>
+        <target state="new">[bold yellow]{0}[/] [bold green]{1}[/] to [bold green]{2}[/]</target>
+        <note>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</note>
       </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
@@ -222,14 +247,29 @@
         <target state="translated">已保留: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SdkUpdateLine">
+        <source>[bold yellow]Aspire SDK[/] [bold green]{0}[/] to [bold green]{1}[/]</source>
+        <target state="new">[bold yellow]Aspire SDK[/] [bold green]{0}[/] to [bold green]{1}[/]</target>
+        <note>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</note>
+      </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">选择频道:</target>
         <note />
       </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
+      <trans-unit id="SelfUpdateNotAvailable">
+        <source>CLI self-update is not available in this environment.</source>
+        <target state="new">CLI self-update is not available in this environment.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToDetermineExecutablePath">
+        <source>Unable to determine the current executable path.</source>
+        <target state="new">Unable to determine the current executable path.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedCodePath">
         <source>Unexpected code path.</source>
-        <target state="translated">意外的代码路径。</target>
+        <target state="new">Unexpected code path.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
@@ -245,6 +285,21 @@
       <trans-unit id="UpdateSuccessfulMessage">
         <source>Update successful!</source>
         <target state="translated">更新成功!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedToVersion">
+        <source>Updated to version: {0}</source>
+        <target state="new">Updated to version: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatingToChannel">
+        <source>Updating to channel: {0}</source>
+        <target state="new">Updating to channel: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidatingDownloadedFile">
+        <source>Validating downloaded file...</source>
+        <target state="new">Validating downloaded file...</target>
         <note />
       </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">

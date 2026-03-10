@@ -77,6 +77,11 @@
         <target state="translated">Filtrare per nome della risorsa.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' not found.</source>
+        <target state="new">Resource '{0}' not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
         <target state="new">view telemetry for</target>
@@ -90,11 +95,6 @@
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
         <target state="translated">Visualizza gli span dall'API di telemetria del dashboard.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">L'ID traccia da visualizzare. Se non specificato, vengono elencate tutte le tracce.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">

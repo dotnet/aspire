@@ -7,11 +7,6 @@
         <target state="translated">Esegui un passaggio specifico della pipeline e le relative dipendenze. (Anteprima)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Executing pipeline...</source>
-        <target state="translated">Esecuzione della pipeline in corso...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
         <target state="translated">L'operazione è stata annullata.</target>

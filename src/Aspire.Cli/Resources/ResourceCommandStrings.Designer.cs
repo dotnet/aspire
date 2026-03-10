@@ -69,5 +69,41 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+
+        internal static string CommandExecutedSuccessfully {
+            get {
+                return ResourceManager.GetString("CommandExecutedSuccessfully", resourceCulture);
+            }
+        }
+
+        internal static string CommandCanceled {
+            get {
+                return ResourceManager.GetString("CommandCanceled", resourceCulture);
+            }
+        }
+
+        internal static string FailedToExecuteCommand {
+            get {
+                return ResourceManager.GetString("FailedToExecuteCommand", resourceCulture);
+            }
+        }
+
+        internal static string ResourceActionSuccessful {
+            get {
+                return ResourceManager.GetString("ResourceActionSuccessful", resourceCulture);
+            }
+        }
+
+        internal static string ResourceActionCanceled {
+            get {
+                return ResourceManager.GetString("ResourceActionCanceled", resourceCulture);
+            }
+        }
+
+        internal static string FailedToActionResource {
+            get {
+                return ResourceManager.GetString("FailedToActionResource", resourceCulture);
+            }
+        }
     }
 }

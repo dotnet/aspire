@@ -42,6 +42,11 @@
         <target state="translated">要建立專案之名稱。</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoTemplatesAvailable">
+        <source>No templates are available for the current environment.</source>
+        <target state="new">No templates are available for the current environment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project.</source>
         <target state="translated">專案的輸出路徑。</target>
@@ -65,11 +70,6 @@
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates.</source>
         <target state="translated">要用於專案範本的 NuGet 來源。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="UsePrereleaseTemplates">
-        <source>(use pre-release templates)</source>
-        <target state="translated">(使用發行前版本的範本)</target>
         <note />
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">

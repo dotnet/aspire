@@ -77,6 +77,11 @@
         <target state="translated">依資源名稱篩選。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceNotFound">
+        <source>Resource '{0}' not found.</source>
+        <target state="new">Resource '{0}' not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
         <target state="new">view telemetry for</target>
@@ -90,11 +95,6 @@
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API.</source>
         <target state="translated">從儀表板遙測 API 檢視範圍。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TraceIdArgumentDescription">
-        <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="translated">要檢視的追蹤識別碼。如果未指定，則列出所有追蹤。</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">

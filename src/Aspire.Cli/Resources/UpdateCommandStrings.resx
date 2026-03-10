@@ -71,17 +71,9 @@
   </data>
   <data name="PackageReferenceNoIdentity" xml:space="preserve">
     <value>Package reference does not have Identity.</value>
-  </data>
-  <data name="PackageReferenceNoVersion" xml:space="preserve">
-    <value>Package reference does not have Version.</value>
-  </data>
-  <data name="FailedUpdatePackageReferenceFormat" xml:space="preserve">
+  </data><data name="FailedUpdatePackageReferenceFormat" xml:space="preserve">
     <value>Failed to update package reference for {0} in project {1}.</value>
-  </data>
-  <data name="UnxpectedCodePath" xml:space="preserve">
-    <value>Unexpected code path.</value>
-  </data>
-  <data name="CentralPackageManagementNotSupported" xml:space="preserve">
+  </data><data name="CentralPackageManagementNotSupported" xml:space="preserve">
     <value>Central package management is currently not supported by 'aspire update'.</value>
   </data>
   <data name="CouldNotFindPackageVersionInDirectoryPackagesProps" xml:space="preserve">
@@ -161,5 +153,46 @@
   </data>
   <data name="RegeneratedSdkCode" xml:space="preserve">
     <value>Regenerated SDK code with updated packages.</value>
+  </data>
+  <data name="SelfUpdateNotAvailable" xml:space="preserve">
+    <value>CLI self-update is not available in this environment.</value>
+  </data>
+  <data name="UnableToDetermineExecutablePath" xml:space="preserve">
+    <value>Unable to determine the current executable path.</value>
+  </data>
+  <data name="DownloadCompletedSuccessfully" xml:space="preserve">
+    <value>Download completed successfully</value>
+  </data>
+  <data name="CurrentCliLocation" xml:space="preserve">
+    <value>Current CLI location: {0}</value>
+  </data>
+  <data name="UpdatingToChannel" xml:space="preserve">
+    <value>Updating to channel: {0}</value>
+  </data>
+  <data name="BackingUpCurrentCli" xml:space="preserve">
+    <value>Backing up current CLI...</value>
+  </data>
+  <data name="InstallingNewCli" xml:space="preserve">
+    <value>Installing new CLI to {0}...</value>
+  </data>
+  <data name="UpdatedToVersion" xml:space="preserve">
+    <value>Updated to version: {0}</value>
+  </data>
+  <data name="NotInPath" xml:space="preserve">
+    <value>Note: {0} is not in your PATH. Add it to use the updated CLI globally.</value>
+  </data>
+  <data name="ValidatingDownloadedFile" xml:space="preserve">
+    <value>Validating downloaded file...</value>
+  </data>
+  <data name="SdkUpdateLine" xml:space="preserve">
+    <value>[bold yellow]Aspire SDK[/] [bold green]{0}[/] to [bold green]{1}[/]</value>
+    <comment>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</comment>
+  </data>
+  <data name="PackageUpdateLine" xml:space="preserve">
+    <value>[bold yellow]{0}[/] [bold green]{1}[/] to [bold green]{2}[/]</value>
+    <comment>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</comment>
+  </data>
+  <data name="UnexpectedCodePath" xml:space="preserve">
+    <value>Unexpected code path.</value>
   </data>
 </root>

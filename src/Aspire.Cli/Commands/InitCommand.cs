@@ -139,12 +139,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var languageInfo = _languageDiscovery.GetLanguageById(selectedProject.LanguageId);
             if (languageInfo is null)
             {
-                InteractionService.DisplayError($"Unknown language: {selectedProject.LanguageId}");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.UnknownLanguage, selectedProject.LanguageId));
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
+            InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatingLanguageAppHost, languageInfo.DisplayName));
             InteractionService.DisplayEmptyLine();
             var polyglotResult = await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
             return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, polyglotResult, _executionContext.WorkingDirectory, cancellationToken);
@@ -225,7 +225,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (getSolutionExitCode != 0)
         {
             InteractionService.DisplayLines(initContext.GetSolutionProjectsOutputCollector.GetLines());
-            InteractionService.DisplayError("Failed to get projects from solution.");
+            InteractionService.DisplayError(InitCommandStrings.FailedToGetProjectsFromSolution);
             return getSolutionExitCode;
         }
 
@@ -373,7 +373,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (templateInstallResult.ExitCode != 0)
             {
                 InteractionService.DisplayLines(initContext.InstallTemplateOutputCollector.GetLines());
-                InteractionService.DisplayError("Failed to install Aspire templates.");
+                InteractionService.DisplayError(InitCommandStrings.FailedToInstallTemplates);
                 return ExitCodeConstants.FailedToInstallTemplates;
             }
 
@@ -400,7 +400,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (createResult != 0)
             {
                 InteractionService.DisplayLines(initContext.NewProjectOutputCollector.GetLines());
-                InteractionService.DisplayError($"Failed to create Aspire projects. Exit code: {createResult}");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.FailedToCreateAspireProjects, createResult));
                 return createResult;
             }
 
@@ -411,7 +411,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
             if (appHostProjects.Length == 0 || serviceDefaultsProjects.Length == 0)
             {
-                InteractionService.DisplayError("Failed to find created AppHost or ServiceDefaults projects in template output.");
+                InteractionService.DisplayError(InitCommandStrings.FailedToFindCreatedProjects);
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
 
@@ -453,7 +453,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (addAppHostResult != 0)
             {
                 InteractionService.DisplayLines(initContext.AddAppHostToSolutionOutputCollector.GetLines());
-                InteractionService.DisplayError($"Failed to add AppHost project to solution. Exit code: {addAppHostResult}");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.FailedToAddAppHostToSolution, addAppHostResult));
                 return addAppHostResult;
             }
 
@@ -479,7 +479,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (addServiceDefaultsResult != 0)
             {
                 InteractionService.DisplayLines(initContext.AddServiceDefaultsToSolutionOutputCollector.GetLines());
-                InteractionService.DisplayError($"Failed to add ServiceDefaults project to solution. Exit code: {addServiceDefaultsResult}");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.FailedToAddServiceDefaultsToSolution, addServiceDefaultsResult));
                 return addServiceDefaultsResult;
             }
 
@@ -511,7 +511,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     if (addRefResult != 0)
                     {
                         InteractionService.DisplayLines(outputCollector.GetLines());
-                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
+                        InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.FailedToAddReference, Path.GetFileNameWithoutExtension(project.ProjectFile.Name)));
                         return addRefResult;
                     }
                 }
@@ -545,7 +545,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     if (addRefResult != 0)
                     {
                         InteractionService.DisplayLines(outputCollector.GetLines());
-                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
+                        InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.FailedToAddServiceDefaultsReference, Path.GetFileNameWithoutExtension(project.ProjectFile.Name)));
                         return addRefResult;
                     }
                 }
@@ -578,7 +578,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
             if (File.Exists(appHostPath))
             {
-                InteractionService.DisplayMessage(KnownEmojis.CheckMark, $"{appHostFileName} already exists in this directory.");
+                InteractionService.DisplayMessage(KnownEmojis.CheckMark, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.AppHostAlreadyExists, appHostFileName));
                 return ExitCodeConstants.Success;
             }
         }
@@ -587,8 +587,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var context = new ScaffoldContext(language, workingDirectory, ProjectName: null);
         await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
 
-        InteractionService.DisplaySuccess($"Created {appHostFileName}");
-        InteractionService.DisplayMessage(KnownEmojis.Information, $"Run 'aspire run' to start your AppHost.");
+        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatedAppHost, appHostFileName));
+        InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.RunAspireRunToStart);
         return ExitCodeConstants.Success;
     }
 
@@ -599,7 +599,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var singleFileTemplate = initTemplates.FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
         if (singleFileTemplate is null)
         {
-            InteractionService.DisplayError("Single-file AppHost template not found.");
+            InteractionService.DisplayError(InitCommandStrings.SingleFileAppHostTemplateNotFound);
             return ExitCodeConstants.FailedToCreateNewProject;
         }
         var template = singleFileTemplate;

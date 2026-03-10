@@ -147,4 +147,19 @@
   <data name="PromptRunAgentInit" xml:space="preserve">
     <value>Would you like to configure AI agent environments for this project?</value>
   </data>
+  <data name="UpdatedNuGetConfig" xml:space="preserve">
+    <value>Updated NuGet.config with required package sources.</value>
+  </data>
+  <data name="CreatedNuGetConfig" xml:space="preserve">
+    <value>Created or updated NuGet.config in the project directory with required package sources.</value>
+  </data>
+  <data name="LanguagePreferenceSaved" xml:space="preserve">
+    <value>Language preference saved to local settings: {0}</value>
+  </data>
+  <data name="UnknownLanguageError" xml:space="preserve">
+    <value>Unknown language: '{0}'</value>
+  </data>
+  <data name="LanguagePreferenceSavedToSettings" xml:space="preserve">
+    <value>Language preference saved to local settings: {0}</value>
+  </data>
 </root>

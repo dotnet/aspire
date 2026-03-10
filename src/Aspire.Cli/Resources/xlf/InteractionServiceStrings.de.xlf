@@ -37,11 +37,6 @@
         <target state="translated">Projekttyp wird überprüft...</target>
         <note />
       </trans-unit>
-      <trans-unit id="CodespacesLink">
-        <source>Codespaces</source>
-        <target state="translated">Codespaces</target>
-        <note>Represents a type of link</note>
-      </trans-unit>
       <trans-unit id="CreatedSettingsFile">
         <source>Created settings file at {0}.</source>
         <target state="translated">Die Einstellungsdatei wurde unter {0} erstellt.</target>
@@ -56,11 +51,6 @@
         <source>Dashboard</source>
         <target state="translated">Dashboard</target>
         <note />
-      </trans-unit>
-      <trans-unit id="DirectLink">
-        <source>Direct</source>
-        <target state="translated">Direkt</target>
-        <note>Represents a type of link</note>
       </trans-unit>
       <trans-unit id="ErrorConnectingToAppHost">
         <source>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</source>

@@ -68,16 +68,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Executing pipeline....
-        /// </summary>
-        public static string GeneratingArtifacts {
-            get {
-                return ResourceManager.GetString("GeneratingArtifacts", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to The operation was canceled..
         /// </summary>
