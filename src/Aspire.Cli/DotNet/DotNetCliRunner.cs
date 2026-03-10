@@ -919,8 +919,8 @@ internal sealed class DotNetCliRunner(
         using var activity = telemetry.StartDiagnosticActivity();
 
         string? rawKey = null;
-        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
-        if (cacheEnabled)
+        var cacheEnabled = useCache;
+        if (useCache)
         {
             try
             {

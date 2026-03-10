@@ -1761,7 +1761,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     // Clear any existing launch configurations (needed for restart scenarios).
                     exe.Annotate(Executable.LaunchConfigurationsAnnotation, string.Empty);
-                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, new LaunchConfigurationProducerOptions { Mode = mode });
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, mode);
                 }
                 catch (Exception ex)
                 {

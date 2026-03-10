@@ -253,7 +253,7 @@ public static class ProjectResourceBuilderExtensions
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(projectMetadata)
-                      .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = options.Mode }, "project")
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
                       .WithProjectDefaults(options);
     }
 
@@ -299,7 +299,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = options.Mode }, "project")
+                      .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "project")
                       .WithProjectDefaults(options);
     }
 
@@ -382,7 +382,7 @@ public static class ProjectResourceBuilderExtensions
 
         var resource = builder.AddResource(app)
                               .WithAnnotation(projectMetadata)
-                              .WithDebugSupport(options => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = options.Mode }, "project")
+                              .WithDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "project")
                               .WithProjectDefaults(options);
 
         resource.OnBeforeResourceStarted(async (r, e, ct) =>

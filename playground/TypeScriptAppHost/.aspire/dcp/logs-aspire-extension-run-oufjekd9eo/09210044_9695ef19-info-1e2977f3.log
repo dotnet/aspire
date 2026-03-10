@@ -1,0 +1,9 @@
+{"level":"debug","ts":"2026-03-09T21:00:44.099-0400","logger":"dcp","msg":"Starting DCP...","PID":71540,"Exe":"/Users/adamratzman/.aspire/dcp/dcp","Args":["info"],"Version":"{\"version\":\"0.22.8\",\"commitHash\":\"a835bbc13d2acd225c0f1b9c0431f6dc1f4d7ea4\",\"buildTimestamp\":\"2026-02-26T17:14:57Z\"}"}
+{"level":"debug","ts":"2026-03-09T21:00:44.100-0400","logger":"dcp.info","msg":"Running Docker command","Command":"/Applications/Docker.app/Contents/Resources/bin/docker network ls --format {{json .}}"}
+{"level":"debug","ts":"2026-03-09T21:00:44.100-0400","logger":"dcp.info","msg":"Running podman command","Command":"podman container ls --last 1 --quiet"}
+{"level":"debug","ts":"2026-03-09T21:00:44.103-0400","logger":"dcp.info.os-executor","msg":"Process started successfully","PID":71541,"Command":"/Applications/Docker.app/Contents/Resources/bin/docker","Args":["network","ls","--format","{{json .}}"],"CreationFlags":0,"PID":71541}
+{"level":"debug","ts":"2026-03-09T21:00:44.103-0400","logger":"dcp.info.os-executor","msg":"Starting waiting for process to exit","PID":71541}
+{"level":"debug","ts":"2026-03-09T21:00:44.122-0400","logger":"dcp.info.os-executor","msg":"Process wait ended","PID":71541,"Error":"(none)","Command":"/Applications/Docker.app/Contents/Resources/bin/docker network ls --format {{json .}}"}
+{"level":"debug","ts":"2026-03-09T21:00:44.123-0400","logger":"dcp.info","msg":"Runtime status","Runtime":"docker","Status":{"Installed":true,"Running":true,"Error":""}}
+{"level":"debug","ts":"2026-03-09T21:00:44.123-0400","logger":"dcp.info.os-executor","msg":"Stopping processes during executor disposal...","Count":1}
+{"level":"debug","ts":"2026-03-09T21:00:44.123-0400","logger":"dcp.info.os-executor","msg":"Process executor disposed"}

@@ -27,10 +27,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class JavaScriptHostingExtensions
 {
-    private const string DefaultNodeVersion = "22";
-
-    // This must match the value in Aspire.Cli KnownCapabilities.Browser
     private const string BrowserCapability = "browser";
+    private const string DefaultNodeVersion = "22";
 
     // This is the order of config files that Vite will look for by default
     // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
@@ -961,10 +959,10 @@ public static class JavaScriptHostingExtensions
         var absoluteScriptPath = Path.GetFullPath(scriptPath, workingDirectory);
 
         return builder.WithDebugSupport(
-            options => new NodeLaunchConfiguration
+            mode => new NodeLaunchConfiguration
             {
                 ScriptPath = absoluteScriptPath,
-                Mode = options.Mode,
+                Mode = mode,
                 RuntimeExecutable = runtimeExecutable,
                 WorkingDirectory = workingDirectory
             },
@@ -988,10 +986,10 @@ public static class JavaScriptHostingExtensions
         var workingDirectory = builder.Resource.WorkingDirectory;
 
         return builder.WithDebugSupport(
-            options => new NodeLaunchConfiguration
+            mode => new NodeLaunchConfiguration
             {
                 ScriptPath = string.Empty,
-                Mode = options.Mode,
+                Mode = mode,
                 RuntimeExecutable = packageManager,
                 WorkingDirectory = workingDirectory
             },
@@ -1061,9 +1059,9 @@ public static class JavaScriptHostingExtensions
             .WaitFor(builder)
             .ExcludeFromManifest()
             .WithDebugSupport(
-                options => new BrowserLaunchConfiguration
+                mode => new BrowserLaunchConfiguration
                 {
-                    Mode = options.Mode,
+                    Mode = mode,
                     Url = endpointReference.Url,
                     WebRoot = parentResource.WorkingDirectory,
                     Browser = browser

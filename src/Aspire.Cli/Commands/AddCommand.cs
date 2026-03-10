@@ -26,7 +26,6 @@ internal sealed class AddCommand : BaseCommand
     private readonly IAddCommandPrompter _prompter;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
     private static readonly Argument<string> s_integrationArgument = new("integration")
@@ -52,7 +51,6 @@ internal sealed class AddCommand : BaseCommand
         _prompter = prompter;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
-        _features = features;
         _projectFactory = projectFactory;
 
         Arguments.Add(s_integrationArgument);
@@ -210,22 +208,19 @@ internal sealed class AddCommand : BaseCommand
             // Stop any running AppHost instance before adding the package.
             // A running AppHost (especially in detach mode) locks project files,
             // which prevents 'dotnet add package' from modifying the project.
-            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
-            {
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
-                    effectiveAppHostProjectFile,
-                    ExecutionContext.HomeDirectory,
-                    cancellationToken);
+            var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
+                effectiveAppHostProjectFile,
+                ExecutionContext.HomeDirectory,
+                cancellationToken);
 
-                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
-                {
-                    InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
-                }
-                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
-                {
-                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
-                    return ExitCodeConstants.FailedToAddPackage;
-                }
+            if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
+            }
+            else if (runningInstanceResult == RunningInstanceResult.StopFailed)
+            {
+                InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                return ExitCodeConstants.FailedToAddPackage;
             }
 
             var success = await InteractionService.ShowStatusAsync(

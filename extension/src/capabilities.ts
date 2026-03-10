@@ -41,8 +41,7 @@ export function isNodeInstalled() {
 }
 
 export function getSupportedCapabilities(): Capabilities {
-    // Node.js and browser debugging are built into VS Code via ms-vscode.js-debug, so always available
-    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli', 'node', 'browser'];
+    const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli'];
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");

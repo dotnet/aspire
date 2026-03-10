@@ -140,9 +140,6 @@ internal sealed class RunCommand : BaseCommand
             Debug.Assert(_startDebugSessionOption is not null);
             startDebugSession = parseResult.GetValue(_startDebugSessionOption);
         }
-        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        // Force option kept for backward compatibility but no longer used since prompt was removed
-        // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // Validate that --format is only used with --detach
         if (format == OutputFormat.Json && !detach)
@@ -198,19 +195,15 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Check for running instance if feature is enabled
-            if (runningInstanceDetectionEnabled)
-            {
-                // Even if we fail to stop we won't block the apphost starting
-                // to make sure we don't ever break flow. It should mostly stop
-                // just fine though.
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+            // Check for running instance — even if we fail to stop we won't
+            // block the apphost starting to make sure we don't ever break flow.
+            // It should mostly stop just fine though.
+            var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
 
-                // If in isolated mode and a running instance was stopped, warn the user
-                if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
-                {
-                    InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
-                }
+            // If in isolated mode and a running instance was stopped, warn the user
+            if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
             }
 
             // The completion sources are the contract between RunCommand and IAppHostProject

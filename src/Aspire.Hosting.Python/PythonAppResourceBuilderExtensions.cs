@@ -944,7 +944,7 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         builder.WithDebugSupport(
-            options =>
+            mode =>
             {
                 string interpreterPath;
                 if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation) || annotation.VirtualEnvironment is null)
@@ -971,7 +971,7 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     ProgramPath = programPath,
                     Module = module,
-                    Mode = options.Mode,
+                    Mode = mode,
                     InterpreterPath = interpreterPath
                 };
             },
