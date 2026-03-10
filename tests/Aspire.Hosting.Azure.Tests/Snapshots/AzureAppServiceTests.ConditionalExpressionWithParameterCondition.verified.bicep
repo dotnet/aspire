@@ -62,7 +62,7 @@ resource webapp 'Microsoft.Web/sites@2025-03-01' = {
         }
         {
           name: 'FEATURE_MODE'
-          value: (enable_feature_value == 'True') ? 'enabled' : 'disabled'
+          value: (toLower(enable_feature_value) == 'true') ? 'enabled' : 'disabled'
         }
         {
           name: 'ASPIRE_ENVIRONMENT_NAME'

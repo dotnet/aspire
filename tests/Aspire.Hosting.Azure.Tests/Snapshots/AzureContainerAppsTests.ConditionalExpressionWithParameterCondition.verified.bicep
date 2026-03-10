@@ -44,7 +44,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'FEATURE_MODE'
-              value: (enable_feature_value == 'True') ? 'enabled' : 'disabled'
+              value: (toLower(enable_feature_value) == 'true') ? 'enabled' : 'disabled'
             }
           ]
         }

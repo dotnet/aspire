@@ -46,7 +46,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'NESTED_FEATURE'
-              value: (outer_flag_value == 'True') ? (inner_flag_value == 'True') ? 'inner-true' : 'inner-false' : 'outer-false'
+              value: (toLower(outer_flag_value) == 'true') ? (toLower(inner_flag_value) == 'true') ? 'inner-true' : 'inner-false' : 'outer-false'
             }
           ]
         }

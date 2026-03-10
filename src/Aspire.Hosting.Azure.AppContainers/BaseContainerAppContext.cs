@@ -313,7 +313,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                 var (whenFalseVal, falseSecret) = ProcessValue(expr.WhenFalse!, secretType, parent: expr);
 
                 var conditional = new ConditionalExpression(
-                    new BinaryExpression(ResolveValue(conditionVal).Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression(expr.MatchValue!)),
+                    new BinaryExpression(BicepFunction.ToLower(ResolveValue(conditionVal).Compile()).Compile(), BinaryBicepOperator.Equal, new StringLiteralExpression((expr.MatchValue ?? string.Empty).ToLowerInvariant())),
                     ResolveValue(whenTrueVal).Compile(),
                     ResolveValue(whenFalseVal).Compile());
 

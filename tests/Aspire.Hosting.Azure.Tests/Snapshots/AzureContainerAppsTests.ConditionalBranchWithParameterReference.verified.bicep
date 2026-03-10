@@ -46,7 +46,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'FEATURE_CONNECTION'
-              value: (enable_feature_value == 'True') ? 'prefix-${connection_prefix_value}-enabled' : 'disabled'
+              value: (toLower(enable_feature_value) == 'true') ? 'prefix-${connection_prefix_value}-enabled' : 'disabled'
             }
           ]
         }
