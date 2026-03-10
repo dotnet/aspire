@@ -53,6 +53,11 @@
                         <div>
                             <div class="message-header">
                                 <GenAIItemTitle Item="@selectedItem" ResourceName="@selectedItem.ResourceName" />
+                                <FluentButton Class="back-button"
+                                              Appearance="Appearance.Stealth"
+                                              OnClick="@GoBackAsync">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowHookUpLeft())" />
+                                </FluentButton>
                             </div>
                             @*
                                 Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
@@ -473,7 +478,7 @@
                 {
                     var itemParts = item.ItemParts.Where(p => !string.IsNullOrEmpty(p.TextVisualizerViewModel.Text)).ToList();
 
-                    <div class="message-container">
+                    <div class="message-container" id="@($"genai-message-{item.Index}")">
                         @if (item.Type != GenAIItemType.Error)
                         {
                             <div class="message-title">
