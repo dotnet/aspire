@@ -588,16 +588,24 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         stream.Dispose();
         socket.Dispose();
 
-        // Give the server time to process the abrupt disconnect
-        await Task.Delay(1000);
-
         var collector = app.Services.GetFakeLogCollector();
-        var logs = collector.GetSnapshot();
-        var errorLogs = logs.Where(l =>
-            l.Level >= LogLevel.Error &&
-            l.Category == typeof(AuxiliaryBackchannelService).FullName);
 
-        Assert.Empty(errorLogs);
+        // Wait for the server to process the disconnect and emit a Debug log
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var logs = collector.GetSnapshot();
+
+            var hasDebugLog = logs.Any(l =>
+                l.Level == LogLevel.Debug &&
+                l.Category == typeof(AuxiliaryBackchannelService).FullName &&
+                l.Message.Contains("Client disconnected from auxiliary backchannel"));
+
+            var hasErrorLog = logs.Any(l =>
+                l.Level >= LogLevel.Error &&
+                l.Category == typeof(AuxiliaryBackchannelService).FullName);
+
+            return hasDebugLog && !hasErrorLog;
+        }, "Expected a Debug log for client disconnect and no Error logs from AuxiliaryBackchannelService");
 
         await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
