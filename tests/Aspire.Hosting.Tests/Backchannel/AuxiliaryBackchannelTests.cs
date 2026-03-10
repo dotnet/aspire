@@ -10,6 +10,7 @@ using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Backchannel;
@@ -546,6 +547,57 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         // Verify the parameter resource is in the list
         Assert.Contains(response.Resources, r => r.Name == "myparam");
+
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+    }
+
+    [Fact]
+    public async Task AbruptClientDisconnectDoesNotLogError()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        builder.Services.AddLogging(b =>
+        {
+            b.AddFakeLogging();
+        });
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        await service.ListeningTask.WaitAsync(TimeSpan.FromSeconds(60));
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client and invoke an RPC method to ensure the connection is fully established
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        using var stream = new NetworkStream(socket, ownsSocket: false);
+        using var rpc = JsonRpc.Attach(stream);
+
+        await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Force an RST (connection reset) by setting linger with zero timeout, then closing the socket
+        socket.LingerState = new LingerOption(true, 0);
+        rpc.Dispose();
+        stream.Dispose();
+        socket.Dispose();
+
+        // Give the server time to process the abrupt disconnect
+        await Task.Delay(1000);
+
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+        var errorLogs = logs.Where(l =>
+            l.Level >= LogLevel.Error &&
+            l.Category == typeof(AuxiliaryBackchannelService).FullName);
+
+        Assert.Empty(errorLogs);
 
         await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
