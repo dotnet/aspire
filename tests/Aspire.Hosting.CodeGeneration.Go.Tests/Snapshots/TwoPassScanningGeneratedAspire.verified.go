@@ -124,6 +124,7 @@ const (
 	EndpointPropertyScheme EndpointProperty = "Scheme"
 	EndpointPropertyTargetPort EndpointProperty = "TargetPort"
 	EndpointPropertyHostAndPort EndpointProperty = "HostAndPort"
+	EndpointPropertyTlsEnabled EndpointProperty = "TlsEnabled"
 )
 
 // UrlDisplayLocation represents UrlDisplayLocation.
@@ -5059,6 +5060,18 @@ func (s *EndpointReference) IsHttps() (*bool, error) {
 	return result.(*bool), nil
 }
 
+// TlsEnabled gets the TlsEnabled property
+func (s *EndpointReference) TlsEnabled() (*bool, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
 // Port gets the Port property
 func (s *EndpointReference) Port() (*float64, error) {
 	reqArgs := map[string]any{
@@ -5132,6 +5145,20 @@ func (s *EndpointReference) GetValueAsync(cancellationToken *CancellationToken) 
 		return nil, err
 	}
 	return result.(*string), nil
+}
+
+// GetTlsValue gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
+func (s *EndpointReference) GetTlsValue(enabledValue *ReferenceExpression, disabledValue *ReferenceExpression) (*ReferenceExpression, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["enabledValue"] = SerializeValue(enabledValue)
+	reqArgs["disabledValue"] = SerializeValue(disabledValue)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ReferenceExpression), nil
 }
 
 // EndpointReferenceExpression wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression.

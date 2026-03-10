@@ -215,6 +215,7 @@ export enum EndpointProperty {
     Scheme = "Scheme",
     TargetPort = "TargetPort",
     HostAndPort = "HostAndPort",
+    TlsEnabled = "TlsEnabled",
 }
 
 /** Enum type for IconVariant */
@@ -812,6 +813,16 @@ export class EndpointReference {
         },
     };
 
+    /** Gets the TlsEnabled property */
+    tlsEnabled = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** Gets the Port property */
     port = {
         get: async (): Promise<number> => {
@@ -873,6 +884,15 @@ export class EndpointReference {
         );
     }
 
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, enabledValue, disabledValue };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
+            rpcArgs
+        );
+    }
+
 }
 
 /**
@@ -891,6 +911,11 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     /** Gets the URL of the endpoint asynchronously */
     getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         return this._promise.then(obj => obj.getValueAsync(options));
+    }
+
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue));
     }
 
 }
