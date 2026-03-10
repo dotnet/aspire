@@ -522,6 +522,7 @@ function tryExecuteEndpoint(interactionService: IInteractionService, withAuthent
             const message = (err && (((err as any).message) ?? String(err))) || 'An unknown error occurred';
             extensionLogOutputChannel.error(`Interaction service endpoint '${name}' failed: ${message}`);
             vscode.window.showErrorMessage(errorMessage(message));
+
             interactionService.showStatus(null);
             throw err;
         }

@@ -950,21 +950,24 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
 
-        // Check if a run script annotation is present - if so, use package manager instead of direct node
-        var hasRunScript = builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _);
-        var hasPackageManager = builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
-
-        var runtimeExecutable = hasRunScript && hasPackageManager ? pmAnnotation!.ExecutableName : "node";
-        var workingDirectory = builder.Resource.WorkingDirectory;
-        var absoluteScriptPath = Path.GetFullPath(scriptPath, workingDirectory);
+        var resource = builder.Resource;
+        var workingDirectory = Path.GetFullPath(resource.WorkingDirectory);
 
         return builder.WithDebugSupport(
-            mode => new NodeLaunchConfiguration
+            mode =>
             {
-                ScriptPath = absoluteScriptPath,
-                Mode = mode,
-                RuntimeExecutable = runtimeExecutable,
-                WorkingDirectory = Path.GetFullPath(workingDirectory)
+                // Compute at run time so the launch config reflects the final annotation state
+                var hasRunScript = resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _);
+                var hasPackageManager = resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
+                var runtimeExecutable = hasRunScript && hasPackageManager ? pmAnnotation!.ExecutableName : "node";
+
+                return new NodeLaunchConfiguration
+                {
+                    ScriptPath = Path.GetFullPath(scriptPath, workingDirectory),
+                    Mode = mode,
+                    RuntimeExecutable = runtimeExecutable,
+                    WorkingDirectory = workingDirectory
+                };
             },
             "node");
     }
@@ -975,23 +978,26 @@ public static class JavaScriptHostingExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Get package manager info for runtime executable
-        var packageManager = "npm";
-
-        if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
-        {
-            packageManager = pmAnnotation.ExecutableName;
-        }
-
-        var workingDirectory = Path.GetFullPath(builder.Resource.WorkingDirectory);
+        var resource = builder.Resource;
+        var workingDirectory = Path.GetFullPath(resource.WorkingDirectory);
 
         return builder.WithDebugSupport(
-            mode => new NodeLaunchConfiguration
+            mode =>
             {
-                ScriptPath = string.Empty,
-                Mode = mode,
-                RuntimeExecutable = packageManager,
-                WorkingDirectory = workingDirectory
+                // Compute at run time so the launch config reflects the final annotation state
+                var packageManager = "npm";
+                if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
+                {
+                    packageManager = pmAnnotation.ExecutableName;
+                }
+
+                return new NodeLaunchConfiguration
+                {
+                    ScriptPath = string.Empty,
+                    Mode = mode,
+                    RuntimeExecutable = packageManager,
+                    WorkingDirectory = workingDirectory
+                };
             },
             "node");
     }
@@ -1036,22 +1042,6 @@ public static class JavaScriptHostingExtensions
         var parentResource = builder.Resource;
         var debuggerResourceName = $"{parentResource.Name}-browser";
 
-        // Find the parent's HTTP/HTTPS endpoint
-        EndpointAnnotation? endpointAnnotation = null;
-        if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
-        {
-            endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
-                ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
-        }
-
-        if (endpointAnnotation is null)
-        {
-            throw new InvalidOperationException(
-                $"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
-        }
-
-        var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
-
         var debuggerResource = new BrowserDebuggerResource(debuggerResourceName, browser, parentResource.WorkingDirectory);
 
         builder.ApplicationBuilder.AddResource(debuggerResource)
@@ -1059,12 +1049,31 @@ public static class JavaScriptHostingExtensions
             .WaitFor(builder)
             .ExcludeFromManifest()
             .WithDebugSupport(
-                mode => new BrowserLaunchConfiguration
+                mode =>
                 {
-                    Mode = mode,
-                    Url = endpointReference.Url,
-                    WebRoot = parentResource.WorkingDirectory,
-                    Browser = browser
+                    // Resolve endpoint at run time so dynamically added endpoints are reflected
+                    EndpointAnnotation? endpointAnnotation = null;
+                    if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+                    {
+                        endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
+                            ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
+                    }
+
+                    if (endpointAnnotation is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
+                    }
+
+                    var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
+
+                    return new BrowserLaunchConfiguration
+                    {
+                        Mode = mode,
+                        Url = endpointReference.Url,
+                        WebRoot = parentResource.WorkingDirectory,
+                        Browser = browser
+                    };
                 },
                 BrowserCapability);
 

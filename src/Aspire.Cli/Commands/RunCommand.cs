@@ -393,6 +393,12 @@ internal sealed class RunCommand : BaseCommand
             InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        catch (ConnectionLostException)
+        {
+            // The app host terminated and the backchannel was lost.
+            // This is a normal exit path — not an error.
+            return ExitCodeConstants.Success;
+        }
         catch (Exception ex)
         {
             var errorMessage = string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message);

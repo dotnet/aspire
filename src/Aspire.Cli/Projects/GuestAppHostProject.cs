@@ -425,17 +425,41 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
-            // Start guest apphost - it will connect to AppHost server, define resources
-            // When hot reload is enabled, use watch mode
+            // Check if the extension should launch the guest app host (for VS Code debugging).
+            // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
+            IGuestProcessLauncher launcher;
+            if (ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out var extensionBackchannel)
+                && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.Node, cancellationToken))
+            {
+                launcher = new ExtensionGuestLauncher(extensionInteractionService, appHostFile, context.StartDebugSession);
+            }
+            else
+            {
+                launcher = _guestRuntime!.CreateDefaultLauncher();
+            }
+
+            // Start guest apphost - it will connect to AppHost server, define resources.
+            // If launcher is an ExtensionGuestLauncher, it delegates to the VS Code extension.
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, launcher, cancellationToken);
+
+            if (launcher is ExtensionGuestLauncher)
+            {
+                // Extension manages the guest app host lifecycle via VS Code debug session.
+                // Wait for the AppHost server to exit (Ctrl+C or extension termination).
+                await appHostServerProcess.WaitForExitAsync(cancellationToken);
+                return appHostServerProcess.ExitCode;
+            }
 
             if (guestExitCode != 0)
             {
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -706,7 +730,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure so callers don't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -1159,12 +1186,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Executes the guest AppHost using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
         IAppHostRpcClient rpcClient,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
         await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
@@ -1175,13 +1203,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, launcher, cancellationToken);
     }
 
     /// <summary>
     /// Executes the guest AppHost for publishing using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostForPublishAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostForPublishAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
@@ -1197,7 +1225,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, _guestRuntime.CreateDefaultLauncher(), cancellationToken);
     }
 
     /// <summary>

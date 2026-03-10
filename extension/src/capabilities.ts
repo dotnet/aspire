@@ -3,7 +3,7 @@ import { RunSessionInfo } from './dcp/types';
 
 export type Capability =
     | 'prompting' // Support using VS Code to capture user input instead of CLI
-    | 'baseline.v1' 
+    | 'baseline.v1'
     | 'secret-prompts.v1'
     | 'file-pickers.v1'
     | 'build-dotnet-using-cli' // Support building .NET projects using the CLI
@@ -56,6 +56,11 @@ export function getSupportedCapabilities(): Capabilities {
     if (isPythonInstalled()) {
         capabilities.push("python");
         capabilities.push("ms-python.python");
+    }
+
+    if (isNodeInstalled()) {
+        capabilities.push("node");
+        capabilities.push("browser");
     }
 
     return capabilities;

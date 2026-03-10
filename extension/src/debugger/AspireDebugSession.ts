@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import * as fs from "fs";
-import { createDebugAdapterTracker } from "./adapterTracker";
+import { createDebugAdapterTracker, AppHostRestartHandler } from "./adapterTracker";
 import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, NodeLaunchConfiguration, ProjectLaunchConfiguration, StartAppHostOptions } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
@@ -35,7 +35,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   private _dashboardDebugSession: vscode.DebugSession | null = null;
   private readonly _disposables: vscode.Disposable[] = [];
   private _disposed = false;
-  private _userInitiatedStop = false;
 
   public readonly onDidSendMessage = this._onDidSendMessage.event;
   public readonly debugSessionId: string;
@@ -130,7 +129,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
       this.sendMessageWithEmoji("🔌", disconnectingFromSession);
-      this._userInitiatedStop = true;
       this.dispose();
 
       this.sendEvent({
@@ -216,16 +214,18 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     }
   }
 
-  createDebugAdapterTrackerCore(debugAdapter: string) {
+  createDebugAdapterTrackerCore(debugAdapter: string, onAppHostRestartRequested?: AppHostRestartHandler) {
     if (this._trackedDebugAdapters.includes(debugAdapter)) {
       return;
     }
 
     this._trackedDebugAdapters.push(debugAdapter);
-    this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter));
+    this._disposables.push(createDebugAdapterTracker(this._dcpServer, debugAdapter, onAppHostRestartRequested));
   }
 
   private static readonly _nodeAppHostExtensions = ['.js', '.ts', '.mjs', '.mts', '.cjs', '.cts'];
+
+  private _appHostRestartRequested = false;
 
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean, options: StartAppHostOptions): Promise<void> {
     try {
@@ -233,15 +233,33 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       const isNodeAppHost = AspireDebugSession._nodeAppHostExtensions.includes(fileExtension);
 
       const debuggerExtension = isNodeAppHost ? nodeDebuggerExtension : projectDebuggerExtension;
-      this.createDebugAdapterTrackerCore(debuggerExtension.debugAdapter);
+
+      // Register the adapter tracker with an app host restart handler.
+      // When the user clicks "restart" on the app host child session,
+      // we suppress VS Code's automatic child restart and restart the
+      // entire Aspire debug session instead.
+      this.createDebugAdapterTrackerCore(debuggerExtension.debugAdapter, (debugSessionId) => {
+        if (debugSessionId === this.debugSessionId) {
+          this._appHostRestartRequested = true;
+          return true; // suppress VS Code's child restart
+        }
+        return false;
+      });
 
       let appHostArgs: string[];
       let launchConfig;
 
       if (isNodeAppHost) {
-        // Node apphosts receive args directly, no "--" separator extraction needed
-        appHostArgs = args;
-        launchConfig = { script_path: projectFile, working_directory: path.dirname(projectFile), type: 'node' } as NodeLaunchConfiguration;
+        // The CLI prepends the runtime command (e.g., "npx") as args[0].
+        // Extract it as the runtimeExecutable and use the rest as the actual args.
+        const runtimeExecutable = args.length > 0 ? args[0] : undefined;
+        appHostArgs = args.slice(1);
+        launchConfig = {
+          script_path: projectFile,
+          working_directory: path.dirname(projectFile),
+          type: 'node',
+          ...(runtimeExecutable ? { runtime_executable: runtimeExecutable } : {})
+        } as NodeLaunchConfiguration;
       }
       else {
         // The CLI sends the full dotnet CLI args (e.g., ["run", "--no-build", "--project", "...", "--", ...appHostArgs]).
@@ -260,6 +278,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         environment,
         { debug, forceBuild: isNodeAppHost ? false : options.forceBuild, runId: '', debugSessionId: this.debugSessionId, isApphost: true, debugSession: this },
         debuggerExtension);
+
       const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
       if (!appHostDebugSession) {
@@ -270,15 +289,15 @@ export class AspireDebugSession implements vscode.DebugAdapter {
 
       const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
         if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
-          const command = this.configuration.command ?? 'run';
-          // Only restart for 'run' — pipeline commands (do/deploy/publish) exit normally after completing.
-          const shouldRestart = !this._userInitiatedStop && command === 'run';
+          // Only restart the Aspire session when the user explicitly clicked
+          // "restart" on the app host debug toolbar (detected via DAP tracker).
+          // All other cases (user stop, process crash/exit) just dispose.
+          const shouldRestart = this._appHostRestartRequested;
           const config = this.configuration;
-          // Always dispose the current Aspire debug session when the AppHost stops.
           this.dispose();
 
           if (shouldRestart) {
-            extensionLogOutputChannel.info('AppHost terminated unexpectedly, restarting Aspire debug session');
+            extensionLogOutputChannel.info('AppHost restart requested, restarting Aspire debug session');
             await vscode.debug.startDebugging(undefined, config);
           }
         }

@@ -143,6 +143,7 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
     runId: string;
     debugSessionId: string | null;
     projectFile?: string;
+    isApphost?: boolean;
 }
 
 export type AspireCommandType = 'run' | 'deploy' | 'publish' | 'do';

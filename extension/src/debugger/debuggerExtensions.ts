@@ -41,7 +41,8 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
         noDebug: !launchOptions.debug,
         runId: launchOptions.runId,
         debugSessionId: launchOptions.debugSessionId,
-        console: 'internalConsole'
+        console: 'internalConsole',
+        isApphost: launchOptions.isApphost
     };
 
     if (debugSessionConfig.debuggers) {
