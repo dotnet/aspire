@@ -296,6 +296,8 @@ pub enum EndpointProperty {
     TargetPort,
     #[serde(rename = "HostAndPort")]
     HostAndPort,
+    #[serde(rename = "TlsEnabled")]
+    TlsEnabled,
 }
 
 impl std::fmt::Display for EndpointProperty {
@@ -308,6 +310,7 @@ impl std::fmt::Display for EndpointProperty {
             Self::Scheme => write!(f, "Scheme"),
             Self::TargetPort => write!(f, "TargetPort"),
             Self::HostAndPort => write!(f, "HostAndPort"),
+            Self::TlsEnabled => write!(f, "TlsEnabled"),
         }
     }
 }
@@ -4750,6 +4753,14 @@ impl EndpointReference {
         Ok(serde_json::from_value(result)?)
     }
 
+    /// Gets the TlsEnabled property
+    pub fn tls_enabled(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
     /// Gets the Port property
     pub fn port(&self) -> Result<f64, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -4799,6 +4810,16 @@ impl EndpointReference {
             args.insert("cancellationToken".to_string(), Value::String(token_id));
         }
         let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
+    pub fn get_tls_value(&self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ReferenceExpression, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("enabledValue".to_string(), serde_json::to_value(&enabled_value).unwrap_or(Value::Null));
+        args.insert("disabledValue".to_string(), serde_json::to_value(&disabled_value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)?;
         Ok(serde_json::from_value(result)?)
     }
 }

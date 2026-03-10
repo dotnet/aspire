@@ -89,6 +89,7 @@ class EndpointProperty(str, Enum):
     SCHEME = "Scheme"
     TARGET_PORT = "TargetPort"
     HOST_AND_PORT = "HostAndPort"
+    TLS_ENABLED = "TlsEnabled"
 
 class UrlDisplayLocation(str, Enum):
     SUMMARY_AND_DETAILS = "SummaryAndDetails"
@@ -2730,6 +2731,11 @@ class EndpointReference(HandleWrapperBase):
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.isHttps", args)
 
+    def tls_enabled(self) -> bool:
+        """Gets the TlsEnabled property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", args)
+
     def port(self) -> float:
         """Gets the Port property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
@@ -2762,6 +2768,13 @@ class EndpointReference(HandleWrapperBase):
         if cancellation_token_id is not None:
             args["cancellationToken"] = cancellation_token_id
         return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)
+
+    def get_tls_value(self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> ReferenceExpression:
+        """Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise."""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["enabledValue"] = serialize_value(enabled_value)
+        args["disabledValue"] = serialize_value(disabled_value)
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)
 
 
 class EndpointReferenceExpression(HandleWrapperBase):

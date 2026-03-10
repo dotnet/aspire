@@ -3,7 +3,7 @@ import { RunSessionInfo } from './dcp/types';
 
 export type Capability =
     | 'prompting' // Support using VS Code to capture user input instead of CLI
-    | 'baseline.v1' 
+    | 'baseline.v1'
     | 'secret-prompts.v1'
     | 'file-pickers.v1'
     | 'build-dotnet-using-cli' // Support building .NET projects using the CLI
@@ -12,7 +12,9 @@ export type Capability =
     | 'project' // Support for running C# projects
     | 'ms-dotnettools.csharp' // Older AppHost versions used this extension identifier instead of project
     | 'python' // Support for running Python projects
-    | 'ms-python.python'; // Older AppHost versions used this extension identifier instead of python
+    | 'ms-python.python' // Older AppHost versions used this extension identifier instead of python
+    | 'node' // Support for running Node.js projects
+    | 'browser'; // Support for browser debugging (built-in to VS Code via js-debug)
 
 export type Capabilities = Capability[];
 
@@ -33,6 +35,11 @@ export function isPythonInstalled() {
     return isExtensionInstalled("ms-python.python");
 }
 
+export function isNodeInstalled() {
+    // Node.js debugging uses VS Code's built-in js-debug, no extension needed
+    return true;
+}
+
 export function getSupportedCapabilities(): Capabilities {
     const capabilities: Capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1', 'file-pickers.v1', 'build-dotnet-using-cli'];
 
@@ -49,6 +56,11 @@ export function getSupportedCapabilities(): Capabilities {
     if (isPythonInstalled()) {
         capabilities.push("python");
         capabilities.push("ms-python.python");
+    }
+
+    if (isNodeInstalled()) {
+        capabilities.push("node");
+        capabilities.push("browser");
     }
 
     return capabilities;

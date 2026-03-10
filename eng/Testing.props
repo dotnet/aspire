@@ -8,10 +8,14 @@
     <UncollectedTestsSessionTimeout Condition="'$(UncollectedTestsSessionTimeout)' == ''">15m</UncollectedTestsSessionTimeout>
     <UncollectedTestsHangTimeout Condition="'$(UncollectedTestsHangTimeout)' == ''">10m</UncollectedTestsHangTimeout>
 
+    <!-- Detect if we're running in the context of a GitHub pull request -->
+    <IsGithubPullRequest Condition="'$(GITHUB_EVENT_NAME)' == 'pull_request'">true</IsGithubPullRequest>
+
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
-    <RunOnGithubActionsMacOS>true</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsMacOS Condition="'$(RunOnGithubActionsMacOS)' == '' and '$(IsGithubPullRequest)' == 'true' and $(MSBuildProjectName.StartsWith('Aspire.')) and !$(MSBuildProjectName.StartsWith('Aspire.Cli'))">false</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsMacOS Condition="'$(RunOnGithubActionsMacOS)' == ''">true</RunOnGithubActionsMacOS>
     <RunOnAzdoCIWindows>true</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>true</RunOnAzdoCILinux>
     <RunOnAzdoHelixWindows>true</RunOnAzdoHelixWindows>

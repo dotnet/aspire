@@ -276,27 +276,34 @@ jobs:
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
         # For example, one of setup_* jobs failing and the dependent test jobs getting 'skipped'.
-        # Overflow jobs are intentionally skipped when below the overflow threshold, so we
-        # check specific job names rather than using contains(needs.*.result, 'skipped').
+        # Some jobs are optional and can have an empty matrix. In those cases we allow a 'skipped'
+        # result. Specifically:
+        # - tests_no_nugets_overflow: this overflow bucket is expected to be empty unless the
+        #   primary no-nugets matrix exceeds the overflow threshold.
+        # - tests_requires_nugets_macos: some runs intentionally produce no macOS requires-nugets
+        #   tests, so an empty matrix and 'skipped' result are expected.
+        # All other jobs in this gate are required, and a 'skipped' result is treated as a failure.
         if: >-
           ${{ always() &&
               (contains(needs.*.result, 'failure') ||
-               contains(needs.*.result, 'cancelled') ||
-               (github.event_name == 'pull_request' &&
-                (needs.extension_tests_win.result == 'skipped' ||
-                 needs.tests_no_nugets.result == 'skipped' ||
-                 needs.tests_requires_nugets_linux.result == 'skipped' ||
-                 needs.tests_requires_nugets_windows.result == 'skipped' ||
-                 needs.tests_requires_nugets_macos.result == 'skipped' ||
-                 needs.tests_requires_cli_archive.result == 'skipped' ||
-                 needs.polyglot_validation.result == 'skipped')) ||
-               (github.event_name != 'pull_request' &&
-                (needs.extension_tests_win.result == 'skipped' ||
-                 needs.tests_no_nugets.result == 'skipped' ||
-                 needs.tests_requires_nugets_linux.result == 'skipped' ||
-                 needs.tests_requires_nugets_windows.result == 'skipped' ||
-                 needs.tests_requires_nugets_macos.result == 'skipped' ||
-                 needs.polyglot_validation.result == 'skipped'))) }}
+                contains(needs.*.result, 'cancelled') ||
+                (github.event_name == 'pull_request' &&
+                 (needs.extension_tests_win.result == 'skipped' ||
+                   needs.tests_no_nugets.result == 'skipped' ||
+                   needs.tests_requires_nugets_linux.result == 'skipped' ||
+                   needs.tests_requires_nugets_windows.result == 'skipped' ||
+                   (fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null &&
+                    needs.tests_requires_nugets_macos.result == 'skipped') ||
+                   needs.tests_requires_cli_archive.result == 'skipped' ||
+                  needs.polyglot_validation.result == 'skipped')) ||
+                (github.event_name != 'pull_request' &&
+                 (needs.extension_tests_win.result == 'skipped' ||
+                   needs.tests_no_nugets.result == 'skipped' ||
+                   needs.tests_requires_nugets_linux.result == 'skipped' ||
+                   needs.tests_requires_nugets_windows.result == 'skipped' ||
+                   (fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null &&
+                    needs.tests_requires_nugets_macos.result == 'skipped') ||
+                  needs.polyglot_validation.result == 'skipped'))) }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1

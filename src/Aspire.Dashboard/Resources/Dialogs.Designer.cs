@@ -1328,5 +1328,41 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TextVisualizerSelectFormatType", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time format.
+        /// </summary>
+        public static string SettingsDialogTimeFormat {
+            get {
+                return ResourceManager.GetString("SettingsDialogTimeFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System.
+        /// </summary>
+        public static string SettingsDialogTimeFormatSystem {
+            get {
+                return ResourceManager.GetString("SettingsDialogTimeFormatSystem", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 12-hour.
+        /// </summary>
+        public static string SettingsDialogTimeFormatTwelveHour {
+            get {
+                return ResourceManager.GetString("SettingsDialogTimeFormatTwelveHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 24-hour.
+        /// </summary>
+        public static string SettingsDialogTimeFormatTwentyFourHour {
+            get {
+                return ResourceManager.GetString("SettingsDialogTimeFormatTwentyFourHour", resourceCulture);
+            }
+        }
     }
 }

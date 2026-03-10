@@ -21,6 +21,11 @@ internal interface ITemplate
     string Description { get; }
 
     /// <summary>
+    /// Gets a value indicating whether this is an empty/scaffold-only template.
+    /// </summary>
+    bool IsEmpty { get; }
+
+    /// <summary>
     /// Gets the runtime model used to execute this template.
     /// </summary>
     TemplateRuntime Runtime { get; }

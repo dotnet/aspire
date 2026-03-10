@@ -430,6 +430,24 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Run 'cd "{0}"' and then 'aspire run' to start your AppHost..
+        /// </summary>
+        public static string RunCdThenAspireRun {
+            get {
+                return ResourceManager.GetString("RunCdThenAspireRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run 'aspire run' to start your AppHost..
+        /// </summary>
+        public static string RunAspireRun {
+            get {
+                return ResourceManager.GetString("RunAspireRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>
         public static string Yes {

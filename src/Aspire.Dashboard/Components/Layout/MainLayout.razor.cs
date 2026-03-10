@@ -112,7 +112,14 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
+        TimeProvider.SetBrowserTimeFormat(result.Is24HourTime ? TimeFormat.TwentyFourHour : TimeFormat.TwelveHour);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
+
+        var timeFormatResult = await LocalStorage.GetAsync<TimeFormat>(BrowserStorageKeys.TimeFormat);
+        if (timeFormatResult.Success)
+        {
+            TimeProvider.SetConfiguredTimeFormat(timeFormatResult.Value);
+        }
 
         await DisplayUnsecuredEndpointsMessageAsync();
 

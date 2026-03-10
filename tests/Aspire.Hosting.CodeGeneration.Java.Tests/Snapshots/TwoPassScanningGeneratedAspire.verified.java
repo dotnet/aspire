@@ -236,7 +236,8 @@ enum EndpointProperty {
     PORT("Port"),
     SCHEME("Scheme"),
     TARGET_PORT("TargetPort"),
-    HOST_AND_PORT("HostAndPort");
+    HOST_AND_PORT("HostAndPort"),
+    TLS_ENABLED("TlsEnabled");
 
     private final String value;
 
@@ -3925,6 +3926,13 @@ class EndpointReference extends HandleWrapperBase {
         return (boolean) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.isHttps", reqArgs);
     }
 
+    /** Gets the TlsEnabled property */
+    public boolean tlsEnabled() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (boolean) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", reqArgs);
+    }
+
     /** Gets the Port property */
     public double port() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -3968,6 +3976,15 @@ class EndpointReference extends HandleWrapperBase {
             reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
         }
         return (String) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/getValueAsync", reqArgs);
+    }
+
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    public ReferenceExpression getTlsValue(ReferenceExpression enabledValue, ReferenceExpression disabledValue) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("enabledValue", AspireClient.serializeValue(enabledValue));
+        reqArgs.put("disabledValue", AspireClient.serializeValue(disabledValue));
+        return (ReferenceExpression) getClient().invokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", reqArgs);
     }
 
 }
