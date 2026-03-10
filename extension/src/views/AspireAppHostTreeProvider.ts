@@ -289,7 +289,11 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        this._runResourceCommand(element, 'logs', '--follow');
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --apphost "${appHost.appHostPath}" --follow`);
     }
 
     async executeResourceCommand(element: ResourceItem): Promise<void> {
