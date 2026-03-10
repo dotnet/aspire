@@ -99,7 +99,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
             return configuredVersion;
         }
-        
+
         _logger.LogDebug("Using default SDK version: {Version}", DotNetBasedAppHostServerProject.DefaultSdkVersion);
         return DotNetBasedAppHostServerProject.DefaultSdkVersion;
     }
@@ -119,7 +119,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public bool CanHandle(FileInfo appHostFile)
     {
         // Check if file matches this language's detection patterns
-        return _resolvedLanguage.DetectionPatterns.Any(p => 
+        return _resolvedLanguage.DetectionPatterns.Any(p =>
             appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -259,7 +259,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var patterns = _resolvedLanguage.DetectionPatterns;
         if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
-            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}", 
+            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}",
                 appHostFile.Name, _resolvedLanguage.DisplayName, string.Join(", ", patterns));
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
@@ -429,8 +429,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
             // The RuntimeSpec declares the required extension capability (e.g., "node" for TypeScript);
             // only use the extension launcher when the runtime requests it and the extension supports it.
+            if (_guestRuntime is null)
+            {
+                _interactionService.DisplayError("GuestRuntime not initialized.");
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
             IGuestProcessLauncher launcher;
-            if (_guestRuntime!.ExtensionLaunchCapability is { } requiredCapability
+            if (_guestRuntime.ExtensionLaunchCapability is { } requiredCapability
                 && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out var extensionBackchannel)
                 && await extensionBackchannel.HasCapabilityAsync(requiredCapability, cancellationToken))
             {
@@ -438,7 +444,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             }
             else
             {
-                launcher = _guestRuntime!.CreateDefaultLauncher();
+                launcher = _guestRuntime.CreateDefaultLauncher();
             }
 
             // Start guest apphost - it will connect to AppHost server, define resources.
@@ -1047,7 +1053,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Stop all running instances
-        var stopTasks = matchingSockets.Select(socketPath => 
+        var stopTasks = matchingSockets.Select(socketPath =>
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
