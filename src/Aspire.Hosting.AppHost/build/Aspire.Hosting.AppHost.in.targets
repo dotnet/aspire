@@ -24,8 +24,8 @@
     <ProjectCapability Include="Aspire_@VERSION@" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(EnableAspireHostingAnalyzers)' == 'true' and '$(RepoRoot)' == ''">
-    <Analyzer Include="$(_AspireHostingAnalyzerAssembly)" />
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(EnableAspireHostingAnalyzers)' == 'true'">
+    <Analyzer Include="$(_AspireHostingAnalyzerAssembly)" Condition="Exists('$(_AspireHostingAnalyzerAssembly)')" />
   </ItemGroup>
 
   <ItemGroup>
