@@ -16,7 +16,7 @@
     "express": "^5.1.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "tsx": "^4.19.0"
+    "@types/express": "^5.0.6",
+    "tsx": "^4.21.0"
   }
 }

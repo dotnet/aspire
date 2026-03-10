@@ -28,7 +28,7 @@ internal sealed class SequenceCounter
 internal enum AspireTemplate
 {
     /// <summary>
-    /// Starter App (ASP.NET Core/Blazor) — the default first option.
+    /// Starter App (ASP.NET Core/Blazor) — the 1st option (default).
     /// Prompts: template, project name, output path, URLs, Redis, test project.
     /// </summary>
     Starter,
@@ -40,16 +40,16 @@ internal enum AspireTemplate
     JsReact,
 
     /// <summary>
-    /// Starter App (FastAPI/React) — 3rd option.
-    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
-    /// </summary>
-    PythonReact,
-
-    /// <summary>
-    /// Starter App (Express/React) — 4th option.
+    /// Starter App (Express/React) — 3rd option.
     /// Prompts: template, project name, output path, URLs. No Redis or test project prompt.
     /// </summary>
     ExpressReact,
+
+    /// <summary>
+    /// Starter App (FastAPI/React) — 4th option.
+    /// Prompts: template, project name, output path, URLs, Redis. No test project prompt.
+    /// </summary>
+    PythonReact,
 
     /// <summary>
     /// Empty AppHost — 5th option.
@@ -399,7 +399,7 @@ internal static class Hex1bTestHelpers
             .Find("Enter the project name");
 
         var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find("Enter the output path:");
+            .Find("Enter the output path");
 
         var waitingForUrlsPrompt = new CellPatternSearcher()
             .Find("Use *.dev.localhost URLs");
@@ -424,22 +424,22 @@ internal static class Hex1bTestHelpers
                     .Enter();
                 break;
 
-            case AspireTemplate.PythonReact:
-                var pythonReactSelected = new CellPatternSearcher()
-                    .Find("> Starter App (FastAPI/React)");
-                builder.Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
-                    .WaitUntil(s => pythonReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-                    .Enter();
-                break;
-
             case AspireTemplate.ExpressReact:
                 var expressReactSelected = new CellPatternSearcher()
                     .Find("> Starter App (Express/React)");
                 builder.Key(Hex1bKey.DownArrow)
                     .Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
                     .WaitUntil(s => expressReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.PythonReact:
+                var pythonReactSelected = new CellPatternSearcher()
+                    .Find("> Starter App (FastAPI/React)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => pythonReactSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
                     .Enter();
                 break;
 
