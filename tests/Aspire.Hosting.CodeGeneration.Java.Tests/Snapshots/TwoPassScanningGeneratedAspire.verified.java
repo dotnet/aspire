@@ -254,6 +254,28 @@ enum EndpointProperty {
     }
 }
 
+/** ResourceCommandState enum. */
+enum ResourceCommandState {
+    ENABLED("Enabled"),
+    DISABLED("Disabled"),
+    HIDDEN("Hidden");
+
+    private final String value;
+
+    ResourceCommandState(String value) {
+        this.value = value;
+    }
+
+    public String getValue() { return value; }
+
+    public static ResourceCommandState fromValue(String value) {
+        for (ResourceCommandState e : values()) {
+            if (e.value.equals(value)) return e;
+        }
+        throw new IllegalArgumentException("Unknown value: " + value);
+    }
+}
+
 /** UrlDisplayLocation enum. */
 enum UrlDisplayLocation {
     SUMMARY_AND_DETAILS("SummaryAndDetails"),
@@ -408,7 +430,7 @@ class CommandOptions {
     private String iconName;
     private IconVariant iconVariant;
     private boolean isHighlighted;
-    private Object updateState;
+    private Function<Object[], Object> updateState;
 
     public String getDescription() { return description; }
     public void setDescription(String value) { this.description = value; }
@@ -422,8 +444,8 @@ class CommandOptions {
     public void setIconVariant(IconVariant value) { this.iconVariant = value; }
     public boolean getIsHighlighted() { return isHighlighted; }
     public void setIsHighlighted(boolean value) { this.isHighlighted = value; }
-    public Object getUpdateState() { return updateState; }
-    public void setUpdateState(Object value) { this.updateState = value; }
+    public Function<Object[], Object> getUpdateState() { return updateState; }
+    public void setUpdateState(Function<Object[], Object> value) { this.updateState = value; }
 
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
@@ -552,6 +574,32 @@ class TestDeeplyNestedDto {
         Map<String, Object> map = new HashMap<>();
         map.put("NestedData", AspireClient.serializeValue(nestedData));
         map.put("MetadataArray", AspireClient.serializeValue(metadataArray));
+        return map;
+    }
+}
+
+/** TestDtoWithCallbacks DTO. */
+class TestDtoWithCallbacks {
+    private String name;
+    private Function<Object[], Object> updateState;
+    private Function<Object[], Object> validate;
+    private Function<Object[], Object> onChanged;
+
+    public String getName() { return name; }
+    public void setName(String value) { this.name = value; }
+    public Function<Object[], Object> getUpdateState() { return updateState; }
+    public void setUpdateState(Function<Object[], Object> value) { this.updateState = value; }
+    public Function<Object[], Object> getValidate() { return validate; }
+    public void setValidate(Function<Object[], Object> value) { this.validate = value; }
+    public Function<Object[], Object> getOnChanged() { return onChanged; }
+    public void setOnChanged(Function<Object[], Object> value) { this.onChanged = value; }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("Name", AspireClient.serializeValue(name));
+        map.put("UpdateState", AspireClient.serializeValue(updateState));
+        map.put("Validate", AspireClient.serializeValue(validate));
+        map.put("OnChanged", AspireClient.serializeValue(onChanged));
         return map;
     }
 }
@@ -8149,6 +8197,29 @@ class TestDatabaseResource extends ResourceBuilderBase {
 
 }
 
+/** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext. */
+class TestDtoStateContext extends HandleWrapperBase {
+    TestDtoStateContext(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the State property */
+    public String state() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (String) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", reqArgs);
+    }
+
+    /** Sets the State property */
+    public TestDtoStateContext setState(String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (TestDtoStateContext) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", reqArgs);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext. */
 class TestEnvironmentContext extends HandleWrapperBase {
     TestEnvironmentContext(Handle handle, AspireClient client) {
@@ -10333,6 +10404,7 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", (h, c) -> new TestResourceContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", (h, c) -> new TestEnvironmentContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", (h, c) -> new TestCollectionContext(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext", (h, c) -> new TestDtoStateContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", (h, c) -> new TestRedisResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", (h, c) -> new TestDatabaseResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", (h, c) -> new TestVaultResource(h, c));

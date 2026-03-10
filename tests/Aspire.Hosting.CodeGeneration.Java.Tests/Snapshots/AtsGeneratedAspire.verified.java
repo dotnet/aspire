@@ -129,6 +129,32 @@ class TestDeeplyNestedDto {
     }
 }
 
+/** TestDtoWithCallbacks DTO. */
+class TestDtoWithCallbacks {
+    private String name;
+    private Function<Object[], Object> updateState;
+    private Function<Object[], Object> validate;
+    private Function<Object[], Object> onChanged;
+
+    public String getName() { return name; }
+    public void setName(String value) { this.name = value; }
+    public Function<Object[], Object> getUpdateState() { return updateState; }
+    public void setUpdateState(Function<Object[], Object> value) { this.updateState = value; }
+    public Function<Object[], Object> getValidate() { return validate; }
+    public void setValidate(Function<Object[], Object> value) { this.validate = value; }
+    public Function<Object[], Object> getOnChanged() { return onChanged; }
+    public void setOnChanged(Function<Object[], Object> value) { this.onChanged = value; }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("Name", AspireClient.serializeValue(name));
+        map.put("UpdateState", AspireClient.serializeValue(updateState));
+        map.put("Validate", AspireClient.serializeValue(validate));
+        map.put("OnChanged", AspireClient.serializeValue(onChanged));
+        return map;
+    }
+}
+
 // ============================================================================
 // Handle Wrappers
 // ============================================================================
@@ -420,6 +446,29 @@ class TestDatabaseResource extends ResourceBuilderBase {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
         return (TestDatabaseResource) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/withDataVolume", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext. */
+class TestDtoStateContext extends HandleWrapperBase {
+    TestDtoStateContext(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Gets the State property */
+    public String state() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (String) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", reqArgs);
+    }
+
+    /** Sets the State property */
+    public TestDtoStateContext setState(String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (TestDtoStateContext) getClient().invokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", reqArgs);
     }
 
 }
@@ -952,6 +1001,7 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", (h, c) -> new TestResourceContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", (h, c) -> new TestEnvironmentContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", (h, c) -> new TestCollectionContext(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext", (h, c) -> new TestDtoStateContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", (h, c) -> new TestRedisResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", (h, c) -> new TestDatabaseResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", (h, c) -> new IResource(h, c));

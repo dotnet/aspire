@@ -441,14 +441,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
-        // Generate handle type aliases
-        GenerateHandleTypeAliases(typeIds);
-
-        // Generate enum types
-        GenerateEnumTypes(enumTypes);
-
-        // Generate DTO interfaces
-        GenerateDtoInterfaces(dtoTypes);
+        // Also collect handle type IDs from DTO callback parameter/return types.
+        // These types may not appear in any capability but are referenced in DTO interfaces.
+        foreach (var dto in dtoTypes)
+        {
+            foreach (var prop in dto.Properties)
+            {
+                CollectHandleTypeIdsFromTypeRef(prop.Type, typeIds, dtoTypeIds);
+            }
+        }
 
         // Separate builders into categories:
         // 1. Resource builders: IResource*, ContainerResource, etc.
@@ -456,8 +457,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var resourceBuilders = builders.Where(b => b.TargetType?.IsResourceBuilder == true).ToList();
         var typeClasses = builders.Where(b => b.TargetType?.IsResourceBuilder != true).ToList();
 
-        // Build wrapper class name mapping for type resolution BEFORE generating options interfaces
-        // This allows parameter types to use wrapper class names instead of handle types
+        // Build wrapper class name mapping BEFORE any code generation that uses MapTypeRefToTypeScript.
+        // This ensures DTO interfaces, options interfaces, and marshal functions all resolve
+        // wrapper class names correctly (e.g., ExecuteCommandContext instead of ExecuteCommandContextHandle).
         _wrapperClassNames.Clear();
         _typesWithPromiseWrappers.Clear();
         _generatedOptionsInterfaces.Clear();
@@ -484,6 +486,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Note: ReferenceExpression is intentionally NOT added to _wrapperClassNames.
         // It is a value type defined in base.ts with a private constructor and static factory,
         // not a handle-based wrapper. It is handled via MapTypeRefToTypeScript instead.
+
+        // Generate handle type aliases
+        GenerateHandleTypeAliases(typeIds);
+
+        // Generate enum types
+        GenerateEnumTypes(enumTypes);
+
+        // Generate DTO interfaces
+        GenerateDtoInterfaces(dtoTypes);
 
         // Pre-scan all capabilities to collect options interfaces
         // This must happen AFTER wrapper class names are populated so types resolve correctly
@@ -2702,6 +2713,44 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             .GroupBy(b => b.BuilderClassName)
             .Select(g => g.First())
             .ToList();
+    }
+
+    /// <summary>
+    /// Collects handle type IDs from a type ref, including callback parameter/return types.
+    /// Used to ensure all handle types referenced in DTOs get handle type aliases generated.
+    /// </summary>
+    private static void CollectHandleTypeIdsFromTypeRef(AtsTypeRef? typeRef, HashSet<string> typeIds, HashSet<string> dtoTypeIds)
+    {
+        if (typeRef is null)
+        {
+            return;
+        }
+
+        if (typeRef.Category == AtsTypeCategory.Handle && !dtoTypeIds.Contains(typeRef.TypeId))
+        {
+            typeIds.Add(typeRef.TypeId);
+        }
+
+        CollectHandleTypeIdsFromTypeRef(typeRef.ElementType, typeIds, dtoTypeIds);
+        CollectHandleTypeIdsFromTypeRef(typeRef.KeyType, typeIds, dtoTypeIds);
+        CollectHandleTypeIdsFromTypeRef(typeRef.ValueType, typeIds, dtoTypeIds);
+
+        if (typeRef.CallbackParameters is not null)
+        {
+            foreach (var cbParam in typeRef.CallbackParameters)
+            {
+                CollectHandleTypeIdsFromTypeRef(cbParam.Type, typeIds, dtoTypeIds);
+            }
+        }
+        CollectHandleTypeIdsFromTypeRef(typeRef.CallbackReturnType, typeIds, dtoTypeIds);
+
+        if (typeRef.UnionTypes is not null)
+        {
+            foreach (var unionType in typeRef.UnionTypes)
+            {
+                CollectHandleTypeIdsFromTypeRef(unionType, typeIds, dtoTypeIds);
+            }
+        }
     }
 
     /// <summary>

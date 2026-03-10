@@ -137,6 +137,30 @@ impl TestDeeplyNestedDto {
     }
 }
 
+/// TestDtoWithCallbacks
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TestDtoWithCallbacks {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "UpdateState")]
+    pub update_state: Value,
+    #[serde(rename = "Validate")]
+    pub validate: Value,
+    #[serde(rename = "OnChanged")]
+    pub on_changed: Value,
+}
+
+impl TestDtoWithCallbacks {
+    pub fn to_map(&self) -> HashMap<String, Value> {
+        let mut map = HashMap::new();
+        map.insert("Name".to_string(), serde_json::to_value(&self.name).unwrap_or(Value::Null));
+        map.insert("UpdateState".to_string(), serde_json::to_value(&self.update_state).unwrap_or(Value::Null));
+        map.insert("Validate".to_string(), serde_json::to_value(&self.validate).unwrap_or(Value::Null));
+        map.insert("OnChanged".to_string(), serde_json::to_value(&self.on_changed).unwrap_or(Value::Null));
+        map
+    }
+}
+
 // ============================================================================
 // Handle Wrappers
 // ============================================================================
@@ -608,6 +632,50 @@ impl TestDatabaseResource {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/withDataVolume", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(TestDatabaseResource::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting.CodeGeneration.Rust.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext
+pub struct TestDtoStateContext {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for TestDtoStateContext {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl TestDtoStateContext {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the State property
+    pub fn state(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Sets the State property
+    pub fn set_state(&self, value: &str) -> Result<TestDtoStateContext, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(TestDtoStateContext::new(handle, self.client.clone()))
     }
 }
 

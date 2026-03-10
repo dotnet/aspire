@@ -125,6 +125,9 @@ type ResourceNotificationServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.A
 /** Handle to ResourceUrlsCallbackContext */
 type ResourceUrlsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext'>;
 
+/** Handle to UpdateCommandStateContext */
+type UpdateCommandStateContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext'>;
+
 /** Handle to ConnectionStringResource */
 type ConnectionStringResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ConnectionStringResource'>;
 
@@ -359,7 +362,7 @@ export interface ResourceEventDto {
 export interface ResourceUrlAnnotation {
     url?: string;
     displayText?: string;
-    endpoint?: EndpointReferenceHandle;
+    endpoint?: EndpointReference;
     displayLocation?: UrlDisplayLocation;
 }
 
@@ -380,7 +383,7 @@ export interface TestDeeplyNestedDto {
 /** DTO interface for TestDtoWithCallbacks */
 export interface TestDtoWithCallbacks {
     name?: string;
-    updateState?: (arg: TestDtoStateContextHandle) => Promise<TestResourceStatus>;
+    updateState?: (arg: TestDtoStateContext) => Promise<TestResourceStatus>;
     validate?: (arg: string) => Promise<boolean>;
     onChanged?: (obj: string) => Promise<void>;
 }

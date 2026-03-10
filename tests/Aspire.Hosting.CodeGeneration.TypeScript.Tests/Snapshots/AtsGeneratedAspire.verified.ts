@@ -108,7 +108,7 @@ export interface TestDeeplyNestedDto {
 /** DTO interface for TestDtoWithCallbacks */
 export interface TestDtoWithCallbacks {
     name?: string;
-    updateState?: (arg: TestDtoStateContextHandle) => Promise<TestResourceStatus>;
+    updateState?: (arg: TestDtoStateContext) => Promise<TestResourceStatus>;
     validate?: (arg: string) => Promise<boolean>;
     onChanged?: (obj: string) => Promise<void>;
 }

@@ -312,6 +312,28 @@ impl std::fmt::Display for EndpointProperty {
     }
 }
 
+/// ResourceCommandState
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResourceCommandState {
+    #[default]
+    #[serde(rename = "Enabled")]
+    Enabled,
+    #[serde(rename = "Disabled")]
+    Disabled,
+    #[serde(rename = "Hidden")]
+    Hidden,
+}
+
+impl std::fmt::Display for ResourceCommandState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Enabled => write!(f, "Enabled"),
+            Self::Disabled => write!(f, "Disabled"),
+            Self::Hidden => write!(f, "Hidden"),
+        }
+    }
+}
+
 /// UrlDisplayLocation
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UrlDisplayLocation {
@@ -588,6 +610,30 @@ impl TestDeeplyNestedDto {
         let mut map = HashMap::new();
         map.insert("NestedData".to_string(), serde_json::to_value(&self.nested_data).unwrap_or(Value::Null));
         map.insert("MetadataArray".to_string(), serde_json::to_value(&self.metadata_array).unwrap_or(Value::Null));
+        map
+    }
+}
+
+/// TestDtoWithCallbacks
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TestDtoWithCallbacks {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "UpdateState")]
+    pub update_state: Value,
+    #[serde(rename = "Validate")]
+    pub validate: Value,
+    #[serde(rename = "OnChanged")]
+    pub on_changed: Value,
+}
+
+impl TestDtoWithCallbacks {
+    pub fn to_map(&self) -> HashMap<String, Value> {
+        let mut map = HashMap::new();
+        map.insert("Name".to_string(), serde_json::to_value(&self.name).unwrap_or(Value::Null));
+        map.insert("UpdateState".to_string(), serde_json::to_value(&self.update_state).unwrap_or(Value::Null));
+        map.insert("Validate".to_string(), serde_json::to_value(&self.validate).unwrap_or(Value::Null));
+        map.insert("OnChanged".to_string(), serde_json::to_value(&self.on_changed).unwrap_or(Value::Null));
         map
     }
 }
@@ -10275,6 +10321,50 @@ impl TestDatabaseResource {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/withCancellableOperation", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting.CodeGeneration.Rust.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext
+pub struct TestDtoStateContext {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for TestDtoStateContext {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl TestDtoStateContext {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Gets the State property
+    pub fn state(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Sets the State property
+    pub fn set_state(&self, value: &str) -> Result<TestDtoStateContext, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(TestDtoStateContext::new(handle, self.client.clone()))
     }
 }
 

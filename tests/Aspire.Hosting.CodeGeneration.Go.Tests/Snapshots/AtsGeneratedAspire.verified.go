@@ -85,6 +85,24 @@ func (d *TestDeeplyNestedDto) ToMap() map[string]any {
 	}
 }
 
+// TestDtoWithCallbacks represents TestDtoWithCallbacks.
+type TestDtoWithCallbacks struct {
+	Name string `json:"Name,omitempty"`
+	UpdateState func(...any) any `json:"UpdateState,omitempty"`
+	Validate func(...any) any `json:"Validate,omitempty"`
+	OnChanged func(...any) any `json:"OnChanged,omitempty"`
+}
+
+// ToMap converts the DTO to a map for JSON serialization.
+func (d *TestDtoWithCallbacks) ToMap() map[string]any {
+	return map[string]any{
+		"Name": SerializeValue(d.Name),
+		"UpdateState": SerializeValue(d.UpdateState),
+		"Validate": SerializeValue(d.Validate),
+		"OnChanged": SerializeValue(d.OnChanged),
+	}
+}
+
 // ============================================================================
 // Handle Wrappers
 // ============================================================================
@@ -522,6 +540,43 @@ func (s *TestDatabaseResource) WithDataVolume(name string) (*TestDatabaseResourc
 		return nil, err
 	}
 	return result.(*TestDatabaseResource), nil
+}
+
+// TestDtoStateContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext.
+type TestDtoStateContext struct {
+	HandleWrapperBase
+}
+
+// NewTestDtoStateContext creates a new TestDtoStateContext.
+func NewTestDtoStateContext(handle *Handle, client *AspireClient) *TestDtoStateContext {
+	return &TestDtoStateContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// State gets the State property
+func (s *TestDtoStateContext) State() (*string, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// SetState sets the State property
+func (s *TestDtoStateContext) SetState(value string) (*TestDtoStateContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TestDtoStateContext), nil
 }
 
 // TestEnvironmentContext wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext.
@@ -1324,6 +1379,9 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", func(h *Handle, c *AspireClient) any {
 		return NewTestCollectionContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext", func(h *Handle, c *AspireClient) any {
+		return NewTestDtoStateContext(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", func(h *Handle, c *AspireClient) any {
 		return NewTestRedisResource(h, c)

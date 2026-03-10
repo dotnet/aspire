@@ -90,6 +90,11 @@ class EndpointProperty(str, Enum):
     TARGET_PORT = "TargetPort"
     HOST_AND_PORT = "HostAndPort"
 
+class ResourceCommandState(str, Enum):
+    ENABLED = "Enabled"
+    DISABLED = "Disabled"
+    HIDDEN = "Hidden"
+
 class UrlDisplayLocation(str, Enum):
     SUMMARY_AND_DETAILS = "SummaryAndDetails"
     DETAILS_ONLY = "DetailsOnly"
@@ -159,7 +164,7 @@ class CommandOptions:
     icon_name: str
     icon_variant: IconVariant
     is_highlighted: bool
-    update_state: Any
+    update_state: Callable[..., Any]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -239,6 +244,21 @@ class TestDeeplyNestedDto:
         return {
             "NestedData": serialize_value(self.nested_data),
             "MetadataArray": serialize_value(self.metadata_array),
+        }
+
+@dataclass
+class TestDtoWithCallbacks:
+    name: str
+    update_state: Callable[..., Any]
+    validate: Callable[..., Any]
+    on_changed: Callable[..., Any]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": serialize_value(self.name),
+            "UpdateState": serialize_value(self.update_state),
+            "Validate": serialize_value(self.validate),
+            "OnChanged": serialize_value(self.on_changed),
         }
 
 # ============================================================================
@@ -5871,6 +5891,22 @@ class TestDatabaseResource(ResourceBuilderBase):
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
 
 
+class TestDtoStateContext(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def state(self) -> str:
+        """Gets the State property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.state", args)
+
+    def set_state(self, value: str) -> TestDtoStateContext:
+        """Sets the State property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestDtoStateContext.setState", args)
+
+
 class TestEnvironmentContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -7493,6 +7529,7 @@ register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosti
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", lambda handle, client: TestResourceContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext", lambda handle, client: TestEnvironmentContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext", lambda handle, client: TestCollectionContext(handle, client))
+register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDtoStateContext", lambda handle, client: TestDtoStateContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", lambda handle, client: TestRedisResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource", lambda handle, client: TestDatabaseResource(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource", lambda handle, client: TestVaultResource(handle, client))
