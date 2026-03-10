@@ -128,7 +128,7 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
     [Fact]
     public async Task RunWithMissingAwaitShowsHelpfulError()
     {
-        var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.Create(output);
 
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
