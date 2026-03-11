@@ -3,6 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Dashboard.Model.GenAI;
 
@@ -136,5 +137,29 @@ internal static class GenAIMessageParsingHelper
         }
 
         return (role ?? string.Empty, parts ?? [], partsTruncated);
+    }
+
+    /// <summary>
+    /// If the node is a JSON string that parses to a JSON object or array, return the parsed node instead.
+    /// </summary>
+    internal static JsonNode? TryParseStringJsonNode(JsonNode? node)
+    {
+        if (node?.GetValueKind() == JsonValueKind.String && node.GetValue<string>() is { } json)
+        {
+            try
+            {
+                var parsed = JsonNode.Parse(json);
+                if (parsed?.GetValueKind() is JsonValueKind.Object or JsonValueKind.Array)
+                {
+                    return parsed;
+                }
+            }
+            catch (JsonException)
+            {
+                // Not valid JSON. Keep the original string value.
+            }
+        }
+
+        return node;
     }
 }

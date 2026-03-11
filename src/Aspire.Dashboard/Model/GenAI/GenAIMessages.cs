@@ -207,13 +207,13 @@ internal sealed class MessagePartConverter : JsonConverter<MessagePart>
         return type switch
         {
             MessagePart.TextType => doc.RootElement.Deserialize<TextPart>(options),
-            MessagePart.ToolCallType => doc.RootElement.Deserialize<ToolCallRequestPart>(options),
+            MessagePart.ToolCallType => TryParseStringArguments(doc.RootElement.Deserialize<ToolCallRequestPart>(options)),
             MessagePart.ToolCallResponseType => doc.RootElement.Deserialize<ToolCallResponsePart>(options),
             MessagePart.BlobType => doc.RootElement.Deserialize<BlobPart>(options),
             MessagePart.FileType => doc.RootElement.Deserialize<FilePart>(options),
             MessagePart.UriType => doc.RootElement.Deserialize<UriPart>(options),
             MessagePart.ReasoningType => doc.RootElement.Deserialize<ReasoningPart>(options),
-            MessagePart.ServerToolCallType => doc.RootElement.Deserialize<ServerToolCallPart>(options),
+            MessagePart.ServerToolCallType => TryParseServerToolCallArguments(doc.RootElement.Deserialize<ServerToolCallPart>(options)),
             MessagePart.ServerToolCallResponseType => doc.RootElement.Deserialize<ServerToolCallResponsePart>(options),
             _ => doc.RootElement.Deserialize<GenericPart>(options),
         };
@@ -222,6 +222,29 @@ internal sealed class MessagePartConverter : JsonConverter<MessagePart>
     public override void Write(Utf8JsonWriter writer, MessagePart value, JsonSerializerOptions options)
     {
         JsonSerializer.Serialize(writer, (object)value, value.GetType(), options);
+    }
+
+    /// <summary>
+    /// If the tool call arguments are a string, try parsing them as JSON and replace with the parsed object.
+    /// </summary>
+    private static ToolCallRequestPart? TryParseStringArguments(ToolCallRequestPart? part)
+    {
+        if (part is { Arguments: not null })
+        {
+            part.Arguments = GenAIMessageParsingHelper.TryParseStringJsonNode(part.Arguments);
+        }
+
+        return part;
+    }
+
+    private static ServerToolCallPart? TryParseServerToolCallArguments(ServerToolCallPart? part)
+    {
+        if (part is { ServerToolCall: not null })
+        {
+            part.ServerToolCall = GenAIMessageParsingHelper.TryParseStringJsonNode(part.ServerToolCall);
+        }
+
+        return part;
     }
 }
 

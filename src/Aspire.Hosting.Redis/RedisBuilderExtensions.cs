@@ -209,7 +209,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
-    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI")]
+    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -287,7 +287,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
     /// <returns></returns>
-    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI")]
+    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
