@@ -459,12 +459,22 @@ internal sealed class CapabilityDispatcher
 
     private static async Task<object?> InvokeMethodAsync(MethodInfo method, object? target, object?[] methodArgs, bool runSyncOnBackgroundThread)
     {
-        if (runSyncOnBackgroundThread && !typeof(Task).IsAssignableFrom(method.ReturnType))
+        if (runSyncOnBackgroundThread && !IsAsyncReturnType(method.ReturnType))
         {
             return await Task.Run(() => InvokeMethodCore(method, target, methodArgs)).ConfigureAwait(false);
         }
 
         return InvokeMethodCore(method, target, methodArgs);
+    }
+
+    private static bool IsAsyncReturnType(Type returnType)
+    {
+        if (typeof(Task).IsAssignableFrom(returnType) || returnType == typeof(ValueTask))
+        {
+            return true;
+        }
+
+        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>);
     }
 
     private static async Task<object?> UnwrapAsyncResultAsync(object? result, Type returnType)

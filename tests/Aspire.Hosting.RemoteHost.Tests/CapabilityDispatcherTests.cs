@@ -711,6 +711,31 @@ public class CapabilityDispatcherTests
     }
 
     [Fact]
+    public void Invoke_ValueTaskCapabilityWithBackgroundThreadOptIn_RunsInline()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestCapabilitiesWithBackgroundThreadDispatch).Assembly);
+        var callerThreadId = Environment.CurrentManagedThreadId;
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/valueTaskBackgroundThreadProbe", null);
+
+        Assert.NotNull(result);
+        Assert.Equal(callerThreadId, result.GetValue<int>());
+    }
+
+    [Fact]
+    public void Invoke_NonGenericValueTaskCapabilityWithBackgroundThreadOptIn_RunsInline()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestCapabilitiesWithBackgroundThreadDispatch).Assembly);
+        var callerThreadId = Environment.CurrentManagedThreadId;
+
+        TestCapabilitiesWithBackgroundThreadDispatch.ResetLastObservedThreadId();
+
+        dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/nonGenericValueTaskBackgroundThreadProbe", null);
+
+        Assert.Equal(callerThreadId, TestCapabilitiesWithBackgroundThreadDispatch.LastObservedThreadId);
+    }
+
+    [Fact]
     public void Invoke_MethodWithoutCallbackFactory_ThrowsForCallbackParameter()
     {
         var handles = new HandleRegistry();
@@ -1538,6 +1563,13 @@ internal static class TestCapabilitiesWithCallback
 
 internal static class TestCapabilitiesWithBackgroundThreadDispatch
 {
+    public static int LastObservedThreadId { get; private set; }
+
+    public static void ResetLastObservedThreadId()
+    {
+        LastObservedThreadId = 0;
+    }
+
     [AspireExport("syncInlineThreadProbe", Description = "Captures the current thread for inline sync invocation")]
     public static int SyncInlineThreadProbe()
     {
@@ -1548,6 +1580,19 @@ internal static class TestCapabilitiesWithBackgroundThreadDispatch
     public static int SyncBackgroundThreadProbe()
     {
         return Environment.CurrentManagedThreadId;
+    }
+
+    [AspireExport("valueTaskBackgroundThreadProbe", Description = "Captures the current thread for ValueTask<T> invocation", RunSyncOnBackgroundThread = true)]
+    public static ValueTask<int> ValueTaskBackgroundThreadProbe()
+    {
+        return ValueTask.FromResult(Environment.CurrentManagedThreadId);
+    }
+
+    [AspireExport("nonGenericValueTaskBackgroundThreadProbe", Description = "Captures the current thread for ValueTask invocation", RunSyncOnBackgroundThread = true)]
+    public static ValueTask NonGenericValueTaskBackgroundThreadProbe()
+    {
+        LastObservedThreadId = Environment.CurrentManagedThreadId;
+        return ValueTask.CompletedTask;
     }
 }
 
