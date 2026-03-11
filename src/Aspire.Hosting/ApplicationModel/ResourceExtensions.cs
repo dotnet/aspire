@@ -1236,7 +1236,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The resource to compute dependencies for.</param>
     /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
-    /// <param name="mode">Specifies whether to discover only direct dependencies or the full transitive closure.</param>
+    /// <param name="mode">Specifies dependency discovery mode.</param>
     /// <param name="cancellationToken">A cancellation token to observe while computing dependencies.</param>
     /// <returns>A set of all resources that the specified resource depends on.</returns>
     /// <remarks>
@@ -1272,7 +1272,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resources">The source set of resources to compute dependencies for.</param>
     /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
-    /// <param name="mode">Specifies whether to discover only direct dependencies or the full transitive closure.</param>
+    /// <param name="mode">Specifies dependency discovery mode.</param>
     /// <param name="cancellationToken">A cancellation token to observe while computing dependencies.</param>
     /// <returns>A set of all resources that the specified resource depends on.</returns>
     /// <remarks>
@@ -1307,13 +1307,13 @@ public static class ResourceExtensions
         foreach (var resource in resources)
         {
             newDependencies.Clear();
-            await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+            await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, mode, cancellationToken).ConfigureAwait(false);
 
             if (mode == ResourceDependencyDiscoveryMode.Recursive)
             {
                 // Compute transitive closure by recursively processing dependencies
 
-                foreach(var nd in newDependencies)
+                foreach (var nd in newDependencies)
                 {
                     toProcess.Enqueue(nd);
                 }
@@ -1323,7 +1323,7 @@ public static class ResourceExtensions
                     var dep = toProcess.Dequeue();
                     newDependencies.Clear();
 
-                    await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+                    await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, mode, cancellationToken).ConfigureAwait(false);
 
                     foreach (var newDep in newDependencies)
                     {
@@ -1352,12 +1352,14 @@ public static class ResourceExtensions
     /// <param name="dependencies">The set of dependencies (where dependency resources will be placed).</param>
     /// <param name="newDependencies">The set of newly discovered dependencies in this invocation (not present in <paramref name="dependencies"/> at the moment of invocation).</param>
     /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
+    /// <param name="mode">Specifies dependency discovery mode.</param>
     /// <param name="cancellationToken">A cancellation token to observe while gathering dependencies.</param>
     private static async Task GatherDirectDependenciesAsync(
         IResource resource,
         HashSet<IResource> dependencies,
         HashSet<IResource> newDependencies,
         DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode,
         CancellationToken cancellationToken)
     {
         var visited = new HashSet<object>();
@@ -1366,7 +1368,7 @@ public static class ResourceExtensions
         CollectAnnotationDependencies(resource, dependencies, newDependencies);
 
         // Collect raw (unresolved) environment variable and argument values
-        var rawValues = await GatherRawEnvironmentAndArgumentValuesAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
+        var rawValues = await GatherRawEnvironmentAndArgumentValuesAsync(resource, executionContext, mode, cancellationToken).ConfigureAwait(false);
 
         foreach (var value in rawValues)
         {
@@ -1380,26 +1382,38 @@ public static class ResourceExtensions
     private static async Task<List<object>> GatherRawEnvironmentAndArgumentValuesAsync(
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode,
         CancellationToken cancellationToken)
     {
         var rawValues = new List<object>();
 
         // Gather environment variable values
-        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        if (resource.TryGetEnvironmentVariables(out var envAnnotations))
         {
             var envVars = new Dictionary<string, object>();
-            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken);
-
-            foreach (var callback in environmentCallbacks)
+            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken: cancellationToken);
+            
+            if (mode.HasFlag(ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults))
             {
-                await callback.Callback(context).ConfigureAwait(false);
+                foreach (var ann in envAnnotations)
+                {
+                    var resultingVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                    rawValues.AddRange(resultingVars.Values);
+                }
+                
             }
-
-            rawValues.AddRange(envVars.Values);
+            else
+            {
+                foreach (var ann in envAnnotations)
+                {
+                    await ann.Callback(context).ConfigureAwait(false);
+                }
+                rawValues.AddRange(envVars.Values);
+            }
         }
 
         // Gather command-line argument values
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argAnnotations))
         {
             var args = new List<object>();
             var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
@@ -1407,12 +1421,22 @@ public static class ResourceExtensions
                 ExecutionContext = executionContext
             };
 
-            foreach (var callback in argsCallbacks)
+            if (mode.HasFlag(ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults))
             {
-                await callback.Callback(context).ConfigureAwait(false);
+                foreach (var ann in argAnnotations)
+                {
+                    var resultingArgs = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                    rawValues.AddRange(resultingArgs);
+                }
             }
-
-            rawValues.AddRange(args);
+            else
+            {
+                foreach (var ann in argAnnotations)
+                {
+                    await ann.Callback(context).ConfigureAwait(false);
+                }
+                rawValues.AddRange(args);
+            }
         }
 
         return rawValues;
