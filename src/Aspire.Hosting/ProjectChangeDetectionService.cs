@@ -27,14 +27,7 @@ internal sealed class ProjectChangeDetectionService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Only run if explicitly enabled.
-        if (configuration.GetBool("ASPIRE_PROJECT_CHANGE_DETECTION") is not true)
-        {
-            logger.LogDebug("Project change detection is disabled. Set ASPIRE_PROJECT_CHANGE_DETECTION=true to enable.");
-            return;
-        }
-
-        logger.LogInformation("Project change detection enabled with {Interval}s check interval.", _checkInterval.TotalSeconds);
+        logger.LogDebug("Project change detection started with {Interval}s check interval.", _checkInterval.TotalSeconds);
 
         try
         {
