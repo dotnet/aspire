@@ -33,6 +33,24 @@
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ServerSharedAllowedExactAssembly Include="System" />
+    <ServerSharedAllowedExactAssembly Include="System.Private.CoreLib" />
+    <ServerSharedAllowedExactAssembly Include="mscorlib" />
+    <ServerSharedAllowedExactAssembly Include="netstandard" />
+    <ServerSharedAllowedAssemblyPrefix Include="System." />
+    <ServerSharedAllowedAssemblyPrefix Include="Microsoft.AspNetCore." />
+    <ServerSharedAllowedAssemblyPrefix Include="Microsoft.Extensions." />
+    <ServerSharedExcludedExactAssembly Include="aspire-managed" />
+    <ServerSharedExcludedExactAssembly Include="aspire-server" />
+    <ServerSharedExcludedExactAssembly Include="aspire-nuget" />
+    <ServerSharedExcludedExactAssembly Include="Aspire.Dashboard" />
+    <ServerSharedExcludedExactAssembly Include="Aspire.Hosting" />
+    <ServerSharedExcludedExactAssembly Include="Aspire.Hosting.AppHost" />
+    <ServerSharedExcludedAssemblyPrefix Include="Aspire.Hosting." />
+    <ServerSharedExcludedAssemblyPrefix Include="Aspire.AppHost." />
+  </ItemGroup>
+
   <!-- Exclude unwanted files from publish output -->
   <Target Name="RemoveUnwantedPublishFiles" AfterTargets="ComputeResolvedFilesToPublishList">
     <ItemGroup>
@@ -43,6 +61,230 @@
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(RelativePath)' == 'aspnetcorev2_inprocess.dll'" />
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(RelativePath)').EndsWith('.runtimeconfig.json'))" />
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(RelativePath)').EndsWith('.staticwebassets.endpoints.json'))" />
+    </ItemGroup>
+  </Target>
+
+  <UsingTask TaskName="GenerateServerSharedAssemblyManifest"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DepsFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <AllowedExactAssemblies ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <AllowedAssemblyPrefixes ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <ExcludedExactAssemblies ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <ExcludedAssemblyPrefixes ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        static int CountChar(string value, char character)
+        {
+            var count = 0;
+
+            foreach (var current in value)
+            {
+                if (current == character)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        static string EscapeStringLiteral(string value)
+        {
+            return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        }
+
+        static bool MatchesExactAssemblyName(string assemblyName, ITaskItem[] assemblyNames)
+        {
+            foreach (var candidate in assemblyNames)
+            {
+                if (assemblyName.Equals(candidate.ItemSpec, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static bool MatchesAssemblyPrefix(string assemblyName, ITaskItem[] assemblyPrefixes)
+        {
+            foreach (var candidate in assemblyPrefixes)
+            {
+                if (assemblyName.StartsWith(candidate.ItemSpec, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static bool MatchesAssemblyName(string assemblyName, ITaskItem[] assemblyNames, ITaskItem[] assemblyPrefixes)
+        {
+            return MatchesExactAssemblyName(assemblyName, assemblyNames) ||
+                MatchesAssemblyPrefix(assemblyName, assemblyPrefixes);
+        }
+
+        bool MatchesAllowedSharedAssembly(string assemblyName)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                return false;
+            }
+
+            return MatchesAssemblyName(assemblyName, AllowedExactAssemblies, AllowedAssemblyPrefixes);
+        }
+
+        bool MatchesExcludedSharedAssembly(string assemblyName)
+        {
+            return !string.IsNullOrWhiteSpace(assemblyName) &&
+                MatchesAssemblyName(assemblyName, ExcludedExactAssemblies, ExcludedAssemblyPrefixes);
+        }
+
+        var assemblyNames = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var depsFile in DepsFiles)
+        {
+            if (!File.Exists(depsFile.ItemSpec))
+            {
+                continue;
+            }
+
+            var insideRuntimeBlock = false;
+            var runtimeBlockDepth = 0;
+
+            foreach (var line in File.ReadLines(depsFile.ItemSpec))
+            {
+                var trimmedLine = line.Trim();
+
+                if (!insideRuntimeBlock)
+                {
+                    if (trimmedLine.Equals("\"runtime\": {", StringComparison.Ordinal))
+                    {
+                        insideRuntimeBlock = true;
+                        runtimeBlockDepth = 1;
+                    }
+
+                    continue;
+                }
+
+                if (trimmedLine.StartsWith("\"", StringComparison.Ordinal) &&
+                    trimmedLine.IndexOf(".dll\":", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var endIndex = trimmedLine.IndexOf('"', 1);
+                    if (endIndex > 1)
+                    {
+                        var assetPath = trimmedLine.Substring(1, endIndex - 1);
+                        var assemblyName = Path.GetFileNameWithoutExtension(assetPath);
+
+                        if (MatchesAllowedSharedAssembly(assemblyName) && !MatchesExcludedSharedAssembly(assemblyName))
+                        {
+                            assemblyNames.Add(assemblyName);
+                        }
+                    }
+                }
+
+                runtimeBlockDepth += CountChar(trimmedLine, '{');
+                runtimeBlockDepth -= CountChar(trimmedLine, '}');
+
+                if (runtimeBlockDepth == 0)
+                {
+                    insideRuntimeBlock = false;
+                }
+            }
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputFile));
+
+        using var writer = new StreamWriter(OutputFile, append: false);
+        writer.WriteLine("// <auto-generated />");
+        writer.WriteLine("using System.Collections.Generic;");
+        writer.WriteLine();
+        writer.WriteLine("namespace Aspire.Managed;");
+        writer.WriteLine();
+        writer.WriteLine("internal static partial class ServerSharedAssemblyManifest");
+        writer.WriteLine("{");
+        writer.WriteLine("    static partial void PopulateSharedAssemblyNames(List<string> names)");
+        writer.WriteLine("    {");
+
+        foreach (var assemblyName in assemblyNames)
+        {
+            writer.WriteLine($"        names.Add(\"{EscapeStringLiteral(assemblyName)}\");");
+        }
+
+        writer.WriteLine("    }");
+        writer.WriteLine("}");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    Generates ServerSharedAssemblyManifest.g.cs under $(IntermediateOutputPath)\Generated from the
+    RemoteHost and Dashboard deps files. Only the partial stub lives in source control; the generated
+    implementation is rebuilt for each build/publish and is not checked in.
+  -->
+  <Target Name="GenerateServerSharedAssemblyManifestSource"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_ServerSharedAssemblyManifestSource>$(IntermediateOutputPath)Generated\ServerSharedAssemblyManifest.g.cs</_ServerSharedAssemblyManifestSource>
+    </PropertyGroup>
+
+    <MSBuild Projects="..\Aspire.Hosting.RemoteHost\Aspire.Hosting.RemoteHost.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_RemoteHostTargetPath" />
+    </MSBuild>
+
+    <MSBuild Projects="..\Aspire.Dashboard\Aspire.Dashboard.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_DashboardTargetPath" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_ServerSharedAssemblyManifestDepsFile Include="$([System.IO.Path]::ChangeExtension('%(_RemoteHostTargetPath.Identity)', '.deps.json'))" />
+      <_ServerSharedAssemblyManifestDepsFile Include="$([System.IO.Path]::ChangeExtension('%(_DashboardTargetPath.Identity)', '.deps.json'))" />
+    </ItemGroup>
+
+    <GenerateServerSharedAssemblyManifest DepsFiles="@(_ServerSharedAssemblyManifestDepsFile)"
+                                          AllowedExactAssemblies="@(ServerSharedAllowedExactAssembly)"
+                                          AllowedAssemblyPrefixes="@(ServerSharedAllowedAssemblyPrefix)"
+                                          ExcludedExactAssemblies="@(ServerSharedExcludedExactAssembly)"
+                                          ExcludedAssemblyPrefixes="@(ServerSharedExcludedAssemblyPrefix)"
+                                          OutputFile="$(_ServerSharedAssemblyManifestSource)" />
+
+    <ItemGroup>
+      <Compile Include="$(_ServerSharedAssemblyManifestSource)"
+               AutoGen="true"
+               Visible="false" />
+      <FileWrites Include="$(_ServerSharedAssemblyManifestSource)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="EmbedRemoteHostPayloadResources"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="..\Aspire.Hosting.RemoteHost\Aspire.Hosting.RemoteHost.csproj"
+             Targets="GetEmbedPayloadItems"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_RemoteHostPayloadAssembly" />
+    </MSBuild>
+
+    <ItemGroup>
+      <EmbeddedResource Include="@(_RemoteHostPayloadAssembly)"
+                        LogicalName="Aspire.Managed.RemoteHostPayload.%(_RemoteHostPayloadAssembly.PayloadFileName)"
+                        Visible="false" />
     </ItemGroup>
   </Target>
 

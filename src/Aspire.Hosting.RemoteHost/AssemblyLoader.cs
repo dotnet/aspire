@@ -14,44 +14,27 @@ namespace Aspire.Hosting.RemoteHost;
 internal sealed class AssemblyLoader
 {
     private readonly Lazy<IReadOnlyList<Assembly>> _assemblies;
-    private readonly string? _integrationLibsPath;
     private readonly string _applicationBasePath;
+    private readonly AssemblyLoadContext _loadContext;
 
     public AssemblyLoader(IConfiguration configuration, ILogger<AssemblyLoader> logger)
     {
         _applicationBasePath = AppContext.BaseDirectory;
+        _loadContext = AssemblyLoadContext.GetLoadContext(typeof(AssemblyLoader).Assembly) ?? AssemblyLoadContext.Default;
 
         // ASPIRE_INTEGRATION_LIBS_PATH is set by the CLI when running guest (polyglot) apphosts
         // that require additional hosting integration packages. See docs/specs/bundle.md for details.
         var libsPath = configuration["ASPIRE_INTEGRATION_LIBS_PATH"];
         if (!string.IsNullOrEmpty(libsPath) && Directory.Exists(libsPath))
         {
-            _integrationLibsPath = libsPath;
-            AssemblyLoadContext.Default.Resolving += ResolveAssemblyFromIntegrationLibs;
-            logger.LogDebug("Registered assembly resolver for integration libs at {Path}", libsPath);
+            logger.LogDebug("Using load context {LoadContext} for integration assemblies at {Path}", _loadContext.Name ?? "<default>", libsPath);
         }
 
         _assemblies = new Lazy<IReadOnlyList<Assembly>>(
-            () => LoadAssemblies(configuration, logger, _integrationLibsPath, _applicationBasePath));
+            () => LoadAssemblies(configuration, _loadContext, logger, libsPath, _applicationBasePath));
     }
 
     public IReadOnlyList<Assembly> GetAssemblies() => _assemblies.Value;
-
-    private Assembly? ResolveAssemblyFromIntegrationLibs(AssemblyLoadContext context, AssemblyName assemblyName)
-    {
-        if (_integrationLibsPath is null || assemblyName.Name is null)
-        {
-            return null;
-        }
-
-        var assemblyPath = Path.Combine(_integrationLibsPath, $"{assemblyName.Name}.dll");
-        if (File.Exists(assemblyPath))
-        {
-            return context.LoadFromAssemblyPath(assemblyPath);
-        }
-
-        return null;
-    }
 
     internal static IReadOnlyList<string> GetAssemblyNamesToLoad(
         IConfiguration configuration,
@@ -123,6 +106,7 @@ internal sealed class AssemblyLoader
 
     private static List<Assembly> LoadAssemblies(
         IConfiguration configuration,
+        AssemblyLoadContext loadContext,
         ILogger logger,
         string? integrationLibsPath,
         string applicationBasePath)
@@ -134,9 +118,11 @@ internal sealed class AssemblyLoader
         {
             try
             {
-                var assembly = Assembly.Load(name);
+                var assembly = LoadAssembly(loadContext, name, integrationLibsPath);
                 assemblies.Add(assembly);
-                logger.LogDebug("Loaded assembly: {AssemblyName}", name);
+                logger.LogDebug("Loaded assembly: {AssemblyName} in {LoadContext}",
+                    assembly.FullName,
+                    AssemblyLoadContext.GetLoadContext(assembly)?.Name ?? "<unknown>");
             }
             catch (Exception ex)
             {
@@ -145,5 +131,36 @@ internal sealed class AssemblyLoader
         }
 
         return assemblies;
+    }
+
+    private static Assembly LoadAssembly(AssemblyLoadContext loadContext, string name, string? integrationLibsPath)
+    {
+        var assemblyName = new AssemblyName(name);
+
+        if (loadContext != AssemblyLoadContext.Default)
+        {
+            return loadContext.LoadFromAssemblyName(assemblyName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(integrationLibsPath))
+        {
+            var assemblyPath = Path.Combine(integrationLibsPath, $"{name}.dll");
+            if (File.Exists(assemblyPath))
+            {
+                return LoadFromDefaultContext(assemblyName, assemblyPath);
+            }
+        }
+
+        return Assembly.Load(assemblyName);
+    }
+
+    private static Assembly LoadFromDefaultContext(AssemblyName assemblyName, string assemblyPath)
+    {
+        var existing = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(assembly =>
+                AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default &&
+                string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
+
+        return existing ?? AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
     }
 }
