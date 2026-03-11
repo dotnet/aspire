@@ -107,7 +107,9 @@ internal sealed class DotNetSdkCheck(
                 return false;
             }
 
-            // Limit recursive scan to avoid expensive file system operations in large workspaces. We just want a quick signal that a .NET apphost is probably present.
+            // Scan file system directly instead of using ProjectLocator for performance.
+            // Limit recursive scan to avoid expensive file system operations in large workspaces.
+            // We don't want a complete list of all possible project files, just a quick signal that a .NET apphost is probably present.
             var match = FileSystemHelper.FindFirstFile(executionContext.WorkingDirectory.FullName, recurseLimit: 5, csharp.DetectionPatterns);
             return match is not null;
         }
