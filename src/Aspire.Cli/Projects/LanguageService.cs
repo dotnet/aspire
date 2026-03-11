@@ -11,7 +11,7 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class LanguageService : ILanguageService
 {
-    private const string LanguageConfigKey = "language";
+    private const string LanguageConfigKey = "appHost.language";
 
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
@@ -131,7 +131,7 @@ internal sealed class LanguageService : ILanguageService
         if (saveSelection)
         {
             await SetLanguageAsync(selectedLanguage.LanguageId, isGlobal: false, cancellationToken);
-            _interactionService.DisplayMessage(KnownEmojis.CheckMark, $"Language preference saved to local settings: {selectedProject.DisplayName}");
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, $"Language preference saved to local configuration: {selectedProject.DisplayName}");
         }
 
         return selectedProject;

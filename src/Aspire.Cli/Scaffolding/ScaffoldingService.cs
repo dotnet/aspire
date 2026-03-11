@@ -40,17 +40,17 @@ internal sealed class ScaffoldingService : IScaffoldingService
     }
 
     /// <inheritdoc />
-    public async Task ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    public async Task<bool> ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         if (context.Language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
             throw new NotSupportedException("C# projects should be created using the template system via NewCommand.");
         }
 
-        await ScaffoldGuestLanguageAsync(context, cancellationToken);
+        return await ScaffoldGuestLanguageAsync(context, cancellationToken);
     }
 
-    private async Task ScaffoldGuestLanguageAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    private async Task<bool> ScaffoldGuestLanguageAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         var directory = context.TargetDirectory;
         var language = context.Language;
@@ -82,7 +82,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 _interactionService.DisplayLines(prepareResult.Output.GetLines());
             }
             _interactionService.DisplayError("Failed to build AppHost server.");
-            return;
+            return false;
         }
 
         // Step 2: Start the server temporarily for scaffolding and code generation
@@ -121,7 +121,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 emoji: KnownEmojis.Package);
             if (installResult != 0)
             {
-                return;
+                return false;
             }
 
             // Step 6: Generate SDK code via RPC
@@ -181,8 +181,10 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 aspireConfigFile.Channel = prepareResult.ChannelName;
             }
             aspireConfigFile.AppHost ??= new AspireConfigAppHost();
+            aspireConfigFile.AppHost.Path ??= language.AppHostFileName;
             aspireConfigFile.AppHost.Language = language.LanguageId;
             aspireConfigFile.Save(directory.FullName);
+            return true;
         }
         finally
         {

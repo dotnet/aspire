@@ -389,33 +389,138 @@ internal sealed class ProjectLocator(
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(executionContext.WorkingDirectory.FullName);
-        var settingsFile = new FileInfo(settingsFilePath);
+        var settingsFile = await GetOrCreateLocalAspireConfigFileAsync(cancellationToken);
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
         var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory!.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
 
-        // Use the configuration writer to set the appHostPath, which will merge with any existing settings
-        await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
+        // Use the configuration writer to set the AppHost path, which will merge with any existing settings.
+        await configurationService.SetConfigurationAsync("appHost.path", relativePathToProjectFile, isGlobal: false, cancellationToken);
 
-        // For polyglot projects, also set language and inherit SDK version from parent/global config
+        // For polyglot projects, also set language and inherit SDK version from parent/global config.
         var language = languageDiscovery.GetLanguageByFile(projectFile);
         if (language is not null && !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
-            await configurationService.SetConfigurationAsync("language", language.LanguageId.Value, isGlobal: false, cancellationToken);
+            await configurationService.SetConfigurationAsync("appHost.language", language.LanguageId.Value, isGlobal: false, cancellationToken);
 
-            // Inherit SDK version from parent/global config if available
-            var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
+            // Inherit SDK version from parent/global config if available.
+            var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdk.version", cancellationToken)
+                ?? await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
             if (!string.IsNullOrEmpty(inheritedSdkVersion))
             {
-                await configurationService.SetConfigurationAsync("sdkVersion", inheritedSdkVersion, isGlobal: false, cancellationToken);
+                await configurationService.SetConfigurationAsync("sdk.version", inheritedSdkVersion, isGlobal: false, cancellationToken);
                 logger.LogDebug("Set SDK version {Version} in settings file (inherited from parent config)", inheritedSdkVersion);
             }
         }
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
+    }
+
+    private async Task<FileInfo> GetOrCreateLocalAspireConfigFileAsync(CancellationToken cancellationToken)
+    {
+        var settingsFile = new FileInfo(configurationService.GetSettingsFilePath(isGlobal: false));
+
+        if (string.Equals(settingsFile.Name, AspireConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return settingsFile;
+        }
+
+        var legacySettingsRootDirectory = GetLegacySettingsRootDirectory(settingsFile);
+        if (legacySettingsRootDirectory is null)
+        {
+            return new FileInfo(Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName));
+        }
+
+        var aspireConfigFile = new FileInfo(Path.Combine(legacySettingsRootDirectory.FullName, AspireConfigFile.FileName));
+        if (!aspireConfigFile.Exists)
+        {
+            await MigrateLegacySettingsAsync(legacySettingsRootDirectory, cancellationToken);
+        }
+
+        return aspireConfigFile;
+    }
+
+    private async Task MigrateLegacySettingsAsync(DirectoryInfo settingsRootDirectory, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Migrating legacy settings to {SettingsFilePath}", Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName));
+
+        var legacyConfig = AspireJsonConfiguration.Load(settingsRootDirectory.FullName);
+        var profiles = ReadApphostRunProfiles(Path.Combine(settingsRootDirectory.FullName, "apphost.run.json"));
+        var aspireConfig = AspireConfigFile.FromLegacy(legacyConfig, profiles);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName),
+            JsonSerializer.Serialize(aspireConfig, JsonSourceGenerationContext.Default.AspireConfigFile),
+            cancellationToken);
+    }
+
+    private static DirectoryInfo? GetLegacySettingsRootDirectory(FileInfo settingsFile)
+    {
+        if (!string.Equals(settingsFile.Name, AspireJsonConfiguration.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var settingsDirectory = settingsFile.Directory;
+        if (settingsDirectory is null || !string.Equals(settingsDirectory.Name, AspireJsonConfiguration.SettingsFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return settingsDirectory.Parent;
+    }
+
+    private static Dictionary<string, AspireConfigProfile>? ReadApphostRunProfiles(string apphostRunPath)
+    {
+        try
+        {
+            if (!File.Exists(apphostRunPath))
+            {
+                return null;
+            }
+
+            var json = File.ReadAllText(apphostRunPath);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
+            {
+                return null;
+            }
+
+            var profiles = new Dictionary<string, AspireConfigProfile>();
+            foreach (var prop in profilesElement.EnumerateObject())
+            {
+                var profile = new AspireConfigProfile();
+
+                if (prop.Value.TryGetProperty("applicationUrl", out var appUrl) &&
+                    appUrl.ValueKind == JsonValueKind.String)
+                {
+                    profile.ApplicationUrl = appUrl.GetString();
+                }
+
+                if (prop.Value.TryGetProperty("environmentVariables", out var envVars))
+                {
+                    profile.EnvironmentVariables = new Dictionary<string, string>();
+                    foreach (var envProp in envVars.EnumerateObject())
+                    {
+                        if (envProp.Value.ValueKind == JsonValueKind.String)
+                        {
+                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
+                        }
+                    }
+                }
+
+                profiles[prop.Name] = profile;
+            }
+
+            return profiles.Count > 0 ? profiles : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
 }

@@ -679,7 +679,10 @@ internal static class CliE2ETestHelpers
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30))
                     .Type("export PATH=~/.aspire/bin:$PATH")
                     .Enter()
-                    .WaitForSuccessPrompt(counter);
+                    .WaitForSuccessPrompt(counter)
+                    .Type("aspire config set channel daily --global")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
             case DockerInstallMode.GaRelease:
                 // Install the latest GA release using the script baked into the container image.

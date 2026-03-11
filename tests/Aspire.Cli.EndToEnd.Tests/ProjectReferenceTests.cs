@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
@@ -12,7 +13,7 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// <summary>
 /// End-to-end test for polyglot project reference support.
 /// Creates a .NET hosting integration project and a TypeScript AppHost that references it
-/// via settings.json, then verifies the integration is discovered, code-generated, and functional.
+/// via <c>aspire.config.json</c>, then verifies the integration is discovered, code-generated, and functional.
 /// </summary>
 public sealed class ProjectReferenceTests(ITestOutputHelper output)
 {
@@ -48,23 +49,23 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
 
         sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
-        // Step 1: Create a TypeScript AppHost (so we get the sdkVersion in settings.json)
+        // Step 1: Create a TypeScript AppHost (so we get the SDK version in aspire.config.json)
         sequenceBuilder
             .Type("aspire init --language typescript --non-interactive")
             .Enter()
             .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
             .WaitForSuccessPrompt(counter);
 
-        // Step 2: Create the integration project, update settings.json, and modify apphost.ts
+        // Step 2: Create the integration project, update aspire.config.json, and modify apphost.ts
         sequenceBuilder.ExecuteCallback(() =>
         {
             var workDir = workspace.WorkspaceRoot.FullName;
 
-            // Read the sdkVersion from the settings.json that aspire init created
-            var settingsPath = Path.Combine(workDir, ".aspire", "settings.json");
-            var settingsJson = File.ReadAllText(settingsPath);
-            using var doc = JsonDocument.Parse(settingsJson);
-            var sdkVersion = doc.RootElement.GetProperty("sdkVersion").GetString()!;
+            // Read the SDK version from the aspire.config.json that aspire init created.
+            var configPath = Path.Combine(workDir, "aspire.config.json");
+            var configJson = File.ReadAllText(configPath);
+            using var doc = JsonDocument.Parse(configJson);
+            var sdkVersion = doc.RootElement.GetProperty("sdk").GetProperty("version").GetString()!;
 
             // Create the .NET hosting integration project
             var integrationDir = Path.Combine(workDir, "MyIntegration");
@@ -129,20 +130,15 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
                 }
                 """);
 
-            // Update settings.json to add the project reference
-            using var settingsDoc = JsonDocument.Parse(settingsJson);
-            var settings = new Dictionary<string, object>();
-            foreach (var prop in settingsDoc.RootElement.EnumerateObject())
-            {
-                settings[prop.Name] = prop.Value.Clone();
-            }
-            settings["packages"] = new Dictionary<string, string>
-            {
-                ["MyIntegration"] = "./MyIntegration/MyIntegration.csproj"
-            };
+            // Update aspire.config.json to add the project reference.
+            var config = JsonNode.Parse(configJson)?.AsObject()
+                ?? throw new InvalidOperationException("Expected aspire.config.json to contain a JSON object.");
+            var packages = config["packages"] as JsonObject ?? new JsonObject();
+            packages["MyIntegration"] = "./MyIntegration/MyIntegration.csproj";
+            config["packages"] = packages;
 
-            var updatedJson = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(settingsPath, updatedJson);
+            var updatedJson = config.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(configPath, updatedJson);
 
             // Delete the generated .modules folder to force re-codegen with the new integration
             var modulesDir = Path.Combine(workDir, ".modules");
