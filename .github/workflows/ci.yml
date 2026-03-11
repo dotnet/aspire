@@ -72,8 +72,334 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Results
     needs: [prepare_for_ci, tests]
+    permissions:
+      actions: read
 
     steps:
+      - name: Generate CI failure overview
+        if: >-
+          ${{ always() &&
+              needs.prepare_for_ci.outputs.skip_workflow != 'true' &&
+              needs.tests.outputs.skip_workflow != 'true' &&
+              (contains(needs.*.result, 'failure') ||
+               contains(needs.*.result, 'cancelled') ||
+               contains(needs.*.result, 'skipped')) }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowRunUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const maxRows = 25;
+            const statusLabels = new Map([
+              ['failure', 'Failed'],
+              ['cancelled', 'Cancelled'],
+              ['skipped', 'Skipped'],
+            ]);
+            const categoryPriority = new Map([
+              ['Setup', 0],
+              ['Infrastructure', 1],
+              ['Build', 2],
+              ['Codegen/Tooling', 3],
+              ['Missing Results', 4],
+              ['Test', 5],
+              ['Other', 6],
+            ]);
+
+            function getFailedStep(job) {
+              const failedSteps = (job.steps ?? []).filter(step => ['failure', 'cancelled', 'timed_out'].includes(step.conclusion));
+              return failedSteps.length > 0 ? failedSteps[failedSteps.length - 1].name : '';
+            }
+
+            function sanitizeLine(line) {
+              return line
+                .replace(/\u001b\[[0-9;]*m/g, '')
+                .replace(/^\d{4}-\d{2}-\d{2}T\S+\s+/, '')
+                .replace(/^##\[error\]\s*/i, '')
+                .trim();
+            }
+
+            function escapeCell(text) {
+              return text
+                .replace(/\|/g, '\\|')
+                .replace(/\r?\n/g, '<br>');
+            }
+
+            function truncate(text, maxLength = 140) {
+              if (!text) {
+                return '';
+              }
+
+              return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+            }
+
+            function isSyntheticJob(job) {
+              return job.name === 'Final Results' ||
+                job.name === 'Final Test Results' ||
+                job.name.endsWith(' / Final Results') ||
+                job.name.endsWith(' / Final Test Results');
+            }
+
+            function isIntentionalSkip(job) {
+              return job.conclusion === 'skipped' &&
+                (job.name === 'matrix.shortname' || job.name.endsWith(' / matrix.shortname'));
+            }
+
+            const signatureMatchers = [
+              {
+                category: 'Infrastructure',
+                regex: /Unable to load the service index for source (\S+)/i,
+                reason: match => `Package feed unavailable: ${match[1].replace(/[.)]+$/, '')}`,
+              },
+              {
+                category: 'Infrastructure',
+                regex: /(Temporary failure in name resolution|Name or service not known|The SSL connection could not be established|503 Service Unavailable|502 Bad Gateway|connection timed out|Connection refused)/i,
+                reason: match => `Infrastructure issue: ${match[1]}`,
+              },
+              {
+                category: 'Codegen/Tooling',
+                regex: /Multiple exports with the same name "([^"]+)"/i,
+                reason: match => `TypeScript duplicate export: ${match[1]}`,
+              },
+              {
+                category: 'Build',
+                regex: /error (ASPIREEXPORT\d+):\s*(.+)/i,
+                reason: match => `${match[1]}: ${match[2]}`,
+              },
+              {
+                category: 'Build',
+                regex: /because it is being used by another process/i,
+                reason: () => 'Build output file was locked by another process',
+              },
+              {
+                category: 'Build',
+                regex: /error (CS\d+|MSB\d+):\s*(.+)/i,
+                reason: match => `${match[1]}: ${match[2]}`,
+              },
+              {
+                category: 'Missing Results',
+                regex: /No test results found\./i,
+                reason: () => 'Job failed without producing test results',
+              },
+              {
+                category: 'Test',
+                regex: /Test Run Failed\./i,
+                reason: () => 'Test run failed',
+              },
+              {
+                category: 'Test',
+                regex: /Failed!\s+-\s+Failed:\s+(\d+)/i,
+                reason: match => `Test failures detected (${match[1]} failed)`,
+              },
+            ];
+
+            function matchSignature(text) {
+              if (!text) {
+                return null;
+              }
+
+              for (const matcher of signatureMatchers) {
+                const match = text.match(matcher.regex);
+                if (match) {
+                  return {
+                    category: matcher.category,
+                    reason: truncate(matcher.reason(match)),
+                  };
+                }
+              }
+
+              return null;
+            }
+
+            function inferCategory(job, failedStep, reason) {
+              const combined = `${job.name}\n${failedStep}\n${reason}`.toLowerCase();
+
+              if (combined.includes('prepare') || combined.includes('setup') || combined.includes('checkout') || combined.includes('restore')) {
+                return 'Setup';
+              }
+
+              if (combined.includes('typescript') || combined.includes('polyglot') || combined.includes('sdk validation') || combined.includes('codegen')) {
+                return 'Codegen/Tooling';
+              }
+
+              if (combined.includes('endtoend') || combined.includes('end-to-end') || combined.includes('test') || combined.includes('validation')) {
+                return 'Test';
+              }
+
+              if (combined.includes('build') || combined.includes('pack')) {
+                return 'Build';
+              }
+
+              return 'Other';
+            }
+
+            function inferReason(job, failedStep, logText) {
+              if (job.conclusion === 'cancelled') {
+                return 'Job was cancelled';
+              }
+
+              const signature = matchSignature(logText);
+              if (signature) {
+                return signature.reason;
+              }
+
+              const interestingLines = (logText ?? '')
+                .split(/\r?\n/)
+                .map(sanitizeLine)
+                .filter(line =>
+                  line &&
+                  !line.startsWith('Post job cleanup.') &&
+                  !line.startsWith('[command]/') &&
+                  !line.startsWith('Cleaning up orphan processes') &&
+                  !line.startsWith('Terminating orphan process') &&
+                  (
+                    /^error\s+[A-Z]+\d+:/i.test(line) ||
+                    /Process completed with exit code/i.test(line) ||
+                    /Build failed with exit code/i.test(line) ||
+                    /Test Run Failed\./i.test(line) ||
+                    /Failed!\s+-\s+Failed:\s+\d+/i.test(line)
+                  ));
+
+              if (interestingLines.length > 0) {
+                return truncate(interestingLines[interestingLines.length - 1]);
+              }
+
+              return failedStep ? `See failed step: ${failedStep}` : 'See job logs for details';
+            }
+
+            async function getJobLog(jobId) {
+              const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/jobs/${jobId}/logs`, {
+                headers: {
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  Accept: 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'actions/github-script',
+                },
+              });
+
+              if (!response.ok) {
+                core.warning(`Unable to download logs for job ${jobId}: ${response.status} ${response.statusText}`);
+                return '';
+              }
+
+              return await response.text();
+            }
+
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner,
+              repo,
+              run_id: context.runId,
+              per_page: 100,
+            });
+
+            const relevantJobs = jobs.filter(job => !isSyntheticJob(job) && !isIntentionalSkip(job));
+            const actionableJobs = relevantJobs.filter(job => ['failure', 'cancelled'].includes(job.conclusion));
+            const skippedJobs = relevantJobs.filter(job => job.conclusion === 'skipped');
+
+            const rows = [];
+
+            for (const job of actionableJobs) {
+              const failedStep = getFailedStep(job);
+              const logText = job.conclusion === 'failure' ? await getJobLog(job.id) : '';
+              const reason = inferReason(job, failedStep, logText);
+              const signature = matchSignature(logText);
+              const category = signature?.category ?? inferCategory(job, failedStep, reason);
+
+              rows.push({
+                category,
+                status: statusLabels.get(job.conclusion) ?? job.conclusion,
+                statusSort: job.conclusion === 'failure' ? 0 : 1,
+                jobName: job.name,
+                failedStep: failedStep || '—',
+                reason,
+                url: job.html_url,
+              });
+            }
+
+            rows.sort((left, right) => {
+              const leftCategory = categoryPriority.get(left.category) ?? 99;
+              const rightCategory = categoryPriority.get(right.category) ?? 99;
+
+              if (leftCategory !== rightCategory) {
+                return leftCategory - rightCategory;
+              }
+
+              if (left.statusSort !== right.statusSort) {
+                return left.statusSort - right.statusSort;
+              }
+
+              return left.jobName.localeCompare(right.jobName);
+            });
+
+            const statusCounts = {
+              failed: rows.filter(row => row.status === 'Failed').length,
+              cancelled: rows.filter(row => row.status === 'Cancelled').length,
+              skipped: skippedJobs.length,
+            };
+
+            const categoryCounts = new Map();
+            for (const row of rows) {
+              categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1);
+            }
+
+            const categorySummary = Array.from(categoryCounts.entries())
+              .sort((left, right) => (categoryPriority.get(left[0]) ?? 99) - (categoryPriority.get(right[0]) ?? 99))
+              .map(([category, count]) => `${category}: ${count}`)
+              .join(' | ');
+
+            const displayedRows = rows.slice(0, maxRows);
+
+            const markdown = [];
+            markdown.push('## CI Failure Overview');
+            markdown.push('');
+            markdown.push(`Run: [${context.workflow} #${context.runNumber}](${workflowRunUrl})`);
+            markdown.push('');
+            markdown.push(`Failed: **${statusCounts.failed}** | Cancelled: **${statusCounts.cancelled}** | Skipped: **${statusCounts.skipped}**`);
+
+            if (categorySummary) {
+              markdown.push('');
+              markdown.push(categorySummary);
+            }
+
+            if (skippedJobs.length > 0) {
+              const blockingCategories = rows
+                .filter(row => ['Setup', 'Infrastructure', 'Build'].includes(row.category))
+                .map(row => row.category);
+              const cascadeLabel = blockingCategories.length > 0 ? ' after setup/build blockers' : '';
+
+              markdown.push('');
+              markdown.push(`Note: ${skippedJobs.length} additional job(s) were skipped${cascadeLabel}.`);
+            }
+
+            markdown.push('');
+
+            if (displayedRows.length === 0) {
+              markdown.push('No actionable failed or cancelled jobs were found after filtering synthetic summary jobs. Review skipped jobs in the workflow run for more details.');
+            } else {
+              markdown.push('| Category | Status | Job | Failed step | Reason | Link |');
+              markdown.push('| --- | --- | --- | --- | --- | --- |');
+
+              for (const row of displayedRows) {
+                markdown.push(`| ${escapeCell(row.category)} | ${escapeCell(row.status)} | ${escapeCell(row.jobName)} | ${escapeCell(truncate(row.failedStep, 80))} | ${escapeCell(row.reason)} | [Open job](${row.url}) |`);
+              }
+            }
+
+            if (rows.length > displayedRows.length) {
+              markdown.push('');
+              markdown.push(`Showing the first ${displayedRows.length} actionable job(s) out of ${rows.length}.`);
+            }
+
+            markdown.push('');
+            markdown.push('Detailed `.trx` summaries remain available on the individual test workflow jobs.');
+            markdown.push('');
+
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown.join('\n'));
+
       - name: Fail if any of the dependent jobs failed
         # Don't fail if the workflow is being skipped.
         # Check skip_workflow on all declared dependencies. Workflows without
