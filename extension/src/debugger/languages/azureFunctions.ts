@@ -4,6 +4,7 @@ import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration
 import { invalidLaunchConfiguration } from '../../loc/strings';
 import { extensionLogOutputChannel } from '../../utils/logging';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
+import { registerRunCleanup } from '../runCleanupRegistry';
 
 const AF_EXTENSION_ID = 'ms-azuretools.vscode-azurefunctions';
 
@@ -39,7 +40,7 @@ const workerPidsByRunId = new Map<string, number>();
 const taskExecutionsByRunId = new Map<string, vscode.TaskExecution>();
 
 /** Kill the func host task and worker process for the given runId, if any. */
-export function killFuncProcess(runId: string): void {
+function killFuncProcess(runId: string): void {
     // Terminate the VS Code Task running "func host start"
     const taskExecution = taskExecutionsByRunId.get(runId);
     if (taskExecution) {
@@ -102,6 +103,10 @@ export const azureFunctionsDebuggerExtension: ResourceDebuggerExtension = {
             extensionLogOutputChannel.info(`The resource type was not azure-functions for ${JSON.stringify(launchConfig)}`);
             throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
         }
+
+        // Register cleanup for this run up-front so that killFuncProcess is called
+        // via the generic cleanupRun path regardless of how the session ends.
+        registerRunCleanup(debugConfiguration.runId, () => killFuncProcess(debugConfiguration.runId));
 
         const projectPath = launchConfig.project_path;
         // project_path from the C# side is the .csproj file path (resolved by

@@ -7,7 +7,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionMessageNotification, SessionTerminatedNotification } from './types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
-import { killFuncProcess } from '../debugger/languages/azureFunctions';
+import { cleanupRun } from '../debugger/runCleanupRegistry';
 import { timingSafeEqual } from 'crypto';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 import { authorizationAndDcpHeadersRequired, authorizationHeaderMustStartWithBearer, encounteredErrorStartingResource, invalidOrMissingToken, invalidTokenLength } from '../loc/strings';
@@ -149,8 +149,8 @@ export default class AspireDcpServer {
                     const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
 
                     if (!resourceDebugSession) {
-                        // Clean up any background func process that may have been started
-                        killFuncProcess(runId);
+                        // Clean up any processes associated with this run (registered by resource-type extensions)
+                        cleanupRun(runId);
 
                         const error: ErrorDetails = {
                             code: 'DebugSessionFailed',
@@ -173,8 +173,8 @@ export default class AspireDcpServer {
                 } catch (err) {
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${err}`);
 
-                    // Clean up any background func process that may have been started
-                    killFuncProcess(runId);
+                    // Clean up any processes associated with this run (registered by resource-type extensions)
+                    cleanupRun(runId);
 
                     // Notify DCP via WebSocket that the session terminated so it can update
                     // resource state, AND respond with HTTP 500 so the original POST /run_session
