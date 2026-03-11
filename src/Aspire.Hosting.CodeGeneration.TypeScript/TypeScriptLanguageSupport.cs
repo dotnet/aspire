@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
@@ -23,6 +25,10 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
     private const string CodeGenTarget = "TypeScript";
 
     private const string LanguageDisplayName = "TypeScript (Node.js)";
+    private const string AppHostFileName = "apphost.ts";
+    private const string PackageJsonFileName = "package.json";
+    private const string AppHostTsConfigFileName = "tsconfig.apphost.json";
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
     private static readonly string[] s_detectionPatterns = ["apphost.ts"];
 
     /// <inheritdoc />
@@ -34,7 +40,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
         var files = new Dictionary<string, string>();
 
         // Create apphost.ts
-        files["apphost.ts"] = """
+        files[AppHostFileName] = """
             // Aspire TypeScript AppHost
             // For more information, see: https://aspire.dev
 
@@ -49,32 +55,10 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             await builder.build().run();
             """;
 
-        // Create package.json
-        var packageName = request.ProjectName?.ToLowerInvariant() ?? "aspire-apphost";
-        files["package.json"] = $$"""
-            {
-              "name": "{{packageName}}",
-              "version": "1.0.0",
-              "type": "module",
-              "scripts": {
-                "start": "aspire run",
-                "build": "tsc",
-                "dev": "tsc --watch"
-              },
-              "dependencies": {
-                "vscode-jsonrpc": "^8.2.0"
-              },
-              "devDependencies": {
-                "@types/node": "^20.0.0",
-                "nodemon": "^3.1.11",
-                "tsx": "^4.19.0",
-                "typescript": "^5.3.0"
-              }
-            }
-            """;
+        files[PackageJsonFileName] = CreatePackageJson(request);
 
-        // Create tsconfig.json for TypeScript configuration
-        files["tsconfig.json"] = """
+        // Create an apphost-specific tsconfig so existing brownfield TypeScript settings are preserved.
+        files[AppHostTsConfigFileName] = """
             {
               "compilerOptions": {
                 "target": "ES2022",
@@ -84,7 +68,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
                 "forceConsistentCasingInFileNames": true,
                 "strict": true,
                 "skipLibCheck": true,
-                "outDir": "./dist",
+                "outDir": "./dist/apphost",
                 "rootDir": "."
               },
               "include": ["apphost.ts", ".modules/**/*.ts"],
@@ -120,18 +104,82 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
         return files;
     }
 
+    private static string CreatePackageJson(ScaffoldRequest request)
+    {
+        var packageJsonPath = Path.Combine(request.TargetPath, PackageJsonFileName);
+        var packageJson = LoadExistingPackageJson(packageJsonPath);
+
+        if (packageJson is null)
+        {
+            var packageName = request.ProjectName?.ToLowerInvariant() ?? "aspire-apphost";
+            packageJson = new JsonObject
+            {
+                ["name"] = packageName,
+                ["version"] = "1.0.0",
+                ["type"] = "module"
+            };
+        }
+
+        var scripts = EnsureObject(packageJson, "scripts");
+        scripts["aspire:start"] = "aspire run";
+        scripts["aspire:build"] = $"tsc -p {AppHostTsConfigFileName}";
+        scripts["aspire:dev"] = $"tsc --watch -p {AppHostTsConfigFileName}";
+
+        EnsureDependency(packageJson, "dependencies", "vscode-jsonrpc", "^8.2.0");
+        EnsureDependency(packageJson, "devDependencies", "@types/node", "^20.0.0");
+        EnsureDependency(packageJson, "devDependencies", "nodemon", "^3.1.11");
+        EnsureDependency(packageJson, "devDependencies", "tsx", "^4.19.0");
+        EnsureDependency(packageJson, "devDependencies", "typescript", "^5.3.0");
+
+        return packageJson.ToJsonString(s_jsonSerializerOptions);
+    }
+
+    private static JsonObject? LoadExistingPackageJson(string packageJsonPath)
+    {
+        if (!File.Exists(packageJsonPath))
+        {
+            return null;
+        }
+
+        var content = File.ReadAllText(packageJsonPath);
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return new JsonObject();
+        }
+
+        return JsonNode.Parse(content)?.AsObject() ?? new JsonObject();
+    }
+
+    private static void EnsureDependency(JsonObject packageJson, string sectionName, string packageName, string version)
+    {
+        var section = EnsureObject(packageJson, sectionName);
+        section[packageName] ??= version;
+    }
+
+    private static JsonObject EnsureObject(JsonObject parent, string propertyName)
+    {
+        if (parent[propertyName] is JsonObject obj)
+        {
+            return obj;
+        }
+
+        obj = new JsonObject();
+        parent[propertyName] = obj;
+        return obj;
+    }
+
     /// <inheritdoc />
     public DetectionResult Detect(string directoryPath)
     {
         // Check for apphost.ts
-        var appHostPath = Path.Combine(directoryPath, "apphost.ts");
+        var appHostPath = Path.Combine(directoryPath, AppHostFileName);
         if (!File.Exists(appHostPath))
         {
             return DetectionResult.NotFound;
         }
 
         // Check for package.json (required for TypeScript/Node.js projects)
-        var packageJsonPath = Path.Combine(directoryPath, "package.json");
+        var packageJsonPath = Path.Combine(directoryPath, PackageJsonFileName);
         if (!File.Exists(packageJsonPath))
         {
             return DetectionResult.NotFound;
@@ -140,7 +188,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
         // Note: .csproj precedence is handled by the CLI, not here.
         // Language support should only check for its own language markers.
 
-        return DetectionResult.Found(LanguageId, "apphost.ts");
+        return DetectionResult.Found(LanguageId, AppHostFileName);
     }
 
     /// <inheritdoc />
@@ -161,7 +209,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             Execute = new CommandSpec
             {
                 Command = "npx",
-                Args = ["tsx", "{appHostFile}"]
+                Args = ["tsx", "--tsconfig", AppHostTsConfigFileName, "{appHostFile}"]
             },
             WatchExecute = new CommandSpec
             {
@@ -173,7 +221,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
                     "--ext", "ts",
                     "--ignore", "node_modules/",
                     "--ignore", ".modules/",
-                    "--exec", "npx tsx {appHostFile}"
+                    "--exec", $"npx tsx --tsconfig {AppHostTsConfigFileName} {{appHostFile}}"
                 ]
             }
         };
