@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart).</source>
-        <target state="translated">Exécuter une commande sur une ressource.</target>
+        <target state="translated">Exécuter une commande sur une ressource (par exemple, start, stop, restart).</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute (e.g. start, stop, restart).</source>
-        <target state="translated">Le nom de la commande à exécuter.</target>
+        <target state="translated">Nom de la commande à exécuter (par exemple, start, stop, restart).</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">
