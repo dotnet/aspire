@@ -5,7 +5,7 @@ using System.Text.Json;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Build;
+namespace Aspire.Hosting.Rebuild;
 
 /// <summary>
 /// Provides utilities for querying MSBuild project information.

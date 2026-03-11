@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Build;
+using Aspire.Hosting.Rebuild;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Aspire.Hosting.Tests.Build;
+namespace Aspire.Hosting.Tests.Rebuild;
 
 public class ProjectBuildHelperTests
 {

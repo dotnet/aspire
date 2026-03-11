@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Build;
+namespace Aspire.Hosting.Rebuild;
 
 /// <summary>
 /// Represents the set of files that a project depends on for compilation.
