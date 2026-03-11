@@ -49,7 +49,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("publish --project invalid.csproj");
+        var result = command.Parse("publish --apphost invalid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -80,7 +80,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("publish --project valid.csproj");
+        var result = command.Parse("publish --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -111,7 +111,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("publish --project valid.csproj");
+        var result = command.Parse("publish --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
@@ -154,7 +154,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("publish --project valid.csproj");
+        var result = command.Parse("publish --apphost valid.csproj");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert

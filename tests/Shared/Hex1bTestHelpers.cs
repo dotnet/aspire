@@ -102,6 +102,60 @@ internal static class Hex1bTestHelpers
     }
 
     /// <summary>
+    /// Waits for any prompt (success or error) matching the current sequence counter.
+    /// Use this when the command is expected to return a non-zero exit code.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForAnyPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var successSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+                var errorSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" ERR:");
+
+                return successSearcher.Search(snapshot).Count > 0 || errorSearcher.Search(snapshot).Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    /// <summary>
+    /// Waits for the shell prompt to show a non-zero exit code pattern: [N ERR:code] $
+    /// This is used to verify that a command exited with a failure code.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="counter">The sequence counter for prompt detection.</param>
+    /// <param name="exitCode">The expected non-zero exit code.</param>
+    /// <param name="timeout">Optional timeout (defaults to 500 seconds).</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder WaitForErrorPrompt(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter,
+        int exitCode = 1,
+        TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
+
+        return builder.WaitUntil(snapshot =>
+            {
+                var errorPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText($" ERR:{exitCode}] $ ");
+
+                var result = errorPromptSearcher.Search(snapshot);
+                return result.Count > 0;
+            }, effectiveTimeout)
+            .IncrementSequence(counter);
+    }
+
+    /// <summary>
     /// Increments the sequence counter.
     /// </summary>
     internal static Hex1bTerminalInputSequenceBuilder IncrementSequence(

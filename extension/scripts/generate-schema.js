@@ -41,7 +41,7 @@ try {
     const localSchema = generateJsonSchema(configInfo, configInfo.LocalSettingsSchema, {
         id: 'https://json.schemastore.org/aspire-settings.json',
         title: 'Aspire Local Settings',
-        description: 'Configuration file for .NET Aspire application host (.aspire/settings.json)'
+        description: 'Aspire CLI local configuration file (.aspire/settings.json)'
     });
     fs.writeFileSync(localSchemaOutputPath, JSON.stringify(localSchema, null, 2), 'utf8');
     console.log(`✓ Local schema generated: ${localSchemaOutputPath}`);
@@ -51,7 +51,7 @@ try {
     const globalSchema = generateJsonSchema(configInfo, configInfo.GlobalSettingsSchema, {
         id: 'https://json.schemastore.org/aspire-global-settings.json',
         title: 'Aspire Global Settings',
-        description: 'Global configuration file for .NET Aspire CLI (~/.aspire/settings.json)'
+        description: 'Aspire CLI global configuration file (~/.aspire/settings.json)'
     });
     fs.writeFileSync(globalSchemaOutputPath, JSON.stringify(globalSchema, null, 2), 'utf8');
     console.log(`✓ Global schema generated: ${globalSchemaOutputPath}`);

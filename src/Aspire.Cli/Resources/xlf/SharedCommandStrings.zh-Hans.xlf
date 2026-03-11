@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="../SharedCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">找不到正在运行的 AppHost。请先使用 "aspire run" 启动一个。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format for detached AppHost results.</source>
+        <target state="translated">分离的 AppHost 结果的输出格式。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedOptionDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">使用随机端口和独立的用户机密以独立模式运行，支持多个实例同时运行。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="translated">当前目录中找到多个正在运行的 AppHost。请从正在运行的 AppHost 中选择。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="translated">当前目录中未找到正在运行的 AppHost。请从所有正在运行的 AppHost 中选择。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost 项目文件的路径。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">正在扫描处于运行状态的 AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost to {0}:</source>
+        <target state="translated">选择要{0}的 AppHost:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="translated">使用 AppHost: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

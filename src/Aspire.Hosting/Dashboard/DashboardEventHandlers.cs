@@ -44,8 +44,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     // Internal for testing
-    internal const string OtlpGrpcEndpointName = "otlp-grpc";
-    internal const string OtlpHttpEndpointName = "otlp-http";
     internal const string McpEndpointName = "mcp";
 
     // Fallback defaults for framework versions and TFM
@@ -288,35 +286,24 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        // Create custom runtime config with AppHost's framework versions
-        var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
-
-        // Determine if this is a single-file executable or DLL-based deployment
-        // Single-file: run the exe directly with custom runtime config
-        // DLL-based: run via dotnet exec
-        var isSingleFileExe = IsSingleFileExecutable(fullyQualifiedDashboardPath);
-        
         ExecutableResource dashboardResource;
-        
-        if (isSingleFileExe)
+
+        if (BundleDiscovery.IsAspireManagedBinary(fullyQualifiedDashboardPath))
         {
-            // Single-file executable - run directly
+            // aspire-managed is self-contained, run directly with "dashboard" subcommand
             dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
-            
-            // Set DOTNET_ROOT so the single-file app can find the shared framework
-            var dotnetRoot = BundleDiscovery.GetDotNetRoot();
-            if (!string.IsNullOrEmpty(dotnetRoot))
+
+            dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
-                dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(env =>
-                {
-                    env["DOTNET_ROOT"] = dotnetRoot;
-                    env["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-                }));
-            }
+                args.Insert(0, "dashboard");
+            }));
         }
         else
         {
-            // DLL-based deployment - find the DLL and run via dotnet exec
+            // Non-bundle: run via dotnet exec with custom runtime config
+            // Create custom runtime config with AppHost's framework versions
+            var customRuntimeConfigPath = CreateCustomRuntimeConfig(fullyQualifiedDashboardPath);
+
             string dashboardDll;
             if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
             {
@@ -338,8 +325,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogError("Dashboard DLL not found: {Path}", dashboardDll);
             }
 
-            var dotnetExecutable = BundleDiscovery.GetDotNetExecutablePath();
-            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, dotnetExecutable, dashboardWorkingDirectory ?? "");
+            dashboardResource = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
 
             dashboardResource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
             {
@@ -436,7 +422,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpGrpcEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpGrpcEndpointUrl);
-            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: KnownEndpointNames.OtlpGrpcEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true, transport: "http2")
             {
                 TargetHost = address.Host
             });
@@ -445,7 +431,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (otlpHttpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(otlpHttpEndpointUrl);
-            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
+            dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: KnownEndpointNames.OtlpHttpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
             });
@@ -660,13 +646,13 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         static ReferenceExpression GetTargetUrlExpression(EndpointReference e) =>
             ReferenceExpression.Create($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
 
-        var otlpGrpc = dashboardResource.GetEndpoint(OtlpGrpcEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
+        var otlpGrpc = dashboardResource.GetEndpoint(KnownEndpointNames.OtlpGrpcEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         if (otlpGrpc.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = GetTargetUrlExpression(otlpGrpc);
         }
 
-        var otlpHttp = dashboardResource.GetEndpoint(OtlpHttpEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
+        var otlpHttp = dashboardResource.GetEndpoint(KnownEndpointNames.OtlpHttpEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         if (otlpHttp.Exists)
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = GetTargetUrlExpression(otlpHttp);
@@ -925,51 +911,6 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 distributedApplicationLogger.LogWarning(ex, "Failed to delete temporary runtime config file: {Path}", _customRuntimeConfigPath);
             }
         }
-    }
-
-    /// <summary>
-    /// Determines if the given path is a single-file executable (no accompanying DLL).
-    /// </summary>
-    private static bool IsSingleFileExecutable(string path)
-    {
-        // Single-file apps are executables without a corresponding DLL.
-        // On Windows the file ends with .exe; on Unix there is no reliable
-        // extension (e.g. "Aspire.Dashboard" has a dot but is still an executable).
-        // The definitive check is: executable exists on disk and there is no
-        // matching .dll next to it.
-
-        if (string.Equals(".dll", Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (!File.Exists(path))
-        {
-            return false;
-        }
-
-        // On Unix, verify the file is executable
-        if (!OperatingSystem.IsWindows())
-        {
-            var fileInfo = new FileInfo(path);
-            var mode = fileInfo.UnixFileMode;
-            if ((mode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) == 0)
-            {
-                return false;
-            }
-        }
-
-        // Check if there's a corresponding DLL — strip .exe on Windows,
-        // but on Unix the filename may contain dots (e.g. "Aspire.Dashboard"),
-        // so always derive the DLL name by appending .dll to the full filename.
-        var directory = Path.GetDirectoryName(path)!;
-        var fileName = Path.GetFileName(path);
-        var baseName = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? fileName[..^4]
-            : fileName;
-        var dllPath = Path.Combine(directory, $"{baseName}.dll");
-
-        return !File.Exists(dllPath);
     }
 }
 

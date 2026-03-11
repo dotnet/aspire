@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../SharedCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Désolé, aucun AppHost en cours d’exécution n’a été trouvé. Utilisez « aspire run » pour en démarrer un.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format for detached AppHost results.</source>
+        <target state="translated">Format de sortie pour les résultats AppHost détachés.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedOptionDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">Exécuter en mode isolé avec des ports aléatoires et des secrets utilisateur isolés, ce qui permet à plusieurs instances de fonctionner simultanément.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="translated">Plusieurs AppHost en cours d’exécution ont été trouvées dans le répertoire actif. Sélectionnez parmi les AppHosts en cours d’exécution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="translated">Désolé, aucun AppHost en cours d’exécution n’a été trouvé dans le répertoire actif. Sélectionnez parmi tous les AppHosts en cours d’exécution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Recherche des AppHosts en cours d’exécution...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost to {0}:</source>
+        <target state="translated">Sélectionner un AppHost à {0} :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="translated">Utilisation d’AppHost : {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

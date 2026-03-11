@@ -79,14 +79,14 @@ The Aspire CLI already has the building blocks we need:
 
 ### New CLI Commands
 
-We add a new `aspire resources` command that exposes resource snapshots:
+We add a new `aspire describe` command that exposes resource snapshots:
 
 ```bash
-aspire resources [--watch] [--project <path>]
+aspire describe [--follow] [--project <path>]
 ```
 
-- **`aspire resources`** - Returns a JSON snapshot of all resources
-- **`aspire resources --watch`** - Streams NDJSON snapshots as resources change
+- **`aspire describe`** - Returns a JSON snapshot of all resources
+- **`aspire describe --follow`** - Streams NDJSON snapshots as resources change
 
 Language wrapper libraries build convenience methods on top of these primitives.
 
@@ -134,12 +134,12 @@ aspire stop [--project <path>]
 
 If `--project` is not specified, stops the AppHost in the current directory (or prompts if multiple are found).
 
-### `aspire resources`
+### `aspire describe`
 
 Returns a snapshot of all resources.
 
 ```bash
-aspire resources [--project <path>]
+aspire describe [--project <path>]
 ```
 
 **Output (JSON):**
@@ -190,12 +190,12 @@ aspire resources [--project <path>]
 }
 ```
 
-### `aspire resources --watch`
+### `aspire describe --follow`
 
 Streams resource snapshots as NDJSON (newline-delimited JSON).
 
 ```bash
-aspire resources --watch [--project <path>]
+aspire describe --follow [--project <path>]
 ```
 
 **Output (NDJSON):**
@@ -520,7 +520,7 @@ interface LogEntry {
 The TypeScript wrapper:
 
 1. Spawns `aspire run --detach --format json` and parses the JSON output
-2. Spawns `aspire resources --watch` in the background to maintain resource state
+2. Spawns `aspire describe --follow` in the background to maintain resource state
 3. Provides async methods that wait for state changes
 4. Can collect logs via `aspire logs` piped to files before cleanup
 5. Spawns `aspire stop` on cleanup
@@ -539,7 +539,7 @@ class AspireApp {
     app.appHostPid = info.appHostPid;
     
     // Start watching resources
-    app.watcher = spawn('aspire', ['resources', '--watch', '--format', 'json', '--project', options.project]);
+    app.watcher = spawn('aspire', ['describe', '--follow', '--format', 'json', '--project', options.project]);
     app.watcher.stdout.on('data', (chunk) => {
       for (const line of chunk.toString().split('\n')) {
         if (line.trim()) {
@@ -739,8 +739,8 @@ async def test_list_products(api_url):
 ## Future Work
 
 ### Phase 1: Core Implementation
-- [ ] Implement `aspire resources` command
-- [ ] Implement `aspire resources --watch` command  
+- [ ] Implement `aspire describe` command
+- [ ] Implement `aspire describe --follow` command
 - [ ] Ensure `aspire run --detach` returns structured JSON
 - [ ] Update `aspire stop` to work reliably with detached instances
 
@@ -757,7 +757,7 @@ async def test_list_products(api_url):
 
 ### Phase 4: Enhanced Features
 - [ ] Timeout configuration for `waitForResource`
-- [ ] Resource filtering in `aspire resources`
+- [ ] Resource filtering in `aspire describe`
 - [ ] Log streaming for debugging
 - [ ] Integration with test framework fixtures/hooks
 

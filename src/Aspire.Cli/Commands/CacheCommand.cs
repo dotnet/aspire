@@ -14,6 +14,8 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class CacheCommand : BaseCommand
 {
+    internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
+
     public CacheCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
         : base("cache", CacheCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
@@ -148,7 +150,7 @@ internal sealed class CacheCommand : BaseCommand
 
                 if (filesDeleted == 0)
                 {
-                    InteractionService.DisplayMessage("information", CacheCommandStrings.CacheAlreadyEmpty);
+                    InteractionService.DisplayMessage(KnownEmojis.Information, CacheCommandStrings.CacheAlreadyEmpty);
                 }
                 else
                 {

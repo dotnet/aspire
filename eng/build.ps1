@@ -160,11 +160,6 @@ if ($bundle) {
     $bundleArgs += "/p:SkipNativeBuild=true"
   }
   
-  # Pass through runtime version if set
-  if ($runtimeVersion) {
-    $bundleArgs += "/p:BundleRuntimeVersion=$runtimeVersion"
-  }
-  
   # CI flag is passed to Bundle.proj which handles version computation via Versions.props
   if ($ci) {
     $bundleArgs += "/p:ContinuousIntegrationBuild=true"

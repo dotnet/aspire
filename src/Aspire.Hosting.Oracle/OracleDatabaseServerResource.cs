@@ -6,6 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents an Oracle Database container.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class OracleDatabaseServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
@@ -47,6 +48,8 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// <summary>
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
             $"user id={DefaultUserName};password={PasswordParameter};data source={PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");

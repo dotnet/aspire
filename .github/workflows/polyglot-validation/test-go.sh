@@ -21,7 +21,7 @@ cd "$WORK_DIR"
 
 # Initialize Go AppHost
 echo "Creating Go apphost project..."
-aspire init -l go --non-interactive -d
+aspire init --language go --non-interactive -d
 
 # Add Redis integration
 echo "Adding Redis integration..."

@@ -147,6 +147,9 @@
   <data name="WaitingForDebugger" xml:space="preserve">
     <value>Waiting for debugger to attach to CLI process ID: {0}</value>
   </data>
+  <data name="NonInteractiveArgumentDescription" xml:space="preserve">
+    <value>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</value>
+  </data>
   <data name="FirstTimeUseWelcome" xml:space="preserve">
     <value>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</value>
   </data>

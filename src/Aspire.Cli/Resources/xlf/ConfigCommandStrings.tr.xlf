@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">Yapılandırma ayarlarını yönetin.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="translated">Özellik bayrakları da dahil olmak üzere CLI yapılandırmasını yönetin.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -80,6 +80,16 @@
       <trans-unit id="GlobalConfigurationHeader">
         <source>Global configuration</source>
         <target state="translated">Genel yapılandırma</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderKey">
+        <source>Key</source>
+        <target state="translated">Anahtar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderValue">
+        <source>Value</source>
+        <target state="translated">Değer</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
@@ -180,6 +190,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">Ayarlanacak yapılandırma değeri.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="translated">Bir özelliği etkinleştirmek veya devre dışı bırakmak için 'aspire config set features.&lt;name&gt; true|false' komutunu kullanın.</target>
         <note />
       </trans-unit>
     </body>

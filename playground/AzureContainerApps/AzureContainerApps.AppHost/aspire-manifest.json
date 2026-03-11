@@ -44,7 +44,7 @@
     "cache": {
       "type": "container.v1",
       "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
-      "image": "docker.io/library/redis:8.2",
+      "image": "docker.io/library/redis:8.6",
       "deployment": {
         "type": "azure.bicep.v0",
         "path": "cache-containerapp.module.bicep",

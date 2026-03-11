@@ -241,7 +241,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The --project option specified a project that does not exist..
+        ///   Looks up a localized string similar to The --apphost option specified a project that does not exist..
         /// </summary>
         public static string ProjectOptionDoesntExist {
             get {
@@ -250,7 +250,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The --project option was not specified and multiple app host project files were detected..
+        ///   Looks up a localized string similar to The --apphost option was not specified and multiple app host project files were detected..
         /// </summary>
         public static string ProjectOptionNotSpecifiedMultipleAppHostsFound {
             get {

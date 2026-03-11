@@ -32,6 +32,31 @@
         <target state="translated">Získejte úplný obsah stránky dokumentace podle jejího slugu.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderScore">
+        <source>Score</source>
+        <target state="translated">Skóre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSection">
+        <source>Section</source>
+        <target state="translated">Oddíl</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSlug">
+        <source>Slug</source>
+        <target state="translated">Zkrácený název</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderSummary">
+        <source>Summary</source>
+        <target state="translated">Souhrn</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderTitle">
+        <source>Title</source>
+        <target state="translated">Název</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of search results to return (default: 5, max: 10).</source>
         <target state="translated">Maximální počet výsledků hledání, které se mají vrátit (výchozí: 5, max.: 10)</target>

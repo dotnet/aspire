@@ -26,13 +26,6 @@ cp "$BUNDLE_DIR/aspire" "$ASPIRE_HOME/bin/"
 chmod +x "$ASPIRE_HOME/bin/aspire"
 echo "  ✓ Installed to $ASPIRE_HOME/bin/aspire"
 
-# Verify CLI works
-echo "=== Verifying CLI ==="
-"$ASPIRE_HOME/bin/aspire" --version || {
-    echo "ERROR: aspire --version failed"
-    exit 1
-}
-
 # Extract the embedded bundle so runtime/dotnet and other components are available
 # Commands like 'aspire init' and 'aspire add' need the bundled dotnet for NuGet operations
 echo "=== Extracting bundle ==="

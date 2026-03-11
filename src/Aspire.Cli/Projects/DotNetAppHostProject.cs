@@ -191,7 +191,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Signal build failure so RunCommand doesn't wait forever
             context.BuildCompletionSource?.TrySetResult(false);
@@ -362,7 +362,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
     {
         // .NET projects require the SDK to be installed
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _features, _telemetry, cancellationToken: cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, _telemetry, cancellationToken: cancellationToken))
         {
             // Throw an exception that will be caught by the command and result in SdkNotInstalled exit code
             // This is cleaner than trying to signal through the backchannel pattern
@@ -486,7 +486,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
-    public async Task<RunningInstanceResult> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    public async Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
         var matchingSockets = AppHostHelper.FindMatchingSockets(appHostFile.FullName, homeDirectory.FullName);
 
@@ -504,9 +504,37 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets the UserSecretsId from a project file.
+    /// Gets the UserSecretsId from a project file, optionally initializing if not configured.
     /// </summary>
-    private async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    public async Task<string?> GetUserSecretsIdAsync(FileInfo projectFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        var userSecretsId = await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+
+        if (!string.IsNullOrEmpty(userSecretsId) || !autoInit)
+        {
+            return userSecretsId;
+        }
+
+        // Auto-initialize user secrets (only for csproj projects - file-based apphosts
+        // always have a UserSecretsId provided by the SDK)
+        if (!s_projectExtensions.Contains(projectFile.Extension.ToLowerInvariant()))
+        {
+            return userSecretsId;
+        }
+
+        _logger.LogInformation("No UserSecretsId found. Initializing user secrets for {Project}...", projectFile.Name);
+        _interactionService.DisplayMessage(KnownEmojis.Key, $"Initializing user secrets for {projectFile.Name}...");
+
+        await _runner.InitUserSecretsAsync(
+            projectFile,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
+
+        // Re-query
+        return await QueryUserSecretsIdAsync(projectFile, cancellationToken);
+    }
+
+    private async Task<string?> QueryUserSecretsIdAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         try
         {
@@ -526,7 +554,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             if (rootElement.TryGetProperty("Properties", out var properties) &&
                 properties.TryGetProperty("UserSecretsId", out var userSecretsIdElement))
             {
-                return userSecretsIdElement.GetString();
+                var value = userSecretsIdElement.GetString();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
             }
 
             return null;
@@ -554,10 +583,10 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         env["DcpPublisher__RandomizePorts"] = "true";
 
         // Get the UserSecretsId from the project and create isolated copy
-        var userSecretsId = await GetUserSecretsIdAsync(appHostFile, cancellationToken);
+        var userSecretsId = await QueryUserSecretsIdAsync(appHostFile, cancellationToken);
         if (!string.IsNullOrEmpty(userSecretsId))
         {
-            _interactionService.DisplayMessage("key", RunCommandStrings.CopyingUserSecrets);
+            _interactionService.DisplayMessage(KnownEmojis.Key, RunCommandStrings.CopyingUserSecrets);
             var isolatedUserSecretsId = IsolatedUserSecretsHelper.CreateIsolatedUserSecrets(userSecretsId);
             if (!string.IsNullOrEmpty(isolatedUserSecretsId))
             {

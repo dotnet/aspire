@@ -34,7 +34,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         if (!updateSteps.Any())
         {
             logger.LogInformation("No updates required for project: {ProjectFile}", projectFile.FullName);
-            interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ProjectUpToDateMessage);
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
@@ -52,12 +52,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             var projectName = new FileInfo(projectGroup.Key).Name;
             if (updateStepsByProject.Count > 1)
             {
-                interactionService.DisplayMessage("file_folder", $"[bold cyan]{projectName}[/]:");
+                interactionService.DisplayMessage(KnownEmojis.FileFolder, $"[bold cyan]{projectName.EscapeMarkup()}[/]:", allowMarkup: true);
             }
 
             foreach (var packageStep in projectGroup)
             {
-                interactionService.DisplayMessage("package", packageStep.GetFormattedDisplayText());
+                interactionService.DisplayMessage(KnownEmojis.Package, packageStep.GetFormattedDisplayText(), allowMarkup: true);
             }
 
             interactionService.DisplayEmptyLine();
@@ -66,7 +66,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // Display warning if fallback parsing was used
         if (fallbackUsed)
         {
-            interactionService.DisplayMessage("warning", $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]");
+            interactionService.DisplayMessage(KnownEmojis.Warning, $"[yellow]{UpdateCommandStrings.FallbackParsingWarning}[/]", allowMarkup: true);
             interactionService.DisplayEmptyLine();
         }
 
@@ -106,11 +106,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             interactionService.DisplayEmptyLine();
 
-            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
+            var selectedPathForNewNuGetConfigFile = await interactionService.PromptForFilePathAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
                 defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
-                isSecret: false,
+                directory: true,
                 required: true,
                 cancellationToken: cancellationToken);
 
@@ -120,11 +120,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         interactionService.DisplayEmptyLine();
 
-        foreach (var updateStep in updateSteps)
-        {
-            interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
-            await updateStep.Callback();
-        }
+        await interactionService.ShowStatusAsync(
+            UpdateCommandStrings.ApplyingUpdates,
+            async () =>
+            {
+                foreach (var updateStep in updateSteps)
+                {
+                    interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
+                    await updateStep.Callback();
+                }
+
+                return 0;
+            });
 
         interactionService.DisplayEmptyLine();
 
@@ -1147,7 +1154,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
+        return $"[bold yellow]{PackageId.EscapeMarkup()}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 

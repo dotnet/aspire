@@ -156,6 +156,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Run the command in non-interactive mode, disabling all interactive prompts and spinners..
+        /// </summary>
+        public static string NonInteractiveArgumentDescription {
+            get {
+                return ResourceManager.GetString("NonInteractiveArgumentDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Wait for a debugger to attach before executing the command..
         /// </summary>
         public static string WaitForDebuggerArgumentDescription {

@@ -489,7 +489,7 @@ public static class AzureVirtualNetworkExtensions
         // Auto-generate name
         var accessStr = access == SecurityRuleAccess.Allow ? "allow" : "deny";
         var directionStr = direction == SecurityRuleDirection.Inbound ? "inbound" : "outbound";
-        var resolvedName = name ?? GenerateRuleName(accessStr, directionStr, port, from);
+        var resolvedName = name ?? GenerateUniqueRuleName(nsgResource, accessStr, directionStr, port, from, to);
 
         var rule = new AzureSecurityRule
         {
@@ -516,7 +516,27 @@ public static class AzureVirtualNetworkExtensions
         return builder;
     }
 
-    private static string GenerateRuleName(string access, string direction, string? port, string? from)
+    private static string GenerateUniqueRuleName(AzureNetworkSecurityGroupResource nsgResource, string access, string direction, string? port, string? from, string? to)
+    {
+        var baseName = GenerateRuleName(access, direction, port, from, to);
+
+        // Check for conflicts and append an index if needed
+        var candidateName = baseName;
+        var index = 2;
+        while (nsgResource.SecurityRules.Any(r => r.Name == candidateName))
+        {
+            if (index == 100)
+            {
+                throw new InvalidOperationException($"Could not generate a unique name for security rule '{baseName}'");
+            }
+            candidateName = $"{baseName}-{index}";
+            index++;
+        }
+
+        return candidateName;
+    }
+
+    private static string GenerateRuleName(string access, string direction, string? port, string? from, string? to)
     {
         var parts = new List<string> { access, direction };
 
@@ -528,6 +548,11 @@ public static class AzureVirtualNetworkExtensions
         if (from is not null)
         {
             parts.Add(from);
+        }
+
+        if (to is not null)
+        {
+            parts.Add(to);
         }
 
         return string.Join("-", parts);

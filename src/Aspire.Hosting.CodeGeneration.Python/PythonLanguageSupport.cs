@@ -104,8 +104,6 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 "https": {
                   "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
                   "environmentVariables": {
-                    "ASPNETCORE_ENVIRONMENT": "Development",
-                    "DOTNET_ENVIRONMENT": "Development",
                     "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
                     "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
                   }

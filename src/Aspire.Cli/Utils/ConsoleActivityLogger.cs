@@ -257,7 +257,7 @@ internal sealed class ConsoleActivityLogger
                     };
                     var name = rec.DisplayName.EscapeMarkup();
                     var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
-                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!.EscapeMarkup())}[/]" : $" — {rec.FailureReason!.EscapeMarkup()}" )
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
@@ -317,8 +317,9 @@ internal sealed class ConsoleActivityLogger
         }
         else
         {
-            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value);
-            return $"  {key}: {plainValue}";
+            var plainKey = key.EscapeMarkup();
+            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value).EscapeMarkup();
+            return $"  {plainKey}: {plainValue}";
         }
     }
 

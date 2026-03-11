@@ -9,19 +9,27 @@ namespace Aspire.Cli.Tests.Utils;
 
 public class ConsoleActivityLoggerTests
 {
+    private static ConsoleActivityLogger CreateLogger(StringBuilder output, bool interactive = true, bool color = true)
+    {
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = color ? AnsiSupport.Yes : AnsiSupport.No,
+            ColorSystem = color ? ColorSystemSupport.TrueColor : ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        var hostEnvironment = interactive
+            ? TestHelpers.CreateInteractiveHostEnvironment()
+            : TestHelpers.CreateNonInteractiveHostEnvironment();
+
+        return new ConsoleActivityLogger(console, hostEnvironment, forceColor: color);
+    }
+
     [Fact]
     public void WriteSummary_WithMarkdownLinkInPipelineSummary_RendersClickableLink()
     {
         var output = new StringBuilder();
-        var console = AnsiConsole.Create(new AnsiConsoleSettings
-        {
-            Ansi = AnsiSupport.Yes,
-            ColorSystem = ColorSystemSupport.TrueColor,
-            Out = new AnsiConsoleOutput(new StringWriter(output))
-        });
-
-        var hostEnvironment = TestHelpers.CreateInteractiveHostEnvironment();
-        var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: true);
+        var logger = CreateLogger(output, interactive: true, color: true);
 
         var summary = new List<KeyValuePair<string, string>>
         {
@@ -50,15 +58,7 @@ public class ConsoleActivityLoggerTests
     public void WriteSummary_WithMarkdownLinkInPipelineSummary_NoColor_RendersPlainTextWithUrl()
     {
         var output = new StringBuilder();
-        var console = AnsiConsole.Create(new AnsiConsoleSettings
-        {
-            Ansi = AnsiSupport.No,
-            ColorSystem = ColorSystemSupport.NoColors,
-            Out = new AnsiConsoleOutput(new StringWriter(output))
-        });
-
-        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
-        var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: false);
+        var logger = CreateLogger(output, interactive: false, color: false);
 
         var portalUrl = "https://portal.azure.com/";
         var summary = new List<KeyValuePair<string, string>>
@@ -79,16 +79,7 @@ public class ConsoleActivityLoggerTests
     public void WriteSummary_WithMarkdownLinkInPipelineSummary_ColorWithoutInteractive_RendersPlainUrl()
     {
         var output = new StringBuilder();
-        var console = AnsiConsole.Create(new AnsiConsoleSettings
-        {
-            Ansi = AnsiSupport.Yes,
-            ColorSystem = ColorSystemSupport.TrueColor,
-            Out = new AnsiConsoleOutput(new StringWriter(output))
-        });
-
-        // Non-interactive host but color enabled (e.g., CI environments with ANSI support)
-        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
-        var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: true);
+        var logger = CreateLogger(output, interactive: false, color: true);
 
         var portalUrl = "https://portal.azure.com/";
         var summary = new List<KeyValuePair<string, string>>
@@ -114,15 +105,7 @@ public class ConsoleActivityLoggerTests
     public void WriteSummary_WithPlainTextPipelineSummary_RendersCorrectly()
     {
         var output = new StringBuilder();
-        var console = AnsiConsole.Create(new AnsiConsoleSettings
-        {
-            Ansi = AnsiSupport.Yes,
-            ColorSystem = ColorSystemSupport.TrueColor,
-            Out = new AnsiConsoleOutput(new StringWriter(output))
-        });
-
-        var hostEnvironment = TestHelpers.CreateInteractiveHostEnvironment();
-        var logger = new ConsoleActivityLogger(console, hostEnvironment, forceColor: true);
+        var logger = CreateLogger(output, interactive: true, color: true);
 
         var summary = new List<KeyValuePair<string, string>>
         {
@@ -137,5 +120,77 @@ public class ConsoleActivityLoggerTests
 
         Assert.Contains("Azure", result);
         Assert.Contains("eastus", result);
+    }
+
+    [Fact]
+    public void WriteSummary_WithMarkupCharactersInContent_EscapesCorrectly()
+    {
+        var output = new StringBuilder();
+        var logger = CreateLogger(output, interactive: true, color: true);
+
+        // Pipeline summary with markup characters in key
+        // Note: values go through MarkdownToSpectreConverter.ConvertToSpectre which may interpret
+        // bracket patterns, so we test key escaping here (key always uses EscapeMarkup)
+        var summary = new List<KeyValuePair<string, string>>
+        {
+            new("Key [with] brackets", "plain value"),
+        };
+
+        logger.SetFinalResult(true, summary);
+
+        // Should not throw — markup characters in key must be escaped
+        logger.WriteSummary();
+
+        var result = output.ToString();
+
+        // The literal bracket text in the key should appear in output (escaped, not interpreted as markup)
+        Assert.Contains("[with]", result);
+    }
+
+    [Fact]
+    public void WriteSummary_WithMarkupCharactersInContent_NoColor_EscapesCorrectly()
+    {
+        var output = new StringBuilder();
+        var logger = CreateLogger(output, interactive: false, color: false);
+
+        var summary = new List<KeyValuePair<string, string>>
+        {
+            new("Key [with] brackets", "Value [bold]not bold[/]"),
+        };
+
+        logger.SetFinalResult(true, summary);
+
+        // Should not throw — markup characters must be escaped in the non-color path
+        logger.WriteSummary();
+
+        var result = output.ToString();
+
+        Assert.Contains("[with]", result);
+        Assert.Contains("[bold]not bold[/]", result);
+    }
+
+    [Fact]
+    public void WriteSummary_WithMarkupCharactersInFailureReason_EscapesCorrectly()
+    {
+        var output = new StringBuilder();
+        var logger = CreateLogger(output, interactive: true, color: true);
+
+        logger.StartTask("step1", "Test Step");
+        logger.Failure("step1", "Failed");
+
+        var records = new[]
+        {
+            new ConsoleActivityLogger.StepDurationRecord("step1", "Test Step", ConsoleActivityLogger.ActivityState.Failure, TimeSpan.FromSeconds(1.5), "Error: Type[T] is invalid [details]")
+        };
+        logger.SetStepDurations(records);
+        logger.SetFinalResult(false);
+
+        // Should not throw — failure reason with brackets must be escaped
+        logger.WriteSummary();
+
+        var result = output.ToString();
+
+        // The literal bracket text from the failure reason should appear
+        Assert.Contains("Type[T]", result);
     }
 }

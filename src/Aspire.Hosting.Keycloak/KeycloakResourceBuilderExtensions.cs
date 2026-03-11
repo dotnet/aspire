@@ -5,7 +5,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Keycloak;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -106,33 +105,13 @@ public static class KeycloakResourceBuilderExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            keycloak.SubscribeHttpsEndpointsUpdate(ctx =>
             {
-                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
-
-                bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
-                {
-                    if (developerCertificateService.UseForHttps)
-                    {
-                        addHttps = true;
-                    }
-                }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
-                {
-                    addHttps = true;
-                }
-
-                if (addHttps)
-                {
-                    // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
-                    // configure the environment variables to use it.
-                    keycloak
-                        .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
-                        .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
-                }
-
-                return Task.CompletedTask;
+                // If a TLS certificate is configured, ensure the keycloak resource has an HTTPS endpoint and
+                // configure the environment variables to use it.
+                keycloak
+                    .WithHttpsEndpoint(targetPort: DefaultHttpsPort, env: "KC_HTTPS_PORT")
+                    .WithEndpoint(ManagementEndpointName, ep => ep.UriScheme = "https");
             });
         }
 

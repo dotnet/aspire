@@ -58,7 +58,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    async sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
+    async sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true, additionalArgs?: string[]) {
         const cliPath = await this.getAspireCliExecutablePath();
 
         // On Windows, use & to execute paths, especially those with special characters
@@ -71,6 +71,19 @@ export class AspireTerminalProvider implements vscode.Disposable {
             // For Unix-like systems, quote only if needed
             const quotedPath = /[\s"'`$!*?()&|<>;]/.test(cliPath) ? `'${cliPath.replace(/'/g, `'\"'\"'`)}'` : cliPath;
             command = `${quotedPath} ${subcommand}`;
+        }
+
+        if (additionalArgs && additionalArgs.length > 0) {
+            const quotedArgs = additionalArgs.map(arg => {
+                if (process.platform === 'win32') {
+                    // On Windows PowerShell, wrap in double quotes and escape inner double quotes
+                    return `"${arg.replace(/"/g, '`"')}"`;
+                } else {
+                    // On Unix, wrap in single quotes and escape inner single quotes
+                    return `'${arg.replace(/'/g, "'\"'\"'")}'`;
+                }
+            });
+            command += ' ' + quotedArgs.join(' ');
         }
 
         if (this.isCliDebugLoggingEnabled()) {

@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../SharedCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Nenhum AppHost em execução encontrado. Use "aspire run" para iniciar um primeiro.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format for detached AppHost results.</source>
+        <target state="translated">Formato de saída para resultados AppHost destacados.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedOptionDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">Execute no modo isolado com portas aleatórias e segredos de usuário isolados, permitindo que várias instâncias executem simultaneamente.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="translated">Vários AppHosts em execução encontrados no diretório atual. Selecione a partir dos AppHosts em execução.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="translated">Nenhum AppHost em execução foi encontrado no diretório atual. Selecione entre todos os AppHosts em execução.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Verificando se há AppHosts em execução...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost to {0}:</source>
+        <target state="translated">Selecione um AppHost para {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="translated">Usando AppHost: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

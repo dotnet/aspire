@@ -24,12 +24,10 @@ internal static class KnownFeatures
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
-    public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
     public static string ExperimentalPolyglotRust => "experimentalPolyglot:rust";
     public static string ExperimentalPolyglotJava => "experimentalPolyglot:java";
     public static string ExperimentalPolyglotGo => "experimentalPolyglot:go";
     public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
-    public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
@@ -79,35 +77,25 @@ internal static class KnownFeatures
             "Show all available templates including experimental ones in 'aspire new' and 'aspire init' commands",
             DefaultValue: false),
         
-        [PolyglotSupportEnabled] = new(
-            PolyglotSupportEnabled,
-            "Enable or disable support for non-.NET (polyglot) languages and runtimes in Aspire applications",
-            DefaultValue: false),
-        
         [ExperimentalPolyglotRust] = new(
             ExperimentalPolyglotRust,
-            "Enable or disable experimental Rust language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            "Enable or disable experimental Rust language support for polyglot Aspire applications",
             DefaultValue: false),
         
         [ExperimentalPolyglotJava] = new(
             ExperimentalPolyglotJava,
-            "Enable or disable experimental Java language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            "Enable or disable experimental Java language support for polyglot Aspire applications",
             DefaultValue: false),
         
         [ExperimentalPolyglotGo] = new(
             ExperimentalPolyglotGo,
-            "Enable or disable experimental Go language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            "Enable or disable experimental Go language support for polyglot Aspire applications",
             DefaultValue: false),
         
         [ExperimentalPolyglotPython] = new(
             ExperimentalPolyglotPython,
-            "Enable or disable experimental Python language support for polyglot Aspire applications (requires polyglotSupportEnabled)",
+            "Enable or disable experimental Python language support for polyglot Aspire applications",
             DefaultValue: false),
-        
-        [DotNetSdkInstallationEnabled] = new(
-            DotNetSdkInstallationEnabled,
-            "Enable or disable automatic .NET SDK installation when a required SDK version is missing",
-            DefaultValue: true),
         
         [RunningInstanceDetectionEnabled] = new(
             RunningInstanceDetectionEnabled,

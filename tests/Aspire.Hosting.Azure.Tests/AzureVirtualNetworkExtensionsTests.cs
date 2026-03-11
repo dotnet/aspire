@@ -315,6 +315,53 @@ public class AzureVirtualNetworkExtensionsTests
     }
 
     [Fact]
+    public void Shorthand_IncludesToInGeneratedName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("aci-subnet", "10.0.3.0/28")
+            .AllowOutbound(port: "443", to: AzureServiceTags.AzureActiveDirectory, protocol: SecurityRuleProtocol.Tcp)
+            .AllowOutbound(port: "443", to: AzureServiceTags.Sql, protocol: SecurityRuleProtocol.Tcp);
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(2, rules.Count);
+        Assert.Equal("allow-outbound-443-AzureActiveDirectory", rules[0].Name);
+        Assert.Equal("allow-outbound-443-Sql", rules[1].Name);
+    }
+
+    [Fact]
+    public void Shorthand_IncludesFromAndToInGeneratedName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .AllowInbound(port: "443", from: AzureServiceTags.AzureLoadBalancer, to: AzureServiceTags.VirtualNetwork);
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal("allow-inbound-443-AzureLoadBalancer-VirtualNetwork", rules[0].Name);
+    }
+
+    [Fact]
+    public void Shorthand_DeduplicatesConflictingNames()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var vnet = builder.AddAzureVirtualNetwork("myvnet");
+        var subnet = vnet.AddSubnet("web", "10.0.1.0/24")
+            .DenyInbound()
+            .DenyInbound()
+            .DenyInbound();
+
+        var rules = subnet.Resource.NetworkSecurityGroup!.SecurityRules;
+        Assert.Equal(3, rules.Count);
+        Assert.Equal("deny-inbound", rules[0].Name);
+        Assert.Equal("deny-inbound-2", rules[1].Name);
+        Assert.Equal("deny-inbound-3", rules[2].Name);
+    }
+
+    [Fact]
     public void Shorthand_DefaultsProtocolToAsterisk()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage configuration settings.</source>
-        <target state="translated">Zarządzaj ustawieniami konfiguracji.</target>
+        <source>Manage CLI configuration including feature flags.</source>
+        <target state="translated">Zarządzaj konfiguracją CLI, w tym flagami funkcji.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
@@ -80,6 +80,16 @@
       <trans-unit id="GlobalConfigurationHeader">
         <source>Global configuration</source>
         <target state="translated">Konfiguracja globalna</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderKey">
+        <source>Key</source>
+        <target state="translated">Klucz</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderValue">
+        <source>Value</source>
+        <target state="translated">Wartość</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
@@ -180,6 +190,11 @@
       <trans-unit id="SetCommand_ValueArgumentDescription">
         <source>The configuration value to set.</source>
         <target state="translated">Wartość konfiguracji do ustawienia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetFeatureHint">
+        <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
+        <target state="translated">Użyj polecenia „aspire config set features.&lt;name&gt; true|false”, aby włączyć lub wyłączyć funkcję.</target>
         <note />
       </trans-unit>
     </body>

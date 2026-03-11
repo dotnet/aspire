@@ -1,9 +1,10 @@
-import { createBuilder } from './.modules/aspire.js';
+import { AzureStorageRole, createBuilder } from './.modules/aspire.js';
 
 const builder = await createBuilder();
 
 const storage = await builder.addAzureStorage("storage");
 await storage.runAsEmulator();
+await storage.withRoleAssignments(storage, [AzureStorageRole.StorageBlobDataContributor, AzureStorageRole.StorageQueueDataContributor]);
 
 // Callbacks are currently not working
 // await storage.runAsEmulator({

@@ -106,7 +106,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Pre-configure Playwright MCP server?.
+        ///   Looks up a localized string similar to Install Playwright CLI for browser automation?.
         /// </summary>
         internal static string InitCommand_ConfigurePlaywrightPrompt {
             get {

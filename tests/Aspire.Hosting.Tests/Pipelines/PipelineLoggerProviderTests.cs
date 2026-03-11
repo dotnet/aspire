@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Pipelines;
 
+[Trait("Partition", "4")]
 public class PipelineLoggerProviderTests
 {
     [Fact]

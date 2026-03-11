@@ -123,7 +123,7 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
     }
 
     [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_IncludesBasePackages()
+    public void AspireJsonConfiguration_GetIntegrationReferences_IncludesBasePackages()
     {
         // Arrange
         var config = new AspireJsonConfiguration
@@ -137,17 +137,16 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages().ToList();
+        var refs = config.GetIntegrationReferences("13.1.0", "/tmp").ToList();
 
         // Assert - should include base package (Aspire.Hosting) plus explicit packages
-        // Note: Aspire.Hosting.AppHost is an SDK-only package and is excluded
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
-        Assert.Equal(2, packages.Count);
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting" && r.Version == "13.1.0" && !r.IsProjectReference);
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting.Redis" && r.Version == "13.1.0" && !r.IsProjectReference);
+        Assert.Equal(2, refs.Count);
     }
 
     [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_WithNoExplicitPackages_ReturnsBasePackagesOnly()
+    public void AspireJsonConfiguration_GetIntegrationReferences_WithNoExplicitPackages_ReturnsBasePackagesOnly()
     {
         // Arrange
         var config = new AspireJsonConfiguration
@@ -157,30 +156,15 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages().ToList();
+        var refs = config.GetIntegrationReferences("13.1.0", "/tmp").ToList();
 
         // Assert - should include base package only (Aspire.Hosting)
-        // Note: Aspire.Hosting.AppHost is an SDK-only package and is excluded
-        Assert.Single(packages);
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
+        Assert.Single(refs);
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting" && r.Version == "13.1.0");
     }
 
     [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_WithWhitespaceSdkVersion_Throws()
-    {
-        var config = new AspireJsonConfiguration
-        {
-            SdkVersion = " ",
-            Language = "typescript"
-        };
-
-        var exception = Assert.Throws<InvalidOperationException>(() => config.GetAllPackages().ToList());
-
-        Assert.Contains("non-empty", exception.Message);
-    }
-
-    [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_WithDefaultSdkVersion_UsesFallbackVersion()
+    public void AspireJsonConfiguration_GetIntegrationReferences_WithEmptyVersion_UsesFallbackVersion()
     {
         // Arrange
         var config = new AspireJsonConfiguration
@@ -193,15 +177,15 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages("13.1.0").ToList();
+        var refs = config.GetIntegrationReferences("13.1.0", "/tmp").ToList();
 
         // Assert
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting" && r.Version == "13.1.0");
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting.Redis" && r.Version == "13.1.0");
     }
 
     [Fact]
-    public void AspireJsonConfiguration_GetAllPackages_WithConfiguredSdkVersion_ReturnsConfiguredVersions()
+    public void AspireJsonConfiguration_GetIntegrationReferences_WithConfiguredSdkVersion_ReturnsConfiguredVersions()
     {
         // Arrange
         var config = new AspireJsonConfiguration
@@ -216,11 +200,39 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
         };
 
         // Act
-        var packages = config.GetAllPackages("13.1.0").ToList();
+        var refs = config.GetIntegrationReferences("13.1.0", "/tmp").ToList();
 
         // Assert
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting" && p.Version == "13.1.0");
-        Assert.Contains(packages, p => p.Name == "Aspire.Hosting.Redis" && p.Version == "13.1.0");
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting" && r.Version == "13.1.0");
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting.Redis" && r.Version == "13.1.0");
+    }
+
+    [Fact]
+    public void AspireJsonConfiguration_GetIntegrationReferences_WithProjectReference_ReturnsProjectRef()
+    {
+        // Arrange
+        var config = new AspireJsonConfiguration
+        {
+            SdkVersion = "13.1.0",
+            Language = "typescript",
+            Packages = new Dictionary<string, string>
+            {
+                ["Aspire.Hosting.Redis"] = "13.1.0",
+                ["Aspire.Hosting.MyCustom"] = "../src/Aspire.Hosting.MyCustom/Aspire.Hosting.MyCustom.csproj"
+            }
+        };
+
+        // Act
+        var refs = config.GetIntegrationReferences("13.1.0", "/home/user/app").ToList();
+
+        // Assert
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting" && r.IsPackageReference);
+        Assert.Contains(refs, r => r.Name == "Aspire.Hosting.Redis" && r.IsPackageReference);
+        var projectRef = Assert.Single(refs, r => r.IsProjectReference);
+        Assert.Equal("Aspire.Hosting.MyCustom", projectRef.Name);
+        Assert.Null(projectRef.Version);
+        Assert.NotNull(projectRef.ProjectPath);
+        Assert.EndsWith(".csproj", projectRef.ProjectPath);
     }
 
     [Fact]

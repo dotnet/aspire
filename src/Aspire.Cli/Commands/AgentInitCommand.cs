@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
@@ -68,7 +69,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         var defaultWorkspaceRoot = gitRoot ?? ExecutionContext.WorkingDirectory;
 
         // Prompt the user for the workspace root
-        var workspaceRootPath = await _interactionService.PromptForStringAsync(
+        var workspaceRootPath = await _interactionService.PromptForFilePathAsync(
             McpCommandStrings.InitCommand_WorkspaceRootPrompt,
             defaultValue: defaultWorkspaceRoot.FullName,
             validator: path =>
@@ -85,6 +86,7 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
 
                 return ValidationResult.Success();
             },
+            directory: true,
             cancellationToken: cancellationToken);
 
         var workspaceRoot = new DirectoryInfo(workspaceRootPath);
@@ -139,13 +141,34 @@ internal sealed class AgentInitCommand : BaseCommand, IPackageMetaPrefetchingCom
         }
 
         // Apply all selected applicators
+        var hasErrors = false;
         foreach (var applicator in selectedApplicators)
         {
-            await applicator.ApplyAsync(cancellationToken);
+            try
+            {
+                await applicator.ApplyAsync(cancellationToken);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _interactionService.DisplayError(ex.Message);
+                if (ex.InnerException is JsonException)
+                {
+                    _interactionService.DisplaySubtleMessage(
+                        string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, applicator.Description));
+                }
+                hasErrors = true;
+            }
         }
 
-        _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
+        if (hasErrors)
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Warning, AgentCommandStrings.ConfigurationCompletedWithErrors);
+        }
+        else
+        {
+            _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
+        }
 
-        return ExitCodeConstants.Success;
+        return hasErrors ? ExitCodeConstants.InvalidCommand : ExitCodeConstants.Success;
     }
 }

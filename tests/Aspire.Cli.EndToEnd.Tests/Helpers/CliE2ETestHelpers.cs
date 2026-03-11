@@ -198,10 +198,8 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Enables polyglot support feature flag using the aspire config set command.
-    /// This allows the CLI to create TypeScript and Python AppHosts.
-    /// Uses the global (-g) flag to ensure the setting persists across CLI invocations,
-    /// even when aspire init creates a new local settings.json file.
+    /// Ensures polyglot support is enabled for tests.
+    /// Polyglot support now defaults to enabled, so this is currently a no-op.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -210,10 +208,8 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
-        return builder
-            .Type("aspire config set features.polyglotSupportEnabled true -g")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        _ = counter;
+        return builder;
     }
 
     /// <summary>
@@ -346,6 +342,29 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Creates a .vscode/mcp.json file with malformed content for testing error handling.
+    /// </summary>
+    /// <param name="builder">The sequence builder.</param>
+    /// <param name="configPath">The path to the mcp.json file.</param>
+    /// <param name="content">The malformed content to write.</param>
+    /// <returns>The builder for chaining.</returns>
+    internal static Hex1bTerminalInputSequenceBuilder CreateMalformedMcpConfig(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string configPath,
+        string content = "{ invalid json content")
+    {
+        return builder.ExecuteCallback(() =>
+        {
+            var dir = Path.GetDirectoryName(configPath);
+            if (dir is not null && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllText(configPath, content);
+        });
+    }
+
+    /// <summary>
     /// Creates a .vscode folder for testing VS Code agent detection.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
@@ -422,21 +441,21 @@ internal static class CliE2ETestHelpers
         int prNumber,
         SequenceCounter counter)
     {
-        // The bundle script may not be on main yet, so we need to fetch it from the PR's branch.
+        // The install script may not be on main yet, so we need to fetch it from the PR's branch.
         // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
         // which can serve stale script content for several minutes after a push.
         string command;
         if (OperatingSystem.IsWindows())
         {
-            // PowerShell: Get PR head SHA, then fetch and run bundle script from that SHA
+            // PowerShell: Get PR head SHA, then fetch and run install script from that SHA
             command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
-                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.ps1) }} {prNumber}\"";
+                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\"";
         }
         else
         {
-            // Bash: Get PR head SHA, then fetch and run bundle script from that SHA
+            // Bash: Get PR head SHA, then fetch and run install script from that SHA
             command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
-                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-bundle-pr.sh | bash -s -- {prNumber}";
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
         }
 
         return builder

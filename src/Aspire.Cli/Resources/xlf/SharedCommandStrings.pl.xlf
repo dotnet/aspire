@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../SharedCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostNotRunning">
+        <source>No running AppHost found. Use 'aspire run' to start one first.</source>
+        <target state="translated">Nie znaleziono uruchomionego hosta aplikacji. Najpierw uruchom go poleceniem „aspire run”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatOptionDescription">
+        <source>Output format for detached AppHost results.</source>
+        <target state="translated">Format wyjściowy dla odłączonych wyników hosta AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="IsolatedOptionDescription">
+        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
+        <target state="translated">Uruchom w trybie izolowanym z losowymi portami i izolowanymi wpisami tajnymi użytkownika, co pozwala na jednoczesne działanie wielu wystąpień.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleInScopeAppHosts">
+        <source>Multiple running AppHosts found in the current directory. Select from running AppHosts.</source>
+        <target state="translated">W bieżącym katalogu znaleziono wiele uruchomionych hostów aplikacji. Wybierz z uruchomionych hostów aplikacji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoInScopeAppHostsShowingAll">
+        <source>No running AppHosts found in the current directory. Select from all running AppHosts.</source>
+        <target state="translated">Nie znaleziono uruchomionych hostów aplikacji w bieżącym katalogu. Wybierz spośród wszystkich uruchomionych hostów aplikacji.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostOptionDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Ścieżka do pliku projektu hosta AppHost platformy Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ScanningForRunningAppHosts">
+        <source>Scanning for running AppHosts...</source>
+        <target state="translated">Skanowanie w poszukiwaniu uruchomionych hostów aplikacji...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAppHost">
+        <source>Select an AppHost to {0}:</source>
+        <target state="translated">Wybierz hosta aplikacji, aby {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UsingAppHost">
+        <source>Using AppHost: {0}</source>
+        <target state="translated">Używanie hosta aplikacji: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

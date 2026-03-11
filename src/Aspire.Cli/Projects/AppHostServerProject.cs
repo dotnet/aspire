@@ -31,6 +31,7 @@ internal sealed class AppHostServerProjectFactory(
     IConfigurationService configurationService,
     IBundleService bundleService,
     BundleNuGetService bundleNuGetService,
+    IDotNetSdkInstaller sdkInstaller,
     ILoggerFactory loggerFactory) : IAppHostServerProjectFactory
 {
     public async Task<IAppHostServerProject> CreateAsync(string appPath, CancellationToken cancellationToken = default)
@@ -76,13 +77,15 @@ internal sealed class AppHostServerProjectFactory(
         var layout = await bundleService.EnsureExtractedAndGetLayoutAsync(cancellationToken);
 
         // Priority 3: Check if we have a bundle layout with a pre-built AppHost server
-        if (layout is not null && layout.GetAppHostServerPath() is string serverPath && File.Exists(serverPath))
+        if (layout is not null && layout.GetManagedPath() is string serverPath && File.Exists(serverPath))
         {
             return new PrebuiltAppHostServer(
                 appPath,
                 socketPath,
                 layout,
                 bundleNuGetService,
+                dotNetCliRunner,
+                sdkInstaller,
                 packagingService,
                 configurationService,
                 loggerFactory.CreateLogger<PrebuiltAppHostServer>());

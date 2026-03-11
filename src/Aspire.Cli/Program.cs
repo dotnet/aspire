@@ -16,6 +16,8 @@ using Aspire.Cli.Bundles;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Secrets;
+using Microsoft.AspNetCore.Certificates.Generation;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Diagnostics;
@@ -69,11 +71,11 @@ public class Program
         // Check for --debug or -d (backward compatibility)
         var debugMode = args.Any(a => a == "--debug" || a == "-d");
 
-        // Check for --debug-level or -v
+        // Check for --log-level or -l
         LogLevel? logLevel = null;
         for (var i = 0; i < args.Length; i++)
         {
-            if ((args[i] == "--debug-level" || args[i] == "-v") && i + 1 < args.Length)
+            if ((args[i] == "--log-level" || args[i] == "-l") && i + 1 < args.Length)
             {
                 if (Enum.TryParse<LogLevel>(args[i + 1], ignoreCase: true, out var parsedLevel))
                 {
@@ -244,6 +246,7 @@ public class Program
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
+        builder.Services.AddSingleton<ITemplateVersionPrompter>(sp => (ITemplateVersionPrompter)sp.GetRequiredService<INewCommandPrompter>());
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
@@ -252,22 +255,9 @@ public class Program
         builder.Services.AddTelemetryServices();
         builder.Services.AddTransient<IDotNetCliExecutionFactory, DotNetCliExecutionFactory>();
 
-        // Register certificate tool runner implementations - factory chooses based on embedded bundle
-        builder.Services.AddSingleton<ICertificateToolRunner>(sp =>
-        {
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var bundleService = sp.GetRequiredService<IBundleService>();
-
-            if (bundleService.IsBundle)
-            {
-                return new BundleCertificateToolRunner(
-                    bundleService,
-                    loggerFactory.CreateLogger<BundleCertificateToolRunner>());
-            }
-
-            // Fall back to SDK-based runner
-            return new SdkCertificateToolRunner(loggerFactory.CreateLogger<SdkCertificateToolRunner>());
-        });
+        // Register certificate tool runner - uses native CertificateManager directly (no subprocess needed)
+        builder.Services.AddSingleton(sp => CertificateManager.Create(sp.GetRequiredService<ILogger<NativeCertificateToolRunner>>()));
+        builder.Services.AddSingleton<ICertificateToolRunner, NativeCertificateToolRunner>();
 
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
@@ -300,6 +290,7 @@ public class Program
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddSingleton<IFirstTimeUseNoticeSentinel>(_ => new FirstTimeUseNoticeSentinel(GetUsersAspirePath()));
         builder.Services.AddSingleton<IBannerService, BannerService>();
+        builder.Services.AddSingleton<ResourceColorMap>();
         builder.Services.AddMemoryCache();
 
         // MCP server: aspire.dev docs services.
@@ -326,6 +317,12 @@ public class Program
         builder.Services.AddSingleton<IVsCodeCliRunner, VsCodeCliRunner>();
         builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
 
+        // Npm and Playwright CLI operations.
+        builder.Services.AddSingleton<Aspire.Cli.Npm.INpmRunner, Aspire.Cli.Npm.NpmRunner>();
+        builder.Services.AddHttpClient<Aspire.Cli.Npm.INpmProvenanceChecker, Aspire.Cli.Npm.SigstoreNpmProvenanceChecker>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.IPlaywrightCliRunner, Aspire.Cli.Agents.Playwright.PlaywrightCliRunner>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Playwright.PlaywrightCliInstaller>();
+
         // Agent environment detection.
         builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
@@ -335,8 +332,10 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Template factories.
+        builder.Services.AddSingleton<TemplateNuGetConfigService>();
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
 
         // Language discovery for polyglot support.
         builder.Services.AddSingleton<ILanguageDiscovery, DefaultLanguageDiscovery>();
@@ -366,16 +365,16 @@ public class Program
         builder.Services.AddSingleton<IMcpTransportFactory, StdioMcpTransportFactory>();
 
         // Commands.
+        builder.Services.AddTransient<AppHostLauncher>();
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
-        builder.Services.AddTransient<RestartCommand>();
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
-        builder.Services.AddTransient<ResourcesCommand>();
+        builder.Services.AddTransient<DescribeCommand>();
         builder.Services.AddTransient<LogsCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
@@ -400,10 +399,19 @@ public class Program
         builder.Services.AddTransient<DocsListCommand>();
         builder.Services.AddTransient<DocsSearchCommand>();
         builder.Services.AddTransient<DocsGetCommand>();
+        builder.Services.AddTransient<SecretCommand>();
+        builder.Services.AddTransient<SecretSetCommand>();
+        builder.Services.AddTransient<SecretGetCommand>();
+        builder.Services.AddTransient<SecretListCommand>();
+        builder.Services.AddTransient<SecretDeleteCommand>();
+        builder.Services.AddTransient<SecretStoreResolver>();
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
         builder.Services.AddTransient<SetupCommand>();
+#if DEBUG
+        builder.Services.AddTransient<RenderCommand>();
+#endif
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
@@ -485,8 +493,10 @@ public class Program
         var sentinel = serviceProvider.GetRequiredService<IFirstTimeUseNoticeSentinel>();
         var isFirstRun = !sentinel.Exists();
 
-        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo)
-        if (showBanner || (isFirstRun && !noLogo))
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+
+        // Show banner if explicitly requested OR on first run (unless suppressed by noLogo or non-interactive output)
+        if (showBanner || (isFirstRun && !noLogo && hostEnvironment.SupportsInteractiveOutput))
         {
             var bannerService = serviceProvider.GetRequiredService<IBannerService>();
             await bannerService.DisplayBannerAsync(cancellationToken);
@@ -603,6 +613,9 @@ public class Program
 
         try
         {
+            cliLogger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
+            cliLogger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
+
             // Log command invocation details for debugging
             var commandLine = args.Length > 0 ? $"aspire {string.Join(" ", args)}" : "aspire";
             var workingDir = Environment.CurrentDirectory;
@@ -634,7 +647,9 @@ public class Program
             // Allows logging of exceptions to telemetry.
 
             // Don't log or display cancellation exceptions.
-            if (!(ex is OperationCanceledException && cts.IsCancellationRequested))
+            // Check both Ctrl+C cancellation (cts.IsCancellationRequested) and
+            // extension prompt cancellation (ExtensionOperationCanceledException).
+            if (!(ex is OperationCanceledException && cts.IsCancellationRequested) && ex is not ExtensionOperationCanceledException)
             {
                 logger.LogError(ex, "An unexpected error occurred.");
 

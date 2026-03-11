@@ -60,10 +60,10 @@ public sealed class BundleNuGetService : INuGetService
             throw new InvalidOperationException("Bundle layout not found. Cannot perform NuGet restore in bundle mode.");
         }
 
-        var helperPath = layout.GetNuGetHelperPath();
-        if (helperPath is null || !File.Exists(helperPath))
+        var managedPath = layout.GetManagedPath();
+        if (managedPath is null || !File.Exists(managedPath))
         {
-            throw new InvalidOperationException($"NuGet helper tool not found.");
+            throw new InvalidOperationException("aspire-managed not found in layout.");
         }
 
         var packageList = packages.ToList();
@@ -89,8 +89,10 @@ public sealed class BundleNuGetService : INuGetService
         Directory.CreateDirectory(objDir);
 
         // Step 1: Restore packages
+        // Prepend "nuget" subcommand for aspire-managed dispatch
         var restoreArgs = new List<string>
         {
+            "nuget",
             "restore",
             "--output", objDir,
             "--framework", targetFramework
@@ -125,12 +127,11 @@ public sealed class BundleNuGetService : INuGetService
         }
 
         _logger.LogDebug("Restoring {Count} packages", packageList.Count);
-        _logger.LogDebug("NuGetHelper path: {HelperPath}", helperPath);
-        _logger.LogDebug("NuGetHelper args: {Args}", string.Join(" ", restoreArgs));
+        _logger.LogDebug("aspire-managed path: {ManagedPath}", managedPath);
+        _logger.LogDebug("NuGet restore args: {Args}", string.Join(" ", restoreArgs));
 
         var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
-            layout,
-            helperPath,
+            managedPath,
             restoreArgs,
             ct: ct);
 
@@ -149,8 +150,10 @@ public sealed class BundleNuGetService : INuGetService
         }
 
         // Step 2: Create flat layout
+        // Prepend "nuget" subcommand for aspire-managed dispatch
         var layoutArgs = new List<string>
         {
+            "nuget",
             "layout",
             "--assets", assetsPath,
             "--output", libsDir,
@@ -164,11 +167,10 @@ public sealed class BundleNuGetService : INuGetService
         }
 
         _logger.LogDebug("Creating layout from {AssetsPath}", assetsPath);
-        _logger.LogDebug("Layout args: {Args}", string.Join(" ", layoutArgs));
+        _logger.LogDebug("NuGet layout args: {Args}", string.Join(" ", layoutArgs));
 
         (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
-            layout,
-            helperPath,
+            managedPath,
             layoutArgs,
             ct: ct);
 

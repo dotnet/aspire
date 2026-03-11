@@ -41,11 +41,8 @@ internal sealed class BundleService(ILayoutDiscovery layoutDiscovery, ILogger<Bu
     /// The bin/ directory is intentionally excluded since it contains the running CLI binary.
     /// </summary>
     internal static readonly string[] s_layoutDirectories = [
-        BundleDiscovery.RuntimeDirectoryName,
-        BundleDiscovery.DashboardDirectoryName,
-        BundleDiscovery.DcpDirectoryName,
-        BundleDiscovery.AppHostServerDirectoryName,
-        "tools"
+        BundleDiscovery.ManagedDirectoryName,
+        BundleDiscovery.DcpDirectoryName
     ];
 
     /// <inheritdoc/>

@@ -24,7 +24,7 @@ jobs:
 
       - name: Discover and dump ATS capabilities
         run: |
-          ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release --"
+          ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release -- --nologo"
           FAILURES=0
 
           # Dump core Aspire.Hosting capabilities (no integration argument)

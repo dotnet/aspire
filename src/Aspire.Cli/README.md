@@ -1,261 +1,119 @@
-# Aspire CLI Command Reference
+# Aspire CLI
 
-The Aspire CLI is used to create, run, and publish Aspire-based applications. The CLI is primarily interactive, providing prompts and guidance for most operations.
+The Aspire CLI is used to create, run, and manage Aspire-based distributed applications.
 
 ## Usage
 
-```cli
-aspire [command] [options]
+```text
+aspire <command> [options]
 ```
 
 ## Global Options
 
-- `-d, --debug` - Enable debug logging to the console
-- `--wait-for-debugger` - Wait for a debugger to attach before executing the command
-- `-?, -h, --help` - Show help and usage information
-- `--version` - Show version information
+| Option | Description |
+|--------|-------------|
+| `-h, /h` | Show help and usage information. |
+| `-v, --version` | Show version information. |
+| `-l, --log-level` | Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical). |
+| `--non-interactive` | Run the command in non-interactive mode, disabling all interactive prompts and spinners. |
+| `--nologo` | Suppress the startup banner and telemetry notice. |
+| `--banner` | Display the animated Aspire CLI welcome banner. |
+| `--wait-for-debugger` | Wait for a debugger to attach before executing the command. |
 
 ## Commands
 
-### run
+### App Commands
 
-Run an Aspire app host in development mode.
+| Command | Description |
+|---------|-------------|
+| `new` | Create a new app from an Aspire starter template. |
+| `init` | Initialize Aspire in an existing codebase. |
+| `add [<integration>]` | Add a hosting integration to the apphost. |
+| `update` | Update integrations in the Aspire project. (Preview) |
+| `run` | Run an apphost in development mode. |
+| `stop` | Stop a running apphost or the specified resource. |
+| `ps` | List running apphosts. |
 
-```cli
-aspire run [options] [[--] <additional arguments>...]
-```
+### Resource Management
 
-**Options:**
-- `--project` - The path to the Aspire app host project file
-- `-w, --watch` - Start project resources in watch mode
+| Command | Description |
+|---------|-------------|
+| `start <resource>` | Start a stopped resource. |
+| `stop [<resource>]` | Stop a running apphost or the specified resource. |
+| `restart <resource>` | Restart a running resource. |
+| `wait <resource>` | Wait for a resource to reach a target status. |
+| `command <resource> <command>` | Execute a command on a resource. |
 
-**Additional Arguments:**
-Arguments passed to the application that is being run.
+### Monitoring
 
-**Description:**
-Starts the Aspire app host. If no project is specified, it looks in the current directory for a *.csproj file. It will error if it can't find a .csproj, or if there are multiple in the directory.
+| Command | Description |
+|---------|-------------|
+| `describe [<resource>]` | Describe resources in a running apphost. |
+| `logs [<resource>]` | Display logs from resources in a running apphost. |
+| `otel` | View OpenTelemetry data (logs, spans, traces) from a running apphost. |
 
-### new
+### Deployment
 
-Create a new Aspire project.
+| Command | Description |
+|---------|-------------|
+| `publish` | Generate deployment artifacts for an apphost. (Preview) |
+| `deploy` | Deploy an apphost to its deployment targets. (Preview) |
+| `do <step>` | Execute a specific pipeline step and its dependencies. (Preview) |
 
-```cli
-aspire new [command] [options]
-```
+### Tools & Configuration
 
-**Options:**
-- `-n, --name` - The name of the project to create
-- `-o, --output` - The output path for the project
-- `-s, --source` - The NuGet source to use for the project templates
-- `-v, --version` - The version of the project templates to use
+| Command | Description |
+|---------|-------------|
+| `config` | Manage CLI configuration including feature flags. |
+| `cache` | Manage disk cache for CLI operations. |
+| `doctor` | Diagnose Aspire environment issues and verify setup. |
+| `docs` | Browse and search Aspire documentation from aspire.dev. |
+| `agent` | Manage AI agent specific setup. |
 
-**Description:**
-Creates a new Aspire project through an interactive template selection process. Pulls the latest Aspire templates and creates the project using `dotnet new`.
+## Examples
 
-### add
+```bash
+# Create a new Aspire application
+aspire new
 
-Add an integration to the Aspire project.
+# Run the apphost
+aspire run
 
-```cli
-aspire add [<integration>] [options]
-```
+# Run in the background (useful for CI and agent environments)
+aspire run --detach --isolated
 
-**Arguments:**
-- `<integration>` - The name of the integration to add (e.g. redis, postgres)
+# Check resource status
+aspire describe
 
-**Options:**
-- `--project` - The path to the project file to add the integration to
-- `-v, --version` - The version of the integration to add
-- `-s, --source` - The NuGet source to use for the integration
+# Stream resource state changes
+aspire describe --follow
 
-**Description:**
-Adds an Aspire integration package to the project. If no integration name is provided, displays a selection prompt with available integrations. Integrations are given friendly names based on the package ID (e.g., `Aspire.Hosting.Redis` can be referenced as `redis`).
+# View logs
+aspire logs
+aspire logs webapi
 
-### publish
+# Stop the apphost
+aspire stop
 
-Generates deployment artifacts for an Aspire app host project. (Preview)
-
-```cli
-aspire publish [options] [[--] <additional arguments>...]
-```
-
-**Options:**
-- `--project` - The path to the Aspire app host project file
-- `-o, --output-path` - The output path for the generated artifacts
-
-**Additional Arguments:**
-Arguments passed to the application that is being run.
-
-**Description:**
-Generates deployment artifacts for the Aspire app host project using the default publisher.
-
-### deploy
-
-Deploy an Aspire app host project to its supported deployment targets. (Preview)
-
-```cli
-aspire deploy [options] [[--] <additional arguments>...]
-```
-
-**Options:**
-- `--project` - The path to the Aspire app host project file
-- `-o, --output-path` - The output path for deployment artifacts
-
-**Additional Arguments:**
-Arguments passed to the application that is being run.
-
-**Description:**
-Deploys an Aspire app host project to its supported deployment targets. Generates deployment artifacts and initiates the deployment process.
-
-### exec
-
-Run an Aspire app host to execute a command against the resource. (Preview)
-
-```cli
-aspire exec [options] [[--] <additional arguments>...]
-```
-
-**Options:**
-- `--project` - The path to the Aspire app host project file
-- `-r, --resource` - The name of the target resource to execute the command against
-- `-s, --start-resource` - The name of the target resource to start and execute the command against
-
-**Additional Arguments:**
-Arguments passed to the application that is being run.
-
-**Description:**
-Runs the Aspire app host and executes a command against a specified resource. Use either `--resource` for an existing resource or `--start-resource` to start a resource and then execute the command.
-
-### wait
-
-Wait for a resource to reach a target status.
-
-```cli
-aspire wait <resource> [options]
-```
-
-**Arguments:**
-- `<resource>` - The name of the resource to wait for
-
-**Options:**
-- `--status` - The target status to wait for: `healthy`, `up`, `down` (default: `healthy`)
-- `--timeout` - Maximum time to wait in seconds (default: 120)
-- `--project` - The path to the Aspire AppHost project file
-
-**Description:**
-Blocks until the specified resource reaches the desired status or the timeout is exceeded. Useful in CI/CD pipelines and scripts after starting an AppHost with `aspire run --detach`.
-
-**Status values:**
-- `healthy` (default) - Resource is running and all health checks pass (or no health checks registered)
-- `up` - Resource is running, regardless of health check status
-- `down` - Resource has exited, finished, or failed to start
-
-**Exit codes:**
-- `0` - Resource reached the desired status
-- `17` - Timeout exceeded
-- `18` - Resource entered a terminal failure state while waiting for healthy/up
-- `7` - Failed to find or connect to AppHost
-
-**Example:**
-```cli
-# Start an AppHost in the background, then wait for a resource
+# Wait for a resource to be healthy (CI/scripts)
 aspire run --detach
-aspire wait webapi
-aspire wait redis --status up --timeout 60
-aspire wait worker --status down
+aspire wait webapi --timeout 60
+
+# Add an integration
+aspire add redis
+
+# Diagnose environment issues
+aspire doctor
+
+# Search Aspire documentation
+aspire docs search "redis"
 ```
 
-### update
+## Additional documentation
 
-Update integrations in the Aspire project. (Preview)
+* https://aspire.dev
+* https://learn.microsoft.com/dotnet/aspire
 
-```cli
-aspire update [options]
-```
+## Feedback & contributing
 
-**Options:**
-- `--project` - The path to the project file
-- `--self` - Update the Aspire CLI itself to the latest version
-- `--quality <quality>` - Quality level to update to when using --self (stable, staging, daily)
-
-**Description:**
-Updates Aspire integration packages to their latest compatible versions. Supports both traditional package management (PackageReference with Version) and Central Package Management (CPM) using Directory.Packages.props. The command automatically detects the package management approach used in the project and updates packages accordingly.
-
-When using `--self`, the CLI will update itself to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure. If the quality level is not specified with `--self`, an interactive prompt will appear to select from the available options.
-
-**Quality Levels (for --self):**
-- `stable` - Latest stable release version
-- `staging` - Latest release candidate/staging version
-- `daily` - Latest development build from main branch
-
-**Example:**
-```cli
-# Update project integrations
-aspire update
-
-# Update CLI with interactive quality selection
-aspire update --self
-
-# Update CLI to latest stable release
-aspire update --self --quality stable
-
-# Update CLI to latest development build
-aspire update --self --quality daily
-```
-
-### config
-
-Manage configuration settings.
-
-```cli
-aspire config [command] [options]
-```
-
-**Subcommands:**
-
-#### get
-Get a configuration value.
-
-```cli
-aspire config get <key>
-```
-
-**Arguments:**
-- `<key>` - The configuration key to get
-
-#### set
-Set a configuration value.
-
-```cli
-aspire config set <key> <value> [options]
-```
-
-**Arguments:**
-- `<key>` - The configuration key to set
-- `<value>` - The configuration value to set
-
-**Options:**
-- `-g, --global` - Set the configuration value globally in `$HOME/.aspire/settings.json` instead of the local settings file
-
-#### list
-List all configuration values.
-
-```cli
-aspire config list
-```
-
-#### delete
-Delete a configuration value.
-
-```cli
-aspire config delete <key> [options]
-```
-
-**Arguments:**
-- `<key>` - The configuration key to delete
-
-**Options:**
-- `-g, --global` - Delete the configuration value from the global settings file instead of the local settings file
-
-**Description:**
-Manages CLI configuration settings. Configuration can be set locally (per project) or globally (user-wide). Local settings are stored in the current directory, while global settings are stored in `$HOME/.aspire/settings.json`.
+https://github.com/dotnet/aspire
