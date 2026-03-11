@@ -343,7 +343,8 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        const resourceName = element.resource.name;
+        // aspire logs accepts the resource display name, not the internal name
+        const resourceName = element.resource.displayName ?? element.resource.name;
         if (this._repository.viewMode === 'workspace') {
             const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
             this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}"${appHostFlag}`);
