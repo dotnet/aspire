@@ -62,6 +62,8 @@ export class AppHostDataRepository {
     private _workspaceResources: Map<string, ResourceJson> = new Map();
     private _describeProcess: ChildProcessWithoutNullStreams | undefined;
     private _describeRestarting = false;
+    private _describeRestartDelay = 5000;
+    private static readonly _maxDescribeRestartDelay = 60000;
 
     // ── Global mode state (ps polling) ──
     private _appHosts: AppHostDisplayInfo[] = [];
@@ -141,6 +143,9 @@ export class AppHostDataRepository {
 
     refresh(): void {
         this._stopDescribeWatch();
+        this._workspaceResources.clear();
+        this._updateWorkspaceContext();
+        this._describeRestartDelay = 5000;
         this._startDescribeWatch();
         if (this._shouldPoll) {
             this._fetchAppHosts();
@@ -265,12 +270,15 @@ export class AppHostDataRepository {
                         this._setError(undefined);
                         this._updateWorkspaceContext();
 
-                        // Auto-restart after a delay
+                        // Auto-restart with exponential backoff
+                        const delay = this._describeRestartDelay;
+                        this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, AppHostDataRepository._maxDescribeRestartDelay);
+                        extensionLogOutputChannel.info(`Restarting describe --follow in ${delay}ms`);
                         setTimeout(() => {
                             if (!this._disposed) {
                                 this._startDescribeWatch();
                             }
-                        }, 5000);
+                        }, delay);
                     }
                     this._describeRestarting = false;
                 },
@@ -307,6 +315,7 @@ export class AppHostDataRepository {
             if (resource.name) {
                 this._workspaceResources.set(resource.name, resource);
                 this._setError(undefined);
+                this._describeRestartDelay = 5000; // Reset backoff on successful data
                 this._updateWorkspaceContext();
             }
         } catch (e) {
@@ -342,7 +351,8 @@ export class AppHostDataRepository {
 
     private _getPollingIntervalMs(): number {
         const config = vscode.workspace.getConfiguration('aspire');
-        return config.get<number>('globalAppHostsPollingInterval', 30000);
+        const interval = config.get<number>('globalAppHostsPollingInterval', 30000);
+        return Math.max(interval, 1000);
     }
 
     private _fetchAppHosts(): void {

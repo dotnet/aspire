@@ -141,14 +141,14 @@ function buildResourceTooltip(resource: ResourceJson): vscode.MarkdownString {
     if (resource.healthStatus) {
         md.appendMarkdown(`${tooltipHealth(resource.healthStatus)}\n\n`);
     }
-    const urls = resource.urls?.filter(u => !u.isInternal) ?? [];
+    const urls = resource.urls?.filter(u => !u.isInternal && typeof u.url === 'string' && (u.url.startsWith('http://') || u.url.startsWith('https://'))) ?? [];
     if (urls.length > 0) {
         md.appendMarkdown(`**${tooltipEndpoints}**\n\n`);
         for (const url of urls) {
             md.appendMarkdown(`- [${url.displayName ?? url.url}](${url.url})\n`);
         }
     }
-    md.isTrusted = true;
+    md.isTrusted = { enabledCommands: [] };
     return md;
 }
 
@@ -343,7 +343,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        const resourceName = element.resource.displayName ?? element.resource.name;
+        const resourceName = element.resource.name;
         if (this._repository.viewMode === 'workspace') {
             const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
             this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}"${appHostFlag}`);

@@ -85,6 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   // Global-mode polling is tied to panel visibility
+  dataRepository.setPanelVisible(appHostTreeView.visible);
   appHostTreeView.onDidChangeVisibility(e => {
     dataRepository.setPanelVisible(e.visible);
   });
