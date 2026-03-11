@@ -47,9 +47,6 @@ async function dispatch(operation, payload) {
                 getJobLogTextForJob: async job => payload.jobLogTextByJobId?.[String(job.id)] ?? '',
             });
 
-        case 'extractTextFromZipArchiveBuffer':
-            return rerunWorkflow.extractTextFromZipArchiveBuffer(Buffer.from(payload.bufferBase64 ?? '', 'base64'));
-
         case 'getCheckRunIdForJob':
             return rerunWorkflow.getCheckRunIdForJob({
                 job: payload.job,

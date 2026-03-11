@@ -164,7 +164,7 @@ jobs:
                   throw new Error(`HTTP ${response.status}`);
                 }
 
-                return rerunWorkflow.extractTextFromZipArchiveBuffer(Buffer.from(await response.arrayBuffer()));
+                return await response.text();
               }
               catch (error) {
                 core.warning(`Failed to fetch logs for job ${jobId}: ${error.message}`);
