@@ -463,7 +463,7 @@ public class MSBuildTests
             }
             """);
 
-        CreateExportAnalyzerDirectoryBuildFiles(projectDirectory, repoRoot, enableAspireExportAnalyzers: true);
+        CreateExportAnalyzerDirectoryBuildFiles(projectDirectory, repoRoot, enableAspireIntegrationAnalyzers: true);
 
         var output = BuildProject(projectDirectory);
 
@@ -473,20 +473,20 @@ public class MSBuildTests
     private static void CreateExportAnalyzerDirectoryBuildFiles(
         string basePath,
         string repoRoot,
-        bool enableAspireExportAnalyzers = false)
+        bool enableAspireIntegrationAnalyzers = false)
     {
         File.WriteAllText(Path.Combine(basePath, "Directory.Build.props"),
         $"""
         <Project>
           <PropertyGroup>
-            <EnableAspireExportAnalyzers>{enableAspireExportAnalyzers.ToString().ToLowerInvariant()}</EnableAspireExportAnalyzers>
+            <EnableAspireIntegrationAnalyzers>{enableAspireIntegrationAnalyzers.ToString().ToLowerInvariant()}</EnableAspireIntegrationAnalyzers>
           </PropertyGroup>
         </Project>
         """);
         File.WriteAllText(Path.Combine(basePath, "Directory.Build.targets"),
         $"""
         <Project>
-          <ItemGroup Condition="'$(EnableAspireExportAnalyzers)' == 'true'">
+          <ItemGroup Condition="'$(EnableAspireIntegrationAnalyzers)' == 'true'">
             <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
                               PrivateAssets="all"
                               ReferenceOutputAssembly="false"

@@ -1,11 +1,11 @@
 <Project>
 
   <PropertyGroup>
-    <EnableAspireExportAnalyzers Condition="'$(EnableAspireExportAnalyzers)' == ''">false</EnableAspireExportAnalyzers>
+    <EnableAspireIntegrationAnalyzers Condition="'$(EnableAspireIntegrationAnalyzers)' == ''">false</EnableAspireIntegrationAnalyzers>
     <_AspireIntegrationAnalyzerAssembly Condition="'$(_AspireIntegrationAnalyzerAssembly)' == ''">$(MSBuildThisFileDirectory)Aspire.Hosting.Integration.Analyzers.dll</_AspireIntegrationAnalyzerAssembly>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(EnableAspireExportAnalyzers)' == 'true'">
+  <ItemGroup Condition="'$(EnableAspireIntegrationAnalyzers)' == 'true'">
     <Analyzer Include="$(_AspireIntegrationAnalyzerAssembly)" Condition="Exists('$(_AspireIntegrationAnalyzerAssembly)')" />
   </ItemGroup>
 
