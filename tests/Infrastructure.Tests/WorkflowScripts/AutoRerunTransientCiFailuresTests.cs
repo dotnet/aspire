@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Compression;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.TestUtilities;
@@ -209,36 +207,6 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Empty(result.RetryableJobs);
         Assert.Single(result.SkippedJobs);
         Assert.Equal("Annotations did not match the transient allowlist.", result.SkippedJobs[0].Reason);
-    }
-
-    [Fact]
-    [RequiresTools(["node"])]
-    public async Task ExtractTextFromZipArchiveBufferReadsDeflatedJobLogTextFromZipArchive()
-    {
-        string zipArchiveBase64 = CreateZipArchiveBase64(
-            new ZipEntryData("step-1.txt", "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json."),
-            new ZipEntryData("step-2.txt", "additional context"));
-
-        string extractedText = await InvokeHarnessAsync<string>(
-            "extractTextFromZipArchiveBuffer",
-            new { bufferBase64 = zipArchiveBase64 });
-
-        Assert.Contains("Unable to load the service index", extractedText);
-        Assert.Contains("additional context", extractedText);
-    }
-
-    [Fact]
-    [RequiresTools(["node"])]
-    public async Task ExtractTextFromZipArchiveBufferFallsBackToPlainTextWhenPayloadIsNotZipArchive()
-    {
-        string plainTextBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("plain-text log line with Unable to load the service index"));
-
-        string extractedText = await InvokeHarnessAsync<string>(
-            "extractTextFromZipArchiveBuffer",
-            new { bufferBase64 = plainTextBase64 });
-
-        Assert.Contains("plain-text log line", extractedText);
-        Assert.Contains("Unable to load the service index", extractedText);
     }
 
     [Fact]
@@ -643,22 +611,6 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             }).ToArray()
         };
 
-    private static string CreateZipArchiveBase64(params ZipEntryData[] entries)
-    {
-        using MemoryStream stream = new();
-        using (ZipArchive archive = new(stream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            foreach (ZipEntryData entry in entries)
-            {
-                ZipArchiveEntry archiveEntry = archive.CreateEntry(entry.Name, CompressionLevel.SmallestSize);
-                using StreamWriter writer = new(archiveEntry.Open(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                writer.Write(entry.Contents);
-            }
-        }
-
-        return Convert.ToBase64String(stream.ToArray());
-    }
-
     private static string FindRepoRoot()
     {
         string? current = AppContext.BaseDirectory;
@@ -770,6 +722,4 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         public string Route { get; init; } = string.Empty;
         public JsonElement Payload { get; init; }
     }
-
-    private sealed record ZipEntryData(string Name, string Contents);
 }

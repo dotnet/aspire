@@ -1,5 +1,3 @@
-const zlib = require('node:zlib');
-
 // Shared matcher, summary, and rerun helpers for the transient CI rerun workflow.
 const failureConclusions = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure']);
 const ignoredJobs = new Set(['Final Results', 'Tests / Final Test Results']);
@@ -91,77 +89,6 @@ const ignoredBuildFailureLogOverridePatterns = [
 
 function matchesAny(value, patterns) {
     return patterns.some(pattern => pattern.test(value));
-}
-
-function findEndOfCentralDirectoryOffset(buffer) {
-    for (let offset = buffer.length - 22; offset >= 0; offset--) {
-        if (buffer.readUInt32LE(offset) === 0x06054b50) {
-            return offset;
-        }
-    }
-
-    return -1;
-}
-
-function extractTextFromZipArchiveBuffer(buffer) {
-    if (!Buffer.isBuffer(buffer)) {
-        return '';
-    }
-
-    const endOfCentralDirectoryOffset = findEndOfCentralDirectoryOffset(buffer);
-    if (endOfCentralDirectoryOffset < 0) {
-        return buffer.toString('utf8');
-    }
-
-    const entryCount = buffer.readUInt16LE(endOfCentralDirectoryOffset + 10);
-    const centralDirectoryOffset = buffer.readUInt32LE(endOfCentralDirectoryOffset + 16);
-    const textChunks = [];
-    let offset = centralDirectoryOffset;
-
-    for (let index = 0; index < entryCount; index++) {
-        if (buffer.readUInt32LE(offset) !== 0x02014b50) {
-            break;
-        }
-
-        const compressionMethod = buffer.readUInt16LE(offset + 10);
-        const compressedSize = buffer.readUInt32LE(offset + 20);
-        const fileNameLength = buffer.readUInt16LE(offset + 28);
-        const extraLength = buffer.readUInt16LE(offset + 30);
-        const commentLength = buffer.readUInt16LE(offset + 32);
-        const localHeaderOffset = buffer.readUInt32LE(offset + 42);
-        const fileName = buffer.toString('utf8', offset + 46, offset + 46 + fileNameLength);
-
-        offset += 46 + fileNameLength + extraLength + commentLength;
-
-        if (fileName.endsWith('/')) {
-            continue;
-        }
-
-        if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
-            continue;
-        }
-
-        const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
-        const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
-        const dataOffset = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
-        const compressedData = buffer.subarray(dataOffset, dataOffset + compressedSize);
-
-        let fileText;
-        switch (compressionMethod) {
-            case 0:
-                fileText = compressedData.toString('utf8');
-                break;
-            case 8:
-                fileText = zlib.inflateRawSync(compressedData).toString('utf8');
-                break;
-            default:
-                continue;
-        }
-
-        textChunks.push(fileText);
-    }
-
-    return textChunks.join('\n');
 }
 
 function parseCheckRunId(checkRunUrl) {
@@ -599,7 +526,6 @@ module.exports = {
     classifyFailedJob,
     computeRerunEligibility,
     defaultMaxRetryableJobs,
-    extractTextFromZipArchiveBuffer,
     getCheckRunIdForJob,
     getOpenPullRequestNumbers,
     getLatestRunAttempt,
