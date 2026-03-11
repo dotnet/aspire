@@ -296,6 +296,8 @@ pub enum EndpointProperty {
     TargetPort,
     #[serde(rename = "HostAndPort")]
     HostAndPort,
+    #[serde(rename = "TlsEnabled")]
+    TlsEnabled,
 }
 
 impl std::fmt::Display for EndpointProperty {
@@ -308,6 +310,7 @@ impl std::fmt::Display for EndpointProperty {
             Self::Scheme => write!(f, "Scheme"),
             Self::TargetPort => write!(f, "TargetPort"),
             Self::HostAndPort => write!(f, "HostAndPort"),
+            Self::TlsEnabled => write!(f, "TlsEnabled"),
         }
     }
 }
@@ -1313,23 +1316,23 @@ impl CSharpAppResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -1891,26 +1894,6 @@ impl ConnectionStringResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
-    /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
     /// Adds a pipeline step to the resource
     pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -2329,26 +2312,6 @@ impl ContainerRegistryResource {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         let result = self.client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }
@@ -3233,23 +3196,23 @@ impl ContainerResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -4434,23 +4397,23 @@ impl DotnetToolResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -4750,6 +4713,14 @@ impl EndpointReference {
         Ok(serde_json::from_value(result)?)
     }
 
+    /// Gets the TlsEnabled property
+    pub fn tls_enabled(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
     /// Gets the Port property
     pub fn port(&self) -> Result<f64, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -4799,6 +4770,16 @@ impl EndpointReference {
             args.insert("cancellationToken".to_string(), Value::String(token_id));
         }
         let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/getValueAsync", args)?;
+        Ok(serde_json::from_value(result)?)
+    }
+
+    /// Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise.
+    pub fn get_tls_value(&self, enabled_value: ReferenceExpression, disabled_value: ReferenceExpression) -> Result<ReferenceExpression, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("enabledValue".to_string(), serde_json::to_value(&enabled_value).unwrap_or(Value::Null));
+        args.insert("disabledValue".to_string(), serde_json::to_value(&disabled_value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue", args)?;
         Ok(serde_json::from_value(result)?)
     }
 }
@@ -5590,23 +5571,23 @@ impl ExecutableResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -6113,26 +6094,6 @@ impl ExternalServiceResource {
         Ok(IResource::new(handle, self.client.clone()))
     }
 
-    /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
     /// Adds a pipeline step to the resource
     pub fn with_pipeline_step_factory(&self, step_name: &str, callback: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static, depends_on: Option<Vec<String>>, required_by: Option<Vec<String>>, tags: Option<Vec<String>>, description: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -6323,6 +6284,32 @@ impl ExternalServiceResource {
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/withCancellableOperation", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource
+pub struct IComputeResource {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IComputeResource {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IComputeResource {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
     }
 }
 
@@ -7328,26 +7315,6 @@ impl ParameterResource {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         let result = self.client.invoke_capability("Aspire.Hosting/excludeFromMcp", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
-    }
-
-    /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResource::new(handle, self.client.clone()))
     }
@@ -8468,23 +8435,23 @@ impl ProjectResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -10029,23 +9996,23 @@ impl TestDatabaseResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -11250,23 +11217,23 @@ impl TestRedisResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource
@@ -12580,23 +12547,23 @@ impl TestVaultResource {
     }
 
     /// Sets the remote image name for publishing
-    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_name(&self, remote_image_name: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageName".to_string(), serde_json::to_value(&remote_image_name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageName", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Sets the remote image tag for publishing
-    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IResource, Box<dyn std::error::Error>> {
+    pub fn with_remote_image_tag(&self, remote_image_tag: &str) -> Result<IComputeResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("remoteImageTag".to_string(), serde_json::to_value(&remote_image_tag).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting/withRemoteImageTag", args)?;
         let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResource::new(handle, self.client.clone()))
+        Ok(IComputeResource::new(handle, self.client.clone()))
     }
 
     /// Adds a pipeline step to the resource

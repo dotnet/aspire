@@ -30,6 +30,8 @@
     "workspaceContains:**/*.csproj",
     "onView:workbench.view.debug",
     "workspaceContains:**/apphost.cs",
+    "workspaceContains:**/apphost.ts",
+    "workspaceContains:**/apphost.js",
     "onCommand:aspire-vscode.installCliStable",
     "onCommand:aspire-vscode.installCliDaily",
     "onCommand:aspire-vscode.verifyCliInstalled"
@@ -290,24 +292,24 @@
       "explorer/context": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@1"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@2"
         }
       ],
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-3"
         }
       ],

@@ -9,6 +9,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.JavaScript;
@@ -26,10 +27,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class JavaScriptHostingExtensions
 {
-    private const string DefaultNodeVersion = "22";
-
-    // This must match the value in Aspire.Cli KnownCapabilities.Browser
     private const string BrowserCapability = "browser";
+    private const string DefaultNodeVersion = "22";
 
     // This is the order of config files that Vite will look for by default
     // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
@@ -263,6 +262,8 @@ public static class JavaScriptHostingExtensions
             resourceBuilder.WithNpm();
         }
 
+        resourceBuilder.WithVSCodeDebugging(scriptPath);
+
         if (builder.ExecutionContext.IsRunMode)
         {
             builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
@@ -278,7 +279,7 @@ public static class JavaScriptHostingExtensions
             });
         }
 
-        return resourceBuilder.WithVSCodeDebugging(scriptPath);
+        return resourceBuilder;
     }
 
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : JavaScriptAppResource =>
@@ -463,8 +464,9 @@ public static class JavaScriptHostingExtensions
             })
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" })
             .WithBuildScript("build")
-            .WithRunScript(runScriptName)
-            .WithVSCodeDebugging();
+            .WithRunScript(runScriptName);
+
+        resourceBuilder.WithVSCodeDebugging();
 
         // ensure the package manager command is set before starting the resource
         if (builder.ExecutionContext.IsRunMode)
@@ -941,72 +943,6 @@ public static class JavaScriptHostingExtensions
         return resource.WithAnnotation(new JavaScriptRunScriptAnnotation(scriptName, args));
     }
 
-    /// <summary>
-    /// Configures debugging support for a Node.js/TypeScript resource.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="scriptPath">The path to the script to debug.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method enables debugging for Node.js/TypeScript applications.
-    /// The debug configuration includes the Node.js runtime path, script path, and appropriate launch settings.
-    /// </para>
-    /// <para>
-    /// This method is called automatically by <see cref="AddNodeApp"/>. It only needs to be called
-    /// explicitly when creating custom Node.js resources or when you want to override the script path.
-    /// </para>
-    /// </remarks>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExport("withScriptDebugging", Description = "Enables debugging support for a Node.js application with an explicit script path")]
-    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
-        where T : NodeAppResource
-    {
-        return builder.WithVSCodeDebugging(scriptPath);
-    }
-
-    /// <summary>
-    /// Configures debugging support for a JavaScript resource that uses a package manager script.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method enables debugging for JavaScript applications that run via package manager scripts
-    /// (e.g., <c>npm run dev</c>).
-    /// The debug configuration uses the package manager as the runtime executable.
-    /// </para>
-    /// <para>
-    /// This method is called automatically by <see cref="AddJavaScriptApp"/> and <see cref="AddViteApp"/>.
-    /// </para>
-    /// </remarks>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExport("withDebugging", Description = "Enables debugging support for a JavaScript application")]
-    public static IResourceBuilder<T> WithDebugging<T>(this IResourceBuilder<T> builder)
-        where T : JavaScriptAppResource
-    {
-        return builder.WithVSCodeDebugging();
-    }
-
-    /// <summary>
-    /// Configures debugging support for a Node.js/TypeScript resource.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="scriptPath">The path to the script to debug.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method enables debugging for Node.js/TypeScript applications when running in the VS Code extension.
-    /// The debug configuration includes the Node.js runtime path, script path, and appropriate launch settings.
-    /// </para>
-    /// <para>
-    /// This method is called automatically by <see cref="AddNodeApp"/>. It only needs to be called
-    /// explicitly when creating custom Node.js resources or when you want to override the script path.
-    /// </para>
-    /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder, string scriptPath)
         where T : NodeAppResource
@@ -1014,254 +950,88 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
 
+        var resource = builder.Resource;
+        var workingDirectory = Path.GetFullPath(resource.WorkingDirectory);
+
         return builder.WithDebugSupport(
-            options =>
+            mode =>
             {
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
-                var displayPath = workspaceRoot is not null
-                    ? Path.GetRelativePath(workspaceRoot, builder.Resource.WorkingDirectory)
-                    : builder.Resource.WorkingDirectory;
-
-                // Check if a run script annotation is present - if so, use package manager instead of direct node
-                var hasRunScript = builder.Resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out var runScriptAnnotation);
-                var hasPackageManager = builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
-
-                VSCodeNodeDebuggerProperties debuggerProperties;
-                string runtimeExecutable;
-
-                if (hasRunScript && hasPackageManager)
-                {
-                    runtimeExecutable = pmAnnotation!.ExecutableName;
-
-                    debuggerProperties = new VSCodeNodeDebuggerProperties
-                    {
-                        Name = $"{modeText} {runtimeExecutable}: {displayPath}",
-                        WorkingDirectory = builder.Resource.WorkingDirectory,
-                        RuntimeExecutable = runtimeExecutable,
-                        RuntimeArgs = [],
-                        ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
-                    };
-                }
-                else
-                {
-                    // Direct node execution mode
-                    runtimeExecutable = "node";
-                    debuggerProperties = new VSCodeNodeDebuggerProperties
-                    {
-                        Name = $"{modeText} Node.js: {displayPath}",
-                        WorkingDirectory = builder.Resource.WorkingDirectory,
-                        Program = Path.Combine(builder.Resource.WorkingDirectory, scriptPath),
-                        RuntimeExecutable = runtimeExecutable,
-                        ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
-                    };
-                }
-
-                if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var annotations))
-                {
-                    foreach (var annotation in annotations)
-                    {
-                        // Filter by IDE type if specified, and by debugger properties type
-                        if (annotation.IdeType is null || AspireIde.IsCurrentIde(annotation.IdeType))
-                        {
-                            annotation.ConfigureDebuggerProperties(debuggerProperties);
-                        }
-                    }
-                }
+                // Compute at run time so the launch config reflects the final annotation state
+                var hasRunScript = resource.TryGetLastAnnotation<JavaScriptRunScriptAnnotation>(out _);
+                var hasPackageManager = resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation);
+                var runtimeExecutable = hasRunScript && hasPackageManager ? pmAnnotation!.ExecutableName : "node";
 
                 return new NodeLaunchConfiguration
                 {
-                    ScriptPath = scriptPath,
-                    Mode = options.Mode,
+                    ScriptPath = Path.GetFullPath(scriptPath, workingDirectory),
+                    Mode = mode,
                     RuntimeExecutable = runtimeExecutable,
-                    DebuggerProperties = debuggerProperties
+                    WorkingDirectory = workingDirectory
                 };
             },
             "node");
     }
 
-    /// <summary>
-    /// Configures debugging support for a JavaScript resource that uses a package manager script.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method enables debugging for JavaScript applications that run via package manager scripts
-    /// (e.g., <c>npm run dev</c>) when running in the VS Code extension.
-    /// The debug configuration uses the package manager as the runtime executable.
-    /// </para>
-    /// <para>
-    /// This method is called automatically by <see cref="AddJavaScriptApp"/> and <see cref="AddViteApp"/>.
-    /// </para>
-    /// </remarks>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     internal static IResourceBuilder<T> WithVSCodeDebugging<T>(this IResourceBuilder<T> builder)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var resource = builder.Resource;
+        var workingDirectory = Path.GetFullPath(resource.WorkingDirectory);
+
         return builder.WithDebugSupport(
-            options =>
+            mode =>
             {
-                var modeText = options.Mode == "Debug" ? "Debug" : "Run";
-                var workspaceRoot = builder.ApplicationBuilder.Configuration[KnownConfigNames.ExtensionWorkspaceRoot];
-                var displayPath = workspaceRoot is not null
-                    ? Path.GetRelativePath(workspaceRoot, builder.Resource.WorkingDirectory)
-                    : builder.Resource.WorkingDirectory;
-
-                // Get package manager info for display name and runtime executable
+                // Compute at run time so the launch config reflects the final annotation state
                 var packageManager = "npm";
-
-                if (builder.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
+                if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var pmAnnotation))
                 {
                     packageManager = pmAnnotation.ExecutableName;
-                }
-
-                var debuggerProperties = new VSCodeNodeDebuggerProperties
-                {
-                    Name = $"{modeText} {packageManager}: {displayPath}",
-                    WorkingDirectory = builder.Resource.WorkingDirectory,
-                    RuntimeExecutable = packageManager,
-                    RuntimeArgs = [],
-                    ResolveSourceMapLocations = [$"{builder.Resource.WorkingDirectory}/**", "!**/node_modules/**"]
-                };
-
-                if (builder.Resource.TryGetAnnotationsOfType<IDebuggerPropertiesAnnotation>(out var annotations))
-                {
-                    foreach (var annotation in annotations)
-                    {
-                        // Filter by IDE type if specified, and by debugger properties type
-                        if (annotation.IdeType is null || AspireIde.IsCurrentIde(annotation.IdeType))
-                        {
-                            annotation.ConfigureDebuggerProperties(debuggerProperties);
-                        }
-                    }
                 }
 
                 return new NodeLaunchConfiguration
                 {
                     ScriptPath = string.Empty,
-                    Mode = options.Mode,
+                    Mode = mode,
                     RuntimeExecutable = packageManager,
-                    DebuggerProperties = debuggerProperties
+                    WorkingDirectory = workingDirectory
                 };
             },
             "node");
     }
 
     /// <summary>
-    /// Configures VS Code-specific debugger properties for a Node.js/TypeScript resource.
+    /// Configures a browser debugger for the JavaScript application resource, enabling browser-based debugging
+    /// through a child resource that launches when the parent application is ready.
     /// </summary>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="configureDebuggerProperties">A callback action to configure the debugger properties.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <typeparam name="T">The type of the JavaScript application resource.</typeparam>
+    /// <param name="builder">The resource builder for the JavaScript application.</param>
+    /// <param name="browser">The browser to use for debugging. Defaults to <c>"msedge"</c>. Supported values include <c>"msedge"</c> and <c>"chrome"</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
     /// <remarks>
-    /// <para>
-    /// This method allows customization of the VS Code debugger configuration that will be used when debugging the resource.
-    /// The callback receives a <see cref="VSCodeNodeDebuggerProperties"/> object that is pre-populated
-    /// with default values based on the resource's configuration. You can modify any properties
-    /// to customize the debugging experience.
-    /// </para>
-    /// <para>
-    /// Debugging is automatically enabled when using <see cref="AddNodeApp"/>, <see cref="AddJavaScriptApp"/>, and <see cref="AddViteApp"/>.
-    /// This method can be used to customize the debugger properties.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Configure Node.js debugger to stop on entry:
-    /// <code lang="csharp">
-    /// var api = builder.AddNodeApp("api", "../api", "server.js")
-    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.StopOnEntry = true;
-    ///     });
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Enable automatic child process debugging:
-    /// <code lang="csharp">
-    /// var worker = builder.AddNodeApp("worker", "../worker", "index.js")
-    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.AutoAttachChildProcesses = true;
-    ///     });
-    /// </code>
-    /// </example>
-    /// <example>
-    /// Configure source map locations for TypeScript projects:
-    /// <code lang="csharp">
-    /// var app = builder.AddNodeApp("app", "../app", "dist/index.js")
-    ///     .WithVSCodeNodeDebuggerProperties(props =&gt;
-    ///     {
-    ///         props.OutFiles = ["${workspaceFolder}/dist/**/*.js"];
-    ///     });
-    /// </code>
-    /// </example>
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    internal static IResourceBuilder<T> WithVSCodeNodeDebuggerProperties<T>(
-        this IResourceBuilder<T> builder,
-        Action<VSCodeNodeDebuggerProperties> configureDebuggerProperties)
-        where T : JavaScriptAppResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configureDebuggerProperties);
-
-        builder.WithAnnotation(new ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>(configureDebuggerProperties, AspireIde.VSCode));
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures browser debugging support for a JavaScript resource by creating a child browser debugger resource.
-    /// </summary>
-    /// <typeparam name="T">The type of the JavaScript resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="browser">The browser to use for debugging (e.g., "msedge", "chrome"). Defaults to "msedge".</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method creates a child <see cref="VSCodeBrowserDebuggerResource"/> that launches a controlled browser instance
-    /// for debugging JavaScript code running in the browser. The browser is managed by VS Code's js-debug extension.
-    /// </para>
-    /// <para>
-    /// The resource must have an HTTP or HTTPS endpoint configured. If no endpoint is found, an
-    /// <see cref="InvalidOperationException"/> is thrown.
-    /// </para>
+    /// This method creates a child <see cref="BrowserDebuggerResource"/> that waits for the parent JavaScript
+    /// application to start, then launches a browser debug session targeting the parent's HTTP or HTTPS endpoint.
+    /// The parent resource must have at least one HTTP or HTTPS endpoint configured.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the resource does not have an HTTP or HTTPS endpoint configured.
+    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE extension
+    /// does not support browser debugging.
     /// </exception>
     /// <example>
-    /// Add browser debugging to a Vite app:
-    /// <code lang="csharp">
-    /// var frontend = builder.AddViteApp("frontend", "../frontend")
+    /// Add browser debugging to a JavaScript application:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddViteApp("frontend", "./frontend")
     ///     .WithBrowserDebugger();
     /// </code>
     /// </example>
-    /// <example>
-    /// Use Chrome instead of Edge:
-    /// <code lang="csharp">
-    /// var frontend = builder.AddViteApp("frontend", "../frontend")
-    ///     .WithBrowserDebugger(browser: "chrome");
-    /// </code>
-    /// </example>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    [AspireExport("withBrowserDebugger", Description = "Configures browser debugging support")]
+    [AspireExport("withBrowserDebugger", Description = "Configures a browser debugger for the JavaScript application")]
     public static IResourceBuilder<T> WithBrowserDebugger<T>(
         this IResourceBuilder<T> builder,
         string browser = "msedge")
-        where T : JavaScriptAppResource
-    {
-        return builder.WithBrowserDebugger(browser, configureDebuggerProperties: null);
-    }
-
-    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    internal static IResourceBuilder<T> WithBrowserDebugger<T>(
-        this IResourceBuilder<T> builder,
-        string browser,
-        Action<VSCodeBrowserDebuggerProperties>? configureDebuggerProperties)
         where T : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1272,49 +1042,69 @@ public static class JavaScriptHostingExtensions
         var parentResource = builder.Resource;
         var debuggerResourceName = $"{parentResource.Name}-browser";
 
-        // Create a placeholder debugger resource - the URL will be resolved when the callback is invoked
-        var debuggerResource = new VSCodeBrowserDebuggerResource(
-            debuggerResourceName,
-            browser,
-            parentResource.WorkingDirectory,
-            parentResource.WorkingDirectory,
-            "placeholder", // URL will be resolved in the callback after endpoints are allocated
-            configureDebuggerProperties);
-
-        // Find the parent's HTTP/HTTPS endpoint
-        EndpointAnnotation? endpointAnnotation = null;
-        if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
-        {
-            endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
-                ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
-        }
-
-        if (endpointAnnotation is null)
-        {
-            throw new InvalidOperationException($"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
-        }
-
-        var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
+        var debuggerResource = new BrowserDebuggerResource(debuggerResourceName, browser, parentResource.WorkingDirectory);
 
         builder.ApplicationBuilder.AddResource(debuggerResource)
             .WithParentRelationship(parentResource)
             .WaitFor(builder)
             .ExcludeFromManifest()
             .WithDebugSupport(
-                options =>
+                mode =>
                 {
-                    // The callback is invoked after endpoints are allocated, so we can access the URL directly
-                    debuggerResource.DebuggerProperties.Url = endpointReference.Url;
+                    // Resolve endpoint at run time so dynamically added endpoints are reflected
+                    EndpointAnnotation? endpointAnnotation = null;
+                    if (parentResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+                    {
+                        endpointAnnotation = endpoints.FirstOrDefault(e => e.UriScheme == "https")
+                            ?? endpoints.FirstOrDefault(e => e.UriScheme == "http");
+                    }
+
+                    if (endpointAnnotation is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Resource '{parentResource.Name}' does not have an HTTP or HTTPS endpoint. Browser debugging requires an endpoint to navigate to.");
+                    }
+
+                    var endpointReference = parentResource.GetEndpoint(endpointAnnotation.Name);
 
                     return new BrowserLaunchConfiguration
                     {
-                        Mode = options.Mode,
-                        DebuggerProperties = debuggerResource.DebuggerProperties
+                        Mode = mode,
+                        Url = endpointReference.Url,
+                        WebRoot = parentResource.WorkingDirectory,
+                        Browser = browser
                     };
                 },
-                "browser");
+                BrowserCapability);
 
         return builder;
+    }
+
+    private static void ValidateBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
+    {
+        var configuration = builder.ApplicationBuilder.Configuration;
+
+        try
+        {
+            if (configuration["DEBUG_SESSION_INFO"] is { } debugSessionInfoJson
+                && JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is { } info
+                && info.SupportedLaunchConfigurations is not null
+                && !info.SupportedLaunchConfigurations.Contains(BrowserCapability))
+            {
+                throw new InvalidOperationException(
+                    "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");
+            }
+        }
+        catch (JsonException)
+        {
+            // If we can't parse the debug session info, skip validation
+        }
+    }
+
+    private sealed class DebugSessionCapabilities
+    {
+        [JsonPropertyName("supported_launch_configurations")]
+        public string[]? SupportedLaunchConfigurations { get; set; }
     }
 
     private static void AddInstaller<TResource>(IResourceBuilder<TResource> resource, bool install) where TResource : JavaScriptAppResource
@@ -1509,27 +1299,5 @@ public static class JavaScriptHostingExtensions
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Validates that the extension supports browser debugging when running in an extension context.
-    /// </summary>
-    /// <typeparam name="T">The type of the JavaScript resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the extension does not support browser debugging and needs to be updated.
-    /// </exception>
-    private static void ValidateBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
-    {
-        var configuration = builder.ApplicationBuilder.Configuration;
-        var supportedLaunchConfigurations = configuration.GetSupportedLaunchConfigurations();
-
-        // If we're in a debug session context (DEBUG_SESSION_INFO is set) but browser is not in the supported capabilities,
-        // throw an error asking the user to update the extension
-        if (supportedLaunchConfigurations is not null && !supportedLaunchConfigurations.Contains(BrowserCapability))
-        {
-            throw new InvalidOperationException(
-                "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");
-        }
     }
 }

@@ -274,7 +274,7 @@ internal static class AtsCapabilityScanner
 
         // Process assembly-level [AspireExport(typeof(T))] attributes for cross-assembly type exports
         // This enables exporting types from external assemblies (e.g., Azure.Provisioning types)
-        foreach (var assemblyExportAttr in assembly.GetCustomAttributes<AspireExportAttribute>())
+        foreach (var assemblyExportAttr in AttributeDataReader.GetAspireExportDataAll(assembly))
         {
             if (assemblyExportAttr.Type is null)
             {
@@ -897,7 +897,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsTypeInfo? CreateTypeInfo(
         Type type,
-        AspireExportAttribute exportAttr)
+        AspireExportData exportAttr)
     {
         // Get the AtsTypeId - if not specified, derive it from the type
         var atsTypeId = exportAttr.Type != null
@@ -1378,7 +1378,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsCapabilityInfo? CreateCapabilityInfo(
         MethodInfo method,
-        AspireExportAttribute exportAttr,
+        AspireExportData exportAttr,
         string assemblyName,
         out AtsDiagnostic? diagnostic)
     {
@@ -2465,14 +2465,14 @@ internal static class AtsCapabilityScanner
         }
     }
 
-    private static AspireExportAttribute? GetAspireExportAttribute(Type type)
+    private static AspireExportData? GetAspireExportAttribute(Type type)
     {
-        return type.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(type);
     }
 
-    private static AspireExportAttribute? GetAspireExportAttribute(MethodInfo method)
+    private static AspireExportData? GetAspireExportAttribute(MethodInfo method)
     {
-        return method.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(method);
     }
 
     /// <summary>
@@ -2480,7 +2480,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExposePropertiesAttribute(Type type)
     {
-        var attr = type.GetCustomAttribute<AspireExportAttribute>();
+        var attr = AttributeDataReader.GetAspireExportData(type);
         return attr?.ExposeProperties == true;
     }
 
@@ -2489,7 +2489,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExposeMethodsAttribute(Type type)
     {
-        var attr = type.GetCustomAttribute<AspireExportAttribute>();
+        var attr = AttributeDataReader.GetAspireExportData(type);
         return attr?.ExposeMethods == true;
     }
 
@@ -2498,7 +2498,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExportIgnoreAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireExportIgnoreAttribute>() != null;
+        return AttributeDataReader.HasAspireExportIgnoreData(property);
     }
 
     /// <summary>
@@ -2506,7 +2506,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExportIgnoreAttribute(MethodInfo method)
     {
-        return method.GetCustomAttribute<AspireExportIgnoreAttribute>() != null;
+        return AttributeDataReader.HasAspireExportIgnoreData(method);
     }
 
     /// <summary>
@@ -2514,7 +2514,7 @@ internal static class AtsCapabilityScanner
     /// Explicit [AspireExport] can export public + internal members.
     /// Auto-expose (ExposeMethods/ExposeProperties=true) only exports public members.
     /// </summary>
-    private static bool ShouldExportMember(bool isPublic, bool exposeAll, AspireExportAttribute? exportAttr)
+    private static bool ShouldExportMember(bool isPublic, bool exposeAll, AspireExportData? exportAttr)
     {
         // Explicit [AspireExport] can export public + internal members
         if (exportAttr != null)
@@ -2529,25 +2529,25 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Gets [AspireExport] attribute from a property (for member-level export).
     /// </summary>
-    private static AspireExportAttribute? GetAspireExportAttribute(PropertyInfo property)
+    private static AspireExportData? GetAspireExportAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(property);
     }
 
     /// <summary>
     /// Gets [AspireUnion] attribute from a parameter.
     /// </summary>
-    private static AspireUnionAttribute? GetAspireUnionAttribute(ParameterInfo parameter)
+    private static AspireUnionData? GetAspireUnionAttribute(ParameterInfo parameter)
     {
-        return parameter.GetCustomAttribute<AspireUnionAttribute>();
+        return AttributeDataReader.GetAspireUnionData(parameter);
     }
 
     /// <summary>
     /// Gets [AspireUnion] attribute from a property.
     /// </summary>
-    private static AspireUnionAttribute? GetAspireUnionAttribute(PropertyInfo property)
+    private static AspireUnionData? GetAspireUnionAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireUnionAttribute>();
+        return AttributeDataReader.GetAspireUnionData(property);
     }
 
     /// <summary>
@@ -2555,7 +2555,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasAspireDtoAttribute(Type type)
     {
-        return type.GetCustomAttribute<AspireDtoAttribute>() != null;
+        return AttributeDataReader.HasAspireDtoData(type);
     }
 
     /// <summary>
@@ -2563,7 +2563,7 @@ internal static class AtsCapabilityScanner
     /// Throws if any type in the union is not a valid ATS type.
     /// </summary>
     private static AtsTypeRef CreateUnionTypeRef(
-        AspireUnionAttribute unionAttr,
+        AspireUnionData unionAttr,
         string context)
     {
         if (unionAttr.Types.Length < 2)

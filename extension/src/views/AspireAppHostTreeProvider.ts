@@ -69,7 +69,7 @@ class DetailItem extends vscode.TreeItem {
 
 class ResourcesGroupItem extends vscode.TreeItem {
     constructor(public readonly resources: ResourceJson[], public readonly appHostPid: number) {
-        super(resourcesGroupLabel, vscode.TreeItemCollapsibleState.Collapsed);
+        super(resourcesGroupLabel, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `resources:${appHostPid}`;
         this.iconPath = new vscode.ThemeIcon('layers', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'resourcesGroup';
@@ -289,7 +289,11 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        this._runResourceCommand(element, 'logs', '--follow');
+        const appHost = this._findAppHostForResource(element);
+        if (!appHost) {
+            return;
+        }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${element.resource.name}" --apphost "${appHost.appHostPath}" --follow`);
     }
 
     async executeResourceCommand(element: ResourceItem): Promise<void> {

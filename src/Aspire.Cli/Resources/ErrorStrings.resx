@@ -226,4 +226,7 @@
   <data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
     <value>This command is not yet supported with single file AppHosts.</value>
   </data>
+  <data name="ProjectFileUnsupportedInCurrentEnvironment" xml:space="preserve">
+    <value>Project is not supported in the current environment: {0}</value>
+  </data>
 </root>

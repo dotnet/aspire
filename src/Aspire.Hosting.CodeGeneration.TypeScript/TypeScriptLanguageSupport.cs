@@ -152,6 +152,7 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             DisplayName = LanguageDisplayName,
             CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
+            ExtensionLaunchCapability = "node",
             InstallDependencies = new CommandSpec
             {
                 Command = "npm",

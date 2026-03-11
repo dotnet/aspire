@@ -107,39 +107,39 @@ public class AddNodeAppTests
         var expectedDockerfile = includePackageJson ?
             """
             FROM node:22-alpine AS build
-            
+
             WORKDIR /app
             COPY package*.json ./
             RUN --mount=type=cache,target=/root/.npm npm ci
             COPY . .
-            
+
             FROM node:22-alpine AS runtime
-            
+
             WORKDIR /app
             COPY --from=build /app /app
-            
+
             ENV NODE_ENV=production
-            
+
             USER node
-            
+
             ENTRYPOINT ["node","app.js"]
 
             """.Replace("\r\n", "\n") :
             """
             FROM node:22-alpine AS build
-            
+
             WORKDIR /app
             COPY . .
-            
+
             FROM node:22-alpine AS runtime
-            
+
             WORKDIR /app
             COPY --from=build /app /app
-            
+
             ENV NODE_ENV=production
-            
+
             USER node
-            
+
             ENTRYPOINT ["node","app.js"]
 
             """.Replace("\r\n", "\n");
@@ -419,8 +419,6 @@ public class AddNodeAppTests
     private sealed class MyFilesContainer(string name, string command, string workingDirectory)
         : ExecutableResource(name, command, workingDirectory), IResourceWithContainerFiles;
 
-    #region Debug Support Tests
-
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only
 
     [Fact]
@@ -449,23 +447,6 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public void NodeApp_WithVSCodeNodeDebuggerProperties_AddsAnnotation()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TestTempDirectory();
-
-        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js")
-            .WithVSCodeNodeDebuggerProperties(props =>
-            {
-                props.StopOnEntry = true;
-                props.SmartStep = true;
-            });
-
-        var annotation = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().SingleOrDefault();
-        Assert.NotNull(annotation);
-    }
-
-    [Fact]
     public void ViteApp_WithVSCodeDebugging_AddsSupportsDebuggingAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
@@ -490,7 +471,7 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().SingleOrDefault();
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
         Assert.NotNull(browserDebuggerResource);
         Assert.Equal("viteapp-browser", browserDebuggerResource.Name);
 
@@ -517,8 +498,9 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
-        Assert.Equal("msedge", browserDebuggerResource.DebuggerProperties.Type);
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().Single();
+        // The BrowserDebuggerResource's command is the browser name
+        Assert.Equal("msedge", browserDebuggerResource.Command);
     }
 
     [Fact]
@@ -533,34 +515,12 @@ public class AddNodeAppTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
-        Assert.Equal("chrome", browserDebuggerResource.DebuggerProperties.Type);
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().Single();
+        Assert.Equal("chrome", browserDebuggerResource.Command);
     }
 
     [Fact]
-    public void ViteApp_WithBrowserDebugger_ConfiguresDebuggerProperties()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TestTempDirectory();
-
-        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
-            .WithBrowserDebugger("msedge", configureDebuggerProperties: props =>
-            {
-                props.SmartStep = true;
-                props.Timeout = 30000;
-            });
-
-        using var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var browserDebuggerResource = appModel.Resources.OfType<VSCodeBrowserDebuggerResource>().Single();
-        Assert.True(browserDebuggerResource.DebuggerProperties.SmartStep);
-        Assert.Equal(30000, browserDebuggerResource.DebuggerProperties.Timeout);
-        Assert.Equal(tempDir.Path, browserDebuggerResource.DebuggerProperties.WebRoot);
-    }
-
-    [Fact]
-    public void ViteApp_WithBrowserDebugger_WithoutEndpoint_ThrowsInvalidOperationException()
+    public void ViteApp_WithBrowserDebugger_WithoutEndpoint_DeferredValidation()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -569,69 +529,17 @@ public class AddNodeAppTests
         var resource = new JavaScriptAppResource("jsapp", "npm", tempDir.Path);
         var jsApp = builder.AddResource(resource);
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            jsApp.WithBrowserDebugger());
+        // WithBrowserDebugger no longer throws immediately; endpoint validation is deferred
+        // to when the launch configuration callback is actually invoked at debug time
+        jsApp.WithBrowserDebugger();
 
-        Assert.Contains("does not have an HTTP or HTTPS endpoint", exception.Message);
-    }
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-    [Fact]
-    public void NodeApp_WithVSCodeDebugging_MultipleCallsAccumulateAnnotations()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TestTempDirectory();
-
-        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js");
-
-        // AddNodeApp already calls WithVSCodeDebugging, so calling WithDebugging again adds another annotation
-        nodeApp.WithDebugging("server.js");
-
-        var annotations = nodeApp.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().ToList();
-        Assert.Equal(2, annotations.Count);
-        Assert.All(annotations, a => Assert.Equal("node", a.LaunchConfigurationType));
-    }
-
-    [Fact]
-    public void ViteApp_WithVSCodeDebugging_DefaultsSkipFilesAndSourceMaps()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TestTempDirectory();
-
-        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
-            .WithVSCodeNodeDebuggerProperties(props =>
-            {
-                // Verify defaults were set on the properties object
-                Assert.NotNull(props.SkipFiles);
-                Assert.Contains("<node_internals>/**", props.SkipFiles);
-                Assert.True(props.SourceMaps);
-                Assert.True(props.AutoAttachChildProcesses);
-            });
-
-        var annotation = viteApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().SingleOrDefault();
-        Assert.NotNull(annotation);
-    }
-
-    [Fact]
-    public void NodeApp_WithVSCodeNodeDebuggerProperties_MultipleCallsAccumulate()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TestTempDirectory();
-
-        var nodeApp = builder.AddNodeApp("nodeapp", tempDir.Path, "app.js")
-            .WithVSCodeNodeDebuggerProperties(props =>
-            {
-                props.StopOnEntry = true;
-            })
-            .WithVSCodeNodeDebuggerProperties(props =>
-            {
-                props.SmartStep = true;
-            });
-
-        var annotations = nodeApp.Resource.Annotations.OfType<ExecutableDebuggerPropertiesAnnotation<VSCodeNodeDebuggerProperties>>().ToList();
-        Assert.Equal(2, annotations.Count);
+        // The browser debugger resource should still be created
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
+        Assert.NotNull(browserDebuggerResource);
     }
 
 #pragma warning restore ASPIREEXTENSION001 // Type is for evaluation purposes only
-
-    #endregion
 }

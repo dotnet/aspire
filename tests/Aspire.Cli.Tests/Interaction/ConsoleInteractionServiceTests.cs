@@ -436,6 +436,7 @@ public class ConsoleInteractionServiceTests
         // Assert
         Assert.Null(exception);
         var outputString = output.ToString();
+        Assert.Contains("A new version of Aspire is available:", outputString);
         Assert.Contains("13.2.0-preview [beta]", outputString);
         Assert.Contains("aspire update --channel [stable]", outputString);
     }

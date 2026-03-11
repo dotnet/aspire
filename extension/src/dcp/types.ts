@@ -13,30 +13,9 @@ export interface ErrorDetails {
 
 type LaunchConfigurationMode = "Debug" | "NoDebug";
 
-/**
- * Debugger properties passed from the apphost.
- * Contains DAP-standard properties (type, name, request, cwd) plus any
- * IDE-specific and debug adapter-specific properties.
- * @see https://microsoft.github.io/debug-adapter-protocol/specification
- */
-export interface DebuggerProperties {
-    type: string;
-    name: string;
-    request: string;
-    cwd: string;
-    [key: string]: any; // Allow additional IDE-specific and adapter-specific properties
-}
-
 export interface ExecutableLaunchConfiguration {
     type: string;
     mode?: LaunchConfigurationMode | undefined;
-    /**
-     * Debugger-specific properties passed from the apphost.
-     * Contains required VS Code debug configuration properties (type, name, request, cwd)
-     * plus any additional adapter-specific properties.
-     * @see https://code.visualstudio.com/docs/debugtest/debugging-configuration
-     */
-    debugger_properties?: DebuggerProperties;
 }
 
 export interface ProjectLaunchConfiguration extends ExecutableLaunchConfiguration {
@@ -63,6 +42,28 @@ export interface PythonLaunchConfiguration extends ExecutableLaunchConfiguration
 
 export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfiguration {
     return obj && obj.type === 'python';
+}
+
+export interface NodeLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "node"; // Provided by VS Code's built-in js-debug, no extension needed
+    script_path?: string;
+    runtime_executable?: string;
+    working_directory?: string;
+}
+
+export function isNodeLaunchConfiguration(obj: any): obj is NodeLaunchConfiguration {
+    return obj && obj.type === 'node';
+}
+
+export interface BrowserLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "browser";
+    url?: string;
+    web_root?: string;
+    browser?: string;
+}
+
+export function isBrowserLaunchConfiguration(obj: any): obj is BrowserLaunchConfiguration {
+    return obj && obj.type === 'browser';
 }
 
 export interface EnvVar {
@@ -142,6 +143,7 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
     runId: string;
     debugSessionId: string | null;
     projectFile?: string;
+    isApphost?: boolean;
 }
 
 export type AspireCommandType = 'run' | 'deploy' | 'publish' | 'do';

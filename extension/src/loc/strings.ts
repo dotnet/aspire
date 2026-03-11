@@ -65,6 +65,8 @@ export const failedToGetConfigInfo = (exitCode: number) => vscode.l10n.t('Failed
 export const failedToParseConfigInfo = (error: any) => vscode.l10n.t('Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);
 export const errorGettingConfigInfo = (error: any) => vscode.l10n.t('Error getting Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);
 export const invalidLaunchConfiguration = (projectPath: string) => vscode.l10n.t('Invalid launch configuration for {0}.', projectPath);
+export const browserDisplayName = (url: string) => vscode.l10n.t('Browser: {0}', url);
+export const browserLabel = vscode.l10n.t('Browser');
 export const dontShowAgainLabel = vscode.l10n.t("Don't Show Again");
 export const doYouWantToSetDefaultApphost = (appHost: string) => vscode.l10n.t('Do you want to set {0} as the default apphost for this workspace?', appHost);
 export const doYouWantToSelectDefaultApphost = vscode.l10n.t('Do you want to select the default apphost for this workspace?');

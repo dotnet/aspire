@@ -16,25 +16,20 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
     [Fact]
     public async Task SecretCrudOnDotNetAppHost()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create an Empty AppHost project interactively
         sequenceBuilder.AspireNew("TestSecrets", counter, template: AspireTemplate.EmptyAppHost);

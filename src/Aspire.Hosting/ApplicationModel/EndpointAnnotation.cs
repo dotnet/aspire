@@ -22,6 +22,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _portSetToNull;
     private int? _targetPort;
     private bool _targetPortSetToNull;
+    private bool? _tlsEnabled;
     private readonly NetworkIdentifier _networkID;
 
     /// <summary>
@@ -168,7 +169,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     public string Transport
     {
-        get => _transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        get => _transport ?? (string.Equals(UriScheme, "http", StringComparisons.EndpointAnnotationUriScheme) || string.Equals(UriScheme, "https", StringComparisons.EndpointAnnotationUriScheme) ? "http" : Protocol.ToString().ToLowerInvariant());
         set => _transport = value;
     }
 
@@ -183,6 +184,22 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     /// <remarks>Defaults to <c>true</c>.</remarks>
     public bool IsProxied { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether TLS is enabled for this endpoint.
+    /// </summary>
+    /// <remarks>
+    /// This property is used to track TLS state on the endpoint so that connection string expressions
+    /// can dynamically include TLS-related parameters (e.g., <c>ssl=true</c> for Redis) at resolution time
+    /// rather than at expression build time. For HTTP-based endpoints, the <see cref="UriScheme"/> property
+    /// being set to <c>https</c> already implies TLS. This property is primarily useful for non-HTTP protocols
+    /// (e.g., Redis, databases) that need explicit TLS configuration in their connection strings.
+    /// </remarks>
+    public bool TlsEnabled
+    {
+        get => _tlsEnabled ?? string.Equals(UriScheme, "https", StringComparisons.EndpointAnnotationUriScheme);
+        set => _tlsEnabled = value;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.
