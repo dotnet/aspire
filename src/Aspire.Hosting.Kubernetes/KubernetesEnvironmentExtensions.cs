@@ -57,7 +57,7 @@ public static class KubernetesEnvironmentExtensions
     /// <param name="builder">The Kubernetes environment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="KubernetesEnvironmentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withProperties", Description = "Configures properties of a Kubernetes environment")]
+    [AspireExport("withProperties", Description = "Configures properties of a Kubernetes environment", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<KubernetesEnvironmentResource> WithProperties(this IResourceBuilder<KubernetesEnvironmentResource> builder, Action<KubernetesEnvironmentResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);

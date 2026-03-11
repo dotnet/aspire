@@ -17,12 +17,12 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
     [Fact]
     public async Task StopNonInteractiveSingleAppHost()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -39,14 +39,9 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create a new project using aspire new
         sequenceBuilder.AspireNew("TestStopApp", counter);
@@ -56,8 +51,8 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Start the AppHost in the background using aspire run --detach
-        sequenceBuilder.Type("aspire run --detach")
+        // Start the AppHost in the background using aspire start
+        sequenceBuilder.Type("aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -94,12 +89,12 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
     [Fact]
     public async Task StopAllAppHostsFromAppHostDirectory()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -116,14 +111,9 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create first project
         sequenceBuilder.AspireNew("App1", counter);
@@ -135,7 +125,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -144,7 +134,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -181,12 +171,12 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
     [Fact]
     public async Task StopAllAppHostsFromUnrelatedDirectory()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -203,14 +193,9 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create first project
         sequenceBuilder.AspireNew("App1", counter);
@@ -222,7 +207,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -231,13 +216,13 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
         // Navigate to workspace root (unrelated to any AppHost directory)
-        sequenceBuilder.Type($"cd {workspace.WorkspaceRoot.FullName}")
+        sequenceBuilder.Type($"cd {CliE2ETestHelpers.ToContainerPath(workspace.WorkspaceRoot.FullName, workspace)}")
             .Enter()
             .WaitForSuccessPrompt(counter);
 
@@ -273,12 +258,12 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
     [Fact]
     public async Task StopNonInteractiveMultipleAppHostsShowsError()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -295,14 +280,9 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create first project
         sequenceBuilder.AspireNew("App1", counter);
@@ -314,7 +294,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.AspireNew("App2", counter);
 
         // Start first AppHost in background
-        sequenceBuilder.Type("cd App1/App1.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd App1/App1.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
@@ -323,13 +303,13 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         sequenceBuilder.ClearScreen(counter);
 
         // Navigate back and start second AppHost in background
-        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire run --detach")
+        sequenceBuilder.Type("cd ../../App2/App2.AppHost && aspire start")
             .Enter()
             .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
             .WaitForSuccessPrompt(counter);
 
         // Navigate to workspace root
-        sequenceBuilder.Type($"cd {workspace.WorkspaceRoot.FullName}")
+        sequenceBuilder.Type($"cd {CliE2ETestHelpers.ToContainerPath(workspace.WorkspaceRoot.FullName, workspace)}")
             .Enter()
             .WaitForSuccessPrompt(counter);
 

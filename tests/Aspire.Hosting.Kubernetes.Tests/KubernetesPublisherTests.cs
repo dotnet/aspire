@@ -449,6 +449,187 @@ public class KubernetesPublisherTests()
         await settingsTask;
     }
 
+    [Fact]
+    public async Task PublishAsync_HandlesConditionalReferenceExpression()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment(context =>
+            {
+                var conditional = ReferenceExpression.CreateConditional(
+                    new TestConditionProvider(bool.TrueString),
+                    bool.TrueString,
+                    ReferenceExpression.Create($",ssl=true"),
+                    ReferenceExpression.Empty);
+
+                context.EnvironmentVariables["TLS_SUFFIX"] = conditional;
+
+                var conditionalFalse = ReferenceExpression.CreateConditional(
+                    new TestConditionProvider(bool.FalseString),
+                    bool.TrueString,
+                    ReferenceExpression.Create($",ssl=true"),
+                    ReferenceExpression.Create($",ssl=false"));
+
+                context.EnvironmentVariables["TLS_SUFFIX_FALSE"] = conditionalFalse;
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/config.yaml",
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    [Fact]
+    public async Task PublishAsync_HandlesConditionalReferenceExpressionWithParameterCondition()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Use a real ParameterResource as the condition with a known default value.
+        var enableTls = builder.AddParameter("enable-tls", "True", publishValueAsDefault: true);
+
+        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment(context =>
+            {
+                var conditional = ReferenceExpression.CreateConditional(
+                    enableTls.Resource,
+                    bool.TrueString,
+                    ReferenceExpression.Create($",ssl=true"),
+                    ReferenceExpression.Create($",ssl=false"));
+
+                context.EnvironmentVariables["TLS_SUFFIX"] = conditional;
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/config.yaml",
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    [Fact]
+    public async Task PublishAsync_ConditionalWithParameterBranch_UsesIfElseSyntax()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // The condition is a ParameterResource, and one branch also references a parameter.
+        // This uses {{ if eq ... }}...{{ else }}...{{ end }} syntax since ternary arguments
+        // can't contain nested Helm expressions.
+        var enableTls = builder.AddParameter("enable-tls", "True", publishValueAsDefault: true);
+        var tlsSuffix = builder.AddParameter("tls-suffix", ",ssl=true", publishValueAsDefault: true);
+
+        var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment(context =>
+            {
+                var conditional = ReferenceExpression.CreateConditional(
+                    enableTls.Resource,
+                    bool.TrueString,
+                    ReferenceExpression.Create($"{tlsSuffix.Resource}"),
+                    ReferenceExpression.Create($",ssl=false"));
+
+                context.EnvironmentVariables["TLS_SUFFIX"] = conditional;
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/myapp/deployment.yaml",
+            "templates/myapp/config.yaml",
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    private sealed class TestConditionProvider(string value) : IValueProvider, IManifestExpressionProvider
+    {
+        public string ValueExpression => "test-condition";
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+            => new(value);
+
+        public ValueTask<string?> GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken = default)
+            => new(value);
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";

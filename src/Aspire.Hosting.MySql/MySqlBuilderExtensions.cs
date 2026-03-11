@@ -220,7 +220,7 @@ public static class MySqlBuilderExtensions
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withPhpMyAdmin", Description = "Adds phpMyAdmin management UI")]
+    [AspireExport("withPhpMyAdmin", Description = "Adds phpMyAdmin management UI", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PhpMyAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : MySqlServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -16,11 +16,8 @@ internal static class KnownFeatures
 {
     public static string FeaturePrefix => "features";
     public static string UpdateNotificationsEnabled => "updateNotificationsEnabled";
-    public static string MinimumSdkCheckEnabled => "minimumSdkCheckEnabled";
     public static string ExecCommandEnabled => "execCommandEnabled";
-    public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
-    public static string PackageSearchDiskCachingEnabled => "packageSearchDiskCachingEnabled";
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
@@ -28,7 +25,6 @@ internal static class KnownFeatures
     public static string ExperimentalPolyglotJava => "experimentalPolyglot:java";
     public static string ExperimentalPolyglotGo => "experimentalPolyglot:go";
     public static string ExperimentalPolyglotPython => "experimentalPolyglot:python";
-    public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
 
     private static readonly Dictionary<string, FeatureMetadata> s_featureMetadata = new()
     {
@@ -37,30 +33,15 @@ internal static class KnownFeatures
             "Check if update notifications are disabled and set version check environment variable",
             DefaultValue: true),
         
-        [MinimumSdkCheckEnabled] = new(
-            MinimumSdkCheckEnabled,
-            "Enable or disable minimum .NET SDK version checking before running Aspire applications",
-            DefaultValue: true),
-        
         [ExecCommandEnabled] = new(
             ExecCommandEnabled,
             "Enable or disable the 'aspire exec' command for executing commands inside running resources",
             DefaultValue: false),
         
-        [OrphanDetectionWithTimestampEnabled] = new(
-            OrphanDetectionWithTimestampEnabled,
-            "Enable or disable timestamp-based orphan process detection to clean up stale Aspire processes",
-            DefaultValue: true),
-        
         [ShowDeprecatedPackages] = new(
             ShowDeprecatedPackages,
             "Show or hide deprecated packages in 'aspire add' search results",
             DefaultValue: false),
-        
-        [PackageSearchDiskCachingEnabled] = new(
-            PackageSearchDiskCachingEnabled,
-            "Enable or disable disk caching for package search results to improve performance",
-            DefaultValue: true),
         
         [StagingChannelEnabled] = new(
             StagingChannelEnabled,
@@ -95,12 +76,7 @@ internal static class KnownFeatures
         [ExperimentalPolyglotPython] = new(
             ExperimentalPolyglotPython,
             "Enable or disable experimental Python language support for polyglot Aspire applications",
-            DefaultValue: false),
-        
-        [RunningInstanceDetectionEnabled] = new(
-            RunningInstanceDetectionEnabled,
-            "Enable or disable detection of already running Aspire instances to prevent conflicts",
-            DefaultValue: true)
+            DefaultValue: false)
     };
 
     /// <summary>

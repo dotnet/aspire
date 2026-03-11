@@ -18,13 +18,12 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
     [Fact]
     public async Task RestoreGeneratesSdkFiles()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot, workspace: workspace);
 
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
@@ -39,15 +38,9 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         var waitingForRestoreSuccess = new CellPatternSearcher()
             .Find("SDK code restored successfully");
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            // Polyglot tests require the bundle because the AppHost server is bundled
-            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireBundleEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Enable polyglot support
         sequenceBuilder.EnablePolyglotSupport(counter);
@@ -117,6 +110,101 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         });
 
         sequenceBuilder
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    [Fact]
+    public async Task RunWithMissingAwaitShowsHelpfulError()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+
+        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        var waitingForAppHostCreated = new CellPatternSearcher()
+            .Find("Created apphost.ts");
+
+        var waitingForPackageAdded = new CellPatternSearcher()
+            .Find("The package Aspire.Hosting.");
+
+        var waitingForRestoreSuccess = new CellPatternSearcher()
+            .Find("SDK code restored successfully");
+
+        var waitingForAppHostError = new CellPatternSearcher()
+            .Find("❌ AppHost Error:");
+
+        var waitingForAwaitHint = new CellPatternSearcher()
+            .Find("Did you forget 'await'");
+
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireBundleEnvironment(counter);
+            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
+        }
+
+        sequenceBuilder.EnablePolyglotSupport(counter);
+
+        sequenceBuilder
+            .Type("aspire init --language typescript --non-interactive")
+            .Enter()
+            .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder
+            .Type("aspire add Aspire.Hosting.PostgreSQL")
+            .Enter()
+            .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder
+            .Type("aspire restore")
+            .Enter()
+            .WaitUntil(s => waitingForRestoreSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(3))
+            .WaitForSuccessPrompt(counter);
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
+            var newContent = """
+                import { createBuilder } from './.modules/aspire.js';
+
+                const builder = await createBuilder();
+
+                const postgres = builder.addPostgres("postgres");
+                const db = postgres.addDatabase("db");
+
+                await builder.addContainer("consumer", "nginx")
+                    .withReference(db);
+
+                await builder.build().run();
+                """;
+
+            File.WriteAllText(appHostPath, newContent);
+        });
+
+        sequenceBuilder
+            .Type("aspire run")
+            .Enter()
+            .WaitUntil(s =>
+                waitingForAppHostError.Search(s).Count > 0 &&
+                waitingForAwaitHint.Search(s).Count > 0,
+                TimeSpan.FromMinutes(3))
+            .WaitForAnyPrompt(counter)
             .Type("exit")
             .Enter();
 

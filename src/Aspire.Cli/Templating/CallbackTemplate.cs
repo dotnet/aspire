@@ -13,11 +13,14 @@ internal class CallbackTemplate(
     Func<CallbackTemplate, TemplateInputs, ParseResult, CancellationToken, Task<TemplateResult>> applyTemplateCallback,
     TemplateRuntime runtime = TemplateRuntime.DotNet,
     Func<string, bool>? supportsLanguageCallback = null,
-    IReadOnlyList<string>? selectableAppHostLanguages = null) : ITemplate
+    IReadOnlyList<string>? selectableAppHostLanguages = null,
+    bool isEmpty = false) : ITemplate
 {
     public string Name => name;
 
     public string Description => description;
+
+    public bool IsEmpty => isEmpty;
 
     public TemplateRuntime Runtime => runtime;
 

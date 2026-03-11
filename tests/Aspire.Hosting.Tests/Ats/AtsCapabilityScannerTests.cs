@@ -246,6 +246,38 @@ public class AtsCapabilityScannerTests
         }
     }
 
+    [Fact]
+    public void ScanAssembly_YarpWithConfiguration_UsesBackgroundThreadOptIn()
+    {
+        var yarpAssembly = typeof(global::Aspire.Hosting.Yarp.YarpResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssembly(yarpAssembly);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/withConfiguration", StringComparison.Ordinal));
+        var withConfigurationMethod = Assert.Single(result.Methods,
+            m => m.Key.EndsWith("/withConfiguration", StringComparison.Ordinal)).Value;
+
+        Assert.True(capability.RunSyncOnBackgroundThread);
+        Assert.Equal(typeof(IResourceBuilder<global::Aspire.Hosting.Yarp.YarpResource>), withConfigurationMethod.ReturnType);
+
+        var parameters = withConfigurationMethod.GetParameters();
+        Assert.Equal(2, parameters.Length);
+        Assert.Equal(typeof(IResourceBuilder<global::Aspire.Hosting.Yarp.YarpResource>), parameters[0].ParameterType);
+        Assert.Equal(typeof(Action<global::Aspire.Hosting.IYarpConfigurationBuilder>), parameters[1].ParameterType);
+    }
+
+    [Fact]
+    public void ScanAssembly_ClassLevelBackgroundThreadOptIn_AppliesToExportedMethods()
+    {
+        var result = AtsCapabilityScanner.ScanAssembly(typeof(AtsCapabilityScannerTests).Assembly);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/classLevelBackgroundThreadProbe", StringComparison.Ordinal));
+
+        Assert.True(capability.RunSyncOnBackgroundThread);
+    }
+
     #endregion
 
     #region Test Types
@@ -280,6 +312,16 @@ public class AtsCapabilityScannerTests
         {
             _ = callback;
             return builder;
+        }
+    }
+
+    [AspireExport(RunSyncOnBackgroundThread = true)]
+    private static class ClassLevelBackgroundThreadExports
+    {
+        [AspireExport("classLevelBackgroundThreadProbe")]
+        public static void Probe(IDistributedApplicationBuilder builder)
+        {
+            _ = builder;
         }
     }
 

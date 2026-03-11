@@ -59,23 +59,40 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
 
-        if (await this.isAppHostCsFile(document.uri.fsPath)) {
-            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
+        if (await this.isAppHostFile(document.uri.fsPath)) {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHost', true);
         }
         else {
-            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHost', false);
         }
     }
 
-    private async isAppHostCsFile(filePath: string): Promise<boolean> {
+    private async isAppHostFile(filePath: string): Promise<boolean> {
         const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
         const lines = fileText.split(/\r?\n/);
 
+        // C# apphost detection
         if (lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'))) {
             return true;
         }
 
-        return lines.some(line => line === 'var builder = DistributedApplication.CreateBuilder(args);');
+        if (lines.some(line => line === 'var builder = DistributedApplication.CreateBuilder(args);')) {
+            return true;
+        }
+
+        // TypeScript/JavaScript apphost detection
+        const ext = path.extname(filePath).toLowerCase();
+        if (['.ts', '.js', '.mts', '.mjs'].includes(ext)) {
+            if (lines.some(line => /import\s+.*createBuilder.*from\s+['"].*\.modules\/aspire/.test(line))) {
+                return true;
+            }
+
+            if (lines.some(line => /require\s*\(['"].*\.modules\/aspire/.test(line))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -122,7 +139,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
      * Returns the resolved AppHost path from the active editor or workspace settings, or null if none is available.
      */
     public async getAppHostPath(): Promise<string | null> {
-        if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
+        if (vscode.window.activeTextEditor && await this.isAppHostFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
             return vscode.window.activeTextEditor.document.uri.fsPath;
         }
 

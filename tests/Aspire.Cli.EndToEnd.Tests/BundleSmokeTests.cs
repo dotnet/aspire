@@ -18,12 +18,12 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndRunAspireStarterProjectWithBundle()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -36,21 +36,13 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            // Install the full bundle (not just CLI) so that ASPIRE_LAYOUT_PATH is set.
-            // For .NET csproj app hosts, the hosting infrastructure resolves DCP and Dashboard
-            // paths through NuGet assembly metadata, NOT through bundle env vars.
-            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireBundleEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         sequenceBuilder.AspireNew("BundleStarterApp", counter)
             // Start AppHost in detached mode and capture JSON output
-            .Type("aspire run --detach --format json | tee /tmp/aspire-detach.json")
+            .Type("aspire start --format json | tee /tmp/aspire-detach.json")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3))
             // Verify the dashboard is reachable by extracting the URL from the detach output

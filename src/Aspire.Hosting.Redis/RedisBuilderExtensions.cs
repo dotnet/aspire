@@ -91,7 +91,7 @@ public static class RedisBuilderExtensions
         builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         var redisBuilder = builder.AddResource(redis)
-            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName, scheme: RedisResource.StandardRedisScheme)
             .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
             .WithImageRegistry(RedisContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey)
@@ -181,6 +181,11 @@ public static class RedisBuilderExtensions
                 // configure the environment variables to use it.
                 redisBuilder
                     .WithEndpoint(targetPort: 6380, name: RedisResource.SecondaryEndpointName)
+                    .WithEndpoint(RedisResource.PrimaryEndpointName, e =>
+                    {
+                        e.UriScheme = RedisResource.TlsRedisScheme;
+                        e.TlsEnabled = true;
+                    })
                     .WithArgs(argsCtx =>
                     {
                         argsCtx.Args.Add("--tls-port");
@@ -188,13 +193,8 @@ public static class RedisBuilderExtensions
                         argsCtx.Args.Add("--port");
                         argsCtx.Args.Add(redis.GetEndpoint(RedisResource.SecondaryEndpointName).Property(EndpointProperty.Port));
                     });
-
-                redis.TlsEnabled = true;
             });
         }
-
-        // Disable HTTPS developer certificate by default to avoid connection string timing issues
-        redisBuilder.WithoutHttpsCertificate();
 
         return redisBuilder;
     }
@@ -209,7 +209,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
-    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI")]
+    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -287,7 +287,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
     /// <returns></returns>
-    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI")]
+    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

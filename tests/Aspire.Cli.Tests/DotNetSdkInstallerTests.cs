@@ -16,7 +16,7 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WhenDotNetIsAvailable_ReturnsTrue()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
+        var installer = new DotNetSdkInstaller(CreateEmptyConfiguration());
 
         // This test assumes the test environment has .NET SDK installed
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -27,10 +27,8 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WithMinimumVersion_WhenDotNetIsAvailable_ReturnsTrue()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // This test assumes the test environment has .NET SDK installed with a version >= 8.0.0
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -41,10 +39,8 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WithActualMinimumVersion_BehavesCorrectly()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride(DotNetSdkInstaller.MinimumSdkVersion);
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // Use the actual minimum version constant and check the behavior
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -57,10 +53,8 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WithHighMinimumVersion_ReturnsFalse()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("99.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // Use an unreasonably high version that should not exist
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -71,10 +65,8 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WithInvalidMinimumVersion_ReturnsFalse()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // Use an invalid version string
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -83,26 +75,10 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public async Task CheckReturnsTrueIfFeatureDisabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, false);
-        var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration);
-
-        // Use an invalid version string
-        var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
-
-        Assert.True(success);
-    }
-
-    [Fact]
     public async Task CheckAsync_UsesArchitectureSpecificCommand()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // This test verifies that the architecture-specific command is used
         // Since the implementation adds --arch flag, it should still work correctly
@@ -116,7 +92,7 @@ public class DotNetSdkInstallerTests
     public async Task CheckAsync_UsesOverrideMinimumSdkVersion_WhenConfigured()
     {
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // The installer should use the override version instead of the constant
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -128,7 +104,7 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_UsesDefaultMinimumSdkVersion_WhenNotConfigured()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration());
+        var installer = new DotNetSdkInstaller(CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the default constant
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -140,9 +116,7 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_UsesMinimumSdkVersion()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+        var installer = new DotNetSdkInstaller(CreateEmptyConfiguration());
 
         // Call the parameterless method that should use the minimum SDK version
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -154,10 +128,8 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_UsesOverrideVersion_WhenOverrideConfigured()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration);
+        var installer = new DotNetSdkInstaller(configuration);
 
         // The installer should use the override version instead of the baseline constant
         var (success, _, _) = await installer.CheckAsync().DefaultTimeout();
@@ -275,14 +247,6 @@ public class DotNetSdkInstallerTests
                 new KeyValuePair<string, string?>("overrideMinimumSdkVersion", overrideVersion)
             })
             .Build();
-    }
-}
-
-public class MinimumSdkCheckFeature(bool enabled = true) : IFeatures
-{
-    public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
-    {
-        return featureName == KnownFeatures.MinimumSdkCheckEnabled ? enabled : false;
     }
 }
 

@@ -3,16 +3,16 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting Node Nodejs javascript typescript framework runtime</PackageTags>
-    <Description>JavaScript and TypeScript support for Aspire.</Description>
+    <PackageTags>aspire integration hosting Node Nodejs javascript framework runtime</PackageTags>
+    <Description>JavaScript support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <InternalsVisibleTo Include="Aspire.Hosting.JavaScript.Tests" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.JavaScript.Tests" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

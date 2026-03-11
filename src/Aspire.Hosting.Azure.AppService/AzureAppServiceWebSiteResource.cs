@@ -57,7 +57,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                     var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
                     var endpoint = $"https://{hostName}.azurewebsites.net";
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
+                    ctx.ReportingStep.Log(LogLevel.Information, new MarkdownString($"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})"));
                     ctx.Summary.Add(targetResource.Name, endpoint);
                 },
                 Tags = ["print-summary"],

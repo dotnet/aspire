@@ -110,7 +110,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
     /// <inheritdoc/>
     public DockerComposeEnvironmentResource Parent => _composeEnvironmentResource;
 
-    internal Service BuildComposeService()
+    internal async Task<Service> BuildComposeServiceAsync()
     {
         var composeService = new Service
         {
@@ -125,7 +125,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         SetContainerName(composeService);
         SetEntryPoint(composeService);
         SetPullPolicy(composeService);
-        AddEnvironmentVariablesAndCommandLineArgs(composeService);
+        await AddEnvironmentVariablesAndCommandLineArgsAsync(composeService).ConfigureAwait(false);
         AddPorts(composeService);
         AddVolumes(composeService);
         SetDependsOn(composeService);
@@ -215,13 +215,13 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         }
     }
 
-    private void AddEnvironmentVariablesAndCommandLineArgs(Service composeService)
+    private async Task AddEnvironmentVariablesAndCommandLineArgsAsync(Service composeService)
     {
         var env = new Dictionary<string, string>();
 
         foreach (var kv in EnvironmentVariables)
         {
-            var value = this.ProcessValue(kv.Value);
+            var value = await this.ProcessValueAsync(kv.Value).ConfigureAwait(false);
 
             env[kv.Key] = value?.ToString() ?? string.Empty;
         }
@@ -238,7 +238,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
         foreach (var arg in Args)
         {
-            var value = this.ProcessValue(arg);
+            var value = await this.ProcessValueAsync(arg).ConfigureAwait(false);
 
             if (value is not string str)
             {
@@ -332,8 +332,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         if (externalEndpointMappings.Count == 0)
         {
             context.ReportingStep.Log(LogLevel.Information,
-                $"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**. No public endpoints were configured.",
-                enableMarkdown: true);
+                new MarkdownString($"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**. No public endpoints were configured."));
             context.Summary.Add(TargetResource.Name, "No public endpoints");
             return;
         }
@@ -347,15 +346,14 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         if (endpoints.Count > 0)
         {
             var endpointList = string.Join(", ", endpoints.Select(e => $"[{e}]({e})"));
-            context.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{TargetResource.Name}** to {endpointList}.", enableMarkdown: true);
+            context.ReportingStep.Log(LogLevel.Information, new MarkdownString($"Successfully deployed **{TargetResource.Name}** to {endpointList}."));
             context.Summary.Add(TargetResource.Name, string.Join(", ", endpoints));
         }
         else
         {
             // No published ports found in docker compose ps output.
             context.ReportingStep.Log(LogLevel.Information,
-                $"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**.",
-                enableMarkdown: true);
+                new MarkdownString($"Successfully deployed **{TargetResource.Name}** to Docker Compose environment **{environment.Name}**."));
             context.Summary.Add(TargetResource.Name, "No public endpoints");
         }
     }

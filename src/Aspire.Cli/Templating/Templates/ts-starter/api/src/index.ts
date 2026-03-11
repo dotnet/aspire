@@ -1,3 +1,9 @@
+/**
+ * Import the OpenTelemetry instrumentation setup first, before any other modules.
+ * This ensures all subsequent imports are automatically instrumented for
+ * distributed tracing, metrics, and logging in the Aspire dashboard.
+ */
+import "./instrumentation.ts";
 import express from "express";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -5,6 +11,7 @@ import { join } from "path";
 const app = express();
 const port = process.env.PORT || 5000;
 
+/** Returns a random 5-day weather forecast as JSON. */
 app.get("/api/weatherforecast", (_req, res) => {
   const summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
   const forecasts = Array.from({ length: 5 }, (_, i) => {

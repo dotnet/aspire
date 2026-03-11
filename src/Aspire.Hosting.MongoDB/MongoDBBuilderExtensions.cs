@@ -149,7 +149,7 @@ public static class MongoDBBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withMongoExpress", Description = "Adds a MongoExpress administration platform for MongoDB")]
+    [AspireExport("withMongoExpress", Description = "Adds a MongoExpress administration platform for MongoDB", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<MongoExpressContainerResource>>? configureContainer = null, string? containerName = null)
         where T : MongoDBServerResource
     {

@@ -64,7 +64,7 @@ public class RoleAssignmentTests()
         return RoleAssignmentTest("ai",
             builder =>
             {
-                var openai = builder.AddAzureAIFoundry("ai");
+                var openai = builder.AddFoundry("ai");
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithRoleAssignments(openai, CognitiveServicesBuiltInRole.CognitiveServicesFaceRecognizer);

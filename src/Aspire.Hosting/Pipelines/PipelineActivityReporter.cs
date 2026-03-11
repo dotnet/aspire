@@ -59,7 +59,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return step;
     }
 
-    public async Task<ReportingTask> CreateTaskAsync(ReportingStep step, string statusText, CancellationToken cancellationToken)
+    public async Task<ReportingTask> CreateTaskAsync(ReportingStep step, string statusText, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -87,7 +87,8 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 Id = task.Id,
                 StatusText = statusText,
                 CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                StepId = step.Id
+                StepId = step.Id,
+                EnableMarkdown = enableMarkdown
             }
         };
 
@@ -95,7 +96,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return task;
     }
 
-    public async Task CompleteStepAsync(ReportingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken)
+    public async Task CompleteStepAsync(ReportingStep step, string completionText, CompletionState completionState, bool enableMarkdown, CancellationToken cancellationToken)
     {
         lock (step)
         {
@@ -117,14 +118,15 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 Id = step.Id,
                 StatusText = completionText,
                 CompletionState = ToBackchannelCompletionState(completionState),
-                StepId = null
+                StepId = null,
+                EnableMarkdown = enableMarkdown
             }
         };
 
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateTaskAsync(ReportingTask task, string statusText, CancellationToken cancellationToken)
+    public async Task UpdateTaskAsync(ReportingTask task, string statusText, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
@@ -149,7 +151,8 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 Id = task.Id,
                 StatusText = statusText,
                 CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                StepId = task.StepId
+                StepId = task.StepId,
+                EnableMarkdown = enableMarkdown
             }
         };
 
@@ -189,7 +192,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         ActivityItemUpdated.Writer.TryWrite(state);
     }
 
-    public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
+    public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, bool enableMarkdown, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
@@ -222,7 +225,8 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 StatusText = task.StatusText,
                 CompletionState = ToBackchannelCompletionState(completionState),
                 StepId = task.StepId,
-                CompletionMessage = completionMessage
+                CompletionMessage = completionMessage,
+                EnableMarkdown = enableMarkdown
             }
         };
 
@@ -248,7 +252,12 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                     _ => "Pipeline completed"
                 },
                 CompletionState = ToBackchannelCompletionState(finalState),
-                PipelineSummary = options?.PipelineSummary
+                PipelineSummary = options?.PipelineSummary?.Select(item => new BackchannelPipelineSummaryItem
+                {
+                    Key = item.Key,
+                    Value = item.Value,
+                    EnableMarkdown = item.EnableMarkdown
+                }).ToList()
             }
         };
 

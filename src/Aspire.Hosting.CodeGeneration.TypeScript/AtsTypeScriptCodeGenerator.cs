@@ -342,6 +342,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 AspireClient as AspireClientRpc,
                 Handle,
                 MarshalledHandle,
+                AppHostUsageError,
                 CapabilityError,
                 registerCallback,
                 wrapIfHandle,
@@ -406,6 +407,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                         }
                     }
                 }
+            }
+        }
+
+        // Ensure all builder type IDs have handle type aliases.
+        // CreateBuilderModels discovers additional resource types via CollectAllReferencedTypes
+        // (e.g. types that appear only in return types or parameters but aren't direct capability targets).
+        // Without this, the builder class references a handle type that was never declared.
+        foreach (var builder in builders)
+        {
+            if (!dtoTypeIds.Contains(builder.TypeId))
+            {
+                typeIds.Add(builder.TypeId);
             }
         }
 
@@ -1569,7 +1582,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Re-export commonly used types
-            export { Handle, CapabilityError, registerCallback } from './transport.js';
+            export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
             export { refExpr, ReferenceExpression } from './base.js';
             """);
         WriteLine();
@@ -1589,7 +1602,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             process.on('unhandledRejection', (reason: unknown) => {
                 const error = reason instanceof Error ? reason : new Error(String(reason));
 
-                if (reason instanceof CapabilityError) {
+                if (reason instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else if (reason instanceof CapabilityError) {
                     console.error(`\n❌ Capability Error: ${error.message}`);
                     console.error(`   Code: ${(reason as CapabilityError).code}`);
                     if ((reason as CapabilityError).capability) {
@@ -1606,8 +1621,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             });
 
             process.on('uncaughtException', (error: Error) => {
-                console.error(`\n❌ Uncaught Exception: ${error.message}`);
-                if (error.stack) {
+                if (error instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else {
+                    console.error(`\n❌ Uncaught Exception: ${error.message}`);
+                }
+                if (!(error instanceof AppHostUsageError) && error.stack) {
                     console.error(error.stack);
                 }
                 process.exit(1);

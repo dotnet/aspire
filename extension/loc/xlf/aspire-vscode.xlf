@@ -40,23 +40,8 @@
     <trans-unit id="aspire-vscode.strings.aspireTerminalName">
       <source xml:lang="en">Aspire terminal</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarError">
-      <source xml:lang="en">Aspire: Error</source>
-    </trans-unit>
     <trans-unit id="extension.debug.defaultConfiguration.name">
       <source xml:lang="en">Aspire: Launch default apphost</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarStopped">
-      <source xml:lang="en">Aspire: Stopped</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarRunningNoResourcesSingular">
-      <source xml:lang="en">Aspire: {0} apphost</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarRunningNoResourcesPlural">
-      <source xml:lang="en">Aspire: {0} apphosts</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarRunning">
-      <source xml:lang="en">Aspire: {0}/{1} running</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
       <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
@@ -153,9 +138,6 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.enterPipelineStep">
       <source xml:lang="en">Enter the pipeline step to execute</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarTooltipError">
-      <source xml:lang="en">Error fetching Aspire apphost status. Click to open the Aspire panel.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.errorGettingConfigInfo">
       <source xml:lang="en">Error getting Aspire config info: {0}. Try updating the Aspire CLI with: aspire update</source>
@@ -274,9 +256,6 @@
     <trans-unit id="aspire-vscode.strings.no">
       <source xml:lang="en">No</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarTooltipStopped">
-      <source xml:lang="en">No Aspire apphosts running. Click to open the Aspire panel.</source>
-    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
       <source xml:lang="en">No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn&apos;t finished loading?</source>
     </trans-unit>
@@ -290,7 +269,7 @@
       <source xml:lang="en">No output from msbuild.</source>
     </trans-unit>
     <trans-unit id="views.runningAppHosts.welcome">
-      <source xml:lang="en">No running Aspire apphosts found.&#10;[Run an apphost](command:aspire-vscode.runAppHost)</source>
+      <source xml:lang="en">No running Aspire apphost detected in this workspace.&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noWatchTask">
       <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
@@ -324,6 +303,9 @@
     </trans-unit>
     <trans-unit id="extension.debug.program">
       <source xml:lang="en">Path to the apphost to run</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.globalAppHostsPollingInterval">
+      <source xml:lang="en">Polling interval in milliseconds for fetching all running apphosts (used in global view). Minimum: 1000.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.processExitedWithCode">
       <source xml:lang="en">Process exited with code {0}.</source>
@@ -372,6 +354,12 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
+    <trans-unit id="command.switchToGlobalView">
+      <source xml:lang="en">Show global apphosts</source>
+    </trans-unit>
+    <trans-unit id="command.switchToWorkspaceView">
+      <source xml:lang="en">Show workspace apphost</source>
     </trans-unit>
     <trans-unit id="command.startResource">
       <source xml:lang="en">Start</source>
@@ -434,7 +422,7 @@
       <source xml:lang="en">Welcome to Aspire</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.registerMcpServerInWorkspace">
-      <source xml:lang="en">Whether to the Aspire MCP server when a workspace is open.</source>
+      <source xml:lang="en">Whether to register the Aspire MCP server when a workspace is open.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yesLabel">
       <source xml:lang="en">Yes</source>
@@ -444,12 +432,6 @@
     </trans-unit>
     <trans-unit id="walkthrough.getStarted.nextSteps.description">
       <source xml:lang="en">You&apos;re all set! Add integrations for databases, messaging, and cloud services, or deploy your app to production.&#10;&#10;[Add an integration](command:aspire-vscode.add)&#10;&#10;[Open Aspire docs](https://aspire.dev/docs/)</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarTooltipRunningSingular">
-      <source xml:lang="en">{0} Aspire apphost running. Click to open the Aspire panel.</source>
-    </trans-unit>
-    <trans-unit id="aspire-vscode.strings.statusBarTooltipRunningPlural">
-      <source xml:lang="en">{0} Aspire apphosts running. Click to open the Aspire panel.</source>
     </trans-unit>
   </body></file>
 </xliff>

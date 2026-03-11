@@ -191,7 +191,7 @@ public static class AzureOpenAIExtensions
     /// <param name="builder">The Azure OpenAI Deployment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureOpenAIDeploymentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withProperties", Description = "Configures properties of an Azure OpenAI deployment")]
+    [AspireExport("withProperties", Description = "Configures properties of an Azure OpenAI deployment", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureOpenAIDeploymentResource> WithProperties(this IResourceBuilder<AzureOpenAIDeploymentResource> builder, Action<AzureOpenAIDeploymentResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);

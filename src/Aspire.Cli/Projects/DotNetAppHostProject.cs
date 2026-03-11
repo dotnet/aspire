@@ -67,6 +67,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
+    public bool IsUnsupported { get; set; }
+
+    /// <inheritdoc />
     public string LanguageId => KnownLanguageId.CSharp;
 
     /// <inheritdoc />
@@ -153,6 +156,11 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
+        if (IsUnsupported)
+        {
+            return new AppHostValidationResult(IsValid: false, IsUnsupported: true);
+        }
+
         var isSingleFile = appHostFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
 
         if (isSingleFile)
@@ -476,6 +484,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             context.PackageId,
             context.PackageVersion,
             context.Source,
+            noRestore: false,
             options,
             cancellationToken);
 

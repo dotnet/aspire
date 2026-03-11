@@ -165,12 +165,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.", Aspire.Cli.Projects.ProjectLocatorFailureReason.ProjectFileDoesntExist);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.", Aspire.Cli.Projects.ProjectLocatorFailureReason.ProjectFileDoesntExist);
         }
     }
 
@@ -218,12 +218,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.NoProjectFileFound);
         }
     }
 
@@ -231,12 +231,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.MultipleProjectFilesFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.", Aspire.Cli.Projects.ProjectLocatorFailureReason.MultipleProjectFilesFound);
         }
     }
 
@@ -1266,21 +1266,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             // Return a .cs file to simulate single file AppHost
             return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
         }
-    }
-
-    [Fact]
-    public void RunCommand_RunningInstanceDetectionFeatureFlag_DefaultsToFalse()
-    {
-        // Verify that the running instance detection feature flag defaults to false
-        // to ensure existing behavior is not changed unless explicitly enabled
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
-        var provider = services.BuildServiceProvider();
-
-        var features = provider.GetRequiredService<IFeatures>();
-        var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-
-        Assert.True(isEnabled, "Running instance detection should be enabled by default");
     }
 
     [Fact]

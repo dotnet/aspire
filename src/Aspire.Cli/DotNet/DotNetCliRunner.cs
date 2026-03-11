@@ -33,7 +33,7 @@ internal interface IDotNetCliRunner
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -758,37 +758,40 @@ internal sealed class DotNetCliRunner(
             options: options,
             cancellationToken: cancellationToken);
     }
-    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
         var cliArgsList = new List<string>
         {
-            "add"
+            "package"
         };
 
         // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
         var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
         if (isSingleFileAppHost)
         {
-            cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
+            cliArgsList.Add("add");
+            cliArgsList.AddRange(["--file", projectFilePath.FullName]);
             // For single-file AppHost, use packageName@version format
             cliArgsList.Add($"{packageName}@{packageVersion}");
         }
         else
         {
-            cliArgsList.AddRange([projectFilePath.FullName, "package"]);
+            cliArgsList.Add("add");
             // For non single-file scenarios, use separate --version flag
             cliArgsList.Add(packageName);
             cliArgsList.Add("--version");
             cliArgsList.Add(packageVersion);
+            cliArgsList.Add("--project");
+            cliArgsList.Add(projectFilePath.FullName);
         }
 
-        if (string.IsNullOrEmpty(nugetSource))
+        if (noRestore)
         {
             cliArgsList.Add("--no-restore");
         }
-        else
+        if (!string.IsNullOrEmpty(nugetSource))
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -916,8 +919,8 @@ internal sealed class DotNetCliRunner(
         using var activity = telemetry.StartDiagnosticActivity();
 
         string? rawKey = null;
-        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
-        if (cacheEnabled)
+        var cacheEnabled = useCache;
+        if (useCache)
         {
             try
             {

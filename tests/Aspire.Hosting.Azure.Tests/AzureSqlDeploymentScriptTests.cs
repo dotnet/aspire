@@ -3,10 +3,7 @@
 
 #pragma warning disable ASPIREAZURE003
 
-using System.Text;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -170,39 +167,6 @@ public class AzureSqlDeploymentScriptTests
             .WithReference(db);
 
         await VerifyAllAzureBicep(builder);
-    }
-
-    private static async Task VerifyAllAzureBicep(IDistributedApplicationBuilder builder)
-    {
-        var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Collect bicep for all Azure provisioning resources, ordered by name for deterministic output
-        var azureResources = model.Resources
-            .OfType<AzureProvisioningResource>()
-            .OrderBy(r => r.Name)
-            .ToList();
-
-        var sb = new StringBuilder();
-
-        foreach (var resource in azureResources)
-        {
-            var bicep = await GetBicep(resource);
-
-            sb.AppendLine($"// Resource: {resource.Name}");
-            sb.AppendLine(bicep);
-            sb.AppendLine();
-        }
-
-        await Verify(sb.ToString(), extension: "bicep")
-            .ScrubLinesWithReplace(s => s.Replace("\\r\\n", "\\n"));
-    }
-
-    private static async Task<string> GetBicep(IResource resource)
-    {
-        var (_, bicep) = await AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
-        return bicep;
     }
 
     private sealed class Project : IProjectMetadata
