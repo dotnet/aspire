@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Interface to build a configuration file for YARP
 /// </summary>
-[AspireExport(ExposeMethods = true)]
+[AspireExport]
 public interface IYarpConfigurationBuilder
 {
     /// <summary>
@@ -18,6 +18,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="path">The path to match for this route.</param>
     /// <param name="cluster">The target cluster for this route.</param>
     /// <returns></returns>
+    [AspireExport("addRoute", Description = "Add a new route to YARP that will target the cluster in parameter.")]
     public YarpRoute AddRoute(string path, YarpCluster cluster);
 
     /// <summary>
@@ -26,7 +27,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="endpoint">The endpoint target for this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addClusterFromEndpoint</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the explicit static export to avoid AddCluster capability ID collisions in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "Use the addClusterFromEndpoint method instead.")]
     public YarpCluster AddCluster(EndpointReference endpoint);
 
     /// <summary>
@@ -35,7 +36,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="resource">The resource target for this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addCluster</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the explicit static export to avoid AddCluster capability ID collisions in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "Use the addClusterFromResource method instead.")]
     public YarpCluster AddCluster(IResourceBuilder<IResourceWithServiceDiscovery> resource);
 
     /// <summary>
@@ -44,7 +45,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="externalService">The external service used by this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addClusterFromExternalService</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the explicit static export to avoid AddCluster capability ID collisions in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "Use the addClusterFromExternalService method instead.")]
     public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService);
 
     /// <summary>
@@ -54,7 +55,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="destinations">The destinations used by this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addClusterWithDestinations</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the explicit static export to avoid AddCluster capability ID collisions in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "Use the addClusterWithDestinations method instead.")]
     public YarpCluster AddCluster(string clusterName, object[] destinations);
 
     /// <summary>
@@ -64,7 +65,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="destination">The destinations used by this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addClusterWithDestination</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the explicit static export to avoid AddCluster capability ID collisions in polyglot app hosts.")]
+    [AspireExportIgnore(Reason = "Use the AddClusterWithDestination method instead.")]
     public YarpCluster AddCluster(string clusterName, object destination)
     {
         return AddCluster(clusterName, [destination]);
