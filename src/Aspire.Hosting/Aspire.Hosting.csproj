@@ -11,9 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="build\Aspire.Hosting.targets" Pack="true" PackagePath="build\" />
+    <None Include="buildtransitive\Aspire.Hosting.targets" Pack="true" PackagePath="buildtransitive\$(DefaultTargetFramework)" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Dcp\BundleDiscovery.cs" />
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
@@ -159,7 +159,7 @@
     <Error Condition="'$(AspireIntegrationAnalyzerFile)' == ''" Text="Could not find Aspire.Hosting.Integration.Analyzers.dll." />
 
     <ItemGroup>
-      <None Include="$(AspireIntegrationAnalyzerFile)" Pack="True" PackagePath="build\" />
+      <None Include="$(AspireIntegrationAnalyzerFile)" Pack="True" PackagePath="buildtransitive\$(DefaultTargetFramework)" />
     </ItemGroup>
   </Target>
 
