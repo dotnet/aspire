@@ -631,6 +631,16 @@ class CSharpAppResource extends ResourceBuilderBase {
         return (ProjectResource) getClient().invokeCapability("Aspire.Hosting/disableForwardedHeaders", reqArgs);
     }
 
+    /** Publishes a project as a Docker file with optional container configuration */
+    public ProjectResource publishAsDockerFile(Function<Object[], Object> configure) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        if (configure != null) {
+            reqArgs.put("configure", getClient().registerCallback(configure));
+        }
+        return (ProjectResource) getClient().invokeCapability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", reqArgs);
+    }
+
     /** Adds a required command dependency */
     public IResource withRequiredCommand(String command, String helpLink) {
         Map<String, Object> reqArgs = new HashMap<>();

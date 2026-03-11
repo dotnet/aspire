@@ -8,6 +8,7 @@ import {
     AspireClient as AspireClientRpc,
     Handle,
     MarshalledHandle,
+    AppHostUsageError,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -426,6 +427,10 @@ export interface GetStatusAsyncOptions {
 
 export interface GetValueAsyncOptions {
     cancellationToken?: AbortSignal;
+}
+
+export interface PublishAsDockerFileOptions {
+    configure?: (obj: ContainerResource) => Promise<void>;
 }
 
 export interface RunOptions {
@@ -5788,6 +5793,28 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
+    private async _publishAsDockerFileInternal(configure?: (obj: ContainerResource) => Promise<void>): Promise<CSharpAppResource> {
+        const configureId = configure ? registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ContainerResourceHandle;
+            const obj = new ContainerResource(objHandle, this._client);
+            await configure(obj);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/publishProjectAsDockerFileWithConfigure',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        const configure = options?.configure;
+        return new CSharpAppResourcePromise(this._publishAsDockerFileInternal(configure));
+    }
+
+    /** @internal */
     private async _withRequiredCommandInternal(command: string, helpLink?: string): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
         if (helpLink !== undefined) rpcArgs.helpLink = helpLink;
@@ -7041,6 +7068,11 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     /** Disables forwarded headers for the project */
     disableForwardedHeaders(): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.disableForwardedHeaders()));
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.publishAsDockerFile(options)));
     }
 
     /** Adds a required command dependency */
@@ -22735,7 +22767,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -22749,7 +22781,9 @@ export { refExpr, ReferenceExpression } from './base.js';
 process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
-    if (reason instanceof CapabilityError) {
+    if (reason instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else if (reason instanceof CapabilityError) {
         console.error(`\n❌ Capability Error: ${error.message}`);
         console.error(`   Code: ${(reason as CapabilityError).code}`);
         if ((reason as CapabilityError).capability) {
@@ -22766,8 +22800,12 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 process.on('uncaughtException', (error: Error) => {
-    console.error(`\n❌ Uncaught Exception: ${error.message}`);
-    if (error.stack) {
+    if (error instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else {
+        console.error(`\n❌ Uncaught Exception: ${error.message}`);
+    }
+    if (!(error instanceof AppHostUsageError) && error.stack) {
         console.error(error.stack);
     }
     process.exit(1);

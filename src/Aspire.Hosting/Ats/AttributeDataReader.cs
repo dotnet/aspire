@@ -127,6 +127,7 @@ internal static class AttributeDataReader
         string? methodName = null;
         var exposeProperties = false;
         var exposeMethods = false;
+        var runSyncOnBackgroundThread = false;
 
         for (var i = 0; i < data.NamedArguments.Count; i++)
         {
@@ -157,6 +158,12 @@ internal static class AttributeDataReader
                         exposeMethods = em;
                     }
                     break;
+                case nameof(AspireExportData.RunSyncOnBackgroundThread):
+                    if (named.TypedValue.Value is bool rs)
+                    {
+                        runSyncOnBackgroundThread = rs;
+                    }
+                    break;
             }
         }
 
@@ -167,7 +174,8 @@ internal static class AttributeDataReader
             Description = description,
             MethodName = methodName,
             ExposeProperties = exposeProperties,
-            ExposeMethods = exposeMethods
+            ExposeMethods = exposeMethods,
+            RunSyncOnBackgroundThread = runSyncOnBackgroundThread
         };
     }
 
@@ -244,6 +252,11 @@ internal sealed class AspireExportData
     /// Gets whether to expose public instance methods of this type as ATS capabilities.
     /// </summary>
     public bool ExposeMethods { get; init; }
+
+    /// <summary>
+    /// Gets whether synchronous exported methods should be invoked on a background thread by the ATS dispatcher.
+    /// </summary>
+    public bool RunSyncOnBackgroundThread { get; init; }
 }
 
 /// <summary>

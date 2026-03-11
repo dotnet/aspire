@@ -103,7 +103,7 @@ public static class YarpResourceExtensions
     /// </summary>
     /// <param name="builder">The YARP resource to configure.</param>
     /// <param name="configurationBuilder">The delegate to configure YARP.</param>
-    [AspireExport("withConfiguration", Description = "Configure the YARP resource.")]
+    [AspireExport("withConfiguration", Description = "Configure the YARP resource.", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<YarpResource> WithConfiguration(this IResourceBuilder<YarpResource> builder, Action<IYarpConfigurationBuilder> configurationBuilder)
     {
         var configBuilder = new YarpConfigurationBuilder(builder);

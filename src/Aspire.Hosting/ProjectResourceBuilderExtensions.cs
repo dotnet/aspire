@@ -820,7 +820,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">Resource builder</param>
     /// <param name="configure">Optional action to configure the container resource</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("publishAsDockerFileWithConfigure", Description = "Publishes a project as a Docker file with optional container configuration")]
+    [AspireExport("publishProjectAsDockerFileWithConfigure", MethodName = "publishAsDockerFile", Description = "Publishes a project as a Docker file with optional container configuration")]
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<ContainerResource>>? configure = null)
         where T : ProjectResource
     {

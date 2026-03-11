@@ -51,7 +51,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         if (emoji is { } e)
         {
-            statusText = FormatEmojiPrefix(e.Name) + statusText;
+            statusText = ConsoleHelpers.FormatEmojiPrefix(e, MessageConsole) + statusText;
         }
 
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
@@ -93,7 +93,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         if (emoji is { } e)
         {
-            statusText = FormatEmojiPrefix(e.Name) + statusText;
+            statusText = ConsoleHelpers.FormatEmojiPrefix(e, MessageConsole) + statusText;
         }
 
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
@@ -252,7 +252,7 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
         var displayMessage = allowMarkup ? message : message.EscapeMarkup();
-        MessageConsole.MarkupLine(FormatEmojiPrefix(emoji.Name) + displayMessage);
+        MessageConsole.MarkupLine(ConsoleHelpers.FormatEmojiPrefix(emoji, MessageConsole) + displayMessage);
     }
 
     public void DisplayPlainText(string message)
@@ -375,12 +375,4 @@ internal class ConsoleInteractionService : IInteractionService
         _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 
-    private string FormatEmojiPrefix(string emojiName)
-    {
-        const int emojiTargetWidth = 3; // 2 for emoji and 1 trailing space
-
-        var cellLength = EmojiWidth.GetCachedCellWidth(emojiName, MessageConsole);
-        var padding = Math.Max(1, emojiTargetWidth - cellLength);
-        return $":{emojiName}:" + new string(' ', padding);
-    }
 }

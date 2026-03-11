@@ -14,7 +14,8 @@ export type Capability =
     | 'python' // Support for running Python projects
     | 'ms-python.python' // Older AppHost versions used this extension identifier instead of python
     | 'node' // Support for running Node.js projects
-    | 'browser'; // Support for browser debugging (built-in to VS Code via js-debug)
+    | 'browser' // Support for browser debugging (built-in to VS Code via js-debug)
+    | 'azure-functions'; // Support for running Azure Functions projects
 
 export type Capabilities = Capability[];
 
@@ -35,6 +36,10 @@ export function isPythonInstalled() {
     return isExtensionInstalled("ms-python.python");
 }
 
+export function isAzureFunctionsExtensionInstalled() {
+    return isExtensionInstalled("ms-azuretools.vscode-azurefunctions");
+}
+
 export function isNodeInstalled() {
     // Node.js debugging uses VS Code's built-in js-debug, no extension needed
     return true;
@@ -51,6 +56,12 @@ export function getSupportedCapabilities(): Capabilities {
     if (isCsharpInstalled()) {
         capabilities.push("project");
         capabilities.push("ms-dotnettools.csharp");
+
+        // Azure Functions debugging requires both C# (coreclr attach to the worker
+        // process) and the Azure Functions extension (to launch func host start).
+        if (isAzureFunctionsExtensionInstalled()) {
+            capabilities.push("azure-functions");
+        }
     }
 
     if (isPythonInstalled()) {

@@ -313,6 +313,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to LLM.
+        /// </summary>
+        public static string GenAILLMBadgeText {
+            get {
+                return ResourceManager.GetString("GenAILLMBadgeText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Message.
         /// </summary>
         public static string GenAIMessageCategoryMessage {
@@ -507,6 +516,24 @@ namespace Aspire.Dashboard.Resources {
         public static string GenAITokensLabel {
             get {
                 return ResourceManager.GetString("GenAITokensLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool call.
+        /// </summary>
+        public static string GenAIToolCallButtonText {
+            get {
+                return ResourceManager.GetString("GenAIToolCallButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tool definition.
+        /// </summary>
+        public static string GenAIToolDefinitionButtonText {
+            get {
+                return ResourceManager.GetString("GenAIToolDefinitionButtonText", resourceCulture);
             }
         }
         
