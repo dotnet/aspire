@@ -76,19 +76,19 @@ internal sealed class ProjectChangeDetectionService(
         var projectPath = metadata.ProjectPath;
         var resourceLogger = resourceLoggerService.GetLogger(projectResource);
 
-        logger.LogDebug("Capturing file closure for project '{ResourceName}' at {ProjectPath}", resourceName, projectPath);
+        logger.LogInformation("Capturing file closure for project '{ResourceName}' at {ProjectPath}", resourceName, projectPath);
 
         var closure = await ProjectBuildHelper.GetProjectFileClosureAsync(projectPath, logger, stoppingToken).ConfigureAwait(false);
         if (closure is null)
         {
-            logger.LogDebug("Could not capture file closure for project '{ResourceName}'. Change detection will not be active for this resource.", resourceName);
+            logger.LogWarning("Could not capture file closure for project '{ResourceName}'. Change detection will not be active for this resource.", resourceName);
             return;
         }
 
         var monitorState = new ProjectMonitorState(closure, resourceLogger);
         _monitoredProjects[resourceName] = monitorState;
 
-        logger.LogDebug("Started monitoring {FileCount} files for project '{ResourceName}'", closure.FileTimestamps.Count, resourceName);
+        logger.LogInformation("Monitoring {FileCount} files for changes in project '{ResourceName}'", closure.FileTimestamps.Count, resourceName);
 
         // Start a background task to periodically check for changes.
         _ = Task.Run(async () =>
@@ -155,13 +155,13 @@ internal sealed class ProjectChangeDetectionService(
                 "[change-detection] Source files changed: {Files}. Use the Rebuild command to apply changes.",
                 fileList);
 
-            logger.LogDebug("Detected {Count} changed files for project '{ResourceName}': {Files}",
+            logger.LogInformation("Detected {Count} changed files for project '{ResourceName}': {Files}",
                 changedFiles.Count, resourceName, fileList);
 
             // Show a notification in the dashboard if available.
             if (interactionService.IsAvailable)
             {
-                logger.LogDebug("Sending notification for project '{ResourceName}' source changes.", resourceName);
+                logger.LogInformation("Sending notification for project '{ResourceName}' source changes.", resourceName);
                 _ = interactionService.PromptNotificationAsync(
                     title: $"Source changes detected in '{resourceName}'",
                     message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
@@ -173,7 +173,7 @@ internal sealed class ProjectChangeDetectionService(
             }
             else
             {
-                logger.LogDebug("Interaction service is not available; skipping notification for project '{ResourceName}'.", resourceName);
+                logger.LogWarning("Interaction service is not available; skipping notification for project '{ResourceName}'.", resourceName);
             }
         }
     }
