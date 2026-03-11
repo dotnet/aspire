@@ -99,10 +99,11 @@
       <_ExtensionFilesToPublish Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix.zip" />
     </ItemGroup>
 
-    <!-- Generate checksums for aspire-cli packages -->
+    <!-- Generate checksums for aspire-cli packages and install scripts -->
     <ItemGroup>
       <_CliFileToPublish Include="@(_ArchiveFiles)" />
       <GenerateChecksumItems Include="@(_CliFileToPublish)" DestinationPath="%(FullPath).sha512" />
+      <GenerateChecksumItems Include="@(_CliInstallScriptsToPublish)" DestinationPath="$(ArtifactsPackagesDir)\%(Filename)%(Extension).sha512" />
     </ItemGroup>
 
     <GenerateChecksums Items="@(GenerateChecksumItems)" />
