@@ -197,6 +197,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
             var (regular, tunnelDependent, regularContainerExes, tunnelDependentContainerExes) = await GetContainerCreationSetsAsync(ct).ConfigureAwait(false);
+            
 
             var createExecutableEndpoints = Task.Run(async () =>
             {
@@ -932,7 +933,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 _logger.LogInformation($"Waiting for container network '{containerNetworkName}' tunnel initialization...");
                 // Container tunnel initialization can take a while if the container tunnel image needs to be built,
-                // expecially if the network is slow, hence 10 minute timeout here.
+                // especially if the network is slow, hence 10 minute timeout here.
                 await UpdateWithEffectiveAddressInfo(tunnelServices, cancellationToken, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
                 _logger.LogInformation($"Tunnel for container network '{containerNetworkName}' initialized");
             }
@@ -1174,6 +1175,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private async Task PrepareServicesAsync(CancellationToken cancellationToken)
     {
+        _ = cancellationToken; // Reserved for future use.
         _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
 
         var serviceProducers = _model.Resources
@@ -1872,6 +1874,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     exe.Spec.ExecutionType = ExecutionType.Process;
                 }
             }
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, er.ModelResource)).ConfigureAwait(false);
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
         }
@@ -2299,6 +2302,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
             }
 
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, cr.ModelResource)).ConfigureAwait(false);
+
             await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -2587,6 +2592,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         try
         {
             _logger.LogDebug("Starting {ResourceType} '{ResourceName}'.", resourceType, appResource.DcpResourceName);
+
+            // Reset cached callback results so they are re-evaluated on restart.
+            ForgetCachedCallbackResults(appResource.ModelResource);
 
             // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
             // deleted will temporarily override the status to a terminal state, such as "Exited".
@@ -2986,6 +2994,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return endpoint is not null;
     }
 
+    /// <summary>
+    /// Clears cached callback results on resource annotations so they are re-evaluated on restart.
+    /// </summary>
+    private static void ForgetCachedCallbackResults(IResource resource)
+    {
+        if (resource.TryGetEnvironmentVariables(out var envCallbacks))
+        {
+            foreach (var callback in envCallbacks)
+            {
+                ((ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)callback).ForgetCachedResult();
+            }
+        }
+
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        {
+            foreach (var callback in argsCallbacks)
+            {
+                ((ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>)callback).ForgetCachedResult();
+            }
+        }
+    }
+
     private record struct HostResourceWithEndpoints
     (
         IResourceWithEndpoints Resource,
@@ -3056,7 +3086,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         if (persistentTunnelDependent.Any())
         {
             var containerNames = persistentTunnelDependent.Select(td => td.ModelResource.Name).Aggregate(string.Empty, (acc, next) => acc + " '" + next + "'");
-            throw new InvalidOperationException($"The follwing containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
+            throw new InvalidOperationException($"The following containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
         }
 
         return new ContainerCreationSets(

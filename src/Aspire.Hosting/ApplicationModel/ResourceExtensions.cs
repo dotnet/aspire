@@ -1385,34 +1385,30 @@ public static class ResourceExtensions
         var rawValues = new List<object>();
 
         // Gather environment variable values
-        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        if (resource.TryGetEnvironmentVariables(out var envAnnotations))
         {
-            var envVars = new Dictionary<string, object>();
-            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken);
+            var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
 
-            foreach (var callback in environmentCallbacks)
+            foreach (var ann in envAnnotations)
             {
-                await callback.Callback(context).ConfigureAwait(false);
+                var envVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                rawValues.AddRange(envVars.Values);
             }
-
-            rawValues.AddRange(envVars.Values);
         }
 
         // Gather command-line argument values
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argAnnotations))
         {
-            var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(new List<object>(), resource, cancellationToken)
             {
                 ExecutionContext = executionContext
             };
 
-            foreach (var callback in argsCallbacks)
+            foreach (var ann in argAnnotations)
             {
-                await callback.Callback(context).ConfigureAwait(false);
+                var args = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                rawValues.AddRange(args);
             }
-
-            rawValues.AddRange(args);
         }
 
         return rawValues;
@@ -1422,7 +1418,7 @@ public static class ResourceExtensions
     /// Collects dependencies from resource annotations (parent, wait, connection string redirect).
     /// </summary>
     /// <returns>A set of newly collected dependencies added to <paramref name="dependencies"/>.</returns>
-    private static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    internal static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
     {
         // Parent relationship
         if (resource is IResourceWithParent resourceWithParent)
@@ -1458,7 +1454,7 @@ public static class ResourceExtensions
     /// <summary>
     /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
     /// </summary>
-    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
+    internal static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
     {
         if (value is null || !visitedValues.Add(value))
         {
