@@ -96,8 +96,14 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
             c.TrustLevel != CertificateTrustLevel.None &&
             c.Version < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust);
 
-        // Multiple certs, untrusted certs, or old versions → clean+trust
-        if (certInfos.Count > 1 || trustedCount == 0 || hasOldVersions)
+        // Untrusted certs or old versions → clean+trust
+        if (trustedCount == 0 || hasOldVersions)
+        {
+            return [availableActions.First(a => a.Name == "trust")];
+        }
+
+        // Multiple certs with some untrusted → clean+trust to consolidate
+        if (certInfos.Count > 1 && trustedCount < certInfos.Count)
         {
             return [availableActions.First(a => a.Name == "trust")];
         }
@@ -246,7 +252,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
             var cert = certInfos[0];
             results.Add(new EnvironmentCheckResult
             {
-                Category = "sdk",
+                Category = "environment",
                 Name = "dev-certs",
                 Status = EnvironmentCheckStatus.Warning,
                 Message = "HTTPS development certificate is not trusted",

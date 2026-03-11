@@ -89,7 +89,7 @@ public class DevCertsCheckHealTests
     }
 
     [Fact]
-    public void EvaluateHealActions_MultipleAllTrusted_RecommendsTrust()
+    public void EvaluateHealActions_MultipleAllTrusted_ReturnsEmpty()
     {
         var certInfos = new List<CertificateInfo>
         {
@@ -99,8 +99,7 @@ public class DevCertsCheckHealTests
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
 
-        Assert.Single(actions);
-        Assert.Equal("trust", actions[0].Name);
+        Assert.Empty(actions);
     }
 
     [Fact]

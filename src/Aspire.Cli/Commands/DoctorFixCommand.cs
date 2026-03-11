@@ -82,6 +82,7 @@ internal sealed class DoctorFixCommand : BaseCommand
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var format = parseResult.GetValue(formatOption);
+            RouteOutputForFormat(format);
             return await ExecuteCheckFixAsync(check, format, cancellationToken);
         });
 
@@ -97,6 +98,7 @@ internal sealed class DoctorFixCommand : BaseCommand
             actionCommand.SetAction(async (parseResult, cancellationToken) =>
             {
                 var format = parseResult.GetValue(actionFormatOption);
+                RouteOutputForFormat(format);
                 return await ExecuteExplicitActionAsync(check, capturedAction.Name, format, cancellationToken);
             });
             command.Subcommands.Add(actionCommand);
@@ -129,7 +131,7 @@ internal sealed class DoctorFixCommand : BaseCommand
 
             if (format == OutputFormat.Table)
             {
-                _ansiConsole.MarkupLine($"[blue]🔧[/] {string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.ApplyingCategoryFixes, check.HealCommandDescription).EscapeMarkup()}");
+                _ansiConsole.MarkupLine($"[blue]🔧[/] {string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.ApplyingCategoryFixes, check.HealCommandName).EscapeMarkup()}");
             }
 
             foreach (var action in recommendedActions)
@@ -211,6 +213,19 @@ internal sealed class DoctorFixCommand : BaseCommand
             Message = result.Message,
             Details = result.Details
         };
+    }
+
+    /// <summary>
+    /// Routes human-readable output to stderr when JSON format is requested.
+    /// Dynamic sub-commands don't inherit <see cref="BaseCommand"/> routing, so
+    /// this must be called explicitly in their action callbacks.
+    /// </summary>
+    private void RouteOutputForFormat(OutputFormat format)
+    {
+        if (format == OutputFormat.Json)
+        {
+            InteractionService.Console = ConsoleOutput.Error;
+        }
     }
 
     private void OutputResults(List<DoctorFixActionResult> fixResults, OutputFormat format)

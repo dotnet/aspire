@@ -8,7 +8,7 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// </summary>
 /// <param name="Name">The action name used as a CLI sub-command (e.g., "clean", "trust").</param>
 /// <param name="Description">A human-readable description of what the action does, shown in CLI help text.</param>
-/// <param name="ProgressDescription">A human-readable description shown in the spinner while the action is executing (e.g., "Cleaning development certificates (may require elevated permissions)...").</param>
+/// <param name="ProgressDescription">A human-readable description shown as a status message while the action is executing (e.g., "Cleaning development certificates (may require elevated permissions)...").</param>
 internal sealed record HealAction(string Name, string Description, string ProgressDescription);
 
 /// <summary>
