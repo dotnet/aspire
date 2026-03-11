@@ -92,7 +92,7 @@ public sealed class DoctorFixCommandTests(ITestOutputHelper output)
 
         // Pattern for "no issues found" output
         var noIssuesPattern = new CellPatternSearcher()
-            .Find("No issues found");
+            .Find("No fixable issues were identified");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
