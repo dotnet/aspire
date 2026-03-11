@@ -42,5 +42,6 @@ The automated tests for this workflow live in `tests/Infrastructure.Tests/Workfl
 Those tests are intentionally behavior-focused rather than regex-focused:
 
 - they use representative fixtures for each supported behavior
+- they keep representative job and step fixtures anchored to the current CI workflow names so matcher coverage does not drift from the implementation
 - they cover the mixed-failure veto and ignored-step override explicitly
-- they keep only a minimal set of safety-guard tests so the suite protects against retry loops and CI fan-out without over-specifying the YAML wiring
+- they keep only a minimal set of YAML contract checks for safety rails such as `workflow_dispatch` dry-run mode, first-attempt-only automatic reruns, and gating the rerun job on `rerun_eligible`
