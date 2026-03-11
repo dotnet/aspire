@@ -468,7 +468,7 @@ public static class ProjectResourceBuilderExtensions
                 var rebuilderBuilder = builder.ApplicationBuilder.AddResource(rebuilder);
 
                 rebuilderBuilder
-                    .WithArgs("build", "--project", projectMetadata.ProjectPath)
+                    .WithArgs("build", projectMetadata.ProjectPath)
                     .WithAnnotation(new ExplicitStartupAnnotation())
                     .WithAnnotation(new ExcludeLifecycleCommandsAnnotation())
                     .ExcludeFromManifest()
