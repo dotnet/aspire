@@ -119,7 +119,7 @@ internal static class CommandsConfigurationExtensions
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
 
-        if (resource is ProjectResource)
+        if (resource is ProjectResource projectResource)
         {
             resource.Annotations.Add(new ResourceCommandAnnotation(
                 name: KnownResourceCommands.RebuildCommand,
@@ -131,16 +131,10 @@ internal static class CommandsConfigurationExtensions
                     var loggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
                     var model = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
 
-                    var projectResource = model.Resources.OfType<ProjectResource>().FirstOrDefault(r => r.Name == context.ResourceName);
-                    if (projectResource is null)
-                    {
-                        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Project resource '{context.ResourceName}' not found." };
-                    }
-
                     var rebuilderResource = model.Resources.OfType<ProjectRebuilderResource>().FirstOrDefault(r => r.Parent == projectResource);
                     if (rebuilderResource is null)
                     {
-                        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Rebuilder resource for '{context.ResourceName}' not found." };
+                        return new ExecuteCommandResult { Success = false, ErrorMessage = $"Rebuilder resource for '{projectResource.Name}' not found." };
                     }
 
                     var mainLogger = loggerService.GetLogger(projectResource);
