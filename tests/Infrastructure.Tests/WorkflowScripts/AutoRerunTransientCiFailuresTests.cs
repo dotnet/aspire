@@ -82,11 +82,13 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Equal("Annotations did not match the transient allowlist.", result.SkippedJobs[0].Reason);
     }
 
-    [Fact]
+    [Theory]
+    [InlineData("Final Results")]
+    [InlineData("Tests / Final Test Results")]
     [RequiresTools(["node"])]
-    public async Task IgnoresAggregatorJobsEntirely()
+    public async Task IgnoresConfiguredAggregatorJobsEntirely(string jobName)
     {
-        WorkflowJob job = CreateJob(name: "Final Results", failedSteps: ["Set up job"]);
+        WorkflowJob job = CreateJob(name: jobName, failedSteps: ["Set up job"]);
 
         AnalyzeFailedJobsResult result = await AnalyzeSingleJobAsync(job, "The hosted runner lost communication with the server.");
 
@@ -326,6 +328,21 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
+    public async Task AutomaticRerunIsEligibleWhenRetryableJobsStayWithinTheCap()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 2
+            });
+
+        Assert.True(rerunEligible);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
     public async Task AutomaticRerunIsSuppressedWhenMatchedJobsExceedTheCap()
     {
         bool rerunEligible = await InvokeHarnessAsync<bool>(
@@ -337,6 +354,63 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             });
 
         Assert.False(rerunEligible);
+    }
+
+    [Fact]
+    public async Task RepresentativeWorkflowFixturesStayAlignedWithCurrentWorkflowDefinitions()
+    {
+        Dictionary<string, string[]> expectations = new()
+        {
+            [".github/workflows/run-tests.yml"] =
+            [
+                "- name: Checkout code",
+                "- name: Set up .NET Core",
+                "- name: Install sdk for nuget based testing",
+                "- name: Build test project",
+                "- name: Run tests (Windows)",
+                "- name: Upload logs, and test results",
+                "- name: Copy CLI E2E recordings for upload",
+                "- name: Upload CLI E2E recordings",
+                "- name: Generate test results summary",
+            ],
+            [".github/workflows/build-packages.yml"] =
+            [
+                "- name: Build with packages",
+            ],
+            [".github/workflows/polyglot-validation.yml"] =
+            [
+                "- name: Build Python validation image",
+                "- name: Run TypeScript SDK validation",
+            ],
+            [".github/workflows/ci.yml"] =
+            [
+                "name: Final Results",
+            ],
+            [".github/workflows/tests.yml"] =
+            [
+                "name: Final Test Results",
+            ],
+        };
+
+        foreach ((string relativePath, string[] expectedLines) in expectations)
+        {
+            string workflowText = await ReadRepoFileAsync(relativePath);
+
+            foreach (string expectedLine in expectedLines)
+            {
+                Assert.Contains(expectedLine, workflowText);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task WorkflowYamlKeepsDocumentedSafetyRails()
+    {
+        string workflowText = await ReadRepoFileAsync(".github/workflows/auto-rerun-transient-ci-failures.yml");
+
+        Assert.Contains("workflow_dispatch:", workflowText);
+        Assert.Contains("github.event.workflow_run.run_attempt == 1", workflowText);
+        Assert.Contains("needs.analyze-transient-failures.outputs.rerun_eligible == 'true'", workflowText);
     }
 
     [Fact]
@@ -601,6 +675,9 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         throw new DirectoryNotFoundException("Could not find repository root containing Aspire.slnx");
     }
+
+    private Task<string> ReadRepoFileAsync(string relativePath)
+        => File.ReadAllTextAsync(Path.Combine(_repoRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
 
     private sealed class HarnessRequest
     {
