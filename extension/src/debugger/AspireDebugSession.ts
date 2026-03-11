@@ -9,6 +9,7 @@ import { spawnCliProcess } from "./languages/cli";
 import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode, aspireDashboard } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import { nodeDebuggerExtension } from "./languages/node";
+import { killFuncProcess } from "./languages/azureFunctions";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
@@ -328,6 +329,9 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           const disposalFunction = () => {
             extensionLogOutputChannel.info(`Stopping debug session: ${session.name} (run id: ${session.configuration.runId})`);
             vscode.debug.stopDebugging(session);
+
+            // Kill any background process associated with this debug session (e.g. func host for Azure Functions)
+            killFuncProcess(debugConfig.runId);
           };
 
           const vsCodeDebugSession: AspireResourceDebugSession = {

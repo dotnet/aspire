@@ -17,7 +17,6 @@ import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
-import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
@@ -37,8 +36,6 @@ export async function activate(context: vscode.ExtensionContext) {
   extensionLogOutputChannel.info("Activating Aspire extension");
   initializeTelemetry(context);
 
-  const debuggerExtensions = getResourceDebuggerExtensions();
-
   const terminalProvider = new AspireTerminalProvider(context.subscriptions);
 
   const rpcServer = await AspireRpcServer.create(
@@ -48,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  const dcpServer = await AspireDcpServer.create(debuggerExtensions, aspireExtensionContext.getAspireDebugSession.bind(aspireExtensionContext));
+  const dcpServer = await AspireDcpServer.create(aspireExtensionContext.getAspireDebugSession.bind(aspireExtensionContext));
 
   terminalProvider.rpcServerConnectionInfo = rpcServer.connectionInfo;
   terminalProvider.dcpServerConnectionInfo = dcpServer.connectionInfo;

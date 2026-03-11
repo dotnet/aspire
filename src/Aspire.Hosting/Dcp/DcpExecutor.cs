@@ -1372,26 +1372,37 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exe);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                 var projectArgs = new List<string>();
 
-                if (project.SupportsDebugging(_configuration, out _))
+                if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
                 {
                     exe.Spec.ExecutionType = ExecutionType.IDE;
                     exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
 
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    // Use the effective launch profile which has fallback logic
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                    if (supportsDebuggingAnnotation.LaunchConfigurationType is "project")
                     {
-                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                        projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+
+                        projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                        // Use the effective launch profile which has fallback logic
+                        if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                        {
+                            projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        }
+
+                        // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+                        exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                     }
+                    // Non-project launch types (e.g. azure-functions) have their launch configuration
+                    // applied later in CreateExecutableAsync() after endpoints are allocated.
                 }
                 else
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
+
+                    var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
                     // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
                     if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
@@ -1430,10 +1441,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
+
+                    // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+                    exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exe.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exe);
@@ -1751,10 +1763,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Invoke the debug configuration callback now that endpoints are allocated.
             // This allows launch configurations to access endpoint URLs that were not
             // available during PrepareExecutables().
-            // Project resources configure their launch configs in PrepareProjectExecutables() directly,
-            // so we only invoke the annotator for non-project executables here.
-            if (er.ModelResource is not ProjectResource
-                && er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            // "project" launch types configure their launch configs in PrepareProjectExecutables() directly;
+            // all other types (plain executables and project subtypes like azure-functions) are handled here.
+            if (er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation)
+                && supportsDebuggingAnnotation.LaunchConfigurationType is not "project")
             {
                 var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
                 try
