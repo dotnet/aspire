@@ -25,23 +25,28 @@ import {
 
 type TreeElement = AppHostItem | DetailItem | ResourcesGroupItem | ResourceItem | WorkspaceResourcesItem;
 
+function appHostIcon(path?: string): vscode.ThemeIcon {
+    const icon = path?.endsWith('.csproj') ? 'server-process' : 'file-code';
+    return new vscode.ThemeIcon(icon, new vscode.ThemeColor('aspire.brandPurple'));
+}
+
 class AppHostItem extends vscode.TreeItem {
     constructor(public readonly appHost: AppHostDisplayInfo) {
         const name = shortenPath(appHost.appHostPath);
         super(name, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `apphost:${appHost.appHostPid}`;
         this.description = pidDescription(appHost.appHostPid);
-        this.iconPath = new vscode.ThemeIcon('file-code', new vscode.ThemeColor('aspire.brandPurple'));
+        this.iconPath = appHostIcon(appHost.appHostPath);
         this.contextValue = 'appHost';
         this.tooltip = appHost.appHostPath;
     }
 }
 
 class WorkspaceResourcesItem extends vscode.TreeItem {
-    constructor(public readonly resources: ResourceJson[], public readonly dashboardUrl: string | null, appHostName?: string) {
+    constructor(public readonly resources: ResourceJson[], public readonly dashboardUrl: string | null, appHostPath?: string, appHostName?: string) {
         super(appHostName ?? workspaceAppHostLabel, vscode.TreeItemCollapsibleState.Expanded);
         this.id = 'workspace-resources';
-        this.iconPath = new vscode.ThemeIcon('file-code', new vscode.ThemeColor('aspire.brandPurple'));
+        this.iconPath = appHostIcon(appHostPath);
         this.contextValue = 'workspaceResources';
         this.description = resourceCountDescription(resources.length);
     }
@@ -196,7 +201,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 return [];
             }
             const dashboardUrl = resources.find(r => r.dashboardUrl)?.dashboardUrl ?? null;
-            return [new WorkspaceResourcesItem(resources, dashboardUrl, this._repository.workspaceAppHostName)];
+            return [new WorkspaceResourcesItem(resources, dashboardUrl, this._repository.workspaceAppHostPath, this._repository.workspaceAppHostName)];
         }
 
         if (element instanceof WorkspaceResourcesItem) {
