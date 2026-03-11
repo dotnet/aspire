@@ -18,6 +18,7 @@ internal sealed class ProjectChangeDetectionService(
     ILogger<ProjectChangeDetectionService> logger,
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
+    ResourceCommandService resourceCommandService,
     IInteractionService interactionService,
     IConfiguration configuration) : BackgroundService
 {
@@ -85,7 +86,7 @@ internal sealed class ProjectChangeDetectionService(
             return;
         }
 
-        var monitorState = new ProjectMonitorState(closure, resourceLogger);
+        var monitorState = new ProjectMonitorState(closure, projectResource, resourceLogger);
         _monitoredProjects[resourceName] = monitorState;
 
         logger.LogInformation("Monitoring {FileCount} files for changes in project '{ResourceName}'", closure.FileTimestamps.Count, resourceName);
@@ -158,23 +159,53 @@ internal sealed class ProjectChangeDetectionService(
             logger.LogInformation("Detected {Count} changed files for project '{ResourceName}': {Files}",
                 changedFiles.Count, resourceName, fileList);
 
-            // Show a notification in the dashboard if available.
+            // Show a notification in the dashboard with a Rebuild button.
             if (interactionService.IsAvailable)
             {
                 logger.LogInformation("Sending notification for project '{ResourceName}' source changes.", resourceName);
-                _ = interactionService.PromptNotificationAsync(
-                    title: $"Source changes detected in '{resourceName}'",
-                    message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
-                    options: new NotificationInteractionOptions
-                    {
-                        Intent = MessageIntent.Information,
-                    },
-                    cancellationToken: stoppingToken);
+
+                // Run in background so the monitoring loop isn't blocked waiting for user interaction.
+                _ = HandleNotificationAsync(resourceName, fileList, monitorState, stoppingToken);
             }
             else
             {
                 logger.LogWarning("Interaction service is not available; skipping notification for project '{ResourceName}'.", resourceName);
             }
+        }
+    }
+
+    private async Task HandleNotificationAsync(string resourceName, string fileList, ProjectMonitorState monitorState, CancellationToken stoppingToken)
+    {
+        try
+        {
+            var result = await interactionService.PromptNotificationAsync(
+                title: $"Source changes detected in '{resourceName}'",
+                message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
+                options: new NotificationInteractionOptions
+                {
+                    Intent = MessageIntent.Information,
+                    PrimaryButtonText = "Rebuild",
+                    ShowDismiss = true,
+                },
+                cancellationToken: stoppingToken).ConfigureAwait(false);
+
+            if (result.Data)
+            {
+                // The user clicked the Rebuild button — execute the rebuild command.
+                logger.LogInformation("User triggered rebuild for project '{ResourceName}' from notification.", resourceName);
+                await resourceCommandService.ExecuteCommandAsync(
+                    monitorState.ProjectResource,
+                    KnownResourceCommands.RebuildCommand,
+                    stoppingToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancelled.
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error handling notification for project '{ResourceName}'", resourceName);
         }
     }
 
@@ -188,9 +219,10 @@ internal sealed class ProjectChangeDetectionService(
         }
     }
 
-    private sealed class ProjectMonitorState(ProjectFileClosure closure, ILogger resourceLogger)
+    private sealed class ProjectMonitorState(ProjectFileClosure closure, ProjectResource projectResource, ILogger resourceLogger)
     {
         public ProjectFileClosure Closure { get; } = closure;
+        public ProjectResource ProjectResource { get; } = projectResource;
         public ILogger ResourceLogger { get; } = resourceLogger;
         public bool HasNotified { get; set; }
         public bool IsCancelled { get; set; }
