@@ -103,14 +103,6 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
-    "run-typescript": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "commandLineArgs": "run --project ../../../../../playground/TypeScriptAppHost/apphost.ts",
-      "environmentVariables": {
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
-      }
-    },
     "exec-add-migration": {
       "commandName": "Project",
       "dotnetRunMessages": true,

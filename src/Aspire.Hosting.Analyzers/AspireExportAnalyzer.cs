@@ -15,6 +15,8 @@ namespace Aspire.Hosting.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 {
+    private const string RunSyncOnBackgroundThreadPropertyName = "RunSyncOnBackgroundThread";
+
     // Matches: valid method name (camelCase identifier, may contain dots for namespacing)
     // Examples: addRedis, addContainer, Dictionary.set
     private static readonly Regex s_exportIdPattern = new(
@@ -79,6 +81,9 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // At the end of compilation, report duplicate export IDs
         context.RegisterCompilationEndAction(c => ReportDuplicateExports(c, exportsByKey));
 
+        // Warn when exported builder methods invoke synchronous callback delegates inline. Deferred callbacks
+        // that are stored for later execution are fine, and exports that opt into background-thread dispatch
+        // are handled safely by the runtime.
         context.RegisterOperationBlockStartAction(c =>
         {
             if (c.OwningSymbol is not IMethodSymbol method ||
@@ -333,7 +338,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         if (invocation.TargetMethod.MethodKind != MethodKind.DelegateInvoke ||
             invocation.Syntax is not InvocationExpressionSyntax invocationSyntax ||
-            IsInsideNestedCallback(invocationSyntax))
+            IsInsideNestedCallback(context, invocationSyntax))
         {
             return;
         }
@@ -356,9 +361,63 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             parameter.Name));
     }
 
-    private static bool IsInsideNestedCallback(InvocationExpressionSyntax invocation)
+    private static bool IsInsideNestedCallback(OperationAnalysisContext context, InvocationExpressionSyntax invocation)
     {
-        return invocation.Ancestors().Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
+        foreach (var ancestor in invocation.Ancestors())
+        {
+            switch (ancestor)
+            {
+                case AnonymousFunctionExpressionSyntax anonymousFunction:
+                    return !IsImmediatelyInvokedAnonymousFunction(anonymousFunction);
+                case LocalFunctionStatementSyntax localFunction:
+                    return !IsImmediatelyInvokedLocalFunction(context, localFunction);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsImmediatelyInvokedAnonymousFunction(AnonymousFunctionExpressionSyntax anonymousFunction)
+    {
+        SyntaxNode current = anonymousFunction;
+
+        while (current.Parent is ParenthesizedExpressionSyntax or CastExpressionSyntax)
+        {
+            current = current.Parent;
+        }
+
+        return current.Parent is InvocationExpressionSyntax invocation &&
+            invocation.Expression == current;
+    }
+
+    private static bool IsImmediatelyInvokedLocalFunction(OperationAnalysisContext context, LocalFunctionStatementSyntax localFunction)
+    {
+        if (localFunction.Parent is null)
+        {
+            return false;
+        }
+
+        var semanticModel = context.Compilation.GetSemanticModel(localFunction.SyntaxTree);
+        if (semanticModel.GetDeclaredSymbol(localFunction, context.CancellationToken) is not IMethodSymbol localFunctionSymbol)
+        {
+            return false;
+        }
+
+        foreach (var invocation in localFunction.Parent.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (localFunction.Span.Contains(invocation.Span))
+            {
+                continue;
+            }
+
+            if (semanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is IMethodSymbol invokedMethod &&
+                SymbolEqualityComparer.Default.Equals(invokedMethod.ReducedFrom ?? invokedMethod, localFunctionSymbol))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string? GetInvokedDelegateParameterName(InvocationExpressionSyntax invocation)
@@ -775,7 +834,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         foreach (var namedArgument in exportAttribute.NamedArguments)
         {
-            if (namedArgument.Key == "RunSyncOnBackgroundThread" &&
+            if (namedArgument.Key == RunSyncOnBackgroundThreadPropertyName &&
                 namedArgument.Value.Value is bool enabled)
             {
                 return enabled;

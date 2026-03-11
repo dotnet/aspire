@@ -221,6 +221,10 @@ public sealed class AspireExportAttribute : Attribute
     /// This setting only affects synchronous exported methods. Async exports that already return <see cref="Task"/> or
     /// <see cref="Task{TResult}"/> are awaited normally and do not use this option.
     /// </para>
+    /// <para>
+    /// When applied to a type, this setting also applies to exported members discovered from that type unless an individual
+    /// member overrides it.
+    /// </para>
     /// </remarks>
     public bool RunSyncOnBackgroundThread { get; set; }
 }
