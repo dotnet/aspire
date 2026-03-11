@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -9,14 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)AzureRoleAssignmentUtils.cs" LinkBase="Utils" />
+    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
   </ItemGroup>
