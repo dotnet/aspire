@@ -18,6 +18,7 @@ internal sealed class DotNetSdkCheck(
     IDotNetSdkInstaller sdkInstaller,
     IProjectLocator projectLocator,
     ILanguageDiscovery languageDiscovery,
+    CliExecutionContext executionContext,
     ILogger<DotNetSdkCheck> logger) : IEnvironmentCheck
 {
     public int Order => 30; // File system check - slightly more expensive
@@ -93,19 +94,22 @@ internal sealed class DotNetSdkCheck(
             // emitting interaction output or performing recursive filesystem scans.
             var appHostFile = await projectLocator.GetAppHostFromSettingsAsync(cancellationToken);
 
-            if (appHostFile is null)
+            if (appHostFile is not null && languageDiscovery.GetLanguageByFile(appHostFile) is { } language)
             {
-                // No apphost configured in settings — can't determine language, skip .NET check
+                return language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+            }
+
+            // No apphost configured in settings. Look for possible .NET app hosts on file system (projects or apphost.cs)
+            // This doesn't guarantee the apphost is .NET, but it's a signal that it might be and worth checking for .NET SDK.
+            var csharp = languageDiscovery.GetLanguageById(KnownLanguageId.CSharp);
+            if (csharp is null)
+            {
                 return false;
             }
 
-            var language = languageDiscovery.GetLanguageByFile(appHostFile);
-            if (language is null)
-            {
-                return false;
-            }
-
-            return language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+            // Limit recursive scan to avoid expensive file system operations in large workspaces. We just want a quick signal that a .NET apphost is probably present.
+            var match = FileSystemHelper.FindFirstFile(executionContext.WorkingDirectory.FullName, recurseLimit: 5, csharp.DetectionPatterns);
+            return match is not null;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

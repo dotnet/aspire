@@ -16,21 +16,10 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     public async Task CheckAsync_SkipsCheck_WhenNoAppHostFound()
     {
         // No apphost in settings — skip .NET SDK check entirely
-        var sdkInstaller = new TestDotNetSdkInstaller
-        {
-            CheckAsyncCallback = _ => (false, null, "10.0.100")
-        };
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(null)
-        };
-        var languageDiscovery = new TestLanguageDiscovery();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var check = CreateDotNetSdkCheck(workspace,
+            sdkCheckResult: (false, null, "10.0.100"),
+            languageDiscovery: new TestLanguageDiscovery());
 
         var results = await check.CheckAsync().DefaultTimeout();
 
@@ -41,23 +30,9 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     public async Task CheckAsync_SkipsCheck_WhenNonDotNetAppHostFound()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts"));
-
-        var sdkInstaller = new TestDotNetSdkInstaller
-        {
-            CheckAsyncCallback = _ => (false, null, "10.0.100")
-        };
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(appHostFile)
-        };
-        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        var check = CreateDotNetSdkCheck(workspace,
+            appHostFileName: "apphost.ts",
+            sdkCheckResult: (false, null, "10.0.100"));
 
         var results = await check.CheckAsync().DefaultTimeout();
 
@@ -68,48 +43,18 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     public async Task CheckAsync_RunsCheck_WhenDotNetAppHostFound()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyAppHost.csproj"));
-
-        var sdkInstaller = new TestDotNetSdkInstaller();
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(appHostFile)
-        };
-        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        var check = CreateDotNetSdkCheck(workspace, appHostFileName: "MyAppHost.csproj");
 
         var results = await check.CheckAsync().DefaultTimeout();
-
-        Assert.Single(results);
-        Assert.Equal(EnvironmentCheckStatus.Pass, results[0].Status);
     }
 
     [Fact]
     public async Task CheckAsync_ReturnsFail_WhenDotNetAppHostFound_AndSdkNotInstalled()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyAppHost.csproj"));
-
-        var sdkInstaller = new TestDotNetSdkInstaller
-        {
-            CheckAsyncCallback = _ => (false, null, "10.0.100")
-        };
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(appHostFile)
-        };
-        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        var check = CreateDotNetSdkCheck(workspace,
+            appHostFileName: "MyAppHost.csproj",
+            sdkCheckResult: (false, null, "10.0.100"));
 
         var results = await check.CheckAsync().DefaultTimeout();
 
@@ -122,18 +67,8 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     public async Task CheckAsync_SkipsCheck_WhenNoSettingsFileExists()
     {
         // No settings.json — can't determine language, skip .NET check
-        var sdkInstaller = new TestDotNetSdkInstaller();
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(null)
-        };
-        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var check = CreateDotNetSdkCheck(workspace);
 
         var results = await check.CheckAsync().DefaultTimeout();
 
@@ -144,20 +79,7 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
     public async Task CheckAsync_SkipsCheck_WhenLanguageNotRecognized()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "unknown.xyz"));
-
-        var sdkInstaller = new TestDotNetSdkInstaller();
-        var projectLocator = new TestProjectLocator
-        {
-            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult<FileInfo?>(appHostFile)
-        };
-        var languageDiscovery = new TestLanguageDiscoveryWithPolyglot();
-
-        var check = new DotNetSdkCheck(
-            sdkInstaller,
-            projectLocator,
-            languageDiscovery,
-            NullLogger<DotNetSdkCheck>.Instance);
+        var check = CreateDotNetSdkCheck(workspace, appHostFileName: "unknown.xyz");
 
         var results = await check.CheckAsync().DefaultTimeout();
 
@@ -165,82 +87,82 @@ public class DotNetSdkCheckTests(ITestOutputHelper outputHelper)
         Assert.Empty(results);
     }
 
-    /// <summary>
-    /// Test implementation of ILanguageDiscovery that includes polyglot language support.
-    /// </summary>
-    private sealed class TestLanguageDiscoveryWithPolyglot : ILanguageDiscovery
+    [Theory]
+    [InlineData("MyAppHost.csproj", true)]
+    [InlineData("apphost.cs", true)]
+    [InlineData("readme.txt", false)]
+    [InlineData("src/MyAppHost.csproj", true)]
+    [InlineData("src/AppHost/apphost.cs", true)]
+    [InlineData("src/deep/nested/readme.txt", false)]
+    [InlineData("a/b/c/d/e/f/apphost.cs", false)]
+    public async Task CheckAsync_FallsBackToFileSystemScan_WhenNoSettingsFile(string relativePath, bool shouldRunCheck)
     {
-        private static readonly LanguageInfo[] s_allLanguages =
-        [
-            new LanguageInfo(
-                LanguageId: new LanguageId(KnownLanguageId.CSharp),
-                DisplayName: KnownLanguageId.CSharpDisplayName,
-                PackageName: "",
-                DetectionPatterns: ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"],
-                CodeGenerator: "",
-                AppHostFileName: null),
-            new LanguageInfo(
-                LanguageId: new LanguageId(KnownLanguageId.TypeScript),
-                DisplayName: "TypeScript (Node.js)",
-                PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
-                DetectionPatterns: ["apphost.ts"],
-                CodeGenerator: "TypeScript",
-                AppHostFileName: "apphost.ts"),
-        ];
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var check = CreateDotNetSdkCheck(workspace);
 
-        public Task<IEnumerable<LanguageInfo>> GetAvailableLanguagesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IEnumerable<LanguageInfo>>(s_allLanguages);
+        // Create the file on disk (with nested directories) so FindFirstFile can discover it
+        var filePath = Path.Combine(workspace.WorkspaceRoot.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+        await File.WriteAllTextAsync(filePath, "");
 
-        public Task<string?> GetPackageForLanguageAsync(LanguageId languageId, CancellationToken cancellationToken = default)
+        var results = await check.CheckAsync().DefaultTimeout();
+
+        if (shouldRunCheck)
         {
-            var language = s_allLanguages.FirstOrDefault(l =>
-                string.Equals(l.LanguageId.Value, languageId.Value, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(language?.PackageName);
+            Assert.Single(results);
+            Assert.Equal(EnvironmentCheckStatus.Pass, results[0].Status);
+        }
+        else
+        {
+            Assert.Empty(results);
+        }
+    }
+
+    private static readonly LanguageInfo s_typeScriptLanguage = new(
+        LanguageId: new LanguageId(KnownLanguageId.TypeScript),
+        DisplayName: "TypeScript (Node.js)",
+        PackageName: "Aspire.Hosting.CodeGeneration.TypeScript",
+        DetectionPatterns: ["apphost.ts"],
+        CodeGenerator: "TypeScript",
+        AppHostFileName: "apphost.ts");
+
+    private static CliExecutionContext CreateExecutionContext(TemporaryWorkspace workspace) =>
+        new(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire-hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire-cache"),
+            sdksDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire-sdks"),
+            logsDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire-logs"),
+            logFilePath: "test.log");
+
+    private static DotNetSdkCheck CreateDotNetSdkCheck(
+        TemporaryWorkspace workspace,
+        string? appHostFileName = null,
+        (bool Success, string? HighestVersion, string MinimumRequired)? sdkCheckResult = null,
+        ILanguageDiscovery? languageDiscovery = null)
+    {
+        var appHostFile = appHostFileName is not null
+            ? new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, appHostFileName))
+            : null;
+
+        var sdkInstaller = new TestDotNetSdkInstaller();
+        if (sdkCheckResult is var (success, highest, minimum))
+        {
+            sdkInstaller.CheckAsyncCallback = _ => (success, highest, minimum);
         }
 
-        public Task<LanguageId?> DetectLanguageAsync(DirectoryInfo directory, CancellationToken cancellationToken = default)
+        var projectLocator = new TestProjectLocator
         {
-            foreach (var language in s_allLanguages)
-            {
-                foreach (var pattern in language.DetectionPatterns)
-                {
-                    if (pattern.StartsWith("*.", StringComparison.Ordinal))
-                    {
-                        var extension = pattern[1..];
-                        if (directory.Exists && directory.EnumerateFiles().Any(f => f.Name.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            return Task.FromResult<LanguageId?>(language.LanguageId);
-                        }
-                    }
-                    else
-                    {
-                        var filePath = Path.Combine(directory.FullName, pattern);
-                        if (File.Exists(filePath))
-                        {
-                            return Task.FromResult<LanguageId?>(language.LanguageId);
-                        }
-                    }
-                }
-            }
-            return Task.FromResult<LanguageId?>(null);
-        }
+            GetAppHostFromSettingsAsyncCallback = _ => Task.FromResult(appHostFile)
+        };
 
-        public LanguageInfo? GetLanguageById(LanguageId languageId) =>
-            s_allLanguages.FirstOrDefault(l =>
-                string.Equals(l.LanguageId.Value, languageId.Value, StringComparison.OrdinalIgnoreCase));
+        var executionContext = CreateExecutionContext(workspace);
 
-        public LanguageInfo? GetLanguageByFile(FileInfo file) =>
-            s_allLanguages.FirstOrDefault(l =>
-                l.DetectionPatterns.Any(p => MatchesPattern(file.Name, p)));
-
-        private static bool MatchesPattern(string fileName, string pattern)
-        {
-            if (pattern.StartsWith("*.", StringComparison.Ordinal))
-            {
-                var extension = pattern[1..];
-                return fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase);
-            }
-            return fileName.Equals(pattern, StringComparison.OrdinalIgnoreCase);
-        }
+        return new DotNetSdkCheck(
+            sdkInstaller,
+            projectLocator,
+            languageDiscovery ?? new TestLanguageDiscovery(s_typeScriptLanguage),
+            executionContext,
+            NullLogger<DotNetSdkCheck>.Instance);
     }
 }

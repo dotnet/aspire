@@ -25,8 +25,7 @@ internal interface IProjectLocator
     /// user interaction or recursive filesystem scanning. Returns <c>null</c> when no settings
     /// file or <c>appHostPath</c> entry is found.
     /// </summary>
-    Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<FileInfo?>(null);
+    Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default);
 }
 
 internal sealed class ProjectLocator(
