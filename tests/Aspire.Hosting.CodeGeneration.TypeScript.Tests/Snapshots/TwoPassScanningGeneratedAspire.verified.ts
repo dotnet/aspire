@@ -889,12 +889,18 @@ export class EndpointReference {
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
+    /** @internal */
+    async _getTlsValueInternal(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
         const rpcArgs: Record<string, unknown> = { context: this._handle, enabledValue, disabledValue };
-        return await this._client.invokeCapability<ReferenceExpression>(
+        const result = await this._client.invokeCapability<ReferenceExpressionHandle>(
             'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
             rpcArgs
         );
+        return new ReferenceExpression(result, this._client);
+    }
+
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): ReferenceExpressionPromise {
+        return new ReferenceExpressionPromise(this._getTlsValueInternal(enabledValue, disabledValue));
     }
 
 }
@@ -918,8 +924,8 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     }
 
     /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
-    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
-        return this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue));
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): ReferenceExpressionPromise {
+        return new ReferenceExpressionPromise(this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue)));
     }
 
 }
@@ -1371,6 +1377,50 @@ export class ProjectResourceOptions {
 }
 
 // ============================================================================
+// ReferenceExpression
+// ============================================================================
+
+/**
+ * Type class for ReferenceExpression.
+ */
+export class ReferenceExpression {
+    constructor(private _handle: ReferenceExpressionHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the value of the expression. The final string value after evaluating the format string and its parameters. */
+    async getValue(cancellationToken: AbortSignal): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, cancellationToken };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting.ApplicationModel/getValue',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for ReferenceExpression that enables fluent chaining.
+ */
+export class ReferenceExpressionPromise implements PromiseLike<ReferenceExpression> {
+    constructor(private _promise: Promise<ReferenceExpression>) {}
+
+    then<TResult1 = ReferenceExpression, TResult2 = never>(
+        onfulfilled?: ((value: ReferenceExpression) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets the value of the expression. The final string value after evaluating the format string and its parameters. */
+    getValue(cancellationToken: AbortSignal): Promise<string> {
+        return this._promise.then(obj => obj.getValue(cancellationToken));
+    }
+
+}
+
+// ============================================================================
 // ReferenceExpressionBuilder
 // ============================================================================
 
@@ -1443,12 +1493,18 @@ export class ReferenceExpressionBuilder {
     }
 
     /** Builds the reference expression */
-    async build(): Promise<ReferenceExpression> {
+    /** @internal */
+    async _buildInternal(): Promise<ReferenceExpression> {
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        return await this._client.invokeCapability<ReferenceExpression>(
+        const result = await this._client.invokeCapability<ReferenceExpressionHandle>(
             'Aspire.Hosting.ApplicationModel/build',
             rpcArgs
         );
+        return new ReferenceExpression(result, this._client);
+    }
+
+    build(): ReferenceExpressionPromise {
+        return new ReferenceExpressionPromise(this._buildInternal());
     }
 
 }
@@ -1482,8 +1538,8 @@ export class ReferenceExpressionBuilderPromise implements PromiseLike<ReferenceE
     }
 
     /** Builds the reference expression */
-    build(): Promise<ReferenceExpression> {
-        return this._promise.then(obj => obj.build());
+    build(): ReferenceExpressionPromise {
+        return new ReferenceExpressionPromise(this._promise.then(obj => obj.build()));
     }
 
 }
@@ -22796,6 +22852,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigura
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep', (handle, client) => new PipelineStep(handle as PipelineStepHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext', (handle, client) => new PipelineStepContext(handle as PipelineStepContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions', (handle, client) => new ProjectResourceOptions(handle as ProjectResourceOptionsHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression', (handle, client) => new ReferenceExpression(handle as ReferenceExpressionHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder', (handle, client) => new ReferenceExpressionBuilder(handle as ReferenceExpressionBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));

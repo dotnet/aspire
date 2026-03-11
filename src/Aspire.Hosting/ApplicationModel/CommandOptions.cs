@@ -48,5 +48,6 @@ public class CommandOptions
     /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
     /// <para>If a callback isn't specified, the command is always enabled.</para>
     /// </summary>
+    [AspireExportIgnore]
     public Func<UpdateCommandStateContext, ResourceCommandState>? UpdateState { get; set; }
 }
