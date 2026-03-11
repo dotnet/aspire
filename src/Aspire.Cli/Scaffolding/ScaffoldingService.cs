@@ -5,6 +5,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 using Semver;
 
@@ -81,7 +82,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
             {
                 _interactionService.DisplayLines(prepareResult.Output.GetLines());
             }
-            _interactionService.DisplayError("Failed to build AppHost server.");
+            _interactionService.DisplayError(ErrorStrings.FailedToBuildAppHostServer);
             return;
         }
 

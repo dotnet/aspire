@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AspireEditorCommandProvider } from '../editor/AspireEditorCommandProvider';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { getConfigInfo } from '../utils/configInfoProvider';
-import { enterPipelineStep } from '../loc/strings';
+import { enterPipelineStep, deployPlaceholder } from '../loc/strings';
 
 export async function doCommand(terminalProvider: AspireTerminalProvider, editorCommandProvider: AspireEditorCommandProvider) {
     const step = await resolveStep(terminalProvider);
@@ -28,7 +28,7 @@ async function resolveStep(terminalProvider: AspireTerminalProvider): Promise<st
     // Old CLI or capabilities unavailable: prompt the user for a step
     const step = await vscode.window.showInputBox({
         prompt: enterPipelineStep,
-        placeHolder: 'deploy',
+        placeHolder: deployPlaceholder,
     });
     return step;
 }

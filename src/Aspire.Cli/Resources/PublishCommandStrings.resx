@@ -128,20 +128,12 @@
   </data>
   <data name="OutputPathArgumentDescription" xml:space="preserve">
     <value>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</value>
-  </data>
-  <data name="GeneratingArtifacts" xml:space="preserve">
-    <value>Generating artifacts...</value>
-  </data>
-  <data name="OperationCompletedPrefix" xml:space="preserve">
+  </data><data name="OperationCompletedPrefix" xml:space="preserve">
     <value>PUBLISHING COMPLETED</value>
   </data>
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>PUBLISHING FAILED</value>
-  </data>
-  <data name="InputPromptLoading" xml:space="preserve">
-    <value>Loading...</value>
-  </data>
-  <data name="NoBuildArgumentDescription" xml:space="preserve">
+  </data><data name="NoBuildArgumentDescription" xml:space="preserve">
     <value>Do not build or restore the project before running.</value>
   </data>
 </root>

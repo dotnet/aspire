@@ -151,4 +151,7 @@
   <data name="ResolvingTemplateVersion" xml:space="preserve">
     <value>Resolving template version...</value>
   </data>
+  <data name="NoTemplatesAvailable" xml:space="preserve">
+    <value>No templates are available for the current environment.</value>
+  </data>
 </root>

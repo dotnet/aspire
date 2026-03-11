@@ -52,11 +52,6 @@
         <target state="translated">Фильтр сообщений</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsMinimumLogFilter">
-        <source>Minimum log level filter</source>
-        <target state="translated">Фильтр минимального уровня ведения журнала</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Структурированные журналы не найдены</target>

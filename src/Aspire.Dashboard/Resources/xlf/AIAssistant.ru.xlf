@@ -62,11 +62,6 @@
         <target state="translated">Войдите в Visual Studio, используя учетную запись GitHub, у которой есть подписка Copilot. Выполните действия, описанные в разделе &lt;a href="{0}" target="_blank"&gt;Добавление учетных записей GitHub в связку ключей Visual Studio&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
-      <trans-unit id="ChatRequestErrorRateLimited">
-        <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">К сожалению, ваш запрос был ограничен частотой запросов. Повторите попытку позже.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
         <target state="translated">Не удалось отправить запрос</target>
@@ -155,11 +150,6 @@
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
         <target state="translated">Отправить сообщение</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SidebarShrinkDialog">
-        <source>Shrink dialog</source>
-        <target state="translated">Сжать диалоговое окно</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">

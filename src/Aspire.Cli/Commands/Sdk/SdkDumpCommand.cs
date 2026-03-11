@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -82,7 +83,7 @@ internal sealed class SdkDumpCommand : BaseCommand
                 var projectFile = new FileInfo(arg);
                 if (!projectFile.Exists)
                 {
-                    InteractionService.DisplayError($"Integration project not found: {projectFile.FullName}");
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.IntegrationProjectNotFound, projectFile.FullName));
                     return ExitCodeConstants.FailedToFindProject;
                 }
 
@@ -98,13 +99,13 @@ internal sealed class SdkDumpCommand : BaseCommand
 
                 if (string.IsNullOrWhiteSpace(packageName) || string.IsNullOrWhiteSpace(packageVersion) || packageName.Contains('@'))
                 {
-                    InteractionService.DisplayError($"Invalid package format '{arg}'. Expected PackageName@Version (e.g. Aspire.Hosting.Redis@9.2.0).");
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidPackageFormat, arg));
                     return ExitCodeConstants.InvalidCommand;
                 }
 
                 if (!SemVersion.TryParse(packageVersion, SemVersionStyles.Any, out _))
                 {
-                    InteractionService.DisplayError($"Invalid version '{packageVersion}' in '{arg}'. Expected a valid NuGet version (e.g. 9.2.0).");
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidVersionInPackage, packageVersion, arg));
                     return ExitCodeConstants.InvalidCommand;
                 }
 
@@ -113,7 +114,7 @@ internal sealed class SdkDumpCommand : BaseCommand
             }
             else
             {
-                InteractionService.DisplayError($"Invalid integration argument '{arg}'. Expected a .csproj path or PackageName@Version format.");
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidIntegrationArgument, arg));
                 return ExitCodeConstants.InvalidCommand;
             }
         }
@@ -153,7 +154,7 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             if (!prepareResult.Success)
             {
-                InteractionService.DisplayError("Failed to build capability scanner.");
+                InteractionService.DisplayError(ErrorStrings.FailedToBuildCapabilityScanner);
                 if (prepareResult.Output is not null)
                 {
                     foreach (var (_, line) in prepareResult.Output.GetLines())

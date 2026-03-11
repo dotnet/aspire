@@ -632,11 +632,6 @@
         <target state="translated">Anzeigen</target>
         <note />
       </trans-unit>
-      <trans-unit id="ViewLogsLink">
-        <source>View logs</source>
-        <target state="translated">Protokolle anzeigen</target>
-        <note />
-      </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
         <target state="translated">Schließen</target>
@@ -650,11 +645,6 @@
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
         <target state="translated">Vertikal teilen</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ViewStructuredLogsText">
-        <source>View structured logs</source>
-        <target state="translated">Strukturierte Protokolle anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">

@@ -72,7 +72,7 @@ internal sealed class McpToolsCommand : BaseCommand
 
         if (resourcesWithTools.Count == 0)
         {
-            _interactionService.DisplayMessage(KnownEmojis.Information, "No resources with MCP tools found.");
+            _interactionService.DisplayMessage(KnownEmojis.Information, McpCommandStrings.NoResourcesWithMcpTools);
             return ExitCodeConstants.Success;
         }
 

@@ -37,6 +37,11 @@
         <target state="new">Applying updates...</target>
         <note />
       </trans-unit>
+      <trans-unit id="BackingUpCurrentCli">
+        <source>Backing up current CLI...</source>
+        <target state="new">Backing up current CLI...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
         <target state="translated">La administración central de paquetes no es compatible actualmente con "aspire update".</target>
@@ -72,6 +77,11 @@
         <target state="translated">No se encontró el elemento &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; en {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="CurrentCliLocation">
+        <source>Current CLI location: {0}</source>
+        <target state="new">Current CLI location: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">Actualizar las integraciones en el proyecto Aspire. (Versión preliminar)</target>
@@ -80,6 +90,11 @@
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
         <target state="translated">Para actualizar la CLI de Aspire cuando está instalada como herramienta de .NET, ejecute:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DownloadCompletedSuccessfully">
+        <source>Download completed successfully</source>
+        <target state="new">Download completed successfully</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -115,6 +130,11 @@
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable AppHost SDK. Dependency analysis may have reduced accuracy.</source>
         <target state="translated">Nota: El plan de actualización se generó usando un análisis alternativo debido a un SDK de AppHost no resoluble. El análisis de dependencias puede ser menos preciso.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallingNewCli">
+        <source>Installing new CLI to {0}...</source>
+        <target state="new">Installing new CLI to {0}...</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
@@ -157,15 +177,20 @@
         <target state="translated">No se puede escribir en el directorio de instalación '{0}'. Ejecute la actualización con permisos elevados (por ejemplo, con sudo en Linux o macOS).</target>
         <note />
       </trans-unit>
+      <trans-unit id="NotInPath">
+        <source>Note: {0} is not in your PATH. Add it to use the updated CLI globally.</source>
+        <target state="new">Note: {0} is not in your PATH. Add it to use the updated CLI globally.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PackageReferenceNoIdentity">
         <source>Package reference does not have Identity.</source>
         <target state="translated">La referencia del paquete no tiene identidad.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PackageReferenceNoVersion">
-        <source>Package reference does not have Version.</source>
-        <target state="translated">La referencia del paquete no tiene versión.</target>
-        <note />
+      <trans-unit id="PackageUpdateLine">
+        <source>[bold yellow]{0}[/] [bold green]{1}[/] to [bold green]{2}[/]</source>
+        <target state="new">[bold yellow]{0}[/] [bold green]{1}[/] to [bold green]{2}[/]</target>
+        <note>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</note>
       </trans-unit>
       <trans-unit id="PerformUpdatesPrompt">
         <source>Perform updates?</source>
@@ -222,14 +247,29 @@
         <target state="translated">Retenido: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SdkUpdateLine">
+        <source>[bold yellow]Aspire SDK[/] [bold green]{0}[/] to [bold green]{1}[/]</source>
+        <target state="new">[bold yellow]Aspire SDK[/] [bold green]{0}[/] to [bold green]{1}[/]</target>
+        <note>[bold yellow], [bold green], and [/] are Spectre.Console markup and should not be localized</note>
+      </trans-unit>
       <trans-unit id="SelectChannelPrompt">
         <source>Select a channel:</source>
         <target state="translated">Seleccionar un canal:</target>
         <note />
       </trans-unit>
-      <trans-unit id="UnxpectedCodePath">
+      <trans-unit id="SelfUpdateNotAvailable">
+        <source>CLI self-update is not available in this environment.</source>
+        <target state="new">CLI self-update is not available in this environment.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToDetermineExecutablePath">
+        <source>Unable to determine the current executable path.</source>
+        <target state="new">Unable to determine the current executable path.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedCodePath">
         <source>Unexpected code path.</source>
-        <target state="translated">Ruta de acceso al código inesperada.</target>
+        <target state="new">Unexpected code path.</target>
         <note />
       </trans-unit>
       <trans-unit id="UpdateCliAfterProjectUpdatePrompt">
@@ -245,6 +285,21 @@
       <trans-unit id="UpdateSuccessfulMessage">
         <source>Update successful!</source>
         <target state="translated">¡Actualización correcta!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedToVersion">
+        <source>Updated to version: {0}</source>
+        <target state="new">Updated to version: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatingToChannel">
+        <source>Updating to channel: {0}</source>
+        <target state="new">Updating to channel: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidatingDownloadedFile">
+        <source>Validating downloaded file...</source>
+        <target state="new">Validating downloaded file...</target>
         <note />
       </trans-unit>
       <trans-unit id="WhichDirectoryNuGetConfigPrompt">

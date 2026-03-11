@@ -52,11 +52,6 @@
         <target state="translated">Filtre de messages</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsMinimumLogFilter">
-        <source>Minimum log level filter</source>
-        <target state="translated">Filtre de niveau de journalisation minimal</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
         <target state="translated">Journaux structurés introuvables</target>

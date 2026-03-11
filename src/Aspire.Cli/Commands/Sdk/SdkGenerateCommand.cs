@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -68,13 +70,13 @@ internal sealed class SdkGenerateCommand : BaseCommand
         // Validate the integration project exists
         if (!integrationProject.Exists)
         {
-            InteractionService.DisplayError($"Integration project not found: {integrationProject.FullName}");
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.IntegrationProjectNotFound, integrationProject.FullName));
             return ExitCodeConstants.FailedToFindProject;
         }
 
         if (!integrationProject.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
-            InteractionService.DisplayError($"Expected a .csproj file, got: {integrationProject.Extension}");
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ExpectedCsprojFile, integrationProject.Extension));
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -82,7 +84,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
         var languageInfo = await GetLanguageInfoAsync(language, cancellationToken);
         if (languageInfo is null)
         {
-            InteractionService.DisplayError($"Unsupported language: {language}");
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.UnsupportedLanguage, language));
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -147,7 +149,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
             if (!prepareResult.Success)
             {
-                InteractionService.DisplayError("Failed to build SDK generation server.");
+                InteractionService.DisplayError(ErrorStrings.FailedToBuildSdkGenerationServer);
                 if (prepareResult.Output is not null)
                 {
                     foreach (var (_, line) in prepareResult.Output.GetLines())
@@ -192,7 +194,7 @@ internal sealed class SdkGenerateCommand : BaseCommand
                     _logger.LogDebug("Wrote {FileName}", fileName);
                 }
 
-                InteractionService.DisplaySuccess($"Generated {generatedFiles.Count} files in {outputDir.FullName}");
+                InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ErrorStrings.GeneratedFilesCount, generatedFiles.Count, outputDir.FullName));
 
                 return ExitCodeConstants.Success;
             }

@@ -27,11 +27,6 @@
         <target state="translated">Dzienniki nie są jeszcze dostępne</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">Nie wybrano zasobu</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">Nie zawijaj wierszy dziennika</target>
@@ -44,12 +39,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
         <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane {0}, liczba odfiltrowanych dzienników: {1}&gt;</target>
+        <target state="new">&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">
         <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Przechwytywanie dziennika zostało wstrzymane między {0} a {1}, liczba odfiltrowanych dzienników: {2}&gt;</target>
+        <target state="new">&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

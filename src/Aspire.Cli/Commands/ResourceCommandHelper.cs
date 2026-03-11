@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands;
@@ -65,18 +67,18 @@ internal static class ResourceCommandHelper
 
         if (response.Success)
         {
-            interactionService.DisplaySuccess($"Command '{commandName}' executed successfully on resource '{resourceName}'.");
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.CommandExecutedSuccessfully, commandName, resourceName));
             return ExitCodeConstants.Success;
         }
         else if (response.Canceled)
         {
-            interactionService.DisplayMessage(KnownEmojis.Warning, $"Command '{commandName}' on '{resourceName}' was canceled.");
+            interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.CommandCanceled, commandName, resourceName));
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
         else
         {
             var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage);
-            interactionService.DisplayError($"Failed to execute command '{commandName}' on resource '{resourceName}': {errorMessage}");
+            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.FailedToExecuteCommand, commandName, resourceName, errorMessage));
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
     }
@@ -91,18 +93,18 @@ internal static class ResourceCommandHelper
     {
         if (response.Success)
         {
-            interactionService.DisplaySuccess($"Resource '{resourceName}' {pastTenseVerb} successfully.");
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.ResourceActionSuccessful, resourceName, pastTenseVerb));
             return ExitCodeConstants.Success;
         }
         else if (response.Canceled)
         {
-            interactionService.DisplayMessage(KnownEmojis.Warning, $"{progressVerb} command for '{resourceName}' was canceled.");
+            interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.ResourceActionCanceled, progressVerb, resourceName));
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
         else
         {
             var errorMessage = GetFriendlyErrorMessage(response.ErrorMessage);
-            interactionService.DisplayError($"Failed to {baseVerb} resource '{resourceName}': {errorMessage}");
+            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ResourceCommandStrings.FailedToActionResource, baseVerb, resourceName, errorMessage));
             return ExitCodeConstants.FailedToExecuteResourceCommand;
         }
     }

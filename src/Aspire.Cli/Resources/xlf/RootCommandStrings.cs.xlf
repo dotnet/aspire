@@ -52,11 +52,6 @@ Rozhraní příkazového řádku Aspire shromažďuje data o využití. Shromaž
 Další informace o telemetrii rozhraní příkazového řádku Aspire: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">Vítá vás Aspire! Další informace o Aspire najdete na https://aspire.dev</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">Umožňuje potlačit banner spuštění a oznámení o telemetrii.</target>

@@ -9,7 +9,7 @@ import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 import { timingSafeEqual } from 'crypto';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
-import { authorizationAndDcpHeadersRequired, authorizationHeaderMustStartWithBearer, encounteredErrorStartingResource, invalidOrMissingToken, invalidTokenLength } from '../loc/strings';
+import { authorizationAndDcpHeadersRequired, authorizationHeaderMustStartWithBearer, encounteredErrorStartingResource, failedToStartDebugSessionForRunId, invalidOrMissingToken, invalidTokenLength, missingDcpPrefix, noAspireDebugSessionFound, unsupportedLaunchConfigType } from '../loc/strings';
 
 export default class AspireDcpServer {
     private readonly app: express.Express;
@@ -95,7 +95,7 @@ export default class AspireDcpServer {
                 if (!debugSessionId) {
                     const error: ErrorDetails = {
                         code: 'MissingDebugSessionId',
-                        message: 'Missing valid DCP prefix corresponding to an Aspire debug session.',
+                        message: missingDcpPrefix,
                         details: []
                     };
 
@@ -111,7 +111,7 @@ export default class AspireDcpServer {
                 if (!foundDebuggerExtension) {
                     const error: ErrorDetails = {
                         code: 'UnsupportedLaunchConfiguration',
-                        message: `Unsupported launch configuration type: ${launchConfig.type}`,
+                        message: unsupportedLaunchConfigType(launchConfig.type),
                         details: []
                     };
 
@@ -125,7 +125,7 @@ export default class AspireDcpServer {
                 if (!aspireDebugSession) {
                     const error: ErrorDetails = {
                         code: 'DebugSessionNotFound',
-                        message: `No Aspire debug session found for Debug Session ID ${debugSessionId}`,
+                        message: noAspireDebugSessionFound(debugSessionId),
                         details: []
                     };
 
@@ -149,7 +149,7 @@ export default class AspireDcpServer {
                 if (!resourceDebugSession) {
                     const error: ErrorDetails = {
                         code: 'DebugSessionFailed',
-                        message: `Failed to start debug session for run ID ${runId}`,
+                        message: failedToStartDebugSessionForRunId(runId),
                         details: []
                     };
 

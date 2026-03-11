@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--  
-    Microsoft ResX Schema 
-    
+  <!--
+    Microsoft ResX Schema
+
     Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
     associated with the data types.
-    
+
     Example:
-    
+
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-                
-    There are any number of "resheader" rows that contain simple 
+
+    There are any number of "resheader" rows that contain simple
     name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
     mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-    
+
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-    
+
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
+    value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -141,11 +141,7 @@
   </data>
   <data name="FailedToRetrieveCachedTemplatePackages" xml:space="preserve">
     <value>Failed to retrieve template packages via cache.</value>
-  </data>
-  <data name="FailedToRetrieveCachedAllAspirePackages" xml:space="preserve">
-    <value>Failed to retrieve all Aspire packages via cache.</value>
-  </data>
-  <data name="FailedToSearchForPackages" xml:space="preserve">
+  </data><data name="FailedToSearchForPackages" xml:space="preserve">
     <value>Failed to search for packages. Exit code: {0}.</value>
     <comment>{0} is a number</comment>
   </data>
@@ -219,12 +215,77 @@
   </data>
   <data name="AppHostsMayNotBeBuildable" xml:space="preserve">
     <value>No buildable app hosts were found, but there may have been unbuildable app hosts.</value>
-  </data>
-  <data name="SingleFileAppHostFeatureNotEnabled" xml:space="preserve">
-    <value>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</value>
-  </data>
-  <data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
+  </data><data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
     <value>This command is not yet supported with single file AppHosts.</value>
+  </data>
+  <data name="CouldNotDetermineCliExecutablePath" xml:space="preserve">
+    <value>Could not determine the CLI executable path.</value>
+  </data>
+  <data name="CouldNotDetermineInstallationPath" xml:space="preserve">
+    <value>Could not determine the installation path.</value>
+  </data>
+  <data name="FailedToPrepareAppHostServer" xml:space="preserve">
+    <value>Failed to prepare AppHost server.</value>
+  </data>
+  <data name="AppHostExitedUnexpectedly" xml:space="preserve">
+    <value>App host exited unexpectedly.</value>
+  </data>
+  <data name="GuestRuntimeNotInitialized" xml:space="preserve">
+    <value>GuestRuntime not initialized.</value>
+  </data>
+  <data name="GuestRuntimeNotInitializedBug" xml:space="preserve">
+    <value>GuestRuntime not initialized. This is a bug.</value>
+  </data>
+  <data name="FailedToBuildAppHostServer" xml:space="preserve">
+    <value>Failed to build AppHost server.</value>
+  </data>
+  <data name="FailedToInstallLanguageDependencies" xml:space="preserve">
+    <value>Failed to install {0} dependencies.</value>
+  </data>
+  <data name="NoBundleInBinary" xml:space="preserve">
+    <value>This CLI binary does not contain an embedded bundle. No extraction needed.</value>
+  </data>
+  <data name="BundleAlreadyExtracted" xml:space="preserve">
+    <value>Bundle is already extracted and up to date. Use --force to re-extract.</value>
+  </data>
+  <data name="BundleExtractedTo" xml:space="preserve">
+    <value>Bundle extracted to {0}</value>
+  </data>
+  <data name="BundleValidationFailed" xml:space="preserve">
+    <value>Bundle was extracted to {0} but layout validation failed.</value>
+  </data>
+  <data name="FailedToBuildCapabilityScanner" xml:space="preserve">
+    <value>Failed to build capability scanner.</value>
+  </data>
+  <data name="FailedToBuildSdkGenerationServer" xml:space="preserve">
+    <value>Failed to build SDK generation server.</value>
+  </data>
+  <data name="FailedToRunAppHost" xml:space="preserve">
+    <value>Failed to run {0} AppHost: {1}</value>
+  </data>
+  <data name="FailedToPublishAppHost" xml:space="preserve">
+    <value>Failed to publish {0} AppHost: {1}</value>
+  </data>
+  <data name="IntegrationProjectNotFound" xml:space="preserve">
+    <value>Integration project not found: {0}</value>
+  </data>
+  <data name="InvalidPackageFormat" xml:space="preserve">
+    <value>Invalid package format '{0}'. Expected PackageName@Version (e.g. Aspire.Hosting.Redis@9.2.0).</value>
+  </data>
+  <data name="InvalidVersionInPackage" xml:space="preserve">
+    <value>Invalid version '{0}' in '{1}'. Expected a valid NuGet version (e.g. 9.2.0).</value>
+  </data>
+  <data name="InvalidIntegrationArgument" xml:space="preserve">
+    <value>Invalid integration argument '{0}'. Expected a .csproj path or PackageName@Version format.</value>
+  </data>
+  <data name="ExpectedCsprojFile" xml:space="preserve">
+    <value>Expected a .csproj file, got: {0}</value>
+  </data>
+  <data name="GeneratedFilesCount" xml:space="preserve">
+    <value>Generated {0} files in {1}</value>
+  </data>
+  <data name="UnsupportedLanguage" xml:space="preserve">
+    <value>Unsupported language: {0}</value>
   </data>
   <data name="ProjectFileUnsupportedInCurrentEnvironment" xml:space="preserve">
     <value>Project is not supported in the current environment: {0}</value>

@@ -180,15 +180,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("NoPackagesMatchedSearchTerm", resourceCulture);
             }
         }
-
-        public static string UsePrereleasePackages
-        {
-            get
-            {
-                return ResourceManager.GetString("UsePrereleasePackages", resourceCulture);
-            }
-        }
-
         public static string StoppedRunningInstance
         {
             get

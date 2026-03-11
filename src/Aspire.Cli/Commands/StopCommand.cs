@@ -186,12 +186,12 @@ internal sealed class StopCommand : BaseCommand
         var displayPath = connection.IsInScope
             ? Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, appHostPath)
             : appHostPath;
-        _interactionService.DisplayMessage(KnownEmojis.Package, $"Found running AppHost: {displayPath}");
+        _interactionService.DisplayMessage(KnownEmojis.Package, string.Format(CultureInfo.CurrentCulture, StopCommandStrings.FoundRunningAppHost, displayPath));
         _logger.LogDebug("Stopping AppHost: {AppHostPath}", appHostPath);
 
         var appHostInfo = connection.AppHostInfo;
 
-        _interactionService.DisplayMessage(KnownEmojis.StopSign, "Sending stop signal...");
+        _interactionService.DisplayMessage(KnownEmojis.StopSign, StopCommandStrings.SendingStopSignal);
 
         // Get the CLI process ID - this is the process we need to kill
         // Killing the CLI process will tear down everything including the AppHost

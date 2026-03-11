@@ -7,11 +7,6 @@
         <target state="translated">Umožňuje provést konkrétní krok kanálu a jeho závislosti. (Preview)</target>
         <note />
       </trans-unit>
-      <trans-unit id="GeneratingArtifacts">
-        <source>Executing pipeline...</source>
-        <target state="translated">Provádí se kanál...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
         <target state="translated">Operace byla zrušena.</target>

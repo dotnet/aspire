@@ -121,7 +121,7 @@ internal sealed class TelemetrySpansCommand : BaseCommand
         // If a resource was specified but not found, return error
         if (!TelemetryCommandHelpers.TryResolveResourceNames(resource, resources, out var resolvedResources))
         {
-            _interactionService.DisplayError($"Resource '{resource}' not found.");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TelemetryCommandStrings.ResourceNotFound, resource));
             return ExitCodeConstants.InvalidCommand;
         }
 

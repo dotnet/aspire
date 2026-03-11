@@ -68,13 +68,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AppHostStoppedSuccessfully", resourceCulture);
             }
         }
-
-        public static string MultipleAppHostsRunning {
-            get {
-                return ResourceManager.GetString("MultipleAppHostsRunning", resourceCulture);
-            }
-        }
-
         public static string FailedToStopAppHost {
             get {
                 return ResourceManager.GetString("FailedToStopAppHost", resourceCulture);
@@ -105,5 +98,17 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+
+        internal static string FoundRunningAppHost {
+            get {
+                return ResourceManager.GetString("FoundRunningAppHost", resourceCulture);
+            }
+        }
+
+        internal static string SendingStopSignal {
+            get {
+                return ResourceManager.GetString("SendingStopSignal", resourceCulture);
+            }
+        }
     }
 }

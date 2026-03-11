@@ -260,7 +260,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var templatesForPrompt = GetTemplatesForPrompt(availableTemplates, parseResult);
         if (templatesForPrompt.Length == 0)
         {
-            InteractionService.DisplayError("No templates are available for the current environment.");
+            InteractionService.DisplayError(NewCommandStrings.NoTemplatesAvailable);
             return null;
         }
 

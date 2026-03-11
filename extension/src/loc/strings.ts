@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 
-export const noCsprojFound = vscode.l10n.t('No apphost found in the current workspace.');
 export const errorMessage = (error: any) => vscode.l10n.t('Error: {0}', error);
 export const yesLabel = vscode.l10n.t('Yes');
 export const noLabel = vscode.l10n.t('No');
-export const directUrl = (url: string) => vscode.l10n.t('Direct: {0}', url);
 export const codespacesUrl = (url: string) => vscode.l10n.t('Codespaces: {0}', url);
 export const directLink = vscode.l10n.t('Open local URL');
 export const codespacesLink = vscode.l10n.t('Open codespaces URL');
@@ -23,24 +21,17 @@ export const aspireOutputChannelName = vscode.l10n.t('Aspire Extension');
 export const fieldRequired = vscode.l10n.t('This field is required.');
 export const runProject = (projectName: string) => vscode.l10n.t('Run {0}', projectName);
 export const debugProject = (projectName: string) => vscode.l10n.t('Debug {0}', projectName);
-export const watchProject = (projectName: string, projectType: string) => vscode.l10n.t('Watch {0} ({1})', projectName, projectType);
 export const noCsharpBuildTask = vscode.l10n.t('No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn\'t finished loading?');
-export const noWatchTask = vscode.l10n.t('No watch task found. Please ensure a watch task is defined in your workspace.');
 export const buildFailedWithExitCode = (exitCode: number | string) => vscode.l10n.t('Build failed with exit code {0}.', exitCode);
 export const noOutputFromMsbuild = vscode.l10n.t('No output from msbuild.');
 export const failedToGetTargetPath = (err: string) => vscode.l10n.t('Failed to get TargetPath: {0}.', err);
-export const unsupportedResourceType = (type: string) => vscode.l10n.t('Attempted to start unsupported resource type: {0}.', type);
 export const rpcServerNotInitialized = vscode.l10n.t('RPC server is not initialized.');
 export const extensionContextNotInitialized = vscode.l10n.t('Extension context is not initialized.');
 export const aspireDebugSessionNotInitialized = vscode.l10n.t('Aspire debug session is not initialized');
-export const errorRetrievingAppHosts = vscode.l10n.t('Error retrieving apphosts in the current workspace. Debug options may be incomplete.');
 export const launchingWithDirectory = (appHostPath: string) => vscode.l10n.t('Launching Aspire debug session using directory {0}: attempting to determine effective apphost...', appHostPath);
 export const launchingWithAppHost = (appHostPath: string) => vscode.l10n.t('Launching Aspire debug session for apphost {0}...', appHostPath);
 export const disconnectingFromSession = vscode.l10n.t('Disconnecting from Aspire debug session... Child processes will be stopped.');
 export const processExitedWithCode = (code: number | string) => vscode.l10n.t('Process exited with code {0}.', code);
-export const failedToStartPythonProgram = (errorMessage: string) => vscode.l10n.t('Failed to start Python program: {0}.', errorMessage);
-export const csharpSupportNotEnabled = vscode.l10n.t('C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
-export const failedToStartProject = (errorMessage: string) => vscode.l10n.t('Failed to start project: {0}.', errorMessage);
 export const dcpServerNotInitialized = vscode.l10n.t('DCP server not initialized - cannot forward debug output.');
 export const invalidTokenProvided = vscode.l10n.t('Invalid token provided.');
 export const noWorkspaceFolder = vscode.l10n.t('No workspace folder found.');
@@ -69,7 +60,6 @@ export const browserDisplayName = (url: string) => vscode.l10n.t('Browser: {0}',
 export const browserLabel = vscode.l10n.t('Browser');
 export const dontShowAgainLabel = vscode.l10n.t("Don't Show Again");
 export const doYouWantToSetDefaultApphost = (appHost: string) => vscode.l10n.t('Do you want to set {0} as the default apphost for this workspace?', appHost);
-export const doYouWantToSelectDefaultApphost = vscode.l10n.t('Do you want to select the default apphost for this workspace?');
 export const selectDefaultLaunchApphost = vscode.l10n.t('Select the default apphost to launch when starting an Aspire debug session');
 export const noAppHostInWorkspace = vscode.l10n.t('No apphost found in the Aspire settings file.');
 export const dashboard = vscode.l10n.t('Dashboard');
@@ -89,6 +79,19 @@ export const cliFoundAtDefaultPath = (path: string) => vscode.l10n.t('Aspire CLI
 export const selectDirectoryTitle = vscode.l10n.t('Select directory');
 export const selectFileTitle = vscode.l10n.t('Select file');
 export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execute');
+
+// DCP server error strings
+export const missingDcpPrefix = vscode.l10n.t('Missing valid DCP prefix corresponding to an Aspire debug session.');
+export const unsupportedLaunchConfigType = (type: string) => vscode.l10n.t('Unsupported launch configuration type: {0}', type);
+export const noAspireDebugSessionFound = (debugSessionId: string) => vscode.l10n.t('No Aspire debug session found for Debug Session ID {0}', debugSessionId);
+export const failedToStartDebugSessionForRunId = (runId: string) => vscode.l10n.t('Failed to start debug session for run ID {0}', runId);
+
+// Dotnet debugger error strings
+export const dotnetRunApiFailed = (message: string) => vscode.l10n.t('dotnet run-api failed: {0}', message);
+export const dotnetRunApiUnexpectedResponseType = (type: string) => vscode.l10n.t("dotnet run-api failed: Unexpected response type '{0}'", type);
+
+// Command strings
+export const deployPlaceholder = vscode.l10n.t('deploy');
 
 // Status bar strings
 export const statusBarStopped = vscode.l10n.t('Aspire: Stopped');

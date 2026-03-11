@@ -27,11 +27,6 @@
         <target state="translated">Protokolle noch nicht verfügbar</target>
         <note />
       </trans-unit>
-      <trans-unit id="ConsoleLogsNoResourceSelected">
-        <source>No resource selected</source>
-        <target state="translated">Keine Ressource ausgewählt</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsNoWrapLogs">
         <source>Don't wrap log lines</source>
         <target state="translated">Protokollzeilen nicht umbrechen</target>
@@ -44,12 +39,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
         <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Protokollerfassung wurde um {0} angehalten, {1} Protokoll(e) herausgefiltert&gt;</target>
+        <target state="new">&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">
         <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Protokollerfassung wurde zwischen {0} und {1} angehalten, {2} Protokoll(e) herausgefiltert&gt;</target>
+        <target state="new">&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

@@ -67,6 +67,11 @@
         <target state="translated">NuGet.config für die ausgewählten Kanäle erstellen?</target>
         <note />
       </trans-unit>
+      <trans-unit id="CreatedOrUpdatedNuGetConfigMessage">
+        <source>Created or updated NuGet.config in the project directory with required package sources.</source>
+        <target state="new">Created or updated NuGet.config in the project directory with required package sources.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
         <target state="translated">Neues Aspire-Projekt wird erstellt...</target>
@@ -82,6 +87,11 @@
         <target state="translated">Geben Sie die zu verwendende xUnit.net-Version ein.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToCreateProjectFiles">
+        <source>Failed to create project files: {0}</source>
+        <target state="new">Failed to create project files: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GettingTemplates">
         <source>Getting templates...</source>
         <target state="translated">Vorlagen werden abgerufen...</target>
@@ -90,6 +100,11 @@
       <trans-unit id="IntegrationTestsTemplate_Description">
         <source>Integration tests</source>
         <target state="translated">Integrationstests</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LanguageSelectionRequired">
+        <source>Language selection is required.</source>
+        <target state="new">Language selection is required.</target>
         <note />
       </trans-unit>
       <trans-unit id="No">
@@ -157,9 +172,29 @@
         <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
+      <trans-unit id="UnableToDetermineAspireVersionForTypeScript">
+        <source>Unable to determine Aspire version for the TypeScript starter template.</source>
+        <target state="new">Unable to determine Aspire version for the TypeScript starter template.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Unknown">
         <source>Unknown</source>
         <target state="translated">Unbekannt</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownLanguageId">
+        <source>Unknown language: '{0}'</source>
+        <target state="new">Unknown language: '{0}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdateNuGetConfigPrompt">
+        <source>Update NuGet.config to add missing package sources for the selected channel?</source>
+        <target state="new">Update NuGet.config to add missing package sources for the selected channel?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpdatedNuGetConfigMessage">
+        <source>Updated NuGet.config with required package sources.</source>
+        <target state="new">Updated NuGet.config with required package sources.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_Description">
@@ -221,6 +256,7 @@
         <source>Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</source>
         <target state="new">Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</target>
         <note>{0} is the relative path to the project directory</note>
-      </trans-unit>    </body>
+      </trans-unit>
+    </body>
   </file>
 </xliff>

@@ -156,6 +156,9 @@
   <data name="MainLayoutAspire" xml:space="preserve">
     <value>Aspire</value>
   </data>
+  <data name="MainLayoutMcpServerLink" xml:space="preserve">
+    <value>MCP Server</value>
+  </data>
   <data name="MessageUnsecuredEndpointTelemetryBody" xml:space="preserve">
     <value>Untrusted apps can send telemetry to the dashboard.</value>
   </data>

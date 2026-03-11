@@ -2,31 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../RunCommandStrings.resx">
     <body>
-      <trans-unit id="AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="translated">Quizás más tarde</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationNo">
-        <source>No</source>
-        <target state="translated">No</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationPrompt">
-        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="translated">Aspire ha detectado {0} entornos de codificación de agente que configurar. ¿Desea configurar ahora?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Seleccione los entornos de agente que desea configurar:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationYes">
-        <source>Yes</source>
-        <target state="translated">Sí</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
@@ -92,11 +67,6 @@
         <target state="translated">Error al iniciar AppHost.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ForceArgumentDescription">
-        <source>Stop any running instance of the AppHost without prompting.</source>
-        <target state="translated">Detenga cualquier instancia en ejecución de AppHost sin pedir confirmación.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
         <target state="translated">La opción --format solo se puede usar junto con --detach.</target>
@@ -110,16 +80,6 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost es null</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="JsonArgumentDescription">
-        <source>Output format for detached AppHost results.</source>
-        <target state="needs-review-translation">Resultado de salida como JSON (solo válido con --detach).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="IsolatedArgumentDescription">
-        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="translated">Ejecutar en modo aislado con puertos aleatorios y secretos de usuario aislados, lo que permite que varias instancias se ejecuten simultáneamente.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
@@ -202,6 +162,11 @@
         <target state="translated">Estado</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="StoppingPreviousInstance">
+        <source>Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</source>
+        <target state="new">Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
         <target state="translated">Tiempo de espera de inicio de AppHost.</target>
@@ -212,14 +177,9 @@
         <target state="translated">Tipo</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
-      <trans-unit id="WaitingForAppHostToStart">
-        <source>Waiting for apphost to start...</source>
-        <target state="translated">Esperando a que se inicie apphost...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">Inicie los recursos del proyecto en modo de inspección.</target>
+      <trans-unit id="UnrecognizedAppHostType">
+        <source>Unrecognized app host type.</source>
+        <target state="new">Unrecognized app host type.</target>
         <note />
       </trans-unit>
     </body>

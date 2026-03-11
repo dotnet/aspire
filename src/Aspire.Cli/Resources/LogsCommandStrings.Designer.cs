@@ -68,13 +68,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("JsonOptionDescription", resourceCulture);
             }
         }
-
-        public static string ResourceRequiredWithoutFollow {
-            get {
-                return ResourceManager.GetString("ResourceRequiredWithoutFollow", resourceCulture);
-            }
-        }
-
         public static string NoResourcesFound {
             get {
                 return ResourceManager.GetString("NoResourcesFound", resourceCulture);

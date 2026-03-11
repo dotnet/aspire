@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -23,7 +24,7 @@ internal sealed partial class CliTemplateFactory
 
         if (string.IsNullOrWhiteSpace(inputs.Version))
         {
-            _interactionService.DisplayError("Unable to determine Aspire version for the TypeScript starter template.");
+            _interactionService.DisplayError(TemplatingStrings.UnableToDetermineAspireVersionForTypeScript);
             return new TemplateResult(ExitCodeConstants.InvalidCommand);
         }
 
@@ -98,7 +99,7 @@ internal sealed partial class CliTemplateFactory
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _interactionService.DisplayError($"Failed to create project files: {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.FailedToCreateProjectFiles, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
         }
 

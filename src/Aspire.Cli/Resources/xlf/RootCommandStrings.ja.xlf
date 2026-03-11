@@ -52,11 +52,6 @@ Aspire CLI は使用状況データを収集します。これは Microsoft に�
 Aspire CLI テレメトリの詳細情報: https://aka.ms/aspire/cli-telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="FirstTimeUseWelcome">
-        <source>Welcome to Aspire! Learn more about Aspire at https://aspire.dev</source>
-        <target state="translated">Aspire へようこそ!https://aspire.dev で Aspire の詳細情報をご覧ください</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice.</source>
         <target state="translated">スタートアップ バナーとテレメトリ通知を非表示にします。</target>

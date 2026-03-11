@@ -50,25 +50,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
-        public static string ForceArgumentDescription {
-            get {
-                return ResourceManager.GetString("ForceArgumentDescription", resourceCulture);
-            }
-        }
-        
         public static string ProjectArgumentDescription {
             get {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string WatchArgumentDescription {
-            get {
-                return ResourceManager.GetString("WatchArgumentDescription", resourceCulture);
-            }
-        }
-        
         public static string StartDebugSessionArgumentDescription {
             get {
                 return ResourceManager.GetString("StartDebugSessionArgumentDescription", resourceCulture);
@@ -170,37 +156,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartingDebugSessionInExtension", resourceCulture);
             }
         }
-        
-        public static string AgentConfigurationPrompt {
-            get {
-                return ResourceManager.GetString("AgentConfigurationPrompt", resourceCulture);
-            }
-        }
-        
-        public static string AgentConfigurationYes {
-            get {
-                return ResourceManager.GetString("AgentConfigurationYes", resourceCulture);
-            }
-        }
-        
-        public static string AgentConfigurationNo {
-            get {
-                return ResourceManager.GetString("AgentConfigurationNo", resourceCulture);
-            }
-        }
-        
-        public static string AgentConfigurationMaybeLater {
-            get {
-                return ResourceManager.GetString("AgentConfigurationMaybeLater", resourceCulture);
-            }
-        }
-        
-        public static string AgentConfigurationSelectPrompt {
-            get {
-                return ResourceManager.GetString("AgentConfigurationSelectPrompt", resourceCulture);
-            }
-        }
-        
         public static string RunningInstanceStopped {
             get {
                 return ResourceManager.GetString("RunningInstanceStopped", resourceCulture);
@@ -212,13 +167,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("DetachArgumentDescription", resourceCulture);
             }
         }
-        
-        public static string JsonArgumentDescription {
-            get {
-                return ResourceManager.GetString("JsonArgumentDescription", resourceCulture);
-            }
-        }
-        
         public static string StartingAppHostInBackground {
             get {
                 return ResourceManager.GetString("StartingAppHostInBackground", resourceCulture);
@@ -236,13 +184,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FailedToStartAppHost", resourceCulture);
             }
         }
-        
-        public static string WaitingForAppHostToStart {
-            get {
-                return ResourceManager.GetString("WaitingForAppHostToStart", resourceCulture);
-            }
-        }
-        
         public static string AppHostExitedWithCode {
             get {
                 return ResourceManager.GetString("AppHostExitedWithCode", resourceCulture);
@@ -278,13 +219,6 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FormatRequiresDetach", resourceCulture);
             }
         }
-        
-        public static string IsolatedArgumentDescription {
-            get {
-                return ResourceManager.GetString("IsolatedArgumentDescription", resourceCulture);
-            }
-        }
-        
         public static string CopyingUserSecrets {
             get {
                 return ResourceManager.GetString("CopyingUserSecrets", resourceCulture);
@@ -306,6 +240,18 @@ namespace Aspire.Cli.Resources {
         public static string NoBuildNotSupportedWithWatchMode {
             get {
                 return ResourceManager.GetString("NoBuildNotSupportedWithWatchMode", resourceCulture);
+            }
+        }
+
+        internal static string UnrecognizedAppHostType {
+            get {
+                return ResourceManager.GetString("UnrecognizedAppHostType", resourceCulture);
+            }
+        }
+
+        internal static string StoppingPreviousInstance {
+            get {
+                return ResourceManager.GetString("StoppingPreviousInstance", resourceCulture);
             }
         }
     }

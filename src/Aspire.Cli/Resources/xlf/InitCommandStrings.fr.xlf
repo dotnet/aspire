@@ -7,14 +7,14 @@
         <target state="translated">Ajout du projet AppHost à la solution...</target>
         <note />
       </trans-unit>
-      <trans-unit id="AddingProjectsToSolution">
-        <source>Adding projects to solution...</source>
-        <target state="translated">Ajout de projets à la solution...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AddingServiceDefaultsProjectToSolution">
         <source>Adding ServiceDefaults project to solution...</source>
         <target state="translated">Ajout du projet ServiceDefaults à la solution...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AppHostAlreadyExists">
+        <source>{0} already exists in this directory.</source>
+        <target state="new">{0} already exists in this directory.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireInitializationComplete">
@@ -22,19 +22,59 @@
         <target state="translated">Initialisation d’Aspire terminée</target>
         <note />
       </trans-unit>
-      <trans-unit id="CreatingAppHostProject">
-        <source>Creating AppHost project...</source>
-        <target state="translated">Création du projet AppHost...</target>
+      <trans-unit id="CreatedAppHost">
+        <source>Created {0}</source>
+        <target state="new">Created {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CreatingServiceDefaultsProject">
-        <source>Creating ServiceDefaults project...</source>
-        <target state="translated">Création du projet ServiceDefaults...</target>
+      <trans-unit id="CreatingLanguageAppHost">
+        <source>Creating {0} AppHost...</source>
+        <target state="new">Creating {0} AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase.</source>
         <target state="needs-review-translation">Initialisez la prise en charge d’Aspire dans une solution existante ou créez un AppHost à fichier unique.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToAddAppHostToSolution">
+        <source>Failed to add AppHost project to solution. Exit code: {0}</source>
+        <target state="new">Failed to add AppHost project to solution. Exit code: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToAddReference">
+        <source>Failed to add reference to {0}.</source>
+        <target state="new">Failed to add reference to {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToAddServiceDefaultsReference">
+        <source>Failed to add ServiceDefaults reference to {0}.</source>
+        <target state="new">Failed to add ServiceDefaults reference to {0}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToAddServiceDefaultsToSolution">
+        <source>Failed to add ServiceDefaults project to solution. Exit code: {0}</source>
+        <target state="new">Failed to add ServiceDefaults project to solution. Exit code: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToCreateAspireProjects">
+        <source>Failed to create Aspire projects. Exit code: {0}</source>
+        <target state="new">Failed to create Aspire projects. Exit code: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToFindCreatedProjects">
+        <source>Failed to find created AppHost or ServiceDefaults projects in template output.</source>
+        <target state="new">Failed to find created AppHost or ServiceDefaults projects in template output.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToGetProjectsFromSolution">
+        <source>Failed to get projects from solution.</source>
+        <target state="new">Failed to get projects from solution.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToInstallTemplates">
+        <source>Failed to install Aspire templates.</source>
+        <target state="new">Failed to install Aspire templates.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -52,6 +92,16 @@
         <target state="new">Resolving template version...</target>
         <note />
       </trans-unit>
+      <trans-unit id="RunAspireRunToStart">
+        <source>Run 'aspire run' to start your AppHost.</source>
+        <target state="new">Run 'aspire run' to start your AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostTemplateNotFound">
+        <source>Single-file AppHost template not found.</source>
+        <target state="new">Single-file AppHost template not found.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Solution détectée : {0}</target>
@@ -65,6 +115,11 @@
       <trans-unit id="SolutionAndProjectInSameDirectory">
         <source>The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
         <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownLanguage">
+        <source>Unknown language: {0}</source>
+        <target state="new">Unknown language: {0}</target>
         <note />
       </trans-unit>
     </body>

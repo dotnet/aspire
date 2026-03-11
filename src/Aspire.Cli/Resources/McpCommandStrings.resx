@@ -71,14 +71,7 @@
   </data>
   <data name="DeprecatedCommandWarning" xml:space="preserve">
     <value>Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.</value>
-  </data>
-  <data name="InitCommand_AgentConfigurationSelectPrompt" xml:space="preserve">
-    <value>Which agent environments do you want to configure?</value>
-  </data>
-  <data name="InitCommand_AdditionalOptionsSelectPrompt" xml:space="preserve">
-    <value>Which additional options do you want to enable?</value>
-  </data>
-  <data name="InitCommand_NoAgentEnvironmentsDetected" xml:space="preserve">
+  </data><data name="InitCommand_NoAgentEnvironmentsDetected" xml:space="preserve">
     <value>No agent environments were detected.</value>
   </data>
   <data name="InitCommand_ConfigurationComplete" xml:space="preserve">
@@ -95,11 +88,16 @@
   </data>
   <data name="InitCommand_WorkspaceRootNotFound" xml:space="preserve">
     <value>Directory not found: {0}</value>
+  </data>  <data name="InvalidJsonInputExpectedObject" xml:space="preserve">
+    <value>Invalid JSON input: expected a JSON object.</value>
   </data>
-  <data name="InitCommand_CreateAgentInstructionsPrompt" xml:space="preserve">
-    <value>Create agent environment specific instruction files?</value>
+  <data name="InvalidJsonInput" xml:space="preserve">
+    <value>Invalid JSON input: {0}</value>
   </data>
-  <data name="InitCommand_ConfigurePlaywrightPrompt" xml:space="preserve">
-    <value>Install Playwright CLI for browser automation?</value>
+  <data name="FailedToCallTool" xml:space="preserve">
+    <value>Failed to call tool '{0}' on resource '{1}': {2}</value>
+  </data>
+  <data name="NoResourcesWithMcpTools" xml:space="preserve">
+    <value>No resources with MCP tools found.</value>
   </data>
 </root>

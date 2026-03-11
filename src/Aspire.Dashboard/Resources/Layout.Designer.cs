@@ -97,6 +97,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to MCP Server.
+        /// </summary>
+        public static string MainLayoutMcpServerLink {
+            get {
+                return ResourceManager.GetString("MainLayoutMcpServerLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
         public static string MainLayoutSettingsDialogClose {

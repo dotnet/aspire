@@ -497,11 +497,6 @@
         <target state="translated">&lt;code&gt;mcp.json&lt;/code&gt; el ile güncelleştiriliyor</target>
         <note />
       </trans-unit>
-      <trans-unit id="McpServerDialogOtherDescription">
-        <source>Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers.</source>
-        <target state="translated">Aspire MCP, akışa uygun HTTP MCP sunucularını destekleyen tüm yapay zeka araçlarıyla kullanılabilir.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="McpServerDialogOtherInstructions">
         <source>Important details for configuring Aspire MCP are below. Please refer to your AI client's documentation for how to add an MCP server.</source>
         <target state="translated">Aspire MCP'yi yapılandırmak için önemli ayrıntılar aşağıdadır. MCP sunucusunu eklemek için lütfen yapay zeka istemcinizin belgelerine bakın.</target>
@@ -666,11 +661,6 @@
         <source>Version: {0}</source>
         <target state="translated">Sürüm: {0}</target>
         <note>{0} is the dashboard version string</note>
-      </trans-unit>
-      <trans-unit id="SettingsExportAllButtonText">
-        <source>Export all</source>
-        <target state="translated">Tümünü dışarı aktar</target>
-        <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>

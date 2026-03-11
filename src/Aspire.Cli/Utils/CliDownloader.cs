@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
@@ -25,7 +26,7 @@ internal class CliDownloader(
 {
     private const int ArchiveDownloadTimeoutSeconds = 600;
     private const int ChecksumDownloadTimeoutSeconds = 120;
-    
+
     private static readonly HttpClient s_httpClient = new();
 
     public async Task<string> DownloadLatestCliAsync(string channelName, CancellationToken cancellationToken)
@@ -33,7 +34,7 @@ internal class CliDownloader(
         // Get the channel information from PackagingService
         var channels = await packagingService.GetChannelsAsync(cancellationToken);
         var channel = channels.FirstOrDefault(c => c.Name.Equals(channelName, StringComparison.OrdinalIgnoreCase));
-        
+
         if (channel is null)
         {
             throw new ArgumentException($"Unsupported channel '{channelName}'. Available channels: {string.Join(", ", channels.Select(c => c.Name))}");
@@ -71,15 +72,15 @@ internal class CliDownloader(
                 // Download checksum
                 logger.LogDebug("Downloading checksum from {Url} to {Path}", checksumUrl, checksumPath);
                 await DownloadFileAsync(checksumUrl, checksumPath, ChecksumDownloadTimeoutSeconds, cancellationToken);
-                
+
                 return 0; // Return dummy value for ShowStatusAsync
             });
 
             // Validate checksum
-            interactionService.DisplayMessage(KnownEmojis.CheckMark, "Validating downloaded file...");
+            interactionService.DisplayMessage(KnownEmojis.CheckMark, UpdateCommandStrings.ValidatingDownloadedFile);
             await ValidateChecksumAsync(archivePath, checksumPath, cancellationToken);
 
-            interactionService.DisplaySuccess("Download completed successfully");
+            interactionService.DisplaySuccess(UpdateCommandStrings.DownloadCompletedSuccessfully);
             return archivePath;
         }
         catch

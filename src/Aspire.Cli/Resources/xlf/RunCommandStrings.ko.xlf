@@ -2,31 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../RunCommandStrings.resx">
     <body>
-      <trans-unit id="AgentConfigurationMaybeLater">
-        <source>Maybe later</source>
-        <target state="translated">나중에</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationNo">
-        <source>No</source>
-        <target state="translated">아니요</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationPrompt">
-        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="translated">{0} 에이전트 코딩 환경을 구성하도록 검색했습니다. 지금 구성하시겠습니까?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">구성할 에이전트 환경 선택:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AgentConfigurationYes">
-        <source>Yes</source>
-        <target state="translated">예</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
@@ -92,11 +67,6 @@
         <target state="translated">AppHost를 시작하지 못 했습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ForceArgumentDescription">
-        <source>Stop any running instance of the AppHost without prompting.</source>
-        <target state="translated">프롬프트 없이 AppHost의 실행 중인 인스턴스를 중지합니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FormatRequiresDetach">
         <source>The --format option can only be used together with --detach.</source>
         <target state="translated">--format 옵션은 --detach와만 함께 사용할 수 있습니다.</target>
@@ -110,16 +80,6 @@
       <trans-unit id="IsCompatibleAppHostIsNull">
         <source>IsCompatibleAppHost is null</source>
         <target state="translated">IsCompatibleAppHost가 null입니다</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="JsonArgumentDescription">
-        <source>Output format for detached AppHost results.</source>
-        <target state="needs-review-translation">JSON으로 결과를 출력합니다(--detach와 함께 사용 시에만 유효).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="IsolatedArgumentDescription">
-        <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously.</source>
-        <target state="translated">임의의 포트와 격리된 사용자 암호를 사용해 격리 모드로 실행하면 여러 인스턴스를 동시에 실행할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
@@ -202,6 +162,11 @@
         <target state="translated">상태</target>
         <note>The state of the resource, eg Running</note>
       </trans-unit>
+      <trans-unit id="StoppingPreviousInstance">
+        <source>Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</source>
+        <target state="new">Stopping previous instance (AppHost PID: {0}, CLI PID: {1})</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for AppHost to start.</source>
         <target state="translated">AppHost가 시작될 때까지 기다리는 시간 제한입니다.</target>
@@ -212,14 +177,9 @@
         <target state="translated">형식</target>
         <note>The type of the resource, eg Project</note>
       </trans-unit>
-      <trans-unit id="WaitingForAppHostToStart">
-        <source>Waiting for apphost to start...</source>
-        <target state="translated">apphost가 시작되기를 기다리는 중...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="WatchArgumentDescription">
-        <source>Start project resources in watch mode.</source>
-        <target state="translated">watch 모드에서 프로젝트 리소스를 시작합니다.</target>
+      <trans-unit id="UnrecognizedAppHostType">
+        <source>Unrecognized app host type.</source>
+        <target state="new">Unrecognized app host type.</target>
         <note />
       </trans-unit>
     </body>

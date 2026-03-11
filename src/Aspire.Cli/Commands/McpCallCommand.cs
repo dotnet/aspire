@@ -92,7 +92,7 @@ internal sealed class McpCallCommand : BaseCommand
                 using var doc = JsonDocument.Parse(inputJson);
                 if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 {
-                    _interactionService.DisplayError("Invalid JSON input: expected a JSON object.");
+                    _interactionService.DisplayError(McpCommandStrings.InvalidJsonInputExpectedObject);
                     return ExitCodeConstants.InvalidCommand;
                 }
                 var dict = new Dictionary<string, JsonElement>();
@@ -104,7 +104,7 @@ internal sealed class McpCallCommand : BaseCommand
             }
             catch (JsonException ex)
             {
-                _interactionService.DisplayError($"Invalid JSON input: {ex.Message}");
+                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, McpCommandStrings.InvalidJsonInput, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
         }
@@ -149,7 +149,7 @@ internal sealed class McpCallCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError($"Failed to call tool '{toolName}' on resource '{resourceName}': {ex.Message}");
+            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, McpCommandStrings.FailedToCallTool, toolName, resourceName, ex.Message));
             return ExitCodeConstants.InvalidCommand;
         }
     }

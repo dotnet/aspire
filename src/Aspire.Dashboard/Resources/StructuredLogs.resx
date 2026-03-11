@@ -124,9 +124,6 @@
   <data name="StructuredLogsHeader" xml:space="preserve">
     <value>Structured logs</value>
   </data>
-  <data name="StructuredLogsMinimumLogFilter" xml:space="preserve">
-    <value>Minimum log level filter</value>
-  </data>
   <data name="StructuredLogsSelectMinimumLogLevel" xml:space="preserve">
     <value>Select a minimum log level</value>
   </data>

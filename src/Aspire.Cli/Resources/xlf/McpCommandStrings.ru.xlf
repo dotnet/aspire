@@ -12,29 +12,14 @@
         <target state="translated">Управление сервером MCP. (не рекомендуется, используйте "agent"")</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
-        <source>Which additional options do you want to enable?</source>
-        <target state="translated">Какие дополнительные параметры вы хотите включить?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Which agent environments do you want to configure?</source>
-        <target state="translated">Какие среды агента вы хотите настроить?</target>
+      <trans-unit id="FailedToCallTool">
+        <source>Failed to call tool '{0}' on resource '{1}': {2}</source>
+        <target state="new">Failed to call tool '{0}' on resource '{1}': {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
         <source>Agent environment configuration complete.</source>
         <target state="translated">Конфигурация среды агента завершена.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
-        <source>Install Playwright CLI for browser automation?</source>
-        <target state="needs-review-translation">Предварительно настроить сервер MCP Playwright?</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
-        <source>Create agent environment specific instruction files?</source>
-        <target state="translated">Создать файлы инструкций, специфичные для среды агента?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
@@ -65,6 +50,21 @@
       <trans-unit id="InitCommand_WorkspaceRootRequired">
         <source>Workspace root path is required.</source>
         <target state="translated">Требуется путь к корню рабочей области.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidJsonInput">
+        <source>Invalid JSON input: {0}</source>
+        <target state="new">Invalid JSON input: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidJsonInputExpectedObject">
+        <source>Invalid JSON input: expected a JSON object.</source>
+        <target state="new">Invalid JSON input: expected a JSON object.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoResourcesWithMcpTools">
+        <source>No resources with MCP tools found.</source>
+        <target state="new">No resources with MCP tools found.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">
