@@ -15,26 +15,10 @@
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
-  <ItemGroup Condition="
-            $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting.'))
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.Analyzers'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.AppHost'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.GitHub.Models'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.Maui'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.RemoteHost'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.Tasks'
-            and
-            '$(MSBuildProjectName)' != 'Aspire.Hosting.Testing'
-            and
-            !$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting.CodeGeneration.'))">
+   <ItemGroup Condition="
+             $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting.'))
+             and
+             '$(MSBuildProjectName)' != 'Aspire.Hosting.Analyzers'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
                     PrivateAssets="all"
                     ReferenceOutputAssembly="false"
