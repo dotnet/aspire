@@ -101,6 +101,16 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportNameShouldBeUniqueId}");
 
+        private const string ExportedSyncDelegateInvokedInlineId = "ASPIREEXPORT010";
+        internal static readonly DiagnosticDescriptor s_exportedSyncDelegateInvokedInline = new(
+            id: ExportedSyncDelegateInvokedInlineId,
+            title: "Exported synchronous callback should not be invoked inline",
+            messageFormat: "Exported builder method '{0}' directly invokes synchronous delegate parameter '{1}'. Defer the callback, expose an async delegate, or set RunSyncOnBackgroundThread = true to avoid polyglot deadlocks.",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportedSyncDelegateInvokedInlineId}");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_exportMethodMustBeStatic,
             s_invalidExportIdFormat,
@@ -110,7 +120,8 @@ public partial class AspireExportAnalyzer
             s_unionTypeMustBeAtsCompatible,
             s_duplicateExportId,
             s_missingExportAttribute,
-            s_exportNameShouldBeUnique
+            s_exportNameShouldBeUnique,
+            s_exportedSyncDelegateInvokedInline
         );
     }
 }

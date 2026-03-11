@@ -93,7 +93,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="builder">The Azure App Configuration resource builder.</param>
     /// <param name="configureEmulator">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("runAsEmulator", Description = "Configures Azure App Configuration to run with the local emulator")]
+    [AspireExport("runAsEmulator", Description = "Configures Azure App Configuration to run with the local emulator", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureAppConfigurationResource> RunAsEmulator(this IResourceBuilder<AzureAppConfigurationResource> builder, Action<IResourceBuilder<AzureAppConfigurationEmulatorResource>>? configureEmulator = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)

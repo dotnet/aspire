@@ -1020,6 +1020,7 @@ internal static class AtsCapabilityScanner
         // Check for ExposeProperties and ExposeMethods flags
         var exposeAllProperties = HasExposePropertiesAttribute(contextType);
         var exposeAllMethods = HasExposeMethodsAttribute(contextType);
+        var typeExportAttr = GetAspireExportAttribute(contextType);
 
         // Scan properties
         foreach (var property in contextType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
@@ -1142,7 +1143,7 @@ internal static class AtsCapabilityScanner
                         OwningTypeName = typeName,
                         Description = $"Gets the {property.Name} property",
                         Parameters = [
-                            new AtsParameterInfo
+                           new AtsParameterInfo
                             {
                                 Name = "context",
                                 Type = contextTypeRef,
@@ -1151,14 +1152,15 @@ internal static class AtsCapabilityScanner
                                 IsCallback = false,
                                 DefaultValue = null
                             }
-                        ],
+                       ],
                         ReturnType = propertyTypeRef!,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertyGetter,
-                        SourceLocation = $"{fullName}.{property.Name}"
+                        SourceLocation = $"{fullName}.{property.Name}",
+                        RunSyncOnBackgroundThread = false
                     });
 
                     // Register property for runtime dispatch
@@ -1179,7 +1181,7 @@ internal static class AtsCapabilityScanner
                         OwningTypeName = typeName,
                         Description = $"Sets the {property.Name} property",
                         Parameters = [
-                            new AtsParameterInfo
+                           new AtsParameterInfo
                             {
                                 Name = "context",
                                 Type = contextTypeRef,
@@ -1197,14 +1199,15 @@ internal static class AtsCapabilityScanner
                                 IsCallback = false,
                                 DefaultValue = null
                             }
-                        ],
+                       ],
                         ReturnType = contextTypeRef,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertySetter,
-                        SourceLocation = $"{fullName}.{property.Name}"
+                        SourceLocation = $"{fullName}.{property.Name}",
+                        RunSyncOnBackgroundThread = false
                     });
 
                     // Register property for runtime dispatch
@@ -1261,6 +1264,8 @@ internal static class AtsCapabilityScanner
             // Check if method should be exported
             // ExposeMethods=true exports public only; explicit [AspireExport] can export internal too
             var memberExportAttr = GetAspireExportAttribute(method);
+            var effectiveRunSyncOnBackgroundThread = (memberExportAttr?.RunSyncOnBackgroundThread ?? false) ||
+                (typeExportAttr?.RunSyncOnBackgroundThread ?? false);
             if (!ShouldExportMember(method.IsPublic, exposeAllMethods, memberExportAttr))
             {
                 continue;
@@ -1354,7 +1359,8 @@ internal static class AtsCapabilityScanner
                     TargetParameterName = "context",
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.InstanceMethod,
-                    SourceLocation = $"{contextType.FullName}.{method.Name}"
+                    SourceLocation = $"{contextType.FullName}.{method.Name}",
+                    RunSyncOnBackgroundThread = effectiveRunSyncOnBackgroundThread
                 });
 
                 // Register method for runtime dispatch
@@ -1476,7 +1482,9 @@ internal static class AtsCapabilityScanner
             TargetType = extendsTypeRef,
             TargetParameterName = targetParameterName,
             ReturnsBuilder = returnsBuilder,
-            SourceLocation = methodLocation
+            SourceLocation = methodLocation,
+            RunSyncOnBackgroundThread = exportAttr.RunSyncOnBackgroundThread ||
+                (method.DeclaringType is not null && (GetAspireExportAttribute(method.DeclaringType)?.RunSyncOnBackgroundThread ?? false))
         };
     }
 
