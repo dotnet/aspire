@@ -68,7 +68,14 @@ public sealed class GenAIItemPartViewModelTests
         var itemPart = GenAIItemPartViewModel.CreateMessagePart(responsePart);
 
         // Assert
-        Assert.Equal("""["Jack","Jane"]""", itemPart.TextVisualizerViewModel.Text);
+        Assert.Equal(
+            """
+            [
+              "Jack",
+              "Jane"
+            ]
+            """,
+            itemPart.TextVisualizerViewModel.Text);
         Assert.Equal(DashboardUIHelpers.JsonFormat, itemPart.TextVisualizerViewModel.FormatKind);
         Assert.Equal(
             """
@@ -93,7 +100,14 @@ public sealed class GenAIItemPartViewModelTests
         var itemPart = GenAIItemPartViewModel.CreateMessagePart(responsePart);
 
         // Assert
-        Assert.Equal("""{"name":"Jack","age":30}""", itemPart.TextVisualizerViewModel.Text);
+        Assert.Equal(
+            """
+            {
+              "name": "Jack",
+              "age": 30
+            }
+            """,
+            itemPart.TextVisualizerViewModel.Text);
         Assert.Equal(DashboardUIHelpers.JsonFormat, itemPart.TextVisualizerViewModel.FormatKind);
     }
 

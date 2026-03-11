@@ -22,7 +22,8 @@ public sealed class GenAIItemPartViewModel
 {
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        WriteIndented = true
     };
 
     public MessagePart? MessagePart { get; init; }
