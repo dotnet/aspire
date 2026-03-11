@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Rebuild;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Background service that periodically checks project resources for source file changes
