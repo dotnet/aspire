@@ -31,7 +31,7 @@ class AppHostItem extends vscode.TreeItem {
         super(name, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `apphost:${appHost.appHostPid}`;
         this.description = pidDescription(appHost.appHostPid);
-        this.iconPath = new vscode.ThemeIcon('server-process', new vscode.ThemeColor('aspire.brandPurple'));
+        this.iconPath = new vscode.ThemeIcon('file-code', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'appHost';
         this.tooltip = appHost.appHostPath;
     }
@@ -41,7 +41,7 @@ class WorkspaceResourcesItem extends vscode.TreeItem {
     constructor(public readonly resources: ResourceJson[], public readonly dashboardUrl: string | null, appHostName?: string) {
         super(appHostName ?? workspaceAppHostLabel, vscode.TreeItemCollapsibleState.Expanded);
         this.id = 'workspace-resources';
-        this.iconPath = new vscode.ThemeIcon('server-process', new vscode.ThemeColor('aspire.brandPurple'));
+        this.iconPath = new vscode.ThemeIcon('file-code', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'workspaceResources';
         this.description = resourceCountDescription(resources.length);
     }
