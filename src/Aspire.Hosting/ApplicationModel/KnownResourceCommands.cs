@@ -35,6 +35,11 @@ public static class KnownResourceCommands
     /// </summary>
     public static readonly string DeleteParameterCommand = "parameter-delete";
 
+    /// <summary>
+    /// The command name for rebuilding a project resource.
+    /// </summary>
+    public static readonly string RebuildCommand = "rebuild";
+
     internal const string LegacyStartCommand = "resource-start";
     internal const string LegacyStopCommand = "resource-stop";
     internal const string LegacyRestartCommand = "resource-restart";

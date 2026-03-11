@@ -456,6 +456,32 @@ public static class ProjectResourceBuilderExtensions
 
         var projectResource = builder.Resource;
 
+        // In run mode, create a hidden rebuilder resource for this project.
+        // The rebuilder runs 'dotnet build' on demand and is started via the rebuild command.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            var projectMetadata = projectResource.Annotations.OfType<IProjectMetadata>().SingleOrDefault();
+            if (projectMetadata is not null)
+            {
+                var rebuilderName = $"{projectResource.Name}-rebuilder";
+                var rebuilder = new ProjectRebuilderResource(rebuilderName, projectResource, projectMetadata.ProjectPath);
+                var rebuilderBuilder = builder.ApplicationBuilder.AddResource(rebuilder);
+
+                rebuilderBuilder
+                    .WithArgs("build", "--project", projectMetadata.ProjectPath)
+                    .WithAnnotation(new ExplicitStartupAnnotation())
+                    .WithAnnotation(new ExcludeLifecycleCommandsAnnotation())
+                    .ExcludeFromManifest()
+                    .WithInitialState(new CustomResourceSnapshot
+                    {
+                        ResourceType = "Executable",
+                        State = KnownResourceStates.NotStarted,
+                        Properties = [],
+                        IsHidden = true,
+                    });
+            }
+        }
+
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             builder.WithEnvironment(context =>

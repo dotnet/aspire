@@ -112,4 +112,65 @@ public class ResourceCommandAnnotationTests
         // Assert - Single file C# app resources should have the detailed description mentioning source code is not recompiled
         Assert.Equal(CommandStrings.RestartProjectDescription, restartCommand.DisplayDescription);
     }
+
+    [Theory]
+    [InlineData("rebuild", "Starting", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Stopping", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Running", ResourceCommandState.Enabled)]
+    [InlineData("rebuild", "Exited", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Finished", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "FailedToStart", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Unknown", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Waiting", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "RuntimeUnhealthy", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Building", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", null, ResourceCommandState.Disabled)]
+    public void RebuildCommand_CommandState(string commandName, string? resourceState, ResourceCommandState commandState)
+    {
+        var projectResource = new ProjectResource("testproject");
+        projectResource.AddLifeCycleCommands();
+
+        var rebuildCommand = projectResource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == commandName);
+
+        var state = rebuildCommand.UpdateState(new UpdateCommandStateContext
+        {
+            ResourceSnapshot = new CustomResourceSnapshot
+            {
+                Properties = [],
+                ResourceType = "test",
+                State = resourceState
+            },
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        Assert.Equal(commandState, state);
+    }
+
+    [Fact]
+    public void RebuildCommand_OnlyAddedToProjectResources()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var containerResource = builder.AddContainer("container", "image");
+        containerResource.Resource.AddLifeCycleCommands();
+
+        var projectResource = new ProjectResource("testproject");
+        projectResource.AddLifeCycleCommands();
+
+        Assert.DoesNotContain(containerResource.Resource.Annotations.OfType<ResourceCommandAnnotation>(), a => a.Name == KnownResourceCommands.RebuildCommand);
+        Assert.Contains(projectResource.Annotations.OfType<ResourceCommandAnnotation>(), a => a.Name == KnownResourceCommands.RebuildCommand);
+    }
+
+    [Fact]
+    public void RebuildCommand_ProjectResource_HasDescription()
+    {
+        var projectResource = new ProjectResource("testproject");
+        projectResource.AddLifeCycleCommands();
+
+        var rebuildCommand = projectResource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == KnownResourceCommands.RebuildCommand);
+
+        Assert.Equal(CommandStrings.RebuildName, rebuildCommand.DisplayName);
+        Assert.Equal(CommandStrings.RebuildDescription, rebuildCommand.DisplayDescription);
+    }
 }

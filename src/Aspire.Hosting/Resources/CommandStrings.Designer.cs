@@ -106,6 +106,24 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Stop the resource, rebuild the project from source, and restart. Use this after making source code changes to apply them..
+        /// </summary>
+        internal static string RebuildDescription {
+            get {
+                return ResourceManager.GetString("RebuildDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rebuild.
+        /// </summary>
+        internal static string RebuildName {
+            get {
+                return ResourceManager.GetString("RebuildName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Set parameter value.
         /// </summary>
         internal static string SetParameterDescription {
