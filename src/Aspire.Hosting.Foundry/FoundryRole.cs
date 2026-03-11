@@ -4,9 +4,9 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Represents ATS-compatible Azure AI Foundry roles.
+/// Represents ATS-compatible Microsoft Foundry roles.
 /// </summary>
-internal enum AzureAIFoundryRole
+internal enum FoundryRole
 {
     /// <summary>
     /// Allows full management of Azure OpenAI resources.

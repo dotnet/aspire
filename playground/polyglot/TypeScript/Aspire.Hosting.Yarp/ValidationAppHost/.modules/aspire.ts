@@ -8,6 +8,7 @@ import {
     AspireClient as AspireClientRpc,
     Handle,
     MarshalledHandle,
+    AppHostUsageError,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -67,6 +68,9 @@ type ExecutableResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicatio
 
 /** Handle to ExecuteCommandContext */
 type ExecuteCommandContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext'>;
+
+/** Handle to IComputeResource */
+type IComputeResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource'>;
 
 /** Handle to IContainerFilesDestinationResource */
 type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
@@ -203,6 +207,7 @@ export enum EndpointProperty {
     Scheme = "Scheme",
     TargetPort = "TargetPort",
     HostAndPort = "HostAndPort",
+    TlsEnabled = "TlsEnabled",
 }
 
 /** Enum type for ForwardedTransformActions */
@@ -363,10 +368,6 @@ export interface AddConnectionStringOptions {
     environmentVariableName?: string;
 }
 
-export interface AddContainerRegistry1Options {
-    repository?: string;
-}
-
 export interface AddContainerRegistryOptions {
     repository?: ParameterResource;
 }
@@ -374,11 +375,6 @@ export interface AddContainerRegistryOptions {
 export interface AddDockerfileOptions {
     dockerfilePath?: string;
     stage?: string;
-}
-
-export interface AddParameter1Options {
-    publishValueAsDefault?: boolean;
-    secret?: boolean;
 }
 
 export interface AddParameterFromConfigurationOptions {
@@ -399,6 +395,10 @@ export interface AppendValueProviderOptions {
 
 export interface GetValueAsyncOptions {
     cancellationToken?: AbortSignal;
+}
+
+export interface PublishAsDockerFileOptions {
+    configure?: (obj: ContainerResource) => Promise<void>;
 }
 
 export interface RunOptions {
@@ -842,6 +842,16 @@ export class EndpointReference {
         },
     };
 
+    /** Gets the TlsEnabled property */
+    tlsEnabled = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.tlsEnabled',
+                { context: this._handle }
+            );
+        },
+    };
+
     /** Gets the Port property */
     port = {
         get: async (): Promise<number> => {
@@ -903,6 +913,15 @@ export class EndpointReference {
         );
     }
 
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    async getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, enabledValue, disabledValue };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.getTlsValue',
+            rpcArgs
+        );
+    }
+
 }
 
 /**
@@ -921,6 +940,11 @@ export class EndpointReferencePromise implements PromiseLike<EndpointReference> 
     /** Gets the URL of the endpoint asynchronously */
     getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         return this._promise.then(obj => obj.getValueAsync(options));
+    }
+
+    /** Gets a conditional expression that resolves to the enabledValue when TLS is enabled on the endpoint, or to the disabledValue otherwise. */
+    getTlsValue(enabledValue: ReferenceExpression, disabledValue: ReferenceExpression): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.getTlsValue(enabledValue, disabledValue));
     }
 
 }
@@ -1634,6 +1658,66 @@ export class YarpRoute {
         return new YarpRoutePromise(this._withTransformHttpMethodChangeInternal(fromHttpMethod, toHttpMethod));
     }
 
+    /** Adds the transform which sets the request path with the given value. */
+    /** @internal */
+    async _withTransformPathSetInternal(path: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, path };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformPathSet',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformPathSet(path: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformPathSetInternal(path));
+    }
+
+    /** Adds the transform which will prefix the request path with the given value. */
+    /** @internal */
+    async _withTransformPathPrefixInternal(prefix: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, prefix };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformPathPrefix',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformPathPrefix(prefix: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformPathPrefixInternal(prefix));
+    }
+
+    /** Adds the transform which will remove the matching prefix from the request path. */
+    /** @internal */
+    async _withTransformPathRemovePrefixInternal(prefix: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, prefix };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformPathRemovePrefix',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformPathRemovePrefix(prefix: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformPathRemovePrefixInternal(prefix));
+    }
+
+    /** Adds the transform which will set the request path with route values. */
+    /** @internal */
+    async _withTransformPathRouteValuesInternal(pattern: string): Promise<YarpRoute> {
+        const rpcArgs: Record<string, unknown> = { route: this._handle, pattern };
+        const result = await this._client.invokeCapability<YarpRouteHandle>(
+            'Aspire.Hosting.Yarp/withTransformPathRouteValues',
+            rpcArgs
+        );
+        return new YarpRoute(result, this._client);
+    }
+
+    withTransformPathRouteValues(pattern: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._withTransformPathRouteValuesInternal(pattern));
+    }
+
     /** Adds the transform that will append or set the query parameter from the given value. */
     /** @internal */
     async _withTransformQueryValueInternal(queryKey: string, value: string, append?: boolean): Promise<YarpRoute> {
@@ -1952,6 +2036,26 @@ export class YarpRoutePromise implements PromiseLike<YarpRoute> {
         return new YarpRoutePromise(this._promise.then(obj => obj.withTransformHttpMethodChange(fromHttpMethod, toHttpMethod)));
     }
 
+    /** Adds the transform which sets the request path with the given value. */
+    withTransformPathSet(path: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformPathSet(path)));
+    }
+
+    /** Adds the transform which will prefix the request path with the given value. */
+    withTransformPathPrefix(prefix: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformPathPrefix(prefix)));
+    }
+
+    /** Adds the transform which will remove the matching prefix from the request path. */
+    withTransformPathRemovePrefix(prefix: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformPathRemovePrefix(prefix)));
+    }
+
+    /** Adds the transform which will set the request path with route values. */
+    withTransformPathRouteValues(pattern: string): YarpRoutePromise {
+        return new YarpRoutePromise(this._promise.then(obj => obj.withTransformPathRouteValues(pattern)));
+    }
+
     /** Adds the transform that will append or set the query parameter from the given value. */
     withTransformQueryValue(queryKey: string, value: string, options?: WithTransformQueryValueOptions): YarpRoutePromise {
         return new YarpRoutePromise(this._promise.then(obj => obj.withTransformQueryValue(queryKey, value, options)));
@@ -2099,21 +2203,6 @@ export class DistributedApplicationBuilder {
         return new DistributedApplicationPromise(this._buildInternal());
     }
 
-    /** Adds a connection string with a reference expression */
-    /** @internal */
-    async _addConnectionString1Internal(name: string, connectionStringExpression: ReferenceExpression): Promise<ConnectionStringResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, connectionStringExpression };
-        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/addConnectionStringExpression',
-            rpcArgs
-        );
-        return new ConnectionStringResource(result, this._client);
-    }
-
-    addConnectionString1(name: string, connectionStringExpression: ReferenceExpression): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._addConnectionString1Internal(name, connectionStringExpression));
-    }
-
     /** Adds a connection string with a builder callback */
     /** @internal */
     async _addConnectionStringBuilderInternal(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): Promise<ConnectionStringResource> {
@@ -2149,23 +2238,6 @@ export class DistributedApplicationBuilder {
     addContainerRegistry(name: string, endpoint: ParameterResource, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise {
         const repository = options?.repository;
         return new ContainerRegistryResourcePromise(this._addContainerRegistryInternal(name, endpoint, repository));
-    }
-
-    /** Adds a container registry with string endpoint */
-    /** @internal */
-    async _addContainerRegistry1Internal(name: string, endpoint: string, repository?: string): Promise<ContainerRegistryResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, endpoint };
-        if (repository !== undefined) rpcArgs.repository = repository;
-        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
-            'Aspire.Hosting/addContainerRegistryFromString',
-            rpcArgs
-        );
-        return new ContainerRegistryResource(result, this._client);
-    }
-
-    addContainerRegistry1(name: string, endpoint: string, options?: AddContainerRegistry1Options): ContainerRegistryResourcePromise {
-        const repository = options?.repository;
-        return new ContainerRegistryResourcePromise(this._addContainerRegistry1Internal(name, endpoint, repository));
     }
 
     /** Adds a container resource */
@@ -2247,36 +2319,6 @@ export class DistributedApplicationBuilder {
         return new ExternalServiceResourcePromise(this._addExternalServiceInternal(name, url));
     }
 
-    /** Adds an external service with a URI */
-    /** @internal */
-    async _addExternalService2Internal(name: string, uri: string): Promise<ExternalServiceResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, uri };
-        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/addExternalServiceUri',
-            rpcArgs
-        );
-        return new ExternalServiceResource(result, this._client);
-    }
-
-    addExternalService2(name: string, uri: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._addExternalService2Internal(name, uri));
-    }
-
-    /** Adds an external service with a parameter URL */
-    /** @internal */
-    async _addExternalService1Internal(name: string, urlParameter: ParameterResource): Promise<ExternalServiceResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, urlParameter };
-        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/addExternalServiceParameter',
-            rpcArgs
-        );
-        return new ExternalServiceResource(result, this._client);
-    }
-
-    addExternalService1(name: string, urlParameter: ParameterResource): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._addExternalService1Internal(name, urlParameter));
-    }
-
     /** Adds a parameter resource */
     /** @internal */
     async _addParameterInternal(name: string, secret?: boolean): Promise<ParameterResource> {
@@ -2292,25 +2334,6 @@ export class DistributedApplicationBuilder {
     addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise {
         const secret = options?.secret;
         return new ParameterResourcePromise(this._addParameterInternal(name, secret));
-    }
-
-    /** Adds a parameter with a default value */
-    /** @internal */
-    async _addParameter1Internal(name: string, value: string, publishValueAsDefault?: boolean, secret?: boolean): Promise<ParameterResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
-        if (publishValueAsDefault !== undefined) rpcArgs.publishValueAsDefault = publishValueAsDefault;
-        if (secret !== undefined) rpcArgs.secret = secret;
-        const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting/addParameterWithValue',
-            rpcArgs
-        );
-        return new ParameterResource(result, this._client);
-    }
-
-    addParameter1(name: string, value: string, options?: AddParameter1Options): ParameterResourcePromise {
-        const publishValueAsDefault = options?.publishValueAsDefault;
-        const secret = options?.secret;
-        return new ParameterResourcePromise(this._addParameter1Internal(name, value, publishValueAsDefault, secret));
     }
 
     /** Adds a parameter sourced from configuration */
@@ -2452,11 +2475,6 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new DistributedApplicationPromise(this._promise.then(obj => obj.build()));
     }
 
-    /** Adds a connection string with a reference expression */
-    addConnectionString1(name: string, connectionStringExpression: ReferenceExpression): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.addConnectionString1(name, connectionStringExpression)));
-    }
-
     /** Adds a connection string with a builder callback */
     addConnectionStringBuilder(name: string, connectionStringBuilder: (obj: ReferenceExpressionBuilder) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.addConnectionStringBuilder(name, connectionStringBuilder)));
@@ -2465,11 +2483,6 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a container registry resource */
     addContainerRegistry(name: string, endpoint: ParameterResource, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.addContainerRegistry(name, endpoint, options)));
-    }
-
-    /** Adds a container registry with string endpoint */
-    addContainerRegistry1(name: string, endpoint: string, options?: AddContainerRegistry1Options): ContainerRegistryResourcePromise {
-        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.addContainerRegistry1(name, endpoint, options)));
     }
 
     /** Adds a container resource */
@@ -2497,24 +2510,9 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService(name, url)));
     }
 
-    /** Adds an external service with a URI */
-    addExternalService2(name: string, uri: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService2(name, uri)));
-    }
-
-    /** Adds an external service with a parameter URL */
-    addExternalService1(name: string, urlParameter: ParameterResource): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.addExternalService1(name, urlParameter)));
-    }
-
     /** Adds a parameter resource */
     addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.addParameter(name, options)));
-    }
-
-    /** Adds a parameter with a default value */
-    addParameter1(name: string, value: string, options?: AddParameter1Options): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.addParameter1(name, value, options)));
     }
 
     /** Adds a parameter sourced from configuration */
@@ -2632,11 +2630,47 @@ export class YarpConfigurationBuilder {
         return new YarpRoutePromise(this._addRouteInternal(path, cluster));
     }
 
-    /** Invokes the AddCluster method */
-    async addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
-        const rpcArgs: Record<string, unknown> = { context: this._handle, endpoint };
+    /** Adds a YARP cluster for an endpoint reference. */
+    async addClusterFromEndpoint(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpoint };
         return await this._client.invokeCapability<YarpClusterHandle>(
-            'Aspire.Hosting/IYarpConfigurationBuilder.addCluster',
+            'Aspire.Hosting.Yarp/addClusterFromEndpoint',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster for a resource that supports service discovery. */
+    async addCluster(resource: ResourceBuilderBase): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, resource };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterFromResource',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster for an external service resource. */
+    async addClusterFromExternalService(externalService: ExternalServiceResource): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, externalService };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterFromExternalService',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster with multiple destinations. */
+    async addClusterWithDestinations(clusterName: string, destinations: any[]): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, clusterName, destinations };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterWithDestinations',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster with a single destination. */
+    async addClusterWithDestination(clusterName: string, destination: any): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, clusterName, destination };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterWithDestination',
             rpcArgs
         );
     }
@@ -2661,9 +2695,29 @@ export class YarpConfigurationBuilderPromise implements PromiseLike<YarpConfigur
         return new YarpRoutePromise(this._promise.then(obj => obj.addRoute(path, cluster)));
     }
 
-    /** Invokes the AddCluster method */
-    addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
-        return this._promise.then(obj => obj.addCluster(endpoint));
+    /** Adds a YARP cluster for an endpoint reference. */
+    addClusterFromEndpoint(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterFromEndpoint(endpoint));
+    }
+
+    /** Adds a YARP cluster for a resource that supports service discovery. */
+    addCluster(resource: ResourceBuilderBase): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addCluster(resource));
+    }
+
+    /** Adds a YARP cluster for an external service resource. */
+    addClusterFromExternalService(externalService: ExternalServiceResource): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterFromExternalService(externalService));
+    }
+
+    /** Adds a YARP cluster with multiple destinations. */
+    addClusterWithDestinations(clusterName: string, destinations: any[]): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterWithDestinations(clusterName, destinations));
+    }
+
+    /** Adds a YARP cluster with a single destination. */
+    addClusterWithDestination(clusterName: string, destination: any): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterWithDestination(clusterName, destination));
     }
 
 }
@@ -3058,36 +3112,6 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** @internal */
-    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<ConnectionStringResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
-        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/withRemoteImageName',
-            rpcArgs
-        );
-        return new ConnectionStringResource(result, this._client);
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
-    }
-
-    /** @internal */
-    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<ConnectionStringResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
-        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/withRemoteImageTag',
-            rpcArgs
-        );
-        return new ConnectionStringResource(result, this._client);
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
-    }
-
-    /** @internal */
     private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ConnectionStringResource> {
         const callbackId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
@@ -3294,16 +3318,6 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
     /** Excludes the resource from MCP server exposure */
     excludeFromMcp(): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.excludeFromMcp()));
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ConnectionStringResourcePromise {
-        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
     /** Adds a pipeline step to the resource */
@@ -3611,36 +3625,6 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** @internal */
-    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<ContainerRegistryResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
-        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
-            'Aspire.Hosting/withRemoteImageName',
-            rpcArgs
-        );
-        return new ContainerRegistryResource(result, this._client);
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ContainerRegistryResourcePromise {
-        return new ContainerRegistryResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
-    }
-
-    /** @internal */
-    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<ContainerRegistryResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
-        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
-            'Aspire.Hosting/withRemoteImageTag',
-            rpcArgs
-        );
-        return new ContainerRegistryResource(result, this._client);
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ContainerRegistryResourcePromise {
-        return new ContainerRegistryResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
-    }
-
-    /** @internal */
     private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ContainerRegistryResource> {
         const callbackId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
@@ -3812,16 +3796,6 @@ export class ContainerRegistryResourcePromise implements PromiseLike<ContainerRe
     /** Excludes the resource from MCP server exposure */
     excludeFromMcp(): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.excludeFromMcp()));
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ContainerRegistryResourcePromise {
-        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ContainerRegistryResourcePromise {
-        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
     /** Adds a pipeline step to the resource */
@@ -5314,6 +5288,28 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
+    private async _publishAsDockerFileInternal(configure?: (obj: ContainerResource) => Promise<void>): Promise<CSharpAppResource> {
+        const configureId = configure ? registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ContainerResourceHandle;
+            const obj = new ContainerResource(objHandle, this._client);
+            await configure(obj);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/publishProjectAsDockerFileWithConfigure',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        const configure = options?.configure;
+        return new CSharpAppResourcePromise(this._publishAsDockerFileInternal(configure));
+    }
+
+    /** @internal */
     private async _withRequiredCommandInternal(command: string, helpLink?: string): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
         if (helpLink !== undefined) rpcArgs.helpLink = helpLink;
@@ -6317,6 +6313,11 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     /** Disables forwarded headers for the project */
     disableForwardedHeaders(): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.disableForwardedHeaders()));
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.publishAsDockerFile(options)));
     }
 
     /** Adds a required command dependency */
@@ -9793,36 +9794,6 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** @internal */
-    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<ExternalServiceResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
-        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/withRemoteImageName',
-            rpcArgs
-        );
-        return new ExternalServiceResource(result, this._client);
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
-    }
-
-    /** @internal */
-    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<ExternalServiceResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
-        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/withRemoteImageTag',
-            rpcArgs
-        );
-        return new ExternalServiceResource(result, this._client);
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
-    }
-
-    /** @internal */
     private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ExternalServiceResource> {
         const callbackId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
@@ -9999,16 +9970,6 @@ export class ExternalServiceResourcePromise implements PromiseLike<ExternalServi
     /** Excludes the resource from MCP server exposure */
     excludeFromMcp(): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.excludeFromMcp()));
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
     /** Adds a pipeline step to the resource */
@@ -10333,36 +10294,6 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<ParameterResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
-        const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting/withRemoteImageName',
-            rpcArgs
-        );
-        return new ParameterResource(result, this._client);
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
-    }
-
-    /** @internal */
-    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<ParameterResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
-        const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting/withRemoteImageTag',
-            rpcArgs
-        );
-        return new ParameterResource(result, this._client);
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
-    }
-
-    /** @internal */
     private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<ParameterResource> {
         const callbackId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
@@ -10539,16 +10470,6 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     /** Excludes the resource from MCP server exposure */
     excludeFromMcp(): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.excludeFromMcp()));
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
     /** Adds a pipeline step to the resource */
@@ -13336,21 +13257,6 @@ export class YarpResource extends ResourceBuilderBase<YarpResourceHandle> {
     }
 
     /** @internal */
-    private async _withStaticFiles1Internal(sourcePath: string): Promise<YarpResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, sourcePath };
-        const result = await this._client.invokeCapability<YarpResourceHandle>(
-            'Aspire.Hosting.Yarp/withStaticFiles2',
-            rpcArgs
-        );
-        return new YarpResource(result, this._client);
-    }
-
-    /** Enables static file serving. In run mode: bind mounts  to /wwwroot. */
-    withStaticFiles1(sourcePath: string): YarpResourcePromise {
-        return new YarpResourcePromise(this._withStaticFiles1Internal(sourcePath));
-    }
-
-    /** @internal */
     private async _publishWithStaticFilesInternal(resourceWithFiles: ResourceBuilderBase): Promise<YarpResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, resourceWithFiles };
         const result = await this._client.invokeCapability<YarpResourceHandle>(
@@ -13792,14 +13698,77 @@ export class YarpResourcePromise implements PromiseLike<YarpResource> {
         return new YarpResourcePromise(this._promise.then(obj => obj.withStaticFiles()));
     }
 
-    /** Enables static file serving. In run mode: bind mounts  to /wwwroot. */
-    withStaticFiles1(sourcePath: string): YarpResourcePromise {
-        return new YarpResourcePromise(this._promise.then(obj => obj.withStaticFiles1(sourcePath)));
-    }
-
     /** In publish mode, generates a Dockerfile that copies static files from the specified resource into /app/wwwroot. */
     publishWithStaticFiles(resourceWithFiles: ResourceBuilderBase): YarpResourcePromise {
         return new YarpResourcePromise(this._promise.then(obj => obj.publishWithStaticFiles(resourceWithFiles)));
+    }
+
+}
+
+// ============================================================================
+// ComputeResource
+// ============================================================================
+
+export class ComputeResource extends ResourceBuilderBase<IComputeResourceHandle> {
+    constructor(handle: IComputeResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<ComputeResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting/withRemoteImageName',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Sets the remote image name for publishing */
+    withRemoteImageName(remoteImageName: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
+    }
+
+    /** @internal */
+    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<ComputeResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
+        const result = await this._client.invokeCapability<IComputeResourceHandle>(
+            'Aspire.Hosting/withRemoteImageTag',
+            rpcArgs
+        );
+        return new ComputeResource(result, this._client);
+    }
+
+    /** Sets the remote image tag for publishing */
+    withRemoteImageTag(remoteImageTag: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ComputeResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ComputeResourcePromise implements PromiseLike<ComputeResource> {
+    constructor(private _promise: Promise<ComputeResource>) {}
+
+    then<TResult1 = ComputeResource, TResult2 = never>(
+        onfulfilled?: ((value: ComputeResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Sets the remote image name for publishing */
+    withRemoteImageName(remoteImageName: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
+    }
+
+    /** Sets the remote image tag for publishing */
+    withRemoteImageTag(remoteImageTag: string): ComputeResourcePromise {
+        return new ComputeResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
 }
@@ -14135,36 +14104,6 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withRemoteImageNameInternal(remoteImageName: string): Promise<Resource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageName };
-        const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting/withRemoteImageName',
-            rpcArgs
-        );
-        return new Resource(result, this._client);
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ResourcePromise {
-        return new ResourcePromise(this._withRemoteImageNameInternal(remoteImageName));
-    }
-
-    /** @internal */
-    private async _withRemoteImageTagInternal(remoteImageTag: string): Promise<Resource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, remoteImageTag };
-        const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting/withRemoteImageTag',
-            rpcArgs
-        );
-        return new Resource(result, this._client);
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ResourcePromise {
-        return new ResourcePromise(this._withRemoteImageTagInternal(remoteImageTag));
-    }
-
-    /** @internal */
     private async _withPipelineStepFactoryInternal(stepName: string, callback: (arg: PipelineStepContext) => Promise<void>, dependsOn?: string[], requiredBy?: string[], tags?: string[], description?: string): Promise<Resource> {
         const callbackId = registerCallback(async (argData: unknown) => {
             const argHandle = wrapIfHandle(argData) as PipelineStepContextHandle;
@@ -14336,16 +14275,6 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Excludes the resource from MCP server exposure */
     excludeFromMcp(): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.excludeFromMcp()));
-    }
-
-    /** Sets the remote image name for publishing */
-    withRemoteImageName(remoteImageName: string): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRemoteImageName(remoteImageName)));
-    }
-
-    /** Sets the remote image tag for publishing */
-    withRemoteImageTag(remoteImageTag: string): ResourcePromise {
-        return new ResourcePromise(this._promise.then(obj => obj.withRemoteImageTag(remoteImageTag)));
     }
 
     /** Adds a pipeline step to the resource */
@@ -15536,7 +15465,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -15550,7 +15479,9 @@ export { refExpr, ReferenceExpression } from './base.js';
 process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
-    if (reason instanceof CapabilityError) {
+    if (reason instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else if (reason instanceof CapabilityError) {
         console.error(`\n❌ Capability Error: ${error.message}`);
         console.error(`   Code: ${(reason as CapabilityError).code}`);
         if ((reason as CapabilityError).capability) {
@@ -15567,8 +15498,12 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 process.on('uncaughtException', (error: Error) => {
-    console.error(`\n❌ Uncaught Exception: ${error.message}`);
-    if (error.stack) {
+    if (error instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else {
+        console.error(`\n❌ Uncaught Exception: ${error.message}`);
+    }
+    if (!(error instanceof AppHostUsageError) && error.stack) {
         console.error(error.stack);
     }
     process.exit(1);
@@ -15606,6 +15541,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ExternalServiceResource', (
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.Yarp/Aspire.Hosting.Yarp.YarpResource', (handle, client) => new YarpResource(handle as YarpResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IComputeResource', (handle, client) => new ComputeResource(handle as IComputeResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource', (handle, client) => new ContainerFilesDestinationResource(handle as IContainerFilesDestinationResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithArgs', (handle, client) => new ResourceWithArgs(handle as IResourceWithArgsHandle, client));

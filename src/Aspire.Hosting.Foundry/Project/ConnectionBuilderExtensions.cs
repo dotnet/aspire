@@ -24,6 +24,8 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// <param name="name">The name of the Azure Cognitive Services connection resource.</param>
     /// <param name="configureProperties">Action to customize the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the Azure Cognitive Services connection resource.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "The configureProperties callback returns Azure provisioning types that are not ATS-compatible.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         string name,
@@ -71,6 +73,8 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// <summary>
     /// Adds CosmosDB to a project as a connection
     /// </summary>
+    /// <remarks>This overload is not available in polyglot app hosts. Use the resource-builder overload instead.</remarks>
+    [AspireExportIgnore(Reason = "Raw AzureCosmosDBResource parameters are not ATS-compatible. Use the resource-builder overload instead.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         AzureCosmosDBResource db)
@@ -96,6 +100,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// <summary>
     /// Adds CosmosDB to a project as a connection
     /// </summary>
+    [AspireExport("addCosmosConnection", Description = "Adds an Azure Cosmos DB connection to a Microsoft Foundry project.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureCosmosDBResource> db)
@@ -107,6 +112,8 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// Adds an Azure Storage account to a project as a connection.
     /// </summary>
     /// <returns></returns>
+    /// <remarks>This overload is not available in polyglot app hosts. Use the resource-builder overload instead.</remarks>
+    [AspireExportIgnore(Reason = "Raw AzureStorageResource parameters are not ATS-compatible. Use the resource-builder overload instead.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         AzureStorageResource storage)
@@ -133,6 +140,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// <summary>
     /// Adds an Azure Storage account to a project as a connection.
     /// </summary>
+    [AspireExport("addStorageConnection", Description = "Adds an Azure Storage connection to a Microsoft Foundry project.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureStorageResource> storage)
@@ -145,6 +153,8 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// Adds a container registry connection to the Azure Cognitive Services project.
     /// </summary>
     /// <returns></returns>
+    /// <remarks>This overload is not available in polyglot app hosts. Use the resource-builder overload instead.</remarks>
+    [AspireExportIgnore(Reason = "Raw AzureContainerRegistryResource parameters are not ATS-compatible. Use the resource-builder overload instead.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         AzureContainerRegistryResource registry)
@@ -176,6 +186,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// Adds a container registry connection to the Azure Cognitive Services project.
     /// </summary>
     /// <returns></returns>
+    [AspireExport("addContainerRegistryConnection", Description = "Adds an Azure Container Registry connection to a Microsoft Foundry project.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureContainerRegistryResource> registry)
@@ -191,6 +202,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// As such, we recommend adding this connection *before* any others, so that those connections
     /// can leverage the Key Vault connection for secret storage.
     /// </remarks>
+    [AspireExport("addKeyVaultConnection", Description = "Adds an Azure Key Vault connection to a Microsoft Foundry project.")]
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureKeyVaultResource> keyVault)

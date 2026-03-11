@@ -421,6 +421,21 @@ func (s *CSharpAppResource) DisableForwardedHeaders() (*ProjectResource, error) 
 	return result.(*ProjectResource), nil
 }
 
+// PublishAsDockerFile publishes a project as a Docker file with optional container configuration
+func (s *CSharpAppResource) PublishAsDockerFile(configure func(...any) any) (*ProjectResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if configure != nil {
+		reqArgs["configure"] = RegisterCallback(configure)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ProjectResource), nil
+}
+
 // WithRequiredCommand adds a required command dependency
 func (s *CSharpAppResource) WithRequiredCommand(command string, helpLink string) (*IResource, error) {
 	reqArgs := map[string]any{

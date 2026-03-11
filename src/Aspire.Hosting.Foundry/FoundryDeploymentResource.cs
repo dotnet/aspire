@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Foundry;
 /// <summary>
 /// Represents a Microsoft Foundry Deployment.
 /// </summary>
+[AspireExport(ExposeProperties = true)]
 public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryResource>, IResourceWithConnectionString
 {
     /// <value>"GlobalStandard"</value>
@@ -92,6 +93,8 @@ public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryRe
     /// <summary>
     /// Gets the parent Microsoft Foundry resource.
     /// </summary>
+    /// <remarks>This property is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore]
     public FoundryResource Parent { get; set; }
 
     /// <summary>

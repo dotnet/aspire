@@ -6,6 +6,7 @@ namespace Aspire.Hosting.Foundry;
 /// <summary>
 /// Describes a model that can be deployed to Microsoft Foundry.
 /// </summary>
+[AspireDto]
 public partial class FoundryModel
 {
     /// <summary>

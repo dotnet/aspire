@@ -295,6 +295,14 @@ class CSharpAppResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         return self._client.invoke_capability("Aspire.Hosting/disableForwardedHeaders", args)
 
+    def publish_as_docker_file(self, configure: Callable[[ContainerResource], None] | None = None) -> ProjectResource:
+        """Publishes a project as a Docker file with optional container configuration"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", args)
+
     def with_required_command(self, command: str, help_link: str | None = None) -> IResource:
         """Adds a required command dependency"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }

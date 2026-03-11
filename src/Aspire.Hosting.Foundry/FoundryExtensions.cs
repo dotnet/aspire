@@ -28,6 +28,7 @@ public static class FoundryExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addFoundry", Description = "Adds a Microsoft Foundry resource to the distributed application model.")]
     public static IResourceBuilder<FoundryResource> AddFoundry(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
         builder.AddAzureProvisioning();
@@ -47,6 +48,7 @@ public static class FoundryExtensions
     /// <param name="modelVersion">The version of the model to deploy.</param>
     /// <param name="format">The format of the model to deploy.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("addDeployment", Description = "Adds a Microsoft Foundry deployment resource to a Microsoft Foundry resource.")]
     public static IResourceBuilder<FoundryDeploymentResource> AddDeployment(this IResourceBuilder<FoundryResource> builder, [ResourceName] string name, string modelName, string modelVersion, string format)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -90,6 +92,7 @@ public static class FoundryExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("addDeploymentFromModel", Description = "Adds a Microsoft Foundry deployment resource by using a Microsoft Foundry model descriptor.")]
     public static IResourceBuilder<FoundryDeploymentResource> AddDeployment(this IResourceBuilder<FoundryResource> builder, [ResourceName] string name, FoundryModel model)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -108,6 +111,7 @@ public static class FoundryExtensions
     /// <param name="builder">The Microsoft Foundry Deployment resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="FoundryDeploymentResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withFoundryDeploymentProperties", MethodName = "withProperties", Description = "Configures properties of a Microsoft Foundry deployment resource.", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<FoundryDeploymentResource> WithProperties(this IResourceBuilder<FoundryDeploymentResource> builder, Action<FoundryDeploymentResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -123,6 +127,7 @@ public static class FoundryExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <returns>A resource builder for the Foundry Local resource.</returns>
+    [AspireExport("runAsFoundryLocal", Description = "Configures the Microsoft Foundry resource to run by using Foundry Local.")]
     public static IResourceBuilder<FoundryResource> RunAsFoundryLocal(this IResourceBuilder<FoundryResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
@@ -184,7 +189,7 @@ public static class FoundryExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "CognitiveServicesBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureAIFoundryRole-based overload instead.")]
+    [AspireExportIgnore(Reason = "CognitiveServicesBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the FoundryRole-based overload instead.")]
     public static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<FoundryResource> target,
@@ -200,14 +205,14 @@ public static class FoundryExtensions
     /// </summary>
     /// <param name="builder">The resource to which the specified roles will be assigned.</param>
     /// <param name="target">The target Microsoft Foundry resource.</param>
-    /// <param name="roles">The Microsoft Foundry roles to be assigned (for example, <see cref="AzureAIFoundryRole.CognitiveServicesOpenAIUser"/>).</param>
+    /// <param name="roles">The Microsoft Foundry roles to be assigned (for example, <see cref="FoundryRole.CognitiveServicesOpenAIUser"/>).</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
-    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureAIFoundryRole"/> value.</exception>
-    [AspireExport("withAIFoundryRoleAssignments", Description = "Assigns Microsoft Foundry roles to a resource")]
+    /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="FoundryRole"/> value.</exception>
+    [AspireExport("withFoundryRoleAssignments", MethodName = "withRoleAssignments", Description = "Assigns Microsoft Foundry roles to a resource")]
     internal static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<FoundryResource> target,
-        params AzureAIFoundryRole[] roles)
+        params FoundryRole[] roles)
         where T : IResource
     {
         if (roles is null || roles.Length == 0)
@@ -220,10 +225,10 @@ public static class FoundryExtensions
         {
             builtInRoles[i] = roles[i] switch
             {
-                AzureAIFoundryRole.CognitiveServicesOpenAIContributor => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor,
-                AzureAIFoundryRole.CognitiveServicesOpenAIUser => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser,
-                AzureAIFoundryRole.CognitiveServicesUser => CognitiveServicesBuiltInRole.CognitiveServicesUser,
-                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(AzureAIFoundryRole)} value.", nameof(roles))
+                FoundryRole.CognitiveServicesOpenAIContributor => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor,
+                FoundryRole.CognitiveServicesOpenAIUser => CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser,
+                FoundryRole.CognitiveServicesUser => CognitiveServicesBuiltInRole.CognitiveServicesUser,
+                _ => throw new ArgumentException($"'{roles[i]}' is not a valid {nameof(FoundryRole)} value.", nameof(roles))
             };
         }
 
