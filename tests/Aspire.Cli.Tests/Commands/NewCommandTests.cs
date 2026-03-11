@@ -890,7 +890,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             {
                 scaffoldedLanguageId = context.Language.LanguageId.Value;
                 File.WriteAllText(Path.Combine(context.TargetDirectory.FullName, "apphost.ts"), "// test apphost");
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1107,7 +1107,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = (context, cancellationToken) =>
             {
                 scaffoldingInvoked = true;
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1163,7 +1163,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = (context, cancellationToken) =>
             {
                 capturedTargetDirectory = context.TargetDirectory.FullName;
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1259,6 +1259,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                       }
                     }
                     """, cancellationToken);
+                return true;
             }
         });
 
@@ -1498,15 +1499,15 @@ internal sealed class NewCommandTestFakeNuGetPackageCache : INuGetPackageCache
 
 internal sealed class TestScaffoldingService : IScaffoldingService
 {
-    public Func<ScaffoldContext, CancellationToken, Task>? ScaffoldAsyncCallback { get; set; }
+    public Func<ScaffoldContext, CancellationToken, Task<bool>>? ScaffoldAsyncCallback { get; set; }
 
-    public Task ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    public Task<bool> ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         if (ScaffoldAsyncCallback is not null)
         {
             return ScaffoldAsyncCallback(context, cancellationToken);
         }
 
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 }

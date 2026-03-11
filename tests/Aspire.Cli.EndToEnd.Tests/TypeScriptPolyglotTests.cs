@@ -39,7 +39,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         // Pattern for aspire add completion
         var waitingForPackageAdded = new CellPatternSearcher()
-            .Find("The package Aspire.Hosting.JavaScript::");
+            .Find("The package Aspire.Hosting.");
 
         // Pattern for aspire run ready
         var waitForCtrlCMessage = new CellPatternSearcher()

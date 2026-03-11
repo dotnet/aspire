@@ -92,9 +92,9 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue(s_sourceOption);
 
-            // For non-.NET projects, read the channel from settings.json if available.
-            // Unlike .NET projects which have a nuget.config, polyglot apphosts store
-            // the channel in .aspire/settings.json during the build process.
+            // For non-.NET projects, read the channel from the local Aspire configuration if available.
+            // Unlike .NET projects which have a nuget.config, polyglot apphosts persist the channel
+            // in aspire.config.json (or the legacy settings.json during migration).
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
@@ -102,8 +102,8 @@ internal sealed class AddCommand : BaseCommand
                 var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
                 if (!isProjectReferenceMode)
                 {
-                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
-                    configuredChannel = settings?.Channel;
+                    configuredChannel = AspireConfigFile.Load(appHostDirectory)?.Channel
+                        ?? AspireJsonConfiguration.Load(appHostDirectory)?.Channel;
                 }
             }
 

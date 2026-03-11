@@ -94,9 +94,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// </summary>
     private string GetEffectiveSdkVersion()
     {
-        // IConfiguration merges settings from parent directories and global settings
-        // The key "sdkVersion" is the flattened key from settings.json
-        var configuredVersion = _configuration["sdkVersion"];
+        // IConfiguration merges settings from parent directories and global settings.
+        // Prefer the new nested sdk:version key and fall back to the legacy sdkVersion key.
+        var configuredVersion = _configuration["sdk:version"] ?? _configuration["sdkVersion"];
         if (!string.IsNullOrEmpty(configuredVersion))
         {
             _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
