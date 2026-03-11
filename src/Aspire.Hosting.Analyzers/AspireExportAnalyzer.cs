@@ -338,7 +338,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         if (invocation.TargetMethod.MethodKind != MethodKind.DelegateInvoke ||
             invocation.Syntax is not InvocationExpressionSyntax invocationSyntax ||
-            IsInsideNestedCallback(context, invocationSyntax))
+            IsInsideNestedCallback(invocationSyntax))
         {
             return;
         }
@@ -361,7 +361,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             parameter.Name));
     }
 
-    private static bool IsInsideNestedCallback(OperationAnalysisContext context, InvocationExpressionSyntax invocation)
+    private static bool IsInsideNestedCallback(InvocationExpressionSyntax invocation)
     {
         foreach (var ancestor in invocation.Ancestors())
         {
@@ -370,7 +370,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 case AnonymousFunctionExpressionSyntax anonymousFunction:
                     return !IsImmediatelyInvokedAnonymousFunction(anonymousFunction);
                 case LocalFunctionStatementSyntax localFunction:
-                    return !IsImmediatelyInvokedLocalFunction(context, localFunction);
+                    return !IsImmediatelyInvokedLocalFunction(localFunction);
             }
         }
 
@@ -390,18 +390,14 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             invocation.Expression == current;
     }
 
-    private static bool IsImmediatelyInvokedLocalFunction(OperationAnalysisContext context, LocalFunctionStatementSyntax localFunction)
+    private static bool IsImmediatelyInvokedLocalFunction(LocalFunctionStatementSyntax localFunction)
     {
         if (localFunction.Parent is null)
         {
             return false;
         }
 
-        var semanticModel = context.Compilation.GetSemanticModel(localFunction.SyntaxTree);
-        if (semanticModel.GetDeclaredSymbol(localFunction, context.CancellationToken) is not IMethodSymbol localFunctionSymbol)
-        {
-            return false;
-        }
+        var localFunctionName = localFunction.Identifier.ValueText;
 
         foreach (var invocation in localFunction.Parent.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
@@ -410,8 +406,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            if (semanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is IMethodSymbol invokedMethod &&
-                SymbolEqualityComparer.Default.Equals(invokedMethod.ReducedFrom ?? invokedMethod, localFunctionSymbol))
+            if (invocation.Expression is IdentifierNameSyntax identifier &&
+                identifier.Identifier.ValueText == localFunctionName)
             {
                 return true;
             }
