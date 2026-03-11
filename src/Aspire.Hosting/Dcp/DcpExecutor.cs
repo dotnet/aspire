@@ -197,6 +197,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
             var (regular, tunnelDependent, regularContainerExes, tunnelDependentContainerExes) = await GetContainerCreationSetsAsync(ct).ConfigureAwait(false);
+            
 
             var createExecutableEndpoints = Task.Run(async () =>
             {
@@ -932,7 +933,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 _logger.LogInformation($"Waiting for container network '{containerNetworkName}' tunnel initialization...");
                 // Container tunnel initialization can take a while if the container tunnel image needs to be built,
-                // expecially if the network is slow, hence 10 minute timeout here.
+                // especially if the network is slow, hence 10 minute timeout here.
                 await UpdateWithEffectiveAddressInfo(tunnelServices, cancellationToken, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
                 _logger.LogInformation($"Tunnel for container network '{containerNetworkName}' initialized");
             }
@@ -1242,7 +1243,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             return; // No container resources--no need to set up container-to-host tunnels.
         }
 
-        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(containers, _executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(
+            containers, 
+            _executionContext,
+            // We will re-evaluate the annotations when starting individual resources and their exceptions will not be suppressed,
+            // resulting in resource startup failure if annotation callbacks fail. But here, we just want to discover
+            // host-dependent containers and any failures should not prevent the whole app from starting up.
+            // This is the reason for using ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions.
+            ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions,
+            cancellationToken
+        ).ConfigureAwait(false);
 
         // Host dependencies are host network resources with endpoints that containers depend on.
         List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
@@ -1651,6 +1661,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 return;
             }
 
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, resource)).ConfigureAwait(false);
             await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
             foreach (var er in executables)
             {
@@ -2109,6 +2120,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // If explicit startup is configured, we aren't going to start the resource now. A DCP resource WILL be created,
                 // but it will be explicitly set to not start. We don't want to send the BeforeResourceStarted event here as it will
                 // be sent later when the resource is explicitly started via user action or API.
+                await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, cr.ModelResource)).ConfigureAwait(false);
                 await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
             }
 
@@ -2298,6 +2310,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
             }
+
+            
 
             await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
         }
@@ -2588,6 +2602,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             _logger.LogDebug("Starting {ResourceType} '{ResourceName}'.", resourceType, appResource.DcpResourceName);
 
+            // Reset cached callback results so they are re-evaluated on restart.
+            ForgetCachedCallbackResults(appResource.ModelResource);
+
             // Raise event after resource has been deleted. This is required because the event sets the status to "Starting" and resources being
             // deleted will temporarily override the status to a terminal state, such as "Exited".
             switch (appResource.DcpResource)
@@ -2598,12 +2615,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ensure we explicitly start the container
                     c.Spec.Start = true;
 
+                    await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, appResource.ModelResource)).ConfigureAwait(false);
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
                 case Executable e:
                     await EnsureResourceDeletedAsync<Executable>(appResource.DcpResourceName).ConfigureAwait(false);
 
+                    await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, appResource.ModelResource)).ConfigureAwait(false);
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
@@ -2986,6 +3005,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return endpoint is not null;
     }
 
+    /// <summary>
+    /// Clears cached callback results on resource annotations so they are re-evaluated on restart.
+    /// </summary>
+    private static void ForgetCachedCallbackResults(IResource resource)
+    {
+        if (resource.TryGetEnvironmentVariables(out var envCallbacks))
+        {
+            foreach (var callback in envCallbacks)
+            {
+                ((ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)callback).ForgetCachedResult();
+            }
+        }
+
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        {
+            foreach (var callback in argsCallbacks)
+            {
+                ((ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>)callback).ForgetCachedResult();
+            }
+        }
+    }
+
     private record struct HostResourceWithEndpoints
     (
         IResourceWithEndpoints Resource,
@@ -3039,7 +3080,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(_executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(
+                    _executionContext,
+                    // See PrepareServicesAsync for explanation of why we use ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions here.
+                    ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions,
+                    cancellationToken).ConfigureAwait(false);
 
                 if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
                 {
@@ -3056,7 +3101,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         if (persistentTunnelDependent.Any())
         {
             var containerNames = persistentTunnelDependent.Select(td => td.ModelResource.Name).Aggregate(string.Empty, (acc, next) => acc + " '" + next + "'");
-            throw new InvalidOperationException($"The follwing containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
+            throw new InvalidOperationException($"The following containers are marked as persistent and rely on resources on the host network:{containerNames}. This is not supported.");
         }
 
         return new ContainerCreationSets(

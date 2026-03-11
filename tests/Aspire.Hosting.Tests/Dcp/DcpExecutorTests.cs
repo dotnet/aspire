@@ -2290,6 +2290,153 @@ public class DcpExecutorTests
         }
     }
 
+    // Verifies that environment value callbacks are invoked only once per container startup.
+    [Fact]
+    public async Task EnvironmentCallbacksInvokedOnceOnContainer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var executable = builder.AddExecutable("anExecutable", "command", "")
+            .WithEndpoint(name: "http", targetPort: 1234, port: 5678, isProxied: true);
+
+        var callCount = 0;
+        builder.AddContainer("aContainer", "image")
+            .WithEnvironment(c =>
+            {
+                Interlocked.Increment(ref callCount);
+                c.EnvironmentVariables["EXEC_PORT"] = executable.GetEndpoint("http").Property(EndpointProperty.Port);
+            });
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dcpOptions = new DcpOptions
+        {
+            EnableAspireContainerTunnel = true,
+        };
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
+        await appExecutor.RunApplicationAsync();
+
+        Assert.Equal(1, callCount);
+    }
+
+    // Ensures that environment value callbacks are invoked after the OnResourceStarting event is raised for the resource, 
+    // allowing users to rely on any state set during that event in their environment callbacks.
+    [Fact]
+    public async Task EnvironmentCallbacksInvokedAfterBeforeResourceStartEvent()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var envCallCount = 0;
+        var resourceStartingRaised = false;
+
+        var executable = builder.AddExecutable("anExecutable", "command", "")
+            .WithEndpoint(name: "http", targetPort: 1234, port: 5678, isProxied: true);
+
+        builder.AddContainer("aContainer", "image")
+            .WithEnvironment(c =>
+            {
+                Interlocked.Increment(ref envCallCount);
+                c.EnvironmentVariables["EXEC_PORT"] = executable.GetEndpoint("http").Property(EndpointProperty.Port);
+            });
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceStartingContext>(context =>
+        {
+            if (context.ResourceType == "Container")
+            {
+                resourceStartingRaised = true;
+                Assert.Equal(0, envCallCount); // Environment callback should not have been called yet    
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        Assert.Equal(1, envCallCount);
+        Assert.True(resourceStartingRaised, "OnResourceStarting should be raised for the container");
+    }
+
+    [Fact]
+    public async Task EnvironmentCallbackThrows_OtherResourcesStillStart()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddContainer("failing", "image")
+            .WithEnvironment(c =>
+            {
+                throw new InvalidOperationException("env callback failure");
+            });
+
+        builder.AddContainer("healthy", "image");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var failedResources = new List<string>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceFailedToStartContext>(c =>
+        {
+            failedResources.Add(c.Resource.Name);
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        // The healthy container should have been created successfully.
+        var createdContainers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        Assert.Single(createdContainers, c => c.AppModelResourceName == "healthy");
+
+        // The failing container should not have been created and should be reported as failed.
+        Assert.DoesNotContain(createdContainers, c => c.AppModelResourceName == "failing");
+        Assert.Single(failedResources, name => name == "failing");
+    }
+
+    [Fact]
+    public async Task ArgsCallbackThrows_OtherResourcesStillStart()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddContainer("failing", "image")
+            .WithArgs(c =>
+            {
+                throw new InvalidOperationException("args callback failure");
+            });
+
+        builder.AddContainer("healthy", "image");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var failedResources = new List<string>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceFailedToStartContext>(c =>
+        {
+            failedResources.Add(c.Resource.Name);
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        // The healthy container should have been created successfully.
+        var createdContainers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        Assert.Single(createdContainers, c => c.AppModelResourceName == "healthy");
+
+        // The failing container should not have been created and should be reported as failed.
+        Assert.DoesNotContain(createdContainers, c => c.AppModelResourceName == "failing");
+        Assert.Single(failedResources, name => name == "failing");
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();

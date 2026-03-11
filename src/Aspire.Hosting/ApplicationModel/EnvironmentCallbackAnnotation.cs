@@ -5,13 +5,17 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+using IEnvCallbackAnnotation = ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>;
+
 /// <summary>
 /// Represents an annotation that provides a callback to modify the environment variables of an application.
 /// </summary>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public class EnvironmentCallbackAnnotation : IResourceAnnotation
+public class EnvironmentCallbackAnnotation : IResourceAnnotation, IEnvCallbackAnnotation
 {
     private readonly string? _name;
+    private Task<Dictionary<string, object>>? _callbackTask;
+    private readonly object _lock = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EnvironmentCallbackAnnotation"/> class with the specified name and callback function.
@@ -76,6 +80,41 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// Gets or sets the callback action to be executed when the environment is being built.
     /// </summary>
     public Func<EnvironmentCallbackContext, Task> Callback { get; private set; }
+
+    internal IEnvCallbackAnnotation AsCallbackAnnotation() => this;
+
+    Task<Dictionary<string, object>> IEnvCallbackAnnotation.EvaluateOnceAsync(EnvironmentCallbackContext context)
+    {
+        lock(_lock)
+        {
+            if (_callbackTask is null)
+            {
+                _callbackTask = ExecuteCallbackAsync(context);
+            }
+            return _callbackTask;
+        }
+    }
+
+    void IEnvCallbackAnnotation.ForgetCachedResult()
+    {
+        lock(_lock)
+        {
+            _callbackTask = null;
+        }
+    }
+
+    private async Task<Dictionary<string, object>> ExecuteCallbackAsync(EnvironmentCallbackContext context)
+    {
+        // When using EvaluateOnceAsync, do not modify original context.
+        // The caller will take the result and apply it as needed.
+        var envVars = new Dictionary<string, object>();
+        var callbackContext = new EnvironmentCallbackContext(context.ExecutionContext, context.Resource, envVars, context.CancellationToken)
+        {
+            Logger = context.Logger,
+        };
+        await Callback(callbackContext).ConfigureAwait(false);
+        return envVars;
+    }
 
     private string DebuggerToString()
     {

@@ -13,17 +13,22 @@ internal class ArgumentsExecutionConfigurationGatherer : IExecutionConfiguration
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argumentAnnotations))
         {
-            var callbackContext = new CommandLineArgsCallbackContext(context.Arguments, resource, cancellationToken)
+            var callbackContext = new CommandLineArgsCallbackContext([], resource, cancellationToken)
             {
                 Logger = resourceLogger,
                 ExecutionContext = executionContext
             };
 
-            foreach (var callback in callbacks)
+            foreach (var ann in argumentAnnotations)
             {
-                await callback.Callback(callbackContext).ConfigureAwait(false);
+                var args = await ann.AsCallbackAnnotation().EvaluateOnceAsync(callbackContext).ConfigureAwait(false);
+
+                foreach (var arg in args)
+                {
+                    context.Arguments.Add(arg);
+                }
             }
         }
     }
