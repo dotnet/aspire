@@ -37,7 +37,7 @@ It is intentionally conservative:
 
 ## Tests
 
-The automated tests for this workflow live in `.github/workflows/auto-rerun-transient-ci-failures.test.js`.
+The automated tests for this workflow live in `tests/Infrastructure.Tests/WorkflowScripts/AutoRerunTransientCiFailuresTests.cs`.
 
 Those tests are intentionally behavior-focused rather than regex-focused:
 
