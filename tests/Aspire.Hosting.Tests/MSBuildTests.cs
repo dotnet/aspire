@@ -577,6 +577,133 @@ public class MSBuildTests
         Assert.Contains("warning ASPIRE014", output);
     }
 
+    [Fact]
+    public void AspireExportAnalyzersAreDisabledByDefault()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TestTempDirectory();
+
+        var projectDirectory = Path.Combine(tempDirectory.Path, "MyHostingExtension");
+        Directory.CreateDirectory(projectDirectory);
+
+        File.WriteAllText(Path.Combine(projectDirectory, "MyHostingExtension.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(projectDirectory, "Extensions.cs"),
+            """
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+
+            namespace MyHostingExtension;
+
+            public static class CustomResourceExtensions
+            {
+                public static IResourceBuilder<ContainerResource> AddCustomContainer(this IDistributedApplicationBuilder builder)
+                {
+                    return builder.AddContainer("custom", "custom-image");
+                }
+            }
+            """);
+
+        CreateExportAnalyzerDirectoryBuildFiles(projectDirectory, repoRoot);
+
+        var output = BuildProject(projectDirectory);
+
+        Assert.DoesNotContain("warning ASPIREEXPORT008", output);
+    }
+
+    [Fact]
+    public void AspireExportAnalyzersCanBeEnabledWithMsBuildProperty()
+    {
+        var repoRoot = MSBuildUtils.GetRepoRoot();
+        using var tempDirectory = new TestTempDirectory();
+
+        var projectDirectory = Path.Combine(tempDirectory.Path, "MyHostingExtension");
+        Directory.CreateDirectory(projectDirectory);
+
+        File.WriteAllText(Path.Combine(projectDirectory, "MyHostingExtension.csproj"),
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+
+              <ItemGroup>
+                <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+              </ItemGroup>
+
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(projectDirectory, "Extensions.cs"),
+            """
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+
+            namespace MyHostingExtension;
+
+            public static class CustomResourceExtensions
+            {
+                public static IResourceBuilder<ContainerResource> AddCustomContainer(this IDistributedApplicationBuilder builder)
+                {
+                    return builder.AddContainer("custom", "custom-image");
+                }
+            }
+            """);
+
+        CreateExportAnalyzerDirectoryBuildFiles(projectDirectory, repoRoot, enableAspireExportAnalyzers: true);
+
+        var output = BuildProject(projectDirectory);
+
+        Assert.Contains("warning ASPIREEXPORT008", output);
+    }
+
+    private static void CreateExportAnalyzerDirectoryBuildFiles(
+        string basePath,
+        string repoRoot,
+        bool enableAspireExportAnalyzers = false)
+    {
+        File.WriteAllText(Path.Combine(basePath, "Directory.Build.props"),
+        $"""
+        <Project>
+          <PropertyGroup>
+            <EnableAspireExportAnalyzers>{enableAspireExportAnalyzers.ToString().ToLowerInvariant()}</EnableAspireExportAnalyzers>
+          </PropertyGroup>
+        </Project>
+        """);
+        File.WriteAllText(Path.Combine(basePath, "Directory.Build.targets"),
+        $"""
+        <Project>
+          <ItemGroup Condition="'$(EnableAspireExportAnalyzers)' == 'true'">
+            <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
+                              PrivateAssets="all"
+                              ReferenceOutputAssembly="false"
+                              OutputItemType="Analyzer"
+                              SetTargetFramework="TargetFramework=netstandard2.0" />
+          </ItemGroup>
+
+          <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.targets" />
+        </Project>
+        """);
+    }
+
     /// <summary>
     /// Tests that when GenerateAssemblyInfo is set to false, a build error is emitted.
     /// </summary>
