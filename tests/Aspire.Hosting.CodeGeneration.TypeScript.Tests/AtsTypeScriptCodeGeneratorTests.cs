@@ -51,6 +51,17 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void GenerateDistributedApplication_WithHostingTypes_KeepsReferenceExpressionInBaseTs()
+    {
+        var atsContext = CreateContextFromBothAssemblies();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+
+        Assert.DoesNotContain("export class ReferenceExpression {", files["aspire.ts"]);
+        Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
+    }
+
+    [Fact]
     public void GenerateDistributedApplication_WithTestTypes_IncludesCapabilities()
     {
         // Arrange
@@ -962,6 +973,19 @@ public class AtsTypeScriptCodeGeneratorTests
         var getValueAsync = capabilities.First(c =>
             c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.getValueAsync");
 
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, getValueAsync.CapabilityKind);
+    }
+
+    [Fact]
+    public void Scanner_ReferenceExpressionGetValueAsync_IsExported()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var getValueAsync = capabilities.FirstOrDefault(c =>
+            c.CapabilityId == "Aspire.Hosting.ApplicationModel/getValueAsync" &&
+            c.TargetTypeId == AtsConstants.ReferenceExpressionTypeId);
+
+        Assert.NotNull(getValueAsync);
         Assert.Equal(AtsCapabilityKind.InstanceMethod, getValueAsync.CapabilityKind);
     }
 

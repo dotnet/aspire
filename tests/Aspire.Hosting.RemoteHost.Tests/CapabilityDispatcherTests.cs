@@ -544,6 +544,38 @@ public class CapabilityDispatcherTests
     }
 
     [Fact]
+    public void Invoke_ValueTaskInstanceMethod()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestTypeWithMethods).Assembly]);
+
+        var context = new TestTypeWithMethods();
+        var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestTypeWithMethods");
+        var args = new JsonObject
+        {
+            ["context"] = new JsonObject { ["$handle"] = handleId },
+            ["input"] = "value-task"
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestTypeWithMethods.processValueTaskAsync", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("VALUE-TASK", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_StaticValueTaskMethod()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
+        var args = new JsonObject { ["value"] = "value-task" };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/asyncValueTaskWithResult", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("VALUE-TASK", result.GetValue<string>());
+    }
+
+    [Fact]
     public void Constructor_SkipsNonPublicMethods()
     {
         var dispatcher = CreateDispatcher(typeof(TestTypeWithMethods).Assembly);
@@ -1351,6 +1383,13 @@ internal static class TestCapabilities
         return value.ToUpperInvariant();
     }
 
+    [AspireExport("asyncValueTaskWithResult", Description = "Async method returning ValueTask<T>")]
+    public static async ValueTask<string> AsyncValueTaskWithResult(string value)
+    {
+        await Task.Delay(1);
+        return value.ToUpperInvariant();
+    }
+
     [AspireExport("asyncThrows", Description = "Async method that throws")]
     public static async Task<string> AsyncThrows(string value)
     {
@@ -1433,6 +1472,12 @@ internal sealed class TestTypeWithMethods
     }
 
     public async Task<string> ProcessAsync(string input)
+    {
+        await Task.Delay(1);
+        return input.ToUpperInvariant();
+    }
+
+    public async ValueTask<string> ProcessValueTaskAsync(string input)
     {
         await Task.Delay(1);
         return input.ToUpperInvariant();

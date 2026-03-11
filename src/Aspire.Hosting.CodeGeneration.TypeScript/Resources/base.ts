@@ -1,5 +1,5 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle } from './transport.js';
+import { Handle, AspireClient, MarshalledHandle, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
 
 // Re-export transport types for convenience
 export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
@@ -155,6 +155,30 @@ export class ReferenceExpression {
     }
 
     /**
+     * Resolves the expression to its string value on the server.
+     * Only available on server-returned ReferenceExpression instances (handle mode).
+     *
+     * @param cancellationToken - Optional AbortSignal for cancellation support
+     * @returns The resolved string value, or null if the expression resolves to null
+     */
+    async getValue(cancellationToken?: AbortSignal): Promise<string | null> {
+        if (!this._handle || !this._client) {
+            throw new Error('getValue is only available on server-returned ReferenceExpression instances');
+        }
+        const cancellationTokenId = registerCancellation(cancellationToken);
+        try {
+            const rpcArgs: Record<string, unknown> = { context: this._handle };
+            if (cancellationTokenId !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+            return await this._client.invokeCapability<string | null>(
+                'Aspire.Hosting.ApplicationModel/getValueAsync',
+                rpcArgs
+            );
+        } finally {
+            unregisterCancellation(cancellationTokenId);
+        }
+    }
+
+    /**
      * String representation for debugging.
      */
     toString(): string {
@@ -167,6 +191,10 @@ export class ReferenceExpression {
         return `ReferenceExpression(${this._format})`;
     }
 }
+
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression', (handle, client) =>
+    new ReferenceExpression(handle, client)
+);
 
 /**
  * Extracts a value for use in reference expressions.
