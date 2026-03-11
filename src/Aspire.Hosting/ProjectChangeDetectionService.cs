@@ -28,7 +28,7 @@ internal sealed class ProjectChangeDetectionService(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Only run if explicitly enabled.
-        if (configuration.GetValue<bool>("ASPIRE_PROJECT_CHANGE_DETECTION") is not true)
+        if (configuration.GetBool("ASPIRE_PROJECT_CHANGE_DETECTION") is not true)
         {
             logger.LogDebug("Project change detection is disabled. Set ASPIRE_PROJECT_CHANGE_DETECTION=true to enable.");
             return;
@@ -165,11 +165,25 @@ internal sealed class ProjectChangeDetectionService(
             logger.LogDebug("Detected {Count} changed files for project '{ResourceName}': {Files}",
                 changedFiles.Count, resourceName, fileList);
 
-            // Show a notification in the dashboard.
-            _ = interactionService.PromptNotificationAsync(
-                title: $"Source changes detected in '{resourceName}'",
-                message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
-                cancellationToken: stoppingToken);
+            // Show a notification in the dashboard if available.
+            if (interactionService.IsAvailable)
+            {
+                try
+                {
+                    _ = interactionService.PromptNotificationAsync(
+                        title: $"Source changes detected in '{resourceName}'",
+                        message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
+                        options: new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Information,
+                        },
+                        cancellationToken: stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Failed to show notification for project '{ResourceName}'", resourceName);
+                }
+            }
         }
     }
 
