@@ -15,7 +15,7 @@ internal class ArgumentsExecutionConfigurationGatherer : IExecutionConfiguration
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
-            var callbackContext = new CommandLineArgsCallbackContext(context.Arguments, resource, cancellationToken)
+            var callbackContext = new CommandLineArgsCallbackContext(new List<object>(), resource, cancellationToken)
             {
                 Logger = resourceLogger,
                 ExecutionContext = executionContext
@@ -23,7 +23,13 @@ internal class ArgumentsExecutionConfigurationGatherer : IExecutionConfiguration
 
             foreach (var callback in callbacks)
             {
-                await callback.Callback(callbackContext).ConfigureAwait(false);
+                var args = await ((ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>)callback)
+                    .EvaluateOnceAsync(callbackContext).ConfigureAwait(false);
+
+                foreach (var arg in args)
+                {
+                    context.Arguments.Add(arg);
+                }
             }
         }
     }

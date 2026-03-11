@@ -15,14 +15,20 @@ internal class EnvironmentVariablesExecutionConfigurationGatherer : IExecutionCo
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            var callbackContext = new EnvironmentCallbackContext(executionContext, resource, context.EnvironmentVariables, cancellationToken)
+            var callbackContext = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken)
             {
                 Logger = resourceLogger,
             };
 
             foreach (var callback in callbacks)
             {
-                await callback.Callback(callbackContext).ConfigureAwait(false);
+                var envVars = await ((ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)callback)
+                    .EvaluateOnceAsync(callbackContext).ConfigureAwait(false);
+
+                foreach (var kvp in envVars)
+                {
+                    context.EnvironmentVariables[kvp.Key] = kvp.Value;
+                }
             }
         }
     }

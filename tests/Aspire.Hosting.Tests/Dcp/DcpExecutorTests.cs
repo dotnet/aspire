@@ -2290,6 +2290,110 @@ public class DcpExecutorTests
         }
     }
 
+    [Fact]
+    public async Task ContainerWithEnvironmentCallback_InvokedExactlyOnce_WithTunnelEnabled()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var executable = builder.AddExecutable("anExecutable", "command", "")
+            .WithEndpoint(name: "http", targetPort: 1234, port: 5678, isProxied: true);
+
+        var callCount = 0;
+        builder.AddContainer("aContainer", "image")
+            .WithEnvironment(c =>
+            {
+                Interlocked.Increment(ref callCount);
+                c.EnvironmentVariables["EXEC_PORT"] = executable.GetEndpoint("http").Property(EndpointProperty.Port);
+            });
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dcpOptions = new DcpOptions
+        {
+            EnableAspireContainerTunnel = true,
+        };
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
+        await appExecutor.RunApplicationAsync();
+
+        Assert.Equal(1, callCount);
+    }
+
+    [Fact]
+    public async Task ContainerWithTunnel_EnvironmentCallbackInvokedOnce_WithResourceStartingEvent()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var envCallCount = 0;
+        var resourceStartingFired = false;
+
+        var executable = builder.AddExecutable("anExecutable", "command", "")
+            .WithEndpoint(name: "http", targetPort: 1234, port: 5678, isProxied: true);
+
+        builder.AddContainer("aContainer", "image")
+            .WithEnvironment(c =>
+            {
+                Interlocked.Increment(ref envCallCount);
+                c.EnvironmentVariables["EXEC_PORT"] = executable.GetEndpoint("http").Property(EndpointProperty.Port);
+            });
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dcpOptions = new DcpOptions
+        {
+            EnableAspireContainerTunnel = true,
+        };
+
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceStartingContext>(context =>
+        {
+            if (context.ResourceType == "Container")
+            {
+                resourceStartingFired = true;
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        Assert.Equal(1, envCallCount);
+        Assert.True(resourceStartingFired, "OnResourceStarting should fire for the container");
+    }
+
+    [Fact]
+    public async Task ForgetCachedResult_CausesCallbackReEvaluation()
+    {
+        var callCount = 0;
+        var annotation = new EnvironmentCallbackAnnotation(c =>
+        {
+            Interlocked.Increment(ref callCount);
+            c.EnvironmentVariables["COUNT"] = callCount.ToString();
+        });
+        var cacheable = (ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)annotation;
+        var resource = new ContainerResource("test");
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run));
+
+        var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: CancellationToken.None);
+
+        var result1 = await cacheable.EvaluateOnceAsync(context);
+        Assert.Equal("1", result1["COUNT"]);
+        Assert.Equal(1, callCount);
+
+        var result2 = await cacheable.EvaluateOnceAsync(context);
+        Assert.Same(result1, result2);
+        Assert.Equal(1, callCount);
+
+        cacheable.ForgetCachedResult();
+
+        var result3 = await cacheable.EvaluateOnceAsync(context);
+        Assert.Equal("2", result3["COUNT"]);
+        Assert.Equal(2, callCount);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();

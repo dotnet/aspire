@@ -9,8 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation that provides a callback to be executed with a list of command-line arguments when an executable resource is started.
 /// </summary>
-public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
+public class CommandLineArgsCallbackAnnotation : IResourceAnnotation, ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>
 {
+    private volatile Task<IList<object>>? _cachedTask;
     /// <summary>
     /// Initializes a new instance of the <see cref="CommandLineArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
@@ -41,6 +42,37 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
     /// Gets the callback action to be executed when the executable arguments are parsed.
     /// </summary>
     public Func<CommandLineArgsCallbackContext, Task> Callback { get; }
+
+    /// <inheritdoc />
+    async ValueTask<IList<object>> ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>.EvaluateOnceAsync(CommandLineArgsCallbackContext context)
+    {
+        if (_cachedTask is { } existing)
+        {
+            return await existing.ConfigureAwait(false);
+        }
+
+        var newTask = ExecuteCallbackAsync(context);
+        var original = Interlocked.CompareExchange(ref _cachedTask, newTask, null);
+        return await (original ?? newTask).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    void ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>.ForgetCachedResult()
+    {
+        _cachedTask = null;
+    }
+
+    private async Task<IList<object>> ExecuteCallbackAsync(CommandLineArgsCallbackContext context)
+    {
+        var args = new List<object>();
+        var callbackContext = new CommandLineArgsCallbackContext(args, context.Resource, context.CancellationToken)
+        {
+            Logger = context.Logger,
+            ExecutionContext = context.ExecutionContext,
+        };
+        await Callback(callbackContext).ConfigureAwait(false);
+        return args;
+    }
 }
 
 /// <summary>
