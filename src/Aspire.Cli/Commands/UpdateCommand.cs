@@ -200,15 +200,15 @@ internal sealed class UpdateCommand : BaseCommand
 
             // After successful project update, check if CLI update is available and prompt
             // Only prompt if the channel supports CLI downloads (has a non-null CliDownloadBaseUrl)
-            if (_cliDownloader is not null && 
-                _updateNotifier.IsUpdateAvailable() && 
+            if (_cliDownloader is not null &&
+                _updateNotifier.IsUpdateAvailable() &&
                 !string.IsNullOrEmpty(channel.CliDownloadBaseUrl))
             {
                 var shouldUpdateCli = await InteractionService.ConfirmAsync(
                     UpdateCommandStrings.UpdateCliAfterProjectUpdatePrompt,
                     defaultValue: true,
                     cancellationToken);
-                
+
                 if (shouldUpdateCli)
                 {
                     // Use the same channel that was selected for the project update
@@ -242,14 +242,14 @@ internal sealed class UpdateCommand : BaseCommand
                         UpdateCommandStrings.NoAppHostFoundUpdateCliPrompt,
                         defaultValue: true,
                         cancellationToken);
-                    
+
                     if (shouldUpdateCli)
                     {
                         return await ExecuteSelfUpdateAsync(parseResult, cancellationToken);
                     }
                 }
             }
-            
+
             return HandleProjectLocatorException(ex, InteractionService, Telemetry);
         }
         catch (OperationCanceledException)
@@ -456,11 +456,11 @@ internal sealed class UpdateCommand : BaseCommand
 
         var pathSeparator = Path.PathSeparator;
         var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        
-        return paths.Any(p => 
-            string.Equals(Path.GetFullPath(p.Trim()), Path.GetFullPath(directory), 
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-                    ? StringComparison.OrdinalIgnoreCase 
+
+        return paths.Any(p =>
+            string.Equals(Path.GetFullPath(p.Trim()), Path.GetFullPath(directory),
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? StringComparison.OrdinalIgnoreCase
                     : StringComparison.Ordinal));
     }
 
@@ -502,14 +502,14 @@ internal sealed class UpdateCommand : BaseCommand
 
             var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
-            
+
             if (process.ExitCode == 0)
             {
                 var version = output.Trim();
                 InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.UpdatedToVersion, version));
                 return version;
             }
-            
+
             return null;
         }
         catch

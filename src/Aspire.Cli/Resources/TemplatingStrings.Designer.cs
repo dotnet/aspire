@@ -128,7 +128,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UseRedisCache_Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Using Redis Cache for caching..
         /// </summary>
@@ -137,7 +137,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UseRedisCache_UsingRedisCache", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Using project templates version: {0}.
         /// </summary>
@@ -146,7 +146,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UsingProjectTemplatesVersion", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Run 'cd "{0}"' and then 'aspire run' to start your AppHost..
         /// </summary>
@@ -155,7 +155,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("RunCdThenAspireRun", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Run 'aspire run' to start your AppHost..
         /// </summary>
@@ -164,7 +164,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("RunAspireRun", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>

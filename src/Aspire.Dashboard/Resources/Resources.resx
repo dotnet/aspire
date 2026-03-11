@@ -224,7 +224,8 @@
   </data>
   <data name="ResourceActionConsoleLogsText" xml:space="preserve">
     <value>Console logs</value>
-  </data><data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
+  </data>
+  <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
     <value>Health state</value>
   </data>
   <data name="ResourcesDetailsConnectionStringProperty" xml:space="preserve">

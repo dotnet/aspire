@@ -972,11 +972,6 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Aspire MCP can be used with any AI tooling that supports streamable HTTP MCP servers..
         /// </summary>
-        public static string McpServerDialogOtherDescription {
-            get {
-                return ResourceManager.GetString("McpServerDialogOtherDescription", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to Important details for configuring Aspire MCP are below. Please refer to your AI client&apos;s documentation for how to add an MCP server..
@@ -1242,11 +1237,6 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Export all.
         /// </summary>
-        public static string SettingsExportAllButtonText {
-            get {
-                return ResourceManager.GetString("SettingsExportAllButtonText", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to Import logs and telemetry.

@@ -87,12 +87,6 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string ConsoleLogsNoResourceSelected {
-            get {
-                return ResourceManager.GetString("ConsoleLogsNoResourceSelected", resourceCulture);
-            }
-        }
-        
         public static string ConsoleLogsUnknownState {
             get {
                 return ResourceManager.GetString("ConsoleLogsUnknownState", resourceCulture);
