@@ -107,6 +107,63 @@ public class FilterTestMatrixByScopeTests : IDisposable
         Assert.Equal(2, filtered.Length);
         // But logs should mention what would be filtered
         Assert.Contains("AUDIT", result.Output);
+        Assert.Contains("[WOULD RUN] tests/ProjA/ProjA.csproj", result.Output);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task AuditOnly_WithGitHubOutput_WritesWouldRunProjects()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("ProjA-linux", "tests/ProjA/ProjA.csproj"),
+            CreateEntry("ProjB-linux", "tests/ProjB/ProjB.csproj"));
+
+        var affected = JsonSerializer.Serialize(new[] { "tests/ProjA/ProjA.csproj" });
+
+        var (result, githubOutputPath) = await RunFilterWithGitHubOutput(matrix, affected, runAll: false, auditOnly: true);
+
+        result.EnsureSuccessful("AuditOnly GitHub output should succeed");
+
+        var projectsJson = GetGitHubOutputValue(githubOutputPath, "audit_would_run_projects");
+        Assert.NotNull(projectsJson);
+
+        var projects = JsonSerializer.Deserialize<string[]>(projectsJson!);
+        Assert.NotNull(projects);
+        Assert.Equal(["tests/ProjA/ProjA.csproj"], projects);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task AuditOnly_WithAuditFile_WritesStructuredAuditJson()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("Templates-linux", "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"),
+            CreateEntry("ProjB-linux", "tests/ProjB/ProjB.csproj"));
+
+        var affected = JsonSerializer.Serialize(new[] { "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj" });
+
+        var (result, githubOutputPath, auditPath) = await RunFilterWithGitHubOutputAndAuditFile(matrix, affected, runAll: false, auditOnly: true);
+
+        result.EnsureSuccessful("AuditOnly with audit file should succeed");
+        Assert.NotNull(GetGitHubOutputValue(githubOutputPath, "audit_would_run_projects"));
+        Assert.True(File.Exists(auditPath));
+
+        using var auditDocument = JsonDocument.Parse(await File.ReadAllTextAsync(auditPath));
+        var root = auditDocument.RootElement;
+
+        Assert.False(root.GetProperty("runAll").GetBoolean());
+        Assert.True(root.GetProperty("auditOnly").GetBoolean());
+        Assert.True(root.GetProperty("templateGate").GetProperty("wouldRun").GetBoolean());
+
+        var wouldRunProjects = root.GetProperty("wouldRunProjects").EnumerateArray().Select(p => p.GetString()).ToArray();
+        Assert.Single(wouldRunProjects);
+        Assert.Equal("tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", wouldRunProjects[0]);
+
+        var matrixAudit = root.GetProperty("matrices").GetProperty("test_matrix");
+        Assert.Equal(2, matrixAudit.GetProperty("inputCount").GetInt32());
+        Assert.Equal(1, matrixAudit.GetProperty("keptCount").GetInt32());
+        Assert.Equal(1, matrixAudit.GetProperty("removedCount").GetInt32());
+        Assert.Equal("audit", matrixAudit.GetProperty("mode").GetString());
     }
 
     [Fact]
@@ -153,6 +210,63 @@ public class FilterTestMatrixByScopeTests : IDisposable
         return await cmd.ExecuteAsync();
     }
 
+    private async Task<(CommandResult Result, string GitHubOutputPath)> RunFilterWithGitHubOutput(
+        string matrixJson,
+        string affectedProjects,
+        bool runAll,
+        bool auditOnly = false)
+    {
+        var wrapperScript = Path.Combine(_tempDir.Path, "run-filter-github-output.ps1");
+        var githubOutputPath = Path.Combine(_tempDir.Path, "github-output.txt");
+        var runAllSwitch = runAll ? "-RunAll" : "";
+        var auditSwitch = auditOnly ? "-AuditOnly" : "";
+        File.WriteAllText(wrapperScript, $$"""
+            $matrices = @{
+                'test_matrix' = '{{matrixJson.Replace("'", "''")}}'
+            }
+            & '{{_scriptPath}}' `
+                -Matrices $matrices `
+                -AffectedProjects '{{affectedProjects.Replace("'", "''")}}' `
+                {{runAllSwitch}} {{auditSwitch}} -OutputToGitHubEnv
+            """);
+
+        using var cmd = new PowerShellCommand(wrapperScript, _output)
+            .WithEnvironmentVariable("GITHUB_OUTPUT", githubOutputPath)
+            .WithTimeout(TimeSpan.FromMinutes(1));
+
+        return (await cmd.ExecuteAsync(), githubOutputPath);
+    }
+
+    private async Task<(CommandResult Result, string GitHubOutputPath, string AuditPath)> RunFilterWithGitHubOutputAndAuditFile(
+        string matrixJson,
+        string affectedProjects,
+        bool runAll,
+        bool auditOnly = false)
+    {
+        var wrapperScript = Path.Combine(_tempDir.Path, "run-filter-github-output-audit.ps1");
+        var githubOutputPath = Path.Combine(_tempDir.Path, "github-output.txt");
+        var auditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
+        var runAllSwitch = runAll ? "-RunAll" : "";
+        var auditSwitch = auditOnly ? "-AuditOnly" : "";
+        File.WriteAllText(wrapperScript, $$"""
+            $matrices = @{
+                'test_matrix' = '{{matrixJson.Replace("'", "''")}}'
+            }
+            & '{{_scriptPath}}' `
+                -Matrices $matrices `
+                -AffectedProjects '{{affectedProjects.Replace("'", "''")}}' `
+                {{runAllSwitch}} {{auditSwitch}} `
+                -AuditFilePath '{{auditPath.Replace("'", "''")}}' `
+                -OutputToGitHubEnv
+            """);
+
+        using var cmd = new PowerShellCommand(wrapperScript, _output)
+            .WithEnvironmentVariable("GITHUB_OUTPUT", githubOutputPath)
+            .WithTimeout(TimeSpan.FromMinutes(1));
+
+        return (await cmd.ExecuteAsync(), githubOutputPath, auditPath);
+    }
+
     private static string CreateMatrix(params object[] entries)
     {
         var matrix = new { include = entries };
@@ -194,6 +308,20 @@ public class FilterTestMatrixByScopeTests : IDisposable
             }
         }
         return [];
+    }
+
+    private static string? GetGitHubOutputValue(string outputFilePath, string key)
+    {
+        foreach (var line in File.ReadAllLines(outputFilePath))
+        {
+            var prefix = $"{key}=";
+            if (line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return line[prefix.Length..];
+            }
+        }
+
+        return null;
     }
 
     private static string FindRepoRoot()

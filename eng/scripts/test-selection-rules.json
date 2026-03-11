@@ -43,6 +43,42 @@
     {
       "source": "src/Aspire.ProjectTemplates/**",
       "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "tests/Aspire.Templates.Tests/**",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "tests/Shared/**",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "tests/workloads.proj",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "tests/Directory.Build.props",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "tests/Directory.Build.targets",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "Directory.Build.props",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "Directory.Build.targets",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "eng/Versions.props",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
+    },
+    {
+      "source": "global.json",
+      "test": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"
     }
   ],
 

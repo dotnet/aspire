@@ -127,30 +127,22 @@ rootCommand.SetAction(async result =>
         }
 
         // Output result
+        WriteJsonResult(evaluationResult, workingDir, outputPath);
+
         if (githubOutput)
         {
             evaluationResult.WriteGitHubOutput();
         }
-        else
+        else if (string.IsNullOrEmpty(outputPath))
         {
-            var json = evaluationResult.ToJson();
-
-            if (!string.IsNullOrEmpty(outputPath))
-            {
-                var outputFullPath = Path.IsPathRooted(outputPath) ? outputPath : Path.Combine(workingDir, outputPath);
-                File.WriteAllText(outputFullPath, json);
-                Console.WriteLine($"Result written to {outputFullPath}");
-            }
-            else
-            {
-                Console.WriteLine(json);
-            }
+            Console.WriteLine(evaluationResult.ToJson());
         }
     }
     catch (Exception ex)
     {
         CIHelper.WriteError(ciEnvironment, $"Test selector failed: {ex.Message}");
         var errorResult = TestSelectionResult.WithError(ex.Message);
+        WriteJsonResult(errorResult, workingDir, outputPath);
         if (githubOutput)
         {
             errorResult.WriteGitHubOutput();
@@ -164,3 +156,21 @@ rootCommand.SetAction(async result =>
 });
 
 return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
+
+static void WriteJsonResult(TestSelectionResult result, string workingDir, string? outputPath)
+{
+    if (string.IsNullOrEmpty(outputPath))
+    {
+        return;
+    }
+
+    var outputFullPath = Path.IsPathRooted(outputPath) ? outputPath : Path.Combine(workingDir, outputPath);
+    var outputDirectory = Path.GetDirectoryName(outputFullPath);
+    if (!string.IsNullOrEmpty(outputDirectory))
+    {
+        Directory.CreateDirectory(outputDirectory);
+    }
+
+    File.WriteAllText(outputFullPath, result.ToJson());
+    Console.WriteLine($"Result written to {outputFullPath}");
+}

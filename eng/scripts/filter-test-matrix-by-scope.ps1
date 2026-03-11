@@ -45,7 +45,10 @@ param(
   [switch]$AuditOnly,
 
   [Parameter(Mandatory=$false)]
-  [switch]$OutputToGitHubEnv
+  [switch]$OutputToGitHubEnv,
+
+  [Parameter(Mandatory=$false)]
+  [string]$AuditFilePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -90,6 +93,29 @@ if ($RunAll) {
 
 $results = @{}
 $auditLog = @()
+$auditWouldRunProjects = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$auditWouldRunEntries = [System.Collections.Generic.List[object]]::new()
+$auditFilteredEntries = [System.Collections.Generic.List[object]]::new()
+$matrixAudit = [ordered]@{}
+$templateGateProjectPath = 'tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj'
+
+function New-AuditEntry {
+  param(
+    [string]$MatrixName,
+    [object]$Entry
+  )
+
+  $testProjectPath = ''
+  if (-not [string]::IsNullOrWhiteSpace($Entry.testProjectPath)) {
+    $testProjectPath = $Entry.testProjectPath -replace '\\', '/'
+  }
+
+  [pscustomobject]@{
+    matrixName = $MatrixName
+    shortname = $Entry.shortname
+    testProjectPath = $testProjectPath
+  }
+}
 
 foreach ($matrixName in $Matrices.Keys) {
   $matrixJson = $Matrices[$matrixName]
@@ -102,6 +128,22 @@ foreach ($matrixName in $Matrices.Keys) {
 
   if ($skipFiltering) {
     $results[$matrixName] = $matrixJson
+    foreach ($entry in $entries) {
+      if ([string]::IsNullOrWhiteSpace($entry.testProjectPath)) {
+        continue
+      }
+
+      $testPath = ($entry.testProjectPath -replace '\\', '/')
+      [void]$auditWouldRunProjects.Add($testPath)
+      $auditWouldRunEntries.Add((New-AuditEntry -MatrixName $matrixName -Entry $entry))
+    }
+    $matrixAudit[$matrixName] = [pscustomobject]@{
+      inputCount = $entries.Count
+      outputCount = $entries.Count
+      keptCount = $entries.Count
+      removedCount = 0
+      mode = 'pass-through'
+    }
     Write-Host "${matrixName}: $($entries.Count) entries (pass-through)"
     continue
   }
@@ -117,8 +159,11 @@ foreach ($matrixName in $Matrices.Keys) {
     $testPath = ($entry.testProjectPath -replace '\\', '/')
     if ($affectedSet.Contains($testPath)) {
       $kept += $entry
+      [void]$auditWouldRunProjects.Add($testPath)
+      $auditWouldRunEntries.Add((New-AuditEntry -MatrixName $matrixName -Entry $entry))
     } else {
       $removed += $entry
+      $auditFilteredEntries.Add((New-AuditEntry -MatrixName $matrixName -Entry $entry))
     }
   }
 
@@ -138,9 +183,25 @@ foreach ($matrixName in $Matrices.Keys) {
   } else {
     $results[$matrixName] = ConvertTo-Json @{ include = @($kept) } -Compress -Depth 10
   }
+
+  $matrixAudit[$matrixName] = [pscustomobject]@{
+    inputCount = $entries.Count
+    outputCount = $(if ($AuditOnly) { $entries.Count } else { $kept.Count })
+    keptCount = $kept.Count
+    removedCount = $removed.Count
+    mode = $(if ($AuditOnly) { 'audit' } else { 'filtered' })
+  }
 }
 
 # Write audit summary if applicable
+if ($AuditOnly -and $auditWouldRunProjects.Count -gt 0) {
+  Write-Host ""
+  Write-Host "=== AUDIT MODE: Projects that would run after filtering ==="
+  foreach ($project in @($auditWouldRunProjects) | Sort-Object) {
+    Write-Host "  [WOULD RUN] $project"
+  }
+}
+
 if ($auditLog.Count -gt 0) {
   if ($AuditOnly) {
     Write-Host ""
@@ -154,12 +215,45 @@ if ($auditLog.Count -gt 0) {
   }
 }
 
+# Write structured audit output if requested
+$sortedAffectedProjects = @(@($affectedSet) | Sort-Object)
+$sortedWouldRunProjects = @(@($auditWouldRunProjects) | Sort-Object)
+$sortedWouldRunEntries = @($auditWouldRunEntries | Sort-Object testProjectPath, shortname, matrixName)
+$sortedFilteredEntries = @($auditFilteredEntries | Sort-Object testProjectPath, shortname, matrixName)
+
+$auditPayload = [pscustomobject]@{
+  runAll = [bool]$RunAll
+  auditOnly = [bool]$AuditOnly
+  skipFiltering = $skipFiltering
+  affectedProjects = $sortedAffectedProjects
+  wouldRunProjects = $sortedWouldRunProjects
+  wouldRunEntries = $sortedWouldRunEntries
+  filteredEntries = $sortedFilteredEntries
+  templateGate = [pscustomobject]@{
+    projectPath = $templateGateProjectPath
+    wouldRun = $auditWouldRunProjects.Contains($templateGateProjectPath)
+  }
+  matrices = [pscustomobject]$matrixAudit
+}
+
+if (-not [string]::IsNullOrWhiteSpace($AuditFilePath)) {
+  $auditDirectory = Split-Path -Path $AuditFilePath -Parent
+  if (-not [string]::IsNullOrWhiteSpace($auditDirectory)) {
+    New-Item -ItemType Directory -Path $auditDirectory -Force | Out-Null
+  }
+
+  $auditPayload | ConvertTo-Json -Depth 10 | Out-File -FilePath $AuditFilePath -Encoding utf8
+  Write-Host "✓ Matrix audit written to $AuditFilePath"
+}
+
 # Output
 if ($OutputToGitHubEnv) {
   if ($env:GITHUB_OUTPUT) {
     foreach ($name in $results.Keys) {
       "$name=$($results[$name])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     }
+    $auditWouldRunProjectsJson = ConvertTo-Json $sortedWouldRunProjects -Compress
+    "audit_would_run_projects=$auditWouldRunProjectsJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     Write-Host "✓ Filtered matrices written to GITHUB_OUTPUT"
   } else {
     Write-Error "GITHUB_OUTPUT environment variable not set"

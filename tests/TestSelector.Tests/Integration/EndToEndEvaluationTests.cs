@@ -906,6 +906,30 @@ public class EndToEndEvaluationTests
         Assert.Empty(activeFiles);
     }
 
+    [Fact]
+    public void Evaluate_RealConfig_TemplateGateSupportFiles_MapToTemplateTests()
+    {
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configJson = File.ReadAllText(configPath);
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+        var resolver = new ProjectMappingResolver(config.SourceToTestMappings);
+
+        var changedFiles = new[]
+        {
+            "tests/Aspire.Templates.Tests/TemplateSmokeTests.cs",
+            "tests/Shared/TemporaryRepo.cs",
+            "tests/workloads.proj",
+            "tests/Directory.Build.props",
+            "Directory.Build.targets",
+            "eng/Versions.props",
+            "global.json",
+        };
+
+        var testProjects = resolver.ResolveAllTestProjects(changedFiles);
+
+        Assert.Contains("tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", testProjects);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = AppContext.BaseDirectory;

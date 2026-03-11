@@ -63,12 +63,14 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            mkdir -p "${{ github.workspace }}/artifacts/test-selection"
             echo "::group::Running test selector tool"
             ./dotnet.sh run --project tools/TestSelector/TestSelector.csproj -- \
               --solution Aspire.slnx \
               --config eng/scripts/test-selection-rules.json \
               --from "${{ github.event.pull_request.base.sha }}" \
               --to "${{ github.event.pull_request.head.sha }}" \
+              --output "${{ github.workspace }}/artifacts/test-selection/selector-audit.json" \
               --github-output \
               --verbose
             echo "::endgroup::"
@@ -145,6 +147,14 @@ jobs:
           echo "affected_test_projects=${{ steps.detect.outputs.affected_test_projects }}"
           echo "::endgroup::"
 
+      - name: Upload selector audit artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-scope-selector-audit
+          path: ${{ github.workspace }}/artifacts/test-selection/selector-audit.json
+          if-no-files-found: error
+
   setup_for_tests:
     name: Setup for tests
     runs-on: ubuntu-latest
@@ -176,6 +186,7 @@ jobs:
         id: filter_matrix
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/artifacts/test-selection" -Force | Out-Null
           $filterScript = "${{ github.workspace }}/eng/scripts/filter-test-matrix-by-scope.ps1"
           $matrices = @{
             'tests_matrix_no_nugets' = '${{ steps.split_matrix.outputs.tests_matrix_no_nugets }}'
@@ -191,7 +202,41 @@ jobs:
             -AffectedProjects '${{ needs.prepare_for_tests.outputs.affected_test_projects }}' `
             -RunAll:$runAll `
             -AuditOnly `
+            -AuditFilePath "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json" `
             -OutputToGitHubEnv
+
+      - name: Write audit-mode project summary
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Audit Mode - Projects That Would Run"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+          $projectsJson = '${{ steps.filter_matrix.outputs.audit_would_run_projects }}'
+
+          if ([string]::IsNullOrWhiteSpace($projectsJson)) {
+            $projectsJson = '[]'
+          }
+
+          $projects = @($projectsJson | ConvertFrom-Json)
+          if ($projects.Count -eq 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects would have been selected after matrix filtering.*"
+            exit 0
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "The following test projects would have been selected after matrix filtering:"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+          foreach ($project in $projects) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+          }
+
+      - name: Upload matrix audit artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-scope-matrix-audit
+          path: ${{ github.workspace }}/artifacts/test-selection/matrix-audit.json
+          if-no-files-found: error
 
   build_packages:
     name: Build packages
@@ -430,6 +475,22 @@ jobs:
           merge-multiple: true
           path: testresults/macos-latest
 
+      - name: Download selector audit artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: test-scope-selector-audit
+          path: ${{ github.workspace }}/audit/selector
+
+      - name: Download matrix audit artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: test-scope-matrix-audit
+          path: ${{ github.workspace }}/audit/matrix
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
@@ -447,6 +508,71 @@ jobs:
             -- \
             ${{ github.workspace }}/testresults \
             --combined
+
+      - name: Compare audit predictions to failures
+        if: ${{ always() && github.event_name == 'pull_request' && needs.prepare_for_tests.outputs.all_skipped != 'true' }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/audit/results" -Force | Out-Null
+          $script = "${{ github.workspace }}/eng/scripts/find-test-scope-audit-misses.ps1"
+          & $script `
+            -SelectorAuditPath "${{ github.workspace }}/audit/selector/selector-audit.json" `
+            -MatrixAuditPath "${{ github.workspace }}/audit/matrix/matrix-audit.json" `
+            -TestResultsRoot "${{ github.workspace }}/testresults" `
+            -OutputPath "${{ github.workspace }}/audit/results/audit-miss-report.json"
+
+      - name: Append audit miss summary
+        if: ${{ always() && github.event_name == 'pull_request' && needs.prepare_for_tests.outputs.all_skipped != 'true' }}
+        shell: pwsh
+        run: |
+          $reportPath = "${{ github.workspace }}/audit/results/audit-miss-report.json"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Test Scope Audit"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+          if (-not (Test-Path $reportPath)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*Audit report was not produced.*"
+            exit 0
+          }
+
+          $report = Get-Content -Path $reportPath -Raw | ConvertFrom-Json
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Status: `{0}`" -f $report.status)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Selector run_all: `{0}`" -f $report.selectorRunAll)
+
+          if ($null -ne $report.templateGate) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Template test project would run: `{0}`" -f $report.templateGate.wouldRun)
+          }
+
+          if (@($report.missingArtifacts).Count -gt 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Missing audit artifacts: `{0}`" -f (@($report.missingArtifacts) -join ', '))
+          }
+
+          if (@($report.auditMisses).Count -eq 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "No audit misses detected."
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Audit misses detected:**"
+            foreach ($miss in @($report.auditMisses)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- `{0}` from `{1}`" -f $miss.testProjectPath, $miss.trxFile)
+            }
+          }
+
+          if (@($report.unmappedFailedResults).Count -gt 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Unmapped failed TRX files:**"
+            foreach ($entry in @($report.unmappedFailedResults)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- `{0}`" -f $entry.trxFile)
+            }
+          }
+
+      - name: Upload audit miss report
+        if: ${{ always() && github.event_name == 'pull_request' && needs.prepare_for_tests.outputs.all_skipped != 'true' }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-scope-audit-report
+          path: ${{ github.workspace }}/audit/results/audit-miss-report.json
+          if-no-files-found: warn
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
