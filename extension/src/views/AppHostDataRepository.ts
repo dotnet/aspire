@@ -63,6 +63,7 @@ export class AppHostDataRepository {
     private _describeProcess: ChildProcessWithoutNullStreams | undefined;
     private _describeRestarting = false;
     private _describeRestartDelay = 5000;
+    private _describeRestartTimer: ReturnType<typeof setTimeout> | undefined;
     private static readonly _maxDescribeRestartDelay = 60000;
 
     // ── Global mode state (ps polling) ──
@@ -274,7 +275,8 @@ export class AppHostDataRepository {
                         const delay = this._describeRestartDelay;
                         this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, AppHostDataRepository._maxDescribeRestartDelay);
                         extensionLogOutputChannel.info(`Restarting describe --follow in ${delay}ms`);
-                        setTimeout(() => {
+                        this._describeRestartTimer = setTimeout(() => {
+                            this._describeRestartTimer = undefined;
                             if (!this._disposed) {
                                 this._startDescribeWatch();
                             }
@@ -297,6 +299,10 @@ export class AppHostDataRepository {
     }
 
     private _stopDescribeWatch(): void {
+        if (this._describeRestartTimer) {
+            clearTimeout(this._describeRestartTimer);
+            this._describeRestartTimer = undefined;
+        }
         if (this._describeProcess) {
             this._describeRestarting = true;
             this._describeProcess.kill();
