@@ -4,10 +4,15 @@ import path from 'path';
 import { spawnCliProcess } from '../debugger/languages/cli';
 import { AspireTerminalProvider } from './AspireTerminalProvider';
 import { ChildProcessWithoutNullStreams } from 'child_process';
-import { AspireSettingsFile } from './cliTypes';
+import { AspireSettingsFile, AspireConfigFile } from './cliTypes';
 import { extensionLogOutputChannel } from './logging';
 import { EnvironmentVariables } from './environment';
 import { resolveCliPath } from './cliPath';
+
+/**
+ * The filename for the new consolidated configuration file.
+ */
+const aspireConfigFileName = 'aspire.config.json';
 
 /**
  * Common file patterns to exclude from workspace file searches.
@@ -53,14 +58,49 @@ export function getCommonExcludeGlob(): string {
 }
 
 /**
- * Searches for Aspire settings.json files in the workspace, excluding common build output
- * and dependency directories.
- * @returns An array of URIs pointing to found settings.json files
+ * Searches for Aspire configuration files in the workspace, excluding common build output
+ * and dependency directories. Looks for both the new aspire.config.json and legacy .aspire/settings.json.
+ * @returns An array of URIs pointing to found configuration files
+ */
+export async function findAspireConfigFiles(): Promise<vscode.Uri[]> {
+    const excludePattern = getCommonExcludeGlob();
+    const [configFiles, legacyFiles] = await Promise.all([
+        vscode.workspace.findFiles(`**/${aspireConfigFileName}`, excludePattern),
+        vscode.workspace.findFiles('**/.aspire/settings.json', excludePattern),
+    ]);
+    // Prefer aspire.config.json; include legacy files only for directories without the new format
+    const configDirs = new Set(configFiles.map(uri => path.dirname(uri.fsPath)));
+    const dedupedLegacy = legacyFiles.filter(uri => !configDirs.has(path.dirname(path.dirname(uri.fsPath))));
+    return [...configFiles, ...dedupedLegacy];
+}
+
+/**
+ * @deprecated Use findAspireConfigFiles instead. Kept for backward compatibility.
  */
 export async function findAspireSettingsFiles(): Promise<vscode.Uri[]> {
-    const searchSubpath = '**/.aspire/settings.json';
-    const excludePattern = getCommonExcludeGlob();
-    return vscode.workspace.findFiles(searchSubpath, excludePattern);
+    return findAspireConfigFiles();
+}
+
+/**
+ * Extracts the appHost path from a parsed configuration file, handling both new and legacy formats.
+ */
+function getAppHostPathFromConfig(json: any): string | undefined {
+    // New format: aspire.config.json with nested appHost.path
+    if (json.appHost?.path) {
+        return json.appHost.path;
+    }
+    // Legacy format: .aspire/settings.json with flat appHostPath
+    if (json.appHostPath) {
+        return json.appHostPath;
+    }
+    return undefined;
+}
+
+/**
+ * Returns whether the given URI points to a new-format aspire.config.json file.
+ */
+function isAspireConfigFile(uri: vscode.Uri): boolean {
+    return path.basename(uri.fsPath) === aspireConfigFileName;
 }
 
 export function isWorkspaceOpen(showErrorMessage: boolean = true): boolean {
@@ -127,34 +167,36 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
 
     extensionLogOutputChannel.info(`Checking AppHost settings in workspace: ${rootFolder.name}`);
 
-    // Search for settings.json files in any .aspire directory anywhere in the workspace
-    const settingsFiles = await findAspireSettingsFiles();
-    const settingsFileExists = settingsFiles.length > 0;
+    // Search for configuration files (aspire.config.json and legacy .aspire/settings.json)
+    const configFiles = await findAspireConfigFiles();
+    const configFileExists = configFiles.length > 0;
 
-    if (settingsFileExists) {
-        extensionLogOutputChannel.info(`Found existing Aspire settings file at: ${settingsFiles.map(f => f.fsPath).join(', ')}`);
-        for (const file of settingsFiles) {
-            const settingsFileContent = await vscode.workspace.fs.readFile(file);
-            const settings = JSON.parse(settingsFileContent.toString());
-            if (settings.appHostPath) {
-                extensionLogOutputChannel.info(`AppHost path already configured in file ${file.fsPath}: ${settings.appHostPath}`);
+    if (configFileExists) {
+        extensionLogOutputChannel.info(`Found existing Aspire config file at: ${configFiles.map(f => f.fsPath).join(', ')}`);
+        for (const file of configFiles) {
+            const fileContent = await vscode.workspace.fs.readFile(file);
+            const config = JSON.parse(fileContent.toString());
+            const appHostPath = getAppHostPathFromConfig(config);
+            if (appHostPath) {
+                extensionLogOutputChannel.info(`AppHost path already configured in file ${file.fsPath}: ${appHostPath}`);
                 return null;
             }
         }
 
-        extensionLogOutputChannel.info('Settings file(s) exist but no appHostPath is set');
-        if (settingsFiles.length > 1) {
-            // Multiple settings files exist, so don't prompt
-            extensionLogOutputChannel.warn(`Multiple Aspire settings files found (${settingsFiles.length}). Not prompting to choose between them.`);
+        extensionLogOutputChannel.info('Config file(s) exist but no appHost path is set');
+        if (configFiles.length > 1) {
+            // Multiple config files exist, so don't prompt
+            extensionLogOutputChannel.warn(`Multiple Aspire config files found (${configFiles.length}). Not prompting to choose between them.`);
             return null;
         }
     }
     else {
-        extensionLogOutputChannel.info('No Aspire settings file found, will create if AppHost is selected');
-        settingsFiles.push(vscode.Uri.file(path.join(rootFolder.uri.fsPath, '.aspire', 'settings.json')));
+        extensionLogOutputChannel.info('No Aspire config file found, will create if AppHost is selected');
+        // New projects get aspire.config.json at the workspace root
+        configFiles.push(vscode.Uri.file(path.join(rootFolder.uri.fsPath, aspireConfigFileName)));
     }
 
-    const settingsFile = settingsFiles[0];
+    const configFile = configFiles[0];
     extensionLogOutputChannel.info('Searching for AppHost projects using CLI command: aspire extension get-apphosts');
 
     let proc: ChildProcessWithoutNullStreams;
@@ -189,7 +231,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
             workingDirectory: rootFolder.uri.fsPath
         });
     })
-        .then(result => promptToAddAppHostPathToSettingsFile(result, settingsFileExists, settingsFile, rootFolder, setEnableSettingsFileCreationPromptOnStartup))
+        .then(result => promptToAddAppHostPathToConfigFile(result, configFileExists, configFile, rootFolder, setEnableSettingsFileCreationPromptOnStartup))
         .catch(error => {
             extensionLogOutputChannel.error(`Failed to retrieve AppHost projects: ${error}`);
         })
@@ -202,7 +244,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     };
 }
 
-async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearchResult, settingsFileExists: boolean, settingsFileLocation: vscode.Uri, rootFolder: vscode.WorkspaceFolder, setEnableSettingsFileCreationPromptOnStartup: (value: boolean) => Promise<void>): Promise<void> {
+async function promptToAddAppHostPathToConfigFile(result: AppHostProjectSearchResult, configFileExists: boolean, configFileLocation: vscode.Uri, rootFolder: vscode.WorkspaceFolder, setEnableSettingsFileCreationPromptOnStartup: (value: boolean) => Promise<void>): Promise<void> {
     if (!result.selected_project_file && result.all_project_file_candidates.length === 0) {
         extensionLogOutputChannel.info('No AppHost projects found in workspace');
         return;
@@ -247,26 +289,49 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
         return;
     }
 
-    // make appHostToUse relative to the settings file location
-    appHostToUse = path.relative(path.dirname(settingsFileLocation.fsPath), appHostToUse);
+    // Make appHostToUse relative to the config file location
+    appHostToUse = path.relative(path.dirname(configFileLocation.fsPath), appHostToUse);
 
-    let aspireSettingsFile: AspireSettingsFile;
-    if (settingsFileExists) {
-        extensionLogOutputChannel.info('Updating existing Aspire settings file');
-        const settingsFileContent = await vscode.workspace.fs.readFile(settingsFileLocation);
-        aspireSettingsFile = JSON.parse(settingsFileContent.toString());
+    const useNewFormat = isAspireConfigFile(configFileLocation);
+
+    if (useNewFormat) {
+        // Write/update aspire.config.json with nested appHost.path
+        let aspireConfig: AspireConfigFile;
+        if (configFileExists) {
+            extensionLogOutputChannel.info('Updating existing aspire.config.json');
+            const fileContent = await vscode.workspace.fs.readFile(configFileLocation);
+            aspireConfig = JSON.parse(fileContent.toString());
+        }
+        else {
+            extensionLogOutputChannel.info('Creating new aspire.config.json');
+            aspireConfig = {};
+        }
+
+        aspireConfig.appHost = { ...aspireConfig.appHost, path: appHostToUse };
+
+        const updatedContent = Buffer.from(JSON.stringify(aspireConfig, null, 4), 'utf8');
+        await vscode.workspace.fs.writeFile(configFileLocation, updatedContent);
     }
     else {
-        extensionLogOutputChannel.info('Creating new Aspire settings file');
-        aspireSettingsFile = {};
+        // Write/update legacy .aspire/settings.json with flat appHostPath
+        let aspireSettingsFile: AspireSettingsFile;
+        if (configFileExists) {
+            extensionLogOutputChannel.info('Updating existing Aspire settings file');
+            const fileContent = await vscode.workspace.fs.readFile(configFileLocation);
+            aspireSettingsFile = JSON.parse(fileContent.toString());
+        }
+        else {
+            extensionLogOutputChannel.info('Creating new Aspire settings file');
+            aspireSettingsFile = {};
+        }
+
+        aspireSettingsFile.appHostPath = appHostToUse;
+
+        const updatedContent = Buffer.from(JSON.stringify(aspireSettingsFile, null, 4), 'utf8');
+        await vscode.workspace.fs.writeFile(configFileLocation, updatedContent);
     }
 
-    aspireSettingsFile.appHostPath = appHostToUse;
-
-    const updatedSettingsFileContent = Buffer.from(JSON.stringify(aspireSettingsFile, null, 4), 'utf8');
-    await vscode.workspace.fs.writeFile(settingsFileLocation, updatedSettingsFileContent);
-
-    extensionLogOutputChannel.info(`Successfully set appHostPath to: ${appHostToUse} in ${settingsFileLocation.fsPath}`);
+    extensionLogOutputChannel.info(`Successfully set appHost path to: ${appHostToUse} in ${configFileLocation.fsPath}`);
 }
 
 /**

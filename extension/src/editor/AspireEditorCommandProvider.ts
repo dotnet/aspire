@@ -6,31 +6,31 @@ import { AspireCommandType } from '../dcp/types';
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
     private _workspaceAppHostPath: string | null = null;
-    private _workspaceSettingsJsonWatchers: Map<vscode.WorkspaceFolder, vscode.Disposable> = new Map();
+    private _workspaceConfigWatchers: Map<vscode.WorkspaceFolder, vscode.Disposable> = new Map();
     private _disposables: vscode.Disposable[] = [];
 
     constructor() {
-        // if .aspire/settings.json exists, we only need to watch one folder
+        // Watch for both aspire.config.json and legacy .aspire/settings.json
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file('/'));
         if (workspaceFolder) {
-            this._workspaceSettingsJsonWatchers.set(workspaceFolder, this.watchWorkspaceForAppHostPathChanges(workspaceFolder, this.onChangeAppHostPath.bind(this)));
+            this._workspaceConfigWatchers.set(workspaceFolder, this.watchWorkspaceForAppHostPathChanges(workspaceFolder, this.onChangeAppHostPath.bind(this)));
         }
         else {
             vscode.workspace.workspaceFolders?.forEach(folder => {
-                this._workspaceSettingsJsonWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
+                this._workspaceConfigWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
             });
         }
 
         // As additional workspace folders are added/removed, we need to watch/unwatch them too
         this._disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(event => {
             event.added.forEach(folder => {
-                this._workspaceSettingsJsonWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
+                this._workspaceConfigWatchers.set(folder, this.watchWorkspaceForAppHostPathChanges(folder, this.onChangeAppHostPath.bind(this)));
             });
             event.removed.forEach(folder => {
-                const disposable = this._workspaceSettingsJsonWatchers.get(folder);
+                const disposable = this._workspaceConfigWatchers.get(folder);
                 if (disposable) {
                     disposable.dispose();
-                    this._workspaceSettingsJsonWatchers.delete(folder);
+                    this._workspaceConfigWatchers.delete(folder);
                 }
             });
         }));
@@ -101,32 +101,80 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
     }
 
     private watchWorkspaceForAppHostPathChanges(workspaceFolder: vscode.WorkspaceFolder, onChangeAppHostPath: (newPath: string | null) => void): vscode.Disposable {
-        const watcher = vscode.workspace.createFileSystemWatcher(
+        // Watch both new aspire.config.json and legacy .aspire/settings.json
+        const configWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(workspaceFolder, 'aspire.config.json')
+        );
+        const legacyWatcher = vscode.workspace.createFileSystemWatcher(
             new vscode.RelativePattern(workspaceFolder, '.aspire/settings.json')
         );
 
-        watcher.onDidCreate(async uri => readJsonAndInvokeCallback(uri));
-        watcher.onDidChange(uri => readJsonAndInvokeCallback(uri));
-        watcher.onDidDelete(uri => onChangeAppHostPath(null));
+        configWatcher.onDidCreate(async uri => readJsonAndInvokeCallback(uri));
+        configWatcher.onDidChange(uri => readJsonAndInvokeCallback(uri));
+        configWatcher.onDidDelete(() => {
+            // Fall back to legacy file if it exists
+            const legacyUri = vscode.Uri.joinPath(workspaceFolder.uri, '.aspire', 'settings.json');
+            vscode.workspace.fs.stat(legacyUri).then(
+                () => readJsonAndInvokeCallback(legacyUri),
+                () => onChangeAppHostPath(null)
+            );
+        });
 
-        // Read the initial value if the file exists
-        const settingsFileUri = vscode.Uri.joinPath(workspaceFolder.uri, '.aspire', 'settings.json');
-        vscode.workspace.fs.stat(settingsFileUri).then(
-            () => readJsonAndInvokeCallback(settingsFileUri),
-            () => onChangeAppHostPath(null) // File does not exist
+        legacyWatcher.onDidCreate(async uri => {
+            // Only use legacy if new config doesn't exist
+            const configUri = vscode.Uri.joinPath(workspaceFolder.uri, 'aspire.config.json');
+            vscode.workspace.fs.stat(configUri).then(
+                () => { /* new config exists, ignore legacy */ },
+                () => readJsonAndInvokeCallback(uri)
+            );
+        });
+        legacyWatcher.onDidChange(uri => {
+            const configUri = vscode.Uri.joinPath(workspaceFolder.uri, 'aspire.config.json');
+            vscode.workspace.fs.stat(configUri).then(
+                () => { /* new config exists, ignore legacy */ },
+                () => readJsonAndInvokeCallback(uri)
+            );
+        });
+        legacyWatcher.onDidDelete(() => onChangeAppHostPath(null));
+
+        // Read the initial value, preferring aspire.config.json over legacy
+        const configFileUri = vscode.Uri.joinPath(workspaceFolder.uri, 'aspire.config.json');
+        const legacyFileUri = vscode.Uri.joinPath(workspaceFolder.uri, '.aspire', 'settings.json');
+        vscode.workspace.fs.stat(configFileUri).then(
+            () => readJsonAndInvokeCallback(configFileUri),
+            () => vscode.workspace.fs.stat(legacyFileUri).then(
+                () => readJsonAndInvokeCallback(legacyFileUri),
+                () => onChangeAppHostPath(null)
+            )
         );
 
-        return watcher;
+        return {
+            dispose: () => {
+                configWatcher.dispose();
+                legacyWatcher.dispose();
+            }
+        };
 
         async function readJsonAndInvokeCallback(uri: vscode.Uri) {
             try {
                 const json = JSON.parse(await vscode.workspace.fs.readFile(uri).then(buffer => buffer.toString()));
-                if (!json.appHostPath) {
+                const isNewFormat = uri.fsPath.endsWith('aspire.config.json');
+
+                // Extract appHost path from either format
+                const rawPath = isNewFormat ? json.appHost?.path : json.appHostPath;
+                if (!rawPath) {
                     onChangeAppHostPath(null);
                 }
+                else if (path.isAbsolute(rawPath)) {
+                    onChangeAppHostPath(rawPath);
+                }
                 else {
-                    const appHostPath = path.isAbsolute(json.appHostPath) ? json.appHostPath : path.join(workspaceFolder.uri.fsPath, ".aspire",json.appHostPath);
-                    onChangeAppHostPath(appHostPath);
+                    // New format: paths are relative to project root (where aspire.config.json lives)
+                    // Legacy format: paths are relative to .aspire/ directory
+                    const baseDir = isNewFormat
+                        ? workspaceFolder.uri.fsPath
+                        : path.join(workspaceFolder.uri.fsPath, '.aspire');
+                    onChangeAppHostPath(path.join(baseDir, rawPath));
                 }
             }
             catch {
@@ -187,6 +235,6 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
     dispose() {
         this._disposables.forEach(disposable => disposable.dispose());
-        this._workspaceSettingsJsonWatchers.forEach(disposable => disposable.dispose());
+        this._workspaceConfigWatchers.forEach(disposable => disposable.dispose());
     }
 }

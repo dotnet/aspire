@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://json.schemastore.org/aspire-config.json",
+  "type": "object",
+  "title": "Aspire Configuration",
+  "description": "Aspire CLI configuration file (aspire.config.json). Consolidates apphost location, launch profiles, and CLI configuration.",
+  "properties": {
+    "$schema": {
+      "description": "The JSON Schema URL for this configuration file.",
+      "type": "string"
+    },
+    "appHost": {
+      "description": "AppHost entry point configuration.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Relative path to the AppHost entry point file (e.g., \"apphost.ts\", \"apphost.cs\").",
+          "type": "string"
+        },
+        "language": {
+          "description": "Language identifier (e.g., \"typescript/nodejs\", \"python\").",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sdk": {
+      "description": "Aspire SDK version configuration.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "The Aspire SDK version used for this project. Determines the version of Aspire.Hosting packages to use.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "channel": {
+      "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\").",
+      "type": "string"
+    },
+    "features": {
+      "description": "Feature flags for enabling/disabling experimental or optional features.",
+      "type": "object",
+      "properties": {
+        "defaultWatchEnabled": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable watch mode by default when running Aspire applications for automatic restarts on file changes",
+          "default": false
+        },
+        "execCommandEnabled": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable the 'aspire exec' command for executing commands inside running resources",
+          "default": false
+        },
+        "experimentalPolyglot:go": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable experimental Go language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:java": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable experimental Java language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:python": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable experimental Python language support for polyglot Aspire applications",
+          "default": false
+        },
+        "experimentalPolyglot:rust": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable experimental Rust language support for polyglot Aspire applications",
+          "default": false
+        },
+        "showAllTemplates": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Show all available templates including experimental ones in 'aspire new' and 'aspire init' commands",
+          "default": false
+        },
+        "showDeprecatedPackages": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Show or hide deprecated packages in 'aspire add' search results",
+          "default": false
+        },
+        "stagingChannelEnabled": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Enable or disable access to the staging channel for early access to preview features and packages",
+          "default": false
+        },
+        "updateNotificationsEnabled": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "string", "enum": ["true", "false"] }
+          ],
+          "description": "Check if update notifications are disabled and set version check environment variable",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "description": "Launch profiles (ports, environment variables). Replaces apphost.run.json.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "applicationUrl": {
+            "description": "Application URLs (e.g., \"https://localhost:17000;http://localhost:15000\").",
+            "type": "string"
+          },
+          "environmentVariables": {
+            "description": "Environment variables for this profile.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "packages": {
+      "description": "Package name to version mapping for non-first-class languages.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Package version"
+      }
+    }
+  },
+  "additionalProperties": false
+}
