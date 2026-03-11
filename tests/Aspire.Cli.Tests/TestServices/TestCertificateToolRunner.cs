@@ -14,6 +14,7 @@ internal sealed class TestCertificateToolRunner : ICertificateToolRunner
 {
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, CertificateTrustResult? Result)>? CheckHttpCertificateMachineReadableAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
+    public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? CleanHttpCertificateAsyncCallback { get; set; }
 
     public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -36,6 +37,13 @@ internal sealed class TestCertificateToolRunner : ICertificateToolRunner
     {
         return TrustHttpCertificateAsyncCallback != null
             ? Task.FromResult(TrustHttpCertificateAsyncCallback(options, cancellationToken))
+            : Task.FromResult(0);
+    }
+
+    public Task<int> CleanHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return CleanHttpCertificateAsyncCallback != null
+            ? Task.FromResult(CleanHttpCertificateAsyncCallback(options, cancellationToken))
             : Task.FromResult(0);
     }
 }

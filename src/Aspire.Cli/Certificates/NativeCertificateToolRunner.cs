@@ -85,6 +85,21 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
         });
     }
 
+    public Task<int> CleanHttpCertificateAsync(
+        DotNetCliRunnerInvocationOptions options,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            certificateManager.CleanupHttpsCertificates();
+            return Task.FromResult(0);
+        }
+        catch
+        {
+            return Task.FromResult(1);
+        }
+    }
+
     private static string[]? GetSanExtension(X509Certificate2 cert)
     {
         var dnsNames = new List<string>();

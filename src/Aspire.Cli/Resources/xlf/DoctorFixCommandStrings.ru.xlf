@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../DoctorFixCommandStrings.resx">
+    <body>
+      <trans-unit id="AllOptionDescription">
+        <source>Fix all identified issues.</source>
+        <target state="new">Fix all identified issues.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplyingCategoryFixes">
+        <source>Applying {0} fixes</source>
+        <target state="new">Applying {0} fixes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingPrerequisites">
+        <source>Checking prerequisites...</source>
+        <target state="new">Checking prerequisites...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Fix identified environment issues.</source>
+        <target state="new">Fix identified environment issues.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EvaluatingCheck">
+        <source>Evaluating {0}...</source>
+        <target state="new">Evaluating {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FixApplied">
+        <source>Fix applied: {0}</source>
+        <target state="new">Fix applied: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FixFailed">
+        <source>Fix failed: {0}</source>
+        <target state="new">Fix failed: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FixResultsHeader">
+        <source>Fix Results</source>
+        <target state="new">Fix Results</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FixingIssues">
+        <source>Applying fixes...</source>
+        <target state="new">Applying fixes...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output format (table or json).</source>
+        <target state="new">Output format (table or json).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoFixableIssues">
+        <source>No fixable issues were identified.</source>
+        <target state="new">No fixable issues were identified.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoIssuesFound">
+        <source>No issues found for '{0}'. No fix needed.</source>
+        <target state="new">No issues found for '{0}'. No fix needed.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryFormat">
+        <source>Summary: {0} applied, {1} failed</source>
+        <target state="new">Summary: {0} applied, {1} failed</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnknownAction">
+        <source>Unknown action '{0}' for '{1}'.</source>
+        <target state="new">Unknown action '{0}' for '{1}'.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

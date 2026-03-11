@@ -85,4 +85,46 @@
   <data name="CheckingPrerequisites" xml:space="preserve">
     <value>Checking Aspire environment...</value>
   </data>
+  <data name="HealCertificatesCommandDescription" xml:space="preserve">
+    <value>Fix HTTPS development certificate issues</value>
+  </data>
+  <data name="HealCertificatesCleanDescription" xml:space="preserve">
+    <value>Clean all development certificates</value>
+  </data>
+  <data name="HealCertificatesTrustDescription" xml:space="preserve">
+    <value>Clean all development certificates and create a new trusted one</value>
+  </data>
+  <data name="HealCertificatesTrustSuccess" xml:space="preserve">
+    <value>HTTPS development certificate trusted successfully</value>
+  </data>
+  <data name="HealCertificatesTrustFailure" xml:space="preserve">
+    <value>Failed to trust HTTPS development certificate</value>
+  </data>
+  <data name="HealCertificatesTrustFailureDetails" xml:space="preserve">
+    <value>Certificate trust operation failed with code {0}</value>
+  </data>
+  <data name="HealCertificatesCleanSuccess" xml:space="preserve">
+    <value>All HTTPS development certificates cleaned successfully</value>
+  </data>
+  <data name="HealCertificatesCleanFailure" xml:space="preserve">
+    <value>Failed to clean HTTPS development certificates</value>
+  </data>
+  <data name="HealCertificatesCleanFailureDetails" xml:space="preserve">
+    <value>Certificate clean operation failed with code {0}</value>
+  </data>
+  <data name="HealCertificatesCleanAndTrustSuccess" xml:space="preserve">
+    <value>Certificates cleaned and new certificate trusted successfully</value>
+  </data>
+  <data name="HealCertificatesCleanAndTrustPartialFailure" xml:space="preserve">
+    <value>Certificates cleaned but failed to trust new certificate</value>
+  </data>
+  <data name="HealUnknownAction" xml:space="preserve">
+    <value>Unknown action: {0}</value>
+  </data>
+  <data name="HealCertificatesCleanProgress" xml:space="preserve">
+    <value>Cleaning development certificates (may require elevated permissions)...</value>
+  </data>
+  <data name="HealCertificatesTrustProgress" xml:space="preserve">
+    <value>Cleaning and trusting development certificate (may prompt for password)...</value>
+  </data>
 </root>

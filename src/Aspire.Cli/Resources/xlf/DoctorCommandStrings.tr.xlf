@@ -32,6 +32,76 @@
         <target state="translated">Aspire Ortamı Kontrolü</target>
         <note />
       </trans-unit>
+      <trans-unit id="HealCertificatesCleanAndTrustPartialFailure">
+        <source>Certificates cleaned but failed to trust new certificate</source>
+        <target state="new">Certificates cleaned but failed to trust new certificate</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanAndTrustSuccess">
+        <source>Certificates cleaned and new certificate trusted successfully</source>
+        <target state="new">Certificates cleaned and new certificate trusted successfully</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanDescription">
+        <source>Clean all development certificates</source>
+        <target state="new">Clean all development certificates</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanFailure">
+        <source>Failed to clean HTTPS development certificates</source>
+        <target state="new">Failed to clean HTTPS development certificates</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanFailureDetails">
+        <source>Certificate clean operation failed with code {0}</source>
+        <target state="new">Certificate clean operation failed with code {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanProgress">
+        <source>Cleaning development certificates (may require elevated permissions)...</source>
+        <target state="new">Cleaning development certificates (may require elevated permissions)...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCleanSuccess">
+        <source>All HTTPS development certificates cleaned successfully</source>
+        <target state="new">All HTTPS development certificates cleaned successfully</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesCommandDescription">
+        <source>Fix HTTPS development certificate issues</source>
+        <target state="new">Fix HTTPS development certificate issues</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesTrustDescription">
+        <source>Clean all development certificates and create a new trusted one</source>
+        <target state="new">Clean all development certificates and create a new trusted one</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesTrustFailure">
+        <source>Failed to trust HTTPS development certificate</source>
+        <target state="new">Failed to trust HTTPS development certificate</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesTrustFailureDetails">
+        <source>Certificate trust operation failed with code {0}</source>
+        <target state="new">Certificate trust operation failed with code {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesTrustProgress">
+        <source>Cleaning and trusting development certificate (may prompt for password)...</source>
+        <target state="new">Cleaning and trusting development certificate (may prompt for password)...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealCertificatesTrustSuccess">
+        <source>HTTPS development certificate trusted successfully</source>
+        <target state="new">HTTPS development certificate trusted successfully</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HealUnknownAction">
+        <source>Unknown action: {0}</source>
+        <target state="new">Unknown action: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="needs-review-translation">Araç tümleştirmesi için sonuçları JSON olarak çıktı</target>

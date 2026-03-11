@@ -11,6 +11,17 @@ public class DevCertsCheckTests
     private const int MinVersion = X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust;
 
     [Fact]
+    public void EvaluateCertificateResults_NoCertificates_ReturnsWarning()
+    {
+        var results = DevCertsCheck.EvaluateCertificateResults([]);
+
+        var devCertsResult = Assert.Single(results);
+        Assert.Equal("dev-certs", devCertsResult.Name);
+        Assert.Equal(EnvironmentCheckStatus.Warning, devCertsResult.Status);
+        Assert.Contains("No HTTPS development certificate found", devCertsResult.Message);
+    }
+
+    [Fact]
     public void EvaluateCertificateResults_MultipleCerts_AllTrusted_ReturnsPass()
     {
         var certs = new List<CertificateInfo>

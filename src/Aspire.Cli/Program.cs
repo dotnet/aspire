@@ -355,7 +355,9 @@ public class Program
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
-        builder.Services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
+        builder.Services.AddSingleton<DevCertsCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck>(sp => sp.GetRequiredService<DevCertsCheck>());
+        builder.Services.AddSingleton<IHealableEnvironmentCheck>(sp => sp.GetRequiredService<DevCertsCheck>());
         builder.Services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
@@ -380,6 +382,7 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<DoctorFixCommand>();
         builder.Services.AddTransient<DoctorCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();

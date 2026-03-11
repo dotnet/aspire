@@ -139,5 +139,131 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CheckingPrerequisites", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fix HTTPS development certificate issues.
+        /// </summary>
+        public static string HealCertificatesCommandDescription {
+            get {
+                return ResourceManager.GetString("HealCertificatesCommandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clean all development certificates.
+        /// </summary>
+        public static string HealCertificatesCleanDescription {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clean all development certificates and create a new trusted one.
+        /// </summary>
+        public static string HealCertificatesTrustDescription {
+            get {
+                return ResourceManager.GetString("HealCertificatesTrustDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTPS development certificate trusted successfully.
+        /// </summary>
+        public static string HealCertificatesTrustSuccess {
+            get {
+                return ResourceManager.GetString("HealCertificatesTrustSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to trust HTTPS development certificate.
+        /// </summary>
+        public static string HealCertificatesTrustFailure {
+            get {
+                return ResourceManager.GetString("HealCertificatesTrustFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificate trust operation failed with code {0}.
+        /// </summary>
+        public static string HealCertificatesTrustFailureDetails {
+            get {
+                return ResourceManager.GetString("HealCertificatesTrustFailureDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All HTTPS development certificates cleaned successfully.
+        /// </summary>
+        public static string HealCertificatesCleanSuccess {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to clean HTTPS development certificates.
+        /// </summary>
+        public static string HealCertificatesCleanFailure {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificate clean operation failed with code {0}.
+        /// </summary>
+        public static string HealCertificatesCleanFailureDetails {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanFailureDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificates cleaned and new certificate trusted successfully.
+        /// </summary>
+        public static string HealCertificatesCleanAndTrustSuccess {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanAndTrustSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificates cleaned but failed to trust new certificate.
+        /// </summary>
+        public static string HealCertificatesCleanAndTrustPartialFailure {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanAndTrustPartialFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown action: {0}.
+        /// </summary>
+        public static string HealUnknownAction {
+            get {
+                return ResourceManager.GetString("HealUnknownAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning development certificates (may require elevated permissions)....
+        /// </summary>
+        public static string HealCertificatesCleanProgress {
+            get {
+                return ResourceManager.GetString("HealCertificatesCleanProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning and trusting development certificate (may prompt for password)....
+        /// </summary>
+        public static string HealCertificatesTrustProgress {
+            get {
+                return ResourceManager.GetString("HealCertificatesTrustProgress", resourceCulture);
+            }
+        }
     }
 }

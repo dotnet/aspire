@@ -251,5 +251,8 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
                 ? Task.FromResult(TrustHttpCertificateAsyncCallback(options, cancellationToken))
                 : Task.FromResult(0);
         }
+
+        public Task<int> CleanHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => Task.FromResult(0);
     }
 }

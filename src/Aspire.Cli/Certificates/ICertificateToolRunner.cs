@@ -18,9 +18,16 @@ internal interface ICertificateToolRunner
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Trusts the HTTPS development certificate.
+    /// Trusts the HTTPS development certificate, creating one if necessary.
     /// </summary>
     Task<int> TrustHttpCertificateAsync(
+        DotNetCliRunnerInvocationOptions options,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes all HTTPS development certificates.
+    /// </summary>
+    Task<int> CleanHttpCertificateAsync(
         DotNetCliRunnerInvocationOptions options,
         CancellationToken cancellationToken);
 }

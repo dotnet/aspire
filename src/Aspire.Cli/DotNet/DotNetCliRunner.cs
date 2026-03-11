@@ -560,21 +560,6 @@ internal sealed class DotNetCliRunner(
         }
     }
 
-    public async Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.StartDiagnosticActivity();
-
-        string[] cliArgs = ["dev-certs", "https", "--trust"];
-        return await ExecuteAsync(
-            args: cliArgs,
-            env: null,
-            projectFile: null,
-            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-    }
-
     public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
