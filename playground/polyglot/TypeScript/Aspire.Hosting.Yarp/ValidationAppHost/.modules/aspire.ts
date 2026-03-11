@@ -8,6 +8,7 @@ import {
     AspireClient as AspireClientRpc,
     Handle,
     MarshalledHandle,
+    AppHostUsageError,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -394,6 +395,10 @@ export interface AppendValueProviderOptions {
 
 export interface GetValueAsyncOptions {
     cancellationToken?: AbortSignal;
+}
+
+export interface PublishAsDockerFileOptions {
+    configure?: (obj: ContainerResource) => Promise<void>;
 }
 
 export interface RunOptions {
@@ -2625,11 +2630,47 @@ export class YarpConfigurationBuilder {
         return new YarpRoutePromise(this._addRouteInternal(path, cluster));
     }
 
-    /** Invokes the AddCluster method */
-    async addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
-        const rpcArgs: Record<string, unknown> = { context: this._handle, endpoint };
+    /** Adds a YARP cluster for an endpoint reference. */
+    async addClusterFromEndpoint(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, endpoint };
         return await this._client.invokeCapability<YarpClusterHandle>(
-            'Aspire.Hosting/IYarpConfigurationBuilder.addCluster',
+            'Aspire.Hosting.Yarp/addClusterFromEndpoint',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster for a resource that supports service discovery. */
+    async addCluster(resource: ResourceBuilderBase): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, resource };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterFromResource',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster for an external service resource. */
+    async addClusterFromExternalService(externalService: ExternalServiceResource): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, externalService };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterFromExternalService',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster with multiple destinations. */
+    async addClusterWithDestinations(clusterName: string, destinations: any[]): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, clusterName, destinations };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterWithDestinations',
+            rpcArgs
+        );
+    }
+
+    /** Adds a YARP cluster with a single destination. */
+    async addClusterWithDestination(clusterName: string, destination: any): Promise<YarpClusterHandle> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, clusterName, destination };
+        return await this._client.invokeCapability<YarpClusterHandle>(
+            'Aspire.Hosting.Yarp/addClusterWithDestination',
             rpcArgs
         );
     }
@@ -2654,9 +2695,29 @@ export class YarpConfigurationBuilderPromise implements PromiseLike<YarpConfigur
         return new YarpRoutePromise(this._promise.then(obj => obj.addRoute(path, cluster)));
     }
 
-    /** Invokes the AddCluster method */
-    addCluster(endpoint: EndpointReference): Promise<YarpClusterHandle> {
-        return this._promise.then(obj => obj.addCluster(endpoint));
+    /** Adds a YARP cluster for an endpoint reference. */
+    addClusterFromEndpoint(endpoint: EndpointReference): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterFromEndpoint(endpoint));
+    }
+
+    /** Adds a YARP cluster for a resource that supports service discovery. */
+    addCluster(resource: ResourceBuilderBase): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addCluster(resource));
+    }
+
+    /** Adds a YARP cluster for an external service resource. */
+    addClusterFromExternalService(externalService: ExternalServiceResource): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterFromExternalService(externalService));
+    }
+
+    /** Adds a YARP cluster with multiple destinations. */
+    addClusterWithDestinations(clusterName: string, destinations: any[]): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterWithDestinations(clusterName, destinations));
+    }
+
+    /** Adds a YARP cluster with a single destination. */
+    addClusterWithDestination(clusterName: string, destination: any): Promise<YarpClusterHandle> {
+        return this._promise.then(obj => obj.addClusterWithDestination(clusterName, destination));
     }
 
 }
@@ -5227,6 +5288,28 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
+    private async _publishAsDockerFileInternal(configure?: (obj: ContainerResource) => Promise<void>): Promise<CSharpAppResource> {
+        const configureId = configure ? registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ContainerResourceHandle;
+            const obj = new ContainerResource(objHandle, this._client);
+            await configure(obj);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/publishProjectAsDockerFileWithConfigure',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        const configure = options?.configure;
+        return new CSharpAppResourcePromise(this._publishAsDockerFileInternal(configure));
+    }
+
+    /** @internal */
     private async _withRequiredCommandInternal(command: string, helpLink?: string): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
         if (helpLink !== undefined) rpcArgs.helpLink = helpLink;
@@ -6230,6 +6313,11 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     /** Disables forwarded headers for the project */
     disableForwardedHeaders(): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.disableForwardedHeaders()));
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.publishAsDockerFile(options)));
     }
 
     /** Adds a required command dependency */
@@ -15377,7 +15465,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -15391,7 +15479,9 @@ export { refExpr, ReferenceExpression } from './base.js';
 process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
-    if (reason instanceof CapabilityError) {
+    if (reason instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else if (reason instanceof CapabilityError) {
         console.error(`\n❌ Capability Error: ${error.message}`);
         console.error(`   Code: ${(reason as CapabilityError).code}`);
         if ((reason as CapabilityError).capability) {
@@ -15408,8 +15498,12 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 process.on('uncaughtException', (error: Error) => {
-    console.error(`\n❌ Uncaught Exception: ${error.message}`);
-    if (error.stack) {
+    if (error instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else {
+        console.error(`\n❌ Uncaught Exception: ${error.message}`);
+    }
+    if (!(error instanceof AppHostUsageError) && error.stack) {
         console.error(error.stack);
     }
     process.exit(1);

@@ -702,6 +702,17 @@ impl CSharpAppResource {
         Ok(ProjectResource::new(handle, self.client.clone()))
     }
 
+    /// Publishes a project as a Docker file with optional container configuration
+    pub fn publish_as_docker_file(&self, configure: impl Fn(Vec<Value>) -> Value + Send + Sync + 'static) -> Result<ProjectResource, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("builder".to_string(), self.handle.to_json());
+        let callback_id = register_callback(configure);
+        args.insert("configure".to_string(), Value::String(callback_id));
+        let result = self.client.invoke_capability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(ProjectResource::new(handle, self.client.clone()))
+    }
+
     /// Adds a required command dependency
     pub fn with_required_command(&self, command: &str, help_link: Option<&str>) -> Result<IResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();

@@ -7,6 +7,7 @@ const buildSecret = await builder.addParameterFromConfiguration("buildSecret", "
 const staticFilesSource = await builder.addContainer("static-files-source", "nginx");
 const backend = await builder.addContainer("backend", "nginx")
     .withHttpEndpoint({ name: "http", targetPort: 80 });
+const externalBackend = await builder.addExternalService("external-backend", "https://example.com");
 
 const proxy = await builder.addYarp("proxy")
     .withHostPort({ port: 8080 })
@@ -24,9 +25,16 @@ await proxy.withBuildSecret("MY_SECRET", buildSecret);
 
 await proxy.withConfiguration(async (config) => {
     const endpoint = await backend.getEndpoint("http");
-    const cluster = await config.addCluster(endpoint);
+    const endpointCluster = await config.addClusterFromEndpoint(endpoint);
+    const resourceCluster = await config.addCluster(backend);
+    const externalServiceCluster = await config.addClusterFromExternalService(externalBackend);
+    const singleDestinationCluster = await config.addClusterWithDestination("single-destination", "https://example.net");
+    const multiDestinationCluster = await config.addClusterWithDestinations("multi-destination", [
+        "https://example.org",
+        "https://example.edu"
+    ]);
 
-    await config.addRoute("/{**catchall}", cluster)
+    await config.addRoute("/{**catchall}", endpointCluster)
         .withTransformXForwarded()
         .withTransformForwarded()
         .withTransformClientCertHeader("X-Client-Cert")
@@ -52,6 +60,11 @@ await proxy.withConfiguration(async (config) => {
         .withTransformResponseTrailer("X-Response-Trailer", "trailer-value")
         .withTransformResponseTrailerRemove("X-Remove-Trailer")
         .withTransformResponseTrailersAllowed(["X-Response-Trailer"]);
+
+    await config.addRoute("/resource/{**catchall}", resourceCluster);
+    await config.addRoute("/external/{**catchall}", externalServiceCluster);
+    await config.addRoute("/single/{**catchall}", singleDestinationCluster);
+    await config.addRoute("/multi/{**catchall}", multiDestinationCluster);
 });
 
 await proxy.publishAsConnectionString();

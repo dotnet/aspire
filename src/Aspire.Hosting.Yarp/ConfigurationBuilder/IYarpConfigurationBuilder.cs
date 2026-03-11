@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Interface to build a configuration file for YARP
 /// </summary>
-[AspireExport]
+[AspireExport(ExposeMethods = true)]
 public interface IYarpConfigurationBuilder
 {
     /// <summary>
@@ -18,7 +18,6 @@ public interface IYarpConfigurationBuilder
     /// <param name="path">The path to match for this route.</param>
     /// <param name="cluster">The target cluster for this route.</param>
     /// <returns></returns>
-    [AspireExport("addRoute", Description = "Add a new route to YARP that will target the cluster in parameter.")]
     public YarpRoute AddRoute(string path, YarpCluster cluster);
 
     /// <summary>
@@ -65,7 +64,7 @@ public interface IYarpConfigurationBuilder
     /// <param name="destination">The destinations used by this cluster.</param>
     /// <returns></returns>
     /// <remarks>This overload is not available in polyglot app hosts. Use the <c>addClusterWithDestination</c> helper instead.</remarks>
-    [AspireExportIgnore(Reason = "Use the AddClusterWithDestination method instead.")]
+    [AspireExportIgnore(Reason = "Use the addClusterWithDestination method instead.")]
     public YarpCluster AddCluster(string clusterName, object destination)
     {
         return AddCluster(clusterName, [destination]);
