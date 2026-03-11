@@ -12,6 +12,8 @@ namespace Aspire.Hosting;
 /// </summary>
 internal static class ProjectBuildHelper
 {
+    private const int MaxRetries = 3;
+
     /// <summary>
     /// Queries MSBuild for the set of source files and dependencies that form a project's compilation closure.
     /// </summary>
@@ -23,47 +25,17 @@ internal static class ProjectBuildHelper
     {
         try
         {
-            var outputLines = new List<string>();
-            var spec = new ProcessSpec("dotnet")
-            {
-                Arguments = $"msbuild -getItem:Compile,ProjectReference \"{projectPath}\"",
-                WorkingDirectory = Path.GetDirectoryName(projectPath),
-                OnOutputData = output =>
-                {
-                    if (!string.IsNullOrWhiteSpace(output))
-                    {
-                        outputLines.Add(output.Trim());
-                    }
-                },
-                OnErrorData = error => logger.LogDebug("dotnet msbuild (stderr): {Error}", error),
-                ThrowOnNonZeroReturnCode = false
-            };
+            var json = await EvaluateMSBuildAsync(projectPath, logger, cancellationToken).ConfigureAwait(false);
 
-            logger.LogDebug("Getting project file closure for {ProjectPath}", projectPath);
-            var (pendingResult, processDisposable) = ProcessUtil.Run(spec);
-
-            await using (processDisposable.ConfigureAwait(false))
-            {
-                var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                if (result.ExitCode != 0)
-                {
-                    logger.LogDebug("Failed to get file closure from dotnet msbuild for project {ProjectPath}. Exit code: {ExitCode}",
-                        projectPath, result.ExitCode);
-                    return null;
-                }
-            }
-
-            var allOutput = string.Join('\n', outputLines);
             var projectDir = Path.GetDirectoryName(projectPath)!;
             var fileTimestamps = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
 
-            // Add the project file itself.
+            // Always track the project file itself.
             RecordFileTimestamp(fileTimestamps, projectPath);
 
-            // Parse the JSON output from MSBuild -getItem.
-            if (TryParseItems(allOutput, projectDir, fileTimestamps, logger))
+            if (json is not null)
             {
+                ParseEvaluationOutput(json, projectDir, fileTimestamps, logger);
                 logger.LogDebug("Captured file closure for {ProjectPath}: {FileCount} files", projectPath, fileTimestamps.Count);
             }
             else
@@ -87,45 +59,138 @@ internal static class ProjectBuildHelper
         }
     }
 
-    private static bool TryParseItems(string jsonOutput, string projectDir, Dictionary<string, DateTime> fileTimestamps, ILogger logger)
+    /// <summary>
+    /// Runs <c>dotnet msbuild -getItem:Compile,ProjectReference -getProperty:MSBuildVersion</c> against the project.
+    /// Includes retry logic for MSBuild server contention (empty output on success).
+    /// </summary>
+    private static async Task<JsonDocument?> EvaluateMSBuildAsync(string projectPath, ILogger logger, CancellationToken cancellationToken)
+    {
+        // Use -getProperty:MSBuildVersion as a workaround for MSBuild bug #12490 — a single property
+        // query doesn't produce valid JSON output. MSBuildVersion is harmless and always present.
+        var arguments = $"msbuild -getItem:Compile,ProjectReference -getProperty:MSBuildVersion \"{projectPath}\"";
+
+        for (var attempt = 0; attempt < MaxRetries; attempt++)
+        {
+            var outputLines = new List<string>();
+            var errorLines = new List<string>();
+
+            var spec = new ProcessSpec("dotnet")
+            {
+                Arguments = arguments,
+                WorkingDirectory = Path.GetDirectoryName(projectPath),
+                OnOutputData = output =>
+                {
+                    if (!string.IsNullOrWhiteSpace(output))
+                    {
+                        outputLines.Add(output);
+                    }
+                },
+                OnErrorData = error =>
+                {
+                    if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        errorLines.Add(error);
+                    }
+                },
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            logger.LogDebug("Evaluating MSBuild for {ProjectPath} (attempt {Attempt}/{MaxRetries})", projectPath, attempt + 1, MaxRetries);
+            var (pendingResult, processDisposable) = ProcessUtil.Run(spec);
+
+            ProcessResult result;
+            await using (processDisposable.ConfigureAwait(false))
+            {
+                result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            if (result.ExitCode != 0)
+            {
+                logger.LogDebug("dotnet msbuild evaluation failed for {ProjectPath}. Exit code: {ExitCode}. Stderr: {Stderr}",
+                    projectPath, result.ExitCode, string.Join('\n', errorLines));
+                return null;
+            }
+
+            var stdout = string.Join('\n', outputLines);
+
+            if (string.IsNullOrWhiteSpace(stdout))
+            {
+                // MSBuild server contention can produce exit code 0 but no output. Retry.
+                if (attempt < MaxRetries - 1)
+                {
+                    logger.LogDebug(
+                        "dotnet msbuild returned exit code 0 but produced no output (attempt {Attempt}/{MaxRetries}). Retrying after delay.",
+                        attempt + 1, MaxRetries);
+                    await Task.Delay(TimeSpan.FromSeconds(attempt + 1), cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                logger.LogDebug("dotnet msbuild returned exit code 0 but produced no output after {MaxRetries} attempts.", MaxRetries);
+                return null;
+            }
+
+            try
+            {
+                return JsonDocument.Parse(stdout);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogDebug(ex, "Failed to parse MSBuild JSON output for {ProjectPath}", projectPath);
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static void ParseEvaluationOutput(JsonDocument doc, string projectDir, Dictionary<string, DateTime> fileTimestamps, ILogger logger)
     {
         try
         {
-            using var doc = JsonDocument.Parse(jsonOutput);
-
             if (doc.RootElement.TryGetProperty("Items", out var items))
             {
-                ParseItemGroup(items, "Compile", projectDir, fileTimestamps);
-                ParseItemGroup(items, "ProjectReference", projectDir, fileTimestamps);
-            }
-
-            return true;
-        }
-        catch (JsonException ex)
-        {
-            logger.LogDebug(ex, "Failed to parse MSBuild JSON output");
-            return false;
-        }
-    }
-
-    private static void ParseItemGroup(JsonElement items, string itemType, string projectDir, Dictionary<string, DateTime> fileTimestamps)
-    {
-        if (!items.TryGetProperty(itemType, out var itemArray) || itemArray.ValueKind != JsonValueKind.Array)
-        {
-            return;
-        }
-
-        foreach (var item in itemArray.EnumerateArray())
-        {
-            if (item.TryGetProperty("Identity", out var identity))
-            {
-                var relativePath = identity.GetString();
-                if (!string.IsNullOrEmpty(relativePath))
+                // Compile items use Identity (relative path).
+                if (items.TryGetProperty("Compile", out var compileItems) && compileItems.ValueKind == JsonValueKind.Array)
                 {
-                    var fullPath = Path.GetFullPath(relativePath, projectDir);
-                    RecordFileTimestamp(fileTimestamps, fullPath);
+                    foreach (var item in compileItems.EnumerateArray())
+                    {
+                        var path = item.TryGetProperty("FullPath", out var fullPath)
+                            ? fullPath.GetString()
+                            : item.TryGetProperty("Identity", out var identity)
+                                ? identity.GetString()
+                                : null;
+
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            var absolutePath = Path.IsPathRooted(path) ? path : Path.GetFullPath(path, projectDir);
+                            RecordFileTimestamp(fileTimestamps, absolutePath);
+                        }
+                    }
+                }
+
+                // ProjectReference items use FullPath (absolute) when available.
+                if (items.TryGetProperty("ProjectReference", out var projRefItems) && projRefItems.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in projRefItems.EnumerateArray())
+                    {
+                        var path = item.TryGetProperty("FullPath", out var fullPath)
+                            ? fullPath.GetString()
+                            : item.TryGetProperty("Identity", out var identity)
+                                ? identity.GetString()
+                                : null;
+
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            var absolutePath = Path.IsPathRooted(path) ? path : Path.GetFullPath(path, projectDir);
+                            RecordFileTimestamp(fileTimestamps, absolutePath);
+                        }
+                    }
                 }
             }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogDebug(ex, "Error parsing MSBuild evaluation output");
         }
     }
 
