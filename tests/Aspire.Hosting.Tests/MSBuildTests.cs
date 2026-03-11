@@ -139,12 +139,7 @@ public class MSBuildTests
             });
     }
 
-    private static void CreateDirectoryBuildFiles(
-        string basePath,
-        string repoRoot,
-        bool enableAspireHostingAnalyzers = false,
-        bool useAnalyzerProjectReference = false,
-        string? analyzerAssemblyPath = null)
+    private static void CreateDirectoryBuildFiles(string basePath, string repoRoot)
     {
 #if DEBUG
         var config = "Debug";
@@ -156,9 +151,7 @@ public class MSBuildTests
         $"""
         <Project>
           <PropertyGroup>
-            <RepoRoot>{repoRoot}\</RepoRoot>
             <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
-            <EnableAspireHostingAnalyzers>{enableAspireHostingAnalyzers.ToString().ToLowerInvariant()}</EnableAspireHostingAnalyzers>
           </PropertyGroup>
 
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
@@ -169,17 +162,7 @@ public class MSBuildTests
         <Project>
           <PropertyGroup>
             <_AspireTasksAssembly>{repoRoot}\artifacts\bin\Aspire.Hosting.Tasks\{config}\net8.0\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
-            <_AspireHostingAnalyzerAssembly Condition="'$(EnableAspireHostingAnalyzers)' == 'true' and '{analyzerAssemblyPath}' != ''">{analyzerAssemblyPath}</_AspireHostingAnalyzerAssembly>
           </PropertyGroup>
-
-          <ItemGroup Condition="'$(EnableAspireHostingAnalyzers)' == 'true' and '{useAnalyzerProjectReference.ToString().ToLowerInvariant()}' == 'true'">
-            <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
-                              IsAspireProjectResource="false"
-                              PrivateAssets="all"
-                              ReferenceOutputAssembly="false"
-                              OutputItemType="Analyzer"
-                              SetTargetFramework="TargetFramework=netstandard2.0" />
-          </ItemGroup>
 
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
           <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
