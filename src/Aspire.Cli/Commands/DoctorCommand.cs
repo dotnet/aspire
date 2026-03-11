@@ -121,7 +121,7 @@ internal sealed class DoctorCommand : BaseCommand
         // Show link to detailed prerequisites if there are warnings or failures
         if (warnings > 0 || failed > 0)
         {
-            _ansiConsole.MarkupLine($"[dim]{DoctorCommandStrings.DetailedPrerequisitesLink}[/]");
+            _ansiConsole.MarkupLine(DoctorCommandStrings.DetailedPrerequisitesLink);
         }
     }
 
@@ -148,23 +148,24 @@ internal sealed class DoctorCommand : BaseCommand
             var detailGrid = new Grid();
             detailGrid.AddColumn();
 
-            if (hasDetails)
-            {
-                detailGrid.AddRow(new Markup($"[dim]{result.Details!.EscapeMarkup()}[/]"));
-            }
-
             if (hasFix)
             {
                 var fixLines = result.Fix!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var line in fixLines)
                 {
-                    detailGrid.AddRow(new Markup($"[dim]{line.Trim().EscapeMarkup()}[/]"));
+                    detailGrid.AddRow(new Markup($"{line.Trim().EscapeMarkup()}"));
                 }
             }
 
             if (hasLink)
             {
-                detailGrid.AddRow(new Markup($"[dim]See: {result.Link!.EscapeMarkup()}[/]"));
+                detailGrid.AddRow(new Markup($"See: {result.Link!.EscapeMarkup()}"));
+            }
+
+            if (hasDetails)
+            {
+                detailGrid.AddRow(new Markup($"[dim]Details:[/]"));
+                detailGrid.AddRow(new Markup($"[dim]{result.Details!.EscapeMarkup()}[/]"));
             }
 
             _ansiConsole.Write(new Padder(detailGrid, new Padding(7, 0)));

@@ -76,7 +76,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -151,7 +151,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -234,7 +234,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Simulate adding the package.
                     return 0; // Success.
@@ -314,7 +314,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     addedPackageName = packageName;
                     addedPackageVersion = packageVersion;
@@ -381,7 +381,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                         );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     // Capture the source used for add
                     addUsedSource = nugetSource;
@@ -501,7 +501,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     return (0, new NuGetPackage[] { dockerPackage, redisPackage });
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     return 0; // Success.
                 };
@@ -723,7 +723,7 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
                     return (0, new NuGetPackage[] { redisPackage });
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     selectedPackageId = packageName;
                     return 0;
@@ -744,73 +744,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
         Assert.Equal("Aspire.Hosting.Redis", selectedPackageId);
-    }
-
-    [Fact]
-    public async Task AddCommand_WithHives_PrefersImplicitChannelVersionInNonInteractiveMode()
-    {
-        // Arrange
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        var hivesDir = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "hives"));
-        hivesDir.Create();
-        hivesDir.CreateSubdirectory("pr-12345");
-
-        var selectedPackageVersion = string.Empty;
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = _ => new TestProjectLocator();
-
-            options.InteractionServiceFactory = _ => new TestInteractionService()
-            {
-                PromptForSelectionCallback = (message, choices, formatter, ct) => choices.Cast<object>().First()
-            };
-
-            options.DotNetCliRunnerFactory = (sp) =>
-            {
-                var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, invocationOptions, cancellationToken) =>
-                {
-                    var implicitPackage = new NuGetPackage
-                    {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "implicit",
-                        Version = "13.2.0-pr.12345.gabc"
-                    };
-
-                    var explicitPackage = new NuGetPackage
-                    {
-                        Id = "Aspire.Hosting.Redis",
-                        Source = "explicit",
-                        Version = "13.3.0-preview.1.1"
-                    };
-
-                    return nugetSource is null
-                        ? (0, new[] { implicitPackage })
-                        : (0, new[] { explicitPackage });
-                };
-
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, invocationOptions, cancellationToken) =>
-                {
-                    selectedPackageVersion = packageVersion;
-                    return 0;
-                };
-
-                return runner;
-            };
-        });
-
-        var provider = services.BuildServiceProvider();
-
-        // Act
-        var command = provider.GetRequiredService<AddCommand>();
-        var result = command.Parse("add redis");
-        var exitCode = await result.InvokeAsync().DefaultTimeout();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Equal("13.2.0-pr.12345.gabc", selectedPackageVersion);
     }
 }
 
@@ -897,7 +830,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     addedPackage = packageName;
                     return 0; // Success.
@@ -983,7 +916,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     return 0; // Success.
                 };
@@ -1052,7 +985,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
                     );
                 };
 
-                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
                 {
                     addedPackage = packageName;
                     return 0; // Success.
