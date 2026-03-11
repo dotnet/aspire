@@ -180,7 +180,7 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(skillFilePath));
         var content = await File.ReadAllTextAsync(skillFilePath);
         Assert.Contains("# Aspire Skill", content);
-        Assert.Contains("Running Aspire in agent environments", content);
+        Assert.Contains("aspire start --isolated", content);
     }
 
     [Fact]

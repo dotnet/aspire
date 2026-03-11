@@ -246,6 +246,38 @@ public class AtsCapabilityScannerTests
         }
     }
 
+    [Fact]
+    public void ScanAssembly_YarpWithConfiguration_UsesBackgroundThreadOptIn()
+    {
+        var yarpAssembly = typeof(global::Aspire.Hosting.Yarp.YarpResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssembly(yarpAssembly);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/withConfiguration", StringComparison.Ordinal));
+        var withConfigurationMethod = Assert.Single(result.Methods,
+            m => m.Key.EndsWith("/withConfiguration", StringComparison.Ordinal)).Value;
+
+        Assert.True(capability.RunSyncOnBackgroundThread);
+        Assert.Equal(typeof(IResourceBuilder<global::Aspire.Hosting.Yarp.YarpResource>), withConfigurationMethod.ReturnType);
+
+        var parameters = withConfigurationMethod.GetParameters();
+        Assert.Equal(2, parameters.Length);
+        Assert.Equal(typeof(IResourceBuilder<global::Aspire.Hosting.Yarp.YarpResource>), parameters[0].ParameterType);
+        Assert.Equal(typeof(Action<global::Aspire.Hosting.IYarpConfigurationBuilder>), parameters[1].ParameterType);
+    }
+
+    [Fact]
+    public void ScanAssembly_ClassLevelBackgroundThreadOptIn_AppliesToExportedMethods()
+    {
+        var result = AtsCapabilityScanner.ScanAssembly(typeof(AtsCapabilityScannerTests).Assembly);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/classLevelBackgroundThreadProbe", StringComparison.Ordinal));
+
+        Assert.True(capability.RunSyncOnBackgroundThread);
+    }
+
     #endregion
 
     #region Test Types
@@ -281,6 +313,138 @@ public class AtsCapabilityScannerTests
             _ = callback;
             return builder;
         }
+    }
+
+    [AspireExport(RunSyncOnBackgroundThread = true)]
+    private static class ClassLevelBackgroundThreadExports
+    {
+        [AspireExport("classLevelBackgroundThreadProbe")]
+        public static void Probe(IDistributedApplicationBuilder builder)
+        {
+            _ = builder;
+        }
+    }
+
+    #endregion
+
+    #region XML Documentation Extraction Tests
+
+    [Fact]
+    public void GetXmlDocSummary_ReturnsNull_WhenDocIsNull()
+    {
+        var result = AtsCapabilityScanner.GetXmlDocSummary(null, "T:Some.Type");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetXmlDocSummary_ReturnsNull_WhenMemberNotFound()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse("""
+            <?xml version="1.0"?>
+            <doc>
+              <members>
+                <member name="T:Some.OtherType">
+                  <summary>Other type.</summary>
+                </member>
+              </members>
+            </doc>
+            """);
+
+        var result = AtsCapabilityScanner.GetXmlDocSummary(doc, "T:Some.Type");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetXmlDocSummary_ExtractsTypeSummary()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse("""
+            <?xml version="1.0"?>
+            <doc>
+              <members>
+                <member name="T:Some.MyDto">
+                  <summary>Options for creating a builder.</summary>
+                </member>
+              </members>
+            </doc>
+            """);
+
+        var result = AtsCapabilityScanner.GetXmlDocSummary(doc, "T:Some.MyDto");
+
+        Assert.Equal("Options for creating a builder.", result);
+    }
+
+    [Fact]
+    public void GetXmlDocSummary_ExtractsPropertySummary()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse("""
+            <?xml version="1.0"?>
+            <doc>
+              <members>
+                <member name="P:Some.MyDto.Name">
+                  <summary>The resource name.</summary>
+                </member>
+              </members>
+            </doc>
+            """);
+
+        var result = AtsCapabilityScanner.GetXmlDocSummary(doc, "P:Some.MyDto.Name");
+
+        Assert.Equal("The resource name.", result);
+    }
+
+    [Fact]
+    public void GetXmlDocSummary_NormalizesMultilineWhitespace()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse("""
+            <?xml version="1.0"?>
+            <doc>
+              <members>
+                <member name="T:Some.MyDto">
+                  <summary>
+                    Options for creating
+                    a distributed application builder.
+                  </summary>
+                </member>
+              </members>
+            </doc>
+            """);
+
+        var result = AtsCapabilityScanner.GetXmlDocSummary(doc, "T:Some.MyDto");
+
+        Assert.Equal("Options for creating a distributed application builder.", result);
+    }
+
+    [Fact]
+    public void GetXmlDocSummary_ReturnsNull_WhenSummaryIsEmpty()
+    {
+        var doc = System.Xml.Linq.XDocument.Parse("""
+            <?xml version="1.0"?>
+            <doc>
+              <members>
+                <member name="T:Some.MyDto">
+                  <summary>   </summary>
+                </member>
+              </members>
+            </doc>
+            """);
+
+        var result = AtsCapabilityScanner.GetXmlDocSummary(doc, "T:Some.MyDto");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void LoadXmlDocumentation_ReturnsCachedResult()
+    {
+        // Loading for the same assembly twice should return the same object
+        var assembly = typeof(DistributedApplication).Assembly;
+        var first = AtsCapabilityScanner.LoadXmlDocumentation(assembly);
+        var second = AtsCapabilityScanner.LoadXmlDocumentation(assembly);
+
+        Assert.NotNull(first);
+        Assert.Same(first, second);
     }
 
     #endregion

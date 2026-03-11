@@ -83,7 +83,7 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     /// <summary>
     /// Gets the pipeline summary passed to <see cref="CompletePublishAsync(PublishCompletionOptions?, CancellationToken)"/>.
     /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; private set; }
+    public IReadOnlyList<PipelineSummaryItem>? PipelineSummary { get; private set; }
 
     /// <summary>
     /// Clears all captured state to allow reuse between pipeline runs.
@@ -127,7 +127,7 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
         CompletionMessage = options?.CompletionMessage;
         ResultCompletionState = options?.CompletionState;
         PipelineSummary = options?.PipelineSummary;
-        var summaryStr = options?.PipelineSummary != null ? string.Join(", ", options.PipelineSummary.Select(kvp => $"{kvp.Key}={kvp.Value}")) : null;
+        var summaryStr = options?.PipelineSummary != null ? string.Join(", ", options.PipelineSummary.Select(item => $"{item.Key}={item.Value}")) : null;
         _testOutputHelper.WriteLine($"[CompletePublish] {options?.CompletionMessage} (State: {options?.CompletionState}) (Summary: {summaryStr})");
 
         return Task.CompletedTask;
@@ -203,6 +203,37 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
                 _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
             }
         }
+
+        public void Log(LogLevel logLevel, string message)
+        {
+            lock (_reporter.LoggedMessages)
+            {
+                _reporter.LoggedMessages.Add((_title, logLevel, message));
+                _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message}");
+            }
+        }
+
+        public void Log(LogLevel logLevel, MarkdownString message)
+        {
+            ArgumentNullException.ThrowIfNull(message);
+            lock (_reporter.LoggedMessages)
+            {
+                _reporter.LoggedMessages.Add((_title, logLevel, message.Value));
+                _testOutputHelper.WriteLine($"    [{logLevel}:{_title}] {message.Value}");
+            }
+        }
+
+        public Task<IReportingTask> CreateTaskAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(statusText);
+            return CreateTaskAsync(statusText.Value, cancellationToken);
+        }
+
+        public Task CompleteAsync(MarkdownString completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(completionText);
+            return CompleteAsync(completionText.Value, completionState, cancellationToken);
+        }
     }
 
     private sealed class TestReportingTask : IReportingTask
@@ -240,6 +271,18 @@ internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
             }
 
             return Task.CompletedTask;
+        }
+
+        public Task UpdateAsync(MarkdownString statusText, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(statusText);
+            return UpdateAsync(statusText.Value, cancellationToken);
+        }
+
+        public Task CompleteAsync(MarkdownString completionMessage, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(completionMessage);
+            return CompleteAsync(completionMessage.Value, completionState, cancellationToken);
         }
     }
 }

@@ -170,6 +170,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
 
         var packages = packageRefs.Select(r => (r.Name, r.Version!)).ToList();
         var sources = await GetNuGetSourcesAsync(channelName, cancellationToken);
+
         var appHostDirectory = Path.GetDirectoryName(_appPath);
 
         return await _nugetService.RestorePackagesAsync(

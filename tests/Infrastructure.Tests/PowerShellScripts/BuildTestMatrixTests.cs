@@ -441,6 +441,136 @@ public class BuildTestMatrixTests : IDisposable
         }
     }
 
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task PassesThroughRunnersForRegularTests()
+    {
+        // Arrange
+        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "CustomRunner.tests-metadata.json"),
+            projectName: "CustomRunner",
+            testProjectPath: "tests/CustomRunner/CustomRunner.csproj",
+            runners: new Dictionary<string, string> { ["macos"] = "macos-latest-xlarge" });
+
+        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+
+        // Act
+        var result = await RunScript(artifactsDir, outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var matrix = ParseCanonicalMatrix(outputFile);
+        var entry = Assert.Single(matrix.Tests);
+        Assert.NotNull(entry.Runners);
+        Assert.Single(entry.Runners);
+        Assert.Equal("macos-latest-xlarge", entry.Runners["macos"]);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task OmitsRunnersWhenNotSet()
+    {
+        // Arrange
+        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "NoRunner.tests-metadata.json"),
+            projectName: "NoRunner",
+            testProjectPath: "tests/NoRunner/NoRunner.csproj");
+
+        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+
+        // Act
+        var result = await RunScript(artifactsDir, outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var matrix = ParseCanonicalMatrix(outputFile);
+        var entry = Assert.Single(matrix.Tests);
+        Assert.Null(entry.Runners);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task PassesThroughRunnersForPartitionEntries()
+    {
+        // Arrange
+        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        TestDataBuilder.CreateSplitTestsMetadataJson(
+            Path.Combine(artifactsDir, "SplitRunner.tests-metadata.json"),
+            projectName: "SplitRunner",
+            testProjectPath: "tests/SplitRunner/SplitRunner.csproj",
+            shortName: "SplitR",
+            runners: new Dictionary<string, string> { ["linux"] = "ubuntu-24.04" });
+
+        TestDataBuilder.CreateTestsPartitionsJson(
+            Path.Combine(artifactsDir, "SplitRunner.tests-partitions.json"),
+            "PartA");
+
+        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+
+        // Act
+        var result = await RunScript(artifactsDir, outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var matrix = ParseCanonicalMatrix(outputFile);
+        // All entries (partition + uncollected) should inherit the runners
+        foreach (var entry in matrix.Tests)
+        {
+            Assert.NotNull(entry.Runners);
+            Assert.Equal("ubuntu-24.04", entry.Runners["linux"]);
+        }
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task PassesThroughRunnersForClassEntries()
+    {
+        // Arrange
+        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        TestDataBuilder.CreateSplitTestsMetadataJson(
+            Path.Combine(artifactsDir, "ClassRunner.tests-metadata.json"),
+            projectName: "ClassRunner",
+            testProjectPath: "tests/ClassRunner/ClassRunner.csproj",
+            shortName: "ClassR",
+            runners: new Dictionary<string, string>
+            {
+                ["windows"] = "windows-2022",
+                ["macos"] = "macos-latest-xlarge"
+            });
+
+        TestDataBuilder.CreateClassBasedPartitionsJson(
+            Path.Combine(artifactsDir, "ClassRunner.tests-partitions.json"),
+            "Ns.ClassA");
+
+        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+
+        // Act
+        var result = await RunScript(artifactsDir, outputFile);
+
+        // Assert
+        result.EnsureSuccessful();
+
+        var matrix = ParseCanonicalMatrix(outputFile);
+        var entry = Assert.Single(matrix.Tests);
+        Assert.NotNull(entry.Runners);
+        Assert.Equal(2, entry.Runners.Count);
+        Assert.Equal("windows-2022", entry.Runners["windows"]);
+        Assert.Equal("macos-latest-xlarge", entry.Runners["macos"]);
+    }
+
     private async Task<CommandResult> RunScript(string artifactsDir, string outputFile)
     {
         using var cmd = new PowerShellCommand(_scriptPath, _output)

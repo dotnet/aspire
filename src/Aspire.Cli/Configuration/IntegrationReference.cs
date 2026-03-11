@@ -6,7 +6,6 @@ namespace Aspire.Cli.Configuration;
 /// <summary>
 /// Represents a reference to an Aspire hosting integration, which can be either
 /// a NuGet package (with a version) or a local project reference (with a path to a .csproj).
-/// Exactly one of <see cref="Version"/> or <see cref="ProjectPath"/> must be non-null.
 /// </summary>
 internal sealed class IntegrationReference
 {
@@ -60,4 +59,5 @@ internal sealed class IntegrationReference
 
         return new IntegrationReference { Name = name, ProjectPath = projectPath };
     }
+
 }

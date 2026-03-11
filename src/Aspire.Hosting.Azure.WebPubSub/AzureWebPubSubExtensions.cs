@@ -157,6 +157,8 @@ public static class AzureWebPubSubExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="hubName">The hub name. Hub name is case-insensitive.</param>
     /// <returns></returns>
+    /// <remarks>This overload is not available in polyglot app hosts. Use the named hub overload instead.</remarks>
+    [AspireExportIgnore(Reason = "Use the AddHub overload with the optional hubName parameter instead.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddHub(this IResourceBuilder<AzureWebPubSubResource> builder, [ResourceName] string hubName)
     {
         return AddHub(builder, hubName, hubName);
@@ -197,8 +199,9 @@ public static class AzureWebPubSubExtensions
     /// <param name="systemEvents">The system events for the event handler.</param>
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    [AspireExport("addEventHandler1", MethodName = "addEventHandler", Description = "Adds an event handler to an Azure Web PubSub hub.")]
+    /// <remarks>This overload is not available in polyglot app hosts. Configure Web PubSub event handlers without auth settings in polyglot app hosts.</remarks>
+    #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    [AspireExportIgnore(Reason = "ExpressionInterpolatedStringHandler and UpstreamAuthSettings are not ATS-compatible. Use the polyglot overload without auth settings instead.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
         this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
@@ -223,8 +226,9 @@ public static class AzureWebPubSubExtensions
     /// <param name="systemEvents">The system events for the event handler.</param>
     /// <param name="authSettings">The auth settings configured for the event handler.</param>
     /// <returns></returns>
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    [AspireExport("addEventHandler2", MethodName = "addEventHandler", Description = "Adds an event handler to an Azure Web PubSub hub.")]
+    /// <remarks>This overload is not available in polyglot app hosts. Configure Web PubSub event handlers without auth settings in polyglot app hosts.</remarks>
+    #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    [AspireExportIgnore(Reason = "UpstreamAuthSettings is not ATS-compatible. Use the polyglot overload without auth settings instead.")]
     public static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandler(
         this IResourceBuilder<AzureWebPubSubHubResource> builder,
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
@@ -239,6 +243,24 @@ public static class AzureWebPubSubExtensions
 
         builder.Resource.EventHandlers.Add((urlExpression, userEventPattern, systemEvents, authSettings));
         return builder;
+    }
+
+    /// <summary>
+    /// Adds an event handler to an Azure Web PubSub hub.
+    /// </summary>
+    /// <param name="builder">The builder for a Web PubSub hub.</param>
+    /// <param name="urlExpression">The expression to evaluate the URL template configured for the event handler.</param>
+    /// <param name="userEventPattern">The user event pattern for the event handler.</param>
+    /// <param name="systemEvents">The system events for the event handler.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureWebPubSubHubResource}"/>.</returns>
+    [AspireExport("addEventHandlerWithoutAuth", MethodName = "addEventHandler", Description = "Adds an event handler to an Azure Web PubSub hub.")]
+    internal static IResourceBuilder<AzureWebPubSubHubResource> AddEventHandlerForPolyglot(
+        this IResourceBuilder<AzureWebPubSubHubResource> builder,
+        ReferenceExpression urlExpression,
+        string userEventPattern = "*",
+        string[]? systemEvents = null)
+    {
+        return AddEventHandler(builder, urlExpression, userEventPattern, systemEvents, authSettings: null);
     }
 
     private static WebPubSubEventHandler GetWebPubSubEventHandler(BicepValue<string> urlValue, string userEventPattern, string[]? systemEvents, UpstreamAuthSettings? authSettings)
@@ -305,7 +327,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="roles">The Web PubSub roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureWebPubSubRole"/> value.</exception>
-    [AspireExport("withRoleAssignments", Description = "Assigns Azure Web PubSub roles to a resource")]
+    [AspireExport("withWebPubSubRoleAssignments", Description = "Assigns Azure Web PubSub roles to a resource")]
     internal static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureWebPubSubResource> target,

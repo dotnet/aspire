@@ -51,7 +51,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         if (emoji is { } e)
         {
-            statusText = FormatEmojiPrefix(e.Name) + statusText;
+            statusText = ConsoleHelpers.FormatEmojiPrefix(e, MessageConsole) + statusText;
         }
 
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
@@ -93,7 +93,7 @@ internal class ConsoleInteractionService : IInteractionService
 
         if (emoji is { } e)
         {
-            statusText = FormatEmojiPrefix(e.Name) + statusText;
+            statusText = ConsoleHelpers.FormatEmojiPrefix(e, MessageConsole) + statusText;
         }
 
         // Use atomic check-and-set to prevent nested Spectre.Console Status operations.
@@ -190,7 +190,7 @@ internal class ConsoleInteractionService : IInteractionService
         return await _outConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
@@ -201,17 +201,30 @@ internal class ConsoleInteractionService : IInteractionService
             throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
         }
 
-        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
-        if (!choices.Any())
+        var choicesList = choices.ToList();
+
+        if (choicesList.Count == 0)
         {
             throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
         }
 
+        var preSelectedSet = preSelected is not null ? new HashSet<T>(preSelected) : null;
+
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
             .UseConverter(choiceFormatter)
-            .AddChoices(choices)
             .PageSize(10);
+
+        prompt.Required = !optional;
+
+        foreach (var choice in choicesList)
+        {
+            var item = prompt.AddChoice(choice);
+            if (preSelectedSet?.Contains(choice) == true)
+            {
+                item.Select();
+            }
+        }
 
         var result = await _outConsole.PromptAsync(prompt, cancellationToken);
         return result;
@@ -239,7 +252,7 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false)
     {
         var displayMessage = allowMarkup ? message : message.EscapeMarkup();
-        MessageConsole.MarkupLine(FormatEmojiPrefix(emoji.Name) + displayMessage);
+        MessageConsole.MarkupLine(ConsoleHelpers.FormatEmojiPrefix(emoji, MessageConsole) + displayMessage);
     }
 
     public void DisplayPlainText(string message)
@@ -362,12 +375,4 @@ internal class ConsoleInteractionService : IInteractionService
         _errorConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 
-    private string FormatEmojiPrefix(string emojiName)
-    {
-        const int emojiTargetWidth = 3; // 2 for emoji and 1 trailing space
-
-        var cellLength = EmojiWidth.GetCachedCellWidth(emojiName, MessageConsole);
-        var padding = Math.Max(1, emojiTargetWidth - cellLength);
-        return $":{emojiName}:" + new string(' ', padding);
-    }
 }

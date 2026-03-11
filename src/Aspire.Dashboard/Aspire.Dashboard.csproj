@@ -283,6 +283,7 @@
     <Compile Include="$(SharedDir)ColorGenerator.cs" Link="Utils\ColorGenerator.cs" />
     <Compile Include="$(SharedDir)EnumerableExtensions.cs" Link="Utils\EnumerableExtensions.cs" />
     <Compile Include="$(SharedDir)FormatHelpers.cs" Link="Utils\FormatHelpers.cs" />
+    <Compile Include="$(SharedDir)DateFormatStringsHelpers.cs" Link="Utils\DateFormatStringsHelpers.cs" />
     <Compile Include="$(SharedDir)TimeProviderExtensions.cs" Link="Extensions\TimeProviderExtensions.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
@@ -322,6 +323,12 @@
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpResourceJson.cs" Link="Otlp\Model\Serialization\OtlpResourceJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpLogsJson.cs" Link="Otlp\Model\Serialization\OtlpLogsJson.cs" />
     <Compile Include="$(SharedDir)Otlp\Serialization\OtlpTraceJson.cs" Link="Otlp\Model\Serialization\OtlpTraceJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpMetricsJson.cs" Link="Otlp\Model\Serialization\OtlpMetricsJson.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\OtlpJsonSerializerContext.cs" Link="Otlp\Model\Serialization\OtlpJsonSerializerContext.Shared.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\TelemetryApiResponse.cs" Link="Otlp\Model\Serialization\TelemetryApiResponse.cs" />
+    <Compile Include="$(SharedDir)Otlp\Serialization\ResourceInfoJson.cs" Link="Otlp\Model\Serialization\ResourceInfoJson.cs" />
+    <Compile Include="$(SharedDir)Export\ExportArchive.cs" Link="Export\ExportArchive.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntrySerializer.cs" Link="ConsoleLogs\LogEntrySerializer.cs" />
   </ItemGroup>
 
   <ItemGroup>

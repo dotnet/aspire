@@ -29,28 +29,9 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for template selection
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
         // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
         var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
             .Find("(based on NuGet.config)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./{ProjectName}): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -64,27 +45,8 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 1: Create a new Aspire Starter App
-        // Note: When channel is set (CI), aspire new auto-selects version - no version prompt appears
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type(ProjectName)
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Enter() // select "No" for Redis Cache
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For test project prompt, default is "No" so just press Enter to accept it
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        // Step 1: Create a new Aspire Starter App (no Redis cache)
+        sequenceBuilder.AspireNew(ProjectName, counter, useRedisCache: false);
 
         // Step 2: Navigate into the project directory
         sequenceBuilder.Type($"cd {ProjectName}")
@@ -198,28 +160,9 @@ builder.Build().Run();
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for template selection
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
         // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
         var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
             .Find("(based on NuGet.config)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./{ProjectName}): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
-
-        var waitingForTestPrompt = new CellPatternSearcher()
-            .Find($"Do you want to create a test project?");
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
@@ -233,27 +176,8 @@ builder.Build().Run();
             sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
         }
 
-        // Step 1: Create a new Aspire Starter App
-        // Note: When channel is set (CI), aspire new auto-selects version - no version prompt appears
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // select first template (Starter App)
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type(ProjectName)
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Enter() // select "No" for Redis Cache
-            .WaitUntil(s => waitingForTestPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For test project prompt, default is "No" so just press Enter to accept it
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        // Step 1: Create a new Aspire Starter App (no Redis cache)
+        sequenceBuilder.AspireNew(ProjectName, counter, useRedisCache: false);
 
         // Step 2: Navigate into the project directory
         sequenceBuilder.Type($"cd {ProjectName}")

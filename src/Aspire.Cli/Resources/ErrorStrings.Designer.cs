@@ -329,5 +329,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CommandNotSupportedWithSingleFileAppHost", resourceCulture);
             }
         }
+        public static string ProjectFileUnsupportedInCurrentEnvironment
+        {
+            get
+            {
+                return ResourceManager.GetString("ProjectFileUnsupportedInCurrentEnvironment", resourceCulture);
+            }
+        }
     }
 }

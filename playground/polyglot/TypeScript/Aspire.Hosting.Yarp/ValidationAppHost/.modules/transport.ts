@@ -213,6 +213,75 @@ export class CapabilityError extends Error {
     }
 }
 
+/**
+ * Error thrown when the AppHost script uses the generated SDK incorrectly.
+ */
+export class AppHostUsageError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AppHostUsageError';
+    }
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+    return (
+        value !== null &&
+        (typeof value === 'object' || typeof value === 'function') &&
+        'then' in value &&
+        typeof (value as { then?: unknown }).then === 'function'
+    );
+}
+
+function validateCapabilityArgs(
+    capabilityId: string,
+    args?: Record<string, unknown>
+): void {
+    if (!args) {
+        return;
+    }
+
+    const seen = new Set<object>();
+
+    const validateValue = (value: unknown, path: string): void => {
+        if (value === null || value === undefined) {
+            return;
+        }
+
+        if (isPromiseLike(value)) {
+            throw new AppHostUsageError(
+                `Argument '${path}' passed to capability '${capabilityId}' is a Promise-like value. ` +
+                `This usually means an async builder call was not awaited. ` +
+                `Did you forget 'await' on a call like builder.addPostgres(...) or resource.addDatabase(...)?`
+            );
+        }
+
+        if (typeof value !== 'object') {
+            return;
+        }
+
+        if (seen.has(value)) {
+            return;
+        }
+
+        seen.add(value);
+
+        if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
+                validateValue(value[i], `${path}[${i}]`);
+            }
+            return;
+        }
+
+        for (const [key, nestedValue] of Object.entries(value)) {
+            validateValue(nestedValue, `${path}.${key}`);
+        }
+    };
+
+    for (const [key, value] of Object.entries(args)) {
+        validateValue(value, key);
+    }
+}
+
 // ============================================================================
 // Callback Registry
 // ============================================================================
@@ -263,10 +332,27 @@ export function registerCallback<TResult = void>(
 
             if (argArray.length > 0) {
                 // Spread positional arguments to callback
-                return await callback(...argArray);
+                const result = await callback(...argArray);
+                // DTO writeback protocol: when a void callback returns undefined, we
+                // return the original args object so the .NET host can detect property
+                // mutations made by the callback and apply them back to the original
+                // C# DTO objects. DTO args are plain JS objects (not Handle wrappers),
+                // so any property changes the callback made are reflected in args.
+                //
+                // Non-void callbacks (result !== undefined) return their actual result.
+                // The .NET side only activates writeback for void delegates whose
+                // parameters include [AspireDto] types — all other cases discard the
+                // returned args object, so the extra wire payload is harmless.
+                //
+                // IMPORTANT: callbacks that intentionally return undefined will also
+                // trigger this path. For non-void delegate types, the C# proxy uses
+                // a result-unmarshalling path (not writeback), so returning args will
+                // cause an unmarshal error. Void callbacks should never return a
+                // meaningful value; non-void callbacks should always return one.
+                return result !== undefined ? result : args;
             }
 
-            // No positional params found - call with no args
+            // No positional params found — nothing to write back
             return await callback();
         }
 
@@ -515,6 +601,8 @@ export class AspireClient {
         if (!this.connection) {
             throw new Error('Not connected to AppHost');
         }
+
+        validateCapabilityArgs(capabilityId, args);
 
         // Ref counting: The vscode-jsonrpc socket keeps Node's event loop alive.
         // We ref() during RPC calls so the process doesn't exit mid-call, and

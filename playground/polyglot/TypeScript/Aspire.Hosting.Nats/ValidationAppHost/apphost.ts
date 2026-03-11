@@ -39,4 +39,12 @@ await consumer.withReference(nats);
 // withServiceReference — service discovery reference
 await consumer.withServiceReference(nats);
 
+// ---- Property access on NatsServerResource ----
+const _endpoint = await nats.primaryEndpoint.get();
+const _host = await nats.host.get();
+const _port = await nats.port.get();
+const _uri = await nats.uriExpression.get();
+const _userName = await nats.userNameReference.get();
+
+const _cstr = await nats.connectionStringExpression.get();
 await builder.build().run();

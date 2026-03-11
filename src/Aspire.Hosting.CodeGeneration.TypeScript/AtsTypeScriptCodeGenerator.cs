@@ -114,6 +114,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Collected options interfaces to generate (interface name -> list of optional params)
     private readonly Dictionary<string, List<AtsParameterInfo>> _optionsInterfacesToGenerate = new(StringComparer.Ordinal);
 
+    // Mapping from CapabilityId to the options interface name it should use.
+    // When methods share a name but have incompatible callback parameter types,
+    // separate options interfaces are generated with numeric suffixes.
+    private readonly Dictionary<string, string> _capabilityOptionsInterfaceMap = new(StringComparer.Ordinal);
+
     // Mapping of enum type IDs to TypeScript enum names
     private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
 
@@ -134,10 +139,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return "unknown";
         }
 
-        // Check for wrapper class first (handles custom types like ReferenceExpression)
+        // Check for wrapper class first (handles custom types like resource builders)
         if (_wrapperClassNames.TryGetValue(typeRef.TypeId, out var wrapperClassName))
         {
             return wrapperClassName;
+        }
+
+        // ReferenceExpression is a value type defined in base.ts, not a handle-based wrapper
+        if (typeRef.TypeId == AtsConstants.ReferenceExpressionTypeId)
+        {
+            return "ReferenceExpression";
         }
 
         return typeRef.Category switch
@@ -331,6 +342,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 AspireClient as AspireClientRpc,
                 Handle,
                 MarshalledHandle,
+                AppHostUsageError,
                 CapabilityError,
                 registerCallback,
                 wrapIfHandle,
@@ -398,6 +410,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
+        // Ensure all builder type IDs have handle type aliases.
+        // CreateBuilderModels discovers additional resource types via CollectAllReferencedTypes
+        // (e.g. types that appear only in return types or parameters but aren't direct capability targets).
+        // Without this, the builder class references a handle type that was never declared.
+        foreach (var builder in builders)
+        {
+            if (!dtoTypeIds.Contains(builder.TypeId))
+            {
+                typeIds.Add(builder.TypeId);
+            }
+        }
+
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
@@ -419,6 +443,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         _typesWithPromiseWrappers.Clear();
         _generatedOptionsInterfaces.Clear();
         _optionsInterfacesToGenerate.Clear();
+        _capabilityOptionsInterfaceMap.Clear();
 
         foreach (var builder in resourceBuilders)
         {
@@ -435,8 +460,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 _typesWithPromiseWrappers.Add(typeClass.TypeId);
             }
         }
-        // Add ReferenceExpression (defined in base.ts, not generated)
-        _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
+        // Note: ReferenceExpression is intentionally NOT added to _wrapperClassNames.
+        // It is a value type defined in base.ts with a private constructor and static factory,
+        // not a handle-based wrapper. It is handled via MapTypeRefToTypeScript instead.
 
         // Pre-scan all capabilities to collect options interfaces
         // This must happen AFTER wrapper class names are populated so types resolve correctly
@@ -447,7 +473,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 var (_, optionalParams) = SeparateParameters(cap.Parameters);
                 if (optionalParams.Count > 0)
                 {
-                    RegisterOptionsInterface(cap.MethodName, optionalParams);
+                    RegisterOptionsInterface(cap.CapabilityId, cap.MethodName, optionalParams);
                 }
             }
         }
@@ -633,6 +659,19 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Gets the options interface name for a specific capability, accounting for type conflicts.
+    /// Falls back to the default method-name-based interface if no specific mapping exists.
+    /// </summary>
+    private string ResolveOptionsInterfaceName(AtsCapabilityInfo capability)
+    {
+        if (_capabilityOptionsInterfaceMap.TryGetValue(capability.CapabilityId, out var interfaceName))
+        {
+            return interfaceName;
+        }
+        return GetOptionsInterfaceName(capability.MethodName);
+    }
+
+    /// <summary>
     /// Separates parameters into required and optional lists.
     /// Required = not optional and not nullable.
     /// </summary>
@@ -659,20 +698,145 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     /// <summary>
     /// Registers an options interface to be generated later.
-    /// Uses method name to create the interface name.
+    /// Uses method name to create the interface name. When methods share a name but have
+    /// incompatible callback parameter types, separate options interfaces are created with
+    /// numeric suffixes (e.g., RunAsEmulatorOptions, RunAsEmulator1Options).
     /// </summary>
-    private void RegisterOptionsInterface(string methodName, List<AtsParameterInfo> optionalParams)
+    private void RegisterOptionsInterface(string capabilityId, string methodName, List<AtsParameterInfo> optionalParams)
     {
         if (optionalParams.Count == 0)
         {
             return;
         }
 
-        var interfaceName = GetOptionsInterfaceName(methodName);
-        if (_generatedOptionsInterfaces.Add(interfaceName))
+        var baseInterfaceName = GetOptionsInterfaceName(methodName);
+
+        // Check if an existing interface with this name is compatible
+        if (_optionsInterfacesToGenerate.TryGetValue(baseInterfaceName, out var existingParams))
         {
-            _optionsInterfacesToGenerate[interfaceName] = optionalParams;
+            if (AreOptionsCompatible(existingParams, optionalParams))
+            {
+                // Compatible - merge any new parameters and share the interface
+                var existingNames = new HashSet<string>(existingParams.Select(p => p.Name));
+                foreach (var param in optionalParams)
+                {
+                    if (existingNames.Add(param.Name))
+                    {
+                        existingParams.Add(param);
+                    }
+                }
+                _capabilityOptionsInterfaceMap[capabilityId] = baseInterfaceName;
+                return;
+            }
+
+            // Incompatible - find or create a suffixed interface
+            for (var suffix = 1; ; suffix++)
+            {
+                var suffixedName = GetOptionsInterfaceName($"{methodName}{suffix}");
+                if (!_optionsInterfacesToGenerate.TryGetValue(suffixedName, out var suffixedParams))
+                {
+                    // Create a new interface with this suffix
+                    _generatedOptionsInterfaces.Add(suffixedName);
+                    _optionsInterfacesToGenerate[suffixedName] = [.. optionalParams];
+                    _capabilityOptionsInterfaceMap[capabilityId] = suffixedName;
+                    return;
+                }
+
+                if (AreOptionsCompatible(suffixedParams, optionalParams))
+                {
+                    // Compatible with this suffixed interface - share it
+                    var existingNames2 = new HashSet<string>(suffixedParams.Select(p => p.Name));
+                    foreach (var param in optionalParams)
+                    {
+                        if (existingNames2.Add(param.Name))
+                        {
+                            suffixedParams.Add(param);
+                        }
+                    }
+                    _capabilityOptionsInterfaceMap[capabilityId] = suffixedName;
+                    return;
+                }
+            }
         }
+        else
+        {
+            // First registration - create the interface
+            _generatedOptionsInterfaces.Add(baseInterfaceName);
+            _optionsInterfacesToGenerate[baseInterfaceName] = [.. optionalParams];
+            _capabilityOptionsInterfaceMap[capabilityId] = baseInterfaceName;
+        }
+    }
+
+    /// <summary>
+    /// Checks whether two sets of optional parameters are compatible for sharing an options interface.
+    /// Parameters with the same name must have the same type (including callback parameter types).
+    /// </summary>
+    private static bool AreOptionsCompatible(List<AtsParameterInfo> existing, List<AtsParameterInfo> candidate)
+    {
+        foreach (var param in candidate)
+        {
+            var match = existing.FirstOrDefault(p => p.Name == param.Name);
+            if (match is null)
+            {
+                continue; // New parameter, no conflict
+            }
+
+            // Same name - check type compatibility
+            if (!AreParameterTypesEqual(match, param))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Checks whether two parameter infos have the same type (including callback types).
+    /// </summary>
+    private static bool AreParameterTypesEqual(AtsParameterInfo a, AtsParameterInfo b)
+    {
+        // Compare base type
+        var aTypeId = a.Type?.TypeId;
+        var bTypeId = b.Type?.TypeId;
+        if (!string.Equals(aTypeId, bTypeId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // Compare callback parameter types
+        if (a.IsCallback != b.IsCallback)
+        {
+            return false;
+        }
+
+        if (a.IsCallback && b.IsCallback)
+        {
+            var aCallbackParams = a.CallbackParameters ?? [];
+            var bCallbackParams = b.CallbackParameters ?? [];
+
+            if (aCallbackParams.Count != bCallbackParams.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < aCallbackParams.Count; i++)
+            {
+                if (!string.Equals(aCallbackParams[i].Type.TypeId, bCallbackParams[i].Type.TypeId, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            // Compare callback return types
+            var aReturnTypeId = a.CallbackReturnType?.TypeId;
+            var bReturnTypeId = b.CallbackReturnType?.TypeId;
+            if (!string.Equals(aReturnTypeId, bReturnTypeId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -764,7 +928,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate required and optional parameters
         var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
         var hasOptionals = optionalParams.Count > 0;
-        var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+        var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
         // Build parameter list for public method
         var publicParamDefs = new List<string>();
@@ -1007,7 +1171,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // Separate required and optional parameters
             var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
             var hasOptionals = optionalParams.Count > 0;
-            var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+            var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
             // Build parameter list using options pattern
             var publicParamDefs = new List<string>();
@@ -1418,7 +1582,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Re-export commonly used types
-            export { Handle, CapabilityError, registerCallback } from './transport.js';
+            export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
             export { refExpr, ReferenceExpression } from './base.js';
             """);
         WriteLine();
@@ -1438,7 +1602,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             process.on('unhandledRejection', (reason: unknown) => {
                 const error = reason instanceof Error ? reason : new Error(String(reason));
 
-                if (reason instanceof CapabilityError) {
+                if (reason instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else if (reason instanceof CapabilityError) {
                     console.error(`\n❌ Capability Error: ${error.message}`);
                     console.error(`   Code: ${(reason as CapabilityError).code}`);
                     if ((reason as CapabilityError).capability) {
@@ -1455,8 +1621,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             });
 
             process.on('uncaughtException', (error: Error) => {
-                console.error(`\n❌ Uncaught Exception: ${error.message}`);
-                if (error.stack) {
+                if (error instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else {
+                    console.error(`\n❌ Uncaught Exception: ${error.message}`);
+                }
+                if (!(error instanceof AppHostUsageError) && error.stack) {
                     console.error(error.stack);
                 }
                 process.exit(1);
@@ -1845,7 +2015,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate required and optional parameters
         var (requiredParams, optionalParams) = SeparateParameters(userParams);
         var hasOptionals = optionalParams.Count > 0;
-        var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+        var optionsInterfaceName = ResolveOptionsInterfaceName(method);
 
         // Build parameter list using options pattern
         var paramDefs = new List<string>();
@@ -1925,7 +2095,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate required and optional parameters
         var (requiredParams, optionalParams) = SeparateParameters(userParams);
         var hasOptionals = optionalParams.Count > 0;
-        var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+        var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
         // Build parameter list using options pattern
         var paramDefs = new List<string>();
@@ -2010,7 +2180,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate required and optional parameters
         var (requiredParams, optionalParams) = SeparateParameters(userParams);
         var hasOptionals = optionalParams.Count > 0;
-        var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+        var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
         // Build parameter list for public method
         var publicParamDefs = new List<string>();
@@ -2205,7 +2375,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // Separate required and optional parameters
             var (requiredParams, optionalParams) = SeparateParameters(userParams);
             var hasOptionals = optionalParams.Count > 0;
-            var optionsInterfaceName = GetOptionsInterfaceName(methodName);
+            var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
             // Build parameter list using options pattern
             var publicParamDefs = new List<string>();
