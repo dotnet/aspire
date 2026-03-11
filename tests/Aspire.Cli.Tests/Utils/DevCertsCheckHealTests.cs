@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Certificates;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Microsoft.AspNetCore.Certificates.Generation;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -24,7 +24,7 @@ public class DevCertsCheckHealTests
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.None, "AABB1234", 4)
+            new(CertificateManager.TrustLevel.None, "AABB1234", 4)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
@@ -38,7 +38,7 @@ public class DevCertsCheckHealTests
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AABB1234", 4)
+            new(CertificateManager.TrustLevel.Full, "AABB1234", 4)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
@@ -47,32 +47,34 @@ public class DevCertsCheckHealTests
     }
 
     [Fact]
-    public void EvaluateHealActions_MultipleCerts_RecommendsTrust()
+    public void EvaluateHealActions_MultipleCerts_SomeUntrusted_RecommendsCleanThenTrust()
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AABB1234", 4),
-            new(CertificateTrustLevel.None, "CCDD5678", 4)
+            new(CertificateManager.TrustLevel.Full, "AABB1234", 4),
+            new(CertificateManager.TrustLevel.None, "CCDD5678", 4)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
 
-        Assert.Single(actions);
-        Assert.Equal("trust", actions[0].Name);
+        Assert.Equal(2, actions.Count);
+        Assert.Equal("clean", actions[0].Name);
+        Assert.Equal("trust", actions[1].Name);
     }
 
     [Fact]
-    public void EvaluateHealActions_OldVersionCert_RecommendsTrust()
+    public void EvaluateHealActions_OldVersionCert_RecommendsCleanThenTrust()
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AABB1234", 1)
+            new(CertificateManager.TrustLevel.Full, "AABB1234", 1)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
 
-        Assert.Single(actions);
-        Assert.Equal("trust", actions[0].Name);
+        Assert.Equal(2, actions.Count);
+        Assert.Equal("clean", actions[0].Name);
+        Assert.Equal("trust", actions[1].Name);
     }
 
     [Fact]
@@ -80,7 +82,7 @@ public class DevCertsCheckHealTests
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Partial, "AABB1234", 4)
+            new(CertificateManager.TrustLevel.Partial, "AABB1234", 4)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
@@ -93,8 +95,8 @@ public class DevCertsCheckHealTests
     {
         var certInfos = new List<CertificateInfo>
         {
-            new(CertificateTrustLevel.Full, "AABB1234", 4),
-            new(CertificateTrustLevel.Full, "CCDD5678", 4)
+            new(CertificateManager.TrustLevel.Full, "AABB1234", 4),
+            new(CertificateManager.TrustLevel.Full, "CCDD5678", 4)
         };
 
         var actions = DevCertsCheck.EvaluateHealActions(certInfos, CreateHealActions());
@@ -109,15 +111,15 @@ public class DevCertsCheckHealTests
         var trustCalled = false;
         var runner = new TestHealCertificateToolRunner
         {
-            CleanResult = (_, _) =>
+            CleanResult = () =>
             {
                 cleanCalled = true;
-                return 0;
+                return true;
             },
-            TrustResult = (_, _) =>
+            TrustResult = () =>
             {
                 trustCalled = true;
-                return 0;
+                return EnsureCertificateResult.ExistingHttpsCertificateTrusted;
             }
         };
 
@@ -135,7 +137,7 @@ public class DevCertsCheckHealTests
     {
         var runner = new TestHealCertificateToolRunner
         {
-            CleanResult = (_, _) => 1
+            CleanResult = () => false
         };
 
         var check = CreateCheck(runner);
@@ -146,20 +148,21 @@ public class DevCertsCheckHealTests
     }
 
     [Fact]
-    public async Task HealAsync_TrustAction_CallsCleanThenTrust()
+    public async Task HealAsync_TrustAction_CallsTrustOnly()
     {
-        var callOrder = new List<string>();
+        var cleanCalled = false;
+        var trustCalled = false;
         var runner = new TestHealCertificateToolRunner
         {
-            CleanResult = (_, _) =>
+            CleanResult = () =>
             {
-                callOrder.Add("clean");
-                return 0;
+                cleanCalled = true;
+                return true;
             },
-            TrustResult = (_, _) =>
+            TrustResult = () =>
             {
-                callOrder.Add("trust");
-                return 0;
+                trustCalled = true;
+                return EnsureCertificateResult.ExistingHttpsCertificateTrusted;
             }
         };
 
@@ -167,30 +170,9 @@ public class DevCertsCheckHealTests
         var result = await check.HealAsync("trust", CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal(["clean", "trust"], callOrder);
-        Assert.Contains("cleaned and new certificate trusted", result.Message);
-    }
-
-    [Fact]
-    public async Task HealAsync_TrustAction_CleanFails_DoesNotTrust()
-    {
-        var trustCalled = false;
-        var runner = new TestHealCertificateToolRunner
-        {
-            CleanResult = (_, _) => 1,
-            TrustResult = (_, _) =>
-            {
-                trustCalled = true;
-                return 0;
-            }
-        };
-
-        var check = CreateCheck(runner);
-        var result = await check.HealAsync("trust", CancellationToken.None);
-
-        Assert.False(result.Success);
-        Assert.False(trustCalled);
-        Assert.Contains("Failed to clean", result.Message);
+        Assert.True(trustCalled);
+        Assert.False(cleanCalled);
+        Assert.Contains("trusted successfully", result.Message);
     }
 
     [Fact]
@@ -198,15 +180,14 @@ public class DevCertsCheckHealTests
     {
         var runner = new TestHealCertificateToolRunner
         {
-            CleanResult = (_, _) => 0,
-            TrustResult = (_, _) => 1
+            TrustResult = () => EnsureCertificateResult.FailedToTrustTheCertificate
         };
 
         var check = CreateCheck(runner);
         var result = await check.HealAsync("trust", CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Contains("failed to trust", result.Message);
+        Assert.Contains("Failed to trust", result.Message);
     }
 
     [Fact]
@@ -254,16 +235,16 @@ public class DevCertsCheckHealTests
         Assert.NotNull(actions);
     }
 
-    private static DevCertsCheck CreateCheck(ICertificateToolRunner runner)
+    private static IHealableEnvironmentCheck CreateCheck(ICertificateToolRunner runner)
     {
         return new DevCertsCheck(NullLogger<DevCertsCheck>.Instance, runner);
     }
 
-    private static List<HealAction> CreateHealActions() =>
-    [
-        new("clean", "Clean all development certificates", "Cleaning development certificates..."),
-        new("trust", "Clean all development certificates and create a new trusted one", "Cleaning and trusting development certificate...")
-    ];
+    private static HealActionCollection CreateHealActions() => new()
+    {
+        new("clean", "Clean all development certificates", "Cleaning development certificates...", _ => Task.FromResult(new HealResult(true, "Cleaned"))),
+        new("trust", "Clean all development certificates and create a new trusted one", "Cleaning and trusting development certificate...", _ => Task.FromResult(new HealResult(true, "Trusted")))
+    };
 
     /// <summary>
     /// Minimal ICertificateToolRunner implementation for heal tests.
@@ -271,16 +252,16 @@ public class DevCertsCheckHealTests
     /// </summary>
     private sealed class TestHealCertificateToolRunner : ICertificateToolRunner
     {
-        public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustResult { get; set; }
-        public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? CleanResult { get; set; }
+        public Func<EnsureCertificateResult>? TrustResult { get; set; }
+        public Func<bool>? CleanResult { get; set; }
 
-        public Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(TrustResult?.Invoke(options, cancellationToken) ?? 0);
+        public EnsureCertificateResult TrustHttpCertificate()
+            => TrustResult?.Invoke() ?? EnsureCertificateResult.ExistingHttpsCertificateTrusted;
 
-        public Task<int> CleanHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult(CleanResult?.Invoke(options, cancellationToken) ?? 0);
+        public bool CleanHttpCertificate()
+            => CleanResult?.Invoke() ?? true;
 
-        public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-            => Task.FromResult<(int, CertificateTrustResult?)>((0, new CertificateTrustResult { HasCertificates = true, TrustLevel = DevCertTrustLevel.Full, Certificates = [] }));
+        public CertificateTrustResult CheckHttpCertificate()
+            => new CertificateTrustResult { HasCertificates = true, TrustLevel = CertificateManager.TrustLevel.Full, Certificates = [] };
     }
 }

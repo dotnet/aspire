@@ -70,41 +70,43 @@ internal sealed class DoctorFixCommand : BaseCommand
         return await ExecuteFixAllAsync(format, cancellationToken);
     }
 
+    /// <summary>
+    /// Creates a sub-command for a healable check (e.g., <c>aspire doctor fix certificates</c>).
+    /// </summary>
     private Command CreateCheckCommand(IHealableEnvironmentCheck check)
     {
         var command = new Command(check.HealCommandName, check.HealCommandDescription);
-        var formatOption = new Option<OutputFormat>("--format")
-        {
-            Description = DoctorFixCommandStrings.JsonOptionDescription
-        };
-        command.Options.Add(formatOption);
+        command.Options.Add(s_formatOption);
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var format = parseResult.GetValue(formatOption);
+            var format = parseResult.GetValue(s_formatOption);
             RouteOutputForFormat(format);
             return await ExecuteCheckFixAsync(check, format, cancellationToken);
         });
 
         foreach (var action in check.HealActions)
         {
-            var capturedAction = action;
-            var actionCommand = new Command(capturedAction.Name, capturedAction.Description);
-            var actionFormatOption = new Option<OutputFormat>("--format")
-            {
-                Description = DoctorFixCommandStrings.JsonOptionDescription
-            };
-            actionCommand.Options.Add(actionFormatOption);
-            actionCommand.SetAction(async (parseResult, cancellationToken) =>
-            {
-                var format = parseResult.GetValue(actionFormatOption);
-                RouteOutputForFormat(format);
-                return await ExecuteExplicitActionAsync(check, capturedAction.Name, format, cancellationToken);
-            });
-            command.Subcommands.Add(actionCommand);
+            command.Subcommands.Add(CreateActionCommand(check, action));
         }
 
         return command;
+    }
+
+    /// <summary>
+    /// Creates a sub-command for a specific heal action (e.g., <c>aspire doctor fix certificates clean</c>).
+    /// </summary>
+    private Command CreateActionCommand(IHealableEnvironmentCheck check, HealAction action)
+    {
+        var actionCommand = new Command(action.Name, action.Description);
+        actionCommand.Options.Add(s_formatOption);
+        actionCommand.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var format = parseResult.GetValue(s_formatOption);
+            RouteOutputForFormat(format);
+            return await ExecuteExplicitActionAsync(check, action.Name, format, cancellationToken);
+        });
+        return actionCommand;
     }
 
     private async Task<int> ExecuteFixAllAsync(OutputFormat format, CancellationToken cancellationToken)
@@ -131,7 +133,8 @@ internal sealed class DoctorFixCommand : BaseCommand
 
             if (format == OutputFormat.Table)
             {
-                _ansiConsole.MarkupLine($"[blue]🔧[/] {string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.ApplyingCategoryFixes, check.HealCommandName).EscapeMarkup()}");
+                var wrenchPrefix = ConsoleHelpers.FormatEmojiPrefix(KnownEmojis.Wrench, _ansiConsole);
+                _ansiConsole.MarkupLine($"  [blue]{wrenchPrefix}{string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.ApplyingCategoryFixes, check.HealCommandName).EscapeMarkup()}[/]");
             }
 
             foreach (var action in recommendedActions)
@@ -173,9 +176,9 @@ internal sealed class DoctorFixCommand : BaseCommand
 
     private async Task<int> ExecuteExplicitActionAsync(IHealableEnvironmentCheck check, string actionName, OutputFormat format, CancellationToken cancellationToken)
     {
-        var action = check.HealActions.FirstOrDefault(a => a.Name == actionName);
+        var healAction = check.HealActions.TryGetValue(actionName, out var found) ? found : null;
 
-        var result = await ExecuteHealActionAsync(check, action, actionName, format, cancellationToken);
+        var result = await ExecuteHealActionAsync(check, healAction, actionName, format, cancellationToken);
         var fixResult = ToFixActionResult(check, actionName, result);
 
         OutputResults([fixResult], format);
@@ -197,7 +200,8 @@ internal sealed class DoctorFixCommand : BaseCommand
         if (format == OutputFormat.Table)
         {
             var progressDescription = action?.ProgressDescription ?? DoctorFixCommandStrings.FixingIssues;
-            _ansiConsole.MarkupLine($"[dim]▸[/]  {progressDescription.EscapeMarkup()}");
+            var gearPrefix = ConsoleHelpers.FormatEmojiPrefix(KnownEmojis.Gear, _ansiConsole);
+            _ansiConsole.MarkupLine($"  [dim]{gearPrefix}{progressDescription.EscapeMarkup()}[/]");
         }
 
         return await check.HealAsync(actionName, cancellationToken);
@@ -261,11 +265,10 @@ internal sealed class DoctorFixCommand : BaseCommand
 
     private void OutputHumanReadable(List<DoctorFixActionResult> fixResults)
     {
-        _ansiConsole.WriteLine();
-
         if (fixResults.Count == 0)
         {
-            _ansiConsole.MarkupLine($"[green]✓[/]  {DoctorFixCommandStrings.NoFixableIssues}");
+            var infoPrefix = ConsoleHelpers.FormatEmojiPrefix(KnownEmojis.Information, _ansiConsole);
+            _ansiConsole.MarkupLine($"  [blue]{infoPrefix}{DoctorFixCommandStrings.NoFixableIssues.EscapeMarkup()}[/]");
             return;
         }
 
@@ -295,18 +298,29 @@ internal sealed class DoctorFixCommand : BaseCommand
 
     private void OutputFixActionResult(DoctorFixActionResult result)
     {
-        if (result.Success)
-        {
-            _ansiConsole.MarkupLine($"  [green]✓[/]  {string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.FixApplied, result.Message).EscapeMarkup()}");
-        }
-        else
-        {
-            _ansiConsole.MarkupLine($"  [red]✗[/]  {string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.FixFailed, result.Message).EscapeMarkup()}");
+        var (icon, color) = result.Success
+            ? (KnownEmojis.CheckMark, "green")
+            : (KnownEmojis.CrossMark, "red");
+        var iconPrefix = ConsoleHelpers.FormatEmojiPrefix(icon, _ansiConsole);
 
-            if (!string.IsNullOrEmpty(result.Details))
-            {
-                _ansiConsole.MarkupLine($"        [dim]{result.Details.EscapeMarkup()}[/]");
-            }
+        var message = result.Success
+            ? string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.FixApplied, result.Message)
+            : string.Format(CultureInfo.CurrentCulture, DoctorFixCommandStrings.FixFailed, result.Message);
+
+        // Primary grid: icon + message (wrapped lines stay aligned with message text)
+        var messageGrid = new Grid();
+        messageGrid.AddColumn();
+        messageGrid.AddRow(new Markup($"[{color}]{iconPrefix}{message.EscapeMarkup()}[/]"));
+
+        _ansiConsole.Write(new Padder(messageGrid, new Padding(2, 0)));
+
+        if (!string.IsNullOrEmpty(result.Details))
+        {
+            var detailGrid = new Grid();
+            detailGrid.AddColumn();
+            detailGrid.AddRow(new Markup($"[dim]{result.Details.EscapeMarkup()}[/]"));
+
+            _ansiConsole.Write(new Padder(detailGrid, new Padding(7, 0)));
         }
     }
 }

@@ -159,7 +159,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clean all development certificates and create a new trusted one.
+        ///   Looks up a localized string similar to Trust the HTTPS development certificate, creating one if necessary.
         /// </summary>
         public static string HealCertificatesTrustDescription {
             get {
@@ -222,24 +222,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Certificates cleaned and new certificate trusted successfully.
-        /// </summary>
-        public static string HealCertificatesCleanAndTrustSuccess {
-            get {
-                return ResourceManager.GetString("HealCertificatesCleanAndTrustSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Certificates cleaned but failed to trust new certificate.
-        /// </summary>
-        public static string HealCertificatesCleanAndTrustPartialFailure {
-            get {
-                return ResourceManager.GetString("HealCertificatesCleanAndTrustPartialFailure", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Unknown action: {0}.
         /// </summary>
         public static string HealUnknownAction {
@@ -258,11 +240,164 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cleaning and trusting development certificate (may prompt for password)....
+        ///   Looks up a localized string similar to Trusting development certificate (may require elevated permissions)....
         /// </summary>
         public static string HealCertificatesTrustProgress {
             get {
                 return ResourceManager.GetString("HealCertificatesTrustProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No HTTPS development certificate found.
+        /// </summary>
+        public static string DevCertsNoCertificateMessage {
+            get {
+                return ResourceManager.GetString("DevCertsNoCertificateMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Aspire uses HTTPS for secure communication between the dashboard and your services during local development..
+        /// </summary>
+        public static string DevCertsNoCertificateDetails {
+            get {
+                return ResourceManager.GetString("DevCertsNoCertificateDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run: {0}.
+        /// </summary>
+        public static string DevCertsFixCommandFormat {
+            get {
+                return ResourceManager.GetString("DevCertsFixCommandFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple HTTPS development certificates found ({0} certificates), but none are trusted.
+        /// </summary>
+        public static string DevCertsMultipleNoneTrustedMessageFormat {
+            get {
+                return ResourceManager.GetString("DevCertsMultipleNoneTrustedMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Found certificates: {0}. Having multiple certificates can cause confusion..
+        /// </summary>
+        public static string DevCertsMultipleNoneTrustedDetailsFormat {
+            get {
+                return ResourceManager.GetString("DevCertsMultipleNoneTrustedDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple HTTPS development certificates found ({0} certificates).
+        /// </summary>
+        public static string DevCertsMultipleSomeUntrustedMessageFormat {
+            get {
+                return ResourceManager.GetString("DevCertsMultipleSomeUntrustedMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use..
+        /// </summary>
+        public static string DevCertsMultipleSomeUntrustedDetailsFormat {
+            get {
+                return ResourceManager.GetString("DevCertsMultipleSomeUntrustedDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTPS development certificate is trusted.
+        /// </summary>
+        public static string DevCertsTrustedMessage {
+            get {
+                return ResourceManager.GetString("DevCertsTrustedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTPS development certificate is not trusted.
+        /// </summary>
+        public static string DevCertsNotTrustedMessage {
+            get {
+                return ResourceManager.GetString("DevCertsNotTrustedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificate {0} exists in the personal store but was not found in the trusted root store..
+        /// </summary>
+        public static string DevCertsNotTrustedDetailsFormat {
+            get {
+                return ResourceManager.GetString("DevCertsNotTrustedDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTPS development certificate is only partially trusted.
+        /// </summary>
+        public static string DevCertsPartiallyTrustedMessage {
+            get {
+                return ResourceManager.GetString("DevCertsPartiallyTrustedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically..
+        /// </summary>
+        public static string DevCertsPartiallyTrustedDetailsFormat {
+            get {
+                return ResourceManager.GetString("DevCertsPartiallyTrustedDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set SSL_CERT_DIR in your shell profile: {0}.
+        /// </summary>
+        public static string DevCertsPartiallyTrustedFixFormat {
+            get {
+                return ResourceManager.GetString("DevCertsPartiallyTrustedFixFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTPS development certificate has an older version ({0}).
+        /// </summary>
+        public static string DevCertsOldVersionMessageFormat {
+            get {
+                return ResourceManager.GetString("DevCertsOldVersionMessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Older certificate versions (&lt; v{0}) may not support container trust scenarios..
+        /// </summary>
+        public static string DevCertsOldVersionDetailsFormat {
+            get {
+                return ResourceManager.GetString("DevCertsOldVersionDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [trusted].
+        /// </summary>
+        public static string DevCertsTrustLabelFull {
+            get {
+                return ResourceManager.GetString("DevCertsTrustLabelFull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [partial].
+        /// </summary>
+        public static string DevCertsTrustLabelPartial {
+            get {
+                return ResourceManager.GetString("DevCertsTrustLabelPartial", resourceCulture);
             }
         }
     }

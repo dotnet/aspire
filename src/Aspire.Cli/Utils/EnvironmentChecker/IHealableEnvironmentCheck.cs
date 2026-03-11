@@ -1,6 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.ObjectModel;
+using System.Globalization;
+using Aspire.Cli.Resources;
+
 namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
@@ -9,7 +13,16 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// <param name="Name">The action name used as a CLI sub-command (e.g., "clean", "trust").</param>
 /// <param name="Description">A human-readable description of what the action does, shown in CLI help text.</param>
 /// <param name="ProgressDescription">A human-readable description shown as a status message while the action is executing (e.g., "Cleaning development certificates (may require elevated permissions)...").</param>
-internal sealed record HealAction(string Name, string Description, string ProgressDescription);
+/// <param name="HealCallback">The callback that executes the heal action.</param>
+internal sealed record HealAction(string Name, string Description, string ProgressDescription, Func<CancellationToken, Task<HealResult>> HealCallback);
+
+/// <summary>
+/// A keyed collection of <see cref="HealAction"/> instances, indexed by <see cref="HealAction.Name"/>.
+/// </summary>
+internal sealed class HealActionCollection : KeyedCollection<string, HealAction>
+{
+    protected override string GetKeyForItem(HealAction item) => item.Name;
+}
 
 /// <summary>
 /// Represents the result of executing a heal action.
@@ -36,10 +49,10 @@ internal interface IHealableEnvironmentCheck : IEnvironmentCheck
     string HealCommandDescription { get; }
 
     /// <summary>
-    /// Gets the additional named actions available beyond the default heal.
-    /// Each action becomes a nested sub-command under the check's fix command.
+    /// Gets the named actions available for this check. Each action becomes a nested
+    /// sub-command under the check's fix command. Keyed by <see cref="HealAction.Name"/>.
     /// </summary>
-    IReadOnlyList<HealAction> HealActions { get; }
+    HealActionCollection HealActions { get; }
 
     /// <summary>
     /// Evaluates the current environment state and returns the specific heal actions
@@ -51,10 +64,16 @@ internal interface IHealableEnvironmentCheck : IEnvironmentCheck
     Task<IReadOnlyList<HealAction>> EvaluateAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Executes a named heal action.
+    /// Executes a named heal action by looking it up in <see cref="HealActions"/> and
+    /// invoking its <see cref="HealAction.HealCallback"/>.
     /// </summary>
-    /// <param name="actionName">The name of the action to execute (must match a <see cref="HealAction.Name"/> from <see cref="HealActions"/>).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A <see cref="HealResult"/> indicating the outcome of the heal operation.</returns>
-    Task<HealResult> HealAsync(string actionName, CancellationToken cancellationToken);
+    Task<HealResult> HealAsync(string actionName, CancellationToken cancellationToken)
+    {
+        if (!HealActions.TryGetValue(actionName, out var healAction))
+        {
+            return Task.FromResult(new HealResult(false, string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.HealUnknownAction, actionName)));
+        }
+
+        return healAction.HealCallback(cancellationToken);
+    }
 }

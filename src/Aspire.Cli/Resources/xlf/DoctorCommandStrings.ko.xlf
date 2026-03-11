@@ -22,6 +22,91 @@
         <target state="translated">필수 구성 요소 확인: https://aka.ms/aspire-prerequisites</target>
         <note />
       </trans-unit>
+      <trans-unit id="DevCertsFixCommandFormat">
+        <source>Run: {0}</source>
+        <target state="new">Run: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsMultipleNoneTrustedDetailsFormat">
+        <source>Found certificates: {0}. Having multiple certificates can cause confusion.</source>
+        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsMultipleNoneTrustedMessageFormat">
+        <source>Multiple HTTPS development certificates found ({0} certificates), but none are trusted</source>
+        <target state="new">Multiple HTTPS development certificates found ({0} certificates), but none are trusted</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsMultipleSomeUntrustedDetailsFormat">
+        <source>Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</source>
+        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsMultipleSomeUntrustedMessageFormat">
+        <source>Multiple HTTPS development certificates found ({0} certificates)</source>
+        <target state="new">Multiple HTTPS development certificates found ({0} certificates)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsNoCertificateDetails">
+        <source>Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</source>
+        <target state="new">Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsNoCertificateMessage">
+        <source>No HTTPS development certificate found</source>
+        <target state="new">No HTTPS development certificate found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsNotTrustedDetailsFormat">
+        <source>Certificate {0} exists in the personal store but was not found in the trusted root store.</source>
+        <target state="new">Certificate {0} exists in the personal store but was not found in the trusted root store.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsNotTrustedMessage">
+        <source>HTTPS development certificate is not trusted</source>
+        <target state="new">HTTPS development certificate is not trusted</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsOldVersionDetailsFormat">
+        <source>Older certificate versions (&lt; v{0}) may not support container trust scenarios.</source>
+        <target state="new">Older certificate versions (&lt; v{0}) may not support container trust scenarios.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsOldVersionMessageFormat">
+        <source>HTTPS development certificate has an older version ({0})</source>
+        <target state="new">HTTPS development certificate has an older version ({0})</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsPartiallyTrustedDetailsFormat">
+        <source>The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</source>
+        <target state="new">The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsPartiallyTrustedFixFormat">
+        <source>Set SSL_CERT_DIR in your shell profile: {0}</source>
+        <target state="new">Set SSL_CERT_DIR in your shell profile: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsPartiallyTrustedMessage">
+        <source>HTTPS development certificate is only partially trusted</source>
+        <target state="new">HTTPS development certificate is only partially trusted</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsTrustLabelFull">
+        <source>[trusted]</source>
+        <target state="new">[trusted]</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsTrustLabelPartial">
+        <source>[partial]</source>
+        <target state="new">[partial]</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevCertsTrustedMessage">
+        <source>HTTPS development certificate is trusted</source>
+        <target state="new">HTTPS development certificate is trusted</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EnvironmentCategoryHeader">
         <source>Environment</source>
         <target state="translated">환경</target>
@@ -30,16 +115,6 @@
       <trans-unit id="EnvironmentCheckHeader">
         <source>Aspire Environment Check</source>
         <target state="translated">Aspire 환경 검사</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanAndTrustPartialFailure">
-        <source>Certificates cleaned but failed to trust new certificate</source>
-        <target state="new">Certificates cleaned but failed to trust new certificate</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanAndTrustSuccess">
-        <source>Certificates cleaned and new certificate trusted successfully</source>
-        <target state="new">Certificates cleaned and new certificate trusted successfully</target>
         <note />
       </trans-unit>
       <trans-unit id="HealCertificatesCleanDescription">
@@ -73,7 +148,7 @@
         <note />
       </trans-unit>
       <trans-unit id="HealCertificatesTrustDescription">
-        <source>Clean all development certificates and create a new trusted one</source>
+        <source>Trust the HTTPS development certificate, creating one if necessary</source>
         <target state="new">Clean all development certificates and create a new trusted one</target>
         <note />
       </trans-unit>
@@ -88,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="HealCertificatesTrustProgress">
-        <source>Cleaning and trusting development certificate (may prompt for password)...</source>
-        <target state="new">Cleaning and trusting development certificate (may prompt for password)...</target>
+        <source>Trusting development certificate (may require elevated permissions)...</source>
+        <target state="new">Trusting development certificate (may require elevated permissions)...</target>
         <note />
       </trans-unit>
       <trans-unit id="HealCertificatesTrustSuccess">

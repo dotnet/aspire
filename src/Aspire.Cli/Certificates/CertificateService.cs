@@ -6,11 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
-using Aspire.Cli.Utils;
+using Microsoft.AspNetCore.Certificates.Generation;
 
 namespace Aspire.Cli.Certificates;
 
@@ -58,11 +57,10 @@ internal sealed partial class CertificateService(
         using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
 
         var environmentVariables = new Dictionary<string, string>();
-        var ensureCertificateCollector = new OutputCollector();
 
         // Use the machine-readable check (available in .NET 10 SDK which is the minimum required)
-        var trustResult = await CheckMachineReadableAsync(ensureCertificateCollector, cancellationToken);
-        await HandleMachineReadableTrustAsync(trustResult, ensureCertificateCollector, environmentVariables, cancellationToken);
+        var trustResult = await CheckMachineReadableAsync();
+        await HandleMachineReadableTrustAsync(trustResult, environmentVariables);
 
         return new EnsureCertificatesTrustedResult
         {
@@ -70,35 +68,19 @@ internal sealed partial class CertificateService(
         };
     }
 
-    private async Task<CertificateTrustResult> CheckMachineReadableAsync(
-        OutputCollector collector,
-        CancellationToken cancellationToken)
+    private async Task<CertificateTrustResult> CheckMachineReadableAsync()
     {
-        var options = new DotNetCliRunnerInvocationOptions
-        {
-            StandardOutputCallback = collector.AppendOutput,
-            StandardErrorCallback = collector.AppendError,
-        };
-
-        var (_, result) = await interactionService.ShowStatusAsync(
+        var result = await interactionService.ShowStatusAsync(
             InteractionServiceStrings.CheckingCertificates,
-            async () => await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(options, cancellationToken),
+            () => Task.FromResult(certificateToolRunner.CheckHttpCertificate()),
             emoji: KnownEmojis.LockedWithKey);
 
-        // Return the result or a default "no certificates" result
-        return result ?? new CertificateTrustResult
-        {
-            HasCertificates = false,
-            TrustLevel = null,
-            Certificates = []
-        };
+        return result;
     }
 
     private async Task HandleMachineReadableTrustAsync(
         CertificateTrustResult trustResult,
-        OutputCollector collector,
-        Dictionary<string, string> environmentVariables,
-        CancellationToken cancellationToken)
+        Dictionary<string, string> environmentVariables)
     {
         // If fully trusted, nothing more to do
         if (trustResult.IsFullyTrusted)
@@ -109,35 +91,18 @@ internal sealed partial class CertificateService(
         // If not trusted at all, run the trust operation
         if (trustResult.IsNotTrusted)
         {
-            var options = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = collector.AppendOutput,
-                StandardErrorCallback = collector.AppendError,
-            };
-
-            var trustExitCode = await interactionService.ShowStatusAsync(
+            var trustResultCode = await interactionService.ShowStatusAsync(
                 InteractionServiceStrings.TrustingCertificates,
-                () => certificateToolRunner.TrustHttpCertificateAsync(options, cancellationToken),
+                () => Task.FromResult(certificateToolRunner.TrustHttpCertificate()),
                 emoji: KnownEmojis.LockedWithKey);
 
-            if (trustExitCode != 0)
+            if (!IsSuccessfulTrustResult(trustResultCode))
             {
-                interactionService.DisplayLines(collector.GetLines());
-                interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustExitCode));
+                interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustResultCode));
             }
 
             // Re-check trust status after trust operation
-            var recheckOptions = new DotNetCliRunnerInvocationOptions
-            {
-                StandardOutputCallback = collector.AppendOutput,
-                StandardErrorCallback = collector.AppendError,
-            };
-
-            var (_, recheckResult) = await certificateToolRunner.CheckHttpCertificateMachineReadableAsync(recheckOptions, cancellationToken);
-            if (recheckResult is not null)
-            {
-                trustResult = recheckResult;
-            }
+            trustResult = certificateToolRunner.CheckHttpCertificate();
         }
 
         // If partially trusted (either initially or after trust), configure SSL_CERT_DIR on Linux
@@ -146,6 +111,12 @@ internal sealed partial class CertificateService(
             ConfigureSslCertDir(environmentVariables);
         }
     }
+
+    private static bool IsSuccessfulTrustResult(EnsureCertificateResult result) =>
+        result is EnsureCertificateResult.Succeeded
+            or EnsureCertificateResult.ValidCertificatePresent
+            or EnsureCertificateResult.ExistingHttpsCertificateTrusted
+            or EnsureCertificateResult.NewHttpsCertificateTrusted;
 
     private static void ConfigureSslCertDir(Dictionary<string, string> environmentVariables)
     {

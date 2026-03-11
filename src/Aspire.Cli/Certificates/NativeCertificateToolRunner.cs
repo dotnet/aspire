@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography.X509Certificates;
-using Aspire.Cli.DotNet;
 using Microsoft.AspNetCore.Certificates.Generation;
 
 namespace Aspire.Cli.Certificates;
@@ -12,9 +11,7 @@ namespace Aspire.Cli.Certificates;
 /// </summary>
 internal sealed class NativeCertificateToolRunner(CertificateManager certificateManager) : ICertificateToolRunner
 {
-    public Task<(int ExitCode, CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(
-        DotNetCliRunnerInvocationOptions options,
-        CancellationToken cancellationToken)
+    public CertificateTrustResult CheckHttpCertificate()
     {
         var availableCertificates = certificateManager.ListCertificates(
             StoreName.My, StoreLocation.CurrentUser, isValid: true);
@@ -26,8 +23,8 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
             {
                 var status = certificateManager.CheckCertificateState(cert);
                 var trustLevel = status.Success
-                    ? certificateManager.GetTrustLevel(cert).ToString()
-                    : DevCertTrustLevel.None;
+                    ? certificateManager.GetTrustLevel(cert)
+                    : CertificateManager.TrustLevel.None;
 
                 return new DevCertInfo
                 {
@@ -50,14 +47,12 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
 
             var highestVersionedCert = validCerts.FirstOrDefault();
 
-            var result = new CertificateTrustResult
+            return new CertificateTrustResult
             {
                 HasCertificates = validCerts.Count > 0,
                 TrustLevel = highestVersionedCert?.TrustLevel,
                 Certificates = certInfos
             };
-
-            return Task.FromResult((0, (CertificateTrustResult?)result));
         }
         finally
         {
@@ -65,38 +60,24 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
         }
     }
 
-    public Task<int> TrustHttpCertificateAsync(
-        DotNetCliRunnerInvocationOptions options,
-        CancellationToken cancellationToken)
+    public EnsureCertificateResult TrustHttpCertificate()
     {
         var now = DateTimeOffset.Now;
-        var result = certificateManager.EnsureAspNetCoreHttpsDevelopmentCertificate(
+        return certificateManager.EnsureAspNetCoreHttpsDevelopmentCertificate(
             now, now.Add(TimeSpan.FromDays(365)),
             trust: true);
-
-        return Task.FromResult(result switch
-        {
-            EnsureCertificateResult.Succeeded or
-            EnsureCertificateResult.ValidCertificatePresent or
-            EnsureCertificateResult.ExistingHttpsCertificateTrusted or
-            EnsureCertificateResult.NewHttpsCertificateTrusted => 0,
-            EnsureCertificateResult.UserCancelledTrustStep => 5,
-            _ => 4 // ErrorTrustingTheCertificate
-        });
     }
 
-    public Task<int> CleanHttpCertificateAsync(
-        DotNetCliRunnerInvocationOptions options,
-        CancellationToken cancellationToken)
+    public bool CleanHttpCertificate()
     {
         try
         {
             certificateManager.CleanupHttpsCertificates();
-            return Task.FromResult(0);
+            return true;
         }
         catch
         {
-            return Task.FromResult(1);
+            return false;
         }
     }
 
