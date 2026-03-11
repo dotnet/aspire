@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,7 +43,7 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <remarks>This overload is not available in polyglot app hosts. Use the exported overload without a cancellation token instead.</remarks>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
-    [SuppressMessage("Usage", "ASPIREEXPORT008:Extension method on exported type missing AspireExport or AspireExportIgnore attribute", Justification = "Exported through the ATS-friendly shim overload without a cancellation token.")]
+    [AspireExportIgnore(Reason = "Use the exported getConnectionString overload without a cancellation token.")]
     public static ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -66,7 +65,7 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <param name="resourceName">The resource name.</param>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
-    [AspireExport("getConnectionStringAsync", MethodName = "getConnectionStringAsync", Description = "Gets the connection string for the specified resource.")]
+    [AspireExport("getConnectionString", Description = "Gets the connection string for the specified resource.")]
     internal static Task<string?> GetConnectionStringAsyncExport(this DistributedApplication app, string resourceName)
     {
         return app.GetConnectionStringAsync(resourceName, default).AsTask();

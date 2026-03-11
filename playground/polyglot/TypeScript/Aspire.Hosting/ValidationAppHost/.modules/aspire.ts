@@ -880,10 +880,10 @@ export class DistributedApplication {
     }
 
     /** Gets the connection string for the specified resource. */
-    async getConnectionStringAsync(resourceName: string): Promise<string> {
+    async getConnectionString(resourceName: string): Promise<string> {
         const rpcArgs: Record<string, unknown> = { app: this._handle, resourceName };
         return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.Testing/getConnectionStringAsync',
+            'Aspire.Hosting.Testing/getConnectionString',
             rpcArgs
         );
     }
@@ -933,8 +933,8 @@ export class DistributedApplicationPromise implements PromiseLike<DistributedApp
     }
 
     /** Gets the connection string for the specified resource. */
-    getConnectionStringAsync(resourceName: string): Promise<string> {
-        return this._promise.then(obj => obj.getConnectionStringAsync(resourceName));
+    getConnectionString(resourceName: string): Promise<string> {
+        return this._promise.then(obj => obj.getConnectionString(resourceName));
     }
 
     /** Gets the endpoint for the specified resource. */
