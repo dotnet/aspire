@@ -168,21 +168,19 @@ internal sealed class ProjectChangeDetectionService(
             // Show a notification in the dashboard if available.
             if (interactionService.IsAvailable)
             {
-                try
-                {
-                    _ = interactionService.PromptNotificationAsync(
-                        title: $"Source changes detected in '{resourceName}'",
-                        message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
-                        options: new NotificationInteractionOptions
-                        {
-                            Intent = MessageIntent.Information,
-                        },
-                        cancellationToken: stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "Failed to show notification for project '{ResourceName}'", resourceName);
-                }
+                logger.LogDebug("Sending notification for project '{ResourceName}' source changes.", resourceName);
+                _ = interactionService.PromptNotificationAsync(
+                    title: $"Source changes detected in '{resourceName}'",
+                    message: $"Source files have changed ({fileList}). Use the Rebuild command to apply the changes.",
+                    options: new NotificationInteractionOptions
+                    {
+                        Intent = MessageIntent.Information,
+                    },
+                    cancellationToken: stoppingToken);
+            }
+            else
+            {
+                logger.LogDebug("Interaction service is not available; skipping notification for project '{ResourceName}'.", resourceName);
             }
         }
     }
