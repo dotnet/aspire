@@ -136,6 +136,20 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         SelectedItem = viewModel;
     }
 
+    private async Task GoBackAsync()
+    {
+        var previousIndex = SelectedItem?.Index;
+        SelectedItem = null;
+        OverviewActiveView = OverviewViewKind.InputOutput;
+
+        if (previousIndex is { } index)
+        {
+            // Allow the UI to render the overview before scrolling.
+            await Task.Delay(50);
+            await JS.InvokeVoidAsync("scrollToElement", $"genai-message-{index}");
+        }
+    }
+
     private async Task ViewToolDefinitionAsync(ToolDefinitionViewModel toolDefinition)
     {
         SelectedItem = null;
@@ -260,19 +274,6 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         }
 
         return true;
-    }
-
-    private string GetItemTitle(GenAIItemViewModel e)
-    {
-        return e.Type switch
-        {
-            GenAIItemType.SystemMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleSystem)],
-            GenAIItemType.UserMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleUser)],
-            GenAIItemType.AssistantMessage or GenAIItemType.OutputMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleAssistant)],
-            GenAIItemType.ToolMessage => Loc[nameof(Resources.Dialogs.GenAIMessageTitleTool)],
-            GenAIItemType.Error => "Error",
-            _ => string.Empty
-        };
     }
 
     private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
