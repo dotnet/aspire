@@ -40,7 +40,19 @@ const tunnel4 = await builder.addDevTunnel("get-endpoint-tunnel");
 await tunnel4.withTunnelReference(web4Endpoint);
 const _tunnelEndpoint = await tunnel4.getTunnelEndpoint(web4Endpoint);
 
-// Test 9: Chained configuration
+// Test 9: addDevTunnel with the dedicated polyglot parameters
+const tunnel5 = await builder.addDevTunnel("configured-tunnel", {
+    tunnelId: "configured-tunnel-id",
+    allowAnonymous: true,
+    description: "Configured by the polyglot validation app",
+    labels: ["validation", "polyglot"]
+});
+const web5 = await builder.addContainer("web5", "nginx")
+    .withHttpEndpoint({ port: 9090 });
+const web5Endpoint = await web5.getEndpoint("http");
+await tunnel5.withTunnelReferenceAnonymous(web5Endpoint, true);
+
+// Test 10: Chained configuration
 await builder.addDevTunnel("chained-tunnel")
     .withAnonymousAccess();
 
