@@ -73,18 +73,18 @@ steps:
       Write-Host "Generating WinGet manifests for Aspire.Cli version $version"
       Write-Host "Using template directory: $templateDir"
 
-      $args = @(
-        '-Version', $version,
-        '-TemplateDir', $templateDir,
-        '-OutputPath', $outputPath
-      )
+      $args = @{
+        Version = $version
+        TemplateDir = $templateDir
+        OutputPath = $outputPath
+      }
 
       if (-not [string]::IsNullOrWhiteSpace('${{ parameters.archiveRoot }}')) {
-        $args += @('-ArchiveRoot', '${{ parameters.archiveRoot }}')
+        $args.ArchiveRoot = '${{ parameters.archiveRoot }}'
       }
 
       if ('${{ parameters.validateUrls }}' -eq 'true') {
-        $args += '-ValidateUrls'
+        $args.ValidateUrls = $true
       }
 
       & "$(Build.SourcesDirectory)/eng/winget/generate-manifests.ps1" @args
