@@ -151,12 +151,12 @@ internal static class CommandsConfigurationExtensions
 
                     // Start forwarding logs from the rebuilder to the main resource's console.
                     using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                    var rebuilderName = rebuilderResource.Name;
-                    var logForwardTask = ForwardLogsAsync(loggerService, rebuilderName, mainLogger, logCts.Token);
+                    var rebuilderInstanceName = rebuilderResource.GetResolvedResourceNames()[0];
+                    var logForwardTask = ForwardLogsAsync(loggerService, rebuilderInstanceName, mainLogger, logCts.Token);
 
                     // Start the rebuilder resource (runs dotnet build).
                     mainLogger.LogInformation("[build] Building project...");
-                    await orchestrator.StartResourceAsync(rebuilderName, context.CancellationToken).ConfigureAwait(false);
+                    await orchestrator.StartResourceAsync(rebuilderInstanceName, context.CancellationToken).ConfigureAwait(false);
 
                     // Wait for the rebuilder to reach a terminal state.
                     int? exitCode = null;
