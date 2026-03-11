@@ -8,6 +8,7 @@ import {
     AspireClient as AspireClientRpc,
     Handle,
     MarshalledHandle,
+    AppHostUsageError,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -2344,7 +2345,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -2358,7 +2359,9 @@ export { refExpr, ReferenceExpression } from './base.js';
 process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
-    if (reason instanceof CapabilityError) {
+    if (reason instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else if (reason instanceof CapabilityError) {
         console.error(`\n❌ Capability Error: ${error.message}`);
         console.error(`   Code: ${(reason as CapabilityError).code}`);
         if ((reason as CapabilityError).capability) {
@@ -2375,8 +2378,12 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 process.on('uncaughtException', (error: Error) => {
-    console.error(`\n❌ Uncaught Exception: ${error.message}`);
-    if (error.stack) {
+    if (error instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else {
+        console.error(`\n❌ Uncaught Exception: ${error.message}`);
+    }
+    if (!(error instanceof AppHostUsageError) && error.stack) {
         console.error(error.stack);
     }
     process.exit(1);
