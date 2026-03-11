@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { spawnCliProcess } from '../debugger/languages/cli';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { EnvironmentVariables } from '../utils/environment';
 import { errorFetchingAppHosts } from '../loc/strings';
 
 export interface ResourceUrlJson {
@@ -69,10 +69,10 @@ export class AppHostDataRepository {
     private _supportsResources = true;
     private _fetchInProgress = false;
 
-    // ── Workspace app host name (from .aspire/settings.json) ──
+    // ── Workspace app host (from aspire extension get-apphosts) ──
     private _workspaceAppHostName: string | undefined;
     private _workspaceAppHostPath: string | undefined;
-    private _settingsWatcher: vscode.FileSystemWatcher | undefined;
+    private _getAppHostsProcess: ChildProcessWithoutNullStreams | undefined;
 
     // ── Error state ──
     private _errorMessage: string | undefined;
@@ -81,7 +81,7 @@ export class AppHostDataRepository {
     private _disposed = false;
 
     constructor(private readonly _terminalProvider: AspireTerminalProvider) {
-        this._watchWorkspaceAppHostName();
+        this._fetchWorkspaceAppHost();
         this._configChangeDisposable = vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aspire.globalAppHostsPollingInterval') && this._shouldPoll) {
                 this._startPsPolling();
@@ -156,7 +156,7 @@ export class AppHostDataRepository {
         this._disposed = true;
         this._stopPolling();
         this._stopDescribeWatch();
-        this._settingsWatcher?.dispose();
+        this._getAppHostsProcess?.kill();
         this._configChangeDisposable.dispose();
         this._onDidChangeData.dispose();
     }
@@ -178,43 +178,61 @@ export class AppHostDataRepository {
         }
     }
 
-    // ── Workspace app host name (from .aspire/settings.json) ──
+    // ── Workspace app host (from aspire extension get-apphosts) ──
 
-    private _watchWorkspaceAppHostName(): void {
+    private _fetchWorkspaceAppHost(): void {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
             return;
         }
-        const folder = workspaceFolders[0];
-        this._settingsWatcher = vscode.workspace.createFileSystemWatcher(
-            new vscode.RelativePattern(folder, '.aspire/settings.json')
-        );
-        this._settingsWatcher.onDidCreate(() => this._readWorkspaceAppHostName(folder));
-        this._settingsWatcher.onDidChange(() => this._readWorkspaceAppHostName(folder));
-        this._settingsWatcher.onDidDelete(() => {
-            this._workspaceAppHostName = undefined;
-            this._workspaceAppHostPath = undefined;
-            this._onDidChangeData.fire();
-        });
-        this._readWorkspaceAppHostName(folder);
-    }
+        const rootFolder = workspaceFolders[0];
 
-    private async _readWorkspaceAppHostName(folder: vscode.WorkspaceFolder): Promise<void> {
-        try {
-            const settingsUri = vscode.Uri.joinPath(folder.uri, '.aspire', 'settings.json');
-            const data = await vscode.workspace.fs.readFile(settingsUri);
-            const json = JSON.parse(data.toString());
-            if (json.appHostPath) {
-                const resolved = path.isAbsolute(json.appHostPath)
-                    ? json.appHostPath
-                    : path.join(folder.uri.fsPath, '.aspire', json.appHostPath);
-                this._workspaceAppHostPath = resolved;
-                this._workspaceAppHostName = shortenPath(resolved);
-                this._onDidChangeData.fire();
+        extensionLogOutputChannel.info('Fetching workspace apphost via: aspire extension get-apphosts');
+
+        this._terminalProvider.getAspireCliExecutablePath().then(cliPath => {
+            if (this._disposed) {
+                return;
             }
-        } catch {
-            // File doesn't exist or is invalid — keep default label
-        }
+
+            const args = ['extension', 'get-apphosts'];
+            if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
+                args.push('--cli-wait-for-debugger');
+            }
+
+            this._getAppHostsProcess = spawnCliProcess(this._terminalProvider, cliPath, args, {
+                noExtensionVariables: true,
+                workingDirectory: rootFolder.uri.fsPath,
+                lineCallback: (line) => {
+                    try {
+                        const parsed = JSON.parse(line);
+                        if (parsed && (typeof parsed.selected_project_file === 'string' || parsed.selected_project_file === null) && Array.isArray(parsed.all_project_file_candidates)) {
+                            const appHostPath = parsed.selected_project_file
+                                ?? (parsed.all_project_file_candidates.length === 1 ? parsed.all_project_file_candidates[0] : null);
+                            if (appHostPath) {
+                                this._workspaceAppHostPath = appHostPath;
+                                this._workspaceAppHostName = shortenPath(appHostPath);
+                                extensionLogOutputChannel.info(`Workspace apphost resolved: ${appHostPath}`);
+                                this._onDidChangeData.fire();
+                            }
+                        }
+                    } catch {
+                        // Not a JSON line we care about
+                    }
+                },
+                exitCallback: (code) => {
+                    this._getAppHostsProcess = undefined;
+                    if (code !== 0) {
+                        extensionLogOutputChannel.warn(`aspire extension get-apphosts exited with code ${code}`);
+                    }
+                },
+                errorCallback: (error) => {
+                    this._getAppHostsProcess = undefined;
+                    extensionLogOutputChannel.warn(`aspire extension get-apphosts error: ${error.message}`);
+                },
+            });
+        }).catch(error => {
+            extensionLogOutputChannel.warn(`Failed to fetch workspace apphost: ${error}`);
+        });
     }
 
     // ── Workspace mode: describe --follow ──
@@ -243,10 +261,8 @@ export class AppHostDataRepository {
                     this._describeProcess = undefined;
 
                     if (!this._disposed && !this._describeRestarting) {
-                        if (code !== 0) {
-                            this._setError(errorFetchingAppHosts(`describe exited with code ${code}`));
-                        }
                         this._workspaceResources.clear();
+                        this._setError(undefined);
                         this._updateWorkspaceContext();
 
                         // Auto-restart after a delay

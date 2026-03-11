@@ -61,6 +61,11 @@ export const resourceStateLabel = (name: string, state: string) => vscode.l10n.t
 export const noCommandsAvailable = vscode.l10n.t('No commands available for this resource.');
 export const selectCommandPlaceholder = vscode.l10n.t('Select a command to execute');
 export const workspaceAppHostLabel = vscode.l10n.t('Workspace apphost');
+export const resourceCountDescription = (count: number) => vscode.l10n.t('({0} resources)', count);
+export const tooltipType = (type: string) => vscode.l10n.t('Type: {0}', type);
+export const tooltipState = (state: string) => vscode.l10n.t('State: {0}', state);
+export const tooltipHealth = (health: string) => vscode.l10n.t('Health: {0}', health);
+export const tooltipEndpoints = vscode.l10n.t('Endpoints:');
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const failedToGetConfigInfo = (exitCode: number) => vscode.l10n.t('Failed to get Aspire config info (exit code: {0}). Try updating the Aspire CLI with: aspire update', exitCode);
 export const failedToParseConfigInfo = (error: any) => vscode.l10n.t('Failed to parse Aspire config info: {0}. Try updating the Aspire CLI with: aspire update', error);

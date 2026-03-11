@@ -10,6 +10,11 @@ import {
     noCommandsAvailable,
     selectCommandPlaceholder,
     workspaceAppHostLabel,
+    resourceCountDescription,
+    tooltipType,
+    tooltipState,
+    tooltipHealth,
+    tooltipEndpoints,
 } from '../loc/strings';
 import {
     AppHostDataRepository,
@@ -38,7 +43,7 @@ class WorkspaceResourcesItem extends vscode.TreeItem {
         this.id = 'workspace-resources';
         this.iconPath = new vscode.ThemeIcon('server-process', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'workspaceResources';
-        this.description = `(${resources.length} resources)`;
+        this.description = resourceCountDescription(resources.length);
     }
 }
 
@@ -129,16 +134,16 @@ export function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
 function buildResourceTooltip(resource: ResourceJson): vscode.MarkdownString {
     const md = new vscode.MarkdownString();
     md.appendMarkdown(`**${resource.displayName ?? resource.name}**\n\n`);
-    md.appendMarkdown(`Type: \`${resource.resourceType}\`\n\n`);
+    md.appendMarkdown(`${tooltipType(resource.resourceType)}\n\n`);
     if (resource.state) {
-        md.appendMarkdown(`State: ${resource.state}\n\n`);
+        md.appendMarkdown(`${tooltipState(resource.state)}\n\n`);
     }
     if (resource.healthStatus) {
-        md.appendMarkdown(`Health: ${resource.healthStatus}\n\n`);
+        md.appendMarkdown(`${tooltipHealth(resource.healthStatus)}\n\n`);
     }
     const urls = resource.urls?.filter(u => !u.isInternal) ?? [];
     if (urls.length > 0) {
-        md.appendMarkdown(`**Endpoints:**\n\n`);
+        md.appendMarkdown(`**${tooltipEndpoints}**\n\n`);
         for (const url of urls) {
             md.appendMarkdown(`- [${url.displayName ?? url.url}](${url.url})\n`);
         }
@@ -341,14 +346,14 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         const resourceName = element.resource.displayName ?? element.resource.name;
         if (this._repository.viewMode === 'workspace') {
             const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
-            this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --follow${appHostFlag}`);
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}"${appHostFlag}`);
             return;
         }
         const appHost = this._findAppHostForResource(element);
         if (!appHost) {
             return;
         }
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --apphost "${appHost.appHostPath}" --follow`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --apphost "${appHost.appHostPath}"`);
     }
 
     async executeResourceCommand(element: ResourceItem): Promise<void> {
