@@ -15,6 +15,7 @@ Required:
 
 Optional:
   --output PATH             Output file path (default: ./aspire.rb or ./aspire@prerelease.rb)
+  --archive-root PATH       Root directory containing locally built CLI archives to hash
   --validate-urls           Verify all tarball URLs are accessible before downloading
   --help                    Show this help message
 EOF
@@ -24,6 +25,7 @@ EOF
 VERSION=""
 CHANNEL=""
 OUTPUT=""
+ARCHIVE_ROOT=""
 VALIDATE_URLS=false
 
 while [[ $# -gt 0 ]]; do
@@ -31,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     --version)        VERSION="$2";  shift 2 ;;
     --channel)        CHANNEL="$2";  shift 2 ;;
     --output)         OUTPUT="$2";   shift 2 ;;
+    --archive-root)   ARCHIVE_ROOT="$2"; shift 2 ;;
     --validate-urls)  VALIDATE_URLS=true; shift ;;
     --help)           usage ;;
     *)                echo "Unknown option: $1"; usage ;;
@@ -82,6 +85,32 @@ compute_sha256() {
   echo "$hash"
 }
 
+compute_sha256_from_file() {
+  local file_path="$1"
+  local description="$2"
+
+  echo "Computing SHA256 for $description from local file..." >&2
+  echo "  Path: $file_path" >&2
+
+  local hash
+  hash="$(shasum -a 256 "$file_path" | awk '{print $1}')"
+  echo "  SHA256: $hash" >&2
+  echo "$hash"
+}
+
+find_local_archive() {
+  local archive_name="$1"
+  local archive_path
+
+  archive_path="$(find "$ARCHIVE_ROOT" -type f -name "$archive_name" -print -quit)"
+  if [[ -z "$archive_path" ]]; then
+    echo "Error: Could not find local archive '$archive_name' under '$ARCHIVE_ROOT'" >&2
+    exit 1
+  fi
+
+  echo "$archive_path"
+}
+
 # Check if a URL is accessible (HEAD request)
 url_exists() {
   curl -o /dev/null -s --head --fail "$1"
@@ -93,6 +122,11 @@ echo ""
 # macOS tarballs are required
 OSX_ARM64_URL="$BASE_URL/aspire-cli-osx-arm64-$VERSION.tar.gz"
 OSX_X64_URL="$BASE_URL/aspire-cli-osx-x64-$VERSION.tar.gz"
+
+if [[ -n "$ARCHIVE_ROOT" && ! -d "$ARCHIVE_ROOT" ]]; then
+  echo "Error: --archive-root directory does not exist: $ARCHIVE_ROOT"
+  exit 1
+fi
 
 # Validate URLs are accessible before downloading (fast-fail)
 if [[ "$VALIDATE_URLS" == true ]]; then
@@ -115,8 +149,16 @@ if [[ "$VALIDATE_URLS" == true ]]; then
   echo ""
 fi
 
-SHA256_OSX_ARM64="$(compute_sha256 "$OSX_ARM64_URL" "macOS ARM64 tarball")"
-SHA256_OSX_X64="$(compute_sha256 "$OSX_X64_URL" "macOS x64 tarball")"
+if [[ -n "$ARCHIVE_ROOT" ]]; then
+  OSX_ARM64_ARCHIVE="$(find_local_archive "aspire-cli-osx-arm64-$VERSION.tar.gz")"
+  OSX_X64_ARCHIVE="$(find_local_archive "aspire-cli-osx-x64-$VERSION.tar.gz")"
+
+  SHA256_OSX_ARM64="$(compute_sha256_from_file "$OSX_ARM64_ARCHIVE" "macOS ARM64 tarball")"
+  SHA256_OSX_X64="$(compute_sha256_from_file "$OSX_X64_ARCHIVE" "macOS x64 tarball")"
+else
+  SHA256_OSX_ARM64="$(compute_sha256 "$OSX_ARM64_URL" "macOS ARM64 tarball")"
+  SHA256_OSX_X64="$(compute_sha256 "$OSX_X64_URL" "macOS x64 tarball")"
+fi
 
 echo ""
 echo "Generating cask from template..."

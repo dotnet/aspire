@@ -24,6 +24,10 @@
     e.g., "./manifests/m/Microsoft/Aspire/{Version}" for Microsoft.Aspire
     or "./manifests/m/Microsoft/Aspire/Prerelease/{Version}" for Microsoft.Aspire.Prerelease.
 
+.PARAMETER ArchiveRoot
+    Root directory containing locally built CLI archives. When specified, SHA256 hashes
+    are computed from matching local files instead of downloading from installer URLs.
+
 .PARAMETER ReleaseNotesUrl
     URL to the release notes page. If not specified, derived from the version
     (e.g., "13.2.0" -> "https://aspire.dev/whats-new/aspire-13-2/").
@@ -57,6 +61,9 @@ param(
     [string]$OutputPath,
 
     [Parameter(Mandatory = $false)]
+    [string]$ArchiveRoot,
+
+    [Parameter(Mandatory = $false)]
     [string]$ReleaseNotesUrl,
 
     [Parameter(Mandatory = $false)]
@@ -71,6 +78,11 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Validate template directory
 if (-not (Test-Path $TemplateDir)) {
     Write-Error "Template directory not found: $TemplateDir"
+    exit 1
+}
+
+if ($ArchiveRoot -and -not (Test-Path $ArchiveRoot)) {
+    Write-Error "Archive root directory not found: $ArchiveRoot"
     exit 1
 }
 
@@ -169,6 +181,37 @@ function Get-RemoteFileSha256 {
     }
 }
 
+function Get-LocalArchivePath {
+    param(
+        [string]$ArchiveRoot,
+        [string]$Rid,
+        [string]$Version
+    )
+
+    $archiveName = "aspire-cli-$Rid-$Version.zip"
+    $match = Get-ChildItem -Path $ArchiveRoot -File -Recurse -Filter $archiveName | Select-Object -First 1
+    if ($null -eq $match) {
+        Write-Error "Could not find local archive '$archiveName' under '$ArchiveRoot'"
+        exit 1
+    }
+
+    return $match.FullName
+}
+
+function Get-LocalFileSha256 {
+    param(
+        [string]$Path,
+        [string]$Description
+    )
+
+    Write-Host "Computing SHA256 for $Description from local file..."
+    Write-Host "  Path: $Path"
+
+    $hash = (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToUpperInvariant()
+    Write-Host "  SHA256: $hash"
+    return $hash
+}
+
 # Function to process a template file
 function Process-Template {
     param(
@@ -230,7 +273,13 @@ Write-Host "Computing SHA256 hashes..."
 
 $installersYaml = "Installers:"
 foreach ($entry in $installerEntries) {
-    $sha256 = Get-RemoteFileSha256 -Url $entry.Url -Description "$($entry.Rid) installer"
+    if ($ArchiveRoot) {
+        $archivePath = Get-LocalArchivePath -ArchiveRoot $ArchiveRoot -Rid $entry.Rid -Version $Version
+        $sha256 = Get-LocalFileSha256 -Path $archivePath -Description "$($entry.Rid) installer"
+    }
+    else {
+        $sha256 = Get-RemoteFileSha256 -Url $entry.Url -Description "$($entry.Rid) installer"
+    }
 
     $installersYaml += "`n- Architecture: $($entry.Architecture)"
     $installersYaml += "`n  InstallerUrl: $($entry.Url)"

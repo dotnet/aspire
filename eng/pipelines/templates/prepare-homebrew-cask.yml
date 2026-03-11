@@ -4,6 +4,15 @@ parameters:
     default: ''
   - name: channel
     type: string
+  - name: archiveRoot
+    type: string
+    default: ''
+  - name: validateUrls
+    type: boolean
+    default: true
+  - name: runInstallTest
+    type: boolean
+    default: true
 
 steps:
   - bash: |
@@ -48,16 +57,30 @@ steps:
 
       echo "Generating Homebrew cask for Aspire version $version (channel: $channel)"
 
-      "$(Build.SourcesDirectory)/eng/homebrew/generate-cask.sh" \
-        --version "$version" \
-        --channel "$channel" \
-        --output "$outputFile" \
-        --validate-urls
+      args=(
+        --version "$version"
+        --channel "$channel"
+        --output "$outputFile"
+      )
+
+      if [ -n "${ARCHIVE_ROOT:-}" ]; then
+        args+=(--archive-root "$ARCHIVE_ROOT")
+      fi
+
+      validateUrlsNormalized="$(printf '%s' "${VALIDATE_URLS:-false}" | tr '[:upper:]' '[:lower:]')"
+      if [ "$validateUrlsNormalized" = "true" ]; then
+        args+=(--validate-urls)
+      fi
+
+      "$(Build.SourcesDirectory)/eng/homebrew/generate-cask.sh" "${args[@]}"
 
       echo ""
       echo "Generated cask:"
       cat "$outputFile"
     displayName: 🟣Generate Homebrew cask
+    env:
+      ARCHIVE_ROOT: '${{ parameters.archiveRoot }}'
+      VALIDATE_URLS: '${{ parameters.validateUrls }}'
 
   - bash: |
       set -euo pipefail
@@ -166,6 +189,7 @@ steps:
         echo "  Confirmed: aspire is no longer in PATH"
       fi
     displayName: 🟣Test cask install/uninstall
+    condition: and(succeeded(), eq('${{ parameters.runInstallTest }}', 'true'))
 
   - bash: |
       set -euo pipefail

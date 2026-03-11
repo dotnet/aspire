@@ -175,3 +175,109 @@ extends:
                   targetRids:
                     - win-x64
                     - win-arm64
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
+                  $shippingDir = "$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping"
+                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.Docker.*.nupkg" -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -notmatch '\.symbols\.' } |
+                    Select-Object -First 1
+
+                  if (-not $nupkg) {
+                    Write-Error "Could not find Aspire.Hosting.Docker nupkg in $shippingDir"
+                    exit 1
+                  }
+
+                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.Docker\.', '' -replace '\.nupkg$', ''
+
+                  if ($version -notmatch '^\d+\.\d+\.\d+') {
+                    Write-Error "Extracted version '$version' does not look like a valid semver. Check the nupkg name."
+                    exit 1
+                  }
+
+                  Write-Host "Detected Aspire version: $version (from $($nupkg.Name))"
+                  Write-Host "##vso[task.setvariable variable=aspireVersion;isOutput=true]$version"
+                name: computeVersion
+                displayName: 🟣Compute Aspire version from nupkg
+
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
+                  $versionKind = dotnet msbuild "$(Build.SourcesDirectory)/eng/Versions.props" -getProperty:DotNetFinalVersionKind
+                  $versionKind = $versionKind.Trim()
+                  Write-Host "DotNetFinalVersionKind: '$versionKind'"
+
+                  if ($versionKind -eq 'release') {
+                    $channel = 'stable'
+                  } else {
+                    $channel = 'prerelease'
+                  }
+
+                  Write-Host "Installer channel: $channel"
+                  Write-Host "##vso[task.setvariable variable=installerChannel;isOutput=true]$channel"
+                name: computeChannel
+                displayName: 🟣Determine installer channel
+
+    - stage: prepare_installers
+      displayName: Prepare Installers
+      dependsOn:
+      - build
+      variables:
+        aspireVersion: $[ stageDependencies.build.Windows.outputs['computeVersion.aspireVersion'] ]
+        installerChannel: $[ stageDependencies.build.Windows.outputs['computeChannel.installerChannel'] ]
+      jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuild: false
+          enablePublishUsingPipelines: false
+          enablePublishBuildAssets: false
+          enablePublishBuildArtifacts: true
+          enableTelemetry: true
+          workspace:
+            clean: all
+          jobs:
+          - job: WinGet
+            displayName: WinGet Manifest
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: 1es-windows-2022
+              os: windows
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - task: DownloadPipelineArtifact@2
+              displayName: 🟣Download CLI archives
+              inputs:
+                itemPattern: |
+                  **/aspire-cli-*.zip
+                targetPath: '$(Pipeline.Workspace)/native-archives'
+            - template: /eng/pipelines/templates/prepare-winget-manifest.yml@self
+              parameters:
+                version: $(aspireVersion)
+                channel: $(installerChannel)
+                archiveRoot: $(Pipeline.Workspace)/native-archives
+                validateUrls: false
+                runInstallTest: false
+
+          - job: Homebrew
+            displayName: Homebrew Cask
+            timeoutInMinutes: 30
+            pool:
+              name: Azure Pipelines
+              vmImage: macOS-latest-internal
+              os: macOS
+            steps:
+            - checkout: self
+              fetchDepth: 1
+            - task: DownloadPipelineArtifact@2
+              displayName: 🟣Download CLI archives
+              inputs:
+                itemPattern: |
+                  **/aspire-cli-*.tar.gz
+                targetPath: '$(Pipeline.Workspace)/native-archives'
+            - template: /eng/pipelines/templates/prepare-homebrew-cask.yml@self
+              parameters:
+                version: $(aspireVersion)
+                channel: $(installerChannel)
+                archiveRoot: $(Pipeline.Workspace)/native-archives
+                validateUrls: false
+                runInstallTest: false

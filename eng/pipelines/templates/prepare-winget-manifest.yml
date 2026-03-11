@@ -4,6 +4,15 @@ parameters:
     default: ''
   - name: channel
     type: string
+  - name: archiveRoot
+    type: string
+    default: ''
+  - name: validateUrls
+    type: boolean
+    default: true
+  - name: runInstallTest
+    type: boolean
+    default: true
 
 steps:
   - pwsh: |
@@ -64,11 +73,21 @@ steps:
       Write-Host "Generating WinGet manifests for Aspire.Cli version $version"
       Write-Host "Using template directory: $templateDir"
 
-      & "$(Build.SourcesDirectory)/eng/winget/generate-manifests.ps1" `
-        -Version $version `
-        -TemplateDir $templateDir `
-        -OutputPath $outputPath `
-        -ValidateUrls
+      $args = @(
+        '-Version', $version,
+        '-TemplateDir', $templateDir,
+        '-OutputPath', $outputPath
+      )
+
+      if (-not [string]::IsNullOrWhiteSpace('${{ parameters.archiveRoot }}')) {
+        $args += @('-ArchiveRoot', '${{ parameters.archiveRoot }}')
+      }
+
+      if ('${{ parameters.validateUrls }}' -eq 'true') {
+        $args += '-ValidateUrls'
+      }
+
+      & "$(Build.SourcesDirectory)/eng/winget/generate-manifests.ps1" @args
 
       if ($LASTEXITCODE -ne 0) {
         Write-Error "generate-manifests.ps1 failed with exit code $LASTEXITCODE"
@@ -189,6 +208,7 @@ steps:
         exit 1
       }
     displayName: 🟣Test WinGet manifest install/uninstall
+    condition: and(succeeded(), eq('${{ parameters.runInstallTest }}', 'true'))
 
   - pwsh: |
       Copy-Item "$(Build.SourcesDirectory)/eng/winget/dogfood.ps1" "$(Build.StagingDirectory)/winget-manifests/dogfood.ps1"
