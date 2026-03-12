@@ -543,7 +543,7 @@ Integration assemblies are loaded in a custom `AssemblyLoadContext` ("Aspire.Int
 - **Shares `Aspire.TypeSystem`** — always defers to the default context for type identity
 - **Performs version unification** — before loading an assembly from the probe directory, checks if the default context already provides it at a higher or equal version; if so, defers to the default
 
-```
+```text
 ┌──────────────────────────────────────────────────────┐
 │ Default Load Context (aspire-managed)                │
 │  Aspire.Hosting.RemoteHost.dll (aspire-server)       │
