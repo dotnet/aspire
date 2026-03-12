@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Entra\Aspire.Hosting.Azure.Entra.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.EntraId\Aspire.Hosting.Azure.EntraId.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
   </ItemGroup>
 

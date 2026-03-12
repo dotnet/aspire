@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Entra.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.EntraId.Tests" />
   </ItemGroup>
 
 </Project>

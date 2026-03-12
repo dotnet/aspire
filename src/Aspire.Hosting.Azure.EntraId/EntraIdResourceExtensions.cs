@@ -29,11 +29,12 @@ public static class EntraIdResourceExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .WithTenantId(builder.AddParameter("EntraTenantId"))
-    ///     .WithClientId(builder.AddParameter("EntraApiClientId"));
+    ///     .AsExisting(
+    ///         tenantId: builder.AddParameter("EntraTenantId"),
+    ///         clientId: builder.AddParameter("EntraApiClientId"));
     ///
     /// builder.AddProject&lt;Projects.Api&gt;("api")
-    ///     .WithEntraIdAuthentication(entraApi);
+    ///     .WithReference(entraApi);
     /// </code>
     /// </example>
     /// </remarks>
@@ -120,69 +121,57 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
-    /// Configures the tenant ID for this Entra ID application using a parameter resource.
+    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="tenantId">A parameter containing the tenant ID (GUID).</param>
+    /// <param name="tenantId">A parameter containing the tenant ID (GUID) of the directory where the app is registered.</param>
+    /// <param name="clientId">A parameter containing the client ID (application ID) of the existing app registration.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EntraIdApplicationResource> WithTenantId(
+    /// <remarks>
+    /// <para>
+    /// Both the tenant ID and client ID are required to identify an existing Entra ID application.
+    /// Unlike ARM resources that can be identified by name and resource group, Entra ID app registrations
+    /// live in a specific tenant directory and are uniquely identified by their client ID within that tenant.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AsExisting(
         this IResourceBuilder<EntraIdApplicationResource> builder,
-        IResourceBuilder<ParameterResource> tenantId)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(tenantId);
-
-        builder.Resource.TenantIdParameter = tenantId.Resource;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the tenant ID for this Entra ID application using a string value.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="tenantId">The tenant ID (GUID).</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EntraIdApplicationResource> WithTenantId(
-        this IResourceBuilder<EntraIdApplicationResource> builder,
-        string tenantId)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(tenantId);
-
-        builder.Resource.TenantId = tenantId;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the client ID for this Entra ID application using a parameter resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="clientId">A parameter containing the client ID (GUID).</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EntraIdApplicationResource> WithClientId(
-        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> tenantId,
         IResourceBuilder<ParameterResource> clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(tenantId);
         ArgumentNullException.ThrowIfNull(clientId);
 
+        builder.Resource.TenantIdParameter = tenantId.Resource;
         builder.Resource.ClientIdParameter = clientId.Resource;
         return builder;
     }
 
     /// <summary>
-    /// Configures the client ID for this Entra ID application using a string value.
+    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="clientId">The client ID (GUID).</param>
+    /// <param name="tenantId">The tenant ID (GUID) of the directory where the app is registered.</param>
+    /// <param name="clientId">The client ID (application ID) of the existing app registration.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EntraIdApplicationResource> WithClientId(
+    /// <remarks>
+    /// <para>
+    /// Both the tenant ID and client ID are required to identify an existing Entra ID application.
+    /// Unlike ARM resources that can be identified by name and resource group, Entra ID app registrations
+    /// live in a specific tenant directory and are uniquely identified by their client ID within that tenant.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AsExisting(
         this IResourceBuilder<EntraIdApplicationResource> builder,
+        string tenantId,
         string clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(tenantId);
         ArgumentException.ThrowIfNullOrEmpty(clientId);
 
+        builder.Resource.TenantId = tenantId;
         builder.Resource.ClientId = clientId;
         return builder;
     }
@@ -481,15 +470,16 @@ public static class EntraIdResourceExtensions
     /// <example>
     /// <code lang="csharp">
     /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .WithTenantId(tenantId)
-    ///     .WithClientId(clientId);
+    ///     .AsExisting(
+    ///         tenantId: tenantId,
+    ///         clientId: clientId);
     ///
     /// builder.AddProject&lt;Projects.Api&gt;("api")
-    ///     .WithEntraIdAuthentication(entraApi);
+    ///     .WithReference(entraApi);
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithEntraIdAuthentication<T>(
+    public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<EntraIdApplicationResource> source)
         where T : IResourceWithEnvironment
