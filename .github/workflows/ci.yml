@@ -18,27 +18,180 @@ concurrency:
 
 jobs:
 
+  prepare_for_ci:
+    runs-on: ubuntu-latest
+    name: Prepare for CI
+    if: ${{ github.repository_owner == 'dotnet' }}
+    outputs:
+      skip_workflow: ${{ steps.detect.outputs.all_skipped }}
+      VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
+      run_all: ${{ steps.detect.outputs.run_all }}
+      run_extension: ${{ steps.detect.outputs.run_extension }}
+      run_polyglot: ${{ steps.detect.outputs.run_polyglot }}
+      affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
+
+    steps:
+      - name: Checkout code
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - id: compute_version_suffix
+        name: Compute version suffix for PRs
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: pwsh
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          Write-Host "Determining VERSION_SUFFIX_OVERRIDE (PR only step)..."
+          if ([string]::IsNullOrWhiteSpace($Env:PR_HEAD_SHA)) {
+            Write-Error "PR_HEAD_SHA not set; cannot compute version suffix."
+            exit 1
+          }
+          $SHORT_SHA = $Env:PR_HEAD_SHA.Substring(0,8)
+          $VERSION_SUFFIX = "/p:VersionSuffix=pr.$($Env:PR_NUMBER).g$SHORT_SHA"
+          Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
+          "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Restore local SDK
+        if: ${{ github.event_name == 'pull_request' }}
+        run: ./restore.sh
+
+      - name: Install dotnet-affected
+        if: ${{ github.event_name == 'pull_request' }}
+        run: ./dotnet.sh tool install --global dotnet-affected --version 6.2.0-preview-1
+
+      - name: Evaluate changed paths
+        id: detect_raw
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            mkdir -p "${{ github.workspace }}/artifacts/test-selection"
+            echo "::group::Running test selector tool"
+            ./dotnet.sh run --project tools/TestSelector/TestSelector.csproj -- \
+              --solution Aspire.slnx \
+              --config eng/scripts/test-selection-rules.json \
+              --from "${{ github.event.pull_request.base.sha }}" \
+              --to "${{ github.event.pull_request.head.sha }}" \
+              --output "${{ github.workspace }}/artifacts/test-selection/selector-audit.json" \
+              --github-output \
+              --verbose
+            echo "::endgroup::"
+          else
+            echo "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+            echo "run_integrations=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            echo "run_polyglot=true" >> $GITHUB_OUTPUT
+            echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply conditional scope (audit mode — all categories)
+        id: detect
+        shell: bash
+        run: |
+          if [ "${{ steps.detect_raw.outcome }}" != "success" ]; then
+            echo "::warning::Test selector failed - falling back to running all tests"
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_integrations=true" >> $GITHUB_OUTPUT
+            echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            echo "run_polyglot=true" >> $GITHUB_OUTPUT
+            echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
+            echo "all_skipped=false" >> $GITHUB_OUTPUT
+
+            echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Test selector tool failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          RAW_RUN_ALL="${{ steps.detect_raw.outputs.run_all }}"
+          RAW_RUN_INTEGRATIONS="${{ steps.detect_raw.outputs.run_integrations }}"
+          RAW_RUN_CLI_E2E="${{ steps.detect_raw.outputs.run_cli_e2e }}"
+          RAW_RUN_EXTENSION="${{ steps.detect_raw.outputs.run_extension }}"
+          RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
+          RAW_AFFECTED="${{ steps.detect_raw.outputs.affected_test_projects }}"
+
+          if [ "${RAW_RUN_ALL}" != "true" ] && [ "${RAW_AFFECTED:-[]}" = "[]" ]; then
+            ALL_SKIPPED=true
+          else
+            ALL_SKIPPED=false
+          fi
+
+          echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
+          echo "run_integrations=true" >> $GITHUB_OUTPUT
+          echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+          echo "run_extension=true" >> $GITHUB_OUTPUT
+          echo "run_polyglot=true" >> $GITHUB_OUTPUT
+          echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
+          echo "all_skipped=${ALL_SKIPPED}" >> $GITHUB_OUTPUT
+
+          echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All categories are in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| run_all | ${RAW_RUN_ALL:-false} | ${RAW_RUN_ALL:-false} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| extension | ${RAW_RUN_EXTENSION:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
+          echo "**All tests skipped:** ${ALL_SKIPPED}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Show test selection results
+        shell: bash
+        run: |
+          echo "::group::Test Selection Results (final, after audit overrides)"
+          echo "run_all=${{ steps.detect.outputs.run_all }}"
+          echo "run_extension=${{ steps.detect.outputs.run_extension }}"
+          echo "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
+          echo "affected_test_projects=${{ steps.detect.outputs.affected_test_projects }}"
+          echo "all_skipped=${{ steps.detect.outputs.all_skipped }}"
+          echo "::endgroup::"
+
+      - name: Upload selector audit artifact
+        if: ${{ github.event_name == 'pull_request' && steps.detect_raw.outcome == 'success' }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-scope-selector-audit
+          path: ${{ github.workspace }}/artifacts/test-selection/selector-audit.json
+          if-no-files-found: error
+
   tests:
     uses: ./.github/workflows/tests.yml
     name: Tests
-    if: ${{ github.repository_owner == 'dotnet' }}
+    needs: [prepare_for_ci]
+    if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
+    with:
+      versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
+      run_all: ${{ needs.prepare_for_ci.outputs.run_all }}
+      run_extension: ${{ needs.prepare_for_ci.outputs.run_extension }}
+      run_polyglot: ${{ needs.prepare_for_ci.outputs.run_polyglot }}
+      affected_test_projects: ${{ needs.prepare_for_ci.outputs.affected_test_projects }}
 
   # This job is used for branch protection. It fails if any of the dependent jobs failed
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
-    needs: [tests]
+    needs: [prepare_for_ci, tests]
 
     steps:
       - name: Fail if any of the dependent jobs failed
         # Don't fail if the workflow is being skipped.
-        # The tests workflow outputs skip_workflow=true when all tests are
-        # skipped (e.g. doc-only PRs). In that case, downstream jobs are
-        # legitimately skipped and should not cause a failure.
+        # When Prepare for CI decides nothing relevant changed, the Tests job
+        # is intentionally skipped and should not cause a failure.
         if: >-
           ${{ always() &&
-              needs.tests.outputs.skip_workflow != 'true' &&
+              needs.prepare_for_ci.outputs.skip_workflow != 'true' &&
               (contains(needs.*.result, 'failure') ||
                contains(needs.*.result, 'cancelled') ||
                contains(needs.*.result, 'skipped')) }}
