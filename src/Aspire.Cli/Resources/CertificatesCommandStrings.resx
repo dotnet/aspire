@@ -66,6 +66,9 @@
   <data name="CleanDescription" xml:space="preserve">
     <value>Remove all HTTPS development certificates.</value>
   </data>
+  <data name="CleanCancelled" xml:space="preserve">
+    <value>Certificate clean operation was cancelled by the user.</value>
+  </data>
   <data name="TrustDescription" xml:space="preserve">
     <value>Trust the HTTPS development certificate, creating one if necessary.</value>
   </data>
@@ -87,6 +90,9 @@
   <data name="CleanFailureDetailsFormat" xml:space="preserve">
     <value>Certificate clean operation failed: {0}</value>
     <comment>{0} is the error message from the failed operation</comment>
+  </data>
+  <data name="TrustCancelled" xml:space="preserve">
+    <value>Certificate trust operation was cancelled by the user.</value>
   </data>
   <data name="TrustFailure" xml:space="preserve">
     <value>Failed to trust HTTPS development certificate.</value>

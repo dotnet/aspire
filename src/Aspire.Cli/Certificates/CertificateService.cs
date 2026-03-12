@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -30,7 +28,7 @@ internal interface ICertificateService
     Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken);
 }
 
-internal sealed partial class CertificateService(
+internal sealed class CertificateService(
     ICertificateToolRunner certificateToolRunner,
     IInteractionService interactionService,
     AspireCliTelemetry telemetry) : ICertificateService
@@ -96,7 +94,11 @@ internal sealed partial class CertificateService(
                 () => Task.FromResult(certificateToolRunner.TrustHttpCertificate()),
                 emoji: KnownEmojis.LockedWithKey);
 
-            if (!IsSuccessfulTrustResult(trustResultCode))
+            if (trustResultCode == EnsureCertificateResult.UserCancelledTrustStep)
+            {
+                interactionService.DisplayMessage(KnownEmojis.Warning, CertificatesCommandStrings.TrustCancelled);
+            }
+            else if (!CertificateHelpers.IsSuccessfulTrustResult(trustResultCode))
             {
                 interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.CertificatesMayNotBeFullyTrusted, trustResultCode));
             }
@@ -111,12 +113,6 @@ internal sealed partial class CertificateService(
             ConfigureSslCertDir(environmentVariables);
         }
     }
-
-    private static bool IsSuccessfulTrustResult(EnsureCertificateResult result) =>
-        result is EnsureCertificateResult.Succeeded
-            or EnsureCertificateResult.ValidCertificatePresent
-            or EnsureCertificateResult.ExistingHttpsCertificateTrusted
-            or EnsureCertificateResult.NewHttpsCertificateTrusted;
 
     private static void ConfigureSslCertDir(Dictionary<string, string> environmentVariables)
     {
@@ -145,9 +141,13 @@ internal sealed partial class CertificateService(
             // Query OpenSSL to get its configured certificate directory.
             var systemCertDirs = new List<string>();
 
-            if (TryGetOpenSslCertsDirectory(out var openSslCertsDir))
+            if (CertificateHelpers.TryGetOpenSslDirectory(out var openSslDir))
             {
-                systemCertDirs.Add(openSslCertsDir);
+                var openSslCertsDir = Path.Combine(openSslDir, "certs");
+                if (Directory.Exists(openSslCertsDir))
+                {
+                    systemCertDirs.Add(openSslCertsDir);
+                }
             }
             else
             {
@@ -169,70 +169,8 @@ internal sealed partial class CertificateService(
         }
     }
 
-    /// <summary>
-    /// Attempts to get the OpenSSL certificates directory by running 'openssl version -d'.
-    /// This is the same approach used by ASP.NET Core's certificate manager.
-    /// </summary>
-    /// <param name="certsDir">The path to the OpenSSL certificates directory if found.</param>
-    /// <returns>True if the OpenSSL certs directory was found, false otherwise.</returns>
-    private static bool TryGetOpenSslCertsDirectory([NotNullWhen(true)] out string? certsDir)
-    {
-        certsDir = null;
-
-        try
-        {
-            var processInfo = new ProcessStartInfo("openssl", "version -d")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(processInfo);
-            if (process is null)
-            {
-                return false;
-            }
-
-            var stdout = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(TimeSpan.FromSeconds(5));
-
-            if (process.ExitCode != 0)
-            {
-                return false;
-            }
-
-            // Parse output like: OPENSSLDIR: "/usr/lib/ssl"
-            var match = OpenSslVersionRegex().Match(stdout);
-            if (!match.Success)
-            {
-                return false;
-            }
-
-            var openSslDir = match.Groups[1].Value;
-            certsDir = Path.Combine(openSslDir, "certs");
-
-            // Verify the directory exists
-            if (!Directory.Exists(certsDir))
-            {
-                certsDir = null;
-                return false;
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    [GeneratedRegex("OPENSSLDIR:\\s*\"([^\"]+)\"")]
-    private static partial Regex OpenSslVersionRegex();
 }
 
-public sealed class CertificateServiceException(string message) : Exception(message)
+internal sealed class CertificateServiceException(string message) : Exception(message)
 {
-
 }

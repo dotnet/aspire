@@ -75,6 +75,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Certificate clean operation was cancelled by the user..
+        /// </summary>
+        internal static string CleanCancelled {
+            get {
+                return ResourceManager.GetString("CleanCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove all HTTPS development certificates..
         /// </summary>
         internal static string CleanDescription {
@@ -116,6 +125,15 @@ namespace Aspire.Cli.Resources {
         internal static string TrustDescription {
             get {
                 return ResourceManager.GetString("TrustDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Certificate trust operation was cancelled by the user..
+        /// </summary>
+        internal static string TrustCancelled {
+            get {
+                return ResourceManager.GetString("TrustCancelled", resourceCulture);
             }
         }
         

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.AspNetCore.Certificates.Generation;
 
@@ -142,17 +143,17 @@ public class DevCertsCheckFixRecommendationTests
     [Fact]
     public void IsSuccessfulTrustResult_SuccessResults_ReturnsTrue()
     {
-        Assert.True(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.Succeeded));
-        Assert.True(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.ValidCertificatePresent));
-        Assert.True(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.ExistingHttpsCertificateTrusted));
-        Assert.True(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.NewHttpsCertificateTrusted));
+        Assert.True(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.Succeeded));
+        Assert.True(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.ValidCertificatePresent));
+        Assert.True(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.ExistingHttpsCertificateTrusted));
+        Assert.True(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.NewHttpsCertificateTrusted));
     }
 
     [Fact]
     public void IsSuccessfulTrustResult_FailureResults_ReturnsFalse()
     {
-        Assert.False(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.FailedToTrustTheCertificate));
-        Assert.False(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.ErrorCreatingTheCertificate));
-        Assert.False(DevCertsCheck.IsSuccessfulTrustResult(EnsureCertificateResult.ErrorSavingTheCertificateIntoTheCurrentUserPersonalStore));
+        Assert.False(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.FailedToTrustTheCertificate));
+        Assert.False(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.ErrorCreatingTheCertificate));
+        Assert.False(CertificateHelpers.IsSuccessfulTrustResult(EnsureCertificateResult.ErrorSavingTheCertificateIntoTheCurrentUserPersonalStore));
     }
 }

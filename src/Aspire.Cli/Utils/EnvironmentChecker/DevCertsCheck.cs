@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Certificates.Generation;
@@ -26,12 +25,6 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
 
     private static readonly string s_trustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsTrustFixFormat, "aspire certs trust");
     private static readonly string s_cleanAndTrustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsCleanAndTrustFixFormat, "aspire certs clean", "aspire certs trust");
-
-    internal static bool IsSuccessfulTrustResult(EnsureCertificateResult result) =>
-        result is EnsureCertificateResult.Succeeded
-            or EnsureCertificateResult.ValidCertificatePresent
-            or EnsureCertificateResult.ExistingHttpsCertificateTrusted
-            or EnsureCertificateResult.NewHttpsCertificateTrusted;
 
     public Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -334,65 +327,13 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
     {
         // Always prepend $SSL_CERT_DIR to preserve any existing value.
         // If unset, the empty expansion is harmless.
-        if (TryGetOpenSslDirectory(out var openSslDir))
+        if (CertificateHelpers.TryGetOpenSslDirectory(out var openSslDir))
         {
             var systemCertsPath = Path.Combine(openSslDir, "certs");
             return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{systemCertsPath}:{devCertsTrustPath}\"";
         }
 
         return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{devCertsTrustPath}\"";
-    }
-
-    /// <summary>
-    /// Tries to detect the OpenSSL directory by running 'openssl version -d'.
-    /// </summary>
-    /// <remarks>
-    /// Mirrors the logic in UnixCertificateManager.TryGetOpenSslDirectory. Parses the
-    /// OPENSSLDIR value from 'openssl version -d' output (e.g. OPENSSLDIR: "/usr/lib/ssl").
-    /// </remarks>
-    private static bool TryGetOpenSslDirectory([NotNullWhen(true)] out string? openSslDir)
-    {
-        openSslDir = null;
-
-        try
-        {
-            var processInfo = new ProcessStartInfo("openssl", "version -d")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(processInfo);
-            if (process is null)
-            {
-                return false;
-            }
-
-            var stdout = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-            {
-                return false;
-            }
-
-            // Parse "OPENSSLDIR: "/path/to/dir""
-            var match = Regex.Match(stdout, @"OPENSSLDIR:\s*""([^""]+)""");
-            if (!match.Success)
-            {
-                return false;
-            }
-
-            openSslDir = match.Groups[1].Value;
-            return true;
-        }
-        catch
-        {
-            // openssl may not be installed — silently fail
-            return false;
-        }
     }
 
     /// <summary>

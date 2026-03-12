@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../CertificatesCommandStrings.resx">
     <body>
+      <trans-unit id="CleanCancelled">
+        <source>Certificate clean operation was cancelled by the user.</source>
+        <target state="new">Certificate clean operation was cancelled by the user.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CleanDescription">
         <source>Remove all HTTPS development certificates.</source>
         <target state="new">Remove all HTTPS development certificates.</target>
@@ -30,6 +35,11 @@
       <trans-unit id="Description">
         <source>Manage HTTPS development certificates.</source>
         <target state="new">Manage HTTPS development certificates.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TrustCancelled">
+        <source>Certificate trust operation was cancelled by the user.</source>
+        <target state="new">Certificate trust operation was cancelled by the user.</target>
         <note />
       </trans-unit>
       <trans-unit id="TrustDescription">

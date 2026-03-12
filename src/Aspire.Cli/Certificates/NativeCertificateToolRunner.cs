@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Certificates.Generation;
 
@@ -68,12 +69,21 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
             trust: true);
     }
 
+    /// Win32 ERROR_CANCELLED (0x4C7) encoded as an HRESULT (0x800704C7).
+    /// Thrown when the user dismisses the Windows certificate-store security dialog.
+    private const int UserCancelledHResult = unchecked((int)0x800704C7);
+    private const int UserCancelledErrorCode = 1223;
+
     public CertificateCleanResult CleanHttpCertificate()
     {
         try
         {
             certificateManager.CleanupHttpsCertificates();
             return new CertificateCleanResult { Success = true };
+        }
+        catch (CryptographicException ex) when (ex.HResult == UserCancelledHResult || ex.HResult == UserCancelledErrorCode)
+        {
+            return new CertificateCleanResult { Success = false, WasCancelled = true, ErrorMessage = ex.Message };
         }
         catch (Exception ex)
         {

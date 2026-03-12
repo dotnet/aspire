@@ -9,7 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Aspire.Cli.Utils.EnvironmentChecker;
+using Microsoft.AspNetCore.Certificates.Generation;
 
 namespace Aspire.Cli.Commands;
 
@@ -34,10 +34,16 @@ internal sealed class CertificatesTrustCommand : BaseCommand
 
         var result = _certificateToolRunner.TrustHttpCertificate();
 
-        if (DevCertsCheck.IsSuccessfulTrustResult(result))
+        if (CertificateHelpers.IsSuccessfulTrustResult(result))
         {
             InteractionService.DisplaySuccess(CertificatesCommandStrings.TrustSuccess);
             return Task.FromResult(ExitCodeConstants.Success);
+        }
+
+        if (result == EnsureCertificateResult.UserCancelledTrustStep)
+        {
+            InteractionService.DisplayMessage(KnownEmojis.Warning, CertificatesCommandStrings.TrustCancelled);
+            return Task.FromResult(ExitCodeConstants.FailedToTrustCertificates);
         }
 
         var details = string.Format(CultureInfo.CurrentCulture, CertificatesCommandStrings.TrustFailureDetailsFormat, result);

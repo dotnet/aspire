@@ -42,6 +42,11 @@ internal sealed class CertificateCleanResult
     public required bool Success { get; init; }
 
     /// <summary>
+    /// Gets whether the operation was cancelled by the user.
+    /// </summary>
+    public bool WasCancelled { get; init; }
+
+    /// <summary>
     /// Gets the error message when the operation fails.
     /// </summary>
     public string? ErrorMessage { get; init; }

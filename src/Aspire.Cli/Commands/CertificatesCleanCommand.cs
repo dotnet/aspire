@@ -39,10 +39,15 @@ internal sealed class CertificatesCleanCommand : BaseCommand
             return Task.FromResult(ExitCodeConstants.Success);
         }
 
-        InteractionService.DisplayError(CertificatesCommandStrings.CleanFailure);
+        if (result.WasCancelled)
+        {
+            InteractionService.DisplayMessage(KnownEmojis.Warning, CertificatesCommandStrings.CleanCancelled);
+            return Task.FromResult(ExitCodeConstants.FailedToTrustCertificates);
+        }
+
         var details = string.Format(CultureInfo.CurrentCulture, CertificatesCommandStrings.CleanFailureDetailsFormat, result.ErrorMessage);
         InteractionService.DisplayError(details);
-
+        InteractionService.DisplayError(CertificatesCommandStrings.CleanFailure);
         return Task.FromResult(ExitCodeConstants.FailedToTrustCertificates);
     }
 }
