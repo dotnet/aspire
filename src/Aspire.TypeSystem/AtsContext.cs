@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Aspire.Hosting.Ats;
@@ -40,7 +39,6 @@ namespace Aspire.Hosting.Ats;
 ///   </item>
 /// </list>
 /// </remarks>
-[Experimental("ASPIREATS001")]
 public sealed class AtsContext
 {
     private HashSet<Type>? _dtoTypes;

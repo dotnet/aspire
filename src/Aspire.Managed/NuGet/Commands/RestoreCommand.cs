@@ -348,6 +348,7 @@ public static class RestoreCommand
                 LibraryDependencyTarget.Package)
         }).ToImmutableArray();
 
+        // Build target framework info
         var tfInfo = new TargetFrameworkInformation
         {
             FrameworkName = framework,

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
@@ -7,8 +7,7 @@
     <IsPackable>true</IsPackable>
     <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
     <PackageTags>aspire ats typesystem polyglot</PackageTags>
-    <Description>ATS type-system and scanning APIs for Aspire polyglot support.</Description>
+    <Description>Aspire Type System (ATS) APIs for Aspire polyglot support.</Description>
   </PropertyGroup>
-
 
 </Project>
