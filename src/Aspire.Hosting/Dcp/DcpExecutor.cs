@@ -1383,6 +1383,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     {
                         var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                         projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+                        projectLaunchConfiguration.Mode = _configuration[KnownConfigNames.DebugSessionRunMode]
+                            ?? (Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug);
 
                         projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
                         // Use the effective launch profile which has fallback logic
