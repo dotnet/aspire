@@ -190,7 +190,7 @@ You can configure the extension under **Settings → Aspire**, or jump there wit
 |---------|---------|-------------|
 | `aspire.aspireCliExecutablePath` | `""` | Path to the Aspire CLI. Leave empty to use `aspire` from PATH. |
 | `aspire.dashboardBrowser` | `openExternalBrowser` | Which browser to open the dashboard in — system default, or Chrome/Edge/Firefox as a debug session |
-| `aspire.enableAspireDashboardAutoLaunch` | `true` | Open the dashboard automatically when you start debugging |
+| `aspire.enableAspireDashboardAutoLaunch` | `launch` | Controls what happens with the dashboard when debugging starts: `launch` (auto-open), `notification` (show link), or `off` |
 | `aspire.registerMcpServerInWorkspace` | `false` | Register the Aspire MCP server (see [below](#mcp-server-integration)) |
 
 There are more settings for things like verbose logging, startup prompts, and polling intervals — run **Aspire: Extension settings** from the Command Palette to see them all.
