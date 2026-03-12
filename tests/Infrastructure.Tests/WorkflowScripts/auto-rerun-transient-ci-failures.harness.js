@@ -21,6 +21,16 @@ class SummaryRecorder {
         return this;
     }
 
+    addLink(text, href) {
+        this.events.push({ type: 'link', text, href });
+        return this;
+    }
+
+    addBreak() {
+        this.events.push({ type: 'break' });
+        return this;
+    }
+
     async write() {
         this.events.push({ type: 'write' });
         return this;
@@ -107,6 +117,18 @@ function createGitHubRecorder(payload, requests) {
                 return {
                     data: {
                         run_attempt: payload.latestRunAttempt ?? null,
+                    },
+                };
+            }
+
+            if (route === 'POST /repos/{owner}/{repo}/issues/{issue_number}/comments') {
+                const issueNumber = String(requestPayload.issue_number);
+                const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber]
+                    ?? `https://github.com/${requestPayload.owner}/${requestPayload.repo}/pull/${issueNumber}#issuecomment-${issueNumber}`;
+
+                return {
+                    data: {
+                        html_url: htmlUrl,
                     },
                 };
             }

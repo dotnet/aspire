@@ -252,7 +252,7 @@ internal sealed class RunCommand : BaseCommand
 
             // Now wait for the backchannel to be established
             var backchannel = await InteractionService.ShowStatusAsync(
-                isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost,
+                RunCommandStrings.ConnectingToAppHost,
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));
 
             // Set up log capture - writes to unified CLI log file

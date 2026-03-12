@@ -6360,6 +6360,239 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _withBindMountInternal(source: string, target: string, isReadOnly?: boolean): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, target };
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withBindMount',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a bind mount */
+    withBindMount(source: string, target: string, options?: WithBindMountOptions): ContainerResourcePromise {
+        const isReadOnly = options?.isReadOnly;
+        return new ContainerResourcePromise(this._withBindMountInternal(source, target, isReadOnly));
+    }
+
+    /** @internal */
+    private async _withEntrypointInternal(entrypoint: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, entrypoint };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withEntrypoint',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container entrypoint */
+    withEntrypoint(entrypoint: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withEntrypointInternal(entrypoint));
+    }
+
+    /** @internal */
+    private async _withImageTagInternal(tag: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, tag };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withImageTag',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container image tag */
+    withImageTag(tag: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withImageTagInternal(tag));
+    }
+
+    /** @internal */
+    private async _withImageRegistryInternal(registry: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, registry };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withImageRegistry',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container image registry */
+    withImageRegistry(registry: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withImageRegistryInternal(registry));
+    }
+
+    /** @internal */
+    private async _withImageInternal(image: string, tag?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, image };
+        if (tag !== undefined) rpcArgs.tag = tag;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withImage',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container image */
+    withImage(image: string, options?: WithImageOptions): ContainerResourcePromise {
+        const tag = options?.tag;
+        return new ContainerResourcePromise(this._withImageInternal(image, tag));
+    }
+
+    /** @internal */
+    private async _withImageSHA256Internal(sha256: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, sha256 };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withImageSHA256',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the image SHA256 digest */
+    withImageSHA256(sha256: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withImageSHA256Internal(sha256));
+    }
+
+    /** @internal */
+    private async _withContainerRuntimeArgsInternal(args: string[]): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withContainerRuntimeArgs',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds runtime arguments for the container */
+    withContainerRuntimeArgs(args: string[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withContainerRuntimeArgsInternal(args));
+    }
+
+    /** @internal */
+    private async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withLifetime',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the lifetime behavior of the container resource */
+    withLifetime(lifetime: ContainerLifetime): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withLifetimeInternal(lifetime));
+    }
+
+    /** @internal */
+    private async _withImagePullPolicyInternal(pullPolicy: ImagePullPolicy): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, pullPolicy };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withImagePullPolicy',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container image pull policy */
+    withImagePullPolicy(pullPolicy: ImagePullPolicy): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withImagePullPolicyInternal(pullPolicy));
+    }
+
+    /** @internal */
+    private async _publishAsContainerInternal(): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/publishAsContainer',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the resource to be published as a container */
+    publishAsContainer(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsContainerInternal());
+    }
+
+    /** @internal */
+    private async _withDockerfileInternal(contextPath: string, dockerfilePath?: string, stage?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, contextPath };
+        if (dockerfilePath !== undefined) rpcArgs.dockerfilePath = dockerfilePath;
+        if (stage !== undefined) rpcArgs.stage = stage;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withDockerfile',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures the resource to use a Dockerfile */
+    withDockerfile(contextPath: string, options?: WithDockerfileOptions): ContainerResourcePromise {
+        const dockerfilePath = options?.dockerfilePath;
+        const stage = options?.stage;
+        return new ContainerResourcePromise(this._withDockerfileInternal(contextPath, dockerfilePath, stage));
+    }
+
+    /** @internal */
+    private async _withContainerNameInternal(name: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withContainerName',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Sets the container name */
+    withContainerName(name: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withContainerNameInternal(name));
+    }
+
+    /** @internal */
+    private async _withBuildArgInternal(name: string, value: ParameterResource): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withBuildArg',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a build argument from a parameter resource */
+    withBuildArg(name: string, value: ParameterResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withBuildArgInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withBuildSecretInternal(name: string, value: ParameterResource): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withBuildSecret',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a build secret from a parameter resource */
+    withBuildSecret(name: string, value: ParameterResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withBuildSecretInternal(name, value));
+    }
+
+    /** @internal */
+    private async _withEndpointProxySupportInternal(proxyEnabled: boolean): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, proxyEnabled };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withEndpointProxySupport',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Configures endpoint proxy support */
+    withEndpointProxySupport(proxyEnabled: boolean): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withEndpointProxySupportInternal(proxyEnabled));
+    }
+
+    /** @internal */
     private async _withDockerfileBaseImageInternal(buildImage?: string, runtimeImage?: string): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (buildImage !== undefined) rpcArgs.buildImage = buildImage;
@@ -6376,6 +6609,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         const buildImage = options?.buildImage;
         const runtimeImage = options?.runtimeImage;
         return new ContainerResourcePromise(this._withDockerfileBaseImageInternal(buildImage, runtimeImage));
+    }
+
+    /** @internal */
+    private async _withContainerNetworkAliasInternal(alias: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, alias };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withContainerNetworkAlias',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a network alias for the container */
+    withContainerNetworkAlias(alias: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withContainerNetworkAliasInternal(alias));
     }
 
     /** @internal */
@@ -6425,6 +6673,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Configures OTLP telemetry export with specific protocol */
     withOtlpExporterProtocol(protocol: OtlpProtocol): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withOtlpExporterProtocolInternal(protocol));
+    }
+
+    /** @internal */
+    private async _publishAsConnectionStringInternal(): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/publishAsConnectionString',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Publishes the resource as a connection string */
+    publishAsConnectionString(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._publishAsConnectionStringInternal());
     }
 
     /** @internal */
@@ -7357,6 +7620,25 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         return new ContainerResourcePromise(this._withPipelineConfigurationInternal(callback));
     }
 
+    /** @internal */
+    private async _withVolumeInternal(target: string, name?: string, isReadOnly?: boolean): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, target };
+        if (name !== undefined) rpcArgs.name = name;
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withVolume',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Adds a volume */
+    withVolume(target: string, options?: WithVolumeOptions): ContainerResourcePromise {
+        const name = options?.name;
+        const isReadOnly = options?.isReadOnly;
+        return new ContainerResourcePromise(this._withVolumeInternal(target, name, isReadOnly));
+    }
+
     /** Gets the resource name */
     async getResourceName(): Promise<string> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
@@ -7738,9 +8020,89 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withContainerRegistry(registry)));
     }
 
+    /** Adds a bind mount */
+    withBindMount(source: string, target: string, options?: WithBindMountOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withBindMount(source, target, options)));
+    }
+
+    /** Sets the container entrypoint */
+    withEntrypoint(entrypoint: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withEntrypoint(entrypoint)));
+    }
+
+    /** Sets the container image tag */
+    withImageTag(tag: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withImageTag(tag)));
+    }
+
+    /** Sets the container image registry */
+    withImageRegistry(registry: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withImageRegistry(registry)));
+    }
+
+    /** Sets the container image */
+    withImage(image: string, options?: WithImageOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withImage(image, options)));
+    }
+
+    /** Sets the image SHA256 digest */
+    withImageSHA256(sha256: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withImageSHA256(sha256)));
+    }
+
+    /** Adds runtime arguments for the container */
+    withContainerRuntimeArgs(args: string[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withContainerRuntimeArgs(args)));
+    }
+
+    /** Sets the lifetime behavior of the container resource */
+    withLifetime(lifetime: ContainerLifetime): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
+    }
+
+    /** Sets the container image pull policy */
+    withImagePullPolicy(pullPolicy: ImagePullPolicy): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withImagePullPolicy(pullPolicy)));
+    }
+
+    /** Configures the resource to be published as a container */
+    publishAsContainer(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsContainer()));
+    }
+
+    /** Configures the resource to use a Dockerfile */
+    withDockerfile(contextPath: string, options?: WithDockerfileOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withDockerfile(contextPath, options)));
+    }
+
+    /** Sets the container name */
+    withContainerName(name: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withContainerName(name)));
+    }
+
+    /** Adds a build argument from a parameter resource */
+    withBuildArg(name: string, value: ParameterResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withBuildArg(name, value)));
+    }
+
+    /** Adds a build secret from a parameter resource */
+    withBuildSecret(name: string, value: ParameterResource): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withBuildSecret(name, value)));
+    }
+
+    /** Configures endpoint proxy support */
+    withEndpointProxySupport(proxyEnabled: boolean): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withEndpointProxySupport(proxyEnabled)));
+    }
+
     /** Sets the base image for a Dockerfile build */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withDockerfileBaseImage(options)));
+    }
+
+    /** Adds a network alias for the container */
+    withContainerNetworkAlias(alias: string): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withContainerNetworkAlias(alias)));
     }
 
     /** Configures an MCP server endpoint on the resource */
@@ -7756,6 +8118,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Configures OTLP telemetry export with specific protocol */
     withOtlpExporterProtocol(protocol: OtlpProtocol): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withOtlpExporterProtocol(protocol)));
+    }
+
+    /** Publishes the resource as a connection string */
+    publishAsConnectionString(): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
     }
 
     /** Adds a required command dependency */
@@ -8021,6 +8388,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Configures pipeline step dependencies via a callback */
     withPipelineConfiguration(callback: (obj: PipelineConfigurationContext) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withPipelineConfiguration(callback)));
+    }
+
+    /** Adds a volume */
+    withVolume(target: string, options?: WithVolumeOptions): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withVolume(target, options)));
     }
 
     /** Gets the resource name */
@@ -12056,6 +12428,71 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _publishAsDockerFileInternal(): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/publishAsDockerFile',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Publishes the executable as a Docker container */
+    publishAsDockerFile(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsDockerFileInternal());
+    }
+
+    /** @internal */
+    private async _publishAsDockerFileWithConfigureInternal(configure: (obj: ContainerResource) => Promise<void>): Promise<ExecutableResource> {
+        const configureId = registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ContainerResourceHandle;
+            const obj = new ContainerResource(objHandle, this._client);
+            await configure(obj);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, configure: configureId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/publishAsDockerFileWithConfigure',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Publishes an executable as a Docker file with optional container configuration */
+    publishAsDockerFileWithConfigure(configure: (obj: ContainerResource) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._publishAsDockerFileWithConfigureInternal(configure));
+    }
+
+    /** @internal */
+    private async _withExecutableCommandInternal(command: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withExecutableCommand',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets the executable command */
+    withExecutableCommand(command: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withExecutableCommandInternal(command));
+    }
+
+    /** @internal */
+    private async _withWorkingDirectoryInternal(workingDirectory: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, workingDirectory };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withWorkingDirectory',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withWorkingDirectoryInternal(workingDirectory));
+    }
+
+    /** @internal */
     private async _withMcpServerInternal(path?: string, endpointName?: string): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (path !== undefined) rpcArgs.path = path;
@@ -13418,6 +13855,26 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Sets the base image for a Dockerfile build */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withDockerfileBaseImage(options)));
+    }
+
+    /** Publishes the executable as a Docker container */
+    publishAsDockerFile(): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsDockerFile()));
+    }
+
+    /** Publishes an executable as a Docker file with optional container configuration */
+    publishAsDockerFileWithConfigure(configure: (obj: ContainerResource) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.publishAsDockerFileWithConfigure(configure)));
+    }
+
+    /** Sets the executable command */
+    withExecutableCommand(command: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withExecutableCommand(command)));
+    }
+
+    /** Sets the executable working directory */
+    withWorkingDirectory(workingDirectory: string): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withWorkingDirectory(workingDirectory)));
     }
 
     /** Configures an MCP server endpoint on the resource */
@@ -15662,6 +16119,58 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _withReplicasInternal(replicas: number): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, replicas };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withReplicas',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Sets the number of replicas */
+    withReplicas(replicas: number): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withReplicasInternal(replicas));
+    }
+
+    /** @internal */
+    private async _disableForwardedHeadersInternal(): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/disableForwardedHeaders',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Disables forwarded headers for the project */
+    disableForwardedHeaders(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._disableForwardedHeadersInternal());
+    }
+
+    /** @internal */
+    private async _publishAsDockerFileInternal(configure?: (obj: ContainerResource) => Promise<void>): Promise<ProjectResource> {
+        const configureId = configure ? registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as ContainerResourceHandle;
+            const obj = new ContainerResource(objHandle, this._client);
+            await configure(obj);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (configure !== undefined) rpcArgs.configure = configureId;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/publishProjectAsDockerFileWithConfigure',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): ProjectResourcePromise {
+        const configure = options?.configure;
+        return new ProjectResourcePromise(this._publishAsDockerFileInternal(configure));
+    }
+
+    /** @internal */
     private async _withRequiredCommandInternal(command: string, helpLink?: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, command };
         if (helpLink !== undefined) rpcArgs.helpLink = helpLink;
@@ -17005,6 +17514,21 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Configures OTLP telemetry export with specific protocol */
     withOtlpExporterProtocol(protocol: OtlpProtocol): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withOtlpExporterProtocol(protocol)));
+    }
+
+    /** Sets the number of replicas */
+    withReplicas(replicas: number): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withReplicas(replicas)));
+    }
+
+    /** Disables forwarded headers for the project */
+    disableForwardedHeaders(): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.disableForwardedHeaders()));
+    }
+
+    /** Publishes a project as a Docker file with optional container configuration */
+    publishAsDockerFile(options?: PublishAsDockerFileOptions): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.publishAsDockerFile(options)));
     }
 
     /** Adds a required command dependency */

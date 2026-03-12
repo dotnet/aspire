@@ -9,6 +9,7 @@ export const codespacesUrl = (url: string) => vscode.l10n.t('Codespaces: {0}', u
 export const directLink = vscode.l10n.t('Open local URL');
 export const codespacesLink = vscode.l10n.t('Open codespaces URL');
 export const openAspireDashboard = vscode.l10n.t('Launch Aspire Dashboard');
+export const settingsLabel = vscode.l10n.t('Settings');
 export const aspireDashboard = vscode.l10n.t('Aspire Dashboard');
 export const noWorkspaceOpen = vscode.l10n.t('No workspace is open. Please open a folder or workspace before running this command.');
 export const failedToShowPromptEmpty = vscode.l10n.t('Failed to show prompt, text was empty.');
@@ -42,6 +43,7 @@ export const failedToStartPythonProgram = (errorMessage: string) => vscode.l10n.
 export const csharpSupportNotEnabled = vscode.l10n.t('C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
 export const failedToStartProject = (errorMessage: string) => vscode.l10n.t('Failed to start project: {0}.', errorMessage);
 export const dcpServerNotInitialized = vscode.l10n.t('DCP server not initialized - cannot forward debug output.');
+export const appHostSessionTerminated = vscode.l10n.t('The apphost process has terminated. To view console output, select the apphost session from the debug console dropdown.');
 export const invalidTokenProvided = vscode.l10n.t('Invalid token provided.');
 export const noWorkspaceFolder = vscode.l10n.t('No workspace folder found.');
 export const aspireConfigExists = vscode.l10n.t('Aspire launch configuration already exists in launch.json.');

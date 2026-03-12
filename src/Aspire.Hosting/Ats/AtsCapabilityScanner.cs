@@ -786,6 +786,10 @@ internal static class AtsCapabilityScanner
                 IsInterface = false
             };
 
+            // Register under its own type ID so base types with derived types
+            // are included when expanding capabilities that target them directly
+            AddToCompatibilityMap(typeToCompatibleTypes, typeInfo.AtsTypeId, concreteTypeRef);
+
             // Register under each implemented interface
             foreach (var iface in typeInfo.ImplementedInterfaces)
             {
