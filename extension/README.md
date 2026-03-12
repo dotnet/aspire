@@ -180,7 +180,7 @@ Node.js and browser debugging just work — VS Code has a built-in JavaScript de
 
 ## Extension Settings
 
-You can configure the extension under **Settings → Aspire**, or jump there with **Aspire: Extension settings**. The most useful ones:
+You can configure the extension under **Settings → Aspire**, or jump there with **Aspire: Extension settings**. The most commonly used:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
