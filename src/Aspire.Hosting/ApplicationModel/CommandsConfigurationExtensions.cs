@@ -137,95 +137,26 @@ internal static class CommandsConfigurationExtensions
 
     private static void AddRebuildCommand(ProjectResource projectResource)
     {
+        // When a resource has replicas, the command framework invokes the handler
+        // once per replica in parallel. We use a shared task so only a single build
+        // runs and every replica handler awaits the same result.
+        Task<ExecuteCommandResult>? activeRebuildTask = null;
+        var rebuildLock = new object();
+
         projectResource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.RebuildCommand,
             displayName: CommandStrings.RebuildName,
-            executeCommand: async context =>
+            executeCommand: context =>
             {
-                var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
-                var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
-                var loggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-                var model = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
-
-                var rebuilderResource = model.Resources.OfType<ProjectRebuilderResource>().FirstOrDefault(r => r.Parent == projectResource);
-                if (rebuilderResource is null)
+                lock (rebuildLock)
                 {
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = string.Format(CultureInfo.InvariantCulture, CommandStrings.RebuilderResourceNotFound, projectResource.Name) };
-                }
-
-                var mainLogger = loggerService.GetLogger(projectResource);
-
-                // Stop the main resource.
-                mainLogger.LogInformation("[build] Stopping resource for rebuild...");
-                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
-
-                // Set state to Building after stop completes so it shows during the build phase.
-                await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
-                {
-                    State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info)
-                }).ConfigureAwait(false);
-
-                // Start forwarding logs from the rebuilder to the main resource's console.
-                using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                var rebuilderInstanceName = rebuilderResource.GetResolvedResourceNames()[0];
-                var logForwardTask = ForwardLogsAsync(loggerService, rebuilderInstanceName, mainLogger, logCts.Token);
-
-                // Start the rebuilder resource (runs dotnet build).
-                mainLogger.LogInformation("[build] Building project...");
-                await orchestrator.StartResourceAsync(rebuilderInstanceName, context.CancellationToken).ConfigureAwait(false);
-
-                // Wait for the rebuilder to reach a terminal state, with a timeout.
-                int? exitCode = null;
-                using var buildTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                buildTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
-
-                try
-                {
-                    await foreach (var evt in resourceNotificationService.WatchAsync(buildTimeoutCts.Token).ConfigureAwait(false))
+                    if (activeRebuildTask is null || activeRebuildTask.IsCompleted)
                     {
-                        if (evt.Resource == rebuilderResource &&
-                            KnownResourceStates.TerminalStates.Contains(evt.Snapshot.State?.Text))
-                        {
-                            exitCode = evt.Snapshot.ExitCode;
-                            break;
-                        }
+                        activeRebuildTask = ExecuteRebuildAsync(context, projectResource);
                     }
                 }
-                catch (OperationCanceledException) when (!context.CancellationToken.IsCancellationRequested)
-                {
-                    // Build timed out.
-                    mainLogger.LogError("[build] Build timed out.");
-                    await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
 
-                    await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
-                    {
-                        State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                    }).ConfigureAwait(false);
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = "Build timed out." };
-                }
-
-                await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
-
-                if (context.CancellationToken.IsCancellationRequested)
-                {
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = "Build was cancelled." };
-                }
-
-                if (exitCode == 0)
-                {
-                    mainLogger.LogInformation("[build] Build succeeded. Restarting resource...");
-                    await orchestrator.StartResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
-                    return CommandResults.Success();
-                }
-                else
-                {
-                    mainLogger.LogError("[build] Build failed with exit code {ExitCode}.", exitCode);
-                    await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
-                    {
-                        State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
-                    }).ConfigureAwait(false);
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = $"Build failed with exit code {exitCode}." };
-                }
+                return activeRebuildTask;
             },
             updateState: context =>
             {
@@ -253,6 +184,96 @@ internal static class CommandsConfigurationExtensions
             iconName: "ArrowSync",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
+    }
+
+    private static async Task<ExecuteCommandResult> ExecuteRebuildAsync(ExecuteCommandContext context, ProjectResource projectResource)
+    {
+        var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
+        var resourceNotificationService = context.ServiceProvider.GetRequiredService<ResourceNotificationService>();
+        var loggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var model = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+
+        var rebuilderResource = model.Resources.OfType<ProjectRebuilderResource>().FirstOrDefault(r => r.Parent == projectResource);
+        if (rebuilderResource is null)
+        {
+            return new ExecuteCommandResult { Success = false, ErrorMessage = string.Format(CultureInfo.InvariantCulture, CommandStrings.RebuilderResourceNotFound, projectResource.Name) };
+        }
+
+        var mainLogger = loggerService.GetLogger(projectResource);
+        var replicaNames = projectResource.GetResolvedResourceNames();
+
+        // Stop all replicas.
+        mainLogger.LogInformation("[build] Stopping resource for rebuild...");
+        await Task.WhenAll(replicaNames.Select(name => orchestrator.StopResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
+
+        // Set state to Building after all replicas are stopped.
+        await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info)
+        }).ConfigureAwait(false);
+
+        // Start forwarding logs from the rebuilder to the main resource's console.
+        using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var rebuilderInstanceName = rebuilderResource.GetResolvedResourceNames()[0];
+        var logForwardTask = ForwardLogsAsync(loggerService, rebuilderInstanceName, mainLogger, logCts.Token);
+
+        // Start the rebuilder resource (runs dotnet build).
+        mainLogger.LogInformation("[build] Building project...");
+        await orchestrator.StartResourceAsync(rebuilderInstanceName, context.CancellationToken).ConfigureAwait(false);
+
+        // Wait for the rebuilder to reach a terminal state, with a timeout.
+        int? exitCode = null;
+        using var buildTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        buildTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
+
+        try
+        {
+            await foreach (var evt in resourceNotificationService.WatchAsync(buildTimeoutCts.Token).ConfigureAwait(false))
+            {
+                if (evt.Resource == rebuilderResource &&
+                    KnownResourceStates.TerminalStates.Contains(evt.Snapshot.State?.Text))
+                {
+                    exitCode = evt.Snapshot.ExitCode;
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (!context.CancellationToken.IsCancellationRequested)
+        {
+            // Build timed out.
+            mainLogger.LogError("[build] Build timed out.");
+            await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
+
+            await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+            return new ExecuteCommandResult { Success = false, ErrorMessage = "Build timed out." };
+        }
+
+        await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
+
+        if (context.CancellationToken.IsCancellationRequested)
+        {
+            return new ExecuteCommandResult { Success = false, ErrorMessage = "Build was cancelled." };
+        }
+
+        if (exitCode == 0)
+        {
+            // Start all replicas after a successful build.
+            mainLogger.LogInformation("[build] Build succeeded. Restarting resource...");
+            await Task.WhenAll(replicaNames.Select(name => orchestrator.StartResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
+            return CommandResults.Success();
+        }
+        else
+        {
+            mainLogger.LogError("[build] Build failed with exit code {ExitCode}.", exitCode);
+            await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+            }).ConfigureAwait(false);
+            return new ExecuteCommandResult { Success = false, ErrorMessage = $"Build failed with exit code {exitCode}." };
+        }
     }
 
     private static async Task StopLogForwardingAsync(CancellationTokenSource logCts, Task logForwardTask)
