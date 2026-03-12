@@ -228,6 +228,7 @@ These switches can be repeated to run tests on multiple classes or methods at on
 - **`tests-outerloop.yml`**: Runs outerloop tests separately every 6 hours
 - **`ci.yml`**: Main CI workflow triggered on PRs and pushes to main/release branches
 - **Build validation**: Includes package generation, API compatibility checks, template validation
+- **Workflow matcher maintenance**: When changing CI workflow job or step names that are referenced by automation or tests, update the corresponding workflow helpers, behavior tests, and docs together. For the transient rerun workflow, keep `.github/workflows/auto-rerun-transient-ci-failures.js`, `tests/Infrastructure.Tests/WorkflowScripts/AutoRerunTransientCiFailuresTests.cs`, and `docs/ci/auto-rerun-transient-ci-failures.md` aligned with the live workflow YAML.
 
 #### Azure DevOps (secondary, does NOT run tests on PRs)
 - **`eng/pipelines/azure-pipelines-public.yml`**: Weekly scheduled pipeline (Monday midnight UTC) that builds and runs tests on Helix
