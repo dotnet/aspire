@@ -178,7 +178,7 @@ The extension figures out what language each resource uses and attaches the righ
 | Browser apps | js-debug (built-in) | None |
 | Azure Functions | varies by language | [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions) + language extension |
 
-Node.js and browser debugging just work — VS Code has a built-in JavaScript debugger. C# Dev Kit gives you richer build integration than the standalone C# extension, but either one works for debugging. Azure Functions supports C#, JavaScript/TypeScript, Python, and Java — the debugger used depends on the function's language.
+Node.js and browser debugging just work — VS Code has a built-in JavaScript debugger. C# Dev Kit gives you richer build integration than the standalone C# extension, but either one works for debugging. Azure Functions debugging supports C#, JavaScript/TypeScript, and Python.
 
 ---
 
