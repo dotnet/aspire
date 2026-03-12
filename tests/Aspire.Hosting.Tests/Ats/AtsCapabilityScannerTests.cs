@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Ats;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Aspire.Hosting.Tests.Ats;
 
@@ -327,6 +329,28 @@ public class AtsCapabilityScannerTests
     }
 
     [Fact]
+    public void ScanAssemblies_AssemblyLevelExportedTypes_AreResolvedAcrossScanOrder()
+    {
+        Assert.Null(AtsCapabilityScanner.MapToAtsTypeId(typeof(AssemblyLevelExportedTestType)));
+
+        var capabilityAssembly = CreateAssemblyLevelExportCapabilityAssembly(typeof(AssemblyLevelExportedTestType));
+        var exportAssembly = CreateAssemblyLevelExportAssembly(typeof(AssemblyLevelExportedTestType));
+
+        var result = AtsCapabilityScanner.ScanAssemblies([capabilityAssembly, exportAssembly]);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/usesAssemblyExportedType", StringComparison.Ordinal));
+        var parameter = Assert.Single(capability.Parameters);
+
+        Assert.NotNull(parameter.Type);
+        Assert.Equal(AtsTypeCategory.Handle, parameter.Type.Category);
+        Assert.Equal(AtsTypeMapping.DeriveTypeId(typeof(AssemblyLevelExportedTestType)), parameter.Type.TypeId);
+        Assert.Equal(
+            AtsTypeMapping.DeriveTypeId(typeof(AssemblyLevelExportedTestType)),
+            AtsCapabilityScanner.MapToAtsTypeId(typeof(AssemblyLevelExportedTestType)));
+    }
+
+    [Fact]
     public void ScanAssembly_YarpWithConfiguration_UsesBackgroundThreadOptIn()
     {
         var yarpAssembly = typeof(global::Aspire.Hosting.Yarp.YarpResource).Assembly;
@@ -369,6 +393,10 @@ public class AtsCapabilityScannerTests
         }
     }
 
+    public sealed class AssemblyLevelExportedTestType
+    {
+    }
+
     private static class TestExports
     {
         [AspireExport("testEnumerableParameter")]
@@ -393,6 +421,45 @@ public class AtsCapabilityScannerTests
             _ = callback;
             return builder;
         }
+    }
+
+    private static Assembly CreateAssemblyLevelExportCapabilityAssembly(Type parameterType)
+    {
+        var assemblyName = new AssemblyName($"AssemblyLevelExportCapability_{Guid.NewGuid():N}");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+        var exportsTypeBuilder = moduleBuilder.DefineType(
+            "Generated.AssemblyLevelExportedTypeExports",
+            TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+        var methodBuilder = exportsTypeBuilder.DefineMethod(
+            "UsesAssemblyExportedType",
+            MethodAttributes.Public | MethodAttributes.Static,
+            typeof(void),
+            [typeof(IDistributedApplicationBuilder), parameterType]);
+        methodBuilder.DefineParameter(1, ParameterAttributes.None, "builder");
+        methodBuilder.DefineParameter(2, ParameterAttributes.None, "value");
+        methodBuilder.SetCustomAttribute(
+            new CustomAttributeBuilder(
+                typeof(AspireExportAttribute).GetConstructor([typeof(string)])!,
+                ["usesAssemblyExportedType"]));
+        methodBuilder.GetILGenerator().Emit(OpCodes.Ret);
+
+        _ = exportsTypeBuilder.CreateType();
+
+        return assemblyBuilder;
+    }
+
+    private static Assembly CreateAssemblyLevelExportAssembly(Type exportedType)
+    {
+        var assemblyName = new AssemblyName($"AssemblyLevelExport_{Guid.NewGuid():N}");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        _ = assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+        assemblyBuilder.SetCustomAttribute(
+            new CustomAttributeBuilder(
+                typeof(AspireExportAttribute).GetConstructor([typeof(Type)])!,
+                [exportedType]));
+
+        return assemblyBuilder;
     }
 
     [AspireExport(RunSyncOnBackgroundThread = true)]

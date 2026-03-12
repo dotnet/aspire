@@ -48,6 +48,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         await Verify(files["aspire.ts"], extension: "ts")
             .UseFileName("AtsGeneratedAspire");
+
+        await Verify(files["base.ts"], extension: "ts")
+            .UseFileName("base");
     }
 
     [Fact]
@@ -59,6 +62,8 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.DoesNotContain("export class ReferenceExpression {", files["aspire.ts"]);
         Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
+        Assert.Contains("condition: extractHandleForExpr(this._condition),", files["base.ts"]);
+        Assert.Contains("('$handle' in json || '$expr' in json)", files["base.ts"]);
     }
 
     [Fact]

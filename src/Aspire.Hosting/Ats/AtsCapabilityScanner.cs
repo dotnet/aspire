@@ -14,6 +14,9 @@ namespace Aspire.Hosting.Ats;
 /// </summary>
 internal static class AtsCapabilityScanner
 {
+    [ThreadStatic]
+    private static HashSet<Type>? s_currentScanAssemblyExportedTypes;
+
     /// <summary>
     /// Result of scanning an assembly.
     /// </summary>
@@ -111,6 +114,10 @@ internal static class AtsCapabilityScanner
     public static ScanResult ScanAssemblies(
         IEnumerable<Assembly> assemblies)
     {
+        var assemblyList = assemblies as IReadOnlyCollection<Assembly> ?? [.. assemblies];
+
+        using var _ = BeginAssemblyExportedTypeScope(assemblyList);
+
         var allCapabilities = new List<AtsCapabilityInfo>();
         var allTypeInfos = new List<AtsTypeInfo>();
         var allDtoTypes = new List<AtsDtoTypeInfo>();
@@ -124,7 +131,7 @@ internal static class AtsCapabilityScanner
         var seenEnumTypeIds = new HashSet<string>();
 
         // Pass 1: Collect capabilities and types from all assemblies (no expansion)
-        foreach (var assembly in assemblies)
+        foreach (var assembly in assemblyList)
         {
             var result = ScanAssemblyWithoutExpansion(assembly);
 
@@ -2623,7 +2630,29 @@ internal static class AtsCapabilityScanner
     /// Cache of loaded XML documentation indexed by assembly location.
     /// </summary>
     private static readonly ConcurrentDictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.Ordinal);
-    private static readonly ConcurrentDictionary<Type, bool> s_assemblyExportedTypeCache = new();
+    private static readonly ConcurrentDictionary<Type, byte> s_assemblyExportedTypeCache = new();
+
+    private static IDisposable BeginAssemblyExportedTypeScope(IEnumerable<Assembly> assemblies)
+    {
+        var previousExportedTypes = s_currentScanAssemblyExportedTypes;
+        var currentExportedTypes = new HashSet<Type>();
+
+        foreach (var assembly in assemblies)
+        {
+            foreach (var export in AttributeDataReader.GetAspireExportDataAll(assembly))
+            {
+                if (export.Type is { } exportedType)
+                {
+                    currentExportedTypes.Add(exportedType);
+                    s_assemblyExportedTypeCache.TryAdd(exportedType, 0);
+                }
+            }
+        }
+
+        s_currentScanAssemblyExportedTypes = currentExportedTypes;
+
+        return new RestoreAssemblyExportedTypeScope(previousExportedTypes);
+    }
 
     /// <summary>
     /// Loads the XML documentation file (.xml) for the given assembly, if available.
@@ -2689,26 +2718,42 @@ internal static class AtsCapabilityScanner
 
     private static bool IsAssemblyExportedType(Type type)
     {
-        return s_assemblyExportedTypeCache.GetOrAdd(type, static targetType =>
+        if (s_currentScanAssemblyExportedTypes?.Contains(type) == true)
         {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                if (assembly.IsDynamic)
-                {
-                    continue;
-                }
+            return true;
+        }
 
-                foreach (var export in AttributeDataReader.GetAspireExportDataAll(assembly))
-                {
-                    if (export.Type == targetType)
-                    {
-                        return true;
-                    }
-                }
+        if (s_assemblyExportedTypeCache.ContainsKey(type))
+        {
+            return true;
+        }
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (assembly.IsDynamic)
+            {
+                continue;
             }
 
-            return false;
-        });
+            foreach (var export in AttributeDataReader.GetAspireExportDataAll(assembly))
+            {
+                if (export.Type == type)
+                {
+                    s_assemblyExportedTypeCache.TryAdd(type, 0);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private sealed class RestoreAssemblyExportedTypeScope(HashSet<Type>? previousExportedTypes) : IDisposable
+    {
+        public void Dispose()
+        {
+            s_currentScanAssemblyExportedTypes = previousExportedTypes;
+        }
     }
 
 }
