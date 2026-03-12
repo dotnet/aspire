@@ -266,21 +266,22 @@ extends:
                     - win-x64
                     - win-arm64
               # Extract the Aspire version from a generated nupkg filename so downstream
-              # stages can use it. Aspire.Hosting.Docker has no RID in its filename, so
-              # stripping the prefix cleanly yields just the version.
+              # stages can use it. Aspire.Hosting.AppHost has no RID in its filename and
+              # does not suppress final package version stabilization, so stripping the
+              # prefix cleanly yields the stable version for installer publishing.
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
                   $shippingDir = "$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping"
-                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.Docker.*.nupkg" -ErrorAction SilentlyContinue |
+                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.AppHost.*.nupkg" -ErrorAction SilentlyContinue |
                     Where-Object { $_.Name -notmatch '\.symbols\.' } |
                     Select-Object -First 1
 
                   if (-not $nupkg) {
-                    Write-Error "Could not find Aspire.Hosting.Docker nupkg in $shippingDir"
+                    Write-Error "Could not find Aspire.Hosting.AppHost nupkg in $shippingDir"
                     exit 1
                   }
 
-                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.Docker\.', '' -replace '\.nupkg$', ''
+                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.AppHost\.', '' -replace '\.nupkg$', ''
 
                   if ($version -notmatch '^\d+\.\d+\.\d+') {
                     Write-Error "Extracted version '$version' does not look like a valid semver. Check the nupkg name."

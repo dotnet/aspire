@@ -178,16 +178,16 @@ extends:
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
                   $shippingDir = "$(Build.SourcesDirectory)/artifacts/packages/$(_BuildConfig)/Shipping"
-                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.Docker.*.nupkg" -ErrorAction SilentlyContinue |
+                  $nupkg = Get-ChildItem -Path $shippingDir -Filter "Aspire.Hosting.AppHost.*.nupkg" -ErrorAction SilentlyContinue |
                     Where-Object { $_.Name -notmatch '\.symbols\.' } |
                     Select-Object -First 1
 
                   if (-not $nupkg) {
-                    Write-Error "Could not find Aspire.Hosting.Docker nupkg in $shippingDir"
+                    Write-Error "Could not find Aspire.Hosting.AppHost nupkg in $shippingDir"
                     exit 1
                   }
 
-                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.Docker\.', '' -replace '\.nupkg$', ''
+                  $version = $nupkg.Name -replace '^Aspire\.Hosting\.AppHost\.', '' -replace '\.nupkg$', ''
 
                   if ($version -notmatch '^\d+\.\d+\.\d+') {
                     Write-Error "Extracted version '$version' does not look like a valid semver. Check the nupkg name."
