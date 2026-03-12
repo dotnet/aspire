@@ -74,19 +74,9 @@ internal sealed class LanguageSupportResolver
                 {
                     try
                     {
-                        var instance = ActivatorUtilities.CreateInstance(serviceProvider, type);
-                        if (instance is ILanguageSupport language)
-                        {
-                            languages[language.Language] = language;
-                            _logger.LogDebug("Discovered language support: {TypeName} for language '{Language}'", type.Name, language.Language);
-                        }
-                        else
-                        {
-                            _logger.LogWarning(
-                                "Type '{TypeName}' matched {ContractType} by name but could not be cast to the runtime contract type.",
-                                type.FullName,
-                                typeof(ILanguageSupport).FullName);
-                        }
+                        var language = (ILanguageSupport)ActivatorUtilities.CreateInstance(serviceProvider, type);
+                        languages[language.Language] = language;
+                        _logger.LogDebug("Discovered language support: {TypeName} for language '{Language}'", type.Name, language.Language);
                     }
                     catch (Exception ex)
                     {

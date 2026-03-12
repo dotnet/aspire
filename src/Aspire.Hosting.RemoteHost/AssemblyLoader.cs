@@ -17,12 +17,9 @@ internal sealed class AssemblyLoader
     private readonly string _applicationBasePath;
     private readonly IntegrationLoadContext _loadContext;
 
-    private readonly ILogger<AssemblyLoader> _logger;
-
     public AssemblyLoader(IConfiguration configuration, ILogger<AssemblyLoader> logger)
     {
         _applicationBasePath = AppContext.BaseDirectory;
-        _logger = logger;
         var libsPath = configuration["ASPIRE_INTEGRATION_LIBS_PATH"];
         _loadContext = CreateLoadContext(libsPath, _applicationBasePath, logger);
 

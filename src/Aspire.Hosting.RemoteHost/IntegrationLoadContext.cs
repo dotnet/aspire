@@ -31,6 +31,11 @@ internal sealed class IntegrationLoadContext : AssemblyLoadContext
         if (assemblyName.Name is null ||
             string.Equals(assemblyName.Name, SharedAssemblyName, StringComparison.OrdinalIgnoreCase))
         {
+            // Returning null tells the runtime to fall back to the default ALC.
+            // This ensures Aspire.TypeSystem has the same type identity in both
+            // contexts, so shared contracts (ICodeGenerator, ILanguageSupport,
+            // AtsContext, etc.) work across the ALC boundary without requiring
+            // reflection or marshalling.
             return null;
         }
 

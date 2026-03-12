@@ -23,18 +23,14 @@ public class IntegrationLoadContextTests
     }
 
     [Fact]
-    public void NonSharedAssemblies_LoadFromProbeDirectory_WhenNotInDefaultContext()
+    public void VersionUnification_DefersToDefaultContext_WhenAlreadyLoaded()
     {
         // Aspire.Hosting is already in the default context (test project references it),
-        // so version unification will defer to default. Test with an assembly that IS
-        // in the probe dir but NOT in the default context.
+        // so version unification will defer to default rather than loading a second copy.
         var alc = new IntegrationLoadContext([AppContext.BaseDirectory], NullLogger.Instance);
 
-        // Aspire.Hosting will be deferred to default because it's already loaded there.
-        // This validates the version unification behavior.
         var assembly = alc.LoadFromAssemblyName(new AssemblyName("Aspire.Hosting"));
         Assert.NotNull(assembly);
-        // In test environment, default context wins (same version)
         Assert.Same(typeof(IDistributedApplicationBuilder).Assembly, assembly);
     }
 }

@@ -65,19 +65,9 @@ internal sealed class CodeGeneratorResolver
                 {
                     try
                     {
-                        var instance = ActivatorUtilities.CreateInstance(serviceProvider, type);
-                        if (instance is ICodeGenerator generator)
-                        {
-                            generators[generator.Language] = generator;
-                            _logger.LogDebug("Discovered code generator: {TypeName} for language '{Language}'", type.Name, generator.Language);
-                        }
-                        else
-                        {
-                            _logger.LogWarning(
-                                "Type '{TypeName}' matched {ContractType} by name but could not be cast to the runtime contract type.",
-                                type.FullName,
-                                typeof(ICodeGenerator).FullName);
-                        }
+                        var generator = (ICodeGenerator)ActivatorUtilities.CreateInstance(serviceProvider, type);
+                        generators[generator.Language] = generator;
+                        _logger.LogDebug("Discovered code generator: {TypeName} for language '{Language}'", type.Name, generator.Language);
                     }
                     catch (Exception ex)
                     {
