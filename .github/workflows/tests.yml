@@ -409,15 +409,15 @@ jobs:
           }
 
           $report = Get-Content -Path $reportPath -Raw | ConvertFrom-Json
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Status: `{0}`" -f $report.status)
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Selector run_all: `{0}`" -f $report.selectorRunAll)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Status: `{0}`' -f $report.status)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Selector run_all: `{0}`' -f $report.selectorRunAll)
 
           if ($null -ne $report.templateGate) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Template test project would run: `{0}`" -f $report.templateGate.wouldRun)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Template test project would run: `{0}`' -f $report.templateGate.wouldRun)
           }
 
           if (@($report.missingArtifacts).Count -gt 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Missing audit artifacts: `{0}`" -f (@($report.missingArtifacts) -join ', '))
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Missing audit artifacts: `{0}`' -f (@($report.missingArtifacts) -join ', '))
           }
 
           if (@($report.auditMisses).Count -eq 0) {
