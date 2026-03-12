@@ -10,8 +10,10 @@ namespace Aspire.Cli.Certificates;
 /// <summary>
 /// Certificate tool runner that uses the native CertificateManager directly (no subprocess needed).
 /// </summary>
-internal sealed class NativeCertificateToolRunner(CertificateManager certificateManager) : ICertificateToolRunner
+internal sealed class NativeCertificateToolRunner(CertificateManager certificateManager, Func<bool>? isLinux = null) : ICertificateToolRunner
 {
+    private readonly Func<bool> _isLinux = isLinux ?? OperatingSystem.IsLinux;
+
     public CertificateTrustResult CheckHttpCertificate()
     {
         var availableCertificates = certificateManager.ListCertificates(
@@ -63,10 +65,90 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
 
     public EnsureCertificateResult TrustHttpCertificate()
     {
+        if (_isLinux())
+        {
+            var availableCertificates = certificateManager.ListCertificates(
+                StoreName.My, StoreLocation.CurrentUser, isValid: true);
+
+            try
+            {
+                return TrustHttpCertificateOnLinux(availableCertificates, DateTimeOffset.Now);
+            }
+            finally
+            {
+                CertificateManager.DisposeCertificates(availableCertificates);
+            }
+        }
+
         var now = DateTimeOffset.Now;
         return certificateManager.EnsureAspNetCoreHttpsDevelopmentCertificate(
             now, now.Add(TimeSpan.FromDays(365)),
             trust: true);
+    }
+
+    internal EnsureCertificateResult TrustHttpCertificateOnLinux(IEnumerable<X509Certificate2> availableCertificates, DateTimeOffset now)
+    {
+        X509Certificate2? certificate = null;
+        var createdCertificate = false;
+
+        try
+        {
+            certificate = availableCertificates
+                .Where(c => c.Subject == certificateManager.Subject && CertificateManager.GetCertificateVersion(c) >= CertificateManager.CurrentAspNetCoreCertificateVersion)
+                .OrderByDescending(CertificateManager.GetCertificateVersion)
+                .FirstOrDefault();
+
+            var successResult = EnsureCertificateResult.ExistingHttpsCertificateTrusted;
+
+            if (certificate is null)
+            {
+                try
+                {
+                    certificate = certificateManager.CreateAspNetCoreHttpsDevelopmentCertificate(now, now.Add(TimeSpan.FromDays(365)));
+                    createdCertificate = true;
+                }
+                catch
+                {
+                    return EnsureCertificateResult.ErrorCreatingTheCertificate;
+                }
+
+                try
+                {
+                    certificate = certificateManager.SaveCertificate(certificate);
+                }
+                catch
+                {
+                    return EnsureCertificateResult.ErrorSavingTheCertificateIntoTheCurrentUserPersonalStore;
+                }
+
+                successResult = EnsureCertificateResult.NewHttpsCertificateTrusted;
+            }
+
+            try
+            {
+                return certificateManager.TrustCertificate(certificate) switch
+                {
+                    CertificateManager.TrustLevel.Full => successResult,
+                    CertificateManager.TrustLevel.Partial => EnsureCertificateResult.PartiallyFailedToTrustTheCertificate,
+                    _ => EnsureCertificateResult.FailedToTrustTheCertificate
+                };
+            }
+            catch (CertificateManager.UserCancelledTrustException)
+            {
+                return EnsureCertificateResult.UserCancelledTrustStep;
+            }
+            catch
+            {
+                return EnsureCertificateResult.FailedToTrustTheCertificate;
+            }
+        }
+        finally
+        {
+            if (createdCertificate)
+            {
+                certificate?.Dispose();
+            }
+        }
     }
 
     /// Win32 ERROR_CANCELLED (0x4C7) encoded as an HRESULT (0x800704C7).
