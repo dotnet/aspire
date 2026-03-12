@@ -371,8 +371,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(43, Level = EventLevel.Informational, Message = "DCP Service object preparation starting...")]
-    public void DcpServiceObjectPreparationStart()
+    [Event(43, Level = EventLevel.Informational, Message = "Development certificate trust check is starting...")]
+    public void DevelopmentCertificateTrustCheckStart()
     {
         if (IsEnabled())
         {
@@ -380,8 +380,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(44, Level = EventLevel.Informational, Message = "DCP Service object preparation completed")]
-    public void DcpServiceObjectPreparationStop()
+    [Event(44, Level = EventLevel.Informational, Message = "Development certificate trust check completed")]
+    public void DevelopmentCertificateTrustCheckStop()
     {
         if (IsEnabled())
         {
@@ -389,8 +389,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(45, Level = EventLevel.Informational, Message = "Development certificate trust check is starting...")]
-    public void DevelopmentCertificateTrustCheckStart()
+    [Event(45, Level = EventLevel.Informational, Message = "DCP Service object preparation starting...")]
+    public void DcpServiceObjectPreparationStart()
     {
         if (IsEnabled())
         {
@@ -398,8 +398,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(46, Level = EventLevel.Informational, Message = "Development certificate trust check completed")]
-    public void DevelopmentCertificateTrustCheckStop()
+    [Event(46, Level = EventLevel.Informational, Message = "DCP Service object preparation completed")]
+    public void DcpServiceObjectPreparationStop()
     {
         if (IsEnabled())
         {
