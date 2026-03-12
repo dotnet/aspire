@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="buildTransitive\Aspire.Hosting.targets" Pack="true" PackagePath="buildTransitive\$(DefaultTargetFramework)" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Dcp\BundleDiscovery.cs" />
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
@@ -137,5 +141,27 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
+
+  <!-- Include the integration analyzer in the package -->
+  <PropertyGroup>
+    <BeforePack>$(BeforePack);IncludeIntegrationAnalyzerInPackage</BeforePack>
+  </PropertyGroup>
+  <Target Name="IncludeIntegrationAnalyzerInPackage">
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)">
+      <Output TaskParameter="TargetOutputs" PropertyName="AspireIntegrationAnalyzerFile" />
+    </MSBuild>
+
+    <Error Condition="'$(AspireIntegrationAnalyzerFile)' == ''" Text="Could not find Aspire.Hosting.Integration.Analyzers.dll." />
+
+    <ItemGroup>
+      <None Include="$(AspireIntegrationAnalyzerFile)" Pack="True" PackagePath="buildTransitive\$(DefaultTargetFramework)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -18,8 +18,12 @@
    <ItemGroup Condition="
              $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting.'))
              and
-             '$(MSBuildProjectName)' != 'Aspire.Hosting.Analyzers'">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj"
+             '$(MSBuildProjectName)' != 'Aspire.Hosting.Analyzers'
+             and
+             '$(MSBuildProjectName)' != 'Aspire.Hosting.AppHost'
+             and
+             '$(MSBuildProjectName)' != 'Aspire.Hosting.Integration.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
                     PrivateAssets="all"
                     ReferenceOutputAssembly="false"
                     OutputItemType="Analyzer"

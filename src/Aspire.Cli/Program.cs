@@ -380,6 +380,9 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<CertificatesCommand>();
+        builder.Services.AddTransient<CertificatesCleanCommand>();
+        builder.Services.AddTransient<CertificatesTrustCommand>();
         builder.Services.AddTransient<DoctorCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();

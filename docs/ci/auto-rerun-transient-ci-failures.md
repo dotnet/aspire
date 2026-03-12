@@ -12,7 +12,7 @@ It is intentionally conservative:
 
 - it does not rerun every failed job in a run
 - it treats mixed deterministic failures plus transient post-step noise as non-retryable by default
-- it keeps `workflow_dispatch` in dry-run mode for historical inspection and matcher tuning
+- it keeps `workflow_dispatch` behind the same matcher and safety rails as automatic execution, with an optional dry-run mode for inspection-only runs
 
 ## Matcher behavior
 
@@ -23,16 +23,18 @@ It is intentionally conservative:
 - Keep the mixed-failure veto: if an ignored step such as `Run tests*` failed, do not rerun the job based only on unrelated transient post-step noise.
 - Allow a narrow override when an ignored failed step is paired with a high-confidence job-level infrastructure annotation such as runner loss or action-download failure.
 - Allow a narrow override for Windows jobs whose failures are limited to post-test cleanup or upload steps when the annotations report process initialization failure `-1073741502` (`0xC0000142`).
-- Allow a narrow log-based override for supported CI SDK bootstrap, build, package, and validation steps when the job log shows `Unable to load the service index` against the approved `dnceng` public feeds.
+- Allow a narrow log-based override for non-test-execution failures when the job log shows high-confidence infrastructure network failures against approved `dnceng` public feeds, `builds.dotnet.microsoft.com`, `api.github.com`, or `github.com`.
 
 ## Safety rails
 
-- `workflow_dispatch` remains dry-run only. It exists for historical inspection and matcher tuning, not for issuing reruns.
+- `workflow_dispatch` can inspect any `CI` workflow run by ID and request reruns when the same retry-safety rules are satisfied.
+- `workflow_dispatch` also exposes an optional `dry_run` input so manual runs can produce the analysis summary without sending rerun requests.
 - Automatic rerun requires at least one retryable job.
 - Automatic rerun is suppressed when matched jobs exceed the configured cap.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.
 - The workflow targets only the matched jobs when issuing rerun requests rather than rerunning the entire source run, although GitHub's job-rerun API also reruns dependent jobs automatically.
-- The workflow summary links to the analyzed workflow run and, when reruns are requested, to both the failed attempt and the rerun attempt.
+- The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.
+- When reruns are requested, the rerun summary also links to both the failed attempt and the rerun attempt, plus any posted pull request comments.
 - After successful rerun requests, the workflow comments on the open associated pull request with links to the failed attempt, the rerun attempt, per-job failed-attempt links, and retry reasons.
 
 ## Tests
@@ -44,4 +46,4 @@ Those tests are intentionally behavior-focused rather than regex-focused:
 - they use representative fixtures for each supported behavior
 - they keep representative job and step fixtures anchored to the current CI workflow names so matcher coverage does not drift from the implementation
 - they cover the mixed-failure veto and ignored-step override explicitly
-- they keep only a minimal set of YAML contract checks for safety rails such as `workflow_dispatch` dry-run mode, first-attempt-only automatic reruns, and gating the rerun job on `rerun_eligible`
+- they keep only a minimal set of YAML contract checks for safety rails such as first-attempt-only automatic reruns, the optional manual `dry_run` override, enabling manual reruns through `workflow_dispatch`, and gating the rerun job on `rerun_eligible`
