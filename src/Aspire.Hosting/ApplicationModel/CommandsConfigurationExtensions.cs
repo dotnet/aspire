@@ -314,7 +314,7 @@ internal static class CommandsConfigurationExtensions
             mainLogger.LogWarning(BuildLogPrefix + "Rebuild was cancelled.");
             await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
             {
-                State = new ResourceStateSnapshot(KnownResourceStates.Exited, KnownResourceStateStyles.Info)
+                State = new ResourceStateSnapshot(KnownResourceStates.Finished, KnownResourceStateStyles.Info)
             }).ConfigureAwait(false);
             return new ExecuteCommandResult { Success = false, ErrorMessage = "Rebuild was cancelled." };
         }
