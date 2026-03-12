@@ -76,6 +76,8 @@ jobs:
       - name: Write audit-mode project summary
         shell: pwsh
         run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Matrix audit details</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Audit Mode - Projects That Would Run"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
@@ -88,6 +90,8 @@ jobs:
           $projects = @($projectsJson | ConvertFrom-Json)
           if ($projects.Count -eq 0) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects would have been selected after matrix filtering.*"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
             exit 0
           }
 
@@ -97,6 +101,9 @@ jobs:
           foreach ($project in $projects) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
           }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
 
       - name: Upload matrix audit artifact
         if: ${{ github.event_name == 'pull_request' }}
@@ -389,11 +396,15 @@ jobs:
         run: |
           $reportPath = "${{ github.workspace }}/audit/results/audit-miss-report.json"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test scope audit details</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Test Scope Audit"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
           if (-not (Test-Path $reportPath)) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*Audit report was not produced.*"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
             exit 0
           }
 
@@ -427,6 +438,9 @@ jobs:
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- `{0}`" -f $entry.trxFile)
             }
           }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
 
       - name: Upload audit miss report
         if: ${{ always() && github.event_name == 'pull_request' }}

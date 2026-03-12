@@ -104,9 +104,13 @@ jobs:
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
             echo "all_skipped=false" >> $GITHUB_OUTPUT
 
+            echo "<details><summary>Test scope audit details</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "⚠️ Test selector tool failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
 
@@ -131,6 +135,8 @@ jobs:
           echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
           echo "all_skipped=${ALL_SKIPPED}" >> $GITHUB_OUTPUT
 
+          echo "<details><summary>Test scope audit details</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All categories are in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
@@ -145,6 +151,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
           echo "**All tests skipped:** ${ALL_SKIPPED}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
 
       - name: Show test selection results
         shell: bash
