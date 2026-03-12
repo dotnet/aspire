@@ -3,15 +3,16 @@
 
 using System.Reflection;
 using System.Reflection.Emit;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.TypeSystem;
-using ThirdPartyExport = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportAttribute;
-using ThirdPartyExportIgnore = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportIgnoreAttribute;
-using ThirdPartyDtoAttr = Aspire.Hosting.Tests.Ats.ThirdParty.AspireDtoAttribute;
-using ThirdPartyUnion = Aspire.Hosting.Tests.Ats.ThirdParty.AspireUnionAttribute;
+using Xunit;
+using ThirdPartyExport = Aspire.Hosting.RemoteHost.Tests.ThirdParty.AspireExportAttribute;
+using ThirdPartyExportIgnore = Aspire.Hosting.RemoteHost.Tests.ThirdParty.AspireExportIgnoreAttribute;
+using ThirdPartyDtoAttr = Aspire.Hosting.RemoteHost.Tests.ThirdParty.AspireDtoAttribute;
+using ThirdPartyUnion = Aspire.Hosting.RemoteHost.Tests.ThirdParty.AspireUnionAttribute;
 
-namespace Aspire.Hosting.Tests.Ats;
+namespace Aspire.Hosting.RemoteHost.Tests;
 
-[Trait("Partition", "4")]
 public class AttributeDataReaderTests
 {
     private static readonly ConstructorInfo s_attributeConstructor = typeof(Attribute).GetConstructor(

@@ -4,8 +4,9 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Xml.Linq;
+using Aspire.TypeSystem;
 
-namespace Aspire.TypeSystem;
+namespace Aspire.Hosting.RemoteHost;
 
 /// <summary>
 /// Scans assemblies for [AspireExport] and [AspireContextType] attributes and creates capability models.
