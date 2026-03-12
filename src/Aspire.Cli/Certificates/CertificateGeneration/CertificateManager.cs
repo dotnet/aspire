@@ -24,8 +24,10 @@ internal abstract class CertificateManager
     // This is the minimum version of the certificate that will be considered valid by runtime components built using this version of the library.
     // Increment this only when making breaking changes to the certificate or during major runtime version increments. Must always be less than or equal to CurrentAspNetCoreCertificateVersion.
     // This determines the minimum version of the tooling required to generate a certificate that will be considered valid by the runtime.
-    // Version 4 was introduced in SDK 10.0.100 and runtime 10.0.0.
-    internal const int CurrentMinimumAspNetCoreCertificateVersion = 4;
+    // Version 6 was introduced in SDK 10.0.102 and runtime 10.0.2.
+    // This is an intentional change from the aspnetcore logic to prefer keeping users up-to-date on the latest certificate version in order
+    // to ensure maximum compatibility with Aspire features.
+    internal const int CurrentMinimumAspNetCoreCertificateVersion = 6;
 
     // OID used for HTTPS certs
     internal const string AspNetHttpsOid = "1.3.6.1.4.1.311.84.1.1";
