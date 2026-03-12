@@ -13,17 +13,16 @@ internal class EnvironmentVariablesExecutionConfigurationGatherer : IExecutionCo
     /// <inheritdoc/>
     public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        if (resource.TryGetEnvironmentVariables(out var callbacks))
+        if (resource.TryGetEnvironmentVariables(out var envVarAnnotations))
         {
             var callbackContext = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken)
             {
                 Logger = resourceLogger,
             };
 
-            foreach (var callback in callbacks)
+            foreach (var ann in envVarAnnotations)
             {
-                var envVars = await ((ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)callback)
-                    .EvaluateOnceAsync(callbackContext).ConfigureAwait(false);
+                var envVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(callbackContext).ConfigureAwait(false);
 
                 foreach (var kvp in envVars)
                 {

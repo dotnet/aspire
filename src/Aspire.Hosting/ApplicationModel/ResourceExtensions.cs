@@ -1381,30 +1381,28 @@ public static class ResourceExtensions
         var rawValues = new List<object>();
 
         // Gather environment variable values
-        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        if (resource.TryGetEnvironmentVariables(out var envAnnotations))
         {
             var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
 
-            foreach (var callback in environmentCallbacks)
+            foreach (var ann in envAnnotations)
             {
-                var envVars = await ((ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)callback)
-                    .EvaluateOnceAsync(context).ConfigureAwait(false);
+                var envVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
                 rawValues.AddRange(envVars.Values);
             }
         }
 
         // Gather command-line argument values
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argAnnotations))
         {
             var context = new CommandLineArgsCallbackContext(new List<object>(), resource, cancellationToken)
             {
                 ExecutionContext = executionContext
             };
 
-            foreach (var callback in argsCallbacks)
+            foreach (var ann in argAnnotations)
             {
-                var args = await ((ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>)callback)
-                    .EvaluateOnceAsync(context).ConfigureAwait(false);
+                var args = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
                 rawValues.AddRange(args);
             }
         }

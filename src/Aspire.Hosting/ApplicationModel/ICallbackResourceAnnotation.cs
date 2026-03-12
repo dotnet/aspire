@@ -17,11 +17,13 @@ internal interface ICallbackResourceAnnotation<in TContext, TResult>
     /// </summary>
     /// <param name="context">The context for the callback evaluation. Only used on the first call.</param>
     /// <returns>The cached result of the callback evaluation.</returns>
-    ValueTask<TResult> EvaluateOnceAsync(TContext context);
+    Task<TResult> EvaluateOnceAsync(TContext context);
 
     /// <summary>
-    /// Clears the cached result so that the next call to <see cref="EvaluateOnceAsync"/>
-    /// will re-execute the callback. Used when a resource is restarted.
-    /// </summary>
+    /// Clears the cached result so that the next call to <see cref="EvaluateOnceAsync"/> will re-execute the callback. 
+    ///</summary>
+    /// <remarks>
+    /// <see cref="ForgetCachedResult" /> is used when when a resource decorated with callback annotation is restarted.
+    /// </remarks>
     void ForgetCachedResult();
 }

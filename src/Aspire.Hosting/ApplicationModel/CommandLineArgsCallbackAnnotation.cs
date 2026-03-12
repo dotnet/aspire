@@ -6,12 +6,16 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+using IArgCallbackAnnotation = ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>;
+
 /// <summary>
 /// Represents an annotation that provides a callback to be executed with a list of command-line arguments when an executable resource is started.
 /// </summary>
-public class CommandLineArgsCallbackAnnotation : IResourceAnnotation, ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>
+public class CommandLineArgsCallbackAnnotation : IResourceAnnotation, IArgCallbackAnnotation
 {
-    private volatile Task<IList<object>>? _cachedTask;
+    private Task<IList<object>>? _callbackTask;
+    private readonly object _lock = new();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CommandLineArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
@@ -43,35 +47,32 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation, ICallbackR
     /// </summary>
     public Func<CommandLineArgsCallbackContext, Task> Callback { get; }
 
-    /// <inheritdoc />
-    async ValueTask<IList<object>> ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>.EvaluateOnceAsync(CommandLineArgsCallbackContext context)
-    {
-        if (_cachedTask is { } existing)
-        {
-            return await existing.ConfigureAwait(false);
-        }
+    internal IArgCallbackAnnotation AsCallbackAnnotation() => this;
 
-        var newTask = ExecuteCallbackAsync(context);
-        var original = Interlocked.CompareExchange(ref _cachedTask, newTask, null);
-        return await (original ?? newTask).ConfigureAwait(false);
+    Task<IList<object>> IArgCallbackAnnotation.EvaluateOnceAsync(CommandLineArgsCallbackContext context)
+    {
+        lock(_lock)
+        {
+            if (_callbackTask is null)
+            {
+                _callbackTask = ExecuteCallbackAsync(context);
+            }
+            return _callbackTask;
+        }
     }
 
-    /// <inheritdoc />
-    void ICallbackResourceAnnotation<CommandLineArgsCallbackContext, IList<object>>.ForgetCachedResult()
+    void IArgCallbackAnnotation.ForgetCachedResult()
     {
-        _cachedTask = null;
+        lock(_lock)
+        {
+            _callbackTask = null;
+        }
     }
 
     private async Task<IList<object>> ExecuteCallbackAsync(CommandLineArgsCallbackContext context)
     {
-        var args = new List<object>();
-        var callbackContext = new CommandLineArgsCallbackContext(args, context.Resource, context.CancellationToken)
-        {
-            Logger = context.Logger,
-            ExecutionContext = context.ExecutionContext,
-        };
-        await Callback(callbackContext).ConfigureAwait(false);
-        return args;
+        await Callback(context).ConfigureAwait(false);
+        return context.Args;
     }
 }
 
