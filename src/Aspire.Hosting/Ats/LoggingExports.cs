@@ -88,7 +88,7 @@ internal static class LoggingExports
     /// <param name="categoryName">The category name.</param>
     /// <returns>A logger handle.</returns>
     [AspireExport("createLogger", Description = "Creates a logger for a category")]
-    public static ILogger CreateLogger(ILoggerFactory loggerFactory, string categoryName)
+    public static ILogger CreateLogger(this ILoggerFactory loggerFactory, string categoryName)
     {
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentException.ThrowIfNullOrWhiteSpace(categoryName);
@@ -113,7 +113,7 @@ internal static class LoggingExports
     /// Completes the log stream for a resource.
     /// </summary>
     [AspireExport("completeLog", Description = "Completes the log stream for a resource")]
-    public static void CompleteLog(ResourceLoggerService loggerService, IResourceBuilder<IResource> resource)
+    public static void CompleteLog(this ResourceLoggerService loggerService, IResourceBuilder<IResource> resource)
     {
         loggerService.Complete(resource.Resource);
     }
@@ -122,7 +122,7 @@ internal static class LoggingExports
     /// Completes the log stream by resource name.
     /// </summary>
     [AspireExport("completeLogByName", Description = "Completes the log stream by resource name")]
-    public static void CompleteLogByName(ResourceLoggerService loggerService, string resourceName)
+    public static void CompleteLogByName(this ResourceLoggerService loggerService, string resourceName)
     {
         loggerService.Complete(resourceName);
     }

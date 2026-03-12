@@ -34,7 +34,7 @@ internal static class UserSecretsExports
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes when the state is saved.</returns>
     [AspireExport("saveStateJson", Description = "Saves state to user secrets from a JSON string")]
-    public static Task SaveStateJson(IUserSecretsManager userSecretsManager, string json, CancellationToken cancellationToken = default)
+    public static Task SaveStateJson(this IUserSecretsManager userSecretsManager, string json, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(userSecretsManager);
         ArgumentNullException.ThrowIfNull(json);

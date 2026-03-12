@@ -318,6 +318,114 @@ func (d *TestDeeplyNestedDto) ToMap() map[string]any {
 // Handle Wrappers
 // ============================================================================
 
+// AfterResourcesCreatedEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.
+type AfterResourcesCreatedEvent struct {
+	HandleWrapperBase
+}
+
+// NewAfterResourcesCreatedEvent creates a new AfterResourcesCreatedEvent.
+func NewAfterResourcesCreatedEvent(handle *Handle, client *AspireClient) *AfterResourcesCreatedEvent {
+	return &AfterResourcesCreatedEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Services gets the Services property
+func (s *AfterResourcesCreatedEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/AfterResourcesCreatedEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// Model gets the Model property
+func (s *AfterResourcesCreatedEvent) Model() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/AfterResourcesCreatedEvent.model", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
+// BeforeResourceStartedEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent.
+type BeforeResourceStartedEvent struct {
+	HandleWrapperBase
+}
+
+// NewBeforeResourceStartedEvent creates a new BeforeResourceStartedEvent.
+func NewBeforeResourceStartedEvent(handle *Handle, client *AspireClient) *BeforeResourceStartedEvent {
+	return &BeforeResourceStartedEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *BeforeResourceStartedEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/BeforeResourceStartedEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Services gets the Services property
+func (s *BeforeResourceStartedEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/BeforeResourceStartedEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// BeforeStartEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeStartEvent.
+type BeforeStartEvent struct {
+	HandleWrapperBase
+}
+
+// NewBeforeStartEvent creates a new BeforeStartEvent.
+func NewBeforeStartEvent(handle *Handle, client *AspireClient) *BeforeStartEvent {
+	return &BeforeStartEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Services gets the Services property
+func (s *BeforeStartEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/BeforeStartEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// Model gets the Model property
+func (s *BeforeStartEvent) Model() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/BeforeStartEvent.model", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
 // CSharpAppResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource.
 type CSharpAppResource struct {
 	ResourceBuilderBase
@@ -1223,6 +1331,81 @@ func (s *CSharpAppResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *CSharpAppResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *CSharpAppResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *CSharpAppResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *CSharpAppResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *CSharpAppResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *CSharpAppResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -1483,6 +1666,79 @@ func (s *CommandLineArgsCallbackContext) SetExecutionContext(value *DistributedA
 		return nil, err
 	}
 	return result.(*CommandLineArgsCallbackContext), nil
+}
+
+// Logger gets the Logger property
+func (s *CommandLineArgsCallbackContext) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
+// SetLogger sets the Logger property
+func (s *CommandLineArgsCallbackContext) SetLogger(value *ILogger) (*CommandLineArgsCallbackContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.setLogger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CommandLineArgsCallbackContext), nil
+}
+
+// Resource gets the Resource property
+func (s *CommandLineArgsCallbackContext) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// ConnectionStringAvailableEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent.
+type ConnectionStringAvailableEvent struct {
+	HandleWrapperBase
+}
+
+// NewConnectionStringAvailableEvent creates a new ConnectionStringAvailableEvent.
+func NewConnectionStringAvailableEvent(handle *Handle, client *AspireClient) *ConnectionStringAvailableEvent {
+	return &ConnectionStringAvailableEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *ConnectionStringAvailableEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ConnectionStringAvailableEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Services gets the Services property
+func (s *ConnectionStringAvailableEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ConnectionStringAvailableEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
 }
 
 // ConnectionStringResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ConnectionStringResource.
@@ -1877,6 +2133,81 @@ func (s *ConnectionStringResource) GetResourceName() (*string, error) {
 		return nil, err
 	}
 	return result.(*string), nil
+}
+
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ConnectionStringResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ConnectionStringResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnConnectionStringAvailable subscribes to the ConnectionStringAvailable event
+func (s *ConnectionStringResource) OnConnectionStringAvailable(callback func(...any) any) (*IResourceWithConnectionString, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onConnectionStringAvailable", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithConnectionString), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ConnectionStringResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ConnectionStringResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // WithOptionalString adds an optional string parameter
@@ -2377,6 +2708,66 @@ func (s *ContainerRegistryResource) GetResourceName() (*string, error) {
 		return nil, err
 	}
 	return result.(*string), nil
+}
+
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ContainerRegistryResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ContainerRegistryResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ContainerRegistryResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ContainerRegistryResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // WithOptionalString adds an optional string parameter
@@ -3406,6 +3797,81 @@ func (s *ContainerResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ContainerResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ContainerResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ContainerResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *ContainerResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ContainerResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *ContainerResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -3695,6 +4161,18 @@ func (s *DistributedApplicationExecutionContext) Operation() (*DistributedApplic
 	return result.(*DistributedApplicationOperation), nil
 }
 
+// ServiceProvider gets the ServiceProvider property
+func (s *DistributedApplicationExecutionContext) ServiceProvider() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/DistributedApplicationExecutionContext.serviceProvider", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
 // IsPublishMode gets the IsPublishMode property
 func (s *DistributedApplicationExecutionContext) IsPublishMode() (*bool, error) {
 	reqArgs := map[string]any{
@@ -3729,6 +4207,43 @@ func NewDistributedApplicationExecutionContextOptions(handle *Handle, client *As
 	return &DistributedApplicationExecutionContextOptions{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// DistributedApplicationModel wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.DistributedApplicationModel.
+type DistributedApplicationModel struct {
+	HandleWrapperBase
+}
+
+// NewDistributedApplicationModel creates a new DistributedApplicationModel.
+func NewDistributedApplicationModel(handle *Handle, client *AspireClient) *DistributedApplicationModel {
+	return &DistributedApplicationModel{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// GetResources gets resources from the distributed application model
+func (s *DistributedApplicationModel) GetResources() (*[]*IResource, error) {
+	reqArgs := map[string]any{
+		"model": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getResources", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*[]*IResource), nil
+}
+
+// FindResourceByName finds a resource by name
+func (s *DistributedApplicationModel) FindResourceByName(name string) (*IResource, error) {
+	reqArgs := map[string]any{
+		"model": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/findResourceByName", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // DistributedApplicationResourceEventSubscription wraps a handle for Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.
@@ -4722,6 +5237,81 @@ func (s *DotnetToolResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *DotnetToolResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *DotnetToolResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *DotnetToolResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *DotnetToolResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *DotnetToolResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *DotnetToolResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -4936,6 +5526,18 @@ func NewEndpointReference(handle *Handle, client *AspireClient) *EndpointReferen
 	return &EndpointReference{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// Resource gets the Resource property
+func (s *EndpointReference) Resource() (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EndpointReference.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
 }
 
 // EndpointName gets the EndpointName property
@@ -5203,6 +5805,43 @@ func (s *EnvironmentCallbackContext) CancellationToken() (*CancellationToken, er
 		return nil, err
 	}
 	return result.(*CancellationToken), nil
+}
+
+// Logger gets the Logger property
+func (s *EnvironmentCallbackContext) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
+// SetLogger sets the Logger property
+func (s *EnvironmentCallbackContext) SetLogger(value *ILogger) (*EnvironmentCallbackContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.setLogger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*EnvironmentCallbackContext), nil
+}
+
+// Resource gets the Resource property
+func (s *EnvironmentCallbackContext) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // ExecutionContext gets the ExecutionContext property
@@ -6068,6 +6707,81 @@ func (s *ExecutableResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ExecutableResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ExecutableResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ExecutableResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *ExecutableResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ExecutableResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *ExecutableResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -6282,6 +6996,31 @@ func NewExecuteCommandContext(handle *Handle, client *AspireClient) *ExecuteComm
 	return &ExecuteCommandContext{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// ServiceProvider gets the ServiceProvider property
+func (s *ExecuteCommandContext) ServiceProvider() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ExecuteCommandContext.serviceProvider", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// SetServiceProvider sets the ServiceProvider property
+func (s *ExecuteCommandContext) SetServiceProvider(value *IServiceProvider) (*ExecuteCommandContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setServiceProvider", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExecuteCommandContext), nil
 }
 
 // ResourceName gets the ResourceName property
@@ -6648,6 +7387,66 @@ func (s *ExternalServiceResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ExternalServiceResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ExternalServiceResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ExternalServiceResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ExternalServiceResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *ExternalServiceResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -6874,6 +7673,56 @@ func (s *IConfiguration) GetConnectionString(name string) (*string, error) {
 	return result.(*string), nil
 }
 
+// GetSection gets a configuration section by key
+func (s *IConfiguration) GetSection(key string) (*IConfigurationSection, error) {
+	reqArgs := map[string]any{
+		"configuration": SerializeValue(s.Handle()),
+	}
+	reqArgs["key"] = SerializeValue(key)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getSection", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IConfigurationSection), nil
+}
+
+// GetChildren gets child configuration sections
+func (s *IConfiguration) GetChildren() (*[]*IConfigurationSection, error) {
+	reqArgs := map[string]any{
+		"configuration": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getChildren", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*[]*IConfigurationSection), nil
+}
+
+// Exists checks whether a configuration section exists
+func (s *IConfiguration) Exists(key string) (*bool, error) {
+	reqArgs := map[string]any{
+		"configuration": SerializeValue(s.Handle()),
+	}
+	reqArgs["key"] = SerializeValue(key)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/exists", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// IConfigurationSection wraps a handle for Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfigurationSection.
+type IConfigurationSection struct {
+	HandleWrapperBase
+}
+
+// NewIConfigurationSection creates a new IConfigurationSection.
+func NewIConfigurationSection(handle *Handle, client *AspireClient) *IConfigurationSection {
+	return &IConfigurationSection{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
 // IContainerFilesDestinationResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource.
 type IContainerFilesDestinationResource struct {
 	HandleWrapperBase
@@ -7017,6 +7866,18 @@ func (s *IDistributedApplicationBuilder) AppHostDirectory() (*string, error) {
 	return result.(*string), nil
 }
 
+// Environment gets the Environment property
+func (s *IDistributedApplicationBuilder) Environment() (*IHostEnvironment, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/IDistributedApplicationBuilder.environment", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IHostEnvironment), nil
+}
+
 // Eventing gets the Eventing property
 func (s *IDistributedApplicationBuilder) Eventing() (*IDistributedApplicationEventing, error) {
 	reqArgs := map[string]any{
@@ -7039,6 +7900,18 @@ func (s *IDistributedApplicationBuilder) ExecutionContext() (*DistributedApplica
 		return nil, err
 	}
 	return result.(*DistributedApplicationExecutionContext), nil
+}
+
+// UserSecretsManager gets the UserSecretsManager property
+func (s *IDistributedApplicationBuilder) UserSecretsManager() (*IUserSecretsManager, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/IDistributedApplicationBuilder.userSecretsManager", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IUserSecretsManager), nil
 }
 
 // Build builds the distributed application
@@ -7159,6 +8032,48 @@ func (s *IDistributedApplicationBuilder) AddCSharpAppWithOptions(name string, pa
 	return result.(*CSharpAppResource), nil
 }
 
+// GetConfiguration gets the application configuration
+func (s *IDistributedApplicationBuilder) GetConfiguration() (*IConfiguration, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getConfiguration", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IConfiguration), nil
+}
+
+// SubscribeBeforeStart subscribes to the BeforeStart event
+func (s *IDistributedApplicationBuilder) SubscribeBeforeStart(callback func(...any) any) (*DistributedApplicationEventSubscription, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/subscribeBeforeStart", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationEventSubscription), nil
+}
+
+// SubscribeAfterResourcesCreated subscribes to the AfterResourcesCreated event
+func (s *IDistributedApplicationBuilder) SubscribeAfterResourcesCreated(callback func(...any) any) (*DistributedApplicationEventSubscription, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/subscribeAfterResourcesCreated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationEventSubscription), nil
+}
+
 // AddTestRedis adds a test Redis resource
 func (s *IDistributedApplicationBuilder) AddTestRedis(name string, port float64) (*TestRedisResource, error) {
 	reqArgs := map[string]any{
@@ -7244,18 +8159,6 @@ func NewIHostEnvironment(handle *Handle, client *AspireClient) *IHostEnvironment
 	}
 }
 
-// GetEnvironmentName gets the environment name
-func (s *IHostEnvironment) GetEnvironmentName() (*string, error) {
-	reqArgs := map[string]any{
-		"environment": SerializeValue(s.Handle()),
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/getEnvironmentName", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*string), nil
-}
-
 // IsDevelopment checks if running in Development environment
 func (s *IHostEnvironment) IsDevelopment() (*bool, error) {
 	reqArgs := map[string]any{
@@ -7266,6 +8169,131 @@ func (s *IHostEnvironment) IsDevelopment() (*bool, error) {
 		return nil, err
 	}
 	return result.(*bool), nil
+}
+
+// IsProduction checks if running in Production environment
+func (s *IHostEnvironment) IsProduction() (*bool, error) {
+	reqArgs := map[string]any{
+		"environment": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/isProduction", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// IsStaging checks if running in Staging environment
+func (s *IHostEnvironment) IsStaging() (*bool, error) {
+	reqArgs := map[string]any{
+		"environment": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/isStaging", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// IsEnvironment checks if the environment matches the specified name
+func (s *IHostEnvironment) IsEnvironment(environmentName string) (*bool, error) {
+	reqArgs := map[string]any{
+		"environment": SerializeValue(s.Handle()),
+	}
+	reqArgs["environmentName"] = SerializeValue(environmentName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/isEnvironment", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// ILogger wraps a handle for Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger.
+type ILogger struct {
+	HandleWrapperBase
+}
+
+// NewILogger creates a new ILogger.
+func NewILogger(handle *Handle, client *AspireClient) *ILogger {
+	return &ILogger{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// LogInformation logs an information message
+func (s *ILogger) LogInformation(message string) error {
+	reqArgs := map[string]any{
+		"logger": SerializeValue(s.Handle()),
+	}
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logInformation", reqArgs)
+	return err
+}
+
+// LogWarning logs a warning message
+func (s *ILogger) LogWarning(message string) error {
+	reqArgs := map[string]any{
+		"logger": SerializeValue(s.Handle()),
+	}
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logWarning", reqArgs)
+	return err
+}
+
+// LogError logs an error message
+func (s *ILogger) LogError(message string) error {
+	reqArgs := map[string]any{
+		"logger": SerializeValue(s.Handle()),
+	}
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logError", reqArgs)
+	return err
+}
+
+// LogDebug logs a debug message
+func (s *ILogger) LogDebug(message string) error {
+	reqArgs := map[string]any{
+		"logger": SerializeValue(s.Handle()),
+	}
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logDebug", reqArgs)
+	return err
+}
+
+// Log logs a message with specified level
+func (s *ILogger) Log(level string, message string) error {
+	reqArgs := map[string]any{
+		"logger": SerializeValue(s.Handle()),
+	}
+	reqArgs["level"] = SerializeValue(level)
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/log", reqArgs)
+	return err
+}
+
+// ILoggerFactory wraps a handle for Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory.
+type ILoggerFactory struct {
+	HandleWrapperBase
+}
+
+// NewILoggerFactory creates a new ILoggerFactory.
+func NewILoggerFactory(handle *Handle, client *AspireClient) *ILoggerFactory {
+	return &ILoggerFactory{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// CreateLogger creates a logger for a category
+func (s *ILoggerFactory) CreateLogger(categoryName string) (*ILogger, error) {
+	reqArgs := map[string]any{
+		"loggerFactory": SerializeValue(s.Handle()),
+	}
+	reqArgs["categoryName"] = SerializeValue(categoryName)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/createLogger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
 }
 
 // IResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource.
@@ -7413,30 +8441,76 @@ func NewIServiceProvider(handle *Handle, client *AspireClient) *IServiceProvider
 	}
 }
 
-// GetService gets a service by ATS type ID
-func (s *IServiceProvider) GetService(typeId string) (any, error) {
+// GetEventing gets the distributed application eventing service from the service provider
+func (s *IServiceProvider) GetEventing() (*IDistributedApplicationEventing, error) {
 	reqArgs := map[string]any{
 		"serviceProvider": SerializeValue(s.Handle()),
 	}
-	reqArgs["typeId"] = SerializeValue(typeId)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/getService", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getEventing", reqArgs)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return result.(*IDistributedApplicationEventing), nil
 }
 
-// GetRequiredService gets a required service by ATS type ID
-func (s *IServiceProvider) GetRequiredService(typeId string) (any, error) {
+// GetLoggerFactory gets the logger factory from the service provider
+func (s *IServiceProvider) GetLoggerFactory() (*ILoggerFactory, error) {
 	reqArgs := map[string]any{
 		"serviceProvider": SerializeValue(s.Handle()),
 	}
-	reqArgs["typeId"] = SerializeValue(typeId)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/getRequiredService", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getLoggerFactory", reqArgs)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return result.(*ILoggerFactory), nil
+}
+
+// GetResourceLoggerService gets the resource logger service from the service provider
+func (s *IServiceProvider) GetResourceLoggerService() (*ResourceLoggerService, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getResourceLoggerService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceLoggerService), nil
+}
+
+// GetDistributedApplicationModel gets the distributed application model from the service provider
+func (s *IServiceProvider) GetDistributedApplicationModel() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getDistributedApplicationModel", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
+// GetResourceNotificationService gets the resource notification service from the service provider
+func (s *IServiceProvider) GetResourceNotificationService() (*ResourceNotificationService, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getResourceNotificationService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceNotificationService), nil
+}
+
+// GetUserSecretsManager gets the user secrets manager from the service provider
+func (s *IServiceProvider) GetUserSecretsManager() (*IUserSecretsManager, error) {
+	reqArgs := map[string]any{
+		"serviceProvider": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/getUserSecretsManager", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IUserSecretsManager), nil
 }
 
 // ITestVaultResource wraps a handle for Aspire.Hosting.CodeGeneration.Go.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.ITestVaultResource.
@@ -7449,6 +8523,141 @@ func NewITestVaultResource(handle *Handle, client *AspireClient) *ITestVaultReso
 	return &ITestVaultResource{
 		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
 	}
+}
+
+// IUserSecretsManager wraps a handle for Aspire.Hosting/Aspire.Hosting.IUserSecretsManager.
+type IUserSecretsManager struct {
+	HandleWrapperBase
+}
+
+// NewIUserSecretsManager creates a new IUserSecretsManager.
+func NewIUserSecretsManager(handle *Handle, client *AspireClient) *IUserSecretsManager {
+	return &IUserSecretsManager{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// IsAvailable gets the IsAvailable property
+func (s *IUserSecretsManager) IsAvailable() (*bool, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/IUserSecretsManager.isAvailable", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// FilePath gets the FilePath property
+func (s *IUserSecretsManager) FilePath() (*string, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/IUserSecretsManager.filePath", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*string), nil
+}
+
+// TrySetSecret invokes the TrySetSecret method
+func (s *IUserSecretsManager) TrySetSecret(name string, value string) (*bool, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/IUserSecretsManager.trySetSecret", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*bool), nil
+}
+
+// SaveStateJson saves state to user secrets from a JSON string
+func (s *IUserSecretsManager) SaveStateJson(json string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"userSecretsManager": SerializeValue(s.Handle()),
+	}
+	reqArgs["json"] = SerializeValue(json)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/saveStateJson", reqArgs)
+	return err
+}
+
+// InitializeResourceEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.InitializeResourceEvent.
+type InitializeResourceEvent struct {
+	HandleWrapperBase
+}
+
+// NewInitializeResourceEvent creates a new InitializeResourceEvent.
+func NewInitializeResourceEvent(handle *Handle, client *AspireClient) *InitializeResourceEvent {
+	return &InitializeResourceEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *InitializeResourceEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/InitializeResourceEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Eventing gets the Eventing property
+func (s *InitializeResourceEvent) Eventing() (*IDistributedApplicationEventing, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/InitializeResourceEvent.eventing", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IDistributedApplicationEventing), nil
+}
+
+// Logger gets the Logger property
+func (s *InitializeResourceEvent) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/InitializeResourceEvent.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
+// Notifications gets the Notifications property
+func (s *InitializeResourceEvent) Notifications() (*ResourceNotificationService, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/InitializeResourceEvent.notifications", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceNotificationService), nil
+}
+
+// Services gets the Services property
+func (s *InitializeResourceEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/InitializeResourceEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
 }
 
 // ParameterResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource.
@@ -7763,6 +8972,66 @@ func (s *ParameterResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ParameterResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ParameterResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ParameterResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ParameterResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *ParameterResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -7951,6 +9220,31 @@ func NewPipelineConfigurationContext(handle *Handle, client *AspireClient) *Pipe
 	}
 }
 
+// Services gets the Services property
+func (s *PipelineConfigurationContext) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// SetServices sets the Services property
+func (s *PipelineConfigurationContext) SetServices(value *IServiceProvider) (*PipelineConfigurationContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setServices", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineConfigurationContext), nil
+}
+
 // Steps gets the Steps property
 func (s *PipelineConfigurationContext) Steps() (*[]*PipelineStep, error) {
 	reqArgs := map[string]any{
@@ -7976,6 +9270,31 @@ func (s *PipelineConfigurationContext) SetSteps(value []*PipelineStep) (*Pipelin
 	return result.(*PipelineConfigurationContext), nil
 }
 
+// Model gets the Model property
+func (s *PipelineConfigurationContext) Model() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.model", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
+// SetModel sets the Model property
+func (s *PipelineConfigurationContext) SetModel(value *DistributedApplicationModel) (*PipelineConfigurationContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineConfigurationContext.setModel", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineConfigurationContext), nil
+}
+
 // GetStepsByTag gets pipeline steps with the specified tag
 func (s *PipelineConfigurationContext) GetStepsByTag(tag string) (*[]*PipelineStep, error) {
 	reqArgs := map[string]any{
@@ -7987,6 +9306,105 @@ func (s *PipelineConfigurationContext) GetStepsByTag(tag string) (*[]*PipelineSt
 		return nil, err
 	}
 	return result.(*[]*PipelineStep), nil
+}
+
+// PipelineContext wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineContext.
+type PipelineContext struct {
+	HandleWrapperBase
+}
+
+// NewPipelineContext creates a new PipelineContext.
+func NewPipelineContext(handle *Handle, client *AspireClient) *PipelineContext {
+	return &PipelineContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Model gets the Model property
+func (s *PipelineContext) Model() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.model", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
+// ExecutionContext gets the ExecutionContext property
+func (s *PipelineContext) ExecutionContext() (*DistributedApplicationExecutionContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.executionContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationExecutionContext), nil
+}
+
+// Services gets the Services property
+func (s *PipelineContext) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// Logger gets the Logger property
+func (s *PipelineContext) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
+// CancellationToken gets the CancellationToken property
+func (s *PipelineContext) CancellationToken() (*CancellationToken, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.cancellationToken", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CancellationToken), nil
+}
+
+// SetCancellationToken sets the CancellationToken property
+func (s *PipelineContext) SetCancellationToken(value *CancellationToken) (*PipelineContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	if value != nil {
+		reqArgs["value"] = RegisterCancellation(value, s.Client())
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.setCancellationToken", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineContext), nil
+}
+
+// Summary gets the Summary property
+func (s *PipelineContext) Summary() (*PipelineSummary, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineContext.summary", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineSummary), nil
 }
 
 // PipelineStep wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep.
@@ -8117,6 +9535,31 @@ func (s *PipelineStep) SetTags(value *AspireList[string]) (*PipelineStep, error)
 	return result.(*PipelineStep), nil
 }
 
+// Resource gets the Resource property
+func (s *PipelineStep) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// SetResource sets the Resource property
+func (s *PipelineStep) SetResource(value *IResource) (*PipelineStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStep.setResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStep), nil
+}
+
 // DependsOn adds a dependency on another step by name
 func (s *PipelineStep) DependsOn(stepName string) error {
 	reqArgs := map[string]any{
@@ -8149,6 +9592,43 @@ func NewPipelineStepContext(handle *Handle, client *AspireClient) *PipelineStepC
 	}
 }
 
+// PipelineContext gets the PipelineContext property
+func (s *PipelineStepContext) PipelineContext() (*PipelineContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.pipelineContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineContext), nil
+}
+
+// SetPipelineContext sets the PipelineContext property
+func (s *PipelineStepContext) SetPipelineContext(value *PipelineContext) (*PipelineStepContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.setPipelineContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStepContext), nil
+}
+
+// Model gets the Model property
+func (s *PipelineStepContext) Model() (*DistributedApplicationModel, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.model", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DistributedApplicationModel), nil
+}
+
 // ExecutionContext gets the ExecutionContext property
 func (s *PipelineStepContext) ExecutionContext() (*DistributedApplicationExecutionContext, error) {
 	reqArgs := map[string]any{
@@ -8161,6 +9641,30 @@ func (s *PipelineStepContext) ExecutionContext() (*DistributedApplicationExecuti
 	return result.(*DistributedApplicationExecutionContext), nil
 }
 
+// Services gets the Services property
+func (s *PipelineStepContext) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// Logger gets the Logger property
+func (s *PipelineStepContext) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
 // CancellationToken gets the CancellationToken property
 func (s *PipelineStepContext) CancellationToken() (*CancellationToken, error) {
 	reqArgs := map[string]any{
@@ -8171,6 +9675,103 @@ func (s *PipelineStepContext) CancellationToken() (*CancellationToken, error) {
 		return nil, err
 	}
 	return result.(*CancellationToken), nil
+}
+
+// Summary gets the Summary property
+func (s *PipelineStepContext) Summary() (*PipelineSummary, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.summary", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineSummary), nil
+}
+
+// PipelineStepFactoryContext wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepFactoryContext.
+type PipelineStepFactoryContext struct {
+	HandleWrapperBase
+}
+
+// NewPipelineStepFactoryContext creates a new PipelineStepFactoryContext.
+func NewPipelineStepFactoryContext(handle *Handle, client *AspireClient) *PipelineStepFactoryContext {
+	return &PipelineStepFactoryContext{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// PipelineContext gets the PipelineContext property
+func (s *PipelineStepFactoryContext) PipelineContext() (*PipelineContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepFactoryContext.pipelineContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineContext), nil
+}
+
+// SetPipelineContext sets the PipelineContext property
+func (s *PipelineStepFactoryContext) SetPipelineContext(value *PipelineContext) (*PipelineStepFactoryContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepFactoryContext.setPipelineContext", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStepFactoryContext), nil
+}
+
+// Resource gets the Resource property
+func (s *PipelineStepFactoryContext) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepFactoryContext.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// SetResource sets the Resource property
+func (s *PipelineStepFactoryContext) SetResource(value *IResource) (*PipelineStepFactoryContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepFactoryContext.setResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStepFactoryContext), nil
+}
+
+// PipelineSummary wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineSummary.
+type PipelineSummary struct {
+	HandleWrapperBase
+}
+
+// NewPipelineSummary creates a new PipelineSummary.
+func NewPipelineSummary(handle *Handle, client *AspireClient) *PipelineSummary {
+	return &PipelineSummary{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Add invokes the Add method
+func (s *PipelineSummary) Add(key string, value string) error {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["key"] = SerializeValue(key)
+	reqArgs["value"] = SerializeValue(value)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineSummary.add", reqArgs)
+	return err
 }
 
 // ProjectResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource.
@@ -9038,6 +10639,81 @@ func (s *ProjectResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *ProjectResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *ProjectResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *ProjectResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *ProjectResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *ProjectResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *ProjectResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -9397,6 +11073,42 @@ func (s *ReferenceExpressionBuilder) Build() (*ReferenceExpression, error) {
 	return result.(*ReferenceExpression), nil
 }
 
+// ResourceEndpointsAllocatedEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceEndpointsAllocatedEvent.
+type ResourceEndpointsAllocatedEvent struct {
+	HandleWrapperBase
+}
+
+// NewResourceEndpointsAllocatedEvent creates a new ResourceEndpointsAllocatedEvent.
+func NewResourceEndpointsAllocatedEvent(handle *Handle, client *AspireClient) *ResourceEndpointsAllocatedEvent {
+	return &ResourceEndpointsAllocatedEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *ResourceEndpointsAllocatedEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceEndpointsAllocatedEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Services gets the Services property
+func (s *ResourceEndpointsAllocatedEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceEndpointsAllocatedEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
 // ResourceLoggerService wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService.
 type ResourceLoggerService struct {
 	HandleWrapperBase
@@ -9514,6 +11226,78 @@ func (s *ResourceNotificationService) PublishResourceUpdate(resource *IResource,
 	return err
 }
 
+// ResourceReadyEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceReadyEvent.
+type ResourceReadyEvent struct {
+	HandleWrapperBase
+}
+
+// NewResourceReadyEvent creates a new ResourceReadyEvent.
+func NewResourceReadyEvent(handle *Handle, client *AspireClient) *ResourceReadyEvent {
+	return &ResourceReadyEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *ResourceReadyEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceReadyEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Services gets the Services property
+func (s *ResourceReadyEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceReadyEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// ResourceStoppedEvent wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceStoppedEvent.
+type ResourceStoppedEvent struct {
+	HandleWrapperBase
+}
+
+// NewResourceStoppedEvent creates a new ResourceStoppedEvent.
+func NewResourceStoppedEvent(handle *Handle, client *AspireClient) *ResourceStoppedEvent {
+	return &ResourceStoppedEvent{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// Resource gets the Resource property
+func (s *ResourceStoppedEvent) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceStoppedEvent.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// Services gets the Services property
+func (s *ResourceStoppedEvent) Services() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceStoppedEvent.services", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
 // ResourceUrlsCallbackContext wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext.
 type ResourceUrlsCallbackContext struct {
 	HandleWrapperBase
@@ -9525,6 +11309,18 @@ func NewResourceUrlsCallbackContext(handle *Handle, client *AspireClient) *Resou
 	return &ResourceUrlsCallbackContext{
 		HandleWrapperBase: NewHandleWrapperBase(handle, client),
 	}
+}
+
+// Resource gets the Resource property
+func (s *ResourceUrlsCallbackContext) Resource() (*IResource, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.resource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // Urls gets the Urls property
@@ -9545,6 +11341,31 @@ func (s *ResourceUrlsCallbackContext) CancellationToken() (*CancellationToken, e
 		return nil, err
 	}
 	return result.(*CancellationToken), nil
+}
+
+// Logger gets the Logger property
+func (s *ResourceUrlsCallbackContext) Logger() (*ILogger, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.logger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ILogger), nil
+}
+
+// SetLogger sets the Logger property
+func (s *ResourceUrlsCallbackContext) SetLogger(value *ILogger) (*ResourceUrlsCallbackContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.setLogger", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResourceUrlsCallbackContext), nil
 }
 
 // ExecutionContext gets the ExecutionContext property
@@ -10768,6 +12589,81 @@ func (s *TestDatabaseResource) GetResourceName() (*string, error) {
 		return nil, err
 	}
 	return result.(*string), nil
+}
+
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *TestDatabaseResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *TestDatabaseResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *TestDatabaseResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *TestDatabaseResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *TestDatabaseResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // WithOptionalString adds an optional string parameter
@@ -12181,6 +14077,96 @@ func (s *TestRedisResource) GetResourceName() (*string, error) {
 		return nil, err
 	}
 	return result.(*string), nil
+}
+
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *TestRedisResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *TestRedisResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnConnectionStringAvailable subscribes to the ConnectionStringAvailable event
+func (s *TestRedisResource) OnConnectionStringAvailable(callback func(...any) any) (*IResourceWithConnectionString, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onConnectionStringAvailable", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithConnectionString), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *TestRedisResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *TestRedisResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *TestRedisResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
 }
 
 // AddTestChildDatabase adds a child database to a test Redis resource
@@ -13729,6 +15715,81 @@ func (s *TestVaultResource) GetResourceName() (*string, error) {
 	return result.(*string), nil
 }
 
+// OnBeforeResourceStarted subscribes to the BeforeResourceStarted event
+func (s *TestVaultResource) OnBeforeResourceStarted(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onBeforeResourceStarted", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceStopped subscribes to the ResourceStopped event
+func (s *TestVaultResource) OnResourceStopped(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceStopped", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnInitializeResource subscribes to the InitializeResource event
+func (s *TestVaultResource) OnInitializeResource(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onInitializeResource", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
+// OnResourceEndpointsAllocated subscribes to the ResourceEndpointsAllocated event
+func (s *TestVaultResource) OnResourceEndpointsAllocated(callback func(...any) any) (*IResourceWithEndpoints, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceEndpointsAllocated", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEndpoints), nil
+}
+
+// OnResourceReady subscribes to the ResourceReady event
+func (s *TestVaultResource) OnResourceReady(callback func(...any) any) (*IResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if callback != nil {
+		reqArgs["callback"] = RegisterCallback(callback)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/onResourceReady", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResource), nil
+}
+
 // WithOptionalString adds an optional string parameter
 func (s *TestVaultResource) WithOptionalString(value string, enabled bool) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -13958,6 +16019,31 @@ func NewUpdateCommandStateContext(handle *Handle, client *AspireClient) *UpdateC
 	}
 }
 
+// ServiceProvider gets the ServiceProvider property
+func (s *UpdateCommandStateContext) ServiceProvider() (*IServiceProvider, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/UpdateCommandStateContext.serviceProvider", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IServiceProvider), nil
+}
+
+// SetServiceProvider sets the ServiceProvider property
+func (s *UpdateCommandStateContext) SetServiceProvider(value *IServiceProvider) (*UpdateCommandStateContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.ApplicationModel/UpdateCommandStateContext.setServiceProvider", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateCommandStateContext), nil
+}
+
 // ============================================================================
 // Handle wrapper registrations
 // ============================================================================
@@ -14017,8 +16103,17 @@ func init() {
 	RegisterHandleWrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration", func(h *Handle, c *AspireClient) any {
 		return NewIConfiguration(h, c)
 	})
+	RegisterHandleWrapper("Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfigurationSection", func(h *Handle, c *AspireClient) any {
+		return NewIConfigurationSection(h, c)
+	})
 	RegisterHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", func(h *Handle, c *AspireClient) any {
 		return NewIHostEnvironment(h, c)
+	})
+	RegisterHandleWrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger", func(h *Handle, c *AspireClient) any {
+		return NewILogger(h, c)
+	})
+	RegisterHandleWrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory", func(h *Handle, c *AspireClient) any {
+		return NewILoggerFactory(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationEventSubscription(h, c)
@@ -14032,14 +16127,26 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions", func(h *Handle, c *AspireClient) any {
 		return NewProjectResourceOptions(h, c)
 	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IUserSecretsManager", func(h *Handle, c *AspireClient) any {
+		return NewIUserSecretsManager(h, c)
+	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext", func(h *Handle, c *AspireClient) any {
 		return NewPipelineConfigurationContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineContext", func(h *Handle, c *AspireClient) any {
+		return NewPipelineContext(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep", func(h *Handle, c *AspireClient) any {
 		return NewPipelineStep(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext", func(h *Handle, c *AspireClient) any {
 		return NewPipelineStepContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepFactoryContext", func(h *Handle, c *AspireClient) any {
+		return NewPipelineStepFactoryContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineSummary", func(h *Handle, c *AspireClient) any {
+		return NewPipelineSummary(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationResourceEventSubscription(h, c)
@@ -14053,14 +16160,32 @@ func init() {
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing", func(h *Handle, c *AspireClient) any {
 		return NewIDistributedApplicationEventing(h, c)
 	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent", func(h *Handle, c *AspireClient) any {
+		return NewAfterResourcesCreatedEvent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent", func(h *Handle, c *AspireClient) any {
+		return NewBeforeResourceStartedEvent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeStartEvent", func(h *Handle, c *AspireClient) any {
+		return NewBeforeStartEvent(h, c)
+	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewCommandLineArgsCallbackContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent", func(h *Handle, c *AspireClient) any {
+		return NewConnectionStringAvailableEvent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.DistributedApplicationModel", func(h *Handle, c *AspireClient) any {
+		return NewDistributedApplicationModel(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression", func(h *Handle, c *AspireClient) any {
 		return NewEndpointReferenceExpression(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewEnvironmentCallbackContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.InitializeResourceEvent", func(h *Handle, c *AspireClient) any {
+		return NewInitializeResourceEvent(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder", func(h *Handle, c *AspireClient) any {
 		return NewReferenceExpressionBuilder(h, c)
@@ -14070,6 +16195,15 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext", func(h *Handle, c *AspireClient) any {
 		return NewExecuteCommandContext(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceEndpointsAllocatedEvent", func(h *Handle, c *AspireClient) any {
+		return NewResourceEndpointsAllocatedEvent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceReadyEvent", func(h *Handle, c *AspireClient) any {
+		return NewResourceReadyEvent(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceStoppedEvent", func(h *Handle, c *AspireClient) any {
+		return NewResourceStoppedEvent(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext", func(h *Handle, c *AspireClient) any {
 		return NewResourceUrlsCallbackContext(h, c)

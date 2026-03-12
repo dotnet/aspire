@@ -30,7 +30,7 @@ internal static class ModelExports
     /// <param name="model">The distributed application model handle.</param>
     /// <returns>The resources in the model.</returns>
     [AspireExport("getResources", Description = "Gets resources from the distributed application model")]
-    public static IResource[] GetResources(DistributedApplicationModel model)
+    public static IResource[] GetResources(this DistributedApplicationModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -44,7 +44,7 @@ internal static class ModelExports
     /// <param name="name">The resource name.</param>
     /// <returns>The matching resource, or <see langword="null"/> when not found.</returns>
     [AspireExport("findResourceByName", Description = "Finds a resource by name")]
-    public static IResource? FindResourceByName(DistributedApplicationModel model, string name)
+    public static IResource? FindResourceByName(this DistributedApplicationModel model, string name)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
