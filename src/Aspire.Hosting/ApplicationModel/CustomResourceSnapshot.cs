@@ -426,6 +426,11 @@ public static class KnownResourceStates
     /// List of terminal states.
     /// </summary>
     public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
+
+    /// <summary>
+    /// List of states in which a resource can be rebuilt.
+    /// </summary>
+    public static readonly IReadOnlyList<string> BuildableStates = [Running, Finished, FailedToStart, Exited];
 }
 
 internal static class ResourceSnapshotBuilder

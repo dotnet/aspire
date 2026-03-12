@@ -914,7 +914,7 @@ public static class ProjectResourceBuilderExtensions
         where TProjectResource : ProjectResource
     {
         var projectMetadata = projectResource.Annotations.OfType<IProjectMetadata>().SingleOrDefault();
-        if (projectMetadata is null)
+        if (projectMetadata is null || projectMetadata.IsFileBasedApp)
         {
             return;
         }

@@ -6,6 +6,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A hidden executable resource that runs 'dotnet build' for a project resource.
 /// </summary>
+/// <remarks>
+/// This uses a DCP executable resource rather than <see cref="System.Diagnostics.Process"/> directly
+/// so that the build process benefits from DCP's lifecycle management (automatic cleanup on shutdown),
+/// structured log capture, and visibility in the dashboard's diagnostics.
+/// </remarks>
 internal sealed class ProjectRebuilderResource : ExecutableResource, IResourceWithParent<ProjectResource>
 {
     /// <summary>
