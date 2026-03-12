@@ -132,6 +132,7 @@ internal sealed class RootCommand : BaseRootCommand
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
+        Template.TemplateCommand templateCommand,
         SetupCommand setupCommand,
 #if DEBUG
         RenderCommand renderCommand,
@@ -234,6 +235,11 @@ internal sealed class RootCommand : BaseRootCommand
         }
 
         Subcommands.Add(sdkCommand);
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.GitTemplatesEnabled, false))
+        {
+            Subcommands.Add(templateCommand);
+        }
 
         // Replace the default --help action with grouped help output.
         // Add -v as a short alias for --version.

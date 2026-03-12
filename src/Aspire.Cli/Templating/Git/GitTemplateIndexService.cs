@@ -1,0 +1,370 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.GitHub;
+using Microsoft.Extensions.Logging;
+
+namespace Aspire.Cli.Templating.Git;
+
+/// <summary>
+/// Fetches, parses, and caches template indexes from git-hosted sources.
+/// </summary>
+internal sealed class GitTemplateIndexService : IGitTemplateIndexService
+{
+    private const string DefaultRepo = "https://github.com/dotnet/aspire";
+    private const string DefaultRef = "release/latest";
+    private const string CommunityDefaultRef = "HEAD";
+    private const string IndexFileName = "aspire-template-index.json";
+    private const int MaxIncludeDepth = 5;
+
+    private const string TemplateRepoName = "aspire-templates";
+
+    private static readonly TimeSpan s_defaultCacheTtl = TimeSpan.FromHours(1);
+
+    private readonly GitTemplateCache _cache;
+    private readonly IConfigurationService _configService;
+    private readonly IGitHubCliRunner _gitHubCli;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<GitTemplateIndexService> _logger;
+
+    public GitTemplateIndexService(
+        GitTemplateCache cache,
+        IConfigurationService configService,
+        IGitHubCliRunner gitHubCli,
+        IHttpClientFactory httpClientFactory,
+        ILogger<GitTemplateIndexService> logger)
+    {
+        _cache = cache;
+        _configService = configService;
+        _gitHubCli = gitHubCli;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<ResolvedTemplate>> GetTemplatesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
+    {
+        var sources = await GetSourcesAsync(cancellationToken).ConfigureAwait(false);
+        var result = new List<ResolvedTemplate>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var source in sources)
+        {
+            await ResolveIndexAsync(source, result, visited, depth: 0, forceRefresh, cancellationToken).ConfigureAwait(false);
+        }
+
+        return result;
+    }
+
+    public async Task RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        _cache.Clear();
+        await GetTemplatesAsync(forceRefresh: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ResolveIndexAsync(
+        GitTemplateSource source,
+        List<ResolvedTemplate> result,
+        HashSet<string> visited,
+        int depth,
+        bool forceRefresh,
+        CancellationToken cancellationToken)
+    {
+        if (depth > MaxIncludeDepth)
+        {
+            _logger.LogWarning("Max include depth ({Depth}) reached for {Repo}, skipping.", MaxIncludeDepth, source.Repo);
+            return;
+        }
+
+        if (!visited.Add(source.CacheKey))
+        {
+            _logger.LogDebug("Cycle detected for {CacheKey}, skipping.", source.CacheKey);
+            return;
+        }
+
+        var isLocal = IsLocalPath(source.Repo);
+        var index = (forceRefresh || isLocal) ? null : _cache.Get(source.CacheKey, s_defaultCacheTtl);
+
+        if (index is null)
+        {
+            index = await FetchIndexAsync(source, cancellationToken).ConfigureAwait(false);
+
+            if (index is null)
+            {
+                _logger.LogDebug("No index found at {Repo}@{Ref}.", source.Repo, source.Ref ?? "HEAD");
+                return;
+            }
+
+            if (!isLocal)
+            {
+                _cache.Set(source.CacheKey, index);
+            }
+        }
+
+        foreach (var entry in index.Templates)
+        {
+            result.Add(new ResolvedTemplate { Entry = entry, Source = source });
+        }
+
+        if (index.Includes is { Count: > 0 })
+        {
+            foreach (var include in index.Includes)
+            {
+                var includeSource = new GitTemplateSource
+                {
+                    Name = include.Url,
+                    Repo = include.Url,
+                    Kind = GitTemplateSourceKind.Configured
+                };
+
+                await ResolveIndexAsync(includeSource, result, visited, depth + 1, forceRefresh, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<GitTemplateIndex?> FetchIndexAsync(GitTemplateSource source, CancellationToken cancellationToken)
+    {
+        // Local path support — for template development and testing.
+        if (IsLocalPath(source.Repo))
+        {
+            return await FetchLocalIndexAsync(source.Repo, cancellationToken).ConfigureAwait(false);
+        }
+
+        var rawUrl = BuildRawUrl(source.Repo, source.Ref ?? DefaultRefForSource(source), IndexFileName);
+
+        if (rawUrl is null)
+        {
+            _logger.LogWarning("Cannot build raw URL for {Repo}. Only GitHub URLs and local paths are supported.", source.Repo);
+            return null;
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient("git-templates");
+            var response = await client.GetAsync(rawUrl, cancellationToken).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("HTTP {StatusCode} fetching index from {Url}.", response.StatusCode, rawUrl);
+                return null;
+            }
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            return JsonSerializer.Deserialize(json, GitTemplateJsonContext.Default.GitTemplateIndex);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            _logger.LogDebug(ex, "Failed to fetch index from {Url}.", rawUrl);
+            return null;
+        }
+    }
+
+    private async Task<GitTemplateIndex?> FetchLocalIndexAsync(string localPath, CancellationToken cancellationToken)
+    {
+        var indexPath = Path.Combine(localPath, IndexFileName);
+
+        if (!File.Exists(indexPath))
+        {
+            _logger.LogDebug("No index file at {Path}.", indexPath);
+            return null;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(indexPath, cancellationToken).ConfigureAwait(false);
+            return JsonSerializer.Deserialize(json, GitTemplateJsonContext.Default.GitTemplateIndex);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            _logger.LogDebug(ex, "Failed to read local index at {Path}.", indexPath);
+            return null;
+        }
+    }
+
+    private static bool IsLocalPath(string repo)
+    {
+        return repo.StartsWith('/') ||
+               repo.StartsWith('.') ||
+               (repo.Length >= 3 && repo[1] == ':' && (repo[2] == '/' || repo[2] == '\\'));
+    }
+
+    private async Task<List<GitTemplateSource>> GetSourcesAsync(CancellationToken cancellationToken)
+    {
+        var sources = new List<GitTemplateSource>();
+
+        // 1. Default official source
+        var disableDefault = await _configService.GetConfigurationAsync("templates.indexes.default.disabled", cancellationToken).ConfigureAwait(false);
+        if (!string.Equals(disableDefault, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            var defaultRepo = await _configService.GetConfigurationAsync("templates.indexes.default.repo", cancellationToken).ConfigureAwait(false);
+            var defaultRef = await _configService.GetConfigurationAsync("templates.indexes.default.ref", cancellationToken).ConfigureAwait(false);
+
+            sources.Add(new GitTemplateSource
+            {
+                Name = "default",
+                Repo = defaultRepo ?? DefaultRepo,
+                Ref = defaultRef ?? DefaultRef,
+                Kind = GitTemplateSourceKind.Official
+            });
+        }
+
+        // 2. Additional configured sources
+        // Config keys: templates.indexes.<name>.repo and templates.indexes.<name>.ref
+        var allConfig = await _configService.GetAllConfigurationAsync(cancellationToken).ConfigureAwait(false);
+        var indexNames = allConfig.Keys
+            .Where(k => k.StartsWith("templates.indexes.", StringComparison.OrdinalIgnoreCase) && k.EndsWith(".repo", StringComparison.OrdinalIgnoreCase))
+            .Select(k =>
+            {
+                // Extract name from "templates.indexes.<name>.repo"
+                var parts = k.Split('.');
+                return parts.Length >= 4 ? parts[2] : null;
+            })
+            .Where(n => n is not null && !string.Equals(n, "default", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var indexName in indexNames)
+        {
+            allConfig.TryGetValue($"templates.indexes.{indexName}.repo", out var repo);
+            allConfig.TryGetValue($"templates.indexes.{indexName}.ref", out var gitRef);
+
+            if (repo is not null)
+            {
+                sources.Add(new GitTemplateSource
+                {
+                    Name = indexName!,
+                    Repo = repo,
+                    Ref = gitRef,
+                    Kind = GitTemplateSourceKind.Configured
+                });
+            }
+        }
+
+        // 3. Auto-discover personal and org aspire-templates repos via GitHub CLI
+        await DiscoverGitHubSourcesAsync(sources, cancellationToken).ConfigureAwait(false);
+
+        return sources;
+    }
+
+    private async Task DiscoverGitHubSourcesAsync(List<GitTemplateSource> sources, CancellationToken cancellationToken)
+    {
+        // Check if discovery is disabled
+        var disablePersonal = await _configService.GetConfigurationAsync("templates.enablePersonalDiscovery", cancellationToken).ConfigureAwait(false);
+        var disableOrg = await _configService.GetConfigurationAsync("templates.enableOrgDiscovery", cancellationToken).ConfigureAwait(false);
+
+        var personalEnabled = !string.Equals(disablePersonal, "false", StringComparison.OrdinalIgnoreCase);
+        var orgEnabled = !string.Equals(disableOrg, "false", StringComparison.OrdinalIgnoreCase);
+
+        if (!personalEnabled && !orgEnabled)
+        {
+            return;
+        }
+
+        if (!await _gitHubCli.IsInstalledAsync(cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("GitHub CLI not installed, skipping template auto-discovery.");
+            return;
+        }
+
+        if (!await _gitHubCli.IsAuthenticatedAsync(cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("GitHub CLI not authenticated, skipping template auto-discovery.");
+            return;
+        }
+
+        var existingRepos = new HashSet<string>(
+            sources.Select(s => s.Repo),
+            StringComparer.OrdinalIgnoreCase);
+
+        // Kick off personal + org discovery in parallel
+        var probes = new List<Task<GitTemplateSource?>>();
+
+        if (personalEnabled)
+        {
+            var username = await _gitHubCli.GetUsernameAsync(cancellationToken).ConfigureAwait(false);
+            if (username is not null)
+            {
+                var repoUrl = $"https://github.com/{username}/{TemplateRepoName}";
+                if (!existingRepos.Contains(repoUrl))
+                {
+                    probes.Add(ProbeRepoAsync(username, repoUrl, GitTemplateSourceKind.Personal, cancellationToken));
+                    existingRepos.Add(repoUrl);
+                }
+            }
+        }
+
+        if (orgEnabled)
+        {
+            var orgs = await _gitHubCli.GetOrganizationsAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var org in orgs)
+            {
+                var repoUrl = $"https://github.com/{org}/{TemplateRepoName}";
+                if (!existingRepos.Contains(repoUrl))
+                {
+                    probes.Add(ProbeRepoAsync(org, repoUrl, GitTemplateSourceKind.Organization, cancellationToken));
+                    existingRepos.Add(repoUrl);
+                }
+            }
+        }
+
+        var results = await Task.WhenAll(probes).ConfigureAwait(false);
+
+        foreach (var source in results)
+        {
+            if (source is not null)
+            {
+                sources.Add(source);
+            }
+        }
+    }
+
+    private async Task<GitTemplateSource?> ProbeRepoAsync(
+        string owner,
+        string repoUrl,
+        GitTemplateSourceKind kind,
+        CancellationToken cancellationToken)
+    {
+        if (await _gitHubCli.RepoExistsAsync(owner, TemplateRepoName, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogDebug("Discovered template repo: {Repo}.", repoUrl);
+            return new GitTemplateSource
+            {
+                Name = owner,
+                Repo = repoUrl,
+                Kind = kind
+            };
+        }
+
+        _logger.LogDebug("No {Repo} repo found for {Owner}.", TemplateRepoName, owner);
+        return null;
+    }
+
+    /// <summary>
+    /// Converts a GitHub repo URL to a raw content URL for a file.
+    /// </summary>
+    internal static string? BuildRawUrl(string repoUrl, string gitRef, string filePath)
+    {
+        // Handle https://github.com/owner/repo or https://github.com/owner/repo.git
+        if (repoUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            var path = repoUrl["https://github.com/".Length..].TrimEnd('/');
+            if (path.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+            {
+                path = path[..^4];
+            }
+
+            return $"https://raw.githubusercontent.com/{path}/{gitRef}/{filePath}";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the default git ref for a source based on its kind.
+    /// The official dotnet/aspire repo uses <c>release/latest</c>; all others use <c>HEAD</c>.
+    /// </summary>
+    private static string DefaultRefForSource(GitTemplateSource source)
+    {
+        return source.Kind == GitTemplateSourceKind.Official ? DefaultRef : CommunityDefaultRef;
+    }
+}
