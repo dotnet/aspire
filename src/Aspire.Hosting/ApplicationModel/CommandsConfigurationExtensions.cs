@@ -257,13 +257,8 @@ internal static class CommandsConfigurationExtensions
 
             if (exitCode == 0)
             {
-                // Start replicas sequentially to work around a race condition in the
-                // orchestrator's StartResourceAsync — WaitForDependenciesAsync uses a
-                // model-level PublishUpdateAsync that sets ALL replicas to "Waiting",
-                // causing the orchestrator to skip the DcpExecutor call for subsequent
-                // replicas. We reset each replica's state before starting to clear the
-                // stale "Waiting" state. Only restart replicas that were running before
-                // the rebuild; leave previously-inactive replicas in their terminal state.
+                // Only restart replicas that were running before the rebuild;
+                // leave previously-inactive replicas in their terminal state.
                 mainLogger.LogInformation(BuildLogPrefix + "Build succeeded. Restarting resource...");
                 foreach (var name in replicaNames)
                 {
