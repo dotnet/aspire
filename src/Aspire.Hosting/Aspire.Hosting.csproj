@@ -142,18 +142,17 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Reference the analyzer to ensure it's built but don't reference its output -->
+    <ProjectReference Include="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
+  </ItemGroup>
+
   <!-- Include the integration analyzer in the package -->
   <PropertyGroup>
     <BeforePack>$(BeforePack);IncludeIntegrationAnalyzerInPackage</BeforePack>
   </PropertyGroup>
   <Target Name="IncludeIntegrationAnalyzerInPackage">
-    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
-             Targets="Build"
-             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
-
-    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
-             Targets="GetTargetPath"
-             Properties="Configuration=$(Configuration);Platform=$(Platform)">
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" Targets="GetTargetPath">
       <Output TaskParameter="TargetOutputs" PropertyName="AspireIntegrationAnalyzerFile" />
     </MSBuild>
 
