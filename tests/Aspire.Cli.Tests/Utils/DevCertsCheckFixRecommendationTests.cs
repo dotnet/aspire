@@ -16,8 +16,8 @@ public class DevCertsCheckFixRecommendationTests
         var result = Assert.Single(results);
         Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
         Assert.NotNull(result.Fix);
-        Assert.Contains("aspire certificates trust", result.Fix);
-        Assert.DoesNotContain("aspire certificates clean", result.Fix);
+        Assert.Contains("aspire certs trust", result.Fix);
+        Assert.DoesNotContain("aspire certs clean", result.Fix);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class DevCertsCheckFixRecommendationTests
         var result = Assert.Single(results);
         Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
         Assert.NotNull(result.Fix);
-        Assert.Contains("aspire certificates trust", result.Fix);
-        Assert.DoesNotContain("aspire certificates clean", result.Fix);
+        Assert.Contains("aspire certs trust", result.Fix);
+        Assert.DoesNotContain("aspire certs clean", result.Fix);
     }
 
     [Fact]
@@ -66,8 +66,8 @@ public class DevCertsCheckFixRecommendationTests
         var result = Assert.Single(results);
         Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
         Assert.NotNull(result.Fix);
-        Assert.Contains("aspire certificates clean", result.Fix);
-        Assert.Contains("aspire certificates trust", result.Fix);
+        Assert.Contains("aspire certs clean", result.Fix);
+        Assert.Contains("aspire certs trust", result.Fix);
     }
 
     [Fact]
@@ -84,8 +84,8 @@ public class DevCertsCheckFixRecommendationTests
         var result = Assert.Single(results);
         Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
         Assert.NotNull(result.Fix);
-        Assert.Contains("aspire certificates clean", result.Fix);
-        Assert.Contains("aspire certificates trust", result.Fix);
+        Assert.Contains("aspire certs clean", result.Fix);
+        Assert.Contains("aspire certs trust", result.Fix);
     }
 
     [Fact]
@@ -103,8 +103,8 @@ public class DevCertsCheckFixRecommendationTests
         var versionWarning = results.First(r => r.Name == "dev-certs-version");
         Assert.Equal(EnvironmentCheckStatus.Warning, versionWarning.Status);
         Assert.NotNull(versionWarning.Fix);
-        Assert.Contains("aspire certificates clean", versionWarning.Fix);
-        Assert.Contains("aspire certificates trust", versionWarning.Fix);
+        Assert.Contains("aspire certs clean", versionWarning.Fix);
+        Assert.Contains("aspire certs trust", versionWarning.Fix);
     }
 
     [Fact]
@@ -120,8 +120,8 @@ public class DevCertsCheckFixRecommendationTests
         var result = Assert.Single(results);
         Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
         Assert.NotNull(result.Fix);
-        // Partial trust fix involves SSL_CERT_DIR, not aspire certificates commands
-        Assert.DoesNotContain("aspire certificates", result.Fix);
+        // Partial trust fix involves SSL_CERT_DIR, not aspire certs commands
+        Assert.DoesNotContain("aspire certs", result.Fix);
     }
 
     [Fact]

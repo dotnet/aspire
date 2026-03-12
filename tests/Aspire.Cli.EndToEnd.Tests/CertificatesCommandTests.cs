@@ -48,9 +48,9 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         // Configure SSL_CERT_DIR so trust detection works properly on Linux
         sequenceBuilder.ConfigureSslCertDir(counter);
 
-        // Run aspire certificates trust — should trust the existing cert
+        // Run aspire certs trust — should trust the existing cert
         sequenceBuilder
-            .Type("aspire certificates trust")
+            .Type("aspire certs trust")
             .Enter()
             .WaitUntil(s => trustSuccessPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
@@ -104,9 +104,9 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         sequenceBuilder.ConfigureSslCertDir(counter);
 
-        // Run aspire certificates clean
+        // Run aspire certs clean
         sequenceBuilder
-            .Type("aspire certificates clean")
+            .Type("aspire certs clean")
             .Enter()
             .WaitUntil(s => cleanedPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);
@@ -155,9 +155,9 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         // Configure SSL_CERT_DIR so trust detection works properly
         sequenceBuilder.ConfigureSslCertDir(counter);
 
-        // Run aspire certificates trust with NO pre-existing cert — should create and trust
+        // Run aspire certs trust with NO pre-existing cert — should create and trust
         sequenceBuilder
-            .Type("aspire certificates trust")
+            .Type("aspire certs trust")
             .Enter()
             .WaitUntil(s => trustSuccessPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .WaitForSuccessPrompt(counter);

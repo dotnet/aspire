@@ -17,7 +17,7 @@ public class CertificatesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var result = command.Parse("certificates --help");
+        var result = command.Parse("certs --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -32,7 +32,7 @@ public class CertificatesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var result = command.Parse("certificates clean --help");
+        var result = command.Parse("certs clean --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -47,7 +47,7 @@ public class CertificatesCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        var result = command.Parse("certificates trust --help");
+        var result = command.Parse("certs trust --help");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

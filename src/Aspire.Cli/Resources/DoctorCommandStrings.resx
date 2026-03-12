@@ -93,11 +93,11 @@
   </data>
   <data name="DevCertsTrustFixFormat" xml:space="preserve">
     <value>Run '{0}' to trust the HTTPS development certificate.</value>
-    <comment>{0} is the aspire certificates trust command (not localizable)</comment>
+    <comment>{0} is the aspire certs trust command (not localizable)</comment>
   </data>
   <data name="DevCertsCleanAndTrustFixFormat" xml:space="preserve">
     <value>Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</value>
-    <comment>{0} is the aspire certificates clean command, {1} is the aspire certificates trust command (not localizable)</comment>
+    <comment>{0} is the aspire certs clean command, {1} is the aspire certs trust command (not localizable)</comment>
   </data>
   <data name="DevCertsMultipleNoneTrustedMessageFormat" xml:space="preserve">
     <value>Multiple HTTPS development certificates found ({0} certificates), but none are trusted</value>

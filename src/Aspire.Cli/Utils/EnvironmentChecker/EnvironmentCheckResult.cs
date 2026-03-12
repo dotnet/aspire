@@ -150,7 +150,7 @@ internal sealed class DoctorCheckSummary
 internal sealed class DoctorFixActionResult
 {
     /// <summary>
-    /// Gets the name of the check that owns this fix action (e.g., "certificates").
+    /// Gets the name of the check that owns this fix action (e.g., "certs").
     /// </summary>
     [JsonPropertyName("check")]
     public required string Check { get; init; }
