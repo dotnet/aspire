@@ -276,14 +276,9 @@ public static class YarpClusterExtensions
 
     private static SessionAffinityConfig ToSessionAffinityConfig(YarpSessionAffinityConfig config)
     {
-        if (string.IsNullOrWhiteSpace(config.AffinityKeyName))
-        {
-            throw new ArgumentException("Session affinity requires a non-null, non-empty AffinityKeyName.", nameof(config.AffinityKeyName));
-        }
-
         return new SessionAffinityConfig
         {
-            AffinityKeyName = config.AffinityKeyName,
+            AffinityKeyName = config.AffinityKeyName ?? string.Empty,
             Cookie = config.Cookie is null ? null : ToSessionAffinityCookieConfig(config.Cookie),
             Enabled = config.Enabled,
             FailurePolicy = config.FailurePolicy,
