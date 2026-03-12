@@ -227,11 +227,25 @@ public static class YarpClusterExtensions
     // Version values, and flags enums that do not round-trip cleanly through ATS as-is.
     private static ForwarderRequestConfig ToForwarderRequestConfig(YarpForwarderRequestConfig config)
     {
+        Version? parsedVersion = null;
+
+        if (!string.IsNullOrWhiteSpace(config.Version))
+        {
+            if (!Version.TryParse(config.Version, out var version))
+            {
+                throw new ArgumentException(
+                    $"The value '{config.Version}' is not a valid HTTP version. Expected format is 'major.minor', for example '1.1' or '2.0'.",
+                    nameof(config));
+            }
+
+            parsedVersion = version;
+        }
+
         return new ForwarderRequestConfig
         {
             ActivityTimeout = config.ActivityTimeout,
             AllowResponseBuffering = config.AllowResponseBuffering,
-            Version = string.IsNullOrWhiteSpace(config.Version) ? null : Version.Parse(config.Version),
+            Version = parsedVersion,
             VersionPolicy = config.VersionPolicy,
         };
     }
