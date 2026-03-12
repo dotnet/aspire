@@ -148,7 +148,7 @@ All commands live in the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) under 
 | Command | Description |
 |---------|-------------|
 | **New Aspire project** | Create a new apphost or starter app from a template |
-| **Initialize Aspire** | Add Aspire to an existing project |
+| **Initialize Aspire in an existing codebase** | Add Aspire to an existing project |
 | **Add an integration** | Add a hosting integration (`Aspire.Hosting.*`) |
 | **Update integrations** | Update hosting integrations and the Aspire SDK |
 | **Publish deployment artifacts** | Generate deployment manifests |
