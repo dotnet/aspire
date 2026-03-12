@@ -23,6 +23,5 @@ internal interface ICertificateToolRunner
     /// <summary>
     /// Removes all HTTPS development certificates.
     /// </summary>
-    /// <returns><c>true</c> if the operation completed successfully; <c>false</c> otherwise.</returns>
-    bool CleanHttpCertificate();
+    CertificateCleanResult CleanHttpCertificate();
 }

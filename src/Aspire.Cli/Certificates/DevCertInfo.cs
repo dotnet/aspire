@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Certificates.Generation;
 
 namespace Aspire.Cli.Certificates;
@@ -27,6 +28,23 @@ internal sealed class DevCertInfo
     public bool IsExportable { get; set; }
 
     public CertificateManager.TrustLevel TrustLevel { get; set; }
+}
+
+/// <summary>
+/// The result of a certificate clean operation.
+/// </summary>
+internal sealed class CertificateCleanResult
+{
+    /// <summary>
+    /// Gets whether the clean operation completed successfully.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
+    public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets the error message when the operation fails.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
 }
 
 /// <summary>

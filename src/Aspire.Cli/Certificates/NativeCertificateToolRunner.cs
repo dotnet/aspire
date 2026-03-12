@@ -68,16 +68,16 @@ internal sealed class NativeCertificateToolRunner(CertificateManager certificate
             trust: true);
     }
 
-    public bool CleanHttpCertificate()
+    public CertificateCleanResult CleanHttpCertificate()
     {
         try
         {
             certificateManager.CleanupHttpsCertificates();
-            return true;
+            return new CertificateCleanResult { Success = true };
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            return new CertificateCleanResult { Success = false, ErrorMessage = ex.Message };
         }
     }
 

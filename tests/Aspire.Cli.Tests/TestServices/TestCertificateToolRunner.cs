@@ -14,7 +14,7 @@ internal sealed class TestCertificateToolRunner : ICertificateToolRunner
 {
     public Func<CertificateTrustResult>? CheckHttpCertificateCallback { get; set; }
     public Func<EnsureCertificateResult>? TrustHttpCertificateCallback { get; set; }
-    public Func<bool>? CleanHttpCertificateCallback { get; set; }
+    public Func<CertificateCleanResult>? CleanHttpCertificateCallback { get; set; }
 
     public CertificateTrustResult CheckHttpCertificate()
     {
@@ -39,10 +39,10 @@ internal sealed class TestCertificateToolRunner : ICertificateToolRunner
             : EnsureCertificateResult.ExistingHttpsCertificateTrusted;
     }
 
-    public bool CleanHttpCertificate()
+    public CertificateCleanResult CleanHttpCertificate()
     {
         return CleanHttpCertificateCallback is not null
             ? CleanHttpCertificateCallback()
-            : true;
+            : new CertificateCleanResult { Success = true };
     }
 }

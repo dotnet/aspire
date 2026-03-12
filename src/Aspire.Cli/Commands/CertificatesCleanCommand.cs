@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Globalization;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -30,15 +31,18 @@ internal sealed class CertificatesCleanCommand : BaseCommand
     {
         InteractionService.DisplayMessage(KnownEmojis.Information, CertificatesCommandStrings.CleanProgress);
 
-        var success = _certificateToolRunner.CleanHttpCertificate();
+        var result = _certificateToolRunner.CleanHttpCertificate();
 
-        if (success)
+        if (result.Success)
         {
             InteractionService.DisplaySuccess(CertificatesCommandStrings.CleanSuccess);
             return Task.FromResult(ExitCodeConstants.Success);
         }
 
         InteractionService.DisplayError(CertificatesCommandStrings.CleanFailure);
+        var details = string.Format(CultureInfo.CurrentCulture, CertificatesCommandStrings.CleanFailureDetailsFormat, result.ErrorMessage);
+        InteractionService.DisplayError(details);
+
         return Task.FromResult(ExitCodeConstants.FailedToTrustCertificates);
     }
 }

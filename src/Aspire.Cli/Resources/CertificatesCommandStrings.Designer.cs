@@ -66,6 +66,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Certificate clean operation failed: {0}.
+        /// </summary>
+        internal static string CleanFailureDetailsFormat {
+            get {
+                return ResourceManager.GetString("CleanFailureDetailsFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove all HTTPS development certificates..
         /// </summary>
         internal static string CleanDescription {

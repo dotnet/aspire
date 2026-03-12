@@ -12,6 +12,11 @@
         <target state="new">Failed to clean HTTPS development certificates.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CleanFailureDetailsFormat">
+        <source>Certificate clean operation failed: {0}</source>
+        <target state="new">Certificate clean operation failed: {0}</target>
+        <note>{0} is the error message from the failed operation</note>
+      </trans-unit>
       <trans-unit id="CleanProgress">
         <source>Cleaning development certificates (may require elevated permissions)...</source>
         <target state="new">Cleaning development certificates (may require elevated permissions)...</target>

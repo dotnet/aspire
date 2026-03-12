@@ -249,7 +249,7 @@ public class CertificateServiceTests(ITestOutputHelper outputHelper)
                 : EnsureCertificateResult.ExistingHttpsCertificateTrusted;
         }
 
-        public bool CleanHttpCertificate()
-            => true;
+        public CertificateCleanResult CleanHttpCertificate()
+            => new CertificateCleanResult { Success = true };
     }
 }
