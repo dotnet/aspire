@@ -13,11 +13,15 @@ param project1_containerimage string
 
 param project1_containerport string
 
+param project1websiteHostName string = '${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+
 param env_outputs_azure_app_service_dashboard_uri string
 
 param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
+
+param project1websiteSlotHostName string = '${take('${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 40)}-${toLower('stage')}', 59)}.azurewebsites.net'
 
 @onlyIfNotExists()
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2025-03-01' = {
