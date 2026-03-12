@@ -171,7 +171,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
 
         Assert.Single(result.RetryableJobs);
-        Assert.Equal("Ignored failed step 'Build test project' matched the feed network failure override allowlist.", result.RetryableJobs[0].Reason);
+        Assert.Equal("Failed step 'Build test project' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
     }
 
     [Theory]
@@ -190,7 +190,38 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "error : Unable to load the service index for source https://dnceng.pkgs.visualstudio.com/public/_packaging/dotnet9-transport/nuget/v3/index.json.");
 
         Assert.Single(result.RetryableJobs);
-        Assert.Equal($"Ignored failed step '{failedStep}' matched the feed network failure override allowlist.", result.RetryableJobs[0].Reason);
+        Assert.Equal($"Failed step '{failedStep}' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task AllowsSameNetworkOverrideForBroaderBootstrapStepsOutsideTheOldAllowlist()
+    {
+        WorkflowJob job = CreateJob(failedSteps: ["Run ./.github/actions/enumerate-tests"]);
+
+        AnalyzeFailedJobsResult result = await AnalyzeSingleJobAsync(
+            job,
+            "Process completed with exit code 1.",
+            "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
+
+        Assert.Single(result.RetryableJobs);
+        Assert.Equal("Failed step 'Run ./.github/actions/enumerate-tests' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task DoesNotApplyBroadNetworkOverrideWhenTestExecutionFailed()
+    {
+        WorkflowJob job = CreateJob(failedSteps: ["Run tests (Windows)"]);
+
+        AnalyzeFailedJobsResult result = await AnalyzeSingleJobAsync(
+            job,
+            "Process completed with exit code 1.",
+            "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
+
+        Assert.Empty(result.RetryableJobs);
+        Assert.Single(result.SkippedJobs);
+        Assert.Equal("Annotations did not match the transient allowlist.", result.SkippedJobs[0].Reason);
     }
 
     [Fact]
@@ -356,6 +387,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             ],
             [".github/workflows/tests.yml"] =
             [
+                "- uses: ./.github/actions/enumerate-tests",
                 "name: Final Test Results",
             ],
         };

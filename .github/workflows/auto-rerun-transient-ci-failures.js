@@ -28,6 +28,11 @@ const ignoredFailureStepPatterns = [
     /^Install dependencies$/i,
 ];
 
+const testExecutionFailureStepPatterns = [
+    /^Run tests\b/i,
+    /^Run nuget dependent tests\b/i,
+];
+
 const transientAnnotationPatterns = [
     /The job was not acquired by Runner of type hosted even after multiple attempts/i,
     /The hosted runner lost communication with the server/i,
@@ -72,19 +77,19 @@ const windowsProcessInitializationFailurePatterns = [
     /\b0xC0000142\b/i,
 ];
 
-const feedNetworkFailureStepPatterns = [
-    /^Install sdk for nuget based testing$/i,
-    /^Build test project$/i,
-    /^Build and archive test project$/i,
-    /^Build with packages$/i,
-    /^Build RID-specific packages\b/i,
-    /^Build .*validation image$/i,
-    /^Run .*SDK validation$/i,
-    /^Rebuild for Azure Functions project$/i,
-];
-
-const ignoredBuildFailureLogOverridePatterns = [
+const infrastructureNetworkFailureLogOverridePatterns = [
     /Unable to load the service index for source https:\/\/(?:pkgs\.dev\.azure\.com\/dnceng|dnceng\.pkgs\.visualstudio\.com)\/public\/_packaging\//i,
+    /(timed out|failed to connect|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established).{0,160}https:\/\/(?:pkgs\.dev\.azure\.com\/dnceng|dnceng\.pkgs\.visualstudio\.com)\/public\/_packaging\//i,
+    /https:\/\/(?:pkgs\.dev\.azure\.com\/dnceng|dnceng\.pkgs\.visualstudio\.com)\/public\/_packaging\/.{0,160}(timed out|failed to connect|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established)/i,
+    /(timed out|failed to connect|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established).{0,160}builds\.dotnet\.microsoft\.com/i,
+    /builds\.dotnet\.microsoft\.com.{0,160}(timed out|failed to connect|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established)/i,
+    /(timed out|failed to connect|failed to respond|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established).{0,160}api\.github\.com/i,
+    /api\.github\.com.{0,160}(timed out|failed to connect|failed to respond|could not resolve|ENOTFOUND|ECONNRESET|EPROTO|Bad Gateway|SSL connection could not be established)/i,
+    /fatal: unable to access 'https:\/\/github\.com\/.*': The requested URL returned error:\s*(502|503|504)/i,
+    /Failed to connect to github\.com port/i,
+    /expected 'packfile'/i,
+    /\bRPC failed\b/i,
+    /\bRecv failure\b/i,
 ];
 
 function matchesAny(value, patterns) {
@@ -154,12 +159,32 @@ function getFailureStepSignals(failedSteps) {
     };
 }
 
+function canUseInfrastructureNetworkLogOverride(failedSteps) {
+    return failedSteps.length > 0 && !failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
+}
+
+function getInfrastructureNetworkLogOverrideReason(failedStepText) {
+    return `Failed step '${failedStepText}' will be retried because the job log shows a likely transient infrastructure network failure.`;
+}
+
 function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
     const failedSteps = getFailedSteps(job);
     const failedStepText = failedSteps.join(' | ');
     const { hasRetryableStep, hasIgnoredFailureStep, shouldInspectAnnotations } = getFailureStepSignals(failedSteps);
+    const hasTestExecutionFailureStep = failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
+    const matchesInfrastructureNetworkLogOverride =
+        !hasTestExecutionFailureStep
+        && matchesAny(jobLogText, infrastructureNetworkFailureLogOverridePatterns);
 
     if (!shouldInspectAnnotations) {
+        if (matchesInfrastructureNetworkLogOverride) {
+            return {
+                retryable: true,
+                failedSteps,
+                reason: getInfrastructureNetworkLogOverrideReason(failedStepText),
+            };
+        }
+
         return {
             retryable: false,
             failedSteps,
@@ -206,12 +231,11 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
         };
     }
 
-    const hasIgnoredBuildFailureStep = failedSteps.some(step => matchesAny(step, feedNetworkFailureStepPatterns));
-    if (hasIgnoredBuildFailureStep && matchesAny(jobLogText, ignoredBuildFailureLogOverridePatterns)) {
+    if (matchesInfrastructureNetworkLogOverride) {
         return {
             retryable: true,
             failedSteps,
-            reason: `Ignored failed step '${failedStepText}' matched the feed network failure override allowlist.`,
+            reason: getInfrastructureNetworkLogOverrideReason(failedStepText),
         };
     }
 
@@ -243,7 +267,7 @@ async function analyzeFailedJobs({ jobs, getAnnotationsForJob, getJobLogTextForJ
         const shouldInspectLogs =
             !classification.retryable &&
             getJobLogTextForJob &&
-            failedSteps.some(step => matchesAny(step, feedNetworkFailureStepPatterns));
+            canUseInfrastructureNetworkLogOverride(failedSteps);
 
         if (shouldInspectLogs) {
             classification = classifyFailedJob(
