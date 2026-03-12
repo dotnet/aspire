@@ -470,9 +470,15 @@
           "scope": "window"
         },
         "aspire.enableAspireDashboardAutoLaunch": {
-          "type": "boolean",
-          "default": true,
+          "type": "string",
+          "enum": ["launch", "notification", "off"],
+          "default": "launch",
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "enumDescriptions": [
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.launch%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.notification%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.off%"
+          ],
           "scope": "window"
         },
         "aspire.dashboardBrowser": {

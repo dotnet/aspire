@@ -38,6 +38,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 

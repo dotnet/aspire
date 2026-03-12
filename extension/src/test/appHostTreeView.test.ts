@@ -4,7 +4,7 @@ import { getResourceContextValue, getResourceIcon } from '../views/AspireAppHost
 import type { ResourceJson } from '../views/AppHostDataRepository';
 
 function makeResource(overrides: Partial<ResourceJson> = {}): ResourceJson {
-    return {
+    const base: ResourceJson = {
         name: 'my-service',
         displayName: null,
         resourceType: 'Project',
@@ -14,8 +14,9 @@ function makeResource(overrides: Partial<ResourceJson> = {}): ResourceJson {
         dashboardUrl: null,
         urls: null,
         commands: null,
-        ...overrides,
+        properties: null,
     };
+    return { ...base, ...overrides } as ResourceJson;
 }
 
 suite('shortenPath', () => {
@@ -97,6 +98,7 @@ suite('getResourceContextValue', () => {
         }));
         assert.strictEqual(result, 'resource:canRestart');
     });
+
 });
 
 suite('getResourceIcon', () => {
