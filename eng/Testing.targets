@@ -2,7 +2,6 @@
 
   <!--
       Environment variables:
-        - IsGitHubActionsRunner:       indicates whether tests are currently run on GitHub Actions; computed, overridable. Locally this can be set by "/p:GITHUB_ACTIONS=true".
         - IsAzdoCIRunner:              indicates whether tests are currently run on Azure DevOps; computed, overridable. Locally this can be set by "/p:SYSTEM_TEAMPROJECT=foo".
         - IsAzdoHelixRunner:           indicates whether tests are currently run on Helix; computed, overridable. Locally this can be set by "/p:PrepareForHelix=true".
 
@@ -29,9 +28,6 @@
     -->
 
   <PropertyGroup>
-    <!-- See https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables -->
-    <IsGitHubActionsRunner Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</IsGitHubActionsRunner>
-
     <!-- See https://learn.microsoft.com/azure/devops/pipelines/build/variables#system-variables -->
     <IsAzdoCIRunner Condition=" '$(SYSTEM_TEAMPROJECT)' != '' ">true</IsAzdoCIRunner>
 
