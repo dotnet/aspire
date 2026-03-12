@@ -293,6 +293,21 @@ extends:
                 name: computeVersion
                 displayName: 🟣Compute Aspire version from nupkg
 
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
+                  $artifactVersion = dotnet msbuild "$(Build.SourcesDirectory)/src/Aspire.Dashboard/Aspire.Dashboard.csproj" -getProperty:PackageVersion -property:SuppressFinalPackageVersion=true
+                  $artifactVersion = $artifactVersion.Trim()
+
+                  if ($artifactVersion -notmatch '^\d+\.\d+\.\d+') {
+                    Write-Error "Computed artifact version '$artifactVersion' does not look like a valid semver. Check PackageVersion evaluation."
+                    exit 1
+                  }
+
+                  Write-Host "Detected installer artifact version: $artifactVersion"
+                  Write-Host "##vso[task.setvariable variable=aspireArtifactVersion;isOutput=true]$artifactVersion"
+                name: computeArtifactVersion
+                displayName: 🟣Compute installer artifact version
+
               # Determine stable vs prerelease for installer pipelines.
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
@@ -329,6 +344,7 @@ extends:
         - build
       variables:
         aspireVersion: $[ stageDependencies.build.Windows.outputs['computeVersion.aspireVersion'] ]
+        aspireArtifactVersion: $[ stageDependencies.build.Windows.outputs['computeArtifactVersion.aspireArtifactVersion'] ]
         installerChannel: $[ stageDependencies.build.Windows.outputs['computeChannel.installerChannel'] ]
       condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
       jobs:
@@ -355,6 +371,7 @@ extends:
             - template: /eng/pipelines/templates/prepare-winget-manifest.yml@self
               parameters:
                 version: $(aspireVersion)
+                artifactVersion: $(aspireArtifactVersion)
                 channel: $(installerChannel)
 
           - job: Homebrew
@@ -370,4 +387,5 @@ extends:
             - template: /eng/pipelines/templates/prepare-homebrew-cask.yml@self
               parameters:
                 version: $(aspireVersion)
+                artifactVersion: $(aspireArtifactVersion)
                 channel: $(installerChannel)

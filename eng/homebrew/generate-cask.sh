@@ -10,7 +10,8 @@ usage() {
 Usage: $(basename "$0") --version VERSION --channel CHANNEL [OPTIONS]
 
 Required:
-  --version VERSION         Package version (e.g. 9.2.0 or 13.2.0-preview.1.26123.7)
+  --version VERSION         Installer version in the cask and archive filename (e.g. 9.2.0)
+  --artifact-version VER    Version segment used in the ci.dot.net artifact path (defaults to --version)
   --channel CHANNEL         Release channel: stable or prerelease
 
 Optional:
@@ -23,6 +24,7 @@ EOF
 }
 
 VERSION=""
+ARTIFACT_VERSION=""
 CHANNEL=""
 OUTPUT=""
 ARCHIVE_ROOT=""
@@ -31,6 +33,7 @@ VALIDATE_URLS=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version)        VERSION="$2";  shift 2 ;;
+    --artifact-version) ARTIFACT_VERSION="$2"; shift 2 ;;
     --channel)        CHANNEL="$2";  shift 2 ;;
     --output)         OUTPUT="$2";   shift 2 ;;
     --archive-root)   ARCHIVE_ROOT="$2"; shift 2 ;;
@@ -43,6 +46,10 @@ done
 if [[ -z "$VERSION" || -z "$CHANNEL" ]]; then
   echo "Error: --version and --channel are required."
   usage
+fi
+
+if [[ -z "$ARTIFACT_VERSION" ]]; then
+  ARTIFACT_VERSION="$VERSION"
 fi
 
 if [[ "$CHANNEL" != "stable" && "$CHANNEL" != "prerelease" ]]; then
@@ -64,7 +71,7 @@ if [[ ! -f "$TEMPLATE" ]]; then
   exit 1
 fi
 
-BASE_URL="https://ci.dot.net/public/aspire/$VERSION"
+BASE_URL="https://ci.dot.net/public/aspire/$ARTIFACT_VERSION"
 
 # Compute SHA256 for a URL by downloading to a temp file
 compute_sha256() {
@@ -166,6 +173,7 @@ echo "Generating cask from template..."
 # Read template and perform substitutions
 content="$(cat "$TEMPLATE")"
 content="${content//\$\{VERSION\}/$VERSION}"
+content="${content//\$\{ARTIFACT_VERSION\}/$ARTIFACT_VERSION}"
 content="${content//\$\{SHA256_OSX_ARM64\}/$SHA256_OSX_ARM64}"
 content="${content//\$\{SHA256_OSX_X64\}/$SHA256_OSX_X64}"
 

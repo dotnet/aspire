@@ -4,6 +4,9 @@ parameters:
     default: ''
   - name: channel
     type: string
+  - name: artifactVersion
+    type: string
+    default: ''
   - name: archiveRoot
     type: string
     default: ''
@@ -19,6 +22,7 @@ steps:
       $ErrorActionPreference = 'Stop'
       $version = '${{ parameters.version }}'
       $channel = '${{ parameters.channel }}'
+      $artifactVersion = '${{ parameters.artifactVersion }}'
 
       if ([string]::IsNullOrWhiteSpace($version)) {
         Write-Error "Version parameter is required"
@@ -43,9 +47,11 @@ steps:
 
       Write-Host "Version: $version"
       Write-Host "Channel: $channel"
+      Write-Host "Artifact version: $(if ([string]::IsNullOrWhiteSpace($artifactVersion)) { $version } else { $artifactVersion })"
       Write-Host "Template dir: $templateDir"
       Write-Host "Artifact name: $artifactName"
       Write-Host "##vso[task.setvariable variable=CliVersion]$version"
+      Write-Host "##vso[task.setvariable variable=CliArtifactVersion]$(if ([string]::IsNullOrWhiteSpace($artifactVersion)) { $version } else { $artifactVersion })"
       Write-Host "##vso[task.setvariable variable=WinGetTemplateDir]$templateDir"
       Write-Host "##vso[task.setvariable variable=WinGetArtifactName]$artifactName"
     displayName: 🟣Set version ${{ parameters.version }}
@@ -67,6 +73,7 @@ steps:
   - pwsh: |
       $ErrorActionPreference = 'Stop'
       $version = '$(CliVersion)'
+      $artifactVersion = '$(CliArtifactVersion)'
       $outputPath = '$(Build.StagingDirectory)/winget-manifests'
       $templateDir = '$(Build.SourcesDirectory)/eng/winget/$(WinGetTemplateDir)'
 
@@ -75,6 +82,7 @@ steps:
 
       $args = @{
         Version = $version
+        ArtifactVersion = $artifactVersion
         TemplateDir = $templateDir
         OutputPath = $outputPath
       }

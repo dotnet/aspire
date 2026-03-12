@@ -4,6 +4,9 @@ parameters:
     default: ''
   - name: channel
     type: string
+  - name: artifactVersion
+    type: string
+    default: ''
   - name: archiveRoot
     type: string
     default: ''
@@ -19,6 +22,7 @@ steps:
       set -euo pipefail
       version='${{ parameters.version }}'
       channel='${{ parameters.channel }}'
+      artifactVersion='${{ parameters.artifactVersion }}'
 
       if [ -z "$version" ]; then
         echo "##[error]Version parameter is required"
@@ -37,15 +41,18 @@ steps:
 
       echo "Version: $version"
       echo "Channel: $channel"
+      echo "Artifact version: ${artifactVersion:-$version}"
 
       echo "##vso[task.setvariable variable=CliVersion]$version"
       echo "##vso[task.setvariable variable=CliChannel]$channel"
+      echo "##vso[task.setvariable variable=CliArtifactVersion]${artifactVersion:-$version}"
     displayName: 🟣Set version ${{ parameters.version }}
 
   - bash: |
       set -euo pipefail
       version="$(CliVersion)"
       channel="$(CliChannel)"
+      artifactVersion="$(CliArtifactVersion)"
       outputDir="$(Build.StagingDirectory)/homebrew-cask"
       mkdir -p "$outputDir"
 
@@ -59,6 +66,7 @@ steps:
 
       args=(
         --version "$version"
+        --artifact-version "$artifactVersion"
         --channel "$channel"
         --output "$outputFile"
       )

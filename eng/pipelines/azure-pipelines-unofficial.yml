@@ -201,6 +201,21 @@ extends:
 
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
+                  $artifactVersion = dotnet msbuild "$(Build.SourcesDirectory)/src/Aspire.Dashboard/Aspire.Dashboard.csproj" -getProperty:PackageVersion -property:SuppressFinalPackageVersion=true
+                  $artifactVersion = $artifactVersion.Trim()
+
+                  if ($artifactVersion -notmatch '^\d+\.\d+\.\d+') {
+                    Write-Error "Computed artifact version '$artifactVersion' does not look like a valid semver. Check PackageVersion evaluation."
+                    exit 1
+                  }
+
+                  Write-Host "Detected installer artifact version: $artifactVersion"
+                  Write-Host "##vso[task.setvariable variable=aspireArtifactVersion;isOutput=true]$artifactVersion"
+                name: computeArtifactVersion
+                displayName: 🟣Compute installer artifact version
+
+              - pwsh: |
+                  $ErrorActionPreference = 'Stop'
                   $versionKind = dotnet msbuild "$(Build.SourcesDirectory)/eng/Versions.props" -getProperty:DotNetFinalVersionKind
                   $versionKind = $versionKind.Trim()
                   Write-Host "DotNetFinalVersionKind: '$versionKind'"
@@ -222,6 +237,7 @@ extends:
       - build
       variables:
         aspireVersion: $[ stageDependencies.build.Windows.outputs['computeVersion.aspireVersion'] ]
+        aspireArtifactVersion: $[ stageDependencies.build.Windows.outputs['computeArtifactVersion.aspireArtifactVersion'] ]
         installerChannel: $[ stageDependencies.build.Windows.outputs['computeChannel.installerChannel'] ]
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
@@ -253,6 +269,7 @@ extends:
             - template: /eng/pipelines/templates/prepare-winget-manifest.yml@self
               parameters:
                 version: $(aspireVersion)
+                artifactVersion: $(aspireArtifactVersion)
                 channel: $(installerChannel)
                 archiveRoot: $(Pipeline.Workspace)/native-archives
                 validateUrls: false
@@ -277,6 +294,7 @@ extends:
             - template: /eng/pipelines/templates/prepare-homebrew-cask.yml@self
               parameters:
                 version: $(aspireVersion)
+                artifactVersion: $(aspireArtifactVersion)
                 channel: $(installerChannel)
                 archiveRoot: $(Pipeline.Workspace)/native-archives
                 validateUrls: false

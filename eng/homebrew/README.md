@@ -33,7 +33,7 @@ macOS only (arm64, x64). The cask uses `arch arm: "arm64", intel: "x64"` for URL
 ## Artifact URLs
 
 ```text
-https://ci.dot.net/public/aspire/{VERSION}/aspire-cli-osx-{arch}-{VERSION}.tar.gz
+https://ci.dot.net/public/aspire/{ARTIFACT_VERSION}/aspire-cli-osx-{arch}-{VERSION}.tar.gz
 ```
 
 Where arch is `arm64` or `x64`.

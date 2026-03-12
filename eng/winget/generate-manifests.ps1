@@ -5,10 +5,13 @@
 .DESCRIPTION
     This script generates the required WinGet manifest files (version, locale, and installer)
     from templates by substituting version numbers, URLs, and computing SHA256 hashes.
-    Installer URLs are derived from the version and RIDs using the ci.dot.net URL pattern.
+    Installer URLs are derived from the installer version, artifact version, and RIDs using the ci.dot.net URL pattern.
 
 .PARAMETER Version
-    The version number for the package (e.g., "13.3.0-preview.1.26111.5").
+    The package version and installer filename version (e.g., "13.2.0").
+
+.PARAMETER ArtifactVersion
+    The version segment used in the ci.dot.net artifact path. Defaults to Version.
 
 .PARAMETER TemplateDir
     The directory containing the manifest templates to use.
@@ -42,6 +45,7 @@
 
 .EXAMPLE
     ./generate-manifests.ps1 -Version "13.2.0" `
+        -ArtifactVersion "13.2.0-preview.1.26111.5" `
         -TemplateDir "./eng/winget/microsoft.aspire" `
         -Rids "win-x64,win-arm64" -ValidateUrls
 #>
@@ -50,6 +54,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ArtifactVersion,
 
     [Parameter(Mandatory = $true)]
     [string]$TemplateDir,
@@ -71,6 +78,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($ArtifactVersion)) {
+    $ArtifactVersion = $Version
+}
 
 # Determine script paths
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -145,14 +156,15 @@ function Get-ArchitectureFromRid {
 }
 
 # Build installer URL from version and RID
-# Pattern: https://ci.dot.net/public/aspire/{version}/aspire-cli-{rid}-{version}.zip
+# Pattern: https://ci.dot.net/public/aspire/{artifactVersion}/aspire-cli-{rid}-{version}.zip
 function Get-InstallerUrl {
     param(
         [string]$Version,
+        [string]$ArtifactVersion,
         [string]$Rid
     )
 
-    return "https://ci.dot.net/public/aspire/$Version/aspire-cli-$Rid-$Version.zip"
+    return "https://ci.dot.net/public/aspire/$ArtifactVersion/aspire-cli-$Rid-$Version.zip"
 }
 
 # Function to compute SHA256 hash of a file downloaded from URL
@@ -242,7 +254,7 @@ Write-Host ""
 $installerEntries = @()
 foreach ($rid in $ridList) {
     $arch = Get-ArchitectureFromRid -Rid $rid
-    $url = Get-InstallerUrl -Version $Version -Rid $rid
+    $url = Get-InstallerUrl -Version $Version -ArtifactVersion $ArtifactVersion -Rid $rid
     $installerEntries += @{ Rid = $rid; Architecture = $arch; Url = $url }
 }
 

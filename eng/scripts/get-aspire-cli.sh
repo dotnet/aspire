@@ -18,6 +18,7 @@ readonly RESET='\033[0m'
 # Variables (defaults set after parsing arguments)
 INSTALL_PATH=""
 VERSION=""
+ARTIFACT_VERSION=""
 QUALITY=""
 OS=""
 ARCH=""
@@ -47,6 +48,7 @@ DESCRIPTION:
     The default quality is `${DEFAULT_QUALITY}`.
 
     Pass a specific version to get CLI for that version.
+    Use --artifact-version when the ci.dot.net folder version differs from the archive filename version.
 
 USAGE:
     ./get-aspire-cli.sh [OPTIONS]
@@ -54,6 +56,7 @@ USAGE:
     -i, --install-path PATH     Directory to install the CLI (default: $HOME/.aspire/bin)
     -q, --quality QUALITY       Quality to download (default: ${DEFAULT_QUALITY}). Supported values: dev, staging, release
     --version VERSION           Version of the Aspire CLI to download (default: unset)
+    --artifact-version VERSION  ci.dot.net folder version when it differs from --version (default: --version)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
     --install-extension         Install VS Code extension along with the CLI
@@ -103,6 +106,15 @@ parse_args() {
                     exit 1
                 fi
                 VERSION="$2"
+                shift 2
+                ;;
+            --artifact-version)
+                if [[ $# -lt 2 || -z "$2" ]]; then
+                    say_error "Option '$1' requires a non-empty value"
+                    say_info "Use --help for usage information."
+                    exit 1
+                fi
+                ARTIFACT_VERSION="$2"
                 shift 2
                 ;;
             -q|--quality)
@@ -663,6 +675,7 @@ test_vscode_cli() {
 construct_aspire_extension_url() {
     local version="$1"
     local quality="$2"
+    local artifact_version="${3:-$1}"
     local base_url
     local extension="vsix.zip"
 
@@ -688,7 +701,7 @@ construct_aspire_extension_url() {
     else
         # When version is set, use ci.dot.net URL
         base_url="https://ci.dot.net/public/aspire/"
-        printf "${base_url}${version}/aspire-vscode-${version}.${extension}"
+        printf "${base_url}${artifact_version}/aspire-vscode-${version}.${extension}"
     fi
 }
 
@@ -699,6 +712,7 @@ construct_aspire_cli_url() {
     local rid="$3"
     local extension="$4"
     local checksum="${5:-false}"
+    local artifact_version="${6:-$1}"
     local base_url
     local filename
 
@@ -736,7 +750,7 @@ construct_aspire_cli_url() {
             base_url="https://ci.dot.net/public/aspire/"
         fi
 
-        printf "${base_url}/${version}/aspire-cli-${rid}-${version}.${extension}"
+        printf "${base_url}/${artifact_version}/aspire-cli-${rid}-${version}.${extension}"
     fi
 }
 
@@ -745,11 +759,12 @@ download_aspire_extension() {
     local temp_dir="$1"
     local version="$2"
     local quality="$3"
+    local artifact_version="${4:-$2}"
     local url extension_archive
 
     say_info "Downloading Aspire VS Code extension"
 
-    if ! url=$(construct_aspire_extension_url "$version" "$quality"); then
+    if ! url=$(construct_aspire_extension_url "$version" "$quality" "$artifact_version"); then
         return 1
     fi
 
@@ -866,10 +881,10 @@ download_and_install_archive() {
     fi
 
     # Construct the URLs using the new function
-    if ! url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension"); then
+    if ! url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "false" "$ARTIFACT_VERSION"); then
         return 1
     fi
-    if ! checksum_url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "true"); then
+    if ! checksum_url=$(construct_aspire_cli_url "$VERSION" "$QUALITY" "$runtimeIdentifier" "$extension" "true" "$ARTIFACT_VERSION"); then
         return 1
     fi
 
@@ -914,7 +929,7 @@ download_and_install_archive() {
         say_info "Installing VS Code extension"
 
         if test_vscode_cli; then
-            if extension_archive=$(download_aspire_extension "$temp_dir" "$VERSION" "$QUALITY"); then
+            if extension_archive=$(download_aspire_extension "$temp_dir" "$VERSION" "$QUALITY" "$ARTIFACT_VERSION"); then
                 if ! install_aspire_extension "$extension_archive"; then
                     say_warn "Failed to install VS Code extension"
                     say_warn "The CLI was installed successfully, but the extension installation failed"
@@ -943,6 +958,16 @@ if [[ -n "$VERSION" && -n "$QUALITY" ]]; then
     say_error "Cannot specify both --version and --quality. Use --version for a specific version or --quality for a quality level."
     say_info "Use --help for usage information."
     exit 1
+fi
+
+if [[ -n "$ARTIFACT_VERSION" && -z "$VERSION" ]]; then
+    say_error "Cannot specify --artifact-version without --version."
+    say_info "Use --help for usage information."
+    exit 1
+fi
+
+if [[ -z "$ARTIFACT_VERSION" ]]; then
+    ARTIFACT_VERSION="$VERSION"
 fi
 
 # Initialize default values after parsing arguments
