@@ -7690,6 +7690,198 @@ impl ILoggerFactory {
     }
 }
 
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep
+pub struct IReportingStep {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IReportingStep {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IReportingStep {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Creates a reporting task with plain-text status text
+    pub fn create_task(&self, status_text: &str, cancellation_token: Option<&CancellationToken>) -> Result<IReportingTask, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("statusText".to_string(), serde_json::to_value(&status_text).unwrap_or(Value::Null));
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/createTask", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IReportingTask::new(handle, self.client.clone()))
+    }
+
+    /// Creates a reporting task with Markdown-formatted status text
+    pub fn create_markdown_task(&self, markdown_string: &str, cancellation_token: Option<&CancellationToken>) -> Result<IReportingTask, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/createMarkdownTask", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IReportingTask::new(handle, self.client.clone()))
+    }
+
+    /// Logs a plain-text message for the reporting step
+    pub fn log_step(&self, level: &str, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("level".to_string(), serde_json::to_value(&level).unwrap_or(Value::Null));
+        args.insert("message".to_string(), serde_json::to_value(&message).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/logStep", args)?;
+        Ok(())
+    }
+
+    /// Logs a Markdown-formatted message for the reporting step
+    pub fn log_step_markdown(&self, level: &str, markdown_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("level".to_string(), serde_json::to_value(&level).unwrap_or(Value::Null));
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/logStepMarkdown", args)?;
+        Ok(())
+    }
+
+    /// Completes the reporting step with plain-text completion text
+    pub fn complete_step(&self, completion_text: &str, completion_state: Option<&str>, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("completionText".to_string(), serde_json::to_value(&completion_text).unwrap_or(Value::Null));
+        if let Some(ref v) = completion_state {
+            args.insert("completionState".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/completeStep", args)?;
+        Ok(())
+    }
+
+    /// Completes the reporting step with Markdown-formatted completion text
+    pub fn complete_step_markdown(&self, markdown_string: &str, completion_state: Option<&str>, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingStep".to_string(), self.handle.to_json());
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        if let Some(ref v) = completion_state {
+            args.insert("completionState".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/completeStepMarkdown", args)?;
+        Ok(())
+    }
+}
+
+/// Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask
+pub struct IReportingTask {
+    handle: Handle,
+    client: Arc<AspireClient>,
+}
+
+impl HasHandle for IReportingTask {
+    fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+impl IReportingTask {
+    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
+        Self { handle, client }
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn client(&self) -> &Arc<AspireClient> {
+        &self.client
+    }
+
+    /// Updates the reporting task with plain-text status text
+    pub fn update_task(&self, status_text: &str, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingTask".to_string(), self.handle.to_json());
+        args.insert("statusText".to_string(), serde_json::to_value(&status_text).unwrap_or(Value::Null));
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/updateTask", args)?;
+        Ok(())
+    }
+
+    /// Updates the reporting task with Markdown-formatted status text
+    pub fn update_task_markdown(&self, markdown_string: &str, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingTask".to_string(), self.handle.to_json());
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/updateTaskMarkdown", args)?;
+        Ok(())
+    }
+
+    /// Completes the reporting task with plain-text completion text
+    pub fn complete_task(&self, completion_message: Option<&str>, completion_state: Option<&str>, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingTask".to_string(), self.handle.to_json());
+        if let Some(ref v) = completion_message {
+            args.insert("completionMessage".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(ref v) = completion_state {
+            args.insert("completionState".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/completeTask", args)?;
+        Ok(())
+    }
+
+    /// Completes the reporting task with Markdown-formatted completion text
+    pub fn complete_task_markdown(&self, markdown_string: &str, completion_state: Option<&str>, cancellation_token: Option<&CancellationToken>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("reportingTask".to_string(), self.handle.to_json());
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        if let Some(ref v) = completion_state {
+            args.insert("completionState".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+        if let Some(token) = cancellation_token {
+            let token_id = register_cancellation(token, self.client.clone());
+            args.insert("cancellationToken".to_string(), Value::String(token_id));
+        }
+        let result = self.client.invoke_capability("Aspire.Hosting/completeTaskMarkdown", args)?;
+        Ok(())
+    }
+}
+
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource
 pub struct IResource {
     handle: Handle,
@@ -8090,7 +8282,7 @@ impl IUserSecretsManager {
         Ok(serde_json::from_value(result)?)
     }
 
-    /// Invokes the TrySetSecret method
+    /// Attempts to set a user secret value
     pub fn try_set_secret(&self, name: &str, value: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("context".to_string(), self.handle.to_json());
@@ -8110,6 +8302,17 @@ impl IUserSecretsManager {
             args.insert("cancellationToken".to_string(), Value::String(token_id));
         }
         let result = self.client.invoke_capability("Aspire.Hosting/saveStateJson", args)?;
+        Ok(())
+    }
+
+    /// Gets a secret value if it exists, or sets it to the provided value if it does not
+    pub fn get_or_set_secret(&self, resource_builder: &IResource, name: &str, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("userSecretsManager".to_string(), self.handle.to_json());
+        args.insert("resourceBuilder".to_string(), resource_builder.handle().to_json());
+        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
+        args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/getOrSetSecret", args)?;
         Ok(())
     }
 }
@@ -9019,6 +9222,25 @@ impl PipelineStepContext {
         Ok(PipelineStepContext::new(handle, self.client.clone()))
     }
 
+    /// Gets the ReportingStep property
+    pub fn reporting_step(&self) -> Result<IReportingStep, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.reportingStep", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(IReportingStep::new(handle, self.client.clone()))
+    }
+
+    /// Sets the ReportingStep property
+    pub fn set_reporting_step(&self, value: &IReportingStep) -> Result<PipelineStepContext, Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("context".to_string(), self.handle.to_json());
+        args.insert("value".to_string(), value.handle().to_json());
+        let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.setReportingStep", args)?;
+        let handle: Handle = serde_json::from_value(result)?;
+        Ok(PipelineStepContext::new(handle, self.client.clone()))
+    }
+
     /// Gets the Model property
     pub fn model(&self) -> Result<DistributedApplicationModel, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
@@ -9170,6 +9392,16 @@ impl PipelineSummary {
         args.insert("key".to_string(), serde_json::to_value(&key).unwrap_or(Value::Null));
         args.insert("value".to_string(), serde_json::to_value(&value).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting.Pipelines/PipelineSummary.add", args)?;
+        Ok(())
+    }
+
+    /// Adds a Markdown-formatted value to the pipeline summary
+    pub fn add_markdown(&self, key: &str, markdown_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args: HashMap<String, Value> = HashMap::new();
+        args.insert("summary".to_string(), self.handle.to_json());
+        args.insert("key".to_string(), serde_json::to_value(&key).unwrap_or(Value::Null));
+        args.insert("markdownString".to_string(), serde_json::to_value(&markdown_string).unwrap_or(Value::Null));
+        let result = self.client.invoke_capability("Aspire.Hosting/addMarkdown", args)?;
         Ok(())
     }
 }

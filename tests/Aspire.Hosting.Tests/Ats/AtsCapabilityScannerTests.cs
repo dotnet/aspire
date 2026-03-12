@@ -275,6 +275,8 @@ public class AtsCapabilityScannerTests
             "ResourceReadyEvent",
             "ResourceStoppedEvent",
             "IUserSecretsManager",
+            "IReportingStep",
+            "IReportingTask",
             "PipelineContext",
             "PipelineStepFactoryContext",
             "PipelineSummary"
@@ -287,6 +289,7 @@ public class AtsCapabilityScannerTests
 
         Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/BeforeStartEvent.services", StringComparison.Ordinal));
         Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/IUserSecretsManager.trySetSecret", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/PipelineStepContext.reportingStep", StringComparison.Ordinal));
         Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/PipelineSummary.add", StringComparison.Ordinal));
     }
 

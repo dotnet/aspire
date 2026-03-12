@@ -8296,6 +8296,166 @@ func (s *ILoggerFactory) CreateLogger(categoryName string) (*ILogger, error) {
 	return result.(*ILogger), nil
 }
 
+// IReportingStep wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep.
+type IReportingStep struct {
+	HandleWrapperBase
+}
+
+// NewIReportingStep creates a new IReportingStep.
+func NewIReportingStep(handle *Handle, client *AspireClient) *IReportingStep {
+	return &IReportingStep{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// CreateTask creates a reporting task with plain-text status text
+func (s *IReportingStep) CreateTask(statusText string, cancellationToken *CancellationToken) (*IReportingTask, error) {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["statusText"] = SerializeValue(statusText)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/createTask", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IReportingTask), nil
+}
+
+// CreateMarkdownTask creates a reporting task with Markdown-formatted status text
+func (s *IReportingStep) CreateMarkdownTask(markdownString string, cancellationToken *CancellationToken) (*IReportingTask, error) {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/createMarkdownTask", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IReportingTask), nil
+}
+
+// LogStep logs a plain-text message for the reporting step
+func (s *IReportingStep) LogStep(level string, message string) error {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["level"] = SerializeValue(level)
+	reqArgs["message"] = SerializeValue(message)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logStep", reqArgs)
+	return err
+}
+
+// LogStepMarkdown logs a Markdown-formatted message for the reporting step
+func (s *IReportingStep) LogStepMarkdown(level string, markdownString string) error {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["level"] = SerializeValue(level)
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/logStepMarkdown", reqArgs)
+	return err
+}
+
+// CompleteStep completes the reporting step with plain-text completion text
+func (s *IReportingStep) CompleteStep(completionText string, completionState string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["completionText"] = SerializeValue(completionText)
+	reqArgs["completionState"] = SerializeValue(completionState)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeStep", reqArgs)
+	return err
+}
+
+// CompleteStepMarkdown completes the reporting step with Markdown-formatted completion text
+func (s *IReportingStep) CompleteStepMarkdown(markdownString string, completionState string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingStep": SerializeValue(s.Handle()),
+	}
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	reqArgs["completionState"] = SerializeValue(completionState)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeStepMarkdown", reqArgs)
+	return err
+}
+
+// IReportingTask wraps a handle for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask.
+type IReportingTask struct {
+	HandleWrapperBase
+}
+
+// NewIReportingTask creates a new IReportingTask.
+func NewIReportingTask(handle *Handle, client *AspireClient) *IReportingTask {
+	return &IReportingTask{
+		HandleWrapperBase: NewHandleWrapperBase(handle, client),
+	}
+}
+
+// UpdateTask updates the reporting task with plain-text status text
+func (s *IReportingTask) UpdateTask(statusText string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingTask": SerializeValue(s.Handle()),
+	}
+	reqArgs["statusText"] = SerializeValue(statusText)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/updateTask", reqArgs)
+	return err
+}
+
+// UpdateTaskMarkdown updates the reporting task with Markdown-formatted status text
+func (s *IReportingTask) UpdateTaskMarkdown(markdownString string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingTask": SerializeValue(s.Handle()),
+	}
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/updateTaskMarkdown", reqArgs)
+	return err
+}
+
+// CompleteTask completes the reporting task with plain-text completion text
+func (s *IReportingTask) CompleteTask(completionMessage string, completionState string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingTask": SerializeValue(s.Handle()),
+	}
+	reqArgs["completionMessage"] = SerializeValue(completionMessage)
+	reqArgs["completionState"] = SerializeValue(completionState)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeTask", reqArgs)
+	return err
+}
+
+// CompleteTaskMarkdown completes the reporting task with Markdown-formatted completion text
+func (s *IReportingTask) CompleteTaskMarkdown(markdownString string, completionState string, cancellationToken *CancellationToken) error {
+	reqArgs := map[string]any{
+		"reportingTask": SerializeValue(s.Handle()),
+	}
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	reqArgs["completionState"] = SerializeValue(completionState)
+	if cancellationToken != nil {
+		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
+	}
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/completeTaskMarkdown", reqArgs)
+	return err
+}
+
 // IResource wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource.
 type IResource struct {
 	ResourceBuilderBase
@@ -8561,7 +8721,7 @@ func (s *IUserSecretsManager) FilePath() (*string, error) {
 	return result.(*string), nil
 }
 
-// TrySetSecret invokes the TrySetSecret method
+// TrySetSecret attempts to set a user secret value
 func (s *IUserSecretsManager) TrySetSecret(name string, value string) (*bool, error) {
 	reqArgs := map[string]any{
 		"context": SerializeValue(s.Handle()),
@@ -8585,6 +8745,18 @@ func (s *IUserSecretsManager) SaveStateJson(json string, cancellationToken *Canc
 		reqArgs["cancellationToken"] = RegisterCancellation(cancellationToken, s.Client())
 	}
 	_, err := s.Client().InvokeCapability("Aspire.Hosting/saveStateJson", reqArgs)
+	return err
+}
+
+// GetOrSetSecret gets a secret value if it exists, or sets it to the provided value if it does not
+func (s *IUserSecretsManager) GetOrSetSecret(resourceBuilder *IResource, name string, value string) error {
+	reqArgs := map[string]any{
+		"userSecretsManager": SerializeValue(s.Handle()),
+	}
+	reqArgs["resourceBuilder"] = SerializeValue(resourceBuilder)
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/getOrSetSecret", reqArgs)
 	return err
 }
 
@@ -9617,6 +9789,31 @@ func (s *PipelineStepContext) SetPipelineContext(value *PipelineContext) (*Pipel
 	return result.(*PipelineStepContext), nil
 }
 
+// ReportingStep gets the ReportingStep property
+func (s *PipelineStepContext) ReportingStep() (*IReportingStep, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.reportingStep", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IReportingStep), nil
+}
+
+// SetReportingStep sets the ReportingStep property
+func (s *PipelineStepContext) SetReportingStep(value *IReportingStep) (*PipelineStepContext, error) {
+	reqArgs := map[string]any{
+		"context": SerializeValue(s.Handle()),
+	}
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.setReportingStep", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PipelineStepContext), nil
+}
+
 // Model gets the Model property
 func (s *PipelineStepContext) Model() (*DistributedApplicationModel, error) {
 	reqArgs := map[string]any{
@@ -9771,6 +9968,17 @@ func (s *PipelineSummary) Add(key string, value string) error {
 	reqArgs["key"] = SerializeValue(key)
 	reqArgs["value"] = SerializeValue(value)
 	_, err := s.Client().InvokeCapability("Aspire.Hosting.Pipelines/PipelineSummary.add", reqArgs)
+	return err
+}
+
+// AddMarkdown adds a Markdown-formatted value to the pipeline summary
+func (s *PipelineSummary) AddMarkdown(key string, markdownString string) error {
+	reqArgs := map[string]any{
+		"summary": SerializeValue(s.Handle()),
+	}
+	reqArgs["key"] = SerializeValue(key)
+	reqArgs["markdownString"] = SerializeValue(markdownString)
+	_, err := s.Client().InvokeCapability("Aspire.Hosting/addMarkdown", reqArgs)
 	return err
 }
 
@@ -16114,6 +16322,12 @@ func init() {
 	})
 	RegisterHandleWrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory", func(h *Handle, c *AspireClient) any {
 		return NewILoggerFactory(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep", func(h *Handle, c *AspireClient) any {
+		return NewIReportingStep(h, c)
+	})
+	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask", func(h *Handle, c *AspireClient) any {
+		return NewIReportingTask(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", func(h *Handle, c *AspireClient) any {
 		return NewDistributedApplicationEventSubscription(h, c)

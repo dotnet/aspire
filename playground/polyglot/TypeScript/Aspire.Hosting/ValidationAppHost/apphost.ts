@@ -168,6 +168,7 @@ await container.withPipelineStepFactory("custom-build-step", async (stepContext)
     await pipelineLogger.logDebug("Pipeline context logger");
     const pipelineSummary = await pipelineContext.summary.get();
     await pipelineSummary.add("PipelineContext", "Validated");
+    await pipelineSummary.addMarkdown("PipelineMarkdown", "**Validated**");
 
     const executionContext = await stepContext.executionContext.get();
     const _isPublishMode: boolean = await executionContext.isPublishMode.get();
@@ -176,6 +177,17 @@ await container.withPipelineStepFactory("custom-build-step", async (stepContext)
     await stepLogger.logInformation("Pipeline step context logger");
     const stepSummary = await stepContext.summary.get();
     await stepSummary.add("PipelineStepContext", "Validated");
+    const reportingStep = await stepContext.reportingStep.get();
+    await reportingStep.logStep("information", "Reporting step log");
+    await reportingStep.logStepMarkdown("information", "**Reporting step markdown log**");
+    const reportingTask = await reportingStep.createTask("Task created");
+    await reportingTask.updateTask("Task updated");
+    await reportingTask.updateTaskMarkdown("**Task markdown updated**");
+    await reportingTask.completeTask({ completionMessage: "Task complete" });
+    const markdownTask = await reportingStep.createMarkdownTask("**Markdown task created**");
+    await markdownTask.completeTaskMarkdown("**Markdown task complete**", { completionState: "completed-with-warning" });
+    await reportingStep.completeStep("Reporting step complete");
+    await reportingStep.completeStepMarkdown("**Reporting step markdown complete**", { completionState: "completed-with-warning" });
     const stepModel = await stepContext.model.get();
     const _stepResources = await stepModel.getResources();
     const _stepContainer = await stepModel.findResourceByName("mycontainer");
@@ -272,6 +284,8 @@ const beforeStartSubscription = await builder.subscribeBeforeStart(async (before
     const _userSecretsAvailable: boolean = await userSecretsManager.isAvailable.get();
     const _userSecretsFilePath: string = await userSecretsManager.filePath.get();
     const _secretSet: boolean = await userSecretsManager.trySetSecret("Validation:Key", "value");
+    await userSecretsManager.getOrSetSecret(container, "Validation:GeneratedKey", "generated-value");
+    const _generatedSecretValue: string = await builderConfiguration.getConfigValue("Validation:GeneratedKey");
     await userSecretsManager.saveStateJson("{\"Validation\":\"Value\"}");
 
     const _modelFromServices = await beforeStartServices.getDistributedApplicationModel();

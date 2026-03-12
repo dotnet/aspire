@@ -4,6 +4,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Ats;
@@ -43,5 +44,24 @@ internal static class UserSecretsExports
             ?? throw new InvalidOperationException("The JSON payload must be a JSON object.");
 
         return userSecretsManager.SaveStateAsync(state, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a secret value if it exists in configuration, or sets it to the provided value if it does not.
+    /// </summary>
+    /// <param name="userSecretsManager">The user secrets manager handle.</param>
+    /// <param name="resourceBuilder">A resource builder from the target application.</param>
+    /// <param name="name">The secret name.</param>
+    /// <param name="value">The value to persist when the secret is missing.</param>
+    [AspireExport("getOrSetSecret", Description = "Gets a secret value if it exists, or sets it to the provided value if it does not")]
+    public static void GetOrSetSecret<T>(this IUserSecretsManager userSecretsManager, IResourceBuilder<T> resourceBuilder, string name, string value)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(userSecretsManager);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        userSecretsManager.GetOrSetSecret(resourceBuilder.ApplicationBuilder.Configuration, name, () => value);
     }
 }

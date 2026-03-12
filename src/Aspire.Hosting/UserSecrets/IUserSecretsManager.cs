@@ -33,6 +33,7 @@ public interface IUserSecretsManager
     /// <param name="name">The name of the secret.</param>
     /// <param name="value">The value of the secret.</param>
     /// <returns>True if the secret was set successfully; otherwise, false.</returns>
+    [AspireExport(Description = "Attempts to set a user secret value")]
     bool TrySetSecret(string name, string value);
 
     /// <summary>
@@ -41,7 +42,7 @@ public interface IUserSecretsManager
     /// <param name="configuration">The configuration manager to check and update.</param>
     /// <param name="name">The name of the secret.</param>
     /// <param name="valueGenerator">Function to generate the value if it doesn't exist.</param>
-    [AspireExportIgnore(Reason = "IConfigurationManager and Func<string> are not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "IConfigurationManager and Func<string> are not ATS-compatible. Use the ATS helper overload that accepts a resource builder and a string value.")]
     void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator);
 
     /// <summary>
@@ -50,6 +51,6 @@ public interface IUserSecretsManager
     /// </summary>
     /// <param name="state">The state to save as a JSON object.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    [AspireExportIgnore(Reason = "JsonObject is not ATS-compatible. Use saveStateJson instead.")]
+    [AspireExportIgnore(Reason = "JsonObject is not ATS-compatible. Use the ATS helper overload that accepts a JSON string.")]
     Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default);
 }

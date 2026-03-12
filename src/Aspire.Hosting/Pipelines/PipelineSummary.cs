@@ -96,7 +96,7 @@ public sealed class PipelineSummary
     /// </summary>
     /// <param name="key">The key or label for the item (e.g., "Namespace", "URL").</param>
     /// <param name="value">The Markdown-formatted value for the item.</param>
-    [AspireExportIgnore(Reason = "MarkdownString is not exported to ATS.")]
+    [AspireExportIgnore(Reason = "MarkdownString is not exported to ATS. Use addMarkdown instead.")]
     public void Add(string key, MarkdownString value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);

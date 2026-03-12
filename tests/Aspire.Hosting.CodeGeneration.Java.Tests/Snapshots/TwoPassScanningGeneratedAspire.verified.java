@@ -6148,6 +6148,142 @@ class ILoggerFactory extends HandleWrapperBase {
 
 }
 
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep. */
+class IReportingStep extends HandleWrapperBase {
+    IReportingStep(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Creates a reporting task with plain-text status text */
+    public IReportingTask createTask(String statusText, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("statusText", AspireClient.serializeValue(statusText));
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        return (IReportingTask) getClient().invokeCapability("Aspire.Hosting/createTask", reqArgs);
+    }
+
+    /** Creates a reporting task with Markdown-formatted status text */
+    public IReportingTask createMarkdownTask(String markdownString, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        return (IReportingTask) getClient().invokeCapability("Aspire.Hosting/createMarkdownTask", reqArgs);
+    }
+
+    /** Logs a plain-text message for the reporting step */
+    public void logStep(String level, String message) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("level", AspireClient.serializeValue(level));
+        reqArgs.put("message", AspireClient.serializeValue(message));
+        getClient().invokeCapability("Aspire.Hosting/logStep", reqArgs);
+    }
+
+    /** Logs a Markdown-formatted message for the reporting step */
+    public void logStepMarkdown(String level, String markdownString) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("level", AspireClient.serializeValue(level));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        getClient().invokeCapability("Aspire.Hosting/logStepMarkdown", reqArgs);
+    }
+
+    /** Completes the reporting step with plain-text completion text */
+    public void completeStep(String completionText, String completionState, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("completionText", AspireClient.serializeValue(completionText));
+        if (completionState != null) {
+            reqArgs.put("completionState", AspireClient.serializeValue(completionState));
+        }
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/completeStep", reqArgs);
+    }
+
+    /** Completes the reporting step with Markdown-formatted completion text */
+    public void completeStepMarkdown(String markdownString, String completionState, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingStep", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        if (completionState != null) {
+            reqArgs.put("completionState", AspireClient.serializeValue(completionState));
+        }
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/completeStepMarkdown", reqArgs);
+    }
+
+}
+
+/** Wrapper for Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask. */
+class IReportingTask extends HandleWrapperBase {
+    IReportingTask(Handle handle, AspireClient client) {
+        super(handle, client);
+    }
+
+    /** Updates the reporting task with plain-text status text */
+    public void updateTask(String statusText, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingTask", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("statusText", AspireClient.serializeValue(statusText));
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/updateTask", reqArgs);
+    }
+
+    /** Updates the reporting task with Markdown-formatted status text */
+    public void updateTaskMarkdown(String markdownString, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingTask", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/updateTaskMarkdown", reqArgs);
+    }
+
+    /** Completes the reporting task with plain-text completion text */
+    public void completeTask(String completionMessage, String completionState, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingTask", AspireClient.serializeValue(getHandle()));
+        if (completionMessage != null) {
+            reqArgs.put("completionMessage", AspireClient.serializeValue(completionMessage));
+        }
+        if (completionState != null) {
+            reqArgs.put("completionState", AspireClient.serializeValue(completionState));
+        }
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/completeTask", reqArgs);
+    }
+
+    /** Completes the reporting task with Markdown-formatted completion text */
+    public void completeTaskMarkdown(String markdownString, String completionState, CancellationToken cancellationToken) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("reportingTask", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        if (completionState != null) {
+            reqArgs.put("completionState", AspireClient.serializeValue(completionState));
+        }
+        if (cancellationToken != null) {
+            reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
+        }
+        getClient().invokeCapability("Aspire.Hosting/completeTaskMarkdown", reqArgs);
+    }
+
+}
+
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource. */
 class IResource extends ResourceBuilderBase {
     IResource(Handle handle, AspireClient client) {
@@ -6313,7 +6449,7 @@ class IUserSecretsManager extends HandleWrapperBase {
         return (String) getClient().invokeCapability("Aspire.Hosting/IUserSecretsManager.filePath", reqArgs);
     }
 
-    /** Invokes the TrySetSecret method */
+    /** Attempts to set a user secret value */
     public boolean trySetSecret(String name, String value) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("context", AspireClient.serializeValue(getHandle()));
@@ -6331,6 +6467,16 @@ class IUserSecretsManager extends HandleWrapperBase {
             reqArgs.put("cancellationToken", getClient().registerCancellation(cancellationToken));
         }
         getClient().invokeCapability("Aspire.Hosting/saveStateJson", reqArgs);
+    }
+
+    /** Gets a secret value if it exists, or sets it to the provided value if it does not */
+    public void getOrSetSecret(IResource resourceBuilder, String name, String value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("userSecretsManager", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("resourceBuilder", AspireClient.serializeValue(resourceBuilder));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        getClient().invokeCapability("Aspire.Hosting/getOrSetSecret", reqArgs);
     }
 
 }
@@ -7020,6 +7166,21 @@ class PipelineStepContext extends HandleWrapperBase {
         return (PipelineStepContext) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.setPipelineContext", reqArgs);
     }
 
+    /** Gets the ReportingStep property */
+    public IReportingStep reportingStep() {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        return (IReportingStep) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.reportingStep", reqArgs);
+    }
+
+    /** Sets the ReportingStep property */
+    public PipelineStepContext setReportingStep(IReportingStep value) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("context", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        return (PipelineStepContext) getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineStepContext.setReportingStep", reqArgs);
+    }
+
     /** Gets the Model property */
     public DistributedApplicationModel model() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -7115,6 +7276,15 @@ class PipelineSummary extends HandleWrapperBase {
         reqArgs.put("key", AspireClient.serializeValue(key));
         reqArgs.put("value", AspireClient.serializeValue(value));
         getClient().invokeCapability("Aspire.Hosting.Pipelines/PipelineSummary.add", reqArgs);
+    }
+
+    /** Adds a Markdown-formatted value to the pipeline summary */
+    public void addMarkdown(String key, String markdownString) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("summary", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("key", AspireClient.serializeValue(key));
+        reqArgs.put("markdownString", AspireClient.serializeValue(markdownString));
+        getClient().invokeCapability("Aspire.Hosting/addMarkdown", reqArgs);
     }
 
 }
@@ -11611,6 +11781,8 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment", (h, c) -> new IHostEnvironment(h, c));
         AspireClient.registerHandleWrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger", (h, c) -> new ILogger(h, c));
         AspireClient.registerHandleWrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory", (h, c) -> new ILoggerFactory(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep", (h, c) -> new IReportingStep(h, c));
+        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask", (h, c) -> new IReportingTask(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", (h, c) -> new DistributedApplicationEventSubscription(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", (h, c) -> new DistributedApplicationExecutionContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", (h, c) -> new DistributedApplicationExecutionContextOptions(h, c));

@@ -4389,6 +4389,115 @@ class ILoggerFactory(HandleWrapperBase):
         return self._client.invoke_capability("Aspire.Hosting/createLogger", args)
 
 
+class IReportingStep(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def create_task(self, status_text: str, cancellation_token: CancellationToken | None = None) -> IReportingTask:
+        """Creates a reporting task with plain-text status text"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["statusText"] = serialize_value(status_text)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        return self._client.invoke_capability("Aspire.Hosting/createTask", args)
+
+    def create_markdown_task(self, markdown_string: str, cancellation_token: CancellationToken | None = None) -> IReportingTask:
+        """Creates a reporting task with Markdown-formatted status text"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["markdownString"] = serialize_value(markdown_string)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        return self._client.invoke_capability("Aspire.Hosting/createMarkdownTask", args)
+
+    def log_step(self, level: str, message: str) -> None:
+        """Logs a plain-text message for the reporting step"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["level"] = serialize_value(level)
+        args["message"] = serialize_value(message)
+        self._client.invoke_capability("Aspire.Hosting/logStep", args)
+        return None
+
+    def log_step_markdown(self, level: str, markdown_string: str) -> None:
+        """Logs a Markdown-formatted message for the reporting step"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["level"] = serialize_value(level)
+        args["markdownString"] = serialize_value(markdown_string)
+        self._client.invoke_capability("Aspire.Hosting/logStepMarkdown", args)
+        return None
+
+    def complete_step(self, completion_text: str, completion_state: str = "completed", cancellation_token: CancellationToken | None = None) -> None:
+        """Completes the reporting step with plain-text completion text"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["completionText"] = serialize_value(completion_text)
+        args["completionState"] = serialize_value(completion_state)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/completeStep", args)
+        return None
+
+    def complete_step_markdown(self, markdown_string: str, completion_state: str = "completed", cancellation_token: CancellationToken | None = None) -> None:
+        """Completes the reporting step with Markdown-formatted completion text"""
+        args: Dict[str, Any] = { "reportingStep": serialize_value(self._handle) }
+        args["markdownString"] = serialize_value(markdown_string)
+        args["completionState"] = serialize_value(completion_state)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/completeStepMarkdown", args)
+        return None
+
+
+class IReportingTask(HandleWrapperBase):
+    def __init__(self, handle: Handle, client: AspireClient):
+        super().__init__(handle, client)
+
+    def update_task(self, status_text: str, cancellation_token: CancellationToken | None = None) -> None:
+        """Updates the reporting task with plain-text status text"""
+        args: Dict[str, Any] = { "reportingTask": serialize_value(self._handle) }
+        args["statusText"] = serialize_value(status_text)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/updateTask", args)
+        return None
+
+    def update_task_markdown(self, markdown_string: str, cancellation_token: CancellationToken | None = None) -> None:
+        """Updates the reporting task with Markdown-formatted status text"""
+        args: Dict[str, Any] = { "reportingTask": serialize_value(self._handle) }
+        args["markdownString"] = serialize_value(markdown_string)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/updateTaskMarkdown", args)
+        return None
+
+    def complete_task(self, completion_message: str | None = None, completion_state: str = "completed", cancellation_token: CancellationToken | None = None) -> None:
+        """Completes the reporting task with plain-text completion text"""
+        args: Dict[str, Any] = { "reportingTask": serialize_value(self._handle) }
+        if completion_message is not None:
+            args["completionMessage"] = serialize_value(completion_message)
+        args["completionState"] = serialize_value(completion_state)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/completeTask", args)
+        return None
+
+    def complete_task_markdown(self, markdown_string: str, completion_state: str = "completed", cancellation_token: CancellationToken | None = None) -> None:
+        """Completes the reporting task with Markdown-formatted completion text"""
+        args: Dict[str, Any] = { "reportingTask": serialize_value(self._handle) }
+        args["markdownString"] = serialize_value(markdown_string)
+        args["completionState"] = serialize_value(completion_state)
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        self._client.invoke_capability("Aspire.Hosting/completeTaskMarkdown", args)
+        return None
+
+
 class IResource(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -4509,7 +4618,7 @@ class IUserSecretsManager(HandleWrapperBase):
         return self._client.invoke_capability("Aspire.Hosting/IUserSecretsManager.filePath", args)
 
     def try_set_secret(self, name: str, value: str) -> bool:
-        """Invokes the TrySetSecret method"""
+        """Attempts to set a user secret value"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
@@ -4523,6 +4632,15 @@ class IUserSecretsManager(HandleWrapperBase):
         if cancellation_token_id is not None:
             args["cancellationToken"] = cancellation_token_id
         self._client.invoke_capability("Aspire.Hosting/saveStateJson", args)
+        return None
+
+    def get_or_set_secret(self, resource_builder: IResource, name: str, value: str) -> None:
+        """Gets a secret value if it exists, or sets it to the provided value if it does not"""
+        args: Dict[str, Any] = { "userSecretsManager": serialize_value(self._handle) }
+        args["resourceBuilder"] = serialize_value(resource_builder)
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        self._client.invoke_capability("Aspire.Hosting/getOrSetSecret", args)
         return None
 
 
@@ -5045,6 +5163,17 @@ class PipelineStepContext(HandleWrapperBase):
         args["value"] = serialize_value(value)
         return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.setPipelineContext", args)
 
+    def reporting_step(self) -> IReportingStep:
+        """Gets the ReportingStep property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.reportingStep", args)
+
+    def set_reporting_step(self, value: IReportingStep) -> PipelineStepContext:
+        """Sets the ReportingStep property"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineStepContext.setReportingStep", args)
+
     def model(self) -> DistributedApplicationModel:
         """Gets the Model property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
@@ -5113,6 +5242,14 @@ class PipelineSummary(HandleWrapperBase):
         args["key"] = serialize_value(key)
         args["value"] = serialize_value(value)
         self._client.invoke_capability("Aspire.Hosting.Pipelines/PipelineSummary.add", args)
+        return None
+
+    def add_markdown(self, key: str, markdown_string: str) -> None:
+        """Adds a Markdown-formatted value to the pipeline summary"""
+        args: Dict[str, Any] = { "summary": serialize_value(self._handle) }
+        args["key"] = serialize_value(key)
+        args["markdownString"] = serialize_value(markdown_string)
+        self._client.invoke_capability("Aspire.Hosting/addMarkdown", args)
         return None
 
 
@@ -8454,6 +8591,8 @@ register_handle_wrapper("Microsoft.Extensions.Hosting.Abstractions/Microsoft.Ext
 register_handle_wrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger", lambda handle, client: ILogger(handle, client))
 register_handle_wrapper("Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory", lambda handle, client: ILoggerFactory(handle, client))
 register_handle_wrapper("System.Private.CoreLib/System.Threading.CancellationToken", lambda handle, client: CancellationToken(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep", lambda handle, client: IReportingStep(handle, client))
+register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask", lambda handle, client: IReportingTask(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.Eventing.DistributedApplicationEventSubscription", lambda handle, client: DistributedApplicationEventSubscription(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext", lambda handle, client: DistributedApplicationExecutionContext(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContextOptions", lambda handle, client: DistributedApplicationExecutionContextOptions(handle, client))
