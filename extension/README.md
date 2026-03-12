@@ -48,6 +48,10 @@ The [Aspire CLI](https://aspire.dev/get-started/install-cli/) needs to be instal
 
 [.NET 8 or later](https://dotnet.microsoft.com/download) is required.
 
+### VS Code
+
+VS Code 1.98 or later is required.
+
 ---
 
 ## Getting Started
@@ -133,7 +137,7 @@ The dashboard gives you a live view of your running app — all your resources a
 
 ![Aspire Dashboard showing running resources](resources/aspire-dashboard-dark.png)
 
-It opens automatically when you start your app. You can pick which browser it uses with the `aspire.dashboardBrowser` setting (system default, or Chrome/Edge/Firefox as a debug session that closes when you stop debugging).
+It opens automatically when you start your app. You can pick which browser it uses with the `aspire.dashboardBrowser` setting — system default browser, or Chrome, Edge, or Firefox as a debug session. When using a debug browser, the `aspire.closeDashboardOnDebugEnd` setting controls whether it closes automatically when you stop debugging. Firefox also requires the [Firefox Debugger](https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug) extension.
 
 ---
 
@@ -199,7 +203,7 @@ The extension also gives you IntelliSense and validation when editing `.aspire/s
 
 The extension can register an Aspire [MCP](https://modelcontextprotocol.io/) server with VS Code. This lets AI tools — GitHub Copilot included — see your running app's resources, endpoints, and configuration, so they have better context when helping you write code or answer questions.
 
-Turn it on by setting `aspire.registerMcpServerInWorkspace` to `true`. The MCP server is provided through the Aspire CLI and starts automatically when the extension detects an Aspire project in your workspace.
+Turn it on by setting `aspire.registerMcpServerInWorkspace` to `true`. When enabled, the extension registers the MCP server definition via the Aspire CLI whenever a workspace is open and the CLI is available.
 
 ---
 
