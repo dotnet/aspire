@@ -16,13 +16,6 @@ jobs:
   prepare_for_tests:
     name: Prepare for tests
     runs-on: ubuntu-latest
-    needs: detect_scope
-    # Run if run_all, integrations, templates, or cli_e2e tests are needed
-    if: |
-      needs.detect_scope.outputs.run_all == 'true' ||
-      needs.detect_scope.outputs.run_integrations == 'true' ||
-      needs.detect_scope.outputs.run_templates == 'true' ||
-      needs.detect_scope.outputs.run_cli_e2e == 'true'
     outputs:
       run_all: ${{ steps.detect.outputs.run_all }}
       run_integrations: ${{ steps.detect.outputs.run_integrations }}
@@ -403,7 +396,6 @@ jobs:
 
   polyglot_validation:
     name: Polyglot SDK Validation
-    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_polyglot == 'true' }}
     uses: ./.github/workflows/polyglot-validation.yml
     needs: [prepare_for_tests, build_packages, build_cli_archive_linux]
     if: |
@@ -615,7 +607,4 @@ jobs:
                   needs.polyglot_validation.result == 'skipped')))) }}
         run: |
           echo "One or more test jobs failed, were cancelled, or were unexpectedly skipped."
-          echo ""
-          echo "Templates skip expected: ${{ needs.detect_scope.outputs.run_all != 'true' && needs.detect_scope.outputs.run_templates != 'true' }}"
-          echo "Templates results: lin=${{ needs.templates_test_lin.result }} macos=${{ needs.templates_test_macos.result }} win=${{ needs.templates_test_win.result }}"
           exit 1
