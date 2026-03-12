@@ -23,7 +23,8 @@
                     PrivateAssets="all"
                     ReferenceOutputAssembly="false"
                     OutputItemType="Analyzer"
-                    SetTargetFramework="TargetFramework=netstandard2.0" />
+                    SetTargetFramework="TargetFramework=netstandard2.0"
+                    GlobalPropertiesToRemove="RuntimeIdentifier;PlatformTarget;SelfContained" />
   </ItemGroup>
   <!-- Used by Aspire.Workload.Testing.targets -->
   <Target Name="GetPackageName" Returns="@(PackageName)">

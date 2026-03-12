@@ -66,6 +66,15 @@ export function isBrowserLaunchConfiguration(obj: any): obj is BrowserLaunchConf
     return obj && obj.type === 'browser';
 }
 
+export interface AzureFunctionsLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "azure-functions";
+    project_path: string;
+}
+
+export function isAzureFunctionsLaunchConfiguration(obj: any): obj is AzureFunctionsLaunchConfiguration {
+    return obj && obj.type === 'azure-functions';
+}
+
 export interface EnvVar {
     name: string;
     value: string;
