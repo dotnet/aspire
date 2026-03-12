@@ -65,7 +65,9 @@ class Handler(BaseHTTPRequestHandler):
             })
         elif self.path == "/api/opponent-move":
             length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length)) if length else {}
+            body = {}
+            if length:
+                body = json.loads(self.rfile.read(length))
             if "move" in body:
                 opponent_history.append(body["move"])
             self._respond(200, {"recorded": True})

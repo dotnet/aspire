@@ -92,7 +92,8 @@ app.MapGet("/api/rounds", async (int? limit) =>
     await conn.OpenAsync();
 
     await using var cmd = new NpgsqlCommand(
-        $"SELECT id, player1_name, player1_move, player2_name, player2_move, winner, played_at FROM rounds ORDER BY played_at DESC LIMIT {take}", conn);
+        "SELECT id, player1_name, player1_move, player2_name, player2_move, winner, played_at FROM rounds ORDER BY played_at DESC LIMIT @take", conn);
+    cmd.Parameters.AddWithValue("take", take);
 
     await using var reader = await cmd.ExecuteReaderAsync();
     var rounds = new List<RoundResult>();
@@ -194,6 +195,10 @@ app.MapPost("/api/rounds/play", async () =>
 
     // Round-robin: each pair plays each other (3 matches per round)
     var results = new List<RoundResult>();
+
+    await using var conn = new NpgsqlConnection(connectionString);
+    await conn.OpenAsync();
+
     for (var i = 0; i < moves.Length; i++)
     {
         for (var j = i + 1; j < moves.Length; j++)
@@ -201,9 +206,6 @@ app.MapPost("/api/rounds/play", async () =>
             var p1 = moves[i];
             var p2 = moves[j];
             var winner = DetermineWinner(p1.PlayerName, p1.Move, p2.PlayerName, p2.Move);
-
-            await using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync();
 
             await using var cmd = new NpgsqlCommand(
                 "INSERT INTO rounds (player1_name, player1_move, player2_name, player2_move, winner) VALUES (@p1name, @p1move, @p2name, @p2move, @winner) RETURNING id, played_at",
