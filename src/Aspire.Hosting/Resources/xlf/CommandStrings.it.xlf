@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="RebuildDescription">
-        <source>Stop the resource, rebuild the project from source, and restart. Use this after making source code changes to apply them.</source>
-        <target state="new">Stop the resource, rebuild the project from source, and restart. Use this after making source code changes to apply them.</target>
+        <source>Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</source>
+        <target state="new">Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</target>
         <note />
       </trans-unit>
       <trans-unit id="RebuildName">
@@ -67,6 +67,11 @@
         <target state="translated">Arresta</target>
         <note />
       </trans-unit>
+        <trans-unit id="RebuilderResourceNotFound" translate="yes" xml:space="preserve">
+          <source>Rebuilder resource for '{0}' not found.</source>
+          <target state="new">Rebuilder resource for '{0}' not found.</target>
+          <note />
+        </trans-unit>
     </body>
   </file>
 </xliff>

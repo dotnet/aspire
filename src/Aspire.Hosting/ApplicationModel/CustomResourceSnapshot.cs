@@ -413,6 +413,11 @@ public static class KnownResourceStates
     public static readonly string NotStarted = nameof(NotStarted);
 
     /// <summary>
+    /// The building state. Useful for showing the resource is being rebuilt.
+    /// </summary>
+    public static readonly string Building = nameof(Building);
+
+    /// <summary>
     /// The not active state. Useful for resources without a lifetime.
     /// </summary>
     public static readonly string Active = nameof(Active);

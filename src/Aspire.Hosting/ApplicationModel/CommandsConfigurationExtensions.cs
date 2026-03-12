@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
@@ -149,20 +150,20 @@ internal static class CommandsConfigurationExtensions
                 var rebuilderResource = model.Resources.OfType<ProjectRebuilderResource>().FirstOrDefault(r => r.Parent == projectResource);
                 if (rebuilderResource is null)
                 {
-                    return new ExecuteCommandResult { Success = false, ErrorMessage = $"Rebuilder resource for '{projectResource.Name}' not found." };
+                    return new ExecuteCommandResult { Success = false, ErrorMessage = string.Format(CultureInfo.InvariantCulture, CommandStrings.RebuilderResourceNotFound, projectResource.Name) };
                 }
 
                 var mainLogger = loggerService.GetLogger(projectResource);
 
-                // Stop the main resource first.
-                mainLogger.LogInformation("[build] Stopping resource for rebuild...");
-                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
-
-                // Update main resource state to indicate building is in progress.
+                // Set state to Building first so the rebuild command is immediately disabled.
                 await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
                 {
-                    State = new ResourceStateSnapshot("Building", KnownResourceStateStyles.Info)
+                    State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info)
                 }).ConfigureAwait(false);
+
+                // Stop the main resource.
+                mainLogger.LogInformation("[build] Stopping resource for rebuild...");
+                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
 
                 // Start forwarding logs from the rebuilder to the main resource's console.
                 using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
@@ -173,28 +174,41 @@ internal static class CommandsConfigurationExtensions
                 mainLogger.LogInformation("[build] Building project...");
                 await orchestrator.StartResourceAsync(rebuilderInstanceName, context.CancellationToken).ConfigureAwait(false);
 
-                // Wait for the rebuilder to reach a terminal state.
+                // Wait for the rebuilder to reach a terminal state, with a timeout.
                 int? exitCode = null;
-                await foreach (var evt in resourceNotificationService.WatchAsync(context.CancellationToken).ConfigureAwait(false))
-                {
-                    if (evt.Resource == rebuilderResource &&
-                        KnownResourceStates.TerminalStates.Contains(evt.Snapshot.State?.Text))
-                    {
-                        exitCode = evt.Snapshot.ExitCode;
-                        break;
-                    }
-                }
-
-                // Stop log forwarding.
-                await logCts.CancelAsync().ConfigureAwait(false);
+                using var buildTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+                buildTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
 
                 try
                 {
-                    await logForwardTask.ConfigureAwait(false);
+                    await foreach (var evt in resourceNotificationService.WatchAsync(buildTimeoutCts.Token).ConfigureAwait(false))
+                    {
+                        if (evt.Resource == rebuilderResource &&
+                            KnownResourceStates.TerminalStates.Contains(evt.Snapshot.State?.Text))
+                        {
+                            exitCode = evt.Snapshot.ExitCode;
+                            break;
+                        }
+                    }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (!context.CancellationToken.IsCancellationRequested)
                 {
-                    // Expected when cancelling the log forwarder.
+                    // Build timed out.
+                    mainLogger.LogError("[build] Build timed out.");
+                    await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
+
+                    await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
+                    {
+                        State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
+                    }).ConfigureAwait(false);
+                    return new ExecuteCommandResult { Success = false, ErrorMessage = "Build timed out." };
+                }
+
+                await StopLogForwardingAsync(logCts, logForwardTask).ConfigureAwait(false);
+
+                if (context.CancellationToken.IsCancellationRequested)
+                {
+                    return new ExecuteCommandResult { Success = false, ErrorMessage = "Build was cancelled." };
                 }
 
                 if (exitCode == 0)
@@ -217,7 +231,8 @@ internal static class CommandsConfigurationExtensions
             {
                 var state = context.ResourceSnapshot.State?.Text;
                 if (string.IsNullOrEmpty(state)
-                    || state is "Building" or "Unknown"
+                    || state is "Unknown"
+                    || state == KnownResourceStates.Building
                     || KnownResourceStates.TerminalStates.Contains(state)
                     || state == KnownResourceStates.Starting
                     || state == KnownResourceStates.Stopping
@@ -238,6 +253,20 @@ internal static class CommandsConfigurationExtensions
             iconName: "ArrowSync",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
+    }
+
+    private static async Task StopLogForwardingAsync(CancellationTokenSource logCts, Task logForwardTask)
+    {
+        await logCts.CancelAsync().ConfigureAwait(false);
+
+        try
+        {
+            await logForwardTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancelling the log forwarder.
+        }
     }
 
     private static async Task ForwardLogsAsync(ResourceLoggerService loggerService, string sourceResourceName, ILogger targetLogger, CancellationToken cancellationToken)
