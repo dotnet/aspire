@@ -60,11 +60,14 @@ async function dispatch(operation, payload) {
                         logRequestJobIds.push(job.id);
                         return payload.jobLogTextByJobId?.[String(job.id)] ?? '';
                     },
-                    maxLogInspections: payload.maxLogInspections,
+                    maxRetryableJobs: payload.maxRetryableJobs,
                 });
 
                 return { ...result, logRequestJobIds };
             }
+
+        case 'formatMatchedPatternForMarkdown':
+            return rerunWorkflow.formatMatchedPatternForMarkdown(payload.matchedPattern);
 
         case 'getCheckRunIdForJob':
             return rerunWorkflow.getCheckRunIdForJob({
@@ -144,8 +147,23 @@ function createGitHubRecorder(payload, requests) {
             }
 
             if (route === 'GET /repos/{owner}/{repo}/pulls') {
-                const pullRequests = payload.pullRequestsByHead?.[requestPayload.head] ?? [];
-                return { data: pullRequests };
+                if (payload.failPullRequestLookup) {
+                    throw new Error(payload.failPullRequestLookup);
+                }
+
+                const page = Number(requestPayload.page ?? 1);
+                const pullRequestPages = payload.pullRequestsByHeadPages?.[requestPayload.head];
+                const pullRequests = pullRequestPages
+                    ? pullRequestPages[page - 1] ?? []
+                    : payload.pullRequestsByHead?.[requestPayload.head] ?? [];
+                const hasNextPage = Array.isArray(pullRequestPages) && page < pullRequestPages.length;
+
+                return {
+                    data: pullRequests,
+                    headers: {
+                        link: hasNextPage ? '<https://api.github.com/next>; rel="next"' : '',
+                    },
+                };
             }
             if (route === 'POST /repos/{owner}/{repo}/issues/{issue_number}/comments') {
                 const issueNumber = String(requestPayload.issue_number);

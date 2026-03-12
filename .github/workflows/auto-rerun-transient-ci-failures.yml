@@ -212,6 +212,7 @@ jobs:
               owner,
               repo,
               workflowRun,
+              warn: message => core.warning(message),
             });
             core.setOutput('pull_request_numbers', JSON.stringify(pullRequestNumbers));
 
@@ -227,7 +228,7 @@ jobs:
               jobs,
               getAnnotationsForJob: async job => listAnnotations(job),
               getJobLogTextForJob: async job => getJobLogText(job.id),
-              maxLogInspections: maxRetryableJobs,
+              maxRetryableJobs,
             });
 
             core.setOutput('retryable_jobs', JSON.stringify(retryableJobs.map(job => ({

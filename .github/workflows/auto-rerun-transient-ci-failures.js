@@ -2,7 +2,6 @@
 const failureConclusions = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure']);
 const ignoredJobs = new Set(['Final Results', 'Tests / Final Test Results']);
 const defaultMaxRetryableJobs = 5;
-const defaultMaxLogInspections = defaultMaxRetryableJobs;
 
 const retryableWithAnnotationStepPatterns = [
     /^Set up job$/i,
@@ -147,7 +146,36 @@ function matchesWorkflowRunHead(pullRequest, workflowRun, headOwner, headBranch)
         || pullRequestHeadSha === workflowHeadSha;
 }
 
-async function getAssociatedPullRequestNumbers({ github, owner, repo, workflowRun }) {
+async function listPullRequestsByHead({ github, owner, repo, head, warn }) {
+    const pullRequests = [];
+
+    try {
+        for (let page = 1; ; page++) {
+            const response = await github.request('GET /repos/{owner}/{repo}/pulls', {
+                owner,
+                repo,
+                state: 'all',
+                head,
+                per_page: 100,
+                page,
+            });
+
+            pullRequests.push(...(response.data || []));
+
+            if (!response.headers?.link || !response.headers.link.includes('rel="next"')) {
+                return pullRequests;
+            }
+        }
+    }
+    catch (error) {
+        if (typeof warn === 'function') {
+            warn(`Failed to resolve pull requests for head '${head}': ${error.message}`);
+        }
+        return [];
+    }
+}
+
+async function getAssociatedPullRequestNumbers({ github, owner, repo, workflowRun, warn }) {
     const pullRequestNumbers = getPullRequestNumbers(workflowRun);
     if (pullRequestNumbers.length > 0) {
         return pullRequestNumbers;
@@ -160,15 +188,15 @@ async function getAssociatedPullRequestNumbers({ github, owner, repo, workflowRu
         return [];
     }
 
-    const response = await github.request('GET /repos/{owner}/{repo}/pulls', {
+    const responseData = await listPullRequestsByHead({
+        github,
         owner,
         repo,
-        state: 'all',
         head: `${headOwner}:${headBranch}`,
-        per_page: 100,
+        warn,
     });
 
-    const matchingPullRequests = (response.data || [])
+    const matchingPullRequests = responseData
         .filter(pullRequest => matchesWorkflowRunHead(pullRequest, workflowRun, headOwner, headBranch));
     const fallbackPullRequestNumbers = [...new Set(matchingPullRequests
         .map(pullRequest => pullRequest.number)
@@ -244,8 +272,19 @@ function formatMatchedPatternForMarkdown(matchedPattern) {
         return '';
     }
 
-    const safePattern = String(matchedPattern).replace(/`/g, '\\`');
-    return ` Matched pattern: \`${safePattern}\`.`;
+    const patternText = String(matchedPattern);
+    let maxBacktickRun = 0;
+    const backtickRunRegex = /`+/g;
+    let match;
+
+    while ((match = backtickRunRegex.exec(patternText)) !== null) {
+        if (match[0].length > maxBacktickRun) {
+            maxBacktickRun = match[0].length;
+        }
+    }
+
+    const fence = '`'.repeat(maxBacktickRun + 1);
+    return ` Matched pattern: ${fence}${patternText}${fence}.`;
 }
 
 function findInfrastructureNetworkLogOverridePattern(jobLogText) {
@@ -387,16 +426,15 @@ async function analyzeFailedJobs({
     jobs,
     getAnnotationsForJob,
     getJobLogTextForJob,
-    maxLogInspections = defaultMaxLogInspections,
+    maxRetryableJobs = defaultMaxRetryableJobs,
 }) {
-    const normalizedMaxLogInspections =
-        Number.isInteger(maxLogInspections) && maxLogInspections >= 0
-            ? maxLogInspections
-            : defaultMaxLogInspections;
+    const normalizedMaxRetryableJobs =
+        Number.isInteger(maxRetryableJobs) && maxRetryableJobs >= 0
+            ? maxRetryableJobs
+            : defaultMaxRetryableJobs;
     const failedJobs = (jobs || []).filter(job => failureConclusions.has(job.conclusion) && !ignoredJobs.has(job.name));
     const retryableJobs = [];
     const skippedJobs = [];
-    let logInspectionCount = 0;
 
     for (const job of failedJobs) {
         const failedSteps = getFailedSteps(job);
@@ -413,16 +451,16 @@ async function analyzeFailedJobs({
             !classification.retryable &&
             getJobLogTextForJob &&
             canUseInfrastructureNetworkLogOverride(failedSteps) &&
-            logInspectionCount < normalizedMaxLogInspections;
+            normalizedMaxRetryableJobs > 0 &&
+            retryableJobs.length <= normalizedMaxRetryableJobs;
 
         if (shouldInspectLogs) {
-            logInspectionCount += 1;
-            const matchedInfrastructureNetworkLogOverridePattern =
-                findInfrastructureNetworkLogOverridePattern(await getJobLogTextForJob(job));
+            const jobLogText = await getJobLogTextForJob(job);
+            const matchedInfrastructureNetworkLogOverridePattern = findInfrastructureNetworkLogOverridePattern(jobLogText);
             classification = classifyFailedJob(
                 job,
                 annotations,
-                '',
+                jobLogText,
                 { matchedInfrastructureNetworkLogOverridePattern }
             );
         }
@@ -768,11 +806,13 @@ module.exports = {
     classifyFailedJob,
     computeRerunEligibility,
     defaultMaxRetryableJobs,
+    formatMatchedPatternForMarkdown,
     findInfrastructureNetworkLogOverridePattern,
     getAssociatedPullRequestNumbers,
     getCheckRunIdForJob,
     getOpenPullRequestNumbers,
     getLatestRunAttempt,
+    listPullRequestsByHead,
     rerunMatchedJobs,
     writeAnalysisSummary,
 };

@@ -237,6 +237,20 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
+    public async Task UsesLongerMarkdownFenceWhenMatchedPatternContainsBackticks()
+    {
+        string result = await InvokeHarnessAsync<string>(
+            "formatMatchedPatternForMarkdown",
+            new
+            {
+                matchedPattern = "/foo`bar/i"
+            });
+
+        Assert.Equal(" Matched pattern: ``/foo`bar/i``.", result);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
     public async Task DoesNotApplyBroadNetworkOverrideWhenTestExecutionFailed()
     {
         WorkflowJob job = CreateJob(failedSteps: ["Run tests (Windows)"]);
@@ -288,7 +302,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
-    public async Task CapsLogInspectionCountToAvoidFetchingEveryFailedJobLog()
+    public async Task ContinuesInspectingLaterLogsWhenEarlierCandidatesAreNotRetryable()
     {
         WorkflowJob firstJob = CreateJob(id: 1, failedSteps: ["Build test project"]);
         WorkflowJob secondJob = CreateJob(id: 2, failedSteps: ["Build test project"]);
@@ -302,16 +316,17 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             },
             new Dictionary<string, string>
             {
-                ["1"] = "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.",
+                ["1"] = "error MSB4236: The SDK specified could not be found.",
                 ["2"] = "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json."
             },
-            maxLogInspections: 1);
+            maxRetryableJobs: 1);
 
-        Assert.Single(result.LogRequestJobIds);
-        Assert.Equal(1, result.LogRequestJobIds[0]);
+        Assert.Equal([1, 2], result.LogRequestJobIds);
         Assert.Single(result.RetryableJobs);
+        Assert.Equal(2, result.RetryableJobs[0].Id);
+        Assert.Equal(1, result.LogRequestJobIds[0]);
         Assert.Single(result.SkippedJobs);
-        Assert.Equal(2, result.SkippedJobs[0].Id);
+        Assert.Equal(1, result.SkippedJobs[0].Id);
     }
 
     [Fact]
@@ -446,6 +461,76 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
+    public async Task GetAssociatedPullRequestNumbersPaginatesFallbackLookupUntilItFindsTheMatchingSha()
+    {
+        AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
+            "getAssociatedPullRequestNumbers",
+            new
+            {
+                workflowRun = new
+                {
+                    head_branch = "conditional-test-runs",
+                    head_sha = "wanted-sha",
+                    head_repository = new
+                    {
+                        owner = new
+                        {
+                            login = "radical"
+                        }
+                    }
+                },
+                pullRequestsByHeadPages = new Dictionary<string, object[][]>
+                {
+                    ["radical:conditional-test-runs"] =
+                    [
+                        [
+                            new
+                            {
+                                number = 11111,
+                                head = new
+                                {
+                                    @ref = "conditional-test-runs",
+                                    sha = "old-sha",
+                                    repo = new
+                                    {
+                                        owner = new
+                                        {
+                                            login = "radical"
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        [
+                            new
+                            {
+                                number = 13832,
+                                head = new
+                                {
+                                    @ref = "conditional-test-runs",
+                                    sha = "wanted-sha",
+                                    repo = new
+                                    {
+                                        owner = new
+                                        {
+                                            login = "radical"
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    ]
+                }
+            });
+
+        Assert.Equal([13832], result.PullRequestNumbers);
+        Assert.Equal(2, result.Requests.Length);
+        Assert.Equal(1, result.Requests[0].Payload.GetProperty("page").GetInt32());
+        Assert.Equal(2, result.Requests[1].Payload.GetProperty("page").GetInt32());
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
     public async Task GetAssociatedPullRequestNumbersRejectsAmbiguousFallbackMatches()
     {
         AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
@@ -501,6 +586,32 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                         }
                     ]
                 }
+            });
+
+        Assert.Empty(result.PullRequestNumbers);
+        Assert.Single(result.Requests);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task GetAssociatedPullRequestNumbersReturnsEmptyWhenFallbackLookupFails()
+    {
+        AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
+            "getAssociatedPullRequestNumbers",
+            new
+            {
+                workflowRun = new
+                {
+                    head_branch = "conditional-test-runs",
+                    head_repository = new
+                    {
+                        owner = new
+                        {
+                            login = "radical"
+                        }
+                    }
+                },
+                failPullRequestLookup = "HTTP 502"
             });
 
         Assert.Empty(result.PullRequestNumbers);
@@ -874,7 +985,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         WorkflowJob[] jobs,
         Dictionary<string, string> annotationTextByJobId,
         Dictionary<string, string>? jobLogTextByJobId = null,
-        int? maxLogInspections = null)
+        int? maxRetryableJobs = null)
         => InvokeHarnessAsync<AnalyzeFailedJobsResult>(
             "analyzeFailedJobs",
             new AnalyzeFailedJobsRequest
@@ -882,7 +993,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                 Jobs = jobs,
                 AnnotationTextByJobId = annotationTextByJobId,
                 JobLogTextByJobId = jobLogTextByJobId,
-                MaxLogInspections = maxLogInspections
+                MaxRetryableJobs = maxRetryableJobs
             });
 
     private async Task<T> InvokeHarnessAsync<T>(string operation, object payload)
@@ -957,7 +1068,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         public WorkflowJob[] Jobs { get; init; } = [];
         public Dictionary<string, string> AnnotationTextByJobId { get; init; } = [];
         public Dictionary<string, string>? JobLogTextByJobId { get; init; }
-        public int? MaxLogInspections { get; init; }
+        public int? MaxRetryableJobs { get; init; }
     }
 
     private sealed class AnalyzeFailedJobsResult
