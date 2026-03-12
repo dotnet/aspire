@@ -270,10 +270,11 @@ export class AppHostDataRepository {
                     this._describeProcess = undefined;
 
                     if (!this._disposed && !this._describeRestarting) {
-                        if (!this._describeReceivedData) {
-                            // The process exited without ever producing valid data.
+                        if (!this._describeReceivedData && code !== 0) {
+                            // The process exited with a non-zero code without ever producing valid data.
                             // This likely means the CLI does not support the describe command.
                             extensionLogOutputChannel.warn('aspire describe --follow exited without producing data; the installed Aspire CLI may not support this feature.');
+                            this._workspaceResources.clear();
                             this._setError(errorFetchingAppHosts(`exit code ${code}`));
                             this._updateWorkspaceContext();
                         } else {

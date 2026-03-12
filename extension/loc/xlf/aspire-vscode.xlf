@@ -229,9 +229,6 @@
     <trans-unit id="aspire-vscode.strings.openAspireDashboard">
       <source xml:lang="en">Launch Aspire Dashboard</source>
     </trans-unit>
-    <trans-unit id="aspire-vscode.strings.settingsLabel">
-      <source xml:lang="en">Settings</source>
-    </trans-unit>
     <trans-unit id="configuration.aspire.dashboardBrowser.debugChrome">
       <source xml:lang="en">Launch Chrome as a debug session (auto-closes when debugging ends).</source>
     </trans-unit>
@@ -392,7 +389,7 @@
       <source xml:lang="en">The Aspire CLI creates, runs, and manages your applications. Install it using the commands in the panel, then verify your installation.&#10;&#10;[Verify installation](command:aspire-vscode.verifyCliInstalled)</source>
     </trans-unit>
     <trans-unit id="views.runningAppHosts.errorWelcome">
-      <source xml:lang="en">The Aspire CLI is not installed or does not support this feature. Install or update the Aspire CLI to get started.&#10;[Update Aspire CLI](command:aspire-vscode.updateSelf)&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
+      <source xml:lang="en">The Aspire CLI is not installed or does not support this feature. Install or update the Aspire CLI and restart VS Code to get started.&#10;[Update Aspire CLI](command:aspire-vscode.updateSelf)&#10;[Refresh](command:aspire-vscode.refreshRunningAppHosts)</source>
     </trans-unit>
     <trans-unit id="walkthrough.getStarted.dashboard.description">
       <source xml:lang="en">The Aspire Dashboard shows your resources, endpoints, logs, traces, and metrics — all in one place.&#10;&#10;[Open dashboard](command:aspire-vscode.openDashboard)</source>
