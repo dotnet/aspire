@@ -146,7 +146,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                 Name = "dev-certs",
                 Status = EnvironmentCheckStatus.Warning,
                 Message = DoctorCommandStrings.DevCertsNotTrustedMessage,
-                Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsNotTrustedDetailsFormat, cert.Thumbprint),
+                Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsNotTrustedDetailsFormat, cert.Thumbprint ?? "unknown"),
                 Fix = s_trustFixCommand,
                 Link = "https://aka.ms/aspire-prerequisites#dev-certs",
                 Metadata = metadata
@@ -210,7 +210,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
         {
             var certNode = new JsonObject
             {
-                ["thumbprint"] = cert.Thumbprint,
+                ["thumbprint"] = cert.Thumbprint ?? "unknown",
                 ["version"] = cert.Version,
                 ["trustLevel"] = cert.TrustLevel.ToString().ToLowerInvariant(),
                 ["notBefore"] = cert.ValidityNotBefore.ToString("o", CultureInfo.InvariantCulture),
