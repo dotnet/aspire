@@ -133,7 +133,7 @@
     <value>HTTPS development certificate has an older version ({0})</value>
   </data>
   <data name="DevCertsOldVersionDetailsFormat" xml:space="preserve">
-    <value>Older certificate versions (&lt; v{0}) may not support container trust scenarios.</value>
+    <value>Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</value>
   </data>
   <data name="DevCertsTrustLabelFull" xml:space="preserve">
     <value>[trusted]</value>
