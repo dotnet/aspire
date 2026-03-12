@@ -164,6 +164,7 @@ public class EntraIdApplicationResource(string name, string configSectionName = 
 /// <item><description><see cref="EntraIdStoreCertificateCredential"/> — certificate from the certificate store.</description></item>
 /// <item><description><see cref="EntraIdFileCertificateCredential"/> — certificate from a file on disk.</description></item>
 /// <item><description><see cref="EntraIdSignedAssertionFileCredential"/> — signed assertion file (AKS workload identity).</description></item>
+/// <item><description><see cref="EntraIdManagedCertificateCredential"/> — managed certificate (Microsoft-internal).</description></item>
 /// </list>
 /// </remarks>
 public abstract class EntraIdClientCredential
@@ -424,4 +425,23 @@ public sealed class EntraIdSignedAssertionFileCredential : EntraIdClientCredenti
             envVars[$"{prefix}__SignedAssertionFileDiskPath"] = FilePath;
         }
     }
+}
+
+/// <summary>
+/// A managed certificate credential for an Entra ID application.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Maps to <c>SourceType = "ManagedCertificate"</c> in Microsoft.Identity.Web configuration.
+/// Azure manages the certificate lifecycle — no secrets, no manual rotation.
+/// </para>
+/// <para>
+/// This is currently a Microsoft-internal concept. The managed certificate infrastructure
+/// handles discovery, provisioning, and rotation automatically.
+/// </para>
+/// </remarks>
+public sealed class EntraIdManagedCertificateCredential : EntraIdClientCredential
+{
+    /// <inheritdoc />
+    public override string SourceType => "ManagedCertificate";
 }

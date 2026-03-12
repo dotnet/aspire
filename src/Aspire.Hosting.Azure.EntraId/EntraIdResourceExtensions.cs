@@ -233,6 +233,31 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
+    /// Adds a managed certificate credential to this Entra ID application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This adds an entry to the <c>ClientCredentials</c> array in the Microsoft.Identity.Web
+    /// configuration with <c>SourceType</c> set to <c>"ManagedCertificate"</c>.
+    /// Azure manages the certificate lifecycle — no secrets or manual rotation required.
+    /// </para>
+    /// <para>
+    /// This is currently a Microsoft-internal concept.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithManagedCertificate(
+        this IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.ClientCredentials.Add(new EntraIdManagedCertificateCredential());
+
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a certificate credential from Azure Key Vault to this Entra ID application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>

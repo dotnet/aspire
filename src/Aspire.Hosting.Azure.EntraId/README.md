@@ -84,6 +84,18 @@ var entra = builder.AddEntraIdApplication("entra-web")
     .WithFicMsi();
 ```
 
+### Managed certificate (Microsoft-internal)
+
+For first-party Microsoft services, use managed certificates — zero secrets, automatic rotation:
+
+```csharp
+var entra = builder.AddEntraIdApplication("entra-web")
+    .AsExisting(
+        tenantId: tenantId,
+        clientId: webClientId)
+    .WithManagedCertificate();
+```
+
 ### Certificate from Key Vault
 
 ```csharp

@@ -302,6 +302,25 @@ public class EntraIdResourceBuilderTests
     }
 
     [Fact]
+    public void AddEntraIdApplication_WithManagedCertificate()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddEntraIdApplication("entra-web")
+            .AsExisting(tenantId: "test-tenant-id", clientId: "test-client-id")
+            .WithManagedCertificate();
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
+        Assert.Single(resource.ClientCredentials);
+        var cred = Assert.IsType<EntraIdManagedCertificateCredential>(resource.ClientCredentials[0]);
+        Assert.Equal("ManagedCertificate", cred.SourceType);
+    }
+
+    [Fact]
     public void AddEntraIdApplication_MultipleCredentials()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
