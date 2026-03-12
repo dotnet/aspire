@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="buildtransitive\Aspire.Hosting.targets" Pack="true" PackagePath="buildtransitive\$(DefaultTargetFramework)" />
+    <None Include="buildTransitive\Aspire.Hosting.targets" Pack="true" PackagePath="buildTransitive\$(DefaultTargetFramework)" />
   </ItemGroup>
   
   <ItemGroup>
@@ -142,24 +142,25 @@
     <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Reference the integration analyzer to ensure it's built but don't reference its output -->
-    <ProjectReference Include="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
-  </ItemGroup>
-
   <!-- Include the integration analyzer in the package -->
   <PropertyGroup>
     <BeforePack>$(BeforePack);IncludeIntegrationAnalyzerInPackage</BeforePack>
   </PropertyGroup>
   <Target Name="IncludeIntegrationAnalyzerInPackage">
-    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" Targets="GetTargetPath">
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)">
       <Output TaskParameter="TargetOutputs" PropertyName="AspireIntegrationAnalyzerFile" />
     </MSBuild>
 
     <Error Condition="'$(AspireIntegrationAnalyzerFile)' == ''" Text="Could not find Aspire.Hosting.Integration.Analyzers.dll." />
 
     <ItemGroup>
-      <None Include="$(AspireIntegrationAnalyzerFile)" Pack="True" PackagePath="buildtransitive\$(DefaultTargetFramework)" />
+      <None Include="$(AspireIntegrationAnalyzerFile)" Pack="True" PackagePath="buildTransitive\$(DefaultTargetFramework)" />
     </ItemGroup>
   </Target>
 
