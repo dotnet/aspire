@@ -96,6 +96,10 @@ function matchesAny(value, patterns) {
     return patterns.some(pattern => pattern.test(value));
 }
 
+function findMatchingPattern(value, patterns) {
+    return patterns.find(pattern => pattern.test(value)) ?? null;
+}
+
 function parseCheckRunId(checkRunUrl) {
     if (typeof checkRunUrl !== 'string') {
         return null;
@@ -163,8 +167,9 @@ function canUseInfrastructureNetworkLogOverride(failedSteps) {
     return failedSteps.length > 0 && !failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
 }
 
-function getInfrastructureNetworkLogOverrideReason(failedStepText) {
-    return `Failed step '${failedStepText}' will be retried because the job log shows a likely transient infrastructure network failure.`;
+function getInfrastructureNetworkLogOverrideReason(failedStepText, matchedPattern) {
+    const patternText = matchedPattern ? ` Matched pattern: ${matchedPattern}.` : '';
+    return `Failed step '${failedStepText}' will be retried because the job log shows a likely transient infrastructure network failure.${patternText}`;
 }
 
 function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
@@ -172,16 +177,18 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
     const failedStepText = failedSteps.join(' | ');
     const { hasRetryableStep, hasIgnoredFailureStep, shouldInspectAnnotations } = getFailureStepSignals(failedSteps);
     const hasTestExecutionFailureStep = failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
-    const matchesInfrastructureNetworkLogOverride =
+    const matchedInfrastructureNetworkLogOverridePattern =
         !hasTestExecutionFailureStep
-        && matchesAny(jobLogText, infrastructureNetworkFailureLogOverridePatterns);
+            ? findMatchingPattern(jobLogText, infrastructureNetworkFailureLogOverridePatterns)
+            : null;
+    const matchesInfrastructureNetworkLogOverride = matchedInfrastructureNetworkLogOverridePattern !== null;
 
     if (!shouldInspectAnnotations) {
         if (matchesInfrastructureNetworkLogOverride) {
             return {
                 retryable: true,
                 failedSteps,
-                reason: getInfrastructureNetworkLogOverrideReason(failedStepText),
+                reason: getInfrastructureNetworkLogOverrideReason(failedStepText, matchedInfrastructureNetworkLogOverridePattern),
             };
         }
 
@@ -235,7 +242,7 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
         return {
             retryable: true,
             failedSteps,
-            reason: getInfrastructureNetworkLogOverrideReason(failedStepText),
+            reason: getInfrastructureNetworkLogOverrideReason(failedStepText, matchedInfrastructureNetworkLogOverridePattern),
         };
     }
 

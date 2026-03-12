@@ -171,7 +171,9 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
 
         Assert.Single(result.RetryableJobs);
-        Assert.Equal("Failed step 'Build test project' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
+        Assert.Equal(
+            "Failed step 'Build test project' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            result.RetryableJobs[0].Reason);
     }
 
     [Theory]
@@ -190,7 +192,9 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "error : Unable to load the service index for source https://dnceng.pkgs.visualstudio.com/public/_packaging/dotnet9-transport/nuget/v3/index.json.");
 
         Assert.Single(result.RetryableJobs);
-        Assert.Equal($"Failed step '{failedStep}' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
+        Assert.Equal(
+            $"Failed step '{failedStep}' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            result.RetryableJobs[0].Reason);
     }
 
     [Fact]
@@ -205,7 +209,9 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
 
         Assert.Single(result.RetryableJobs);
-        Assert.Equal("Failed step 'Run ./.github/actions/enumerate-tests' will be retried because the job log shows a likely transient infrastructure network failure.", result.RetryableJobs[0].Reason);
+        Assert.Equal(
+            "Failed step 'Run ./.github/actions/enumerate-tests' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            result.RetryableJobs[0].Reason);
     }
 
     [Fact]
