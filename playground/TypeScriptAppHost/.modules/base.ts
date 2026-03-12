@@ -170,7 +170,7 @@ export class ReferenceExpression {
             const rpcArgs: Record<string, unknown> = { context: this._handle };
             if (cancellationTokenId !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
             return await this._client.invokeCapability<string | null>(
-                'Aspire.Hosting.ApplicationModel/getValueAsync',
+                'Aspire.Hosting.ApplicationModel/getValue',
                 rpcArgs
             );
         } finally {
