@@ -74,7 +74,10 @@ internal static class BuilderExports
     [AspireExport("getConnectionString", Description = "Gets a connection string by name")]
     public static string? GetConnectionString(this IConfiguration configuration, string name)
     {
-        return configuration.GetConnectionString(name);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return global::Microsoft.Extensions.Configuration.ConfigurationExtensions.GetConnectionString(configuration, name);
     }
 
     /// <summary>
@@ -132,7 +135,9 @@ internal static class BuilderExports
     [AspireExport("isDevelopment", Description = "Checks if running in Development environment")]
     public static bool IsDevelopment(this IHostEnvironment environment)
     {
-        return environment.IsDevelopment();
+        ArgumentNullException.ThrowIfNull(environment);
+
+        return global::Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsDevelopment(environment);
     }
 
     /// <summary>
@@ -145,7 +150,7 @@ internal static class BuilderExports
     {
         ArgumentNullException.ThrowIfNull(environment);
 
-        return environment.IsProduction();
+        return global::Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsProduction(environment);
     }
 
     /// <summary>
@@ -158,7 +163,7 @@ internal static class BuilderExports
     {
         ArgumentNullException.ThrowIfNull(environment);
 
-        return environment.IsStaging();
+        return global::Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsStaging(environment);
     }
 
     /// <summary>
@@ -173,7 +178,7 @@ internal static class BuilderExports
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(environmentName);
 
-        return environment.IsEnvironment(environmentName);
+        return global::Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsEnvironment(environment, environmentName);
     }
 
     #endregion

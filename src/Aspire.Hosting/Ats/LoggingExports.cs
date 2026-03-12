@@ -67,18 +67,7 @@ internal static class LoggingExports
     [AspireExport("log", Description = "Logs a message with specified level")]
     public static void Log(this ILogger logger, string level, string message)
     {
-        var logLevel = level.ToLowerInvariant() switch
-        {
-            "trace" => LogLevel.Trace,
-            "debug" => LogLevel.Debug,
-            "information" or "info" => LogLevel.Information,
-            "warning" or "warn" => LogLevel.Warning,
-            "error" => LogLevel.Error,
-            "critical" => LogLevel.Critical,
-            _ => LogLevel.Information
-        };
-
-        logger.Log(logLevel, "{Message}", message);
+        logger.Log(ParseLogLevel(level), "{Message}", message);
     }
 
     /// <summary>
@@ -125,5 +114,22 @@ internal static class LoggingExports
     public static void CompleteLogByName(this ResourceLoggerService loggerService, string resourceName)
     {
         loggerService.Complete(resourceName);
+    }
+
+    internal static LogLevel ParseLogLevel(string level, bool throwOnUnknown = false)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+
+        return level.ToLowerInvariant() switch
+        {
+            "trace" => LogLevel.Trace,
+            "debug" => LogLevel.Debug,
+            "information" or "info" => LogLevel.Information,
+            "warning" or "warn" => LogLevel.Warning,
+            "error" => LogLevel.Error,
+            "critical" => LogLevel.Critical,
+            _ when throwOnUnknown => throw new ArgumentOutOfRangeException(nameof(level), level, "Unsupported log level."),
+            _ => LogLevel.Information
+        };
     }
 }

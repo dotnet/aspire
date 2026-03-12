@@ -166,15 +166,6 @@ internal static class PipelineExports
 
     private static LogLevel ParseLogLevel(string level)
     {
-        return level.ToLowerInvariant() switch
-        {
-            "trace" => LogLevel.Trace,
-            "debug" => LogLevel.Debug,
-            "information" or "info" => LogLevel.Information,
-            "warning" or "warn" => LogLevel.Warning,
-            "error" => LogLevel.Error,
-            "critical" => LogLevel.Critical,
-            _ => throw new ArgumentOutOfRangeException(nameof(level), level, "Unsupported log level.")
-        };
+        return LoggingExports.ParseLogLevel(level, throwOnUnknown: true);
     }
 }
