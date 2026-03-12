@@ -1421,6 +1421,39 @@ public class DcpExecutorTests
         Assert.Equal("http", plc.LaunchProfile);
     }
 
+    [Theory]
+    [InlineData("Debug", ExecutableLaunchMode.Debug)]
+    [InlineData("NoDebug", ExecutableLaunchMode.NoDebug)]
+    public async Task ProjectLaunchConfiguration_RespectsDebugSessionRunMode(string runMode, string expectedMode)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddProject<Projects.ServiceA>("proj", launchProfileName: "http");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost",
+            ["AppHost:BrowserToken"] = "token",
+            ["AppHost:OtlpApiKey"] = "otlp-key",
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionRunMode] = runMode
+        });
+        var configuration = configBuilder.Build();
+
+        var executor = CreateAppExecutor(model, configuration: configuration, kubernetesService: kubernetes);
+
+        await executor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetes.CreatedResources.OfType<Executable>());
+        Assert.True(exe.TryGetProjectLaunchConfiguration(out var plc));
+        Assert.NotNull(plc);
+        Assert.Equal(expectedMode, plc!.Mode);
+    }
+
     [Fact]
     public async Task ProjectLaunchConfiguration_Disabled_WhenLaunchProfileExcluded_InDebugSession()
     {
