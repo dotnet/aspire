@@ -213,6 +213,75 @@ export class CapabilityError extends Error {
     }
 }
 
+/**
+ * Error thrown when the AppHost script uses the generated SDK incorrectly.
+ */
+export class AppHostUsageError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AppHostUsageError';
+    }
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+    return (
+        value !== null &&
+        (typeof value === 'object' || typeof value === 'function') &&
+        'then' in value &&
+        typeof (value as { then?: unknown }).then === 'function'
+    );
+}
+
+function validateCapabilityArgs(
+    capabilityId: string,
+    args?: Record<string, unknown>
+): void {
+    if (!args) {
+        return;
+    }
+
+    const seen = new Set<object>();
+
+    const validateValue = (value: unknown, path: string): void => {
+        if (value === null || value === undefined) {
+            return;
+        }
+
+        if (isPromiseLike(value)) {
+            throw new AppHostUsageError(
+                `Argument '${path}' passed to capability '${capabilityId}' is a Promise-like value. ` +
+                `This usually means an async builder call was not awaited. ` +
+                `Did you forget 'await' on a call like builder.addPostgres(...) or resource.addDatabase(...)?`
+            );
+        }
+
+        if (typeof value !== 'object') {
+            return;
+        }
+
+        if (seen.has(value)) {
+            return;
+        }
+
+        seen.add(value);
+
+        if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
+                validateValue(value[i], `${path}[${i}]`);
+            }
+            return;
+        }
+
+        for (const [key, nestedValue] of Object.entries(value)) {
+            validateValue(nestedValue, `${path}.${key}`);
+        }
+    };
+
+    for (const [key, value] of Object.entries(args)) {
+        validateValue(value, key);
+    }
+}
+
 // ============================================================================
 // Callback Registry
 // ============================================================================
@@ -532,6 +601,8 @@ export class AspireClient {
         if (!this.connection) {
             throw new Error('Not connected to AppHost');
         }
+
+        validateCapabilityArgs(capabilityId, args);
 
         // Ref counting: The vscode-jsonrpc socket keeps Node's event loop alive.
         // We ref() during RPC calls so the process doesn't exit mid-call, and
