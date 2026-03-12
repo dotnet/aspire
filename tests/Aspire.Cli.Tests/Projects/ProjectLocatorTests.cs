@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -25,8 +26,8 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
-    var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-    return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
     }
 
     [Fact]
@@ -774,7 +775,7 @@ builder.Build().Run();");
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true).DefaultTimeout();
 
-        // Should return the first project file (TestConsoleInteractionService returns the first choice)
+        // Should return the first project file (TestInteractionService returns the first choice)
         Assert.Equal(projectFile1.FullName, returnedProjectFile!.FullName);
     }
 
@@ -955,22 +956,92 @@ builder.Build().Run();");
         Assert.Equal(appHostCsFile.FullName, foundFiles[0].FullName);
     }
 
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_ExcludesDotNetProjectsWhenSdkNotAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (false, null, "10.0.100")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Empty(foundFiles);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_IncludesDotNetProjectsWhenSdkAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ => (true, "10.0.100", "10.0.100")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Single(foundFiles);
+        Assert.Equal(projectFile.FullName, foundFiles[0].FullName);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_DoesNotCheckSdkWhenNoDotNetProjects()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // No project files at all
+        var sdkCheckCalled = false;
+        var sdkInstaller = new TestDotNetSdkInstaller
+        {
+            CheckAsyncCallback = _ =>
+            {
+                sdkCheckCalled = true;
+                return (false, null, "10.0.100");
+            }
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, sdkInstaller: sdkInstaller);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Empty(foundFiles);
+        Assert.False(sdkCheckCalled);
+    }
+
     private static ProjectLocator CreateProjectLocator(
         CliExecutionContext executionContext,
         IInteractionService? interactionService = null,
         IConfigurationService? configurationService = null,
         IAppHostProjectFactory? projectFactory = null,
         ILanguageDiscovery? languageDiscovery = null,
+        IDotNetSdkInstaller? sdkInstaller = null,
         AspireCliTelemetry? telemetry = null)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         return new ProjectLocator(
             logger,
             executionContext,
-            interactionService ?? new TestConsoleInteractionService(),
+            interactionService ?? new TestInteractionService(),
             configurationService ?? new TestConfigurationService(),
             projectFactory ?? new TestAppHostProjectFactory(),
             languageDiscovery ?? new TestLanguageDiscovery(),
+            sdkInstaller ?? new TestDotNetSdkInstaller(),
             telemetry ?? TestTelemetryHelper.CreateInitializedTelemetry());
     }
 }

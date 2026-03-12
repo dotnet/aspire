@@ -20,7 +20,7 @@ internal interface IExtensionInteractionService : IInteractionService
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
     void DisplayConsolePlainText(string message);
-    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null);
     void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
     void ConsoleDisplaySubtleMessage(string message, bool allowMarkup = false);
 }
@@ -69,20 +69,33 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action, emoji, allowMarkup).ConfigureAwait(false);
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
-        return value;
+        try
+        {
+            return await _consoleInteractionService.ShowStatusAsync(statusText, action, emoji, allowMarkup).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public void ShowStatus(string statusText, Action action, KnownEmoji? emoji = null, bool allowMarkup = false)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.ShowStatus(statusText, action, emoji, allowMarkup);
 
-        result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
-        Debug.Assert(result);
+        try
+        {
+            _consoleInteractionService.ShowStatus(statusText, action, emoji, allowMarkup);
+        }
+        finally
+        {
+            // Clear the IDE status indicator even if the action threw, to avoid leaving it spinning indefinitely.
+            result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
+            Debug.Assert(result);
+        }
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
@@ -249,7 +262,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     }
 
     public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
-        CancellationToken cancellationToken = default) where T : notnull
+        IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
     {
         if (_extensionPromptEnabled)
         {
@@ -259,6 +272,8 @@ internal class ExtensionInteractionService : IExtensionInteractionService
             {
                 try
                 {
+                    // Note: The extension backchannel protocol does not yet support preSelected items.
+                    // Pre-selected items are applied only when falling back to the console interaction service.
                     var result = await Backchannel.PromptForSelectionsAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
                     tcs.SetResult(result);
                 }
@@ -276,7 +291,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
         else
         {
-            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, preSelected, optional, cancellationToken);
         }
     }
 
@@ -433,9 +448,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayPlainText(message);
     }
 
-    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, DebugSessionOptions? options = null)
     {
-        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
+        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, options, _cancellationToken);
     }
 
     public void WriteDebugSessionMessage(string message, bool stdout, string? textStyle)

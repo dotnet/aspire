@@ -30,6 +30,8 @@
     "workspaceContains:**/*.csproj",
     "onView:workbench.view.debug",
     "workspaceContains:**/apphost.cs",
+    "workspaceContains:**/apphost.ts",
+    "workspaceContains:**/apphost.js",
     "onCommand:aspire-vscode.installCliStable",
     "onCommand:aspire-vscode.installCliDaily",
     "onCommand:aspire-vscode.verifyCliInstalled"
@@ -37,6 +39,12 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "aspire-mcp-server",
+        "label": "Aspire"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -85,6 +93,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "command": {
+                "type": "string",
+                "description": "%extension.debug.command%",
+                "enum": ["run", "deploy", "publish", "do"],
+                "default": "run"
+              },
+              "step": {
+                "type": "string",
+                "description": "%extension.debug.step%"
               }
             }
           }
@@ -154,6 +172,12 @@
         "command": "aspire-vscode.deploy",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
         "category": "Aspire"
       },
       {
@@ -239,6 +263,18 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "aspire-vscode.switchToGlobalView",
+        "title": "%command.switchToGlobalView%",
+        "category": "Aspire",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "aspire-vscode.switchToWorkspaceView",
+        "title": "%command.switchToWorkspaceView%",
+        "category": "Aspire",
+        "icon": "$(home)"
+      },
+      {
         "command": "aspire-vscode.installCliStable",
         "title": "%command.installCliStable%",
         "category": "Aspire"
@@ -268,24 +304,24 @@
       "explorer/context": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@1"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@2"
         }
       ],
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-3"
         }
       ],
@@ -329,9 +365,27 @@
         {
           "command": "aspire-vscode.executeResourceCommand",
           "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "false"
         }
       ],
       "view/title": [
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode != global",
+          "group": "navigation"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode == global",
+          "group": "navigation"
+        },
         {
           "command": "aspire-vscode.refreshRunningAppHosts",
           "when": "view == aspire-vscode.runningAppHosts",
@@ -341,7 +395,7 @@
       "view/item/context": [
         {
           "command": "aspire-vscode.openDashboard",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^(appHost|workspaceResources)$/",
           "group": "inline"
         },
         {
@@ -444,6 +498,19 @@
           "type": "boolean",
           "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
+          "scope": "window"
+        },
+        "aspire.registerMcpServerInWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.registerMcpServerInWorkspace%",
+          "scope": "window"
+        },
+        "aspire.globalAppHostsPollingInterval": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "description": "%configuration.aspire.globalAppHostsPollingInterval%",
           "scope": "window"
         }
       }

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
 using Semver;
 
@@ -12,7 +11,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IConfiguration configuration) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -23,12 +22,6 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public async Task<(bool Success, string? HighestDetectedVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion(configuration);
-
-        if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
-        {
-            // If the feature is disabled, we assume the SDK is available
-            return (true, null, minimumVersion);
-        }
 
         try
         {

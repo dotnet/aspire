@@ -12,8 +12,9 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Reference expressions are serialized in JSON as:
+/// Reference expressions are serialized in JSON using the <c>$expr</c> marker in two shapes:
 /// </para>
+/// <para><b>Value mode</b> — a format string with optional value-provider placeholders:</para>
 /// <code>
 /// {
 ///   "$expr": {
@@ -25,30 +26,42 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 ///   }
 /// }
 /// </code>
+/// <para><b>Conditional mode</b> — a ternary expression selecting between two branch expressions:</para>
+/// <code>
+/// {
+///   "$expr": {
+///     "condition": { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReferenceExpression:1" },
+///     "matchValue": "true",
+///     "whenTrue": { "$expr": { "format": ",ssl=true" } },
+///     "whenFalse": { "$expr": { "format": "" } }
+///   }
+/// }
+/// </code>
 /// <para>
-/// The format string uses {0}, {1}, etc. placeholders that correspond to the
-/// value providers array. Each value provider can be:
+/// The presence of a <c>condition</c> property inside the <c>$expr</c> object distinguishes
+/// conditional mode from value mode.
 /// </para>
-/// <list type="bullet">
-///   <item>A handle to an object that implements both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/></item>
-///   <item>A string literal that will be included directly in the expression</item>
-/// </list>
 /// </remarks>
 internal sealed class ReferenceExpressionRef
 {
-    /// <summary>
-    /// The format string with placeholders (e.g., "redis://{0}:{1}").
-    /// </summary>
-    public required string Format { get; init; }
+    // Value mode fields
+    public string? Format { get; init; }
+    public JsonNode?[]? ValueProviders { get; init; }
+
+    // Conditional mode fields
+    public JsonNode? Condition { get; init; }
+    public JsonNode? WhenTrue { get; init; }
+    public JsonNode? WhenFalse { get; init; }
+    public string? MatchValue { get; init; }
 
     /// <summary>
-    /// The value provider handles corresponding to placeholders in the format string.
-    /// Each element is the JSON representation of a handle reference.
+    /// Gets a value indicating whether this reference represents a conditional expression.
     /// </summary>
-    public JsonNode?[]? ValueProviders { get; init; }
+    public bool IsConditional => Condition is not null;
 
     /// <summary>
     /// Creates a ReferenceExpressionRef from a JSON node if it contains a $expr property.
+    /// Handles both value mode (format + valueProviders) and conditional mode (condition + whenTrue + whenFalse).
     /// </summary>
     /// <param name="node">The JSON node to parse.</param>
     /// <returns>A ReferenceExpressionRef if the node represents an expression, otherwise null.</returns>
@@ -64,7 +77,30 @@ internal sealed class ReferenceExpressionRef
             return null;
         }
 
-        // Get the format string (required)
+        // Check for conditional mode: presence of "condition" property
+        if (exprObj.TryGetPropertyValue("condition", out var conditionNode))
+        {
+            exprObj.TryGetPropertyValue("whenTrue", out var whenTrueNode);
+            exprObj.TryGetPropertyValue("whenFalse", out var whenFalseNode);
+
+            string? matchValue = null;
+            if (exprObj.TryGetPropertyValue("matchValue", out var matchValueNode) &&
+                matchValueNode is JsonValue matchValueJsonValue &&
+                matchValueJsonValue.TryGetValue<string>(out var mv))
+            {
+                matchValue = mv;
+            }
+
+            return new ReferenceExpressionRef
+            {
+                Condition = conditionNode,
+                WhenTrue = whenTrueNode,
+                WhenFalse = whenFalseNode,
+                MatchValue = matchValue
+            };
+        }
+
+        // Value mode: format + optional valueProviders
         if (!exprObj.TryGetPropertyValue("format", out var formatNode) ||
             formatNode is not JsonValue formatValue ||
             !formatValue.TryGetValue<string>(out var format))
@@ -103,6 +139,7 @@ internal sealed class ReferenceExpressionRef
 
     /// <summary>
     /// Creates a ReferenceExpression from this reference by resolving handles.
+    /// Handles both value mode and conditional mode.
     /// </summary>
     /// <param name="handles">The handle registry to resolve handles from.</param>
     /// <param name="capabilityId">The capability ID for error messages.</param>
@@ -114,12 +151,61 @@ internal sealed class ReferenceExpressionRef
         string capabilityId,
         string paramName)
     {
+        if (IsConditional)
+        {
+            return ToConditionalReferenceExpression(handles, capabilityId, paramName);
+        }
+
+        return ToValueReferenceExpression(handles, capabilityId, paramName);
+    }
+
+    private ReferenceExpression ToConditionalReferenceExpression(
+        HandleRegistry handles,
+        string capabilityId,
+        string paramName)
+    {
+        // Resolve the condition handle to an IValueProvider
+        var conditionHandleRef = HandleRef.FromJsonNode(Condition)
+            ?? throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.condition",
+                "Condition must be a handle reference ({ $handle: \"...\" })");
+
+        if (!handles.TryGet(conditionHandleRef.HandleId, out var conditionObj, out _))
+        {
+            throw CapabilityException.HandleNotFound(conditionHandleRef.HandleId, capabilityId);
+        }
+
+        if (conditionObj is not IValueProvider condition)
+        {
+            throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.condition",
+                $"Condition handle must resolve to an IValueProvider, got {conditionObj?.GetType().Name ?? "null"}");
+        }
+
+        // Resolve whenTrue as a ReferenceExpression
+        var whenTrueExprRef = FromJsonNode(WhenTrue)
+            ?? throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.whenTrue",
+                "whenTrue must be a reference expression ({ $expr: { ... } })");
+        var whenTrue = whenTrueExprRef.ToReferenceExpression(handles, capabilityId, $"{paramName}.whenTrue");
+
+        // Resolve whenFalse as a ReferenceExpression
+        var whenFalseExprRef = FromJsonNode(WhenFalse)
+            ?? throw CapabilityException.InvalidArgument(capabilityId, $"{paramName}.whenFalse",
+                "whenFalse must be a reference expression ({ $expr: { ... } })");
+        var whenFalse = whenFalseExprRef.ToReferenceExpression(handles, capabilityId, $"{paramName}.whenFalse");
+
+        return ReferenceExpression.CreateConditional(condition, MatchValue ?? bool.TrueString, whenTrue, whenFalse);
+    }
+
+    private ReferenceExpression ToValueReferenceExpression(
+        HandleRegistry handles,
+        string capabilityId,
+        string paramName)
+    {
         var builder = new ReferenceExpressionBuilder();
 
         if (ValueProviders == null || ValueProviders.Length == 0)
         {
             // No value providers - just a literal string
-            builder.AppendLiteral(Format);
+            builder.AppendLiteral(Format!);
         }
         else
         {
@@ -152,7 +238,7 @@ internal sealed class ReferenceExpressionRef
             }
 
             // Parse the format string and interleave with value providers
-            var parts = SplitFormatString(Format);
+            var parts = SplitFormatString(Format!);
             foreach (var part in parts)
             {
                 if (part.StartsWith("{") && part.EndsWith("}") &&

@@ -3,7 +3,7 @@ import { AzureEventHubsRole, createBuilder } from './.modules/aspire.js';
 const builder = await createBuilder();
 const eventHubs = await builder.addAzureEventHubs('eventhubs');
 
-await eventHubs.withRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataOwner]);
+await eventHubs.withEventHubsRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataOwner]);
 
 const hub = await eventHubs.addHub('orders', { hubName: 'orders-hub' });
 await hub.withProperties(async (configuredHub) => {
@@ -15,14 +15,14 @@ await hub.withProperties(async (configuredHub) => {
 });
 
 const consumerGroup = await hub.addConsumerGroup('processors', { groupName: 'processor-group' });
-await consumerGroup.withRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataReceiver]);
+await consumerGroup.withEventHubsRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataReceiver]);
 
 await eventHubs.runAsEmulator({
     configureContainer: async (emulator) => {
         await emulator
             .withHostPort({ port: 5673 })
             .withConfigurationFile('./eventhubs.config.json')
-            .withRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataSender]);
+            .withEventHubsRoleAssignments(eventHubs, [AzureEventHubsRole.AzureEventHubsDataSender]);
     }
 });
 

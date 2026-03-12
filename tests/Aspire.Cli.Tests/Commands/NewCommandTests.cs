@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
@@ -18,6 +17,7 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using Aspire.Cli.Backchannel;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -541,15 +541,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task NewCommand_EmptyPackageList_DisplaysErrorMessage()
     {
-        string? displayedErrorMessage = null;
+        TestInteractionService? testInteractionService = null;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
             options.InteractionServiceFactory = (sp) => {
-                var testInteractionService = new TestConsoleInteractionService();
-                testInteractionService.DisplayErrorCallback = (message) => {
-                    displayedErrorMessage = message;
-                };
+                testInteractionService = new TestInteractionService();
                 return testInteractionService;
             };
 
@@ -570,7 +567,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
-        Assert.Contains(TemplatingStrings.NoTemplateVersionsFound, displayedErrorMessage);
+        Assert.NotNull(testInteractionService);
+        Assert.Contains(testInteractionService.DisplayedErrors, e => e.Contains(TemplatingStrings.NoTemplateVersionsFound));
     }
 
     [Fact]
@@ -711,7 +709,20 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
             options.InteractionServiceFactory = (sp) =>
             {
-                var testInteractionService = new OrderTrackingInteractionService(operationOrder);
+                var testInteractionService = new TestInteractionService();
+                testInteractionService.PromptForSelectionCallback = (promptText, choices, formatter, ct) =>
+                {
+                    // Track template option prompts
+                    if (promptText?.Contains("Redis") == true ||
+                        promptText?.Contains("test framework") == true ||
+                        promptText?.Contains("Create a test project") == true ||
+                        promptText?.Contains("xUnit") == true)
+                    {
+                        operationOrder.Add("TemplateOption");
+                    }
+
+                    return choices.Cast<object>().First();
+                };
                 return testInteractionService;
             };
 
@@ -838,7 +849,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
             };
@@ -903,7 +914,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
             };
@@ -1005,7 +1016,9 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) =>
                 {
@@ -1180,7 +1193,9 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestConsoleInteractionService
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+
+            options.InteractionServiceFactory = _ => new TestInteractionService
             {
                 PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) =>
                 {
@@ -1388,11 +1403,16 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         return Task.FromResult(choices.First());
     }
 
-    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
     {
         if (!choices.Any())
         {
             throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (preSelected is not null)
+        {
+            return Task.FromResult<IReadOnlyList<T>>(preSelected.ToList());
         }
 
         return Task.FromResult<IReadOnlyList<T>>(choices.ToList());

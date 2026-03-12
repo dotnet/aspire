@@ -32,6 +32,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <remarks>
     /// Dev tunnels can be used to expose local endpoints to the public internet via a secure tunnel. By default,
     /// the tunnel requires authentication, but anonymous access can be enabled via <see cref="WithAnonymousAccess(IResourceBuilder{DevTunnelResource})"/>.
+    /// This overload is not available in polyglot app hosts. Use <see cref="AddDevTunnelForPolyglot"/> instead.
     /// </remarks>
     /// <example>
     /// The following example shows how to create a dev tunnel resource that exposes all endpoints on a web application project and enable anonymous access:
@@ -44,7 +45,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [AspireExport("addDevTunnel", Description = "Adds a Dev Tunnel resource to the distributed application model.")]
+    [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
     public static IResourceBuilder<DevTunnelResource> AddDevTunnel(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -232,6 +233,21 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         return rb;
     }
+
+    [AspireExport("addDevTunnel", Description = "Adds a Dev Tunnel resource to the distributed application model.")]
+    internal static IResourceBuilder<DevTunnelResource> AddDevTunnelForPolyglot(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string? tunnelId = null,
+        bool allowAnonymous = false,
+        string? description = null,
+        string[]? labels = null)
+        => AddDevTunnel(builder, name, tunnelId, new DevTunnelOptions
+        {
+            AllowAnonymous = allowAnonymous,
+            Description = description,
+            Labels = labels is null ? null : [.. labels]
+        });
 
     /// <summary>
     /// Adds ports on the dev tunnel for all endpoints found on the referenced resource and sets whether anonymous access is allowed.

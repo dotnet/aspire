@@ -47,6 +47,11 @@
         <target state="translated">AppHost kullanımı: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="PromptRunAgentInit">
+        <source>Would you like to configure AI agent environments for this project?</source>
+        <target state="new">Would you like to configure AI agent environments for this project?</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

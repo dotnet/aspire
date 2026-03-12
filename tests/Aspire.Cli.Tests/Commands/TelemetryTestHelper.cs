@@ -4,7 +4,6 @@
 using System.Net;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Otlp.Serialization;
@@ -66,7 +65,7 @@ internal static class TelemetryTestHelper
         ResourceInfoJson[] resources,
         Dictionary<string, string> telemetryEndpoints)
     {
-        var resourcesJson = JsonSerializer.Serialize(resources, OtlpCliJsonSerializerContext.Default.ResourceInfoJsonArray);
+        var resourcesJson = JsonSerializer.Serialize(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
 
         var monitor = new TestAuxiliaryBackchannelMonitor();
         var connection = new TestAppHostAuxiliaryBackchannel

@@ -457,7 +457,7 @@ public class DotNetTemplateFactoryTests
         public Task<T> PromptForSelectionAsync<T>(string prompt, IEnumerable<T> choices, Func<T, string> displaySelector, CancellationToken cancellationToken) where T : notnull
             => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+        public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, IEnumerable<T>? preSelected = null, bool optional = false, CancellationToken cancellationToken = default) where T : notnull
             => throw new NotImplementedException();
 
         public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
@@ -504,10 +504,13 @@ public class DotNetTemplateFactoryTests
         public Task<int> NewProjectAsync(string templateName, string projectName, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions? options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
+        public Task<int> RestoreAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<int> BuildAsync(FileInfo projectFile, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string version, string? packageSourceUrl, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        public Task<int> AddPackageAsync(FileInfo projectFile, string packageName, string version, string? packageSourceUrl, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)

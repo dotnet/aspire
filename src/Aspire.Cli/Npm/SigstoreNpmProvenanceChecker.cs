@@ -9,30 +9,9 @@ using Sigstore;
 namespace Aspire.Cli.Npm;
 
 /// <summary>
-/// The parsed result of an npm attestation response, containing both the Sigstore bundle
-/// and the provenance data extracted from the DSSE envelope in a single pass.
-/// </summary>
-internal sealed class NpmAttestationParseResult
-{
-    /// <summary>
-    /// Gets the outcome of the parse operation.
-    /// </summary>
-    public required ProvenanceVerificationOutcome Outcome { get; init; }
-
-    /// <summary>
-    /// Gets the raw Sigstore bundle JSON node for deserialization by the Sigstore library.
-    /// </summary>
-    public JsonNode? BundleNode { get; init; }
-
-    /// <summary>
-    /// Gets the provenance data extracted from the DSSE envelope payload.
-    /// </summary>
-    public NpmProvenanceData? Provenance { get; init; }
-}
-
-/// <summary>
 /// Verifies npm package provenance by cryptographically verifying Sigstore bundles
 /// from the npm registry attestations API using the Sigstore .NET library.
+/// Uses Fulcio certificate extensions and in-toto statement APIs for attestation analysis.
 /// </summary>
 internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogger<SigstoreNpmProvenanceChecker> logger) : INpmProvenanceChecker
 {
@@ -56,22 +35,49 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationFetchFailed };
         }
 
-        var attestation = ParseAttestation(json);
-        if (attestation.Outcome is not ProvenanceVerificationOutcome.Verified)
+        // Extract the SLSA provenance bundle JSON from the npm attestation response.
+        var bundleJson = ExtractSlsaBundleJson(json, out var parseFailed);
+        if (bundleJson is null)
         {
-            return new ProvenanceVerificationResult { Outcome = attestation.Outcome, Provenance = attestation.Provenance };
+            return new ProvenanceVerificationResult
+            {
+                Outcome = parseFailed
+                    ? ProvenanceVerificationOutcome.AttestationParseFailed
+                    : ProvenanceVerificationOutcome.SlsaProvenanceNotFound
+            };
         }
 
-        var sigstoreFailure = await VerifySigstoreBundleAsync(
-            attestation.BundleNode!, expectedSourceRepository, sriIntegrity,
+        SigstoreBundle bundle;
+        try
+        {
+            bundle = SigstoreBundle.Deserialize(bundleJson);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to deserialize Sigstore bundle for {Package}@{Version}", packageName, version);
+            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
+        }
+
+        // Verify the bundle with a policy that uses CertificateIdentity.ForGitHubActions
+        // to check the SAN (Subject Alternative Name) and issuer in the Fulcio certificate.
+        // This verifies the signing identity originates from the expected GitHub repository.
+        var (sigstoreFailure, verificationResult) = await VerifySigstoreBundleAsync(
+            bundle, expectedSourceRepository, sriIntegrity,
             packageName, version, cancellationToken).ConfigureAwait(false);
         if (sigstoreFailure is not null)
         {
             return sigstoreFailure;
         }
 
+        // Extract provenance from the verified result's in-toto statement and certificate extensions.
+        var provenance = ExtractProvenanceFromResult(verificationResult!);
+        if (provenance is null)
+        {
+            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
+        }
+
         return VerifyProvenanceFields(
-            attestation.Provenance!, expectedSourceRepository, expectedWorkflowPath,
+            provenance, expectedSourceRepository, expectedWorkflowPath,
             expectedBuildType, validateWorkflowRef);
     }
 
@@ -105,11 +111,16 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
     }
 
     /// <summary>
-    /// Parses the npm attestation JSON in a single pass, extracting both the Sigstore bundle
-    /// node and the provenance data from the SLSA provenance attestation's DSSE envelope.
+    /// Extracts the Sigstore bundle JSON string for the SLSA provenance attestation
+    /// from the npm registry attestations API response.
+    /// Returns the bundle JSON on success, or <c>null</c> if the JSON is malformed or
+    /// no SLSA provenance attestation is found.
     /// </summary>
-    internal static NpmAttestationParseResult ParseAttestation(string attestationJson)
+    /// <param name="attestationJson">The raw JSON from the npm attestations API.</param>
+    /// <param name="parseFailed">Set to <c>true</c> when the input is not valid JSON; <c>false</c> otherwise.</param>
+    internal static string? ExtractSlsaBundleJson(string attestationJson, out bool parseFailed)
     {
+        parseFailed = false;
         JsonNode? doc;
         try
         {
@@ -117,134 +128,69 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         }
         catch (JsonException)
         {
-            return new NpmAttestationParseResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
+            parseFailed = true;
+            return null;
         }
 
-        var attestations = doc?["attestations"]?.AsArray();
-        if (attestations is null || attestations.Count == 0)
+        var attestationsNode = doc?["attestations"];
+        if (attestationsNode is not JsonArray { Count: >0 } attestations)
         {
-            return new NpmAttestationParseResult { Outcome = ProvenanceVerificationOutcome.SlsaProvenanceNotFound };
+            return null;
         }
 
         foreach (var attestation in attestations)
         {
-            var predicateType = attestation?["predicateType"]?.GetValue<string>();
+            if (attestation is not JsonObject attestationObj)
+            {
+                continue;
+            }
+
+            var predicateTypeNode = attestationObj["predicateType"];
+            if (predicateTypeNode is not JsonValue predicateTypeValue)
+            {
+                continue;
+            }
+
+            string? predicateType;
+            try
+            {
+                predicateType = predicateTypeValue.GetValue<string>();
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+
             if (!string.Equals(predicateType, SlsaProvenancePredicateType, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var bundleNode = attestation?["bundle"];
-            if (bundleNode is null)
-            {
-                return new NpmAttestationParseResult { Outcome = ProvenanceVerificationOutcome.SlsaProvenanceNotFound };
-            }
-
-            var payload = bundleNode["dsseEnvelope"]?["payload"]?.GetValue<string>();
-            if (payload is null)
-            {
-                return new NpmAttestationParseResult
-                {
-                    Outcome = ProvenanceVerificationOutcome.PayloadDecodeFailed,
-                    BundleNode = bundleNode
-                };
-            }
-
-            byte[] decodedBytes;
-            try
-            {
-                decodedBytes = Convert.FromBase64String(payload);
-            }
-            catch (FormatException)
-            {
-                return new NpmAttestationParseResult
-                {
-                    Outcome = ProvenanceVerificationOutcome.PayloadDecodeFailed,
-                    BundleNode = bundleNode
-                };
-            }
-
-            var provenance = ParseProvenanceFromStatement(decodedBytes);
-            if (provenance is null)
-            {
-                return new NpmAttestationParseResult
-                {
-                    Outcome = ProvenanceVerificationOutcome.AttestationParseFailed,
-                    BundleNode = bundleNode
-                };
-            }
-
-            var outcome = provenance.SourceRepository is null
-                ? ProvenanceVerificationOutcome.SourceRepositoryNotFound
-                : ProvenanceVerificationOutcome.Verified;
-
-            return new NpmAttestationParseResult
-            {
-                Outcome = outcome,
-                BundleNode = bundleNode,
-                Provenance = provenance
-            };
+            var bundleNode = attestationObj["bundle"];
+            return bundleNode?.ToJsonString();
         }
 
-        return new NpmAttestationParseResult { Outcome = ProvenanceVerificationOutcome.SlsaProvenanceNotFound };
-    }
-
-    /// <summary>
-    /// Extracts provenance fields from a decoded in-toto statement.
-    /// </summary>
-    internal static NpmProvenanceData? ParseProvenanceFromStatement(byte[] statementBytes)
-    {
-        try
-        {
-            var statement = JsonNode.Parse(statementBytes);
-            var predicate = statement?["predicate"];
-            var buildDefinition = predicate?["buildDefinition"];
-            var workflow = buildDefinition?["externalParameters"]?["workflow"];
-
-            return new NpmProvenanceData
-            {
-                SourceRepository = workflow?["repository"]?.GetValue<string>(),
-                WorkflowPath = workflow?["path"]?.GetValue<string>(),
-                WorkflowRef = workflow?["ref"]?.GetValue<string>(),
-                BuilderId = predicate?["runDetails"]?["builder"]?["id"]?.GetValue<string>(),
-                BuildType = buildDefinition?["buildType"]?.GetValue<string>()
-            };
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return null;
     }
 
     /// <summary>
     /// Cryptographically verifies the Sigstore bundle using the Sigstore library.
-    /// Checks the Fulcio certificate chain, Rekor transparency log inclusion, and OIDC identity.
+    /// Checks the Fulcio certificate chain, Rekor transparency log inclusion, OIDC identity,
+    /// and source repository via CertificateExtensionPolicy.
     /// </summary>
-    /// <returns><c>null</c> if verification succeeded; otherwise a failure result.</returns>
-    private async Task<ProvenanceVerificationResult?> VerifySigstoreBundleAsync(
-        JsonNode bundleNode,
+    /// <returns>A failure result and null verification result on error; null failure and the verification result on success.</returns>
+    private async Task<(ProvenanceVerificationResult? Failure, VerificationResult? Result)> VerifySigstoreBundleAsync(
+        SigstoreBundle bundle,
         string expectedSourceRepository,
         string? sriIntegrity,
         string packageName,
         string version,
         CancellationToken cancellationToken)
     {
-        var bundleJson = bundleNode.ToJsonString();
-        SigstoreBundle bundle;
-        try
-        {
-            bundle = SigstoreBundle.Deserialize(bundleJson);
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Failed to deserialize Sigstore bundle for {Package}@{Version}", packageName, version);
-            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
-        }
-
         if (!TryParseGitHubOwnerRepo(expectedSourceRepository, out var owner, out var repo))
         {
             logger.LogWarning("Could not parse GitHub owner/repo from expected source repository: {ExpectedSourceRepository}", expectedSourceRepository);
-            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch };
+            return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch }, null);
         }
 
         var verifier = new SigstoreVerifier();
@@ -268,16 +214,14 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             }
             else
             {
-                var payloadBase64 = bundleNode["dsseEnvelope"]?["payload"]?.GetValue<string>();
-                if (payloadBase64 is null)
+                if (bundle.DsseEnvelope is null)
                 {
-                    logger.LogDebug("No DSSE payload found in bundle for {Package}@{Version}", packageName, version);
-                    return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.PayloadDecodeFailed };
+                    logger.LogDebug("No DSSE envelope found in bundle for {Package}@{Version}", packageName, version);
+                    return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.PayloadDecodeFailed }, null);
                 }
 
-                var payloadBytes = Convert.FromBase64String(payloadBase64);
                 (success, result) = await verifier.TryVerifyAsync(
-                    payloadBytes, bundle, policy, cancellationToken).ConfigureAwait(false);
+                    bundle.DsseEnvelope.Payload, bundle, policy, cancellationToken).ConfigureAwait(false);
             }
 
             if (!success)
@@ -285,25 +229,106 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
                 logger.LogWarning(
                     "Sigstore verification failed for {Package}@{Version}: {FailureReason}",
                     packageName, version, result?.FailureReason);
-                return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
+                return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed }, null);
             }
 
             logger.LogDebug(
                 "Sigstore verification passed for {Package}@{Version}. Signed by: {Signer}",
                 packageName, version, result?.SignerIdentity?.SubjectAlternativeName);
 
-            return null;
+            return (null, result);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Sigstore verification threw an exception for {Package}@{Version}", packageName, version);
-            return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
+            return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed }, null);
         }
     }
 
     /// <summary>
+    /// Extracts provenance data from a verified Sigstore result using the in-toto statement
+    /// and Fulcio certificate extensions, avoiding manual JSON parsing of the DSSE payload.
+    /// </summary>
+    internal static NpmProvenanceData? ExtractProvenanceFromResult(VerificationResult result)
+    {
+        var extensions = result.SignerIdentity?.Extensions;
+        var statement = result.Statement;
+
+        // Extract SLSA-specific fields from the in-toto statement predicate.
+        string? workflowPath = null;
+        string? buildType = null;
+        string? builderId = null;
+        string? sourceRepository = null;
+        string? workflowRef = null;
+
+        if (statement?.PredicateType == SlsaProvenancePredicateType && statement.Predicate is { } predicate)
+        {
+            if (predicate.ValueKind == JsonValueKind.Object)
+            {
+                if (predicate.TryGetProperty("buildDefinition", out var buildDefinition) &&
+                    buildDefinition.ValueKind == JsonValueKind.Object)
+                {
+                    if (buildDefinition.TryGetProperty("buildType", out var buildTypeElement) &&
+                        buildTypeElement.ValueKind == JsonValueKind.String)
+                    {
+                        buildType = buildTypeElement.GetString();
+                    }
+
+                    if (buildDefinition.TryGetProperty("externalParameters", out var extParams) &&
+                        extParams.ValueKind == JsonValueKind.Object &&
+                        extParams.TryGetProperty("workflow", out var workflow) &&
+                        workflow.ValueKind == JsonValueKind.Object)
+                    {
+                        if (workflow.TryGetProperty("repository", out var repoEl) &&
+                            repoEl.ValueKind == JsonValueKind.String)
+                        {
+                            sourceRepository = repoEl.GetString();
+                        }
+
+                        if (workflow.TryGetProperty("path", out var pathEl) &&
+                            pathEl.ValueKind == JsonValueKind.String)
+                        {
+                            workflowPath = pathEl.GetString();
+                        }
+
+                        if (workflow.TryGetProperty("ref", out var refEl) &&
+                            refEl.ValueKind == JsonValueKind.String)
+                        {
+                            workflowRef = refEl.GetString();
+                        }
+                    }
+                }
+
+                if (predicate.TryGetProperty("runDetails", out var runDetails) &&
+                    runDetails.ValueKind == JsonValueKind.Object &&
+                    runDetails.TryGetProperty("builder", out var builder) &&
+                    builder.ValueKind == JsonValueKind.Object)
+                {
+                    if (builder.TryGetProperty("id", out var idEl) &&
+                        idEl.ValueKind == JsonValueKind.String)
+                    {
+                        builderId = idEl.GetString();
+                    }
+                }
+            }
+        }
+
+        // Prefer certificate extensions for source repository and ref when available,
+        // as they are cryptographically bound to the signing certificate.
+        return new NpmProvenanceData
+        {
+            SourceRepository = extensions?.SourceRepositoryUri ?? sourceRepository,
+            WorkflowPath = workflowPath,
+            WorkflowRef = extensions?.SourceRepositoryRef ?? workflowRef,
+            BuilderId = builderId,
+            BuildType = buildType
+        };
+    }
+
+    /// <summary>
     /// Verifies that the extracted provenance fields match the expected values.
-    /// Checks source repository, workflow path, build type, and workflow ref in order.
+    /// Source repository is already verified cryptographically via CertificateExtensionPolicy
+    /// during Sigstore bundle verification, but is also checked here for defense-in-depth.
     /// </summary>
     internal static ProvenanceVerificationResult VerifyProvenanceFields(
         NpmProvenanceData provenance,

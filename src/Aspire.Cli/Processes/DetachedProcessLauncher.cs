@@ -9,7 +9,7 @@ namespace Aspire.Cli.Processes;
 // DetachedProcessLauncher — Platform-aware child process launcher for --detach
 // ============================================================================
 //
-// When `aspire run --detach` is used, the CLI spawns a child CLI process which
+// When `aspire start` (or `aspire run --detach`) is used, the CLI spawns a child CLI process which
 // in turn spawns the AppHost (the "grandchild"). Two constraints must hold:
 //
 // 1. The child's stdout/stderr must NOT appear on the parent's console.
@@ -56,7 +56,7 @@ namespace Aspire.Cli.Processes;
 
 /// <summary>
 /// Launches a child process with stdout/stderr suppressed and no handle/fd
-/// inheritance to grandchild processes. Used by <c>aspire run --detach</c>.
+/// inheritance to grandchild processes. Used by <c>aspire start</c>.
 /// </summary>
 internal static partial class DetachedProcessLauncher
 {

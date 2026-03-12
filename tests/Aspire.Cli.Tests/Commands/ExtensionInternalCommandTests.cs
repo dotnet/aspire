@@ -303,7 +303,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
             bool createSettingsFile, 
             CancellationToken cancellationToken)
         {
-            throw new ProjectLocatorException("No AppHost project found.");
+            throw new ProjectLocatorException("No AppHost project found.", ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(
@@ -311,7 +311,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
             bool createSettingsFile, 
             CancellationToken cancellationToken)
         {
-            throw new ProjectLocatorException("No AppHost project found.");
+            throw new ProjectLocatorException("No AppHost project found.", ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<AppHostProjectSearchResult> UseOrFindServiceProjectFileAsync(

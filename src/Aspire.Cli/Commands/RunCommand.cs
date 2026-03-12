@@ -140,9 +140,6 @@ internal sealed class RunCommand : BaseCommand
             Debug.Assert(_startDebugSessionOption is not null);
             startDebugSession = parseResult.GetValue(_startDebugSessionOption);
         }
-        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
-        // Force option kept for backward compatibility but no longer used since prompt was removed
-        // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // Validate that --format is only used with --detach
         if (format == OutputFormat.Json && !detach)
@@ -172,7 +169,7 @@ internal sealed class RunCommand : BaseCommand
             && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
         {
             extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
-            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
+            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession, new DebugSessionOptions { Command = "run" });
             return ExitCodeConstants.Success;
         }
 
@@ -198,24 +195,21 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Check for running instance if feature is enabled
-            if (runningInstanceDetectionEnabled)
-            {
-                // Even if we fail to stop we won't block the apphost starting
-                // to make sure we don't ever break flow. It should mostly stop
-                // just fine though.
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
+            // Check for running instance — even if we fail to stop we won't
+            // block the apphost starting to make sure we don't ever break flow.
+            // It should mostly stop just fine though.
+            var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
 
-                // If in isolated mode and a running instance was stopped, warn the user
-                if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
-                {
-                    InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
-                }
+            // If in isolated mode and a running instance was stopped, warn the user
+            if (isolated && runningInstanceResult == RunningInstanceResult.InstanceStopped)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Warning, RunCommandStrings.IsolatedModeRunningInstanceWarning);
             }
 
             // The completion sources are the contract between RunCommand and IAppHostProject
             var buildCompletionSource = new TaskCompletionSource<bool>();
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
+            var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
 
             context = new AppHostProjectContext
             {
@@ -224,14 +218,14 @@ internal sealed class RunCommand : BaseCommand
                 Debug = parseResult.GetValue(RootCommand.DebugOption),
                 NoBuild = noBuild,
                 NoRestore = noBuild, // --no-build implies --no-restore
-                WaitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption),
+                WaitForDebugger = waitForDebugger,
                 Isolated = isolated,
                 StartDebugSession = startDebugSession,
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
                 BuildCompletionSource = buildCompletionSource,
-                BackchannelCompletionSource = backchannelCompletionSource
+                BackchannelCompletionSource = backchannelCompletionSource,
             };
 
             // Start the project run as a pending task - we'll handle UX while it runs
@@ -248,6 +242,12 @@ internal sealed class RunCommand : BaseCommand
                 }
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ProjectCouldNotBeBuilt, ExecutionContext.LogFilePath));
                 return await pendingRun;
+            }
+
+            // If --wait-for-debugger, display a message so the user knows the AppHost is paused.
+            if (waitForDebugger)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Bug, InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
             // Now wait for the backchannel to be established
@@ -392,6 +392,12 @@ internal sealed class RunCommand : BaseCommand
             // Don't display raw output - it's already in the log file
             InteractionService.DisplayMessage(KnownEmojis.PageFacingUp, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.SeeLogsAt, ExecutionContext.LogFilePath));
             return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        catch (ConnectionLostException) when (isExtensionHost)
+        {
+            // When the extension manages the AppHost lifecycle (e.g., VS Code debug session),
+            // it terminates the process on stop/restart, causing the backchannel to drop.
+            return ExitCodeConstants.Success;
         }
         catch (Exception ex)
         {
@@ -619,6 +625,7 @@ internal sealed class RunCommand : BaseCommand
         var format = parseResult.GetValue(AppHostLauncher.s_formatOption);
         var isolated = parseResult.GetValue(AppHostLauncher.s_isolatedOption);
         var noBuild = parseResult.GetValue(s_noBuildOption);
+        var waitForDebugger = parseResult.GetValue(RootCommand.WaitForDebuggerOption);
         var globalArgs = RootCommand.GetChildProcessArgs(parseResult);
         var additionalArgs = parseResult.UnmatchedTokens.Where(t => t != "--detach").ToList();
 
@@ -632,6 +639,7 @@ internal sealed class RunCommand : BaseCommand
             format,
             isolated,
             isExtensionHost,
+            waitForDebugger,
             globalArgs,
             additionalArgs,
             cancellationToken);

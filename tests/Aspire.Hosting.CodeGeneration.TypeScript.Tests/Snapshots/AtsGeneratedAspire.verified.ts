@@ -8,6 +8,7 @@ import {
     AspireClient as AspireClientRpc,
     Handle,
     MarshalledHandle,
+    AppHostUsageError,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -128,6 +129,11 @@ export interface GetStatusAsyncOptions {
 
 export interface WaitForReadyAsyncOptions {
     cancellationToken?: AbortSignal;
+}
+
+export interface WithDataVolumeOptions {
+    name?: string;
+    isReadOnly?: boolean;
 }
 
 export interface WithOptionalCallbackOptions {
@@ -753,6 +759,23 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         return new TestDatabaseResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
+    /** @internal */
+    private async _withDataVolumeInternal(name?: string): Promise<TestDatabaseResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (name !== undefined) rpcArgs.name = name;
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDataVolume',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Adds a data volume */
+    withDataVolume(options?: WithDataVolumeOptions): TestDatabaseResourcePromise {
+        const name = options?.name;
+        return new TestDatabaseResourcePromise(this._withDataVolumeInternal(name));
+    }
+
 }
 
 /**
@@ -843,6 +866,11 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     /** Performs a cancellable operation */
     withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
+    }
+
+    /** Adds a data volume */
+    withDataVolume(options?: WithDataVolumeOptions): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
 }
@@ -1259,6 +1287,25 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withMultiParamHandleCallbackInternal(callback));
     }
 
+    /** @internal */
+    private async _withDataVolumeInternal(name?: string, isReadOnly?: boolean): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (name !== undefined) rpcArgs.name = name;
+        if (isReadOnly !== undefined) rpcArgs.isReadOnly = isReadOnly;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDataVolume',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        const name = options?.name;
+        const isReadOnly = options?.isReadOnly;
+        return new TestRedisResourcePromise(this._withDataVolumeInternal(name, isReadOnly));
+    }
+
 }
 
 /**
@@ -1404,6 +1451,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Tests multi-param callback destructuring */
     withMultiParamHandleCallback(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withMultiParamHandleCallback(callback)));
+    }
+
+    /** Adds a data volume with persistence */
+    withDataVolume(options?: WithDataVolumeOptions): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.withDataVolume(options)));
     }
 
 }
@@ -2293,7 +2345,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -2307,7 +2359,9 @@ export { refExpr, ReferenceExpression } from './base.js';
 process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
-    if (reason instanceof CapabilityError) {
+    if (reason instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else if (reason instanceof CapabilityError) {
         console.error(`\n❌ Capability Error: ${error.message}`);
         console.error(`   Code: ${(reason as CapabilityError).code}`);
         if ((reason as CapabilityError).capability) {
@@ -2324,8 +2378,12 @@ process.on('unhandledRejection', (reason: unknown) => {
 });
 
 process.on('uncaughtException', (error: Error) => {
-    console.error(`\n❌ Uncaught Exception: ${error.message}`);
-    if (error.stack) {
+    if (error instanceof AppHostUsageError) {
+        console.error(`\n❌ AppHost Error: ${error.message}`);
+    } else {
+        console.error(`\n❌ Uncaught Exception: ${error.message}`);
+    }
+    if (!(error instanceof AppHostUsageError) && error.stack) {
         console.error(error.stack);
     }
     process.exit(1);

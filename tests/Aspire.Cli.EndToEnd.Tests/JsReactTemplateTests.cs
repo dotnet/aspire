@@ -17,35 +17,13 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndRunJsReactProject()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // Pattern for template selection - we need to find and select "Starter App (ASP.NET Core/React)"
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        // Wait for the ASP.NET Core/React template to be highlighted (after pressing Down once)
-        // Use Find() instead of FindPattern() because parentheses and slashes are regex special characters
-        var waitingForJsReactTemplateSelected = new CellPatternSearcher()
-            .Find("> Starter App (ASP.NET Core/React)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find($"Enter the project name ({workspace.WorkspaceRoot.Name}): ");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find($"Enter the output path: (./AspireJsReactApp): ");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find($"Use *.dev.localhost URLs");
-
-        var waitingForRedisPrompt = new CellPatternSearcher()
-            .Find($"Use Redis Cache");
 
         var waitForCtrlCMessage = new CellPatternSearcher()
             .Find($"Press CTRL+C to stop the apphost and exit.");
@@ -64,34 +42,13 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Starter App (ASP.NET Core/React)" which is the 2nd option
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForJsReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select "Starter App (ASP.NET Core/React)"
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("AspireJsReactApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .WaitUntil(s => waitingForRedisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            // For Redis prompt, default is "Yes" so we need to select "No" by pressing Down
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Enter() // select "No" for Redis Cache
-            .WaitForSuccessPrompt(counter)
+        sequenceBuilder.AspireNew("AspireJsReactApp", counter, template: AspireTemplate.JsReact, useRedisCache: false);
+
+        sequenceBuilder
             .Type("aspire run")
             .Enter()
             .WaitUntil(s =>
