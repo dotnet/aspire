@@ -91,6 +91,9 @@ async function dispatch(operation, payload) {
         case 'computeRerunEligibility':
             return rerunWorkflow.computeRerunEligibility(payload);
 
+        case 'computeRerunExecutionEligibility':
+            return rerunWorkflow.computeRerunExecutionEligibility(payload);
+
         case 'writeAnalysisSummary': {
             const summary = new SummaryRecorder();
             await rerunWorkflow.writeAnalysisSummary({

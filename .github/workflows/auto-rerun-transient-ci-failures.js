@@ -484,8 +484,12 @@ async function analyzeFailedJobs({
     return { failedJobs, retryableJobs, skippedJobs };
 }
 
-function computeRerunEligibility({ dryRun, retryableCount, maxRetryableJobs = defaultMaxRetryableJobs }) {
-    return !dryRun && retryableCount > 0 && retryableCount <= maxRetryableJobs;
+function computeRerunEligibility({ retryableCount, maxRetryableJobs = defaultMaxRetryableJobs }) {
+    return retryableCount > 0 && retryableCount <= maxRetryableJobs;
+}
+
+function computeRerunExecutionEligibility({ dryRun, retryableCount, maxRetryableJobs = defaultMaxRetryableJobs }) {
+    return !dryRun && computeRerunEligibility({ retryableCount, maxRetryableJobs });
 }
 
 function buildSummaryReference(url, text) {
@@ -548,14 +552,14 @@ async function writeAnalysisSummary({
     );
     const outcome = rerunEligible ? 'Rerun eligible' : 'Rerun skipped';
     const outcomeDetails = rerunEligible
-        ? `Matched ${retryableJobs.length} retry-safe job${retryableJobs.length === 1 ? '' : 's'} for rerun.`
+        ? dryRun
+            ? `Matched ${retryableJobs.length} retry-safe job${retryableJobs.length === 1 ? '' : 's'} that would be rerun if dry run were disabled.`
+            : `Matched ${retryableJobs.length} retry-safe job${retryableJobs.length === 1 ? '' : 's'} for rerun.`
         : retryableJobs.length === 0
             ? 'No retry-safe jobs were found in the analyzed run.'
-            : dryRun
-                ? 'Dry run is enabled, so no rerun requests will be sent.'
-                : retryableJobs.length > maxRetryableJobs
-                    ? `Matched ${retryableJobs.length} jobs, which exceeds the cap of ${maxRetryableJobs}.`
-                    : 'The analyzed run did not satisfy the workflow safety rails for reruns.';
+            : retryableJobs.length > maxRetryableJobs
+                ? `Matched ${retryableJobs.length} jobs, which exceeds the cap of ${maxRetryableJobs}.`
+                : 'The analyzed run did not satisfy the workflow safety rails for reruns.';
     const summaryRows = [
         [{ data: 'Category', header: true }, { data: 'Count', header: true }],
         ['Outcome', outcome],
@@ -805,6 +809,7 @@ module.exports = {
     buildPullRequestCommentBody,
     classifyFailedJob,
     computeRerunEligibility,
+    computeRerunExecutionEligibility,
     defaultMaxRetryableJobs,
     formatMatchedPatternForMarkdown,
     findInfrastructureNetworkLogOverridePattern,

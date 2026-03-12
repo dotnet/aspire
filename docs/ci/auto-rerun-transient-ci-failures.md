@@ -31,6 +31,7 @@ It is intentionally conservative:
 
 - `workflow_dispatch` can inspect any `CI` workflow run by ID and request reruns when the same retry-safety rules are satisfied.
 - `workflow_dispatch` also exposes an optional `dry_run` input so manual runs can produce the analysis summary without sending rerun requests.
+- Dry-run summaries still report whether the analyzed run would be eligible to rerun if dry run were disabled; the execution gate remains suppressed separately.
 - Automatic rerun requires at least one retryable job.
 - Automatic rerun is suppressed when matched jobs exceed the configured cap.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.

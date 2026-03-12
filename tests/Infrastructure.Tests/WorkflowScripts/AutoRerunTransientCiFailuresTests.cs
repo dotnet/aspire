@@ -620,7 +620,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
-    public async Task ComputeRerunEligibilityDisablesRerunsWhenDryRunIsEnabled()
+    public async Task ComputeRerunEligibilityStillReportsSafeCandidatesDuringDryRun()
     {
         bool rerunEligible = await InvokeHarnessAsync<bool>(
             "computeRerunEligibility",
@@ -630,7 +630,22 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                 retryableCount = 1
             });
 
-        Assert.False(rerunEligible);
+        Assert.True(rerunEligible);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task ComputeRerunExecutionEligibilityDisablesRerunsWhenDryRunIsEnabled()
+    {
+        bool rerunExecutionEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunExecutionEligibility",
+            new
+            {
+                dryRun = true,
+                retryableCount = 1
+            });
+
+        Assert.False(rerunExecutionEligible);
     }
 
     [Fact]
@@ -735,10 +750,12 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Contains("dry_run:", workflowText);
         Assert.Contains("default: false", workflowText);
         Assert.Contains("github.event.workflow_run.run_attempt == 1", workflowText);
-        Assert.Contains("needs.analyze-transient-failures.outputs.rerun_eligible == 'true'", workflowText);
+        Assert.Contains("rerun_execution_eligible", workflowText);
+        Assert.Contains("needs.analyze-transient-failures.outputs.rerun_execution_eligible == 'true'", workflowText);
         Assert.Contains("MANUAL_DRY_RUN", workflowText);
         Assert.Contains("function parseManualDryRun()", workflowText);
         Assert.Contains("const dryRun = parseManualDryRun();", workflowText);
+        Assert.Contains("computeRerunExecutionEligibility", workflowText);
         Assert.Contains("getAssociatedPullRequestNumbers", workflowText);
     }
 
@@ -773,6 +790,38 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         SummaryEvent rawEvent = Assert.Single(result.Events, e => e.Type == "raw" && e.Text == "Matched 1 retry-safe job for rerun.");
         Assert.Equal("Matched 1 retry-safe job for rerun.", rawEvent.Text);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task WriteAnalysisSummaryShowsWouldRerunDuringDryRun()
+    {
+        SummaryResult result = await InvokeHarnessAsync<SummaryResult>(
+            "writeAnalysisSummary",
+            new
+            {
+                failedJobs = new[]
+                {
+                    new SummaryJob { Id = 11, Name = "Tests / One", Reason = "Reason one" }
+                },
+                retryableJobs = new[]
+                {
+                    new SummaryJob { Id = 11, Name = "Tests / One", Reason = "Reason one" }
+                },
+                skippedJobs = Array.Empty<SummaryJob>(),
+                dryRun = true,
+                rerunEligible = true,
+                sourceRunAttempt = 1,
+                sourceRunUrl = "https://github.com/dotnet/aspire/actions/runs/123"
+            });
+
+        SummaryEvent headingEvent = Assert.Single(result.Events, e => e.Type == "heading" && e.Level == 1);
+        Assert.Equal("Rerun eligible", headingEvent.Text);
+
+        SummaryEvent rawEvent = Assert.Single(
+            result.Events,
+            e => e.Type == "raw" && e.Text == "Matched 1 retry-safe job that would be rerun if dry run were disabled.");
+        Assert.Equal("Matched 1 retry-safe job that would be rerun if dry run were disabled.", rawEvent.Text);
     }
 
     [Fact]
