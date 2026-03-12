@@ -42,7 +42,6 @@ internal sealed class CodeGeneratorResolver
         IReadOnlyList<Assembly> assemblies)
     {
         var generators = new Dictionary<string, ICodeGenerator>(StringComparer.OrdinalIgnoreCase);
-        var generatorInterface = typeof(ICodeGenerator);
 
         foreach (var assembly in assemblies)
         {
@@ -60,15 +59,24 @@ internal sealed class CodeGeneratorResolver
 
             foreach (var type in types)
             {
-                if (!type.IsAbstract && !type.IsInterface && generatorInterface.IsAssignableFrom(type))
+                if (!type.IsAbstract &&
+                    !type.IsInterface &&
+                    typeof(ICodeGenerator).IsAssignableFrom(type))
                 {
                     try
                     {
-                        var generator = (ICodeGenerator?)ActivatorUtilities.CreateInstance(serviceProvider, type);
-                        if (generator is not null)
+                        var instance = ActivatorUtilities.CreateInstance(serviceProvider, type);
+                        if (instance is ICodeGenerator generator)
                         {
                             generators[generator.Language] = generator;
                             _logger.LogDebug("Discovered code generator: {TypeName} for language '{Language}'", type.Name, generator.Language);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Type '{TypeName}' matched {ContractType} by name but could not be cast to the runtime contract type.",
+                                type.FullName,
+                                typeof(ICodeGenerator).FullName);
                         }
                     }
                     catch (Exception ex)

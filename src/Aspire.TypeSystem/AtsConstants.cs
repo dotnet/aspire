@@ -101,7 +101,7 @@ public enum AtsCapabilityKind
 /// <summary>
 /// Constants for ATS (Aspire Type System) type IDs and capability IDs.
 /// </summary>
-internal static class AtsConstants
+public static class AtsConstants
 {
     /// <summary>
     /// The Aspire.Hosting assembly name.
@@ -482,13 +482,13 @@ internal static class AtsConstants
         }
 
         // Check for [AspireDto] attribute
-        if (type.GetCustomAttributes(typeof(AspireDtoAttribute), inherit: false).Length > 0)
+        if (AttributeDataReader.HasAspireDtoData(type))
         {
             return AtsTypeCategory.Dto;
         }
 
         // Check for [AspireExport] attribute - these are handle types
-        if (type.GetCustomAttributes(typeof(AspireExportAttribute), inherit: false).Length > 0)
+        if (AttributeDataReader.GetAspireExportData(type) != null)
         {
             return AtsTypeCategory.Handle;
         }

@@ -27,7 +27,7 @@ static int RunDashboard(string[] args)
 
 static async Task<int> RunServer(string[] args)
 {
-    await Aspire.Managed.RemoteHostServerInvoker.RunAsync(args).ConfigureAwait(false);
+    await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args).ConfigureAwait(false);
     return 0;
 }
 

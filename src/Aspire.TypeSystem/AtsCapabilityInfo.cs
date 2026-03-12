@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Ats;
 
@@ -58,19 +57,19 @@ public sealed class AtsTypeRef
 
     /// <summary>
     /// Gets whether this type represents a resource builder target type.
-    /// Computed from ClrType - true for types that implement IResource.
+    /// Computed from ClrType - true for types that implement the Aspire resource contract.
     /// </summary>
-    public bool IsResourceBuilder => ClrType != null && typeof(IResource).IsAssignableFrom(ClrType);
+    public bool IsResourceBuilder => HostingTypeHelpers.IsResourceType(ClrType);
 
     /// <summary>
     /// Gets whether this type is IDistributedApplicationBuilder.
     /// </summary>
-    public bool IsDistributedApplicationBuilder => ClrType == typeof(IDistributedApplicationBuilder);
+    public bool IsDistributedApplicationBuilder => HostingTypeHelpers.IsDistributedApplicationBuilderType(ClrType);
 
     /// <summary>
     /// Gets whether this type is DistributedApplication.
     /// </summary>
-    public bool IsDistributedApplication => ClrType == typeof(DistributedApplication);
+    public bool IsDistributedApplication => HostingTypeHelpers.IsDistributedApplicationType(ClrType);
 
     /// <summary>
     /// Gets or sets the member types for Union category.
@@ -363,6 +362,11 @@ public sealed class AtsTypeInfo
     /// Types with this flag will have their methods exposed as capabilities.
     /// </summary>
     public bool HasExposeMethods { get; init; }
+
+    /// <summary>
+    /// Gets whether this handle type represents an Aspire resource type.
+    /// </summary>
+    public bool IsResourceBuilder => HostingTypeHelpers.IsResourceType(ClrType);
 }
 
 /// <summary>

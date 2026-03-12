@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Ats;
 /// <summary>
 /// Represents an error that occurred during ATS capability invocation.
 /// </summary>
-internal sealed class AtsError
+public sealed class AtsError
 {
     /// <summary>
     /// Gets or sets the machine-readable error code.
@@ -65,7 +65,7 @@ internal sealed class AtsError
 /// <summary>
 /// Additional details about an ATS error.
 /// </summary>
-internal sealed class AtsErrorDetails
+public sealed class AtsErrorDetails
 {
     /// <summary>
     /// Gets or sets the parameter that had the issue.
@@ -117,7 +117,7 @@ internal sealed class AtsErrorDetails
 /// <summary>
 /// Standard ATS error codes.
 /// </summary>
-internal static class AtsErrorCodes
+public static class AtsErrorCodes
 {
     /// <summary>
     /// The specified capability ID was not found.

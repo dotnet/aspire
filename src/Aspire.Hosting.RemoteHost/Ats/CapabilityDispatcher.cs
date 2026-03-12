@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
@@ -405,7 +404,7 @@ internal sealed class CapabilityDispatcher
             }
             catch (TargetInvocationException tie) when (tie.InnerException is not null)
             {
-                // Unwrap the TargetInvocationException to get the actual exception
+                _logger.LogError(tie.InnerException, "Static method invocation failed for {Method}: {ExceptionType}", method.Name, tie.InnerException.GetType().Name);
                 throw tie.InnerException;
             }
 
@@ -502,6 +501,7 @@ internal sealed class CapabilityDispatcher
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Capability {CapabilityId} failed with {ExceptionType}: {Message}", capabilityId, ex.GetType().Name, ex.Message);
             throw CapabilityException.InternalError(capabilityId, ex.Message, ex);
         }
     }
@@ -533,7 +533,7 @@ internal sealed class CapabilityDispatcher
 
     /// <summary>
     /// Resolves the correct target object for a member invocation.
-    /// Handles the case where the handle contains an <see cref="IResourceBuilder{T}"/> but the
+    /// Handles the case where the handle contains an <c>IResourceBuilder&lt;T&gt;</c> but the
     /// member is declared on the resource type <c>T</c>, since
     /// <c>AtsCapabilityScanner.MapToAtsTypeId</c> maps both to the same type ID.
     /// </summary>
@@ -545,10 +545,16 @@ internal sealed class CapabilityDispatcher
         }
 
         // Handle is a builder, but the member is on the resource type - extract .Resource
-        if (contextObj is IResourceBuilder<IResource> builder &&
-            declaringType.IsInstanceOfType(builder.Resource))
+        if (HostingTypeHelpers.IsResourceBuilderType(contextObj.GetType()))
         {
-            return builder.Resource;
+            var resource = contextObj.GetType()
+                .GetProperty("Resource", BindingFlags.Instance | BindingFlags.Public)?
+                .GetValue(contextObj);
+
+            if (resource is not null && declaringType.IsInstanceOfType(resource))
+            {
+                return resource;
+            }
         }
 
         // No bridge matched — return as-is; the CLR will throw TargetException if the

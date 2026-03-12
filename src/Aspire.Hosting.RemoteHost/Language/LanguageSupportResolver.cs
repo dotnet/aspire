@@ -51,7 +51,6 @@ internal sealed class LanguageSupportResolver
         IReadOnlyList<Assembly> assemblies)
     {
         var languages = new Dictionary<string, ILanguageSupport>(StringComparer.OrdinalIgnoreCase);
-        var languageInterface = typeof(ILanguageSupport);
 
         foreach (var assembly in assemblies)
         {
@@ -69,15 +68,24 @@ internal sealed class LanguageSupportResolver
 
             foreach (var type in types)
             {
-                if (!type.IsAbstract && !type.IsInterface && languageInterface.IsAssignableFrom(type))
+                if (!type.IsAbstract &&
+                    !type.IsInterface &&
+                    typeof(ILanguageSupport).IsAssignableFrom(type))
                 {
                     try
                     {
-                        var language = (ILanguageSupport?)ActivatorUtilities.CreateInstance(serviceProvider, type);
-                        if (language is not null)
+                        var instance = ActivatorUtilities.CreateInstance(serviceProvider, type);
+                        if (instance is ILanguageSupport language)
                         {
                             languages[language.Language] = language;
                             _logger.LogDebug("Discovered language support: {TypeName} for language '{Language}'", type.Name, language.Language);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Type '{TypeName}' matched {ContractType} by name but could not be cast to the runtime contract type.",
+                                type.FullName,
+                                typeof(ILanguageSupport).FullName);
                         }
                     }
                     catch (Exception ex)

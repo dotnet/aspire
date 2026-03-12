@@ -10,47 +10,74 @@ namespace Aspire.Hosting.Ats;
 /// so that third-party authors can define their own attribute types with the same full name
 /// without requiring a package reference to Aspire.Hosting.
 /// </summary>
-internal static class AttributeDataReader
+public static class AttributeDataReader
 {
-    private static readonly string s_aspireExportAttributeFullName = typeof(AspireExportAttribute).FullName!;
-    private static readonly string s_aspireExportIgnoreAttributeFullName = typeof(AspireExportIgnoreAttribute).FullName!;
-    private static readonly string s_aspireDtoAttributeFullName = typeof(AspireDtoAttribute).FullName!;
-    private static readonly string s_aspireUnionAttributeFullName = typeof(AspireUnionAttribute).FullName!;
+    private const string AspireExportAttributeFullName = HostingTypeNames.AspireExportAttribute;
+    private const string AspireExportIgnoreAttributeFullName = HostingTypeNames.AspireExportIgnoreAttribute;
+    private const string AspireDtoAttributeFullName = HostingTypeNames.AspireDtoAttribute;
+    private const string AspireUnionAttributeFullName = HostingTypeNames.AspireUnionAttribute;
 
     // --- AspireExport lookup ---
 
-    internal static AspireExportData? GetAspireExportData(Type type)
-        => FindSingleAttribute<AspireExportData>(type.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
+    /// <summary>
+    /// Gets <see cref="AspireExportData"/> from the specified <paramref name="type"/>, if present.
+    /// </summary>
+    public static AspireExportData? GetAspireExportData(Type type)
+        => FindSingleAttribute<AspireExportData>(type.GetCustomAttributesData(), AspireExportAttributeFullName, ParseAspireExportData);
 
-    internal static AspireExportData? GetAspireExportData(MethodInfo method)
-        => FindSingleAttribute<AspireExportData>(method.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
+    /// <summary>
+    /// Gets <see cref="AspireExportData"/> from the specified <paramref name="method"/>, if present.
+    /// </summary>
+    public static AspireExportData? GetAspireExportData(MethodInfo method)
+        => FindSingleAttribute<AspireExportData>(method.GetCustomAttributesData(), AspireExportAttributeFullName, ParseAspireExportData);
 
-    internal static AspireExportData? GetAspireExportData(PropertyInfo property)
-        => FindSingleAttribute<AspireExportData>(property.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
+    /// <summary>
+    /// Gets <see cref="AspireExportData"/> from the specified <paramref name="property"/>, if present.
+    /// </summary>
+    public static AspireExportData? GetAspireExportData(PropertyInfo property)
+        => FindSingleAttribute<AspireExportData>(property.GetCustomAttributesData(), AspireExportAttributeFullName, ParseAspireExportData);
 
-    internal static IEnumerable<AspireExportData> GetAspireExportDataAll(Assembly assembly)
-        => FindAllAttributes(assembly.GetCustomAttributesData(), s_aspireExportAttributeFullName, ParseAspireExportData);
+    /// <summary>
+    /// Gets all <see cref="AspireExportData"/> entries from the specified <paramref name="assembly"/>.
+    /// </summary>
+    public static IEnumerable<AspireExportData> GetAspireExportDataAll(Assembly assembly)
+        => FindAllAttributes(assembly.GetCustomAttributesData(), AspireExportAttributeFullName, ParseAspireExportData);
 
     // --- AspireExportIgnore lookup ---
 
-    internal static bool HasAspireExportIgnoreData(PropertyInfo property)
-        => HasAttribute(property.GetCustomAttributesData(), s_aspireExportIgnoreAttributeFullName);
+    /// <summary>
+    /// Determines whether the specified <paramref name="property"/> has the AspireExportIgnore attribute.
+    /// </summary>
+    public static bool HasAspireExportIgnoreData(PropertyInfo property)
+        => HasAttribute(property.GetCustomAttributesData(), AspireExportIgnoreAttributeFullName);
 
-    internal static bool HasAspireExportIgnoreData(MethodInfo method)
-        => HasAttribute(method.GetCustomAttributesData(), s_aspireExportIgnoreAttributeFullName);
+    /// <summary>
+    /// Determines whether the specified <paramref name="method"/> has the AspireExportIgnore attribute.
+    /// </summary>
+    public static bool HasAspireExportIgnoreData(MethodInfo method)
+        => HasAttribute(method.GetCustomAttributesData(), AspireExportIgnoreAttributeFullName);
 
     // --- AspireDto lookup ---
 
-    internal static bool HasAspireDtoData(Type type)
-        => HasAttribute(type.GetCustomAttributesData(), s_aspireDtoAttributeFullName);
+    /// <summary>
+    /// Determines whether the specified <paramref name="type"/> has the AspireDto attribute.
+    /// </summary>
+    public static bool HasAspireDtoData(Type type)
+        => HasAttribute(type.GetCustomAttributesData(), AspireDtoAttributeFullName);
 
     // --- AspireUnion lookup ---
 
-    internal static AspireUnionData? GetAspireUnionData(ParameterInfo parameter)
-        => FindSingleAttribute<AspireUnionData>(parameter.GetCustomAttributesData(), s_aspireUnionAttributeFullName, ParseAspireUnionData);
+    /// <summary>
+    /// Gets <see cref="AspireUnionData"/> from the specified <paramref name="parameter"/>, if present.
+    /// </summary>
+    public static AspireUnionData? GetAspireUnionData(ParameterInfo parameter)
+        => FindSingleAttribute<AspireUnionData>(parameter.GetCustomAttributesData(), AspireUnionAttributeFullName, ParseAspireUnionData);
 
-    internal static AspireUnionData? GetAspireUnionData(PropertyInfo property)
-        => FindSingleAttribute<AspireUnionData>(property.GetCustomAttributesData(), s_aspireUnionAttributeFullName, ParseAspireUnionData);
+    /// <summary>
+    /// Gets <see cref="AspireUnionData"/> from the specified <paramref name="property"/>, if present.
+    /// </summary>
+    public static AspireUnionData? GetAspireUnionData(PropertyInfo property)
+        => FindSingleAttribute<AspireUnionData>(property.GetCustomAttributesData(), AspireUnionAttributeFullName, ParseAspireUnionData);
 
     // --- Generic helpers ---
 
@@ -213,7 +240,7 @@ internal static class AttributeDataReader
 /// <summary>
 /// Name-based adapter for [AspireExport] attribute data, parsed from <see cref="CustomAttributeData"/>.
 /// </summary>
-internal sealed class AspireExportData
+public sealed class AspireExportData
 {
     /// <summary>
     /// Gets the method name / capability id from the constructor argument.
@@ -249,7 +276,7 @@ internal sealed class AspireExportData
 /// <summary>
 /// Name-based adapter for [AspireUnion] attribute data, parsed from <see cref="CustomAttributeData"/>.
 /// </summary>
-internal sealed class AspireUnionData
+public sealed class AspireUnionData
 {
     /// <summary>
     /// Gets the CLR types that form the union.

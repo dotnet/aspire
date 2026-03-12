@@ -4,7 +4,6 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Java;
@@ -545,8 +544,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             var isResourceBuilder = false;
             if (handleTypeMap.TryGetValue(typeId, out var typeInfo))
             {
-                isResourceBuilder = typeInfo.ClrType is not null &&
-                    typeof(IResource).IsAssignableFrom(typeInfo.ClrType);
+                isResourceBuilder = typeInfo.IsResourceBuilder;
             }
 
             results.Add(new JavaHandleType(typeId, _classNames[typeId], isResourceBuilder));

@@ -4,7 +4,6 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Go;
@@ -578,8 +577,7 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
             var isResourceBuilder = false;
             if (handleTypeMap.TryGetValue(typeId, out var typeInfo))
             {
-                isResourceBuilder = typeInfo.ClrType is not null &&
-                    typeof(IResource).IsAssignableFrom(typeInfo.ClrType);
+                isResourceBuilder = typeInfo.IsResourceBuilder;
             }
 
             results.Add(new GoHandleType(typeId, _structNames[typeId], isResourceBuilder));

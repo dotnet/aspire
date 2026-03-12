@@ -15,20 +15,23 @@ internal sealed class AssemblyLoader
 {
     private readonly Lazy<IReadOnlyList<Assembly>> _assemblies;
     private readonly string _applicationBasePath;
-    private readonly AssemblyLoadContext _loadContext;
+    private readonly IntegrationLoadContext _loadContext;
+
+    private readonly ILogger<AssemblyLoader> _logger;
 
     public AssemblyLoader(IConfiguration configuration, ILogger<AssemblyLoader> logger)
     {
         _applicationBasePath = AppContext.BaseDirectory;
-        _loadContext = AssemblyLoadContext.GetLoadContext(typeof(AssemblyLoader).Assembly) ?? AssemblyLoadContext.Default;
+        _logger = logger;
+        var libsPath = configuration["ASPIRE_INTEGRATION_LIBS_PATH"];
+        _loadContext = CreateLoadContext(libsPath, _applicationBasePath, logger);
 
         // ASPIRE_INTEGRATION_LIBS_PATH is set by the CLI when running guest (polyglot) apphosts
         // that require additional hosting integration packages. See docs/specs/bundle.md for details.
-        var libsPath = configuration["ASPIRE_INTEGRATION_LIBS_PATH"];
-        if (!string.IsNullOrEmpty(libsPath) && Directory.Exists(libsPath))
-        {
-            logger.LogDebug("Using load context {LoadContext} for integration assemblies at {Path}", _loadContext.Name ?? "<default>", libsPath);
-        }
+        logger.LogDebug(
+            "Using load context {LoadContext} for integration assemblies. Integration libs path: {Path}",
+            _loadContext.Name ?? "<unknown>",
+            string.IsNullOrWhiteSpace(libsPath) ? "<none>" : libsPath);
 
         _assemblies = new Lazy<IReadOnlyList<Assembly>>(
             () => LoadAssemblies(configuration, _loadContext, logger, libsPath, _applicationBasePath));
@@ -106,7 +109,7 @@ internal sealed class AssemblyLoader
 
     private static List<Assembly> LoadAssemblies(
         IConfiguration configuration,
-        AssemblyLoadContext loadContext,
+        IntegrationLoadContext loadContext,
         ILogger logger,
         string? integrationLibsPath,
         string applicationBasePath)
@@ -118,7 +121,7 @@ internal sealed class AssemblyLoader
         {
             try
             {
-                var assembly = LoadAssembly(loadContext, name, integrationLibsPath);
+                var assembly = LoadAssembly(loadContext, name);
                 assemblies.Add(assembly);
                 logger.LogDebug("Loaded assembly: {AssemblyName} in {LoadContext}",
                     assembly.FullName,
@@ -133,34 +136,24 @@ internal sealed class AssemblyLoader
         return assemblies;
     }
 
-    private static Assembly LoadAssembly(AssemblyLoadContext loadContext, string name, string? integrationLibsPath)
+    private static Assembly LoadAssembly(IntegrationLoadContext loadContext, string name)
     {
         var assemblyName = new AssemblyName(name);
-
-        if (loadContext != AssemblyLoadContext.Default)
-        {
-            return loadContext.LoadFromAssemblyName(assemblyName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(integrationLibsPath))
-        {
-            var assemblyPath = Path.Combine(integrationLibsPath, $"{name}.dll");
-            if (File.Exists(assemblyPath))
-            {
-                return LoadFromDefaultContext(assemblyName, assemblyPath);
-            }
-        }
-
-        return Assembly.Load(assemblyName);
+        return loadContext.LoadFromAssemblyName(assemblyName);
     }
 
-    private static Assembly LoadFromDefaultContext(AssemblyName assemblyName, string assemblyPath)
+    private static IntegrationLoadContext CreateLoadContext(string? integrationLibsPath, string applicationBasePath, ILogger logger)
     {
-        var existing = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(assembly =>
-                AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default &&
-                string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
+        var probeDirs = new List<string>();
+        if (!string.IsNullOrWhiteSpace(integrationLibsPath) && Directory.Exists(integrationLibsPath))
+        {
+            probeDirs.Add(Path.GetFullPath(integrationLibsPath));
+        }
+        if (Directory.Exists(applicationBasePath))
+        {
+            probeDirs.Add(Path.GetFullPath(applicationBasePath));
+        }
 
-        return existing ?? AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        return new IntegrationLoadContext([.. probeDirs], logger);
     }
 }

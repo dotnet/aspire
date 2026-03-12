@@ -18,15 +18,8 @@
     <SelfContained>false</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>
 
-    <!-- Suppress IL3000 for single-file - code handles Assembly.Location returning empty -->
-    <NoWarn>$(NoWarn);IL3000</NoWarn>
-
     <!-- Allow running on newer .NET versions -->
     <RollForward>Major</RollForward>
-
-    <!-- Minimize size by not including unnecessary metadata -->
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
 
     <!-- Skip Aspire workload checks - this is internal tooling -->
     <SkipValidateAspireHostProjectResources>true</SkipValidateAspireHostProjectResources>
@@ -39,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.TypeSystem\Aspire.TypeSystem.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,23 +43,5 @@
     <!-- Copy appsettings.json to output -->
     <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <Target Name="GetEmbedPayloadItems"
-          DependsOnTargets="Build"
-          Returns="@(_EmbedPayloadItem)">
-    <ItemGroup>
-      <_EmbedPayloadCandidate Include="$(TargetPath)">
-        <PayloadFileName>$([System.IO.Path]::GetFileName($(TargetPath)))</PayloadFileName>
-      </_EmbedPayloadCandidate>
-      <_EmbedPayloadCandidate Include="@(ReferenceCopyLocalPaths)"
-                              Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').EndsWith('.resources'))">
-        <PayloadFileName>%(Filename)%(Extension)</PayloadFileName>
-      </_EmbedPayloadCandidate>
-    </ItemGroup>
-
-    <RemoveDuplicates Inputs="@(_EmbedPayloadCandidate)">
-      <Output TaskParameter="Filtered" ItemName="_EmbedPayloadItem" />
-    </RemoveDuplicates>
-  </Target>
 
 </Project>

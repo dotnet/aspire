@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -435,8 +434,7 @@ internal sealed class AtsMarshaller
             }
 
             // DTOs - must have [AspireDto] attribute
-            var dtoAttr = targetType.GetCustomAttribute<AspireDtoAttribute>();
-            if (dtoAttr == null)
+            if (!Hosting.Ats.AttributeDataReader.HasAspireDtoData(targetType))
             {
                 throw CapabilityException.InvalidArgument(
                     capabilityId, paramName,

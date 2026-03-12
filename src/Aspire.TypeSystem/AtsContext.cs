@@ -80,15 +80,13 @@ public sealed class AtsContext
 
     /// <summary>
     /// Runtime registry mapping capability IDs to methods.
-    /// Internal - only used by dispatcher, not part of the serializable model.
     /// </summary>
-    internal Dictionary<string, MethodInfo> Methods { get; } = new();
+    public Dictionary<string, MethodInfo> Methods { get; } = new();
 
     /// <summary>
     /// Runtime registry mapping capability IDs to properties.
-    /// Internal - only used by dispatcher, not part of the serializable model.
     /// </summary>
-    internal Dictionary<string, PropertyInfo> Properties { get; } = new();
+    public Dictionary<string, PropertyInfo> Properties { get; } = new();
 
     /// <summary>
     /// Gets the type category for a CLR type based on scanned data.

@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Ats;
 /// <remarks>
 /// Type IDs follow the format <c>{AssemblyName}/{FullTypeName}</c>.
 /// </remarks>
-internal static class AtsTypeMapping
+public static class AtsTypeMapping
 {
     /// <summary>
     /// Derives an ATS type ID from an assembly name and full type name.

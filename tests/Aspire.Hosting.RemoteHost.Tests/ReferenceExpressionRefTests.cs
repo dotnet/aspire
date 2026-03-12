@@ -253,7 +253,7 @@ public class ReferenceExpressionRefTests
             }
 
             var exprRef = ReferenceExpressionRef.FromJsonNode(json);
-            return exprRef!.ToReferenceExpression(handles, capabilityId, paramName);
+            return (ReferenceExpression)exprRef!.ToReferenceExpression(handles, capabilityId, paramName);
         }
     }
 
