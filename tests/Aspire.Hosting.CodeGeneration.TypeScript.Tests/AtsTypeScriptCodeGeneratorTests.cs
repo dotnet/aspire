@@ -1365,12 +1365,13 @@ public class AtsTypeScriptCodeGeneratorTests
         var expandedTypeIds = withNpm.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
 
         // All three JS resource types should be present
-        Assert.Contains(expandedTypeIds,
-            id => id.Contains("JavaScriptAppResource", StringComparison.Ordinal)
-               && !id.Contains("NodeApp", StringComparison.Ordinal)
-               && !id.Contains("ViteApp", StringComparison.Ordinal));
-        Assert.Contains(expandedTypeIds, id => id.Contains("NodeAppResource", StringComparison.Ordinal));
-        Assert.Contains(expandedTypeIds, id => id.Contains("ViteAppResource", StringComparison.Ordinal));
+        var javaScriptAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource));
+        var nodeAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.NodeAppResource));
+        var viteAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.ViteAppResource));
+
+        Assert.Contains(javaScriptAppTypeId, expandedTypeIds);
+        Assert.Contains(nodeAppTypeId, expandedTypeIds);
+        Assert.Contains(viteAppTypeId, expandedTypeIds);
     }
 
     [Theory]
