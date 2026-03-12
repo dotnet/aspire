@@ -494,7 +494,7 @@ public class MSBuildTests
                               SetTargetFramework="TargetFramework=netstandard2.0" />
           </ItemGroup>
 
-          <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.targets" />
+          <Import Project="{repoRoot}\src\Aspire.Hosting\buildTransitive\Aspire.Hosting.targets" />
         </Project>
         """);
     }
