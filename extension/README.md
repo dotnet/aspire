@@ -29,7 +29,7 @@ Aspire helps you build distributed apps — things like microservices, databases
 |---------|-------------|
 | **Run & debug** | Start your whole app and attach debuggers to every service with F5 |
 | **Dashboard** | See your resources, endpoints, logs, traces, and metrics while your app runs |
-| **Sidebar** | Browse running AppHosts and resources in the Activity Bar |
+| **Sidebar** | Browse running apphosts and resources in the Activity Bar |
 | **Integrations** | Add databases, queues, and cloud services from the Command Palette |
 | **Scaffolding** | Create new Aspire projects from templates |
 | **Deploy** | Generate deployment artifacts or push to cloud targets |
