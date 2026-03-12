@@ -12,7 +12,7 @@ It is intentionally conservative:
 
 - it does not rerun every failed job in a run
 - it treats mixed deterministic failures plus transient post-step noise as non-retryable by default
-- it keeps `workflow_dispatch` in dry-run mode for historical inspection and matcher tuning
+- it keeps `workflow_dispatch` behind the same matcher and safety rails as automatic execution, with an optional dry-run mode for inspection-only runs
 
 ## Matcher behavior
 
@@ -27,12 +27,14 @@ It is intentionally conservative:
 
 ## Safety rails
 
-- `workflow_dispatch` remains dry-run only. It exists for historical inspection and matcher tuning, not for issuing reruns.
+- `workflow_dispatch` can inspect any `CI` workflow run by ID and request reruns when the same retry-safety rules are satisfied.
+- `workflow_dispatch` also exposes an optional `dry_run` input so manual runs can produce the analysis summary without sending rerun requests.
 - Automatic rerun requires at least one retryable job.
 - Automatic rerun is suppressed when matched jobs exceed the configured cap.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.
 - The workflow targets only the matched jobs when issuing rerun requests rather than rerunning the entire source run, although GitHub's job-rerun API also reruns dependent jobs automatically.
-- The workflow summary links to the analyzed workflow run and, when reruns are requested, to both the failed attempt and the rerun attempt.
+- The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.
+- When reruns are requested, the rerun summary also links to both the failed attempt and the rerun attempt, plus any posted pull request comments.
 - After successful rerun requests, the workflow comments on the open associated pull request with links to the failed attempt, the rerun attempt, per-job failed-attempt links, and retry reasons.
 
 ## Tests
@@ -44,4 +46,4 @@ Those tests are intentionally behavior-focused rather than regex-focused:
 - they use representative fixtures for each supported behavior
 - they keep representative job and step fixtures anchored to the current CI workflow names so matcher coverage does not drift from the implementation
 - they cover the mixed-failure veto and ignored-step override explicitly
-- they keep only a minimal set of YAML contract checks for safety rails such as `workflow_dispatch` dry-run mode, first-attempt-only automatic reruns, and gating the rerun job on `rerun_eligible`
+- they keep only a minimal set of YAML contract checks for safety rails such as first-attempt-only automatic reruns, the optional manual `dry_run` override, enabling manual reruns through `workflow_dispatch`, and gating the rerun job on `rerun_eligible`

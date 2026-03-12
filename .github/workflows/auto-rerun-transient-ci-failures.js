@@ -167,9 +167,51 @@ function canUseInfrastructureNetworkLogOverride(failedSteps) {
     return failedSteps.length > 0 && !failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
 }
 
+function formatFailedStepLabel(failedSteps, failedStepText) {
+    const label = failedSteps.length === 1 ? 'Failed step' : 'Failed steps';
+    return `${label} '${failedStepText}'`;
+}
+
+function isSingleFailedStep(failedSteps) {
+    return failedSteps.length === 1;
+}
+
 function getInfrastructureNetworkLogOverrideReason(failedStepText, matchedPattern) {
     const patternText = matchedPattern ? ` Matched pattern: ${matchedPattern}.` : '';
     return `Failed step '${failedStepText}' will be retried because the job log shows a likely transient infrastructure network failure.${patternText}`;
+}
+
+function getOutsideRetryRulesReason(failedSteps, failedStepText) {
+    return `${formatFailedStepLabel(failedSteps, failedStepText)} ${isSingleFailedStep(failedSteps) ? 'is' : 'are'} not covered by the retry-safe rerun rules.`;
+}
+
+function getNoRetryMatchReason({
+    failedSteps,
+    failedStepText,
+    hasRetryableStep,
+    hasIgnoredFailureStep,
+    hasTestExecutionFailureStep,
+    annotationsText,
+}) {
+    const failedStepLabel = formatFailedStepLabel(failedSteps, failedStepText);
+
+    if (hasTestExecutionFailureStep) {
+        return `${failedStepLabel} ${isSingleFailedStep(failedSteps) ? 'includes' : 'include'} a test execution failure, so the job was not retried without a high-confidence infrastructure override.`;
+    }
+
+    if (hasIgnoredFailureStep) {
+        return `${failedStepLabel} ${isSingleFailedStep(failedSteps) ? 'is' : 'are'} only retried when the job shows a high-confidence infrastructure override, and none was found.`;
+    }
+
+    if (hasRetryableStep) {
+        return `${failedStepLabel} did not include a retry-safe transient infrastructure signal in the job annotations.`;
+    }
+
+    if (annotationsText) {
+        return 'The job annotations did not show a retry-safe transient infrastructure failure.';
+    }
+
+    return 'No retry-safe transient infrastructure signal was found in the job annotations or logs.';
 }
 
 function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
@@ -195,7 +237,7 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
         return {
             retryable: false,
             failedSteps,
-            reason: 'Failed steps are outside the retry-safe allowlist.',
+            reason: getOutsideRetryRulesReason(failedSteps, failedStepText),
         };
     }
 
@@ -249,9 +291,14 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
     return {
         retryable: false,
         failedSteps,
-        reason: annotationsText
-            ? 'Annotations did not match the transient allowlist.'
-            : 'No retry-safe step or annotation signature matched.',
+        reason: getNoRetryMatchReason({
+            failedSteps,
+            failedStepText,
+            hasRetryableStep,
+            hasIgnoredFailureStep,
+            hasTestExecutionFailureStep,
+            annotationsText,
+        }),
     };
 }
 
@@ -307,6 +354,47 @@ function computeRerunEligibility({ dryRun, retryableCount, maxRetryableJobs = de
     return !dryRun && retryableCount > 0 && retryableCount <= maxRetryableJobs;
 }
 
+function buildSummaryReference(url, text) {
+    return { url, text };
+}
+
+function addSummaryReference(summary, label, reference) {
+    summary.addRaw(`${label}: `);
+
+    if (reference?.url) {
+        summary.addLink(reference.text, reference.url);
+    }
+    else {
+        summary.addRaw(reference?.text || 'not available');
+    }
+
+    return summary.addBreak();
+}
+
+function addSummaryCommentReferences(summary, postedComments) {
+    if (!postedComments?.length) {
+        summary.addRaw('Pull request comments: none posted').addBreak();
+        return summary;
+    }
+
+    summary.addRaw('Pull request comments:').addBreak();
+
+    for (const comment of postedComments) {
+        summary.addRaw('- ');
+
+        if (comment.htmlUrl) {
+            summary.addLink(`PR #${comment.pullRequestNumber} comment`, comment.htmlUrl);
+        }
+        else {
+            summary.addRaw(`PR #${comment.pullRequestNumber} comment`);
+        }
+
+        summary.addBreak();
+    }
+
+    return summary;
+}
+
 async function writeAnalysisSummary({
     summary,
     failedJobs,
@@ -316,9 +404,27 @@ async function writeAnalysisSummary({
     dryRun,
     rerunEligible,
     sourceRunUrl,
+    sourceRunAttempt,
 }) {
+    const analyzedRunReference = buildSummaryReference(
+        buildWorkflowRunAttemptUrl(sourceRunUrl, sourceRunAttempt),
+        Number.isInteger(sourceRunAttempt) && sourceRunAttempt > 0
+            ? `workflow run attempt ${sourceRunAttempt}`
+            : 'workflow run'
+    );
+    const outcome = rerunEligible ? 'Rerun eligible' : 'Rerun skipped';
+    const outcomeDetails = rerunEligible
+        ? `Matched ${retryableJobs.length} retry-safe job${retryableJobs.length === 1 ? '' : 's'} for rerun.`
+        : retryableJobs.length === 0
+            ? 'No retry-safe jobs were found in the analyzed run.'
+            : dryRun
+                ? 'Dry run is enabled, so no rerun requests will be sent.'
+                : retryableJobs.length > maxRetryableJobs
+                    ? `Matched ${retryableJobs.length} jobs, which exceeds the cap of ${maxRetryableJobs}.`
+                    : 'The analyzed run did not satisfy the workflow safety rails for reruns.';
     const summaryRows = [
         [{ data: 'Category', header: true }, { data: 'Count', header: true }],
+        ['Outcome', outcome],
         ['Failed jobs inspected', String(failedJobs.length)],
         ['Retryable jobs', String(retryableJobs.length)],
         ['Skipped jobs', String(skippedJobs.length)],
@@ -326,14 +432,15 @@ async function writeAnalysisSummary({
         ['Dry run', String(dryRun)],
         ['Eligible to rerun', String(rerunEligible)],
     ];
-    const sourceRunReference = sourceRunUrl
-        ? `[workflow run](${sourceRunUrl})`
-        : 'workflow run';
 
     await summary
-        .addHeading('Transient CI rerun analysis')
-        .addTable(summaryRows)
-        .addRaw(`Source run: ${sourceRunReference}\n\n`);
+        .addHeading(outcome)
+        .addTable(summaryRows);
+
+    addSummaryReference(summary, 'Analyzed run', analyzedRunReference)
+        .addRaw(outcomeDetails)
+        .addBreak()
+        .addBreak();
 
     if (retryableJobs.length > 0) {
         await summary.addHeading('Retryable jobs', 2);
@@ -349,12 +456,6 @@ async function writeAnalysisSummary({
             [{ data: 'Job', header: true }, { data: 'Reason', header: true }],
             ...skippedJobs.slice(0, 25).map(job => [job.name, job.reason]),
         ]);
-    }
-
-    if (retryableJobs.length > maxRetryableJobs) {
-        await summary
-            .addHeading('Automatic rerun skipped', 2)
-            .addRaw(`Matched ${retryableJobs.length} jobs, which exceeds the cap of ${maxRetryableJobs}.`, true);
     }
 
     await summary.write();
@@ -392,20 +493,17 @@ function buildWorkflowRunAttemptUrl(sourceRunUrl, runAttempt) {
     return `${sourceRunUrl.replace(/\/$/, '')}/attempts/${runAttempt}`;
 }
 
-function buildWorkflowRunReferenceText(sourceRunUrl, runAttempt) {
-    const workflowRunUrl = buildWorkflowRunAttemptUrl(sourceRunUrl, runAttempt);
-
-    if (!workflowRunUrl) {
-        return Number.isInteger(runAttempt) && runAttempt > 0
+function buildWorkflowRunReference(sourceRunUrl, runAttempt) {
+    return buildSummaryReference(
+        buildWorkflowRunAttemptUrl(sourceRunUrl, runAttempt),
+        Number.isInteger(runAttempt) && runAttempt > 0
             ? `workflow run attempt ${runAttempt}`
-            : 'workflow run';
-    }
+            : 'workflow run'
+    );
+}
 
-    const label = Number.isInteger(runAttempt) && runAttempt > 0
-        ? `workflow run attempt ${runAttempt}`
-        : 'workflow run';
-
-    return `[${label}](${workflowRunUrl})`;
+function formatMarkdownLink(text, url) {
+    return url ? `[${text}](${url})` : text;
 }
 
 async function getLatestRunAttempt({ github, owner, repo, runId }) {
@@ -434,8 +532,8 @@ function buildPullRequestCommentBody({
     retryableJobs,
 }) {
     return [
-        `The transient CI rerun workflow requested reruns for the following jobs after analyzing [the failed attempt](${failedAttemptUrl}).`,
-        `GitHub's job rerun API also reruns dependent jobs, so the retry is being tracked in [the rerun attempt](${rerunAttemptUrl}).`,
+        `The transient CI rerun workflow requested reruns for the following jobs after analyzing ${formatMarkdownLink('the failed attempt', failedAttemptUrl)}.`,
+        `GitHub's job rerun API also reruns dependent jobs, so the retry is being tracked in ${formatMarkdownLink('the rerun attempt', rerunAttemptUrl)}.`,
         'The job links below point to the failed attempt that matched the retry-safe transient failure rules.',
         '',
         ...retryableJobs.map(job => {
@@ -449,14 +547,23 @@ function buildPullRequestCommentBody({
 }
 
 async function addPullRequestComments({ github, owner, repo, pullRequestNumbers, body }) {
+    const postedComments = [];
+
     for (const pullRequestNumber of pullRequestNumbers) {
-        await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+        const response = await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
             owner,
             repo,
             issue_number: pullRequestNumber,
             body,
         });
+
+        postedComments.push({
+            pullRequestNumber,
+            htmlUrl: response.data?.html_url || null,
+        });
     }
+
+    return postedComments;
 }
 
 async function rerunMatchedJobs({
@@ -482,9 +589,21 @@ async function rerunMatchedJobs({
     });
 
     if (pullRequestNumbers.length > 0 && openPullRequestNumbers.length === 0) {
+        const failedAttemptReference = buildWorkflowRunReference(sourceRunUrl, sourceRunAttempt);
         await summary
-            .addHeading('Automatic rerun skipped')
-            .addRaw('All associated pull requests are closed. No jobs were rerun.', true)
+            .addHeading('Rerun skipped');
+
+        addSummaryReference(summary, 'Analyzed run', failedAttemptReference)
+            .addRaw('All associated pull requests are closed. No jobs were rerun.')
+            .addBreak()
+            .addBreak();
+
+        await summary
+            .addHeading('Retryable jobs', 2)
+            .addTable([
+                [{ data: 'Job', header: true }, { data: 'Reason', header: true }],
+                ...retryableJobs.map(job => [job.name, job.reason]),
+            ])
             .write();
         return;
     }
@@ -511,40 +630,36 @@ async function rerunMatchedJobs({
         ? latestRunAttempt
         : normalizedSourceRunAttempt ? normalizedSourceRunAttempt + 1 : null;
     const rerunAttemptUrl = buildWorkflowRunAttemptUrl(sourceRunUrl, rerunAttemptNumber);
-    const failedAttemptReference = buildWorkflowRunReferenceText(sourceRunUrl, normalizedSourceRunAttempt);
-    const rerunAttemptReference = buildWorkflowRunReferenceText(sourceRunUrl, rerunAttemptNumber);
+    const failedAttemptReference = buildWorkflowRunReference(sourceRunUrl, normalizedSourceRunAttempt);
+    const rerunAttemptReference = buildWorkflowRunReference(sourceRunUrl, rerunAttemptNumber);
+    let postedComments = [];
 
     if (openPullRequestNumbers.length > 0) {
-        await addPullRequestComments({
+        postedComments = await addPullRequestComments({
             github,
             owner,
             repo,
             pullRequestNumbers: openPullRequestNumbers,
             body: buildPullRequestCommentBody({
-                failedAttemptUrl,
-                rerunAttemptUrl,
+                failedAttemptUrl: failedAttemptReference.url,
+                rerunAttemptUrl: rerunAttemptReference.url,
                 retryableJobs,
             }),
         });
     }
 
-    const commentedPullRequestsText = openPullRequestNumbers.length > 0
-        ? openPullRequestNumbers.map(number => `#${number}`).join(', ')
-        : null;
-
     const summaryBuilder = summary
-        .addHeading('Rerun requested')
-        .addRaw(`Failed attempt: ${failedAttemptReference}\nRerun attempt: ${rerunAttemptReference}\n\n`)
+        .addHeading('Rerun requested');
+
+    addSummaryReference(summaryBuilder, 'Failed attempt', failedAttemptReference);
+    addSummaryReference(summaryBuilder, 'Rerun attempt', rerunAttemptReference);
+    addSummaryCommentReferences(summaryBuilder, postedComments).addBreak();
+
+    summaryBuilder
         .addTable([
             [{ data: 'Job', header: true }, { data: 'Reason', header: true }],
             ...retryableJobs.map(job => [job.name, job.reason]),
         ]);
-
-    if (commentedPullRequestsText) {
-        summaryBuilder
-            .addHeading('Pull request comments', 2)
-            .addRaw(`Posted rerun details to ${commentedPullRequestsText}.`, true);
-    }
 
     await summaryBuilder.write();
 }
