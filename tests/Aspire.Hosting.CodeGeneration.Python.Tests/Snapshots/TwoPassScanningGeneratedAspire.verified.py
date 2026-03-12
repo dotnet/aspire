@@ -1434,6 +1434,105 @@ class ContainerResource(ResourceBuilderBase):
         args["registry"] = serialize_value(registry)
         return self._client.invoke_capability("Aspire.Hosting/withContainerRegistry", args)
 
+    def with_bind_mount(self, source: str, target: str, is_read_only: bool = False) -> ContainerResource:
+        """Adds a bind mount"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["source"] = serialize_value(source)
+        args["target"] = serialize_value(target)
+        args["isReadOnly"] = serialize_value(is_read_only)
+        return self._client.invoke_capability("Aspire.Hosting/withBindMount", args)
+
+    def with_entrypoint(self, entrypoint: str) -> ContainerResource:
+        """Sets the container entrypoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["entrypoint"] = serialize_value(entrypoint)
+        return self._client.invoke_capability("Aspire.Hosting/withEntrypoint", args)
+
+    def with_image_tag(self, tag: str) -> ContainerResource:
+        """Sets the container image tag"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["tag"] = serialize_value(tag)
+        return self._client.invoke_capability("Aspire.Hosting/withImageTag", args)
+
+    def with_image_registry(self, registry: str) -> ContainerResource:
+        """Sets the container image registry"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["registry"] = serialize_value(registry)
+        return self._client.invoke_capability("Aspire.Hosting/withImageRegistry", args)
+
+    def with_image(self, image: str, tag: str | None = None) -> ContainerResource:
+        """Sets the container image"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["image"] = serialize_value(image)
+        if tag is not None:
+            args["tag"] = serialize_value(tag)
+        return self._client.invoke_capability("Aspire.Hosting/withImage", args)
+
+    def with_image_sha256(self, sha256: str) -> ContainerResource:
+        """Sets the image SHA256 digest"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["sha256"] = serialize_value(sha256)
+        return self._client.invoke_capability("Aspire.Hosting/withImageSHA256", args)
+
+    def with_container_runtime_args(self, args: list[str]) -> ContainerResource:
+        """Adds runtime arguments for the container"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["args"] = serialize_value(args)
+        return self._client.invoke_capability("Aspire.Hosting/withContainerRuntimeArgs", args)
+
+    def with_lifetime(self, lifetime: ContainerLifetime) -> ContainerResource:
+        """Sets the lifetime behavior of the container resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["lifetime"] = serialize_value(lifetime)
+        return self._client.invoke_capability("Aspire.Hosting/withLifetime", args)
+
+    def with_image_pull_policy(self, pull_policy: ImagePullPolicy) -> ContainerResource:
+        """Sets the container image pull policy"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["pullPolicy"] = serialize_value(pull_policy)
+        return self._client.invoke_capability("Aspire.Hosting/withImagePullPolicy", args)
+
+    def publish_as_container(self) -> ContainerResource:
+        """Configures the resource to be published as a container"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/publishAsContainer", args)
+
+    def with_dockerfile(self, context_path: str, dockerfile_path: str | None = None, stage: str | None = None) -> ContainerResource:
+        """Configures the resource to use a Dockerfile"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["contextPath"] = serialize_value(context_path)
+        if dockerfile_path is not None:
+            args["dockerfilePath"] = serialize_value(dockerfile_path)
+        if stage is not None:
+            args["stage"] = serialize_value(stage)
+        return self._client.invoke_capability("Aspire.Hosting/withDockerfile", args)
+
+    def with_container_name(self, name: str) -> ContainerResource:
+        """Sets the container name"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting/withContainerName", args)
+
+    def with_build_arg(self, name: str, value: ParameterResource) -> ContainerResource:
+        """Adds a build argument from a parameter resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withBuildArg", args)
+
+    def with_build_secret(self, name: str, value: ParameterResource) -> ContainerResource:
+        """Adds a build secret from a parameter resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withBuildSecret", args)
+
+    def with_endpoint_proxy_support(self, proxy_enabled: bool) -> ContainerResource:
+        """Configures endpoint proxy support"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["proxyEnabled"] = serialize_value(proxy_enabled)
+        return self._client.invoke_capability("Aspire.Hosting/withEndpointProxySupport", args)
+
     def with_dockerfile_base_image(self, build_image: str | None = None, runtime_image: str | None = None) -> IResource:
         """Sets the base image for a Dockerfile build"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -1442,6 +1541,12 @@ class ContainerResource(ResourceBuilderBase):
         if runtime_image is not None:
             args["runtimeImage"] = serialize_value(runtime_image)
         return self._client.invoke_capability("Aspire.Hosting/withDockerfileBaseImage", args)
+
+    def with_container_network_alias(self, alias: str) -> ContainerResource:
+        """Adds a network alias for the container"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["alias"] = serialize_value(alias)
+        return self._client.invoke_capability("Aspire.Hosting/withContainerNetworkAlias", args)
 
     def with_mcp_server(self, path: str = "/mcp", endpoint_name: str | None = None) -> IResourceWithEndpoints:
         """Configures an MCP server endpoint on the resource"""
@@ -1461,6 +1566,11 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["protocol"] = serialize_value(protocol)
         return self._client.invoke_capability("Aspire.Hosting/withOtlpExporterProtocol", args)
+
+    def publish_as_connection_string(self) -> ContainerResource:
+        """Publishes the resource as a connection string"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/publishAsConnectionString", args)
 
     def with_required_command(self, command: str, help_link: str | None = None) -> IResource:
         """Adds a required command dependency"""
@@ -1882,6 +1992,15 @@ class ContainerResource(ResourceBuilderBase):
         if callback_id is not None:
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withPipelineConfiguration", args)
+
+    def with_volume(self, target: str, name: str | None = None, is_read_only: bool = False) -> ContainerResource:
+        """Adds a volume"""
+        args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
+        args["target"] = serialize_value(target)
+        if name is not None:
+            args["name"] = serialize_value(name)
+        args["isReadOnly"] = serialize_value(is_read_only)
+        return self._client.invoke_capability("Aspire.Hosting/withVolume", args)
 
     def get_resource_name(self) -> str:
         """Gets the resource name"""
@@ -2825,6 +2944,31 @@ class ExecutableResource(ResourceBuilderBase):
         if runtime_image is not None:
             args["runtimeImage"] = serialize_value(runtime_image)
         return self._client.invoke_capability("Aspire.Hosting/withDockerfileBaseImage", args)
+
+    def publish_as_docker_file(self) -> ExecutableResource:
+        """Publishes the executable as a Docker container"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/publishAsDockerFile", args)
+
+    def publish_as_docker_file_with_configure(self, configure: Callable[[ContainerResource], None]) -> ExecutableResource:
+        """Publishes an executable as a Docker file with optional container configuration"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/publishAsDockerFileWithConfigure", args)
+
+    def with_executable_command(self, command: str) -> ExecutableResource:
+        """Sets the executable command"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["command"] = serialize_value(command)
+        return self._client.invoke_capability("Aspire.Hosting/withExecutableCommand", args)
+
+    def with_working_directory(self, working_directory: str) -> ExecutableResource:
+        """Sets the executable working directory"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["workingDirectory"] = serialize_value(working_directory)
+        return self._client.invoke_capability("Aspire.Hosting/withWorkingDirectory", args)
 
     def with_mcp_server(self, path: str = "/mcp", endpoint_name: str | None = None) -> IResourceWithEndpoints:
         """Configures an MCP server endpoint on the resource"""
@@ -4384,6 +4528,25 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["protocol"] = serialize_value(protocol)
         return self._client.invoke_capability("Aspire.Hosting/withOtlpExporterProtocol", args)
+
+    def with_replicas(self, replicas: float) -> ProjectResource:
+        """Sets the number of replicas"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["replicas"] = serialize_value(replicas)
+        return self._client.invoke_capability("Aspire.Hosting/withReplicas", args)
+
+    def disable_forwarded_headers(self) -> ProjectResource:
+        """Disables forwarded headers for the project"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        return self._client.invoke_capability("Aspire.Hosting/disableForwardedHeaders", args)
+
+    def publish_as_docker_file(self, configure: Callable[[ContainerResource], None] | None = None) -> ProjectResource:
+        """Publishes a project as a Docker file with optional container configuration"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        configure_id = register_callback(configure) if configure is not None else None
+        if configure_id is not None:
+            args["configure"] = configure_id
+        return self._client.invoke_capability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", args)
 
     def with_required_command(self, command: str, help_link: str | None = None) -> IResource:
         """Adds a required command dependency"""
