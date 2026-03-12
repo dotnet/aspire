@@ -119,7 +119,7 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    [AspireExport("getEndpointForNetwork", MethodName = "getEndpointForNetwork", Description = "Gets the endpoint for the specified resource in the specified network context.")]
+    [AspireExport("getEndpointForNetwork", Description = "Gets the endpoint for the specified resource in the specified network context.")]
     internal static Uri GetEndpointForNetworkExport(this DistributedApplication app, string resourceName, string? networkIdentifier = default, string? endpointName = default)
     {
         return app.GetEndpointForNetwork(resourceName, networkIdentifier is null ? null : new NetworkIdentifier(networkIdentifier), endpointName);

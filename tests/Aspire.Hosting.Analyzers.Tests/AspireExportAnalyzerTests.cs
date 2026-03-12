@@ -1419,6 +1419,28 @@ public class AspireExportAnalyzerTests
         await test.RunAsync();
     }
 
+    [Fact]
+    public async Task MissingExportAttribute_OnExportedTypeInternalExtensionMethod_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            [AspireExport]
+            public interface IExportedHandle
+            {
+            }
+
+            public static class TestExports
+            {
+                internal static void Configure(this IExportedHandle handle) { }
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
     // ASPIREEXPORT009 Tests - Export name should be unique for target-specific methods
 
     [Fact]
