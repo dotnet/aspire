@@ -1343,4 +1343,54 @@ public class AtsTypeScriptCodeGeneratorTests
         }
         return count;
     }
+
+    // ===== JavaScript Assembly Expansion Tests =====
+
+    [Fact]
+    public void Scanner_WithNpm_ExpandsToAllJavaScriptResourceTypes()
+    {
+        // Verify that withNpm (constrained to JavaScriptAppResource) expands to all three
+        // concrete JS resource types: JavaScriptAppResource, NodeAppResource, ViteAppResource.
+        // This is a regression test for capability ID expansion where concrete types
+        // were not registered under their own type ID in the compatibility map.
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var jsAssembly = typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, jsAssembly]);
+
+        var withNpm = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.JavaScript/withNpm");
+        Assert.NotNull(withNpm);
+
+        var expandedTypeIds = withNpm.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
+
+        // All three JS resource types should be present
+        Assert.Contains(expandedTypeIds,
+            id => id.Contains("JavaScriptAppResource", StringComparison.Ordinal)
+               && !id.Contains("NodeApp", StringComparison.Ordinal)
+               && !id.Contains("ViteApp", StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains("NodeAppResource", StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains("ViteAppResource", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("withNpm")]
+    [InlineData("withBun")]
+    [InlineData("withYarn")]
+    [InlineData("withPnpm")]
+    public void Scanner_PackageManagerMethods_ExpandToAllJavaScriptResourceTypes(string methodName)
+    {
+        // Verify all package manager methods expand to all three JS resource types
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var jsAssembly = typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, jsAssembly]);
+
+        var capability = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId == $"Aspire.Hosting.JavaScript/{methodName}");
+        Assert.NotNull(capability);
+
+        var expandedTypeIds = capability.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
+        Assert.Equal(3, expandedTypeIds.Count);
+    }
 }
