@@ -430,7 +430,7 @@ public static class KnownResourceStates
     /// <summary>
     /// List of states in which a resource can be rebuilt.
     /// </summary>
-    public static readonly IReadOnlyList<string> BuildableStates = [Running, Finished, FailedToStart, Exited];
+    public static readonly IReadOnlyList<string> BuildableStates = [Running, Waiting, Finished, FailedToStart, Exited];
 }
 
 internal static class ResourceSnapshotBuilder

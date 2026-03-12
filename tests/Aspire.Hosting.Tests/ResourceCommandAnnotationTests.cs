@@ -124,7 +124,7 @@ public class ResourceCommandAnnotationTests
     [InlineData("rebuild", "Finished", ResourceCommandState.Enabled)]
     [InlineData("rebuild", "FailedToStart", ResourceCommandState.Enabled)]
     [InlineData("rebuild", "Unknown", ResourceCommandState.Disabled)]
-    [InlineData("rebuild", "Waiting", ResourceCommandState.Disabled)]
+    [InlineData("rebuild", "Waiting", ResourceCommandState.Enabled)]
     [InlineData("rebuild", "RuntimeUnhealthy", ResourceCommandState.Disabled)]
     [InlineData("rebuild", "Building", ResourceCommandState.Disabled)]
     [InlineData("rebuild", "", ResourceCommandState.Disabled)]

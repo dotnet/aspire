@@ -258,16 +258,16 @@ internal static class CommandsConfigurationExtensions
 
             if (exitCode == 0)
             {
-                // Only restart replicas that were running before the rebuild;
+                // Restart replicas that were active (Running or Waiting) before the rebuild;
                 // leave previously-inactive replicas in their terminal state.
                 mainLogger.LogInformation(BuildLogPrefix + "Build succeeded. Restarting resource...");
                 var anyRestarted = false;
                 foreach (var name in replicaNames)
                 {
-                    var wasRunning = preRebuildStates.TryGetValue(name, out var priorState)
-                        && priorState == KnownResourceStates.Running;
+                    var wasActive = preRebuildStates.TryGetValue(name, out var priorState)
+                        && (priorState == KnownResourceStates.Running || priorState == KnownResourceStates.Waiting);
 
-                    if (wasRunning)
+                    if (wasActive)
                     {
                         anyRestarted = true;
                         await resourceNotificationService.PublishUpdateAsync(projectResource, name, s => s with
