@@ -189,7 +189,7 @@ You can configure the extension under **Settings → Aspire**, or jump there wit
 | `aspire.enableAspireDashboardAutoLaunch` | `true` | Open the dashboard automatically when you start debugging |
 | `aspire.registerMcpServerInWorkspace` | `false` | Register the Aspire MCP server (see [below](#mcp-server-integration)) |
 
-There are more settings for things like verbose logging, startup prompts, and polling intervals — search "Aspire" in VS Code settings to see them all.
+There are more settings for things like verbose logging, startup prompts, and polling intervals — run **Aspire: Extension settings** from the Command Palette to see them all.
 
 The extension also gives you IntelliSense and validation when editing `.aspire/settings.json` (workspace-level config) and `~/.aspire/globalsettings.json` (user-level config). Use the **Open local/global Aspire settings** commands to open them.
 
