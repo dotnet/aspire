@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Ats;
@@ -11,6 +12,19 @@ namespace Aspire.Hosting.Ats;
 /// </summary>
 internal static class LoggingExports
 {
+    /// <summary>
+    /// Gets the logger factory from the service provider.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider handle.</param>
+    /// <returns>A logger factory handle.</returns>
+    [AspireExport("getLoggerFactory", Description = "Gets the logger factory from the service provider")]
+    public static ILoggerFactory GetLoggerFactory(this IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        return serviceProvider.GetRequiredService<ILoggerFactory>();
+    }
+
     /// <summary>
     /// Logs an information message.
     /// </summary>
@@ -65,6 +79,34 @@ internal static class LoggingExports
         };
 
         logger.Log(logLevel, "{Message}", message);
+    }
+
+    /// <summary>
+    /// Creates a logger for the specified category name.
+    /// </summary>
+    /// <param name="loggerFactory">The logger factory handle.</param>
+    /// <param name="categoryName">The category name.</param>
+    /// <returns>A logger handle.</returns>
+    [AspireExport("createLogger", Description = "Creates a logger for a category")]
+    public static ILogger CreateLogger(ILoggerFactory loggerFactory, string categoryName)
+    {
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(categoryName);
+
+        return loggerFactory.CreateLogger(categoryName);
+    }
+
+    /// <summary>
+    /// Gets the resource logger service from the service provider.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider handle.</param>
+    /// <returns>A resource logger service handle.</returns>
+    [AspireExport("getResourceLoggerService", Description = "Gets the resource logger service from the service provider")]
+    public static ResourceLoggerService GetResourceLoggerService(this IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        return serviceProvider.GetRequiredService<ResourceLoggerService>();
     }
 
     /// <summary>

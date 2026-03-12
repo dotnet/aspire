@@ -823,6 +823,13 @@ public class AtsTypeScriptCodeGeneratorTests
         return result.Capabilities;
     }
 
+    private static AtsContext CreateContextFromHostingAssembly()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+        return result.ToAtsContext();
+    }
+
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromBothAssemblies()
     {
         var (testAssembly, hostingAssembly) = LoadBothAssemblies();
@@ -897,6 +904,34 @@ public class AtsTypeScriptCodeGeneratorTests
             var capability = capabilities.FirstOrDefault(c => c.CapabilityId == expectedId);
             Assert.NotNull(capability);
         }
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_IncludesCoreFrameworkPolyglotHelpers()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("getSection", aspireTs);
+        Assert.Contains("getChildren", aspireTs);
+        Assert.Contains("exists", aspireTs);
+        Assert.Contains("getLoggerFactory", aspireTs);
+        Assert.Contains("createLogger", aspireTs);
+        Assert.Contains("getResourceLoggerService", aspireTs);
+        Assert.Contains("getResourceNotificationService", aspireTs);
+        Assert.Contains("getDistributedApplicationModel", aspireTs);
+        Assert.Contains("subscribeBeforeStart", aspireTs);
+        Assert.Contains("subscribeAfterResourcesCreated", aspireTs);
+        Assert.Contains("onBeforeResourceStarted", aspireTs);
+        Assert.Contains("onResourceStopped", aspireTs);
+        Assert.Contains("onConnectionStringAvailable", aspireTs);
+        Assert.Contains("onInitializeResource", aspireTs);
+        Assert.Contains("onResourceEndpointsAllocated", aspireTs);
+        Assert.Contains("onResourceReady", aspireTs);
+        Assert.Contains("getUserSecretsManager", aspireTs);
+        Assert.Contains("getEventing", aspireTs);
+        Assert.Contains("saveStateJson", aspireTs);
     }
 
     [Fact]

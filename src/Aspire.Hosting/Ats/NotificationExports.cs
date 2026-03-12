@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Ats;
 
@@ -10,6 +11,19 @@ namespace Aspire.Hosting.Ats;
 /// </summary>
 internal static class NotificationExports
 {
+    /// <summary>
+    /// Gets the resource notification service from the service provider.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider handle.</param>
+    /// <returns>A resource notification service handle.</returns>
+    [AspireExport("getResourceNotificationService", Description = "Gets the resource notification service from the service provider")]
+    public static ResourceNotificationService GetResourceNotificationService(this IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        return serviceProvider.GetRequiredService<ResourceNotificationService>();
+    }
+
     /// <summary>
     /// Waits for a resource to reach a specified state.
     /// </summary>

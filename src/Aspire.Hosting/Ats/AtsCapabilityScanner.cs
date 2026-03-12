@@ -1859,8 +1859,8 @@ internal static class AtsCapabilityScanner
             return AtsTypeMapping.DeriveTypeId(type);
         }
 
-        // Check for [AspireExport] attribute
-        if (GetAspireExportAttribute(type) != null)
+        // Check for type-level or assembly-level [AspireExport] attributes
+        if (GetAspireExportAttribute(type) != null || IsAssemblyExportedType(type))
         {
             return AtsTypeMapping.DeriveTypeId(type);
         }
@@ -2208,8 +2208,8 @@ internal static class AtsCapabilityScanner
             };
         }
 
-        // Check for [AspireExport] attribute - these are handle types
-        if (GetAspireExportAttribute(type) != null)
+        // Check for type-level or assembly-level [AspireExport] attributes - these are handle types
+        if (GetAspireExportAttribute(type) != null || IsAssemblyExportedType(type))
         {
             return new AtsTypeRef
             {
@@ -2619,6 +2619,7 @@ internal static class AtsCapabilityScanner
     /// Cache of loaded XML documentation indexed by assembly location.
     /// </summary>
     private static readonly ConcurrentDictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<Type, bool> s_assemblyExportedTypeCache = new();
 
     /// <summary>
     /// Loads the XML documentation file (.xml) for the given assembly, if available.
@@ -2680,6 +2681,30 @@ internal static class AtsCapabilityScanner
             .Where(line => line.Length > 0));
 
         return text.Length > 0 ? text : null;
+    }
+
+    private static bool IsAssemblyExportedType(Type type)
+    {
+        return s_assemblyExportedTypeCache.GetOrAdd(type, static targetType =>
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.IsDynamic)
+                {
+                    continue;
+                }
+
+                foreach (var export in AttributeDataReader.GetAspireExportDataAll(assembly))
+                {
+                    if (export.Type == targetType)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        });
     }
 
 }

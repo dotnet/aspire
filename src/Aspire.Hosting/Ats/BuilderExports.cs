@@ -15,13 +15,13 @@ namespace Aspire.Hosting.Ats;
 /// <para>
 /// The <see cref="IDistributedApplicationBuilder"/> is the central type for defining Aspire applications.
 /// This class exposes its properties (Configuration, Environment, AppHostDirectory) and provides
-/// capabilities to interact with each of them.
+/// capabilities to interact with them when direct property export is insufficient.
 /// </para>
 /// <para>
 /// <strong>Builder Properties:</strong>
 /// <list type="bullet">
 ///   <item><description><c>Configuration</c> - Application configuration (connection strings, settings)</description></item>
-///   <item><description><c>Environment</c> - Host environment info (name, isDevelopment)</description></item>
+///   <item><description><c>Environment</c> - Host environment info (property getters plus environment checks)</description></item>
 ///   <item><description><c>AppHostDirectory</c> - Directory containing the app host</description></item>
 /// </list>
 /// </para>
@@ -64,20 +64,52 @@ internal static class BuilderExports
         return configuration.GetConnectionString(name);
     }
 
+    /// <summary>
+    /// Gets a configuration section by key.
+    /// </summary>
+    /// <param name="configuration">The configuration handle.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <returns>The configuration section handle.</returns>
+    [AspireExport("getSection", Description = "Gets a configuration section by key")]
+    public static IConfigurationSection GetSection(IConfiguration configuration, string key)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return configuration.GetSection(key);
+    }
+
+    /// <summary>
+    /// Gets the child sections of a configuration handle.
+    /// </summary>
+    /// <param name="configuration">The configuration handle.</param>
+    /// <returns>The child sections.</returns>
+    [AspireExport("getChildren", Description = "Gets child configuration sections")]
+    public static IConfigurationSection[] GetChildren(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        return [.. configuration.GetChildren()];
+    }
+
+    /// <summary>
+    /// Checks whether a configuration section exists.
+    /// </summary>
+    /// <param name="configuration">The configuration handle.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <returns><see langword="true"/> when the section exists; otherwise, <see langword="false"/>.</returns>
+    [AspireExport("exists", Description = "Checks whether a configuration section exists")]
+    public static bool Exists(IConfiguration configuration, string key)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return configuration.GetSection(key).Exists();
+    }
+
     #endregion
 
     #region Host Environment
-
-    /// <summary>
-    /// Gets the environment name (e.g., "Development", "Production").
-    /// </summary>
-    /// <param name="environment">The host environment handle.</param>
-    /// <returns>The environment name.</returns>
-    [AspireExport("getEnvironmentName", Description = "Gets the environment name")]
-    public static string GetEnvironmentName(IHostEnvironment environment)
-    {
-        return environment.EnvironmentName;
-    }
 
     /// <summary>
     /// Checks if the environment is Development.
@@ -88,6 +120,47 @@ internal static class BuilderExports
     public static bool IsDevelopment(IHostEnvironment environment)
     {
         return environment.IsDevelopment();
+    }
+
+    /// <summary>
+    /// Checks if the environment is Production.
+    /// </summary>
+    /// <param name="environment">The host environment handle.</param>
+    /// <returns>True if running in Production environment.</returns>
+    [AspireExport("isProduction", Description = "Checks if running in Production environment")]
+    public static bool IsProduction(IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+
+        return environment.IsProduction();
+    }
+
+    /// <summary>
+    /// Checks if the environment is Staging.
+    /// </summary>
+    /// <param name="environment">The host environment handle.</param>
+    /// <returns>True if running in Staging environment.</returns>
+    [AspireExport("isStaging", Description = "Checks if running in Staging environment")]
+    public static bool IsStaging(IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+
+        return environment.IsStaging();
+    }
+
+    /// <summary>
+    /// Checks if the environment matches the specified name.
+    /// </summary>
+    /// <param name="environment">The host environment handle.</param>
+    /// <param name="environmentName">The environment name to compare against.</param>
+    /// <returns>True if the environment matches the specified name.</returns>
+    [AspireExport("isEnvironment", Description = "Checks if the environment matches the specified name")]
+    public static bool IsEnvironment(IHostEnvironment environment, string environmentName)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        ArgumentNullException.ThrowIfNull(environmentName);
+
+        return environment.IsEnvironment(environmentName);
     }
 
     #endregion
@@ -102,16 +175,19 @@ internal static class BuilderExports
     /// allowing you to perform final configuration or validation before resources start.
     /// </remarks>
     /// <param name="builder">The builder handle.</param>
-    /// <param name="callback">A callback that receives the service provider when the event fires.</param>
+    /// <param name="callback">A callback that receives the exported event when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    // Note: IServiceProvider callback parameter is not exported to ATS, so this method cannot be exported
+    [AspireExport("subscribeBeforeStart", Description = "Subscribes to the BeforeStart event")]
     public static DistributedApplicationEventSubscription SubscribeBeforeStart(
         IDistributedApplicationBuilder builder,
-        Func<IServiceProvider, Task> callback)
+        Func<BeforeStartEvent, Task> callback)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.Eventing.Subscribe<BeforeStartEvent>(async (@event, ct) =>
         {
-            await callback(@event.Services).ConfigureAwait(false);
+            await callback(@event).ConfigureAwait(false);
         });
     }
 
@@ -123,16 +199,19 @@ internal static class BuilderExports
     /// This is useful for performing cross-resource configuration.
     /// </remarks>
     /// <param name="builder">The builder handle.</param>
-    /// <param name="callback">A callback that receives the service provider when the event fires.</param>
+    /// <param name="callback">A callback that receives the exported event when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    // Note: IServiceProvider callback parameter is not exported to ATS, so this method cannot be exported
+    [AspireExport("subscribeAfterResourcesCreated", Description = "Subscribes to the AfterResourcesCreated event")]
     public static DistributedApplicationEventSubscription SubscribeAfterResourcesCreated(
         IDistributedApplicationBuilder builder,
-        Func<IServiceProvider, Task> callback)
+        Func<AfterResourcesCreatedEvent, Task> callback)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
         return builder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (@event, ct) =>
         {
-            await callback(@event.Services).ConfigureAwait(false);
+            await callback(@event).ConfigureAwait(false);
         });
     }
 

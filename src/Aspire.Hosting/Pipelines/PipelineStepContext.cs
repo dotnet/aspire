@@ -29,6 +29,7 @@ public sealed class PipelineStepContext
     /// <value>
     /// The <see cref="IReportingStep"/> instance that can be used to create tasks and manage the publishing process for this step.
     /// </value>
+    [AspireExportIgnore(Reason = "IReportingStep is not exported to ATS yet.")]
     public required IReportingStep ReportingStep { get; init; }
 
     /// <summary>

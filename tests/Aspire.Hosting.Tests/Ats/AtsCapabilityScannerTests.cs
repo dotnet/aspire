@@ -213,6 +213,83 @@ public class AtsCapabilityScannerTests
         Assert.NotNull(cancellationTokenType);
     }
 
+    [Fact]
+    public void ScanAssembly_HostingAssembly_CoreFrameworkAndLifecycleCapabilitiesAreRegistered()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        var expectedCapabilities = new[]
+        {
+            "Aspire.Hosting/getSection",
+            "Aspire.Hosting/getChildren",
+            "Aspire.Hosting/exists",
+            "Aspire.Hosting/isProduction",
+            "Aspire.Hosting/isStaging",
+            "Aspire.Hosting/isEnvironment",
+            "Aspire.Hosting/subscribeBeforeStart",
+            "Aspire.Hosting/subscribeAfterResourcesCreated",
+            "Aspire.Hosting/onBeforeResourceStarted",
+            "Aspire.Hosting/onResourceStopped",
+            "Aspire.Hosting/onConnectionStringAvailable",
+            "Aspire.Hosting/onInitializeResource",
+            "Aspire.Hosting/onResourceEndpointsAllocated",
+            "Aspire.Hosting/onResourceReady",
+            "Aspire.Hosting/getLoggerFactory",
+            "Aspire.Hosting/createLogger",
+            "Aspire.Hosting/getResourceLoggerService",
+            "Aspire.Hosting/getResourceNotificationService",
+            "Aspire.Hosting/getDistributedApplicationModel",
+            "Aspire.Hosting/getResources",
+            "Aspire.Hosting/findResourceByName",
+            "Aspire.Hosting/getUserSecretsManager",
+            "Aspire.Hosting/getEventing",
+            "Aspire.Hosting/saveStateJson"
+        };
+
+        foreach (var expectedCapability in expectedCapabilities)
+        {
+            Assert.Contains(result.Capabilities, capability => capability.CapabilityId == expectedCapability);
+        }
+    }
+
+    [Fact]
+    public void ScanAssembly_HostingAssembly_ExportsExpectedHandleTypesAndInstanceMembers()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        var expectedHandleTypes = new[]
+        {
+            "IConfigurationSection",
+            "ILogger",
+            "ILoggerFactory",
+            "DistributedApplicationModel",
+            "IDistributedApplicationEventing",
+            "BeforeStartEvent",
+            "AfterResourcesCreatedEvent",
+            "BeforeResourceStartedEvent",
+            "ConnectionStringAvailableEvent",
+            "InitializeResourceEvent",
+            "ResourceEndpointsAllocatedEvent",
+            "ResourceReadyEvent",
+            "ResourceStoppedEvent",
+            "IUserSecretsManager",
+            "PipelineContext",
+            "PipelineStepFactoryContext",
+            "PipelineSummary"
+        };
+
+        foreach (var expectedHandleType in expectedHandleTypes)
+        {
+            Assert.Contains(result.HandleTypes, type => type.AtsTypeId.Contains(expectedHandleType, StringComparison.Ordinal));
+        }
+
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/BeforeStartEvent.services", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/IUserSecretsManager.trySetSecret", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/PipelineSummary.add", StringComparison.Ordinal));
+    }
+
     #endregion
 
     #region Callback Parameter Type Resolution Tests

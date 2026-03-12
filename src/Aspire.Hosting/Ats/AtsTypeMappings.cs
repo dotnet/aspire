@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 // ============================================================================
 // ATS Type Exports for Aspire.Hosting
@@ -47,7 +48,10 @@ using Microsoft.Extensions.Hosting;
 
 // External types we reference
 [assembly: AspireExport(typeof(IConfiguration))]
-[assembly: AspireExport(typeof(IHostEnvironment))]
+[assembly: AspireExport(typeof(IConfigurationSection), ExposeProperties = true)]
+[assembly: AspireExport(typeof(IHostEnvironment), ExposeProperties = true)]
+[assembly: AspireExport(typeof(ILogger))]
+[assembly: AspireExport(typeof(ILoggerFactory))]
 [assembly: AspireExport(typeof(CancellationToken))]
 
 // Eventing types
