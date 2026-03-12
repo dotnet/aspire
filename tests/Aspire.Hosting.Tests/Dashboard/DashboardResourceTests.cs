@@ -121,7 +121,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         Assert.Collection(config,
             e =>
             {
-                Assert.Equal(KnownConfigNames.DashboardEnableApi, e.Key);
+                Assert.Equal(KnownConfigNames.DashboardApiEnabled, e.Key);
                 Assert.Equal("true", e.Value);
             },
             e =>

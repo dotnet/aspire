@@ -14,7 +14,7 @@ internal static class DashboardConfigNames
     public static readonly ConfigName DashboardConfigFilePathName = new(KnownConfigNames.DashboardConfigFilePath);
     public static readonly ConfigName DashboardFileConfigDirectoryName = new(KnownConfigNames.DashboardFileConfigDirectory);
     public static readonly ConfigName DashboardAIDisabledName = new(KnownConfigNames.DashboardAIDisabled);
-    public static readonly ConfigName DashboardEnableApiName = new(KnownConfigNames.DashboardEnableApi);
+    public static readonly ConfigName DashboardApiEnabledEnvName = new(KnownConfigNames.DashboardApiEnabled);
     public static readonly ConfigName ResourceServiceUrlName = new(KnownConfigNames.ResourceServiceEndpointUrl);
     public static readonly ConfigName ForwardedHeaders = new(KnownConfigNames.DashboardForwardedHeadersEnabled);
 
