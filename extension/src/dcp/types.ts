@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import { ServerReadyAction } from '../debugger/launchProfiles';
 
 export interface ErrorResponse {
     error: ErrorDetails;
@@ -121,6 +122,7 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
     runId: string;
     debugSessionId: string | null;
     projectFile?: string;
+    serverReadyAction?: ServerReadyAction;
 }
 
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
