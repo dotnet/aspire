@@ -87,7 +87,7 @@ public sealed class AzureContainerRegistryDeploymentTests(ITestOutputHelper outp
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.RunAspireInit(counter);
+            sequenceBuilder.AspireInit(counter);
 
             // Step 4: Add Aspire.Hosting.Azure.ContainerRegistry package
             output.WriteLine("Step 4: Adding Azure Container Registry hosting package...");

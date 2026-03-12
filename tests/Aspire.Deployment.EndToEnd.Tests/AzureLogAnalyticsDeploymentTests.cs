@@ -87,7 +87,7 @@ public sealed class AzureLogAnalyticsDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.RunAspireInit(counter);
+            sequenceBuilder.AspireInit(counter);
 
             // Step 4: Add Aspire.Hosting.Azure.OperationalInsights package
             output.WriteLine("Step 4: Adding Azure Log Analytics hosting package...");

@@ -88,7 +88,7 @@ public sealed class AcaCompactNamingDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost
             output.WriteLine("Step 3: Creating single-file AppHost...");
-            sequenceBuilder.RunAspireInit(counter);
+            sequenceBuilder.AspireInit(counter);
 
             // Step 4: Add required packages
             output.WriteLine("Step 4: Adding Azure Container Apps package...");

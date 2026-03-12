@@ -82,7 +82,7 @@ public sealed class VnetSqlServerInfraDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.RunAspireInit(counter);
+            sequenceBuilder.AspireInit(counter);
 
             // Step 4a: Add Aspire.Hosting.Azure.AppContainers
             output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
