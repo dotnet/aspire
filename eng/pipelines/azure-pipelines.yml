@@ -295,7 +295,7 @@ extends:
 
               - pwsh: |
                   $ErrorActionPreference = 'Stop'
-                  $artifactVersion = dotnet msbuild "$(Build.SourcesDirectory)/src/Aspire.Dashboard/Aspire.Dashboard.csproj" -getProperty:PackageVersion -property:SuppressFinalPackageVersion=true
+                  $artifactVersion = dotnet msbuild "$(Build.SourcesDirectory)/src/Aspire.Dashboard/Aspire.Dashboard.csproj" -getProperty:PackageVersion -property:SuppressFinalPackageVersion=true -property:OfficialBuildId=$(BUILD.BUILDNUMBER)
                   $artifactVersion = $artifactVersion.Trim()
 
                   if ($artifactVersion -notmatch '^\d+\.\d+\.\d+') {
