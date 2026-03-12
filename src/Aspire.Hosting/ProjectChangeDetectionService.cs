@@ -24,7 +24,7 @@ internal sealed class ProjectChangeDetectionService(
 {
     private readonly Dictionary<string, ProjectMonitorState> _monitoredProjects = new(StringComparer.OrdinalIgnoreCase);
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(
-        int.TryParse(configuration["ASPIRE_PROJECT_CHANGE_DETECTION_INTERVAL"], out var interval) ? interval : 10);
+        int.TryParse(configuration["ASPIRE_PROJECT_CHANGE_DETECTION_INTERVAL"], out var interval) && interval > 0 ? interval : 10);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

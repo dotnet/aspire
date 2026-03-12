@@ -17,9 +17,8 @@ public class ProjectBuildHelperTests
             CancellationToken.None);
 
         // dotnet msbuild will fail for non-existent projects, but should not throw.
-        // It either returns null or a fallback closure.
-        // The key assertion is that it doesn't throw.
-        Assert.True(result is null || result.FileTimestamps.Count >= 0);
+        // It should return null when the project doesn't exist.
+        Assert.Null(result);
     }
 
     [Fact]
@@ -38,8 +37,8 @@ public class ProjectBuildHelperTests
                 logger,
                 cts.Token);
 
-            // If it returns instead of throwing, that's also acceptable.
-            Assert.True(result is null || result.FileTimestamps.Count >= 0);
+            // If it returns instead of throwing, it should be null for a non-existent project.
+            Assert.Null(result);
         }
         catch (OperationCanceledException)
         {

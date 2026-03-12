@@ -193,7 +193,7 @@ internal static class CommandsConfigurationExtensions
                         mainLogger.LogError("[build] Build failed with exit code {ExitCode}.", exitCode);
                         await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
                         {
-                            State = new ResourceStateSnapshot("Build failed", KnownResourceStateStyles.Error)
+                            State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
                         }).ConfigureAwait(false);
                         return new ExecuteCommandResult { Success = false, ErrorMessage = $"Build failed with exit code {exitCode}." };
                     }
