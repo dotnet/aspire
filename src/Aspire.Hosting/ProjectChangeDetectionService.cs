@@ -22,12 +22,20 @@ internal sealed class ProjectChangeDetectionService(
     IInteractionService interactionService,
     IConfiguration configuration) : BackgroundService
 {
+    private const int DefaultCheckIntervalSeconds = 5;
+
     private readonly Dictionary<string, ProjectMonitorState> _monitoredProjects = new(StringComparer.OrdinalIgnoreCase);
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(
-        int.TryParse(configuration["ASPIRE_PROJECT_CHANGE_DETECTION_INTERVAL"], out var interval) && interval > 0 ? interval : 10);
+        int.TryParse(configuration[KnownConfigNames.ProjectChangeDetectionIntervalSeconds], out var interval) && interval > 0 ? interval : DefaultCheckIntervalSeconds);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!configuration.GetBool(KnownConfigNames.EnableProjectChangeDetection, defaultValue: true))
+        {
+            logger.LogDebug("Project change detection is disabled via configuration.");
+            return;
+        }
+
         logger.LogDebug("Project change detection started with {Interval}s check interval.", _checkInterval.TotalSeconds);
 
         try
