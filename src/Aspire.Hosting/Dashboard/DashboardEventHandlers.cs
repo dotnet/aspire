@@ -640,7 +640,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Enable dashboard API
-        context.EnvironmentVariables[DashboardConfigNames.DashboardApiEnabledEnvName.EnvVarName] = "true";
+        context.EnvironmentVariables[DashboardConfigNames.DashboardAspireApiEnabledName.EnvVarName] = "true";
 
         // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)
         context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUseCliMcpName.EnvVarName] = "true";
