@@ -54,8 +54,6 @@ The [Aspire CLI](https://aspire.dev/get-started/install-cli/) needs to be instal
 
 Open your Aspire project in VS Code, or create one with **Aspire: New Aspire project** from the Command Palette. Run **Aspire: Configure launch.json file** to set up the debug configuration, then press **F5**. The extension will build your apphost, start your services, attach debuggers, and open the dashboard.
 
-<!-- TODO: screenshot of Command Palette filtered to "Aspire:" showing available commands -->
-
 There's also a built-in walkthrough at **Help → Get Started → Get started with Aspire** that covers the basics step by step.
 
 ---
@@ -126,8 +124,6 @@ The `debuggers` property lets you pass debug config specific to a language. Use 
 The extension adds an **Aspire** panel to the Activity Bar. It shows a live tree of your resources. In **Workspace** mode you see resources from the apphost in your current workspace, updating in real time. Switch to **Global** mode with the toggle in the panel header to see every running apphost on your machine.
 
 Right-click a resource to start, stop, or restart it, view its logs, run resource-specific commands, or open the dashboard.
-
-<!-- TODO: screenshot of the Aspire sidebar showing the resource tree with a running apphost -->
 
 ---
 
