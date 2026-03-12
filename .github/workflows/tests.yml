@@ -16,6 +16,13 @@ jobs:
   prepare_for_tests:
     name: Prepare for tests
     runs-on: ubuntu-latest
+    needs: detect_scope
+    # Run if run_all, integrations, templates, or cli_e2e tests are needed
+    if: |
+      needs.detect_scope.outputs.run_all == 'true' ||
+      needs.detect_scope.outputs.run_integrations == 'true' ||
+      needs.detect_scope.outputs.run_templates == 'true' ||
+      needs.detect_scope.outputs.run_cli_e2e == 'true'
     outputs:
       run_all: ${{ steps.detect.outputs.run_all }}
       run_integrations: ${{ steps.detect.outputs.run_integrations }}
@@ -396,6 +403,7 @@ jobs:
 
   polyglot_validation:
     name: Polyglot SDK Validation
+    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_polyglot == 'true' }}
     uses: ./.github/workflows/polyglot-validation.yml
     needs: [prepare_for_tests, build_packages, build_cli_archive_linux]
     if: |
@@ -458,18 +466,21 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        continue-on-error: true
         with:
           pattern: logs-*-ubuntu-latest
           merge-multiple: true
           path: ${{ github.workspace }}/testresults/ubuntu-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        continue-on-error: true
         with:
           pattern: logs-*-windows-latest
           merge-multiple: true
           path: ${{ github.workspace }}/testresults/windows-latest
 
       - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        continue-on-error: true
         with:
           pattern: logs-*-macos-latest
           merge-multiple: true
@@ -497,6 +508,7 @@ jobs:
         with:
           name: All-TestResults
           path: ${{ github.workspace }}/testresults/**/*.trx
+          if-no-files-found: ignore
 
       - name: Generate test results summary
         if: always()
@@ -602,5 +614,8 @@ jobs:
                    needs.prepare_for_tests.outputs.run_polyglot == 'true') &&
                   needs.polyglot_validation.result == 'skipped')))) }}
         run: |
-          echo "One or more dependent jobs failed."
+          echo "One or more test jobs failed, were cancelled, or were unexpectedly skipped."
+          echo ""
+          echo "Templates skip expected: ${{ needs.detect_scope.outputs.run_all != 'true' && needs.detect_scope.outputs.run_templates != 'true' }}"
+          echo "Templates results: lin=${{ needs.templates_test_lin.result }} macos=${{ needs.templates_test_macos.result }} win=${{ needs.templates_test_win.result }}"
           exit 1
