@@ -104,7 +104,7 @@ jobs:
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
             echo "all_skipped=false" >> $GITHUB_OUTPUT
 
-            echo "<details><summary>Test scope audit details</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Test Scope Audit</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -135,7 +135,7 @@ jobs:
           echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
           echo "all_skipped=${ALL_SKIPPED}" >> $GITHUB_OUTPUT
 
-          echo "<details><summary>Test scope audit details</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Test Scope Audit</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

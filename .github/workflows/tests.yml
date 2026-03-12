@@ -396,7 +396,7 @@ jobs:
         run: |
           $reportPath = "${{ github.workspace }}/audit/results/audit-miss-report.json"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test scope audit details</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test Scope Audit</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Test Scope Audit"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
