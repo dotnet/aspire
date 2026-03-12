@@ -136,6 +136,7 @@ internal sealed class RootCommand : BaseRootCommand
 #if DEBUG
         RenderCommand renderCommand,
 #endif
+        AtopCommand atopCommand,
         ExtensionInternalCommand extensionInternalCommand,
         IBundleService bundleService,
         IFeatures featureFlags,
@@ -247,6 +248,11 @@ internal sealed class RootCommand : BaseRootCommand
             {
                 versionOption.Aliases.Add("-v");
             }
+        }
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.MonitorCommandEnabled, false))
+        {
+            Subcommands.Add(atopCommand);
         }
 
     }

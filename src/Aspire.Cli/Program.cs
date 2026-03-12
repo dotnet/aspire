@@ -412,6 +412,7 @@ public class Program
 #if DEBUG
         builder.Services.AddTransient<RenderCommand>();
 #endif
+        builder.Services.AddTransient<AtopCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
