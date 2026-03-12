@@ -725,6 +725,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             {
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
     }
 
@@ -764,6 +769,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             w =>
             {
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
     }
@@ -931,6 +941,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             w =>
             {
                 Assert.Equal("MCP server is unsecured. Untrusted apps can access sensitive information.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            },
+            w =>
+            {
+                Assert.Equal("Dashboard API is unsecured. Untrusted apps can access sensitive telemetry data.", LogTestHelpers.GetValue(w, "{OriginalFormat}"));
                 Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
     }
