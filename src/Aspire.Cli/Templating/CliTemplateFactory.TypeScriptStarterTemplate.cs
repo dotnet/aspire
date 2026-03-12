@@ -75,7 +75,7 @@ internal sealed partial class CliTemplateFactory
                     var appHostProject = _projectFactory.TryGetProject(new FileInfo(Path.Combine(outputPath, "apphost.ts")));
                     if (appHostProject is not IGuestAppHostSdkGenerator guestProject)
                     {
-                        _interactionService.DisplayError("Automatic 'aspire restore' failed for the new TypeScript starter project.");
+                        _interactionService.DisplayError("Automatic 'aspire restore' is unavailable for the new TypeScript starter project because no TypeScript AppHost SDK generator was found.");
                         return new TemplateResult(ExitCodeConstants.FailedToBuildArtifacts, outputPath);
                     }
 
@@ -83,7 +83,7 @@ internal sealed partial class CliTemplateFactory
                     var restoreSucceeded = await guestProject.BuildAndGenerateSdkAsync(new DirectoryInfo(outputPath), cancellationToken);
                     if (!restoreSucceeded)
                     {
-                        _interactionService.DisplayError("Automatic 'aspire restore' failed for the new TypeScript starter project.");
+                        _interactionService.DisplayError("Automatic 'aspire restore' failed for the new TypeScript starter project. Run 'aspire restore' in the project directory for more details.");
                         return new TemplateResult(ExitCodeConstants.FailedToBuildArtifacts, outputPath);
                     }
 

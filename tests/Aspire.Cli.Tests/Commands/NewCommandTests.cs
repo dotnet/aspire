@@ -1349,6 +1349,69 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandWithTypeScriptStarterReturnsFailedToBuildArtifactsWhenSdkGenerationFails()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, runnerOptions, cancellationToken) =>
+                {
+                    var package = new NuGetPackage
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new NewCommandTestPackagingService
+            {
+                GetChannelsAsyncCallback = cancellationToken =>
+                {
+                    var dailyCache = new NewCommandTestFakeNuGetPackageCache
+                    {
+                        GetTemplatePackagesAsyncCallback = (dir, prerelease, nugetConfig, ct) =>
+                        {
+                            var package = new NuGetPackage
+                            {
+                                Id = "Aspire.ProjectTemplates",
+                                Source = "nuget",
+                                Version = "9.2.0"
+                            };
+
+                            return Task.FromResult<IEnumerable<NuGetPackage>>([package]);
+                        }
+                    };
+
+                    var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Both, [], dailyCache);
+                    return Task.FromResult<IEnumerable<PackageChannel>>([dailyChannel]);
+                }
+            };
+        });
+
+        services.AddSingleton<IInteractionService>(interactionService);
+        services.AddSingleton<IAppHostProjectFactory>(new TestTypeScriptStarterProjectFactory((directory, cancellationToken) => Task.FromResult(false)));
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-ts-starter --name TestApp --output . --channel daily --localhost-tld false");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode);
+        Assert.Single(interactionService.DisplayedErrors);
+        Assert.Equal("Automatic 'aspire restore' failed for the new TypeScript starter project. Run 'aspire restore' in the project directory for more details.", interactionService.DisplayedErrors[0]);
+    }
+
+    [Fact]
     public async Task NewCommandNonInteractiveDoesNotPrompt()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -1588,6 +1651,13 @@ internal sealed class TestTypeScriptStarterProjectFactory(Func<DirectoryInfo, Ca
 
     public IAppHostProject GetProject(LanguageInfo language)
     {
+        ArgumentNullException.ThrowIfNull(language);
+
+        if (!string.Equals(language.LanguageId, KnownLanguageId.TypeScript, StringComparison.Ordinal))
+        {
+            throw new NotSupportedException($"No handler available for language '{language.LanguageId}'.");
+        }
+
         return _project;
     }
 
