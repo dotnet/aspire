@@ -457,29 +457,9 @@ public static class ProjectResourceBuilderExtensions
         var projectResource = builder.Resource;
 
         // In run mode, create a hidden rebuilder resource for this project.
-        // The rebuilder runs 'dotnet build' on demand and is started via the rebuild command.
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            var projectMetadata = projectResource.Annotations.OfType<IProjectMetadata>().SingleOrDefault();
-            if (projectMetadata is not null)
-            {
-                var rebuilderName = $"{projectResource.Name}-rebuilder";
-                var rebuilder = new ProjectRebuilderResource(rebuilderName, projectResource, projectMetadata.ProjectPath);
-                var rebuilderBuilder = builder.ApplicationBuilder.AddResource(rebuilder);
-
-                rebuilderBuilder
-                    .WithArgs("build", projectMetadata.ProjectPath)
-                    .WithAnnotation(new ExplicitStartupAnnotation())
-                    .WithAnnotation(new ExcludeLifecycleCommandsAnnotation())
-                    .ExcludeFromManifest()
-                    .WithInitialState(new CustomResourceSnapshot
-                    {
-                        ResourceType = "Executable",
-                        State = KnownResourceStates.NotStarted,
-                        Properties = [],
-                        IsHidden = true,
-                    });
-            }
+            AddRebuilderResource(builder, projectResource);
         }
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -925,6 +905,36 @@ public static class ProjectResourceBuilderExtensions
         configBuilder.AddJsonFile(appNameSettingsPath, optional: true);
         configBuilder.AddJsonFile(appNameSettingsEnvironmentPath, optional: true);
         return configBuilder.Build();
+    }
+
+    /// <summary>
+    /// Creates a hidden rebuilder resource that runs 'dotnet build' on demand via the rebuild command.
+    /// </summary>
+    private static void AddRebuilderResource<TProjectResource>(IResourceBuilder<TProjectResource> builder, TProjectResource projectResource)
+        where TProjectResource : ProjectResource
+    {
+        var projectMetadata = projectResource.Annotations.OfType<IProjectMetadata>().SingleOrDefault();
+        if (projectMetadata is null)
+        {
+            return;
+        }
+
+        var rebuilderName = $"{projectResource.Name}-rebuilder";
+        var rebuilder = new ProjectRebuilderResource(rebuilderName, projectResource, projectMetadata.ProjectPath);
+        var rebuilderBuilder = builder.ApplicationBuilder.AddResource(rebuilder);
+
+        rebuilderBuilder
+            .WithArgs("build", projectMetadata.ProjectPath)
+            .WithAnnotation(new ExplicitStartupAnnotation())
+            .WithAnnotation(new ExcludeLifecycleCommandsAnnotation())
+            .ExcludeFromManifest()
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "Executable",
+                State = KnownResourceStates.NotStarted,
+                Properties = [],
+                IsHidden = true,
+            });
     }
 
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
