@@ -22,10 +22,10 @@
         <target state="translated">Подробнее о предварительных требованиях: https://aka.ms/aspire-prerequisites</target>
         <note />
       </trans-unit>
-      <trans-unit id="DevCertsFixCommandFormat">
-        <source>Run: {0}</source>
-        <target state="new">Run: {0}</target>
-        <note />
+      <trans-unit id="DevCertsCleanAndTrustFixFormat">
+        <source>Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</source>
+        <target state="new">Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</target>
+        <note>{0} is the aspire certificates clean command, {1} is the aspire certificates trust command (not localizable)</note>
       </trans-unit>
       <trans-unit id="DevCertsMultipleNoneTrustedDetailsFormat">
         <source>Found certificates: {0}. Having multiple certificates can cause confusion.</source>
@@ -92,6 +92,11 @@
         <target state="new">HTTPS development certificate is only partially trusted</target>
         <note />
       </trans-unit>
+      <trans-unit id="DevCertsTrustFixFormat">
+        <source>Run '{0}' to trust the HTTPS development certificate.</source>
+        <target state="new">Run '{0}' to trust the HTTPS development certificate.</target>
+        <note>{0} is the aspire certificates trust command (not localizable)</note>
+      </trans-unit>
       <trans-unit id="DevCertsTrustLabelFull">
         <source>[trusted]</source>
         <target state="new">[trusted]</target>
@@ -115,66 +120,6 @@
       <trans-unit id="EnvironmentCheckHeader">
         <source>Aspire Environment Check</source>
         <target state="translated">Проверка среды Aspire</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanDescription">
-        <source>Clean all development certificates</source>
-        <target state="new">Clean all development certificates</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanFailure">
-        <source>Failed to clean HTTPS development certificates</source>
-        <target state="new">Failed to clean HTTPS development certificates</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanFailureDetails">
-        <source>Certificate clean operation failed with code {0}</source>
-        <target state="new">Certificate clean operation failed with code {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanProgress">
-        <source>Cleaning development certificates (may require elevated permissions)...</source>
-        <target state="new">Cleaning development certificates (may require elevated permissions)...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCleanSuccess">
-        <source>All HTTPS development certificates cleaned successfully</source>
-        <target state="new">All HTTPS development certificates cleaned successfully</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesCommandDescription">
-        <source>Fix HTTPS development certificate issues</source>
-        <target state="new">Fix HTTPS development certificate issues</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesTrustDescription">
-        <source>Trust the HTTPS development certificate, creating one if necessary</source>
-        <target state="new">Clean all development certificates and create a new trusted one</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesTrustFailure">
-        <source>Failed to trust HTTPS development certificate</source>
-        <target state="new">Failed to trust HTTPS development certificate</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesTrustFailureDetails">
-        <source>Certificate trust operation failed with code {0}</source>
-        <target state="new">Certificate trust operation failed with code {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesTrustProgress">
-        <source>Trusting development certificate (may require elevated permissions)...</source>
-        <target state="new">Trusting development certificate (may require elevated permissions)...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealCertificatesTrustSuccess">
-        <source>HTTPS development certificate trusted successfully</source>
-        <target state="new">HTTPS development certificate trusted successfully</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HealUnknownAction">
-        <source>Unknown action: {0}</source>
-        <target state="new">Unknown action: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">

@@ -147,9 +147,7 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
-        services.AddSingleton<DevCertsCheck>();
-        services.AddSingleton<IEnvironmentCheck>(sp => sp.GetRequiredService<DevCertsCheck>());
-        services.AddSingleton<IHealableEnvironmentCheck>(sp => sp.GetRequiredService<DevCertsCheck>());
+        services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         services.AddSingleton<IEnvironmentCheck, DeprecatedAgentConfigCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
@@ -182,7 +180,7 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
-        services.AddTransient<DoctorFixCommand>();
+        services.AddTransient<CertificatesCommand>();
         services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<SetupCommand>();

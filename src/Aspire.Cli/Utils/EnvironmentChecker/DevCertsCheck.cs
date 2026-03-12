@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
-using Aspire.Cli.Certificates;
 using Aspire.Cli.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Certificates.Generation;
@@ -17,103 +16,18 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if the dotnet dev-certs HTTPS certificate is trusted and detects multiple certificates.
-/// Supports automated repair via <see cref="IHealableEnvironmentCheck"/>.
 /// </summary>
-internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateToolRunner certificateToolRunner) : IHealableEnvironmentCheck
+internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmentCheck
 {
     private const string SslCertDirEnvVar = "SSL_CERT_DIR";
     private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
 
     public int Order => 35; // After SDK check (30), before container checks (40+)
 
-    /// <inheritdoc />
-    public string HealCommandName => "certificates";
+    private static readonly string s_trustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsTrustFixFormat, "aspire certificates trust");
+    private static readonly string s_cleanAndTrustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsCleanAndTrustFixFormat, "aspire certificates clean", "aspire certificates trust");
 
-    /// <inheritdoc />
-    public string HealCommandDescription => DoctorCommandStrings.HealCertificatesCommandDescription;
-
-    /// <inheritdoc />
-    public HealActionCollection HealActions { get; } = new()
-    {
-        new("clean", DoctorCommandStrings.HealCertificatesCleanDescription, DoctorCommandStrings.HealCertificatesCleanProgress, ct => CleanCertificateAsync(certificateToolRunner, ct)),
-        new("trust", DoctorCommandStrings.HealCertificatesTrustDescription, DoctorCommandStrings.HealCertificatesTrustProgress, ct => TrustCertificateAsync(certificateToolRunner, ct))
-    };
-
-    /// <inheritdoc />
-    public Task<IReadOnlyList<HealAction>> EvaluateAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var certInfos = GetCertificateInfos();
-            return Task.FromResult(EvaluateHealActions(certInfos, HealActions));
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Error evaluating dev-certs for healing");
-            return Task.FromResult<IReadOnlyList<HealAction>>([]);
-        }
-    }
-
-    /// <summary>
-    /// Evaluates certificate information and returns the heal actions that should be
-    /// executed to fix detected issues. Returns an empty list when no auto-fixable
-    /// issues are found.
-    /// </summary>
-    internal static IReadOnlyList<HealAction> EvaluateHealActions(
-        List<CertificateInfo> certInfos,
-        HealActionCollection availableActions)
-    {
-        if (certInfos.Count == 0)
-        {
-            // No certificates — trust will create and trust a new one
-            return [availableActions["trust"]];
-        }
-
-        var trustedCount = certInfos.Count(c => c.TrustLevel != CertificateManager.TrustLevel.None);
-        var hasOldVersions = certInfos.Any(c =>
-            c.TrustLevel != CertificateManager.TrustLevel.None &&
-            c.Version < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust);
-
-        // Old versions → clean first to remove outdated certs, then trust to create a fresh one
-        if (hasOldVersions)
-        {
-            return [availableActions["clean"], availableActions["trust"]];
-        }
-
-        // Multiple certs with some untrusted → clean to consolidate, then trust the new one
-        if (certInfos.Count > 1 && trustedCount < certInfos.Count)
-        {
-            return [availableActions["clean"], availableActions["trust"]];
-        }
-
-        // All untrusted → trust the latest
-        if (trustedCount == 0)
-        {
-            return [availableActions["trust"]];
-        }
-
-        // Fully trusted with current version → nothing to fix
-        // Partially trusted (Linux SSL_CERT_DIR) → not fixable with cert commands
-        return [];
-    }
-
-    private static Task<HealResult> CleanCertificateAsync(ICertificateToolRunner runner, CancellationToken _)
-    {
-        var success = runner.CleanHttpCertificate();
-        return Task.FromResult(success
-            ? new HealResult(true, DoctorCommandStrings.HealCertificatesCleanSuccess)
-            : new HealResult(false, DoctorCommandStrings.HealCertificatesCleanFailure));
-    }
-
-    private static Task<HealResult> TrustCertificateAsync(ICertificateToolRunner runner, CancellationToken _)
-    {
-        var result = runner.TrustHttpCertificate();
-        return Task.FromResult(IsSuccessfulTrustResult(result)
-            ? new HealResult(true, DoctorCommandStrings.HealCertificatesTrustSuccess)
-            : new HealResult(false, DoctorCommandStrings.HealCertificatesTrustFailure, string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.HealCertificatesTrustFailureDetails, result)));
-    }
-
-    private static bool IsSuccessfulTrustResult(EnsureCertificateResult result) =>
+    internal static bool IsSuccessfulTrustResult(EnsureCertificateResult result) =>
         result is EnsureCertificateResult.Succeeded
             or EnsureCertificateResult.ValidCertificatePresent
             or EnsureCertificateResult.ExistingHttpsCertificateTrusted
@@ -159,7 +73,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                 Status = EnvironmentCheckStatus.Warning,
                 Message = DoctorCommandStrings.DevCertsNoCertificateMessage,
                 Details = DoctorCommandStrings.DevCertsNoCertificateDetails,
-                Fix = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsFixCommandFormat, "aspire doctor fix certificates"),
+                Fix = s_trustFixCommand,
                 Link = "https://aka.ms/aspire-prerequisites#dev-certs"
             }];
         }
@@ -199,7 +113,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                     Status = EnvironmentCheckStatus.Warning,
                     Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsMultipleNoneTrustedMessageFormat, certInfos.Count),
                     Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsMultipleNoneTrustedDetailsFormat, certDetails),
-                    Fix = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsFixCommandFormat, "aspire doctor fix certificates"),
+                    Fix = s_cleanAndTrustFixCommand,
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
             }
@@ -212,7 +126,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                     Status = EnvironmentCheckStatus.Warning,
                     Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsMultipleSomeUntrustedMessageFormat, certInfos.Count),
                     Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsMultipleSomeUntrustedDetailsFormat, certDetails),
-                    Fix = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsFixCommandFormat, "aspire doctor fix certificates"),
+                    Fix = s_cleanAndTrustFixCommand,
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
             }
@@ -239,7 +153,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                 Status = EnvironmentCheckStatus.Warning,
                 Message = DoctorCommandStrings.DevCertsNotTrustedMessage,
                 Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsNotTrustedDetailsFormat, cert.Thumbprint),
-                Fix = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsFixCommandFormat, "aspire doctor fix certificates"),
+                Fix = s_trustFixCommand,
                 Link = "https://aka.ms/aspire-prerequisites#dev-certs"
             });
         }
@@ -281,7 +195,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                 Status = EnvironmentCheckStatus.Warning,
                 Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsOldVersionMessageFormat, versions),
                 Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsOldVersionDetailsFormat, X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust),
-                Fix = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsFixCommandFormat, "aspire doctor fix certificates"),
+                Fix = s_cleanAndTrustFixCommand,
                 Link = "https://aka.ms/aspire-prerequisites#dev-certs"
             });
         }
@@ -291,7 +205,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
 
     /// <summary>
     /// Loads developer certificates and builds pre-computed certificate information.
-    /// Shared by both <see cref="CheckAsync"/> and <see cref="EvaluateAsync"/>.
+    /// Used by <see cref="CheckAsync"/>.
     /// </summary>
     private List<CertificateInfo> GetCertificateInfos()
     {

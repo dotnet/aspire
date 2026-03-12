@@ -25,7 +25,6 @@ internal sealed class DoctorCommand : BaseCommand
     };
 
     public DoctorCommand(
-        DoctorFixCommand fixCommand,
         IEnvironmentChecker environmentChecker,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
@@ -39,8 +38,6 @@ internal sealed class DoctorCommand : BaseCommand
         _ansiConsole = ansiConsole;
 
         Options.Add(s_formatOption);
-
-        Subcommands.Add(fixCommand);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)

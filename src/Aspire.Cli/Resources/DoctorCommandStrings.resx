@@ -85,50 +85,19 @@
   <data name="CheckingPrerequisites" xml:space="preserve">
     <value>Checking Aspire environment...</value>
   </data>
-  <data name="HealCertificatesCommandDescription" xml:space="preserve">
-    <value>Fix HTTPS development certificate issues</value>
-  </data>
-  <data name="HealCertificatesCleanDescription" xml:space="preserve">
-    <value>Clean all development certificates</value>
-  </data>
-  <data name="HealCertificatesTrustDescription" xml:space="preserve">
-    <value>Trust the HTTPS development certificate, creating one if necessary</value>
-  </data>
-  <data name="HealCertificatesTrustSuccess" xml:space="preserve">
-    <value>HTTPS development certificate trusted successfully</value>
-  </data>
-  <data name="HealCertificatesTrustFailure" xml:space="preserve">
-    <value>Failed to trust HTTPS development certificate</value>
-  </data>
-  <data name="HealCertificatesTrustFailureDetails" xml:space="preserve">
-    <value>Certificate trust operation failed with code {0}</value>
-  </data>
-  <data name="HealCertificatesCleanSuccess" xml:space="preserve">
-    <value>All HTTPS development certificates cleaned successfully</value>
-  </data>
-  <data name="HealCertificatesCleanFailure" xml:space="preserve">
-    <value>Failed to clean HTTPS development certificates</value>
-  </data>
-  <data name="HealCertificatesCleanFailureDetails" xml:space="preserve">
-    <value>Certificate clean operation failed with code {0}</value>
-  </data>
-  <data name="HealUnknownAction" xml:space="preserve">
-    <value>Unknown action: {0}</value>
-  </data>
-  <data name="HealCertificatesCleanProgress" xml:space="preserve">
-    <value>Cleaning development certificates (may require elevated permissions)...</value>
-  </data>
-  <data name="HealCertificatesTrustProgress" xml:space="preserve">
-    <value>Trusting development certificate (may require elevated permissions)...</value>
-  </data>
   <data name="DevCertsNoCertificateMessage" xml:space="preserve">
     <value>No HTTPS development certificate found</value>
   </data>
   <data name="DevCertsNoCertificateDetails" xml:space="preserve">
     <value>Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</value>
   </data>
-  <data name="DevCertsFixCommandFormat" xml:space="preserve">
-    <value>Run: {0}</value>
+  <data name="DevCertsTrustFixFormat" xml:space="preserve">
+    <value>Run '{0}' to trust the HTTPS development certificate.</value>
+    <comment>{0} is the aspire certificates trust command (not localizable)</comment>
+  </data>
+  <data name="DevCertsCleanAndTrustFixFormat" xml:space="preserve">
+    <value>Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</value>
+    <comment>{0} is the aspire certificates clean command, {1} is the aspire certificates trust command (not localizable)</comment>
   </data>
   <data name="DevCertsMultipleNoneTrustedMessageFormat" xml:space="preserve">
     <value>Multiple HTTPS development certificates found ({0} certificates), but none are trusted</value>
