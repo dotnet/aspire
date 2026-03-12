@@ -54,6 +54,8 @@ The [Aspire CLI](https://aspire.dev/get-started/install-cli/) needs to be instal
 
 Open your Aspire project in VS Code, or create one with **Aspire: New Aspire project** from the Command Palette. Run **Aspire: Configure launch.json file** to set up the debug configuration, then press **F5**. The extension will build your apphost, start your services, attach debuggers, and open the dashboard.
 
+<!-- TODO: screenshot of Command Palette filtered to "Aspire:" showing available commands -->
+
 There's also a built-in walkthrough at **Help → Get Started → Get started with Aspire** that covers the basics step by step.
 
 ---
@@ -125,11 +127,15 @@ The extension adds an **Aspire** panel to the Activity Bar. It shows a live tree
 
 Right-click a resource to start, stop, or restart it, view its logs, run resource-specific commands, or open the dashboard.
 
+<!-- TODO: screenshot of the Aspire sidebar showing the resource tree with a running apphost -->
+
 ---
 
 ## The Aspire Dashboard
 
 The dashboard gives you a live view of your running app — all your resources and their health, endpoint URLs, console logs from every service, structured logs (via OpenTelemetry), distributed traces across services, and metrics.
+
+![Aspire Dashboard showing running resources](resources/aspire-dashboard-dark.png)
 
 It opens automatically when you start your app. You can pick which browser it uses with the `aspire.dashboardBrowser` setting (system default, or Chrome/Edge/Firefox as a debug session that closes when you stop debugging).
 
