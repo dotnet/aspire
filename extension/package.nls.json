@@ -76,6 +76,7 @@
 	"aspire-vscode.strings.csharpSupportNotEnabled": "C# support is not enabled in this workspace. This project should have started through the Aspire CLI.",
 	"aspire-vscode.strings.failedToStartProject": "Failed to start project: {0}.",
   "aspire-vscode.strings.dcpServerNotInitialized": "DCP server not initialized - cannot forward debug output.",
+  "aspire-vscode.strings.appHostSessionTerminated": "The apphost process has terminated. To view console output, select the apphost session from the debug console dropdown.",
   "aspire-vscode.strings.invalidTokenProvided": "Invalid token provided.",
   "aspire-vscode.strings.noWorkspaceFolder": "No workspace folder found.",
   "aspire-vscode.strings.aspireConfigExists": "Aspire launch configuration already exists in launch.json.",
