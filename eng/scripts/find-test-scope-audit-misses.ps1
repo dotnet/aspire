@@ -108,6 +108,11 @@ if ($null -ne $selectorAudit) {
   $selectorReason = $selectorAudit.reason
 }
 
+$templateGate = $null
+if ($null -ne $matrixAudit -and $null -ne $matrixAudit.PSObject.Properties['templateGate']) {
+  $templateGate = $matrixAudit.templateGate
+}
+
 $predictedWouldRunProjects = @()
 $candidateEntries = [System.Collections.Generic.List[object]]::new()
 
@@ -123,7 +128,7 @@ foreach ($entry in @($candidateEntries | Sort-Object @{ Expression = { $_.shortn
   $sortedCandidateEntries.Add($entry)
 }
 
-$failedTrxFiles = Get-FailedTrxFiles -Root $TestResultsRoot
+$failedTrxFiles = @(Get-FailedTrxFiles -Root $TestResultsRoot)
 $failedProjects = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $auditMisses = [System.Collections.Generic.List[object]]::new()
 $unmappedFailedResults = [System.Collections.Generic.List[object]]::new()
@@ -165,7 +170,7 @@ $result = [pscustomobject]@{
   hasDataIssues = ($missingArtifacts.Count -gt 0 -or $unmappedFailedResults.Count -gt 0)
   selectorRunAll = $selectorRunAll
   selectorReason = $selectorReason
-  templateGate = $matrixAudit.templateGate
+  templateGate = $templateGate
   predictedWouldRunProjects = @($predictedWouldRunProjects | Sort-Object)
   failedProjects = @(@($failedProjects) | Sort-Object)
   auditMisses = @($auditMisses)

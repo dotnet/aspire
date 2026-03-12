@@ -137,6 +137,53 @@ public class FindTestScopeAuditMissesTests : IDisposable
         Assert.Equal("critical_path", root.GetProperty("selectorReason").GetString());
     }
 
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task NoFailedTrxFiles_ReportsNoFailedTestsStatus()
+    {
+        var selectorAuditPath = Path.Combine(_tempDir.Path, "selector-audit.json");
+        var matrixAuditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
+        var testResultsPath = Path.Combine(_tempDir.Path, "testresults");
+        var reportPath = Path.Combine(_tempDir.Path, "audit-miss-report.json");
+
+        Directory.CreateDirectory(testResultsPath);
+        await File.WriteAllTextAsync(selectorAuditPath, """
+            {
+              "runAllTests": false,
+              "reason": "selective"
+            }
+            """);
+        await File.WriteAllTextAsync(matrixAuditPath, """
+            {
+              "runAll": false,
+              "auditOnly": true,
+              "skipFiltering": false,
+              "wouldRunProjects": [
+                "tests/ProjA/ProjA.csproj"
+              ],
+              "wouldRunEntries": [
+                {
+                  "matrixName": "tests_matrix_no_nugets",
+                  "shortname": "ProjA",
+                  "testProjectPath": "tests/ProjA/ProjA.csproj"
+                }
+              ]
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(testResultsPath, "ProjA.trx"), CreateTrx(failedCount: 0, passedCount: 1));
+
+        var result = await RunScript(selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
+
+        result.EnsureSuccessful("Audit miss comparison should succeed when there are no failed TRX files");
+
+        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(reportPath));
+        var root = report.RootElement;
+
+        Assert.Equal("no_failed_tests", root.GetProperty("status").GetString());
+        Assert.False(root.GetProperty("hasAuditMiss").GetBoolean());
+        Assert.Empty(root.GetProperty("failedProjects").EnumerateArray());
+    }
+
     private async Task<CommandResult> RunScript(string selectorAuditPath, string matrixAuditPath, string testResultsPath, string reportPath)
     {
         var wrapperScript = Path.Combine(_tempDir.Path, "run-find-test-scope-audit-misses.ps1");
@@ -154,13 +201,15 @@ public class FindTestScopeAuditMissesTests : IDisposable
         return await cmd.ExecuteAsync();
     }
 
-    private static string CreateTrx(int failedCount)
+    private static string CreateTrx(int failedCount, int passedCount = 0)
     {
+        var totalCount = failedCount + passedCount;
+
         return $$"""
             <?xml version="1.0" encoding="utf-8"?>
             <TestRun>
               <ResultSummary>
-                <Counters total="{{failedCount}}" executed="{{failedCount}}" passed="0" failed="{{failedCount}}" />
+                <Counters total="{{totalCount}}" executed="{{totalCount}}" passed="{{passedCount}}" failed="{{failedCount}}" />
               </ResultSummary>
             </TestRun>
             """;

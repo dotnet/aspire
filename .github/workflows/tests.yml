@@ -395,16 +395,16 @@ jobs:
         shell: pwsh
         run: |
           $reportPath = "${{ github.workspace }}/audit/results/audit-miss-report.json"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test Scope Audit</summary>"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Test Scope Audit"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '<details><summary>Test Scope Audit</summary>'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## Test Scope Audit'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
 
           if (-not (Test-Path $reportPath)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*Audit report was not produced.*"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '*Audit report was not produced.*'
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '</details>'
             exit 0
           }
 
@@ -421,26 +421,26 @@ jobs:
           }
 
           if (@($report.auditMisses).Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "No audit misses detected."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'No audit misses detected.'
           } else {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Audit misses detected:**"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '**Audit misses detected:**'
             foreach ($miss in @($report.auditMisses)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- `{0}` from `{1}`" -f $miss.testProjectPath, $miss.trxFile)
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}` from `{1}`' -f $miss.testProjectPath, $miss.trxFile)
             }
           }
 
           if (@($report.unmappedFailedResults).Count -gt 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Unmapped failed TRX files:**"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '**Unmapped failed TRX files:**'
             foreach ($entry in @($report.unmappedFailedResults)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- `{0}`" -f $entry.trxFile)
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $entry.trxFile)
             }
           }
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '</details>'
 
       - name: Upload audit miss report
         if: ${{ always() && github.event_name == 'pull_request' }}
