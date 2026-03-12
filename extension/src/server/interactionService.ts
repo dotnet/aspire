@@ -2,7 +2,7 @@ import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces, selectDirectoryTitle, selectFileTitle } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, settingsLabel, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces, selectDirectoryTitle, selectFileTitle } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { ProgressNotifier } from './progressNotifier';
 import { applyTextStyle, formatText } from '../utils/strings';
@@ -334,11 +334,14 @@ export class InteractionService implements IInteractionService {
             this.writeDebugSessionMessage(codespacesUrl, true, AnsiColors.Blue);
         }
 
-        //  If aspire.enableAspireDashboardAutoLaunch is true, the dashboard will be launched automatically and we do not need
-        // to show an information message.
+        // Refresh the Aspire panel so it picks up dashboard URLs for the running app host
+        vscode.commands.executeCommand('aspire-vscode.refreshRunningAppHosts');
+
+        //  If aspire.enableAspireDashboardAutoLaunch is 'launch', the dashboard will be launched automatically.
+        //  If 'notification', a notification is shown with a link. If 'off', do nothing.
         const aspireConfig = vscode.workspace.getConfiguration('aspire');
-        const enableDashboardAutoLaunch = aspireConfig.get<boolean>('enableAspireDashboardAutoLaunch', true);
-        if (enableDashboardAutoLaunch) {
+        const dashboardAutoLaunch = aspireConfig.get<string>('enableAspireDashboardAutoLaunch', 'launch');
+        if (dashboardAutoLaunch === 'launch') {
             // Open the dashboard URL in the configured browser. Prefer codespaces URL if available.
             const urlToOpen = codespacesUrl || baseUrl;
             const debugSession = this._getAspireDebugSession();
@@ -349,6 +352,10 @@ export class InteractionService implements IInteractionService {
             return;
         }
 
+        if (dashboardAutoLaunch === 'off') {
+            return;
+        }
+
         const actions: vscode.MessageItem[] = [
             { title: directLink }
         ];
@@ -356,6 +363,8 @@ export class InteractionService implements IInteractionService {
         if (codespacesUrl) {
             actions.push({ title: codespacesLink });
         }
+
+        actions.push({ title: settingsLabel });
 
         // Delay 1 second to allow a slight pause between progress notification and message
         setTimeout(() => {
@@ -375,6 +384,9 @@ export class InteractionService implements IInteractionService {
                 }
                 else if (selected.title === codespacesLink && codespacesUrl) {
                     vscode.env.openExternal(vscode.Uri.parse(codespacesUrl));
+                }
+                else if (selected.title === settingsLabel) {
+                    vscode.commands.executeCommand('workbench.action.openSettings', 'aspire.enableAspireDashboardAutoLaunch');
                 }
             });
         }, 1000);

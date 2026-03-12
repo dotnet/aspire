@@ -27,6 +27,7 @@ export interface ResourceJson {
     dashboardUrl: string | null;
     urls: ResourceUrlJson[] | null;
     commands: Record<string, ResourceCommandJson> | null;
+    properties: Record<string, string | null> | null;
 }
 
 export interface AppHostDisplayInfo {
@@ -64,7 +65,6 @@ export class AppHostDataRepository {
     private _describeRestarting = false;
     private _describeRestartDelay = 5000;
     private _describeRestartTimer: ReturnType<typeof setTimeout> | undefined;
-    private static readonly _maxDescribeRestartDelay = 60000;
 
     // ── Global mode state (ps polling) ──
     private _appHosts: AppHostDisplayInfo[] = [];
@@ -273,7 +273,7 @@ export class AppHostDataRepository {
 
                         // Auto-restart with exponential backoff
                         const delay = this._describeRestartDelay;
-                        this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, AppHostDataRepository._maxDescribeRestartDelay);
+                        this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, this._getPollingIntervalMs());
                         extensionLogOutputChannel.info(`Restarting describe --follow in ${delay}ms`);
                         this._describeRestartTimer = setTimeout(() => {
                             this._describeRestartTimer = undefined;
