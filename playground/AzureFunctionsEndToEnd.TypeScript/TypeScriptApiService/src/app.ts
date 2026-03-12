@@ -48,7 +48,7 @@ app.get("/publish/blob", async (_req, res) => {
 
 app.get("/publish/eventhubs", async (_req, res) => {
     try {
-        const connectionString = process.env["ConnectionStrings__eventhubs"] || "";
+        const connectionString = process.env["ConnectionStrings__myhub"] || "";
         const client = new EventHubProducerClient(connectionString, "myhub");
         const batch = await client.createBatch();
         batch.tryAdd({ body: randomString(20) });

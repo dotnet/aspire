@@ -8,7 +8,7 @@ export async function eventHubTrigger(messages: unknown[], context: InvocationCo
 }
 
 app.eventHub("eventHubTrigger", {
-    connection: "eventhubs",
+    connection: "myhub",
     eventHubName: "myhub",
     cardinality: "many",
     handler: eventHubTrigger,

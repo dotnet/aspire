@@ -2,7 +2,7 @@
   "name": "azure-functions-typescript",
   "version": "1.0.0",
   "description": "Azure Functions TypeScript E2E sample for Aspire",
-  "main": "dist/src/functions/*.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
