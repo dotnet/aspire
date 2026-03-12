@@ -65,6 +65,7 @@ export class AppHostDataRepository {
     private _describeRestarting = false;
     private _describeRestartDelay = 5000;
     private _describeRestartTimer: ReturnType<typeof setTimeout> | undefined;
+    private _describeReceivedData = false;
 
     // ── Global mode state (ps polling) ──
     private _appHosts: AppHostDisplayInfo[] = [];
@@ -145,6 +146,7 @@ export class AppHostDataRepository {
     refresh(): void {
         this._stopDescribeWatch();
         this._workspaceResources.clear();
+        this._setError(undefined);
         this._updateWorkspaceContext();
         this._describeRestartDelay = 5000;
         this._startDescribeWatch();
@@ -257,6 +259,7 @@ export class AppHostDataRepository {
 
             extensionLogOutputChannel.info('Starting aspire describe --follow for workspace resources');
 
+            this._describeReceivedData = false;
             this._describeProcess = spawnCliProcess(this._terminalProvider, cliPath, args, {
                 noExtensionVariables: true,
                 lineCallback: (line) => {
@@ -267,20 +270,28 @@ export class AppHostDataRepository {
                     this._describeProcess = undefined;
 
                     if (!this._disposed && !this._describeRestarting) {
-                        this._workspaceResources.clear();
-                        this._setError(undefined);
-                        this._updateWorkspaceContext();
+                        if (!this._describeReceivedData) {
+                            // The process exited without ever producing valid data.
+                            // This likely means the CLI does not support the describe command.
+                            extensionLogOutputChannel.warn('aspire describe --follow exited without producing data; the installed Aspire CLI may not support this feature.');
+                            this._setError(errorFetchingAppHosts(`exit code ${code}`));
+                            this._updateWorkspaceContext();
+                        } else {
+                            this._workspaceResources.clear();
+                            this._setError(undefined);
+                            this._updateWorkspaceContext();
 
-                        // Auto-restart with exponential backoff
-                        const delay = this._describeRestartDelay;
-                        this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, this._getPollingIntervalMs());
-                        extensionLogOutputChannel.info(`Restarting describe --follow in ${delay}ms`);
-                        this._describeRestartTimer = setTimeout(() => {
-                            this._describeRestartTimer = undefined;
-                            if (!this._disposed) {
-                                this._startDescribeWatch();
-                            }
-                        }, delay);
+                            // Auto-restart with exponential backoff
+                            const delay = this._describeRestartDelay;
+                            this._describeRestartDelay = Math.min(this._describeRestartDelay * 2, this._getPollingIntervalMs());
+                            extensionLogOutputChannel.info(`Restarting describe --follow in ${delay}ms`);
+                            this._describeRestartTimer = setTimeout(() => {
+                                this._describeRestartTimer = undefined;
+                                if (!this._disposed) {
+                                    this._startDescribeWatch();
+                                }
+                            }, delay);
+                        }
                     }
                     this._describeRestarting = false;
                 },
@@ -320,6 +331,7 @@ export class AppHostDataRepository {
             const resource: ResourceJson = JSON.parse(trimmed);
             if (resource.name) {
                 this._workspaceResources.set(resource.name, resource);
+                this._describeReceivedData = true;
                 this._setError(undefined);
                 this._describeRestartDelay = 5000; // Reset backoff on successful data
                 this._updateWorkspaceContext();
