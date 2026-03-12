@@ -206,13 +206,16 @@ jobs:
               return;
             }
 
-            const pullRequestNumbers = [...new Set((workflowRun.pull_requests || [])
-              .map(pullRequest => pullRequest.number)
-              .filter(Number.isInteger))];
+            const pullRequestNumbers = await rerunWorkflow.getAssociatedPullRequestNumbers({
+              github,
+              owner,
+              repo,
+              workflowRun,
+            });
             core.setOutput('pull_request_numbers', JSON.stringify(pullRequestNumbers));
 
             if (pullRequestNumbers.length === 0) {
-              console.log('No pull request is associated with this workflow run. Skipping.');
+              console.log('No associated pull request could be resolved for this workflow run. Skipping.');
               return;
             }
 

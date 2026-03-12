@@ -8,6 +8,8 @@ The workflow analyzes failed `CI` pull request runs, identifies retry-safe trans
 
 GitHub's job-rerun API also reruns downstream dependent jobs, so the workflow targets only the matched jobs when issuing rerun requests, but the resulting rerun attempt can include dependents that GitHub schedules automatically.
 
+When GitHub's `workflow_run` payload omits `pull_requests` for a failed PR run, the workflow falls back to resolving the source pull request from the CI run's `head_repository.owner.login` and `head_branch`. The fallback proceeds only when that lookup yields exactly one matching pull request, so ambiguous branch reuse still results in a skip.
+
 It is intentionally conservative:
 
 - it does not rerun every failed job in a run

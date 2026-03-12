@@ -311,6 +311,144 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
+    public async Task GetAssociatedPullRequestNumbersPrefersWorkflowRunPayloadWhenPresent()
+    {
+        AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
+            "getAssociatedPullRequestNumbers",
+            new
+            {
+                workflowRun = new
+                {
+                    pull_requests = new[]
+                    {
+                        new { number = 15110 },
+                        new { number = 15110 },
+                        new { number = 15111 }
+                    }
+                }
+            });
+
+        Assert.Equal([15110, 15111], result.PullRequestNumbers);
+        Assert.Empty(result.Requests);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task GetAssociatedPullRequestNumbersFallsBackToHeadLookupWhenPayloadOmitsPullRequests()
+    {
+        AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
+            "getAssociatedPullRequestNumbers",
+            new
+            {
+                workflowRun = new
+                {
+                    head_branch = "conditional-test-runs",
+                    head_sha = "5ccc5540dcc68f57dbe10ff941d1f39bab9f9336",
+                    head_repository = new
+                    {
+                        owner = new
+                        {
+                            login = "radical"
+                        }
+                    }
+                },
+                pullRequestsByHead = new Dictionary<string, object[]>
+                {
+                    ["radical:conditional-test-runs"] =
+                    [
+                        new
+                        {
+                            number = 13832,
+                            head = new
+                            {
+                                @ref = "conditional-test-runs",
+                                sha = "5ccc5540dcc68f57dbe10ff941d1f39bab9f9336",
+                                repo = new
+                                {
+                                    owner = new
+                                    {
+                                        login = "radical"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+
+        Assert.Equal([13832], result.PullRequestNumbers);
+
+        RequestRecord request = Assert.Single(result.Requests);
+        Assert.Equal("GET /repos/{owner}/{repo}/pulls", request.Route);
+        Assert.Equal("radical:conditional-test-runs", request.Payload.GetProperty("head").GetString());
+        Assert.Equal("all", request.Payload.GetProperty("state").GetString());
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task GetAssociatedPullRequestNumbersRejectsAmbiguousFallbackMatches()
+    {
+        AssociatedPullRequestNumbersResult result = await InvokeHarnessAsync<AssociatedPullRequestNumbersResult>(
+            "getAssociatedPullRequestNumbers",
+            new
+            {
+                workflowRun = new
+                {
+                    head_branch = "conditional-test-runs",
+                    head_repository = new
+                    {
+                        owner = new
+                        {
+                            login = "radical"
+                        }
+                    }
+                },
+                pullRequestsByHead = new Dictionary<string, object[]>
+                {
+                    ["radical:conditional-test-runs"] =
+                    [
+                        new
+                        {
+                            number = 13832,
+                            head = new
+                            {
+                                @ref = "conditional-test-runs",
+                                sha = "first-sha",
+                                repo = new
+                                {
+                                    owner = new
+                                    {
+                                        login = "radical"
+                                    }
+                                }
+                            }
+                        },
+                        new
+                        {
+                            number = 15177,
+                            head = new
+                            {
+                                @ref = "conditional-test-runs",
+                                sha = "second-sha",
+                                repo = new
+                                {
+                                    owner = new
+                                    {
+                                        login = "radical"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+
+        Assert.Empty(result.PullRequestNumbers);
+        Assert.Single(result.Requests);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
     public async Task ComputeRerunEligibilityDisablesRerunsWhenDryRunIsEnabled()
     {
         bool rerunEligible = await InvokeHarnessAsync<bool>(
@@ -430,6 +568,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Contains("MANUAL_DRY_RUN", workflowText);
         Assert.Contains("function parseManualDryRun()", workflowText);
         Assert.Contains("const dryRun = parseManualDryRun();", workflowText);
+        Assert.Contains("getAssociatedPullRequestNumbers", workflowText);
     }
 
     [Fact]
@@ -726,6 +865,12 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         public AnalyzedJob[] FailedJobs { get; init; } = [];
         public AnalyzedJob[] RetryableJobs { get; init; } = [];
         public AnalyzedJob[] SkippedJobs { get; init; } = [];
+    }
+
+    private sealed class AssociatedPullRequestNumbersResult
+    {
+        public int[] PullRequestNumbers { get; init; } = [];
+        public RequestRecord[] Requests { get; init; } = [];
     }
 
     private sealed class AnalyzedJob

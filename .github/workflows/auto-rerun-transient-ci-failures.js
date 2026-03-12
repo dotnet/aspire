@@ -114,6 +114,68 @@ function parseCheckRunId(checkRunUrl) {
     return Number.isInteger(checkRunId) && checkRunId > 0 ? checkRunId : null;
 }
 
+function getPullRequestNumbers(workflowRun) {
+    return [...new Set((workflowRun?.pull_requests || [])
+        .map(pullRequest => pullRequest.number)
+        .filter(Number.isInteger))];
+}
+
+function getHeadRepositoryOwnerLogin(workflowRun) {
+    return workflowRun?.head_repository?.owner?.login ?? workflowRun?.head_repository?.owner?.name ?? null;
+}
+
+function matchesWorkflowRunHead(pullRequest, workflowRun, headOwner, headBranch) {
+    const pullRequestHead = pullRequest?.head;
+    const pullRequestHeadOwner = pullRequestHead?.repo?.owner?.login ?? pullRequestHead?.user?.login ?? null;
+
+    if (typeof pullRequestHeadOwner !== 'string' || pullRequestHeadOwner.toLowerCase() !== headOwner.toLowerCase()) {
+        return false;
+    }
+
+    if (pullRequestHead?.ref !== headBranch) {
+        return false;
+    }
+
+    const workflowHeadSha = workflowRun?.head_sha;
+    const pullRequestHeadSha = pullRequestHead?.sha;
+
+    return typeof workflowHeadSha !== 'string'
+        || workflowHeadSha.length === 0
+        || typeof pullRequestHeadSha !== 'string'
+        || pullRequestHeadSha.length === 0
+        || pullRequestHeadSha === workflowHeadSha;
+}
+
+async function getAssociatedPullRequestNumbers({ github, owner, repo, workflowRun }) {
+    const pullRequestNumbers = getPullRequestNumbers(workflowRun);
+    if (pullRequestNumbers.length > 0) {
+        return pullRequestNumbers;
+    }
+
+    const headOwner = getHeadRepositoryOwnerLogin(workflowRun);
+    const headBranch = workflowRun?.head_branch;
+
+    if (typeof headOwner !== 'string' || headOwner.length === 0 || typeof headBranch !== 'string' || headBranch.length === 0) {
+        return [];
+    }
+
+    const response = await github.request('GET /repos/{owner}/{repo}/pulls', {
+        owner,
+        repo,
+        state: 'all',
+        head: `${headOwner}:${headBranch}`,
+        per_page: 100,
+    });
+
+    const matchingPullRequests = (response.data || [])
+        .filter(pullRequest => matchesWorkflowRunHead(pullRequest, workflowRun, headOwner, headBranch));
+    const fallbackPullRequestNumbers = [...new Set(matchingPullRequests
+        .map(pullRequest => pullRequest.number)
+        .filter(Number.isInteger))];
+
+    return fallbackPullRequestNumbers.length === 1 ? fallbackPullRequestNumbers : [];
+}
+
 async function getCheckRunIdForJob({ job, getJobForWorkflowRun }) {
     const checkRunIdFromJob = parseCheckRunId(job?.check_run_url);
     if (checkRunIdFromJob) {
@@ -672,6 +734,7 @@ module.exports = {
     classifyFailedJob,
     computeRerunEligibility,
     defaultMaxRetryableJobs,
+    getAssociatedPullRequestNumbers,
     getCheckRunIdForJob,
     getOpenPullRequestNumbers,
     getLatestRunAttempt,

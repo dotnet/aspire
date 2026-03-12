@@ -63,6 +63,19 @@ async function dispatch(operation, payload) {
                 getJobForWorkflowRun: payload.workflowJob ? async () => payload.workflowJob : undefined,
             });
 
+        case 'getAssociatedPullRequestNumbers': {
+            const requests = [];
+            const github = createGitHubRecorder(payload, requests);
+            const pullRequestNumbers = await rerunWorkflow.getAssociatedPullRequestNumbers({
+                github,
+                owner: payload.owner ?? 'dotnet',
+                repo: payload.repo ?? 'aspire',
+                workflowRun: payload.workflowRun,
+            });
+
+            return { pullRequestNumbers, requests };
+        }
+
         case 'computeRerunEligibility':
             return rerunWorkflow.computeRerunEligibility(payload);
 
@@ -121,6 +134,10 @@ function createGitHubRecorder(payload, requests) {
                 };
             }
 
+            if (route === 'GET /repos/{owner}/{repo}/pulls') {
+                const pullRequests = payload.pullRequestsByHead?.[requestPayload.head] ?? [];
+                return { data: pullRequests };
+            }
             if (route === 'POST /repos/{owner}/{repo}/issues/{issue_number}/comments') {
                 const issueNumber = String(requestPayload.issue_number);
                 const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber]
