@@ -115,7 +115,7 @@ jobs:
   build_cli_archives:
     name: Build native CLI archives
     needs: [generate_tests_matrix]
-    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.requiresCliArchive == 'true' }}
+    if: ${{ github.repository_owner == 'dotnet' && (needs.generate_tests_matrix.outputs.requiresNugets == 'true' || needs.generate_tests_matrix.outputs.requiresCliArchive == 'true') }}
     uses: ./.github/workflows/build-cli-native-archives.yml
 
   run_tests:
