@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.CodeGeneration.Java;
 

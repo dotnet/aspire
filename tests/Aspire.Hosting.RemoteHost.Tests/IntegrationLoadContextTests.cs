@@ -3,7 +3,7 @@
 
 using System.Reflection;
 using System.Runtime.Loader;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 

@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
@@ -30,7 +30,7 @@ internal sealed class CapabilityDispatcher
     private readonly HandleRegistry _handles;
     private readonly AtsMarshaller _marshaller;
     private readonly ILogger _logger;
-    private Hosting.Ats.AtsContext? _atsContext;
+    private AtsContext? _atsContext;
 
     /// <summary>
     /// Represents a registered capability.

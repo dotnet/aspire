@@ -4,7 +4,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Represents an error that occurred during ATS capability invocation.

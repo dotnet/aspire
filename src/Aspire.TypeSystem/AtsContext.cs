@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Contains all scanned types, capabilities, and metadata from ATS assembly scanning.

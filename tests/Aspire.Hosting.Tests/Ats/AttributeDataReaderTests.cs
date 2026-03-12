@@ -3,7 +3,7 @@
 
 using System.Reflection;
 using System.Reflection.Emit;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 using ThirdPartyExport = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportAttribute;
 using ThirdPartyExportIgnore = Aspire.Hosting.Tests.Ats.ThirdParty.AspireExportIgnoreAttribute;
 using ThirdPartyDtoAttr = Aspire.Hosting.Tests.Ats.ThirdParty.AspireDtoAttribute;

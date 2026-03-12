@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Provides full-name-based discovery of ATS attributes from <see cref="CustomAttributeData"/>,

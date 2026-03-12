@@ -3,7 +3,7 @@
 
 using System.Collections.Frozen;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Categories of ATS types for serialization and handling.

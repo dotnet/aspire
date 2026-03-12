@@ -3,7 +3,7 @@
 
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
