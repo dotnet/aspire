@@ -35,7 +35,9 @@
 
   <ItemGroup>
     <!-- Reference the analyzer to ensure it's built but don't reference its output -->
-    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
+    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true"
+                    SetTargetFramework="TargetFramework=netstandard2.0"
+                    GlobalPropertiesToRemove="RuntimeIdentifier;PlatformTarget;SelfContained" />
     <!-- Reference the tasks project to ensure it's built/restored but don't reference its output -->
     <ProjectReference Include="..\Aspire.Hosting.Tasks\Aspire.Hosting.Tasks.csproj" ReferenceOutputAssembly="false" Private="true" />
   </ItemGroup>
@@ -45,7 +47,9 @@
     <BeforePack>$(BeforePack);IncludeAnalyzerInPackage;IncludeTasksInPackage</BeforePack>
   </PropertyGroup>
   <Target Name="IncludeAnalyzerInPackage">
-    <MSBuild Projects="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" Targets="GetTargetPath">
+    <MSBuild Projects="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" Targets="GetTargetPath"
+            Properties="TargetFramework=netstandard2.0"
+            RemoveProperties="RuntimeIdentifier;PlatformTarget;SelfContained">
       <Output TaskParameter="TargetOutputs" PropertyName="AspireHostingAnalyzerFile" />
     </MSBuild>
 
