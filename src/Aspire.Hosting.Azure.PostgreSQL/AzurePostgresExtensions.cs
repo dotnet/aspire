@@ -211,7 +211,7 @@ public static class AzurePostgresExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("runAsContainer", Description = "Configures the Azure PostgreSQL Flexible Server resource to run locally in a container")]
+    [AspireExport("runAsContainer", Description = "Configures the Azure PostgreSQL Flexible Server resource to run locally in a container", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -385,7 +385,7 @@ public static class AzurePostgresExtensions
     /// </para>
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withPostgresMcp", Description = "Adds a Postgres MCP server container")]
+    [AspireExport("withPostgresMcp", Description = "Adds a Postgres MCP server container", RunSyncOnBackgroundThread = true)]
     [Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> WithPostgresMcp(
         this IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> builder,

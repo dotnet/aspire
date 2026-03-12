@@ -139,6 +139,21 @@ public sealed class GenAIMessageParsingHelperTests
     }
 
     [Fact]
+    public void ReadMessagePart_ToolCallRequestPart_ParsesStringArgumentsAsJson()
+    {
+        var json = """[{"type":"tool_call","id":"call_abc","name":"get_weather","arguments":"{\"location\":\"Seattle\",\"unit\":\"celsius\"}"}]""";
+
+        var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessagePart);
+
+        Assert.False(truncated);
+        var toolCallPart = Assert.IsType<ToolCallRequestPart>(Assert.Single(items));
+        Assert.Equal("get_weather", toolCallPart.Name);
+        Assert.NotNull(toolCallPart.Arguments);
+        Assert.Equal(JsonValueKind.Object, toolCallPart.Arguments.GetValueKind());
+        Assert.Equal("Seattle", toolCallPart.Arguments["location"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void ReadMessagePart_ToolCallResponsePart_ParsesObjectAndStringResponses()
     {
         var json = """[{"type":"tool_call_response","id":"call_abc","response":{"temperature":72}},{"type":"tool_call_response","id":"call_xyz","response":"plain text result"}]""";

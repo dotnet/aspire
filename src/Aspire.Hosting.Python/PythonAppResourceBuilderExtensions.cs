@@ -912,6 +912,7 @@ public static class PythonAppResourceBuilderExtensions
     /// the program or module to debug, and appropriate launch settings.
     /// </para>
     /// </remarks>
+    [AspireExport("withDebugging", Description = "Enables debugging support for a Python application")]
     public static IResourceBuilder<T> WithDebugging<T>(
         this IResourceBuilder<T> builder) where T : PythonAppResource
     {

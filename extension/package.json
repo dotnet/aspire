@@ -263,6 +263,18 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "aspire-vscode.switchToGlobalView",
+        "title": "%command.switchToGlobalView%",
+        "category": "Aspire",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "aspire-vscode.switchToWorkspaceView",
+        "title": "%command.switchToWorkspaceView%",
+        "category": "Aspire",
+        "icon": "$(home)"
+      },
+      {
         "command": "aspire-vscode.installCliStable",
         "title": "%command.installCliStable%",
         "category": "Aspire"
@@ -353,9 +365,27 @@
         {
           "command": "aspire-vscode.executeResourceCommand",
           "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "false"
         }
       ],
       "view/title": [
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode != global",
+          "group": "navigation"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode == global",
+          "group": "navigation"
+        },
         {
           "command": "aspire-vscode.refreshRunningAppHosts",
           "when": "view == aspire-vscode.runningAppHosts",
@@ -365,7 +395,7 @@
       "view/item/context": [
         {
           "command": "aspire-vscode.openDashboard",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^(appHost|workspaceResources)$/",
           "group": "inline"
         },
         {
@@ -440,9 +470,15 @@
           "scope": "window"
         },
         "aspire.enableAspireDashboardAutoLaunch": {
-          "type": "boolean",
-          "default": true,
+          "type": "string",
+          "enum": ["launch", "notification", "off"],
+          "default": "launch",
           "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "enumDescriptions": [
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.launch%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.notification%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.off%"
+          ],
           "scope": "window"
         },
         "aspire.dashboardBrowser": {
@@ -474,6 +510,13 @@
           "type": "boolean",
           "default": false,
           "description": "%configuration.aspire.registerMcpServerInWorkspace%",
+          "scope": "window"
+        },
+        "aspire.globalAppHostsPollingInterval": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "description": "%configuration.aspire.globalAppHostsPollingInterval%",
           "scope": "window"
         }
       }

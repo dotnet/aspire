@@ -172,7 +172,7 @@ public static class AzureSqlExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("runAsContainer", Description = "Configures the Azure SQL server to run locally in a SQL Server container")]
+    [AspireExport("runAsContainer", Description = "Configures the Azure SQL server to run locally in a SQL Server container", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureSqlServerResource> RunAsContainer(this IResourceBuilder<AzureSqlServerResource> builder, Action<IResourceBuilder<SqlServerServerResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

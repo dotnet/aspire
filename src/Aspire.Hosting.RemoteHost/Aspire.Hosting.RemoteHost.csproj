@@ -1,29 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>aspire-server</AssemblyName>
-    <Description>Remote host server for polyglot Aspire AppHosts.</Description>
-    <PackageTags>aspire hosting polyglot</PackageTags>
-
-    <!-- This is included in the Aspire bundle layout -->
-    <IsPackable>true</IsPackable>
-    <!-- New package, no baseline to compare against yet -->
-    <EnablePackageValidation>false</EnablePackageValidation>
-
-    <!-- Framework-dependent deployment - uses the bundled runtime -->
-    <SelfContained>false</SelfContained>
-    <PublishSingleFile>false</PublishSingleFile>
-
-    <!-- Allow running on newer .NET versions -->
-    <RollForward>Major</RollForward>
-
-    <!-- Skip Aspire workload checks - this is internal tooling -->
-    <SkipValidateAspireHostProjectResources>true</SkipValidateAspireHostProjectResources>
-    <SkipAddAspireDefaultReferences>true</SkipAddAspireDefaultReferences>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

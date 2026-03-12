@@ -306,39 +306,9 @@ internal sealed class CapabilityDispatcher
             var invokeTarget = ResolveContextTarget(contextObj!, methodToInvoke.DeclaringType!);
 
             object? result;
-            try
-            {
-                // Invoke instance method on the context object
-                result = methodToInvoke.Invoke(invokeTarget, methodArgs);
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException is not null)
-            {
-                throw tie.InnerException;
-            }
+            result = await InvokeMethodAsync(methodToInvoke, invokeTarget, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
 
-            // Handle async methods - await instead of blocking
-            if (result is Task task)
-            {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
-
-                var taskType = task.GetType();
-                if (taskType.IsGenericType)
-                {
-                    var resultProperty = taskType.GetProperty("Result");
-                    result = resultProperty?.GetValue(task);
-                }
-                else
-                {
-                    result = null;
-                }
-            }
+            result = await UnwrapAsyncResultAsync(result, methodToInvoke.ReturnType).ConfigureAwait(false);
 
             return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
@@ -398,41 +368,9 @@ internal sealed class CapabilityDispatcher
             }
 
             object? result;
-            try
-            {
-                result = methodToInvoke.Invoke(null, methodArgs);
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException is not null)
-            {
-                _logger.LogError(tie.InnerException, "Static method invocation failed for {Method}: {ExceptionType}", method.Name, tie.InnerException.GetType().Name);
-                throw tie.InnerException;
-            }
+            result = await InvokeMethodAsync(methodToInvoke, target: null, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
 
-            // Handle async methods - await instead of blocking
-            if (result is Task task)
-            {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    // Rethrow the exception - it will be caught by the outer handler
-                    // and converted to a CapabilityException
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
-
-                var taskType = task.GetType();
-                if (taskType.IsGenericType)
-                {
-                    var resultProperty = taskType.GetProperty("Result");
-                    result = resultProperty?.GetValue(task);
-                }
-                else
-                {
-                    result = null;
-                }
-            }
+            result = await UnwrapAsyncResultAsync(result, methodToInvoke.ReturnType).ConfigureAwait(false);
 
             return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
@@ -517,6 +455,85 @@ internal sealed class CapabilityDispatcher
     public JsonNode? Invoke(string capabilityId, JsonObject? args)
     {
         return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
+    }
+
+    private static async Task<object?> InvokeMethodAsync(MethodInfo method, object? target, object?[] methodArgs, bool runSyncOnBackgroundThread)
+    {
+        if (runSyncOnBackgroundThread && !IsAsyncReturnType(method.ReturnType))
+        {
+            return await Task.Run(() => InvokeMethodCore(method, target, methodArgs)).ConfigureAwait(false);
+        }
+
+        return InvokeMethodCore(method, target, methodArgs);
+    }
+
+    private static bool IsAsyncReturnType(Type returnType)
+    {
+        if (typeof(Task).IsAssignableFrom(returnType) || returnType == typeof(ValueTask))
+        {
+            return true;
+        }
+
+        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>);
+    }
+
+    private static async Task<object?> UnwrapAsyncResultAsync(object? result, Type returnType)
+    {
+        try
+        {
+            if (result is Task task)
+            {
+                await task.ConfigureAwait(false);
+                return GetAsyncResultValue(task);
+            }
+
+            if (returnType == typeof(ValueTask) && result is ValueTask valueTask)
+            {
+                await valueTask.ConfigureAwait(false);
+                return null;
+            }
+
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                var asTask = returnType.GetMethod(nameof(ValueTask<int>.AsTask), BindingFlags.Instance | BindingFlags.Public)
+                    ?? throw new InvalidOperationException($"Unable to await ValueTask result for return type '{returnType}'.");
+                var boxedTask = asTask.Invoke(result, null) as Task
+                    ?? throw new InvalidOperationException($"Unable to convert ValueTask result for return type '{returnType}' to Task.");
+
+                await boxedTask.ConfigureAwait(false);
+                return GetAsyncResultValue(boxedTask);
+            }
+
+            return result;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(ex.Message, ex);
+        }
+    }
+
+    private static object? GetAsyncResultValue(Task task)
+    {
+        var taskType = task.GetType();
+        if (!taskType.IsGenericType)
+        {
+            return null;
+        }
+
+        var resultProperty = taskType.GetProperty("Result");
+        return resultProperty?.GetValue(task);
+    }
+
+    private static object? InvokeMethodCore(MethodInfo method, object? target, object?[] methodArgs)
+    {
+        try
+        {
+            return method.Invoke(target, methodArgs);
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw tie.InnerException;
+        }
     }
 
     /// <summary>

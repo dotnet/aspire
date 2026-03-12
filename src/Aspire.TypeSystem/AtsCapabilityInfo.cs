@@ -248,6 +248,11 @@ public sealed class AtsCapabilityInfo
     /// Format: "TypeName.MethodName" or "TypeName.PropertyName" for diagnostics.
     /// </remarks>
     public string? SourceLocation { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether synchronous invocations of this capability should run on a background thread.
+    /// </summary>
+    public bool RunSyncOnBackgroundThread { get; init; }
 }
 
 /// <summary>

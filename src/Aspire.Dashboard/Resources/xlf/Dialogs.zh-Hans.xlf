@@ -137,6 +137,11 @@
         <target state="translated">输入词元数: {0}</target>
         <note>{0} is the number of tokens</note>
       </trans-unit>
+      <trans-unit id="GenAILLMBadgeText">
+        <source>LLM</source>
+        <target state="new">LLM</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIMessageCategoryMessage">
         <source>Message</source>
         <target state="translated">消息</target>
@@ -245,6 +250,16 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">词元</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolCallButtonText">
+        <source>Tool call</source>
+        <target state="new">Tool call</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolDefinitionButtonText">
+        <source>Tool definition</source>
+        <target state="new">Tool definition</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIToolNoParameters">

@@ -342,6 +342,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 AspireClient as AspireClientRpc,
                 Handle,
                 MarshalledHandle,
+                AppHostUsageError,
                 CapabilityError,
                 registerCallback,
                 wrapIfHandle,
@@ -1581,7 +1582,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Re-export commonly used types
-            export { Handle, CapabilityError, registerCallback } from './transport.js';
+            export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
             export { refExpr, ReferenceExpression } from './base.js';
             """);
         WriteLine();
@@ -1601,7 +1602,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             process.on('unhandledRejection', (reason: unknown) => {
                 const error = reason instanceof Error ? reason : new Error(String(reason));
 
-                if (reason instanceof CapabilityError) {
+                if (reason instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else if (reason instanceof CapabilityError) {
                     console.error(`\n❌ Capability Error: ${error.message}`);
                     console.error(`   Code: ${(reason as CapabilityError).code}`);
                     if ((reason as CapabilityError).capability) {
@@ -1618,8 +1621,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             });
 
             process.on('uncaughtException', (error: Error) => {
-                console.error(`\n❌ Uncaught Exception: ${error.message}`);
-                if (error.stack) {
+                if (error instanceof AppHostUsageError) {
+                    console.error(`\n❌ AppHost Error: ${error.message}`);
+                } else {
+                    console.error(`\n❌ Uncaught Exception: ${error.message}`);
+                }
+                if (!(error instanceof AppHostUsageError) && error.stack) {
                     console.error(error.stack);
                 }
                 process.exit(1);
@@ -2479,6 +2486,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             // Use category-based check instead of string parsing
             if (targetTypeRef.Category != AtsTypeCategory.Handle)
+            {
+                continue;
+            }
+
+            // ReferenceExpression is implemented manually in base.ts, including its handle wrapper
+            // registration, so it must not also generate a duplicate wrapper class in aspire.ts.
+            if (targetTypeId == AtsConstants.ReferenceExpressionTypeId)
             {
                 continue;
             }

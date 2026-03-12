@@ -17,7 +17,6 @@ import { AspireExtensionContext } from './AspireExtensionContext';
 import AspireRpcServer, { RpcServerConnectionInfo } from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { configureLaunchJsonCommand } from './commands/configureLaunchJson';
-import { getResourceDebuggerExtensions } from './debugger/debuggerExtensions';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
@@ -27,8 +26,8 @@ import { openLocalSettingsCommand, openGlobalSettingsCommand } from './commands/
 import { checkCliAvailableOrRedirect, checkForExistingAppHostPathInWorkspace } from './utils/workspace';
 import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 import { AspireAppHostTreeProvider } from './views/AspireAppHostTreeProvider';
+import { AppHostDataRepository } from './views/AppHostDataRepository';
 import { installCliStableCommand, installCliDailyCommand, verifyCliInstalledCommand } from './commands/walkthroughCommands';
-import { AspireStatusBarProvider } from './views/AspireStatusBarProvider';
 import { AspireMcpServerDefinitionProvider } from './mcp/AspireMcpServerDefinitionProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
@@ -36,8 +35,6 @@ let aspireExtensionContext = new AspireExtensionContext();
 export async function activate(context: vscode.ExtensionContext) {
   extensionLogOutputChannel.info("Activating Aspire extension");
   initializeTelemetry(context);
-
-  const debuggerExtensions = getResourceDebuggerExtensions();
 
   const terminalProvider = new AspireTerminalProvider(context.subscriptions);
 
@@ -48,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  const dcpServer = await AspireDcpServer.create(debuggerExtensions, aspireExtensionContext.getAspireDebugSession.bind(aspireExtensionContext));
+  const dcpServer = await AspireDcpServer.create(aspireExtensionContext.getAspireDebugSession.bind(aspireExtensionContext));
 
   terminalProvider.rpcServerConnectionInfo = rpcServer.connectionInfo;
   terminalProvider.dcpServerConnectionInfo = dcpServer.connectionInfo;
@@ -78,11 +75,21 @@ export async function activate(context: vscode.ExtensionContext) {
   const verifyCliInstalledRegistration = vscode.commands.registerCommand('aspire-vscode.verifyCliInstalled', verifyCliInstalledCommand);
 
   // Aspire panel - running app hosts tree view
-  const appHostTreeProvider = new AspireAppHostTreeProvider(terminalProvider);
+  const dataRepository = new AppHostDataRepository(terminalProvider);
+  const appHostTreeProvider = new AspireAppHostTreeProvider(dataRepository, terminalProvider);
   const appHostTreeView = vscode.window.createTreeView('aspire-vscode.runningAppHosts', {
     treeDataProvider: appHostTreeProvider,
   });
-  const refreshRunningAppHostsRegistration = vscode.commands.registerCommand('aspire-vscode.refreshRunningAppHosts', () => appHostTreeProvider.refresh());
+
+  // Global-mode polling is tied to panel visibility
+  dataRepository.setPanelVisible(appHostTreeView.visible);
+  appHostTreeView.onDidChangeVisibility(e => {
+    dataRepository.setPanelVisible(e.visible);
+  });
+
+  const refreshRunningAppHostsRegistration = vscode.commands.registerCommand('aspire-vscode.refreshRunningAppHosts', () => dataRepository.refresh());
+  const switchToGlobalViewRegistration = vscode.commands.registerCommand('aspire-vscode.switchToGlobalView', () => dataRepository.setViewMode('global'));
+  const switchToWorkspaceViewRegistration = vscode.commands.registerCommand('aspire-vscode.switchToWorkspaceView', () => dataRepository.setViewMode('workspace'));
   const openDashboardRegistration = vscode.commands.registerCommand('aspire-vscode.openDashboard', (element) => appHostTreeProvider.openDashboard(element));
   const stopAppHostRegistration = vscode.commands.registerCommand('aspire-vscode.stopAppHost', (element) => appHostTreeProvider.stopAppHost(element));
   const stopResourceRegistration = vscode.commands.registerCommand('aspire-vscode.stopResource', (element) => appHostTreeProvider.stopResource(element));
@@ -94,15 +101,10 @@ export async function activate(context: vscode.ExtensionContext) {
   // Set initial context for welcome view
   vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', true);
 
-  // Always poll for app host status — the status bar needs up-to-date data even
-  // when the tree view panel is hidden.
-  appHostTreeProvider.startPolling();
+  // Activate the data repository (starts workspace describe --follow; global polling begins when the panel is visible)
+  dataRepository.activate();
 
-  context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, openDashboardRegistration, stopAppHostRegistration, stopResourceRegistration, startResourceRegistration, restartResourceRegistration, viewResourceLogsRegistration, executeResourceCommandRegistration, { dispose: () => appHostTreeProvider.dispose() });
-
-  // Status bar
-  const statusBarProvider = new AspireStatusBarProvider(appHostTreeProvider);
-  context.subscriptions.push(statusBarProvider);
+  context.subscriptions.push(appHostTreeView, refreshRunningAppHostsRegistration, switchToGlobalViewRegistration, switchToWorkspaceViewRegistration, openDashboardRegistration, stopAppHostRegistration, stopResourceRegistration, startResourceRegistration, restartResourceRegistration, viewResourceLogsRegistration, executeResourceCommandRegistration, { dispose: () => { appHostTreeProvider.dispose(); dataRepository.dispose(); } });
 
   context.subscriptions.push(cliAddCommandRegistration, cliNewCommandRegistration, cliInitCommandRegistration, cliDeployCommandRegistration, cliPublishCommandRegistration, cliDoCommandRegistration, openTerminalCommandRegistration, configureLaunchJsonCommandRegistration);
   context.subscriptions.push(cliUpdateCommandRegistration, cliUpdateSelfCommandRegistration, settingsCommandRegistration, openLocalSettingsCommandRegistration, openGlobalSettingsCommandRegistration, runAppHostCommandRegistration, debugAppHostCommandRegistration);

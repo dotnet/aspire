@@ -133,7 +133,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    [AspireExport("asExisting", Description = "Marks an Azure resource as existing in both run and publish modes")]
+    [AspireExport("asExistingFromParameters", MethodName = "asExisting", Description = "Marks an Azure resource as existing in both run and publish modes by using parameter resources")]
     public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
     {

@@ -187,7 +187,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus Queue resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusQueueResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withQueueProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus queue")]
+    [AspireExport("withQueueProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus queue", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureServiceBusQueueResource> WithProperties(this IResourceBuilder<AzureServiceBusQueueResource> builder, Action<AzureServiceBusQueueResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -270,7 +270,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus Topic resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusTopicResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withTopicProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus topic")]
+    [AspireExport("withTopicProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus topic", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureServiceBusTopicResource> WithProperties(this IResourceBuilder<AzureServiceBusTopicResource> builder, Action<AzureServiceBusTopicResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -340,7 +340,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus Subscription resource builder.</param>
     /// <param name="configure">A method that can be used for customizing the <see cref="AzureServiceBusSubscriptionResource"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withSubscriptionProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus subscription")]
+    [AspireExport("withSubscriptionProperties", MethodName = "withProperties", Description = "Configures properties of an Azure Service Bus subscription", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureServiceBusSubscriptionResource> WithProperties(this IResourceBuilder<AzureServiceBusSubscriptionResource> builder, Action<AzureServiceBusSubscriptionResource> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -376,7 +376,7 @@ public static class AzureServiceBusExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExport("runAsEmulator", Description = "Configures the Azure Service Bus resource to run with the local emulator")]
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Service Bus resource to run with the local emulator", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureServiceBusResource> RunAsEmulator(this IResourceBuilder<AzureServiceBusResource> builder, Action<IResourceBuilder<AzureServiceBusEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

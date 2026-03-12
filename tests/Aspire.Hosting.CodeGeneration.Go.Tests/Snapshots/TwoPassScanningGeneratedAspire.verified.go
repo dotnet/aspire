@@ -421,6 +421,21 @@ func (s *CSharpAppResource) DisableForwardedHeaders() (*ProjectResource, error) 
 	return result.(*ProjectResource), nil
 }
 
+// PublishAsDockerFile publishes a project as a Docker file with optional container configuration
+func (s *CSharpAppResource) PublishAsDockerFile(configure func(...any) any) (*ProjectResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if configure != nil {
+		reqArgs["configure"] = RegisterCallback(configure)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ProjectResource), nil
+}
+
 // WithRequiredCommand adds a required command dependency
 func (s *CSharpAppResource) WithRequiredCommand(command string, helpLink string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -2565,6 +2580,207 @@ func (s *ContainerResource) WithContainerRegistry(registry *IResource) (*IResour
 	return result.(*IResource), nil
 }
 
+// WithBindMount adds a bind mount
+func (s *ContainerResource) WithBindMount(source string, target string, isReadOnly bool) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["source"] = SerializeValue(source)
+	reqArgs["target"] = SerializeValue(target)
+	reqArgs["isReadOnly"] = SerializeValue(isReadOnly)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withBindMount", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithEntrypoint sets the container entrypoint
+func (s *ContainerResource) WithEntrypoint(entrypoint string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["entrypoint"] = SerializeValue(entrypoint)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEntrypoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithImageTag sets the container image tag
+func (s *ContainerResource) WithImageTag(tag string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["tag"] = SerializeValue(tag)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withImageTag", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithImageRegistry sets the container image registry
+func (s *ContainerResource) WithImageRegistry(registry string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["registry"] = SerializeValue(registry)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withImageRegistry", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithImage sets the container image
+func (s *ContainerResource) WithImage(image string, tag string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["image"] = SerializeValue(image)
+	reqArgs["tag"] = SerializeValue(tag)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withImage", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithImageSHA256 sets the image SHA256 digest
+func (s *ContainerResource) WithImageSHA256(sha256 string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["sha256"] = SerializeValue(sha256)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withImageSHA256", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithContainerRuntimeArgs adds runtime arguments for the container
+func (s *ContainerResource) WithContainerRuntimeArgs(args []string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["args"] = SerializeValue(args)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withContainerRuntimeArgs", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithLifetime sets the lifetime behavior of the container resource
+func (s *ContainerResource) WithLifetime(lifetime ContainerLifetime) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["lifetime"] = SerializeValue(lifetime)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withLifetime", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithImagePullPolicy sets the container image pull policy
+func (s *ContainerResource) WithImagePullPolicy(pullPolicy ImagePullPolicy) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["pullPolicy"] = SerializeValue(pullPolicy)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withImagePullPolicy", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// PublishAsContainer configures the resource to be published as a container
+func (s *ContainerResource) PublishAsContainer() (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishAsContainer", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithDockerfile configures the resource to use a Dockerfile
+func (s *ContainerResource) WithDockerfile(contextPath string, dockerfilePath string, stage string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["contextPath"] = SerializeValue(contextPath)
+	reqArgs["dockerfilePath"] = SerializeValue(dockerfilePath)
+	reqArgs["stage"] = SerializeValue(stage)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withDockerfile", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithContainerName sets the container name
+func (s *ContainerResource) WithContainerName(name string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withContainerName", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithBuildArg adds a build argument from a parameter resource
+func (s *ContainerResource) WithBuildArg(name string, value *ParameterResource) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withBuildArg", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithBuildSecret adds a build secret from a parameter resource
+func (s *ContainerResource) WithBuildSecret(name string, value *ParameterResource) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withBuildSecret", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
+// WithEndpointProxySupport configures endpoint proxy support
+func (s *ContainerResource) WithEndpointProxySupport(proxyEnabled bool) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["proxyEnabled"] = SerializeValue(proxyEnabled)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEndpointProxySupport", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
+}
+
 // WithDockerfileBaseImage sets the base image for a Dockerfile build
 func (s *ContainerResource) WithDockerfileBaseImage(buildImage string, runtimeImage string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -2577,6 +2793,19 @@ func (s *ContainerResource) WithDockerfileBaseImage(buildImage string, runtimeIm
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithContainerNetworkAlias adds a network alias for the container
+func (s *ContainerResource) WithContainerNetworkAlias(alias string) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["alias"] = SerializeValue(alias)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withContainerNetworkAlias", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
 }
 
 // WithMcpServer configures an MCP server endpoint on the resource
@@ -2616,6 +2845,18 @@ func (s *ContainerResource) WithOtlpExporterProtocol(protocol OtlpProtocol) (*IR
 		return nil, err
 	}
 	return result.(*IResourceWithEnvironment), nil
+}
+
+// PublishAsConnectionString publishes the resource as a connection string
+func (s *ContainerResource) PublishAsConnectionString() (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishAsConnectionString", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
 }
 
 // WithRequiredCommand adds a required command dependency
@@ -3377,6 +3618,21 @@ func (s *ContainerResource) WithPipelineConfiguration(callback func(...any) any)
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// WithVolume adds a volume
+func (s *ContainerResource) WithVolume(target string, name string, isReadOnly bool) (*ContainerResource, error) {
+	reqArgs := map[string]any{
+		"resource": SerializeValue(s.Handle()),
+	}
+	reqArgs["target"] = SerializeValue(target)
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["isReadOnly"] = SerializeValue(isReadOnly)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withVolume", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerResource), nil
 }
 
 // GetResourceName gets the resource name
@@ -5239,6 +5495,59 @@ func (s *ExecutableResource) WithDockerfileBaseImage(buildImage string, runtimeI
 		return nil, err
 	}
 	return result.(*IResource), nil
+}
+
+// PublishAsDockerFile publishes the executable as a Docker container
+func (s *ExecutableResource) PublishAsDockerFile() (*ExecutableResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishAsDockerFile", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExecutableResource), nil
+}
+
+// PublishAsDockerFileWithConfigure publishes an executable as a Docker file with optional container configuration
+func (s *ExecutableResource) PublishAsDockerFileWithConfigure(configure func(...any) any) (*ExecutableResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if configure != nil {
+		reqArgs["configure"] = RegisterCallback(configure)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishAsDockerFileWithConfigure", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExecutableResource), nil
+}
+
+// WithExecutableCommand sets the executable command
+func (s *ExecutableResource) WithExecutableCommand(command string) (*ExecutableResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["command"] = SerializeValue(command)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withExecutableCommand", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExecutableResource), nil
+}
+
+// WithWorkingDirectory sets the executable working directory
+func (s *ExecutableResource) WithWorkingDirectory(workingDirectory string) (*ExecutableResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["workingDirectory"] = SerializeValue(workingDirectory)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withWorkingDirectory", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExecutableResource), nil
 }
 
 // WithMcpServer configures an MCP server endpoint on the resource
@@ -8234,6 +8543,46 @@ func (s *ProjectResource) WithOtlpExporterProtocol(protocol OtlpProtocol) (*IRes
 		return nil, err
 	}
 	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithReplicas sets the number of replicas
+func (s *ProjectResource) WithReplicas(replicas float64) (*ProjectResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["replicas"] = SerializeValue(replicas)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReplicas", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ProjectResource), nil
+}
+
+// DisableForwardedHeaders disables forwarded headers for the project
+func (s *ProjectResource) DisableForwardedHeaders() (*ProjectResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/disableForwardedHeaders", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ProjectResource), nil
+}
+
+// PublishAsDockerFile publishes a project as a Docker file with optional container configuration
+func (s *ProjectResource) PublishAsDockerFile(configure func(...any) any) (*ProjectResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	if configure != nil {
+		reqArgs["configure"] = RegisterCallback(configure)
+	}
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/publishProjectAsDockerFileWithConfigure", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ProjectResource), nil
 }
 
 // WithRequiredCommand adds a required command dependency

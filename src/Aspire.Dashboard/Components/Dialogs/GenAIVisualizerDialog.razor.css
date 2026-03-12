@@ -13,6 +13,10 @@
     background: var(--main-container-background-color);
 }
 
+::deep .span-messages-container fluent-button.back-button::part(control):not(:hover) {
+    background: var(--main-container-background-color);
+}
+
 ::deep .span-messages-sidebar {
     height: 65vh;
     overflow-y: auto;
@@ -30,6 +34,8 @@
 
 ::deep .message-container .message-title {
     font-size: var(--type-ramp-plus-1-font-size);
+    display: flex;
+    align-items: center;
 }
 
 ::deep .section-title {
@@ -126,6 +132,10 @@
     display: flex;
     align-items: center;
     height: 50px;
+}
+
+::deep .back-button {
+    margin-left: auto;
 }
 
 ::deep .message-header-details {

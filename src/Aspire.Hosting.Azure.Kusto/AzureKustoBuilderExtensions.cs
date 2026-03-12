@@ -149,7 +149,7 @@ public static class AzureKustoBuilderExtensions
     /// Optional action to configure the Kusto emulator container.
     /// </param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("runAsEmulator", Description = "Configures the Kusto cluster to run using the local emulator")]
+    [AspireExport("runAsEmulator", Description = "Configures the Kusto cluster to run using the local emulator", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(
         this IResourceBuilder<AzureKustoClusterResource> builder,
         Action<IResourceBuilder<AzureKustoEmulatorResource>>? configureContainer = null)
