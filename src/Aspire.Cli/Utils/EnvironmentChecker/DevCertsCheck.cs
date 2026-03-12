@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Resources;
-using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Certificates.Generation;
 using Microsoft.Extensions.Logging;
 
@@ -74,7 +73,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
 
         // Check for old certificate versions among trusted certificates
         var oldTrustedVersions = certInfos
-            .Where(c => c.TrustLevel != CertificateManager.TrustLevel.None && c.Version < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust)
+            .Where(c => c.TrustLevel != CertificateManager.TrustLevel.None && c.Version < CertificateManager.CurrentAspNetCoreCertificateVersion)
             .Select(c => c.Version)
             .ToList();
 
@@ -191,7 +190,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
                 Name = "dev-certs-version",
                 Status = EnvironmentCheckStatus.Warning,
                 Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsOldVersionMessageFormat, versions),
-                Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsOldVersionDetailsFormat, X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust),
+                Details = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.DevCertsOldVersionDetailsFormat, CertificateManager.CurrentMinimumAspNetCoreCertificateVersion),
                 Fix = s_cleanAndTrustFixCommand,
                 Link = "https://aka.ms/aspire-prerequisites#dev-certs"
             });

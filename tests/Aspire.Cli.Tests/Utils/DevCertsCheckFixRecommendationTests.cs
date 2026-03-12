@@ -9,6 +9,8 @@ namespace Aspire.Cli.Tests.Utils;
 
 public class DevCertsCheckFixRecommendationTests
 {
+    private const int MinVersion = CertificateManager.CurrentAspNetCoreCertificateVersion;
+
     [Fact]
     public void EvaluateCertificateResults_NoCertificates_RecommendsTrust()
     {
@@ -26,7 +28,7 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.None, "AABB1234", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.None, "AABB1234", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);
@@ -43,7 +45,7 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);
@@ -58,8 +60,8 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", 4),
-            CreateDevCertInfo(CertificateManager.TrustLevel.None, "CCDD5678", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", MinVersion),
+            CreateDevCertInfo(CertificateManager.TrustLevel.None, "CCDD5678", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);
@@ -76,8 +78,8 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.None, "AABB1234", 4),
-            CreateDevCertInfo(CertificateManager.TrustLevel.None, "CCDD5678", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.None, "AABB1234", MinVersion),
+            CreateDevCertInfo(CertificateManager.TrustLevel.None, "CCDD5678", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);
@@ -113,7 +115,7 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.Partial, "AABB1234", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.Partial, "AABB1234", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);
@@ -130,8 +132,8 @@ public class DevCertsCheckFixRecommendationTests
     {
         var certInfos = new List<DevCertInfo>
         {
-            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", 4),
-            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "CCDD5678", 4)
+            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "AABB1234", MinVersion),
+            CreateDevCertInfo(CertificateManager.TrustLevel.Full, "CCDD5678", MinVersion)
         };
 
         var results = DevCertsCheck.EvaluateCertificateResults(certInfos);

@@ -3,14 +3,13 @@
 
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Utils.EnvironmentChecker;
-using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Certificates.Generation;
 
 namespace Aspire.Cli.Tests.Utils;
 
 public class DevCertsCheckTests
 {
-    private const int MinVersion = X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust;
+    private const int MinVersion = CertificateManager.CurrentAspNetCoreCertificateVersion;
 
     private static DevCertInfo CreateDevCertInfo(CertificateManager.TrustLevel trustLevel, string thumbprint, int version)
     {
