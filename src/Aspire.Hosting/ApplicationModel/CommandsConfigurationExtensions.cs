@@ -32,7 +32,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
+                if (IsStarting(state) || IsBuilding(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -65,7 +65,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStopping(state))
+                if (IsStopping(state) || IsBuilding(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -105,7 +105,7 @@ internal static class CommandsConfigurationExtensions
             updateState: context =>
             {
                 var state = context.ResourceSnapshot.State?.Text;
-                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
+                if (IsStarting(state) || IsStopping(state) || IsStopped(state) || IsWaiting(state) || IsBuilding(state) || IsRuntimeUnhealthy(state) || HasNoState(state))
                 {
                     return ResourceCommandState.Disabled;
                 }
@@ -132,6 +132,7 @@ internal static class CommandsConfigurationExtensions
         static bool IsStopping(string? state) => state == KnownResourceStates.Stopping;
         static bool IsStarting(string? state) => state == KnownResourceStates.Starting;
         static bool IsWaiting(string? state) => state == KnownResourceStates.Waiting;
+        static bool IsBuilding(string? state) => state == KnownResourceStates.Building;
         static bool IsRuntimeUnhealthy(string? state) => state == KnownResourceStates.RuntimeUnhealthy;
         static bool HasNoState(string? state) => string.IsNullOrEmpty(state);
     }
@@ -260,6 +261,7 @@ internal static class CommandsConfigurationExtensions
                 // Only restart replicas that were running before the rebuild;
                 // leave previously-inactive replicas in their terminal state.
                 mainLogger.LogInformation(BuildLogPrefix + "Build succeeded. Restarting resource...");
+                var anyRestarted = false;
                 foreach (var name in replicaNames)
                 {
                     var wasRunning = preRebuildStates.TryGetValue(name, out var priorState)
@@ -267,6 +269,7 @@ internal static class CommandsConfigurationExtensions
 
                     if (wasRunning)
                     {
+                        anyRestarted = true;
                         await resourceNotificationService.PublishUpdateAsync(projectResource, name, s => s with
                         {
                             State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
@@ -275,6 +278,24 @@ internal static class CommandsConfigurationExtensions
                         await orchestrator.StartResourceAsync(name, context.CancellationToken).ConfigureAwait(false);
                     }
                 }
+
+                if (!anyRestarted)
+                {
+                    // No replicas were running before rebuild (e.g. resource was stopped).
+                    // Restore each replica to its pre-build state so it doesn't stay stuck
+                    // in "Building" indefinitely.
+                    foreach (var name in replicaNames)
+                    {
+                        if (preRebuildStates.TryGetValue(name, out var priorState) && priorState is not null)
+                        {
+                            await resourceNotificationService.PublishUpdateAsync(projectResource, name, s => s with
+                            {
+                                State = new ResourceStateSnapshot(priorState, KnownResourceStateStyles.Info)
+                            }).ConfigureAwait(false);
+                        }
+                    }
+                }
+
                 return CommandResults.Success();
             }
             else
