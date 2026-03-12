@@ -1381,7 +1381,9 @@ public class AtsTypeScriptCodeGeneratorTests
     [InlineData("withPnpm")]
     public void Scanner_PackageManagerMethods_ExpandToAllJavaScriptResourceTypes(string methodName)
     {
-        // Verify all package manager methods expand to all three JS resource types
+        // Verify all package manager methods expand to the known JS resource types.
+        // Assert the minimum expected set rather than an exact count so the test
+        // remains valid when new JavaScriptAppResource-derived types are added.
         var hostingAssembly = typeof(DistributedApplication).Assembly;
         var jsAssembly = typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource).Assembly;
 
@@ -1392,6 +1394,12 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.NotNull(capability);
 
         var expandedTypeIds = capability.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
-        Assert.Equal(3, expandedTypeIds.Count);
+        Assert.True(expandedTypeIds.Count >= 3, $"Expected at least 3 expanded types but found {expandedTypeIds.Count}");
+        Assert.Contains(expandedTypeIds,
+            id => id.Contains(nameof(JavaScript.JavaScriptAppResource), StringComparison.Ordinal)
+               && !id.Contains("NodeApp", StringComparison.Ordinal)
+               && !id.Contains("ViteApp", StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.NodeAppResource), StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.ViteAppResource), StringComparison.Ordinal));
     }
 }
