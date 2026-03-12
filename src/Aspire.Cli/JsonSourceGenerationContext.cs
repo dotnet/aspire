@@ -5,7 +5,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Mcp.Docs;
@@ -24,7 +23,6 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(DoctorCheckSummary))]
 [JsonSerializable(typeof(ContainerVersionJson))]
 [JsonSerializable(typeof(AspireJsonConfiguration))]
-[JsonSerializable(typeof(List<DevCertInfo>))]
 [JsonSerializable(typeof(ConfigInfo))]
 [JsonSerializable(typeof(FeatureInfo))]
 [JsonSerializable(typeof(SettingsSchema))]
