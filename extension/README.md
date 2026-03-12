@@ -46,7 +46,7 @@ The [Aspire CLI](https://aspire.dev/get-started/install-cli/) needs to be instal
 
 ### .NET
 
-[.NET 8 or later](https://dotnet.microsoft.com/download) is required.
+[.NET 10 or later](https://dotnet.microsoft.com/download) is required.
 
 ### VS Code
 
