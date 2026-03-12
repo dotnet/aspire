@@ -4961,7 +4961,14 @@ class ReferenceExpression(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
-    pass
+    def get_value(self, cancellation_token: CancellationToken) -> str:
+        """Gets the resolved string value of the reference expression asynchronously"""
+        args: Dict[str, Any] = { "context": serialize_value(self._handle) }
+        cancellation_token_id = register_cancellation(cancellation_token, self._client) if cancellation_token is not None else None
+        if cancellation_token_id is not None:
+            args["cancellationToken"] = cancellation_token_id
+        return self._client.invoke_capability("Aspire.Hosting.ApplicationModel/getValue", args)
+
 
 class ReferenceExpressionBuilder(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
