@@ -202,6 +202,16 @@ internal static class CommandsConfigurationExtensions
         var mainLogger = loggerService.GetLogger(projectResource);
         var replicaNames = projectResource.GetResolvedResourceNames();
 
+        // Capture each replica's state before rebuild so we can restore inactive replicas.
+        var preRebuildStates = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var name in replicaNames)
+        {
+            if (resourceNotificationService.TryGetCurrentState(name, out var evt))
+            {
+                preRebuildStates[name] = evt.Snapshot.State?.Text;
+            }
+        }
+
         // Stop all replicas.
         mainLogger.LogInformation("[build] Stopping resource for rebuild...");
         await Task.WhenAll(replicaNames.Select(name => orchestrator.StopResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
@@ -260,9 +270,29 @@ internal static class CommandsConfigurationExtensions
 
         if (exitCode == 0)
         {
-            // Start all replicas after a successful build.
+            // Start replicas sequentially to work around a race condition in the
+            // orchestrator's StartResourceAsync — WaitForDependenciesAsync uses a
+            // model-level PublishUpdateAsync that sets ALL replicas to "Waiting",
+            // causing the orchestrator to skip the DcpExecutor call for subsequent
+            // replicas. We reset each replica's state before starting to clear the
+            // stale "Waiting" state. Only restart replicas that were running before
+            // the rebuild; leave previously-inactive replicas in their terminal state.
             mainLogger.LogInformation("[build] Build succeeded. Restarting resource...");
-            await Task.WhenAll(replicaNames.Select(name => orchestrator.StartResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
+            foreach (var name in replicaNames)
+            {
+                var wasRunning = preRebuildStates.TryGetValue(name, out var priorState)
+                    && priorState == KnownResourceStates.Running;
+
+                if (wasRunning)
+                {
+                    await resourceNotificationService.PublishUpdateAsync(projectResource, name, s => s with
+                    {
+                        State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
+                    }).ConfigureAwait(false);
+
+                    await orchestrator.StartResourceAsync(name, context.CancellationToken).ConfigureAwait(false);
+                }
+            }
             return CommandResults.Success();
         }
         else
