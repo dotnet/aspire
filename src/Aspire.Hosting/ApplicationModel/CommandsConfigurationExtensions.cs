@@ -255,11 +255,6 @@ internal static class CommandsConfigurationExtensions
                 return new ExecuteCommandResult { Success = false, ErrorMessage = "Build timed out." };
             }
 
-            if (context.CancellationToken.IsCancellationRequested)
-            {
-                return new ExecuteCommandResult { Success = false, ErrorMessage = "Build was cancelled." };
-            }
-
             if (exitCode == 0)
             {
                 // Restart replicas that were active (Running or Waiting) before the rebuild;
@@ -311,6 +306,17 @@ internal static class CommandsConfigurationExtensions
                 }).ConfigureAwait(false);
                 return new ExecuteCommandResult { Success = false, ErrorMessage = $"Build failed with exit code {exitCode}." };
             }
+        }
+        catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
+        {
+            // The command was cancelled (e.g. user navigated away or the dashboard closed).
+            // The replicas were already stopped for the rebuild, so set them to Exited.
+            mainLogger.LogWarning(BuildLogPrefix + "Rebuild was cancelled.");
+            await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
+            {
+                State = new ResourceStateSnapshot(KnownResourceStates.Exited, KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+            return new ExecuteCommandResult { Success = false, ErrorMessage = "Rebuild was cancelled." };
         }
         finally
         {

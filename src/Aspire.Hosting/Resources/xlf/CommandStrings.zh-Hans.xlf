@@ -67,11 +67,11 @@
         <target state="translated">停止</target>
         <note />
       </trans-unit>
-        <trans-unit id="RebuilderResourceNotFound" translate="yes" xml:space="preserve">
-          <source>Rebuilder resource for '{0}' not found.</source>
-          <target state="new">Rebuilder resource for '{0}' not found.</target>
-          <note />
-        </trans-unit>
+      <trans-unit id="RebuilderResourceNotFound">
+        <source>Rebuilder resource for '{0}' not found.</source>
+        <target state="new">Rebuilder resource for '{0}' not found.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
