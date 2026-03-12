@@ -18,6 +18,7 @@ internal static class KnownConfigNames
     public const string DashboardConfigFilePath = "ASPIRE_DASHBOARD_CONFIG_FILE_PATH";
     public const string DashboardFileConfigDirectory = "ASPIRE_DASHBOARD_FILE_CONFIG_DIRECTORY";
     public const string DashboardAIDisabled = "ASPIRE_DASHBOARD_AI_DISABLED";
+    public const string DashboardEnableApi = "ASPIRE_DASHBOARD_ENABLE_API";
     public const string DashboardForwardedHeadersEnabled = "ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED";
 
     public const string ShowDashboardResources = "ASPIRE_SHOW_DASHBOARD_RESOURCES";
