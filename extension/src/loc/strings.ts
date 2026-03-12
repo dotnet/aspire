@@ -8,7 +8,7 @@ export const directUrl = (url: string) => vscode.l10n.t('Direct: {0}', url);
 export const codespacesUrl = (url: string) => vscode.l10n.t('Codespaces: {0}', url);
 export const directLink = vscode.l10n.t('Open local URL');
 export const codespacesLink = vscode.l10n.t('Open codespaces URL');
-export const openAspireDashboard = vscode.l10n.t('Launch Aspire Dashboard.');
+export const openAspireDashboard = vscode.l10n.t('Launch Aspire Dashboard');
 export const settingsLabel = vscode.l10n.t('Settings');
 export const aspireDashboard = vscode.l10n.t('Aspire Dashboard');
 export const noWorkspaceOpen = vscode.l10n.t('No workspace is open. Please open a folder or workspace before running this command.');

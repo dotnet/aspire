@@ -227,7 +227,7 @@
       <source xml:lang="en">Invalid token provided.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.openAspireDashboard">
-      <source xml:lang="en">Launch Aspire Dashboard.</source>
+      <source xml:lang="en">Launch Aspire Dashboard</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.settingsLabel">
       <source xml:lang="en">Settings</source>
