@@ -325,10 +325,9 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 const runApiConfig = getRunApiConfigFromOutput(runApiOutput);
 
-                // Build if the executable doesn't exist or forceBuild is requested
-                if ((!(await doesFileExist(runApiConfig.executablePath)) || launchOptions.forceBuild)) {
-                    await dotNetService.buildDotNetProject(projectPath);
-                }
+                // There may be an older cached version of the file-based app, so we
+                // should force a build.
+                await dotNetService.buildDotNetProject(projectPath);
 
                 debugConfiguration.program = runApiConfig.executablePath;
 
