@@ -4,7 +4,7 @@
 using TestSelector.Analyzers;
 using Xunit;
 
-namespace TestSelector.Tests.Analyzers;
+namespace Infrastructure.Tests.TestSelector.Analyzers;
 
 public class NuGetDependentTestDetectorTests
 {

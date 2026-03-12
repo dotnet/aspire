@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="TestSelector.Tests" />
+    <InternalsVisibleTo Include="Infrastructure.Tests" />
   </ItemGroup>
 
   <ItemGroup>

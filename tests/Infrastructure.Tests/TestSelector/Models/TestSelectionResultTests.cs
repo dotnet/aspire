@@ -5,7 +5,7 @@ using System.Text.Json;
 using TestSelector.Models;
 using Xunit;
 
-namespace TestSelector.Tests.Models;
+namespace Infrastructure.Tests.TestSelector.Models;
 
 public class TestSelectionResultTests
 {

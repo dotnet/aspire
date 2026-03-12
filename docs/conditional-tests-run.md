@@ -299,11 +299,11 @@ dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/
 
 ```bash
 # Run all test selector tests
-dotnet test tests/TestSelector.Tests
+dotnet test tests/Infrastructure.Tests
 
 # Run specific test categories
-dotnet test tests/TestSelector.Tests -- --filter-class "*.IgnorePathFilterTests"
-dotnet test tests/TestSelector.Tests -- --filter-class "*.EndToEndEvaluationTests"
+dotnet test tests/Infrastructure.Tests -- --filter-class "*.IgnorePathFilterTests"
+dotnet test tests/Infrastructure.Tests -- --filter-class "*.EndToEndEvaluationTests"
 ```
 
 ### Test Coverage

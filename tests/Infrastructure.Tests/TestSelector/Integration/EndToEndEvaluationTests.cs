@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using TestSelector;
 using TestSelector.Analyzers;
 using TestSelector.Models;
 using Xunit;
 
-namespace TestSelector.Tests.Integration;
+namespace Infrastructure.Tests.TestSelector.Integration;
 
 /// <summary>
 /// End-to-end integration tests for the test selection feature.

@@ -219,7 +219,7 @@ dotnet run --project tools/TestSelector -- --solution Aspire.slnx --from origin/
     },
     {
       "source": "tools/TestSelector/**",
-      "test": "tests/TestSelector.Tests/"
+      "test": "tests/Infrastructure.Tests/"
     },
     {
       "source": "playground/**",

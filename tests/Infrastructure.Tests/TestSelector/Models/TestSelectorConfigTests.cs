@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestSelector.Models;
+using TestSelector.Models;
 using Xunit;
 
-namespace Aspire.TestSelector.Tests.Models;
+namespace Infrastructure.Tests.TestSelector.Models;
 
 public class TestSelectorConfigTests
 {
@@ -108,6 +108,7 @@ public class TestSelectorConfigTests
         Assert.Empty(config.IgnorePaths);
         Assert.Empty(config.SourceToTestMappings);
         Assert.Empty(config.Categories);
+        Assert.Empty(config.PackageOrArchiveProducingProjects);
         Assert.Null(config.Schema);
     }
 
@@ -223,6 +224,23 @@ public class TestSelectorConfigTests
         Assert.Null(category.Description);
         Assert.Empty(category.TriggerPaths);
         Assert.Empty(category.ExcludePaths);
+    }
+
+    [Fact]
+    public void LoadFromJson_PackageOrArchiveProducingProjects_ParsesCorrectly()
+    {
+        var json = """
+        {
+            "packageOrArchiveProducingProjects": ["eng/clipack/**", "src/Installer/**"],
+            "categories": {}
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(json);
+
+        Assert.Equal(2, config.PackageOrArchiveProducingProjects.Count);
+        Assert.Contains("eng/clipack/**", config.PackageOrArchiveProducingProjects);
+        Assert.Contains("src/Installer/**", config.PackageOrArchiveProducingProjects);
     }
 
     #region Edge Case Tests

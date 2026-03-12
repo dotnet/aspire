@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.TestSelector.Tests" />
+    <InternalsVisibleTo Include="Infrastructure.Tests" />
   </ItemGroup>
 
   <ItemGroup>

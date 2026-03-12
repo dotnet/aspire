@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestSelector.Analyzers;
+using TestSelector.Analyzers;
 using Xunit;
 
-namespace Aspire.TestSelector.Tests.Integration;
+namespace Infrastructure.Tests.TestSelector.Integration;
 
 /// <summary>
 /// Integration tests for dotnet-affected result handling.

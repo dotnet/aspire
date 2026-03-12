@@ -5,7 +5,7 @@ using TestSelector.Analyzers;
 using TestSelector.Models;
 using Xunit;
 
-namespace TestSelector.Tests.Analyzers;
+namespace Infrastructure.Tests.TestSelector.Analyzers;
 
 public class ProjectMappingResolverTests
 {
