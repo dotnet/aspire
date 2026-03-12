@@ -123,7 +123,11 @@ internal static class CommandsConfigurationExtensions
 
         if (resource is ProjectResource projectResource)
         {
-            AddRebuildCommand(projectResource);
+            var projectMetadata = projectResource.Annotations.OfType<IProjectMetadata>().SingleOrDefault();
+            if (projectMetadata is null || !projectMetadata.IsFileBasedApp)
+            {
+                AddRebuildCommand(projectResource);
+            }
         }
 
         // Treat "Unknown" as stopped so the command to start the resource is available when "Unknown".
