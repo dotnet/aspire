@@ -340,7 +340,20 @@ export class InteractionService implements IInteractionService {
         //  If aspire.enableAspireDashboardAutoLaunch is 'launch', the dashboard will be launched automatically.
         //  If 'notification', a notification is shown with a link. If 'off', do nothing.
         const aspireConfig = vscode.workspace.getConfiguration('aspire');
-        const dashboardAutoLaunch = aspireConfig.get<string>('enableAspireDashboardAutoLaunch', 'launch');
+        const rawDashboardAutoLaunch = aspireConfig.get<unknown>('enableAspireDashboardAutoLaunch', 'launch');
+
+        // Handle legacy boolean values from before this setting was changed to an enum
+        let dashboardAutoLaunch: 'launch' | 'notification' | 'off';
+        if (rawDashboardAutoLaunch === true) {
+            dashboardAutoLaunch = 'launch';
+        } else if (rawDashboardAutoLaunch === false) {
+            dashboardAutoLaunch = 'notification';
+        } else if (rawDashboardAutoLaunch === 'launch' || rawDashboardAutoLaunch === 'notification' || rawDashboardAutoLaunch === 'off') {
+            dashboardAutoLaunch = rawDashboardAutoLaunch;
+        } else {
+            dashboardAutoLaunch = 'launch';
+        }
+
         if (dashboardAutoLaunch === 'launch') {
             // Open the dashboard URL in the configured browser. Prefer codespaces URL if available.
             const urlToOpen = codespacesUrl || baseUrl;

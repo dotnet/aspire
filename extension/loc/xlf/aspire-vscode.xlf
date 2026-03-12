@@ -227,7 +227,10 @@
       <source xml:lang="en">Invalid token provided.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.openAspireDashboard">
-      <source xml:lang="en">Launch Aspire Dashboard</source>
+      <source xml:lang="en">Launch Aspire Dashboard.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.settingsLabel">
+      <source xml:lang="en">Settings</source>
     </trans-unit>
     <trans-unit id="configuration.aspire.dashboardBrowser.debugChrome">
       <source xml:lang="en">Launch Chrome as a debug session (auto-closes when debugging ends).</source>
