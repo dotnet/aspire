@@ -38,6 +38,7 @@ jobs:
     outputs:
       runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
       requiresNugets: ${{ steps.check_nugets.outputs.requiresNugets }}
+      requiresCliArchive: ${{ steps.check_cli_archive.outputs.requiresCliArchive }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -83,6 +84,16 @@ jobs:
             echo "requiresNugets=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if any test requires CLI archives
+        id: check_cli_archive
+        run: |
+          RUNSHEET='${{ steps.generate_tests_matrix.outputs.runsheet }}'
+          if echo "$RUNSHEET" | jq -e 'any(.[]; .requiresCliArchive == true)' > /dev/null 2>&1; then
+            echo "requiresCliArchive=true" >> $GITHUB_OUTPUT
+          else
+            echo "requiresCliArchive=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload logs, and test results
         if: ${{ always() }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
@@ -104,7 +115,7 @@ jobs:
   build_cli_archives:
     name: Build native CLI archives
     needs: [generate_tests_matrix]
-    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.requiresNugets == 'true' }}
+    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.requiresCliArchive == 'true' }}
     uses: ./.github/workflows/build-cli-native-archives.yml
 
   run_tests:
@@ -124,6 +135,7 @@ jobs:
       enablePlaywrightInstall: ${{ inputs.enablePlaywrightInstall }}
       extraTestArgs: ${{ inputs.extraTestArgs }}
       ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
+      requiresCliArchive: ${{ matrix.tests.requiresCliArchive == true }}
 
   results:
     if: ${{ always() && github.repository_owner == 'dotnet' }}
