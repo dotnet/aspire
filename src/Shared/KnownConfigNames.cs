@@ -53,9 +53,6 @@ internal static class KnownConfigNames
     public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
     public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";
 
-    public const string EnableProjectChangeDetection = "features:enableDotNetProjectChangeDetection";
-    public const string ProjectChangeDetectionIntervalSeconds = "dotNetProjectChangeDetectionIntervalSeconds";
-
     public static class Legacy
     {
         public const string DashboardOtlpGrpcEndpointUrl = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";

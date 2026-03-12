@@ -634,7 +634,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
             _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
-            _innerBuilder.Services.AddHostedService<ProjectChangeDetectionService>();
         }
     }
 
