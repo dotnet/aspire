@@ -51,11 +51,20 @@ async function main() {
 async function dispatch(operation, payload) {
     switch (operation) {
         case 'analyzeFailedJobs':
-            return rerunWorkflow.analyzeFailedJobs({
-                jobs: payload.jobs ?? [],
-                getAnnotationsForJob: async job => payload.annotationTextByJobId?.[String(job.id)] ?? '',
-                getJobLogTextForJob: async job => payload.jobLogTextByJobId?.[String(job.id)] ?? '',
-            });
+            {
+                const logRequestJobIds = [];
+                const result = await rerunWorkflow.analyzeFailedJobs({
+                    jobs: payload.jobs ?? [],
+                    getAnnotationsForJob: async job => payload.annotationTextByJobId?.[String(job.id)] ?? '',
+                    getJobLogTextForJob: async job => {
+                        logRequestJobIds.push(job.id);
+                        return payload.jobLogTextByJobId?.[String(job.id)] ?? '';
+                    },
+                    maxLogInspections: payload.maxLogInspections,
+                });
+
+                return { ...result, logRequestJobIds };
+            }
 
         case 'getCheckRunIdForJob':
             return rerunWorkflow.getCheckRunIdForJob({
@@ -140,8 +149,7 @@ function createGitHubRecorder(payload, requests) {
             }
             if (route === 'POST /repos/{owner}/{repo}/issues/{issue_number}/comments') {
                 const issueNumber = String(requestPayload.issue_number);
-                const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber]
-                    ?? `https://github.com/${requestPayload.owner}/${requestPayload.repo}/pull/${issueNumber}#issuecomment-${issueNumber}`;
+                const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber] ?? null;
 
                 return {
                     data: {

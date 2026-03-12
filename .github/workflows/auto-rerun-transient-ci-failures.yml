@@ -70,6 +70,7 @@ jobs:
             const repo = context.repo.repo;
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
             const maxRetryableJobs = rerunWorkflow.defaultMaxRetryableJobs;
+            const maxJobLogInspectionBytes = 256 * 1024;
 
             async function paginate(route, parameters, selectItems) {
               const items = [];
@@ -178,7 +179,7 @@ jobs:
                   throw new Error(`HTTP ${response.status}`);
                 }
 
-                return await response.text();
+                return (await response.text()).slice(-maxJobLogInspectionBytes);
               }
               catch (error) {
                 core.warning(`Failed to fetch logs for job ${jobId}: ${error.message}`);
@@ -226,6 +227,7 @@ jobs:
               jobs,
               getAnnotationsForJob: async job => listAnnotations(job),
               getJobLogTextForJob: async job => getJobLogText(job.id),
+              maxLogInspections: maxRetryableJobs,
             });
 
             core.setOutput('retryable_jobs', JSON.stringify(retryableJobs.map(job => ({

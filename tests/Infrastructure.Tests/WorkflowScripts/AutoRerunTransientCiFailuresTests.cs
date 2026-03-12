@@ -176,7 +176,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         Assert.Single(result.RetryableJobs);
         Assert.Equal(
-            "Failed step 'Build test project' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            "Failed step 'Build test project' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: `/Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i`.",
             result.RetryableJobs[0].Reason);
     }
 
@@ -197,7 +197,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         Assert.Single(result.RetryableJobs);
         Assert.Equal(
-            $"Failed step '{failedStep}' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            $"Failed step '{failedStep}' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: `/Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i`.",
             result.RetryableJobs[0].Reason);
     }
 
@@ -214,7 +214,24 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         Assert.Single(result.RetryableJobs);
         Assert.Equal(
-            "Failed step 'Run ./.github/actions/enumerate-tests' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: /Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i.",
+            "Failed step 'Run ./.github/actions/enumerate-tests' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: `/Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i`.",
+            result.RetryableJobs[0].Reason);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task UsesPluralFailedStepLabelWhenMultipleFailedStepsShareALogBasedOverride()
+    {
+        WorkflowJob job = CreateJob(failedSteps: ["Build test project", "Check validation results"]);
+
+        AnalyzeFailedJobsResult result = await AnalyzeSingleJobAsync(
+            job,
+            "Process completed with exit code 1.",
+            "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.");
+
+        Assert.Single(result.RetryableJobs);
+        Assert.Equal(
+            "Failed steps 'Build test project | Check validation results' will be retried because the job log shows a likely transient infrastructure network failure. Matched pattern: `/Unable to load the service index for source https:\\/\\/(?:pkgs\\.dev\\.azure\\.com\\/dnceng|dnceng\\.pkgs\\.visualstudio\\.com)\\/public\\/_packaging\\//i`.",
             result.RetryableJobs[0].Reason);
     }
 
@@ -252,6 +269,49 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Equal(
             "Failed step 'Build test project' is only retried when the job shows a high-confidence infrastructure override, and none was found.",
             result.SkippedJobs[0].Reason);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task UsesAvailableDiagnosticsMessageWhenNoSignalsWereInspectedFromFailedStepsOrLogs()
+    {
+        WorkflowJob job = CreateJob(failedSteps: []);
+
+        AnalyzeFailedJobsResult result = await AnalyzeSingleJobAsync(job, string.Empty);
+
+        Assert.Empty(result.RetryableJobs);
+        Assert.Single(result.SkippedJobs);
+        Assert.Equal(
+            "No retry-safe transient infrastructure signal was found in the available job diagnostics.",
+            result.SkippedJobs[0].Reason);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task CapsLogInspectionCountToAvoidFetchingEveryFailedJobLog()
+    {
+        WorkflowJob firstJob = CreateJob(id: 1, failedSteps: ["Build test project"]);
+        WorkflowJob secondJob = CreateJob(id: 2, failedSteps: ["Build test project"]);
+
+        AnalyzeFailedJobsResult result = await AnalyzeJobsAsync(
+            [firstJob, secondJob],
+            new Dictionary<string, string>
+            {
+                ["1"] = "Process completed with exit code 1.",
+                ["2"] = "Process completed with exit code 1."
+            },
+            new Dictionary<string, string>
+            {
+                ["1"] = "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json.",
+                ["2"] = "error : Unable to load the service index for source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json."
+            },
+            maxLogInspections: 1);
+
+        Assert.Single(result.LogRequestJobIds);
+        Assert.Equal(1, result.LogRequestJobIds[0]);
+        Assert.Single(result.RetryableJobs);
+        Assert.Single(result.SkippedJobs);
+        Assert.Equal(2, result.SkippedJobs[0].Id);
     }
 
     [Fact]
@@ -762,29 +822,68 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Contains("All associated pull requests are closed. No jobs were rerun.", skippedRaw.Text);
     }
 
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task RerunMatchedJobsDoesNotFabricateCommentLinksWhenGitHubDoesNotReturnACommentUrl()
+    {
+        RerunMatchedJobsResult result = await InvokeHarnessAsync<RerunMatchedJobsResult>(
+            "rerunMatchedJobs",
+            new
+            {
+                owner = "dotnet",
+                repo = "aspire",
+                retryableJobs = new[]
+                {
+                    new RetryableJobInput
+                    {
+                        Id = 11,
+                        Name = "Tests / One",
+                        HtmlUrl = "https://github.com/dotnet/aspire/actions/runs/123/job/11",
+                        Reason = "Reason one"
+                    }
+                },
+                pullRequestNumbers = new[] { 15110 },
+                issueStatesByNumber = new Dictionary<string, string>
+                {
+                    ["15110"] = "open"
+                },
+                latestRunAttempt = 2,
+                sourceRunId = 123,
+                sourceRunAttempt = 1,
+                sourceRunUrl = "https://github.com/dotnet/aspire/actions/runs/123"
+            });
+
+        Assert.Contains(result.Events, e => e.Type == "raw" && e.Text == "Pull request comments:");
+        Assert.DoesNotContain(result.Events, e => e.Type == "link" && e.Text == "PR #15110 comment");
+        Assert.Contains(result.Events, e => e.Type == "raw" && e.Text == "PR #15110 comment");
+    }
+
     private async Task<AnalyzeFailedJobsResult> AnalyzeSingleJobAsync(WorkflowJob job, string annotationsOrText, string jobLogText = "")
     {
-        Dictionary<string, string> annotationTextByJobId = new()
-        {
-            [job.Id.ToString()] = annotationsOrText
-        };
-
         Dictionary<string, string>? jobLogTextByJobId = string.IsNullOrEmpty(jobLogText)
             ? null
-            : new Dictionary<string, string>
-            {
-                [job.Id.ToString()] = jobLogText
-            };
+            : new Dictionary<string, string> { [job.Id.ToString()] = jobLogText };
 
-        return await InvokeHarnessAsync<AnalyzeFailedJobsResult>(
+        return await AnalyzeJobsAsync(
+            [job],
+            new Dictionary<string, string> { [job.Id.ToString()] = annotationsOrText },
+            jobLogTextByJobId);
+    }
+
+    private Task<AnalyzeFailedJobsResult> AnalyzeJobsAsync(
+        WorkflowJob[] jobs,
+        Dictionary<string, string> annotationTextByJobId,
+        Dictionary<string, string>? jobLogTextByJobId = null,
+        int? maxLogInspections = null)
+        => InvokeHarnessAsync<AnalyzeFailedJobsResult>(
             "analyzeFailedJobs",
             new AnalyzeFailedJobsRequest
             {
-                Jobs = [job],
+                Jobs = jobs,
                 AnnotationTextByJobId = annotationTextByJobId,
-                JobLogTextByJobId = jobLogTextByJobId
+                JobLogTextByJobId = jobLogTextByJobId,
+                MaxLogInspections = maxLogInspections
             });
-    }
 
     private async Task<T> InvokeHarnessAsync<T>(string operation, object payload)
     {
@@ -858,6 +957,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         public WorkflowJob[] Jobs { get; init; } = [];
         public Dictionary<string, string> AnnotationTextByJobId { get; init; } = [];
         public Dictionary<string, string>? JobLogTextByJobId { get; init; }
+        public int? MaxLogInspections { get; init; }
     }
 
     private sealed class AnalyzeFailedJobsResult
@@ -865,6 +965,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         public AnalyzedJob[] FailedJobs { get; init; } = [];
         public AnalyzedJob[] RetryableJobs { get; init; } = [];
         public AnalyzedJob[] SkippedJobs { get; init; } = [];
+        public int[] LogRequestJobIds { get; init; } = [];
     }
 
     private sealed class AssociatedPullRequestNumbersResult

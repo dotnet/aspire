@@ -2,6 +2,7 @@
 const failureConclusions = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure']);
 const ignoredJobs = new Set(['Final Results', 'Tests / Final Test Results']);
 const defaultMaxRetryableJobs = 5;
+const defaultMaxLogInspections = defaultMaxRetryableJobs;
 
 const retryableWithAnnotationStepPatterns = [
     /^Set up job$/i,
@@ -238,9 +239,22 @@ function isSingleFailedStep(failedSteps) {
     return failedSteps.length === 1;
 }
 
-function getInfrastructureNetworkLogOverrideReason(failedStepText, matchedPattern) {
-    const patternText = matchedPattern ? ` Matched pattern: ${matchedPattern}.` : '';
-    return `Failed step '${failedStepText}' will be retried because the job log shows a likely transient infrastructure network failure.${patternText}`;
+function formatMatchedPatternForMarkdown(matchedPattern) {
+    if (!matchedPattern) {
+        return '';
+    }
+
+    const safePattern = String(matchedPattern).replace(/`/g, '\\`');
+    return ` Matched pattern: \`${safePattern}\`.`;
+}
+
+function findInfrastructureNetworkLogOverridePattern(jobLogText) {
+    return findMatchingPattern(jobLogText, infrastructureNetworkFailureLogOverridePatterns);
+}
+
+function getInfrastructureNetworkLogOverrideReason(failedSteps, failedStepText, matchedPattern) {
+    const patternText = formatMatchedPatternForMarkdown(matchedPattern);
+    return `${formatFailedStepLabel(failedSteps, failedStepText)} will be retried because the job log shows a likely transient infrastructure network failure.${patternText}`;
 }
 
 function getOutsideRetryRulesReason(failedSteps, failedStepText) {
@@ -273,17 +287,22 @@ function getNoRetryMatchReason({
         return 'The job annotations did not show a retry-safe transient infrastructure failure.';
     }
 
-    return 'No retry-safe transient infrastructure signal was found in the job annotations or logs.';
+    return 'No retry-safe transient infrastructure signal was found in the available job diagnostics.';
 }
 
-function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
+function classifyFailedJob(job, annotationsOrText, jobLogText = '', options = {}) {
+    const {
+        matchedInfrastructureNetworkLogOverridePattern: preMatchedInfrastructureNetworkLogOverridePattern,
+    } = options;
     const failedSteps = getFailedSteps(job);
     const failedStepText = failedSteps.join(' | ');
     const { hasRetryableStep, hasIgnoredFailureStep, shouldInspectAnnotations } = getFailureStepSignals(failedSteps);
     const hasTestExecutionFailureStep = failedSteps.some(step => matchesAny(step, testExecutionFailureStepPatterns));
     const matchedInfrastructureNetworkLogOverridePattern =
         !hasTestExecutionFailureStep
-            ? findMatchingPattern(jobLogText, infrastructureNetworkFailureLogOverridePatterns)
+            ? preMatchedInfrastructureNetworkLogOverridePattern === undefined
+                ? findInfrastructureNetworkLogOverridePattern(jobLogText)
+                : preMatchedInfrastructureNetworkLogOverridePattern
             : null;
     const matchesInfrastructureNetworkLogOverride = matchedInfrastructureNetworkLogOverridePattern !== null;
 
@@ -292,7 +311,7 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
             return {
                 retryable: true,
                 failedSteps,
-                reason: getInfrastructureNetworkLogOverrideReason(failedStepText, matchedInfrastructureNetworkLogOverridePattern),
+                reason: getInfrastructureNetworkLogOverrideReason(failedSteps, failedStepText, matchedInfrastructureNetworkLogOverridePattern),
             };
         }
 
@@ -346,7 +365,7 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
         return {
             retryable: true,
             failedSteps,
-            reason: getInfrastructureNetworkLogOverrideReason(failedStepText, matchedInfrastructureNetworkLogOverridePattern),
+            reason: getInfrastructureNetworkLogOverrideReason(failedSteps, failedStepText, matchedInfrastructureNetworkLogOverridePattern),
         };
     }
 
@@ -364,10 +383,20 @@ function classifyFailedJob(job, annotationsOrText, jobLogText = '') {
     };
 }
 
-async function analyzeFailedJobs({ jobs, getAnnotationsForJob, getJobLogTextForJob }) {
+async function analyzeFailedJobs({
+    jobs,
+    getAnnotationsForJob,
+    getJobLogTextForJob,
+    maxLogInspections = defaultMaxLogInspections,
+}) {
+    const normalizedMaxLogInspections =
+        Number.isInteger(maxLogInspections) && maxLogInspections >= 0
+            ? maxLogInspections
+            : defaultMaxLogInspections;
     const failedJobs = (jobs || []).filter(job => failureConclusions.has(job.conclusion) && !ignoredJobs.has(job.name));
     const retryableJobs = [];
     const skippedJobs = [];
+    let logInspectionCount = 0;
 
     for (const job of failedJobs) {
         const failedSteps = getFailedSteps(job);
@@ -383,13 +412,18 @@ async function analyzeFailedJobs({ jobs, getAnnotationsForJob, getJobLogTextForJ
         const shouldInspectLogs =
             !classification.retryable &&
             getJobLogTextForJob &&
-            canUseInfrastructureNetworkLogOverride(failedSteps);
+            canUseInfrastructureNetworkLogOverride(failedSteps) &&
+            logInspectionCount < normalizedMaxLogInspections;
 
         if (shouldInspectLogs) {
+            logInspectionCount += 1;
+            const matchedInfrastructureNetworkLogOverridePattern =
+                findInfrastructureNetworkLogOverridePattern(await getJobLogTextForJob(job));
             classification = classifyFailedJob(
                 job,
                 annotations,
-                await getJobLogTextForJob(job)
+                '',
+                { matchedInfrastructureNetworkLogOverridePattern }
             );
         }
 
@@ -734,6 +768,7 @@ module.exports = {
     classifyFailedJob,
     computeRerunEligibility,
     defaultMaxRetryableJobs,
+    findInfrastructureNetworkLogOverridePattern,
     getAssociatedPullRequestNumbers,
     getCheckRunIdForJob,
     getOpenPullRequestNumbers,
