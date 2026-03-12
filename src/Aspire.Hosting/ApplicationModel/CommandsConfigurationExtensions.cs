@@ -155,15 +155,15 @@ internal static class CommandsConfigurationExtensions
 
                 var mainLogger = loggerService.GetLogger(projectResource);
 
-                // Set state to Building first so the rebuild command is immediately disabled.
+                // Stop the main resource.
+                mainLogger.LogInformation("[build] Stopping resource for rebuild...");
+                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
+
+                // Set state to Building after stop completes so it shows during the build phase.
                 await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
                 {
                     State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info)
                 }).ConfigureAwait(false);
-
-                // Stop the main resource.
-                mainLogger.LogInformation("[build] Stopping resource for rebuild...");
-                await orchestrator.StopResourceAsync(context.ResourceName, context.CancellationToken).ConfigureAwait(false);
 
                 // Start forwarding logs from the rebuilder to the main resource's console.
                 using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
