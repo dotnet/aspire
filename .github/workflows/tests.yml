@@ -378,129 +378,64 @@ jobs:
           $selectionReason = if ($null -ne $selectorActive -and -not [string]::IsNullOrWhiteSpace($selectorActive.reason)) { [string]$selectorActive.reason } else { 'unknown' }
           $activeChangedFiles = if ($null -ne $selectorActive) { @($selectorActive.changedFiles) } else { @() }
           $activeIgnoredFiles = if ($null -ne $selectorActive) { @($selectorActive.ignoredFiles) } else { @() }
+          $activeTriggerFile = if ($null -ne $selectorActive -and -not [string]::IsNullOrWhiteSpace($selectorActive.triggerFile)) { [string]$selectorActive.triggerFile } else { '' }
+          $activeTriggerPattern = if ($null -ne $selectorActive -and -not [string]::IsNullOrWhiteSpace($selectorActive.triggerPattern)) { [string]$selectorActive.triggerPattern } else { '' }
           $auditReason = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.reason)) { [string]$selectorAudit.reason } else { 'unknown' }
           $auditTriggerFile = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.triggerFile)) { [string]$selectorAudit.triggerFile } else { '' }
           $auditTriggerPattern = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.triggerPattern)) { [string]$selectorAudit.triggerPattern } else { '' }
 
           $selectedProjects = @($audit.wouldRunProjects)
-          $selectedEntries = @($audit.wouldRunEntries)
-          $matrixAuditEntries = @($audit.matrices.PSObject.Properties | Sort-Object Name)
-          $whyLines = [System.Collections.Generic.List[string]]::new()
-
-          if ($selectionReason -eq 'selective_mappings_only') {
-            $whyLines.Add("The active selector used direct source-to-test mappings for all active changed files, so only mapped test projects were selected.")
+          $activeMatch = "Active selector reason: $selectionReason"
+          if (-not [string]::IsNullOrWhiteSpace($activeTriggerFile)) {
+            $activeMatch = "Active selector matched `"$activeTriggerFile`""
+            if (-not [string]::IsNullOrWhiteSpace($activeTriggerPattern)) {
+              $activeMatch += " via rule `"$activeTriggerPattern`""
+            }
+            $activeMatch += " ($selectionReason)"
           }
 
-          if (@($audit.affectedProjects).Count -gt 0 -and @($audit.defaultCoverageProjects).Count -eq 0) {
-            $whyLines.Add("The final selected projects came from directly affected test projects, not from default coverage.")
-          }
-
-          if ($activeChangedFiles.Count -gt 0) {
-            $whyLines.Add("Active selector considered $($activeChangedFiles.Count) changed file(s).")
-          }
-
-          if ($activeIgnoredFiles.Count -gt 0) {
-            $whyLines.Add("The active selector ignored $($activeIgnoredFiles.Count) other changed file(s), so broad workflow or infrastructure changes did not widen the live test scope.")
-          }
-
-          if ($null -ne $selectorAudit -and $selectorAudit.runAllTests -and -not [string]::IsNullOrWhiteSpace($auditReason)) {
+          $auditMatch = ""
+          if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($auditReason) -and $auditReason -ne $selectionReason) {
+            $auditMatch = "Audit selector reason: $auditReason"
             if (-not [string]::IsNullOrWhiteSpace($auditTriggerFile)) {
-              $auditTriggerMatchText = ""
+              $auditMatch = "Audit selector matched `"$auditTriggerFile`""
               if (-not [string]::IsNullOrWhiteSpace($auditTriggerPattern)) {
-                $auditTriggerMatchText = " matching `"$auditTriggerPattern`""
+                $auditMatch += " via rule `"$auditTriggerPattern`""
               }
-
-              $whyLines.Add("The audit selector would have run all tests because `"$auditReason`" was triggered by `"$auditTriggerFile`"$auditTriggerMatchText.")
-            } else {
-              $whyLines.Add("The audit selector would have run all tests because its reason was `"$auditReason`", but audit mode is observational only.")
+              $auditMatch += " ($auditReason)"
             }
           }
 
           Write-Host "::group::Final applied test selection result"
-          Write-Host "selection_reason=$selectionReason"
-          Write-Host "run_all=${{ steps.detect.outputs.run_all }}"
-          Write-Host "run_integrations=${{ steps.detect.outputs.run_integrations }}"
-          Write-Host "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
-          Write-Host "run_extension=${{ steps.detect.outputs.run_extension }}"
-          Write-Host "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
-          Write-Host "skip_filtering=$($audit.skipFiltering)"
-          Write-Host "active_changed_files_count=$($activeChangedFiles.Count)"
+          Write-Host "Changed files considered by the active selector:"
+          if ($activeChangedFiles.Count -eq 0) {
+            Write-Host "  [CHANGED FILE] <none>"
+          }
           foreach ($file in $activeChangedFiles) {
-            Write-Host "  [ACTIVE CHANGED FILE] $file"
+            Write-Host "  [CHANGED FILE] $file"
           }
-          Write-Host "active_ignored_files_count=$($activeIgnoredFiles.Count)"
-          Write-Host "audit_reason=$auditReason"
-          if (-not [string]::IsNullOrWhiteSpace($auditTriggerFile)) {
-            Write-Host "audit_trigger_file=$auditTriggerFile"
+          if ($activeIgnoredFiles.Count -gt 0) {
+            Write-Host "Ignored by active selector: $($activeIgnoredFiles.Count) file(s)"
           }
-          if (-not [string]::IsNullOrWhiteSpace($auditTriggerPattern)) {
-            Write-Host "audit_trigger_pattern=$auditTriggerPattern"
+          Write-Host $activeMatch
+          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+            Write-Host $auditMatch
           }
-          Write-Host "affected_test_projects_count=$(@($audit.affectedProjects).Count)"
-          foreach ($project in @($audit.affectedProjects)) {
-            Write-Host "  [AFFECTED] $project"
-          }
-          Write-Host "default_coverage_projects_count=$(@($audit.defaultCoverageProjects).Count)"
-          foreach ($project in @($audit.defaultCoverageProjects)) {
-            Write-Host "  [DEFAULT] $project"
-          }
-          Write-Host "selected_projects_count=$($selectedProjects.Count)"
+          Write-Host "Final selected test project paths:"
           if ($selectedProjects.Count -eq 0) {
-            Write-Host "  [SELECTED PROJECT] <none>"
+            Write-Host "  [RESULT] <none>"
           } else {
             foreach ($project in $selectedProjects) {
-              Write-Host "  [SELECTED PROJECT] $project"
+              Write-Host "  [RESULT] $project"
             }
-          }
-          Write-Host "selected_matrix_entries_count=$($selectedEntries.Count)"
-          if ($selectedEntries.Count -eq 0) {
-            Write-Host "  [SELECTED ENTRY] <none>"
-          } else {
-            foreach ($entry in $selectedEntries) {
-              Write-Host "  [SELECTED ENTRY] $($entry.shortname) | $($entry.matrixName) | $($entry.testProjectPath)"
-            }
-          }
-          foreach ($matrixEntry in $matrixAuditEntries) {
-            $matrixName = $matrixEntry.Name
-            $matrixData = $matrixEntry.Value
-            Write-Host "  [MATRIX] $matrixName input=$($matrixData.inputCount) output=$($matrixData.outputCount) kept=$($matrixData.keptCount) removed=$($matrixData.removedCount) mode=$($matrixData.mode)"
-          }
-          foreach ($line in $whyLines) {
-            Write-Host "  [WHY] $line"
           }
           Write-Host "::endgroup::"
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Matrix selection details</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test selection result</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Final Applied Test Scope Result"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Property | Value |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|----------|-------|"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selection_reason | ``$selectionReason`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_all | ``${{ steps.detect.outputs.run_all }}`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_integrations | ``${{ steps.detect.outputs.run_integrations }}`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_cli_e2e | ``${{ steps.detect.outputs.run_cli_e2e }}`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_extension | ``${{ steps.detect.outputs.run_extension }}`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_polyglot | ``${{ steps.detect.outputs.run_polyglot }}`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| skip_filtering | ``$($audit.skipFiltering)`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| active_changed_files_count | ``$($activeChangedFiles.Count)`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| active_ignored_files_count | ``$($activeIgnoredFiles.Count)`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| audit_reason | ``$auditReason`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selected_projects_count | ``$($selectedProjects.Count)`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selected_matrix_entries_count | ``$($selectedEntries.Count)`` |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Why this result happened"
-          if ($whyLines.Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No additional explanation was available.*"
-          } else {
-            foreach ($line in $whyLines) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- {0}" -f $line)
-            }
-          }
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Active selector changed files"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Changed files"
           if ($activeChangedFiles.Count -eq 0) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
           } else {
@@ -510,35 +445,18 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
-          if (-not [string]::IsNullOrWhiteSpace($auditTriggerFile)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Audit selector trigger"
-            if (-not [string]::IsNullOrWhiteSpace($auditTriggerPattern)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}` matched `{1}`' -f $auditTriggerFile, $auditTriggerPattern)
-            } else {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $auditTriggerFile)
-            }
+          if ($activeIgnoredFiles.Count -gt 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('Ignored by active selector: `{0}` file(s)' -f $activeIgnoredFiles.Count)
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           }
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Affected test projects"
-          if (@($audit.affectedProjects).Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
-          } else {
-            foreach ($project in @($audit.affectedProjects)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
-            }
-          }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matched rule"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $activeMatch)
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Default coverage test projects"
-          if (@($audit.defaultCoverageProjects).Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
-          } else {
-            foreach ($project in @($audit.defaultCoverageProjects)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
-            }
+          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           }
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected test projects"
           if ($selectedProjects.Count -eq 0) {
@@ -547,26 +465,6 @@ jobs:
             foreach ($project in $selectedProjects) {
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
             }
-          }
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected matrix entries"
-          if ($selectedEntries.Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No matrix entries were selected.*"
-          } else {
-            foreach ($entry in $selectedEntries) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}` via `{1}` -> `{2}`' -f $entry.shortname, $entry.matrixName, $entry.testProjectPath)
-            }
-          }
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matrix bucket results"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Matrix | Input | Output | Kept | Removed | Mode |"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|--------|-------|--------|------|---------|------|"
-          foreach ($matrixEntry in $matrixAuditEntries) {
-            $matrixName = $matrixEntry.Name
-            $matrixData = $matrixEntry.Value
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` |' -f $matrixName, $matrixData.inputCount, $matrixData.outputCount, $matrixData.keptCount, $matrixData.removedCount, $matrixData.mode)
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
