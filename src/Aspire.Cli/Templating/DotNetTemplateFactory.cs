@@ -56,9 +56,9 @@ internal class DotNetTemplateFactory(
         Description = TemplatingStrings.EnterXUnitVersion_Description
     };
 
-    private static bool SupportsCSharpAppHost(string languageId)
+    private static bool SupportsOnlyCSharp(string? languageId)
     {
-        return languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(languageId, KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
     }
 
     public IEnumerable<ITemplate> GetTemplates()
@@ -149,7 +149,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         yield return new CallbackTemplate(
@@ -160,7 +160,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         yield return new CallbackTemplate(
@@ -171,7 +171,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         if (showAllTemplates)
@@ -182,7 +182,7 @@ internal class DotNetTemplateFactory(
                 projectName => $"./{projectName}",
                 ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsCSharpAppHost
+                supportsLanguageCallback: SupportsOnlyCSharp
                 );
 
             yield return new CallbackTemplate(
@@ -191,7 +191,7 @@ internal class DotNetTemplateFactory(
                 projectName => $"./{projectName}",
                 ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsCSharpAppHost
+                supportsLanguageCallback: SupportsOnlyCSharp
                 );
 
             yield return new CallbackTemplate(
@@ -200,7 +200,7 @@ internal class DotNetTemplateFactory(
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsCSharpAppHost
+                supportsLanguageCallback: SupportsOnlyCSharp
                 );
         }
 
@@ -211,7 +211,7 @@ internal class DotNetTemplateFactory(
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync,
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         // Folded into the last yielded template.
@@ -221,7 +221,7 @@ internal class DotNetTemplateFactory(
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync,
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         // Folded into the last yielded template.
@@ -233,7 +233,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct),
-            supportsLanguageCallback: SupportsCSharpAppHost
+            supportsLanguageCallback: SupportsOnlyCSharp
             );
 
         // Prepends a test framework selection step then calls the
@@ -255,7 +255,7 @@ internal class DotNetTemplateFactory(
                     var testCallbackTemplate = (CallbackTemplate)testTemplate;
                     return await testCallbackTemplate.ApplyTemplateAsync(inputs, parseResult, ct);
                 },
-                supportsLanguageCallback: SupportsCSharpAppHost);
+                supportsLanguageCallback: SupportsOnlyCSharp);
         }
     }
 
@@ -269,7 +269,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct),
-            supportsLanguageCallback: SupportsCSharpAppHost,
+            supportsLanguageCallback: SupportsOnlyCSharp,
             isEmpty: true
             );
     }
