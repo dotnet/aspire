@@ -258,6 +258,7 @@ internal sealed class YarpPassiveHealthCheckConfig
 
 /// <summary>
 /// Specifies the SSL protocols to enable for a YARP cluster.
+/// This enum exists because <see cref="System.Security.Authentication.SslProtocols"/> includes obsolete members and values that YARP does not accept.
 /// </summary>
 internal enum YarpSslProtocol
 {

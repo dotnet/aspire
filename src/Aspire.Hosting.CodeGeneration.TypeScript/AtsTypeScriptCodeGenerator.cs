@@ -3,7 +3,7 @@
 
 using System.Globalization;
 using System.Reflection;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
 

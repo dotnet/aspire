@@ -74,11 +74,23 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                 {
                     if (state != null)
                     {
-                        // The resource is in a terminal state, so we can stop monitoring it.
-                        state.StopResourceMonitor();
-                        lock (_resourceMonitoringStates)
+                        // Health monitors are keyed by the resource model name, but events
+                        // arrive per-replica. When a resource has multiple replicas, a single
+                        // replica entering a terminal state should not stop health monitoring
+                        // for the entire resource — other replicas may still be running and
+                        // need continued health evaluation through the shared DCP port.
+                        var resource = resourceEvent.Resource;
+                        var allReplicasTerminal = resource.GetResolvedResourceNames().All(name =>
+                            resourceNotificationService.TryGetCurrentState(name, out var evt)
+                            && KnownResourceStates.TerminalStates.Contains(evt.Snapshot.State?.Text));
+
+                        if (allReplicasTerminal)
                         {
-                            _resourceMonitoringStates.Remove(resourceName);
+                            state.StopResourceMonitor();
+                            lock (_resourceMonitoringStates)
+                            {
+                                _resourceMonitoringStates.Remove(resourceName);
+                            }
                         }
                     }
                 }

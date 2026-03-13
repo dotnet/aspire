@@ -138,7 +138,7 @@ export class ReferenceExpression {
         if (this.isConditional) {
             return {
                 $expr: {
-                    condition: this._condition instanceof Handle ? this._condition.toJSON() : this._condition,
+                    condition: extractHandleForExpr(this._condition),
                     whenTrue: this._whenTrue!.toJSON(),
                     whenFalse: this._whenFalse!.toJSON(),
                     matchValue: this._matchValue!
@@ -221,15 +221,15 @@ function extractHandleForExpr(value: unknown): unknown {
         return value.toJSON();
     }
 
-    // Objects with $handle property (already in handle format)
-    if (typeof value === 'object' && value !== null && '$handle' in value) {
+    // Objects with marshalled expression/handle payloads
+    if (typeof value === 'object' && value !== null && ('$handle' in value || '$expr' in value)) {
         return value;
     }
 
-    // Objects with toJSON that returns a handle
+    // Objects with toJSON that returns a marshalled expression or handle
     if (typeof value === 'object' && value !== null && 'toJSON' in value && typeof value.toJSON === 'function') {
         const json = value.toJSON();
-        if (json && typeof json === 'object' && '$handle' in json) {
+        if (json && typeof json === 'object' && ('$handle' in json || '$expr' in json)) {
             return json;
         }
     }
