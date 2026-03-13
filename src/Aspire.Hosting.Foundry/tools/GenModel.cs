@@ -133,7 +133,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
         .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
     sb.AppendLine("    /// <summary>");
-    sb.AppendLine("    /// Models available on Microsoft Foundry Local.");
+    sb.AppendLine("    /// Models available on Foundry Local.");
     sb.AppendLine("    /// </summary>");
     sb.AppendLine(CultureInfo.InvariantCulture, $"    public static partial class Local");
     sb.AppendLine("    {");
