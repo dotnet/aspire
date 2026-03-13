@@ -405,8 +405,12 @@ jobs:
 
           if ($null -ne $selectorAudit -and $selectorAudit.runAllTests -and -not [string]::IsNullOrWhiteSpace($auditReason)) {
             if (-not [string]::IsNullOrWhiteSpace($auditTriggerFile)) {
-              $whyLines.Add("The audit selector would have run all tests because `"$auditReason`" was triggered by `"$auditTriggerFile`"$(
-                if (-not [string]::IsNullOrWhiteSpace($auditTriggerPattern)) { " matching `"$auditTriggerPattern`"" } else { "" }).")
+              $auditTriggerMatchText = ""
+              if (-not [string]::IsNullOrWhiteSpace($auditTriggerPattern)) {
+                $auditTriggerMatchText = " matching `"$auditTriggerPattern`""
+              }
+
+              $whyLines.Add("The audit selector would have run all tests because `"$auditReason`" was triggered by `"$auditTriggerFile`"$auditTriggerMatchText.")
             } else {
               $whyLines.Add("The audit selector would have run all tests because its reason was `"$auditReason`", but audit mode is observational only.")
             }
