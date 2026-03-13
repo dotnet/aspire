@@ -101,6 +101,41 @@ public class EndToEndEvaluationTests
         Assert.Equal("global.json", file.File);
     }
 
+    [Fact]
+    public async Task Evaluate_AuditConfigOnlyChange_ReturnsNonApplyingResult()
+    {
+        var configJson = """
+        {
+            "ignorePaths": [],
+            "categories": {
+                "extension": {
+                    "triggerPaths": ["extension/**"]
+                }
+            },
+            "sourceToTestMappings": []
+        }
+        """;
+
+        var config = TestSelectorConfig.LoadFromJson(configJson);
+
+        var result = await TestEvaluator.EvaluateAsync(
+            config,
+            ["eng/scripts/test-selection-rules.audit.json"],
+            solution: "Aspire.slnx",
+            fromRef: null,
+            toRef: null,
+            workingDir: Directory.GetCurrentDirectory(),
+            ciEnvironment: "github-actions",
+            verbose: false,
+            nonApplyingPaths: ["eng/scripts/test-selection-rules.audit.json"]);
+
+        Assert.False(result.RunAllTests);
+        Assert.Equal("audit_config_only", result.Reason);
+        Assert.Empty(result.AffectedTestProjects);
+        Assert.False(result.Categories["extension"]);
+        Assert.Contains("eng/scripts/test-selection-rules.audit.json", result.ChangedFiles);
+    }
+
     #endregion
 
     #region Conservative Fallback Tests

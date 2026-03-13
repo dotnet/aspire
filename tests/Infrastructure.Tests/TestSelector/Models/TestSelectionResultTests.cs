@@ -55,6 +55,17 @@ public class TestSelectionResultTests
     }
 
     [Fact]
+    public void NonApplying_SetsRunAllFalseWithProvidedReason()
+    {
+        var result = TestSelectionResult.NonApplying("audit_config_only");
+
+        Assert.False(result.RunAllTests);
+        Assert.Equal("audit_config_only", result.Reason);
+        Assert.Null(result.TriggerFile);
+        Assert.Null(result.TriggerPattern);
+    }
+
+    [Fact]
     public void ToJson_ProducesValidJson()
     {
         var result = TestSelectionResult.CriticalPath("file.cs", "**/*.cs");

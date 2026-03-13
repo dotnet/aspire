@@ -162,12 +162,28 @@ public sealed class TestSelectionResult
     }
 
     /// <summary>
+    /// Creates a result indicating the change was observed but should not apply execution changes.
+    /// </summary>
+    public static TestSelectionResult NonApplying(string reason)
+    {
+        return new TestSelectionResult
+        {
+            RunAllTests = false,
+            Reason = reason
+        };
+    }
+
+    /// <summary>
     /// Writes the result in GitHub Actions output format.
     /// </summary>
     public void WriteGitHubOutput()
     {
         var outputPath = Environment.GetEnvironmentVariable("GITHUB_OUTPUT");
-        var lines = new List<string> { $"run_all={RunAllTests.ToString().ToLowerInvariant()}" };
+        var lines = new List<string>
+        {
+            $"run_all={RunAllTests.ToString().ToLowerInvariant()}",
+            $"selection_reason={Reason}"
+        };
 
         // Output run_integrations based on both the category trigger status AND whether
         // there are integration test projects discovered via dotnet-affected/sourceToTestMappings.

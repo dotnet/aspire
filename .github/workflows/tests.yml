@@ -36,20 +36,20 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: ./dotnet.sh tool install --global dotnet-affected --version 6.2.0-preview-1
 
-      - name: Evaluate changed paths
-        id: detect_raw
+      - name: Evaluate changed paths (active selector)
+        id: detect_active_raw
         continue-on-error: true
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             mkdir -p "${{ github.workspace }}/artifacts/test-selection"
-            echo "::group::Running test selector tool"
+            echo "::group::Running active test selector"
             ./dotnet.sh run --project tools/TestSelector/TestSelector.csproj -- \
               --solution Aspire.slnx \
               --config eng/scripts/test-selection-rules.json \
               --from "${{ github.event.pull_request.base.sha }}" \
               --to "${{ github.event.pull_request.head.sha }}" \
-              --output "${{ github.workspace }}/artifacts/test-selection/selector-audit.json" \
+              --output "${{ github.workspace }}/artifacts/test-selection/selector-active.json" \
               --github-output \
               --verbose
             echo "::endgroup::"
@@ -61,13 +61,58 @@ jobs:
             echo "run_extension=true" >> $GITHUB_OUTPUT
             echo "run_polyglot=true" >> $GITHUB_OUTPUT
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
+            echo "selection_reason=non_pr_event" >> $GITHUB_OUTPUT
           fi
 
-      - name: Apply conditional scope (audit mode — all categories)
+      - name: Evaluate changed paths (audit selector)
+        id: detect_audit_raw
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            mkdir -p "${{ github.workspace }}/artifacts/test-selection"
+            echo "::group::Running audit test selector"
+            ./dotnet.sh run --project tools/TestSelector/TestSelector.csproj -- \
+              --solution Aspire.slnx \
+              --config eng/scripts/test-selection-rules.audit.json \
+              --non-applying-paths "eng/scripts/test-selection-rules.audit.json" \
+              --from "${{ github.event.pull_request.base.sha }}" \
+              --to "${{ github.event.pull_request.head.sha }}" \
+              --output "${{ github.workspace }}/artifacts/test-selection/selector-audit.json" \
+              --github-output \
+              --verbose
+            echo "::endgroup::"
+          else
+            echo "run_all=true" >> $GITHUB_OUTPUT
+            echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
+            echo "run_integrations=true" >> $GITHUB_OUTPUT
+            echo "run_extension=true" >> $GITHUB_OUTPUT
+            echo "run_polyglot=true" >> $GITHUB_OUTPUT
+            echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
+            echo "selection_reason=non_pr_event" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply conditional scope
         id: detect
         shell: bash
         run: |
-          if [ "${{ steps.detect_raw.outcome }}" != "success" ]; then
+          normalize_bool() {
+            if [ "$1" = "true" ]; then
+              echo "true"
+            else
+              echo "false"
+            fi
+          }
+
+          normalize_json_array() {
+            if [ -n "$1" ]; then
+              echo "$1"
+            else
+              echo "[]"
+            fi
+          }
+
+          if [ "${{ steps.detect_active_raw.outcome }}" != "success" ]; then
             echo "::warning::Test selector failed - falling back to running all tests"
             echo "run_all=true" >> $GITHUB_OUTPUT
             echo "run_integrations=true" >> $GITHUB_OUTPUT
@@ -75,61 +120,169 @@ jobs:
             echo "run_extension=true" >> $GITHUB_OUTPUT
             echo "run_polyglot=true" >> $GITHUB_OUTPUT
             echo "affected_test_projects=[]" >> $GITHUB_OUTPUT
+            echo "default_coverage_projects=[]" >> $GITHUB_OUTPUT
 
-            echo "<details><summary>Test Scope Audit</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Test Scope Selection</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ Test selector tool failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Active test selector failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "## Audit Selector Observation" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              if [ "${{ steps.detect_audit_raw.outcome }}" = "success" ]; then
+                AUDIT_RUN_ALL="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_all }}")"
+                AUDIT_RUN_INTEGRATIONS="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_integrations }}")"
+                AUDIT_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_cli_e2e }}")"
+                AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
+                AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
+                AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
+                AUDIT_REASON="${{ steps.detect_audit_raw.outputs.selection_reason }}"
+                if [ -z "$AUDIT_REASON" ]; then
+                  AUDIT_REASON="unknown"
+                fi
+
+                echo "Audit selector still completed and produced observational data." >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "- Reason: \`$AUDIT_REASON\`" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "| Category | Detected | Mode |" >> $GITHUB_STEP_SUMMARY
+                echo "|----------|----------|------|" >> $GITHUB_STEP_SUMMARY
+                echo "| run_all | ${AUDIT_RUN_ALL} | Audit |" >> $GITHUB_STEP_SUMMARY
+                echo "| integrations | ${AUDIT_RUN_INTEGRATIONS} | Audit |" >> $GITHUB_STEP_SUMMARY
+                echo "| cli_e2e | ${AUDIT_RUN_CLI_E2E} | Audit |" >> $GITHUB_STEP_SUMMARY
+                echo "| extension | ${AUDIT_RUN_EXTENSION} | Audit |" >> $GITHUB_STEP_SUMMARY
+                echo "| polyglot | ${AUDIT_RUN_POLYGLOT} | Audit |" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "**Audit selector affected test projects:** ${AUDIT_AFFECTED}" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "⚠️ Audit selector did not produce observational data." >> $GITHUB_STEP_SUMMARY
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
 
-          RAW_RUN_ALL="${{ steps.detect_raw.outputs.run_all }}"
-          RAW_RUN_INTEGRATIONS="${{ steps.detect_raw.outputs.run_integrations }}"
-          RAW_RUN_CLI_E2E="${{ steps.detect_raw.outputs.run_cli_e2e }}"
-          RAW_RUN_EXTENSION="${{ steps.detect_raw.outputs.run_extension }}"
-          RAW_RUN_POLYGLOT="${{ steps.detect_raw.outputs.run_polyglot }}"
-          RAW_AFFECTED="${{ steps.detect_raw.outputs.affected_test_projects }}"
+          ACTIVE_RUN_ALL="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_all }}")"
+          ACTIVE_RUN_INTEGRATIONS="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_integrations }}")"
+          ACTIVE_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_cli_e2e }}")"
+          ACTIVE_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_extension }}")"
+          ACTIVE_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_polyglot }}")"
+          ACTIVE_AFFECTED="$(normalize_json_array "${{ steps.detect_active_raw.outputs.affected_test_projects }}")"
+          ACTIVE_REASON="${{ steps.detect_active_raw.outputs.selection_reason }}"
+          if [ -z "$ACTIVE_REASON" ]; then
+            ACTIVE_REASON="unknown"
+          fi
+          DEFAULT_COVERAGE='[]'
 
-          echo "run_all=${RAW_RUN_ALL}" >> $GITHUB_OUTPUT
-          echo "run_integrations=true" >> $GITHUB_OUTPUT
-          echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
-          echo "run_extension=true" >> $GITHUB_OUTPUT
-          echo "run_polyglot=true" >> $GITHUB_OUTPUT
-          echo "affected_test_projects=${RAW_AFFECTED:-[]}" >> $GITHUB_OUTPUT
+          if [ "${ACTIVE_RUN_ALL}" != "true" ] && [ "${ACTIVE_RUN_INTEGRATIONS}" == "true" ] && [ "${ACTIVE_AFFECTED}" == "[]" ]; then
+            DEFAULT_COVERAGE='["tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"]'
+          fi
 
-          echo "<details><summary>Test Scope Audit</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "run_all=${ACTIVE_RUN_ALL}" >> $GITHUB_OUTPUT
+          echo "run_integrations=${ACTIVE_RUN_INTEGRATIONS}" >> $GITHUB_OUTPUT
+          echo "run_cli_e2e=${ACTIVE_RUN_CLI_E2E}" >> $GITHUB_OUTPUT
+          echo "run_extension=${ACTIVE_RUN_EXTENSION}" >> $GITHUB_OUTPUT
+          echo "run_polyglot=${ACTIVE_RUN_POLYGLOT}" >> $GITHUB_OUTPUT
+          echo "affected_test_projects=${ACTIVE_AFFECTED}" >> $GITHUB_OUTPUT
+          echo "default_coverage_projects=${DEFAULT_COVERAGE}" >> $GITHUB_OUTPUT
+
+          echo "<details><summary>Test Scope Selection</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Scope Audit" >> $GITHUB_STEP_SUMMARY
+          echo "## Active Test Selection" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All categories are in **audit mode** (logged, not applied)." >> $GITHUB_STEP_SUMMARY
+          echo "Conditional scope is **applied** to category and matrix selection." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Reason: \`$ACTIVE_REASON\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Detected | Applied | Mode |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|----------|---------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| run_all | ${RAW_RUN_ALL:-false} | ${RAW_RUN_ALL:-false} | - |" >> $GITHUB_STEP_SUMMARY
-          echo "| integrations | ${RAW_RUN_INTEGRATIONS:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
-          echo "| cli_e2e | ${RAW_RUN_CLI_E2E:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
-          echo "| extension | ${RAW_RUN_EXTENSION:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
-          echo "| polyglot | ${RAW_RUN_POLYGLOT:-false} | true | Audit |" >> $GITHUB_STEP_SUMMARY
+          echo "| run_all | ${ACTIVE_RUN_ALL} | ${ACTIVE_RUN_ALL} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "| integrations | ${ACTIVE_RUN_INTEGRATIONS} | ${ACTIVE_RUN_INTEGRATIONS} | Applied |" >> $GITHUB_STEP_SUMMARY
+          echo "| cli_e2e | ${ACTIVE_RUN_CLI_E2E} | ${ACTIVE_RUN_CLI_E2E} | Applied |" >> $GITHUB_STEP_SUMMARY
+          echo "| extension | ${ACTIVE_RUN_EXTENSION} | ${ACTIVE_RUN_EXTENSION} | Applied |" >> $GITHUB_STEP_SUMMARY
+          echo "| polyglot | ${ACTIVE_RUN_POLYGLOT} | ${ACTIVE_RUN_POLYGLOT} | Applied |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Affected test projects:** ${RAW_AFFECTED:-[]}" >> $GITHUB_STEP_SUMMARY
+          echo "**Affected test projects:** ${ACTIVE_AFFECTED}" >> $GITHUB_STEP_SUMMARY
+          echo "**Default coverage test projects:** ${DEFAULT_COVERAGE}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "## Audit Selector Observation" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.detect_audit_raw.outcome }}" = "success" ]; then
+              AUDIT_RUN_ALL="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_all }}")"
+              AUDIT_RUN_INTEGRATIONS="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_integrations }}")"
+              AUDIT_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_cli_e2e }}")"
+              AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
+              AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
+              AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
+              AUDIT_REASON="${{ steps.detect_audit_raw.outputs.selection_reason }}"
+              if [ -z "$AUDIT_REASON" ]; then
+                AUDIT_REASON="unknown"
+              fi
+
+              echo "The audit selector is **observational only** and does not change execution." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "- Reason: \`$AUDIT_REASON\`" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Category | Detected | Mode |" >> $GITHUB_STEP_SUMMARY
+              echo "|----------|----------|------|" >> $GITHUB_STEP_SUMMARY
+              echo "| run_all | ${AUDIT_RUN_ALL} | Audit |" >> $GITHUB_STEP_SUMMARY
+              echo "| integrations | ${AUDIT_RUN_INTEGRATIONS} | Audit |" >> $GITHUB_STEP_SUMMARY
+              echo "| cli_e2e | ${AUDIT_RUN_CLI_E2E} | Audit |" >> $GITHUB_STEP_SUMMARY
+              echo "| extension | ${AUDIT_RUN_EXTENSION} | Audit |" >> $GITHUB_STEP_SUMMARY
+              echo "| polyglot | ${AUDIT_RUN_POLYGLOT} | Audit |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Audit selector affected test projects:** ${AUDIT_AFFECTED}" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Audit selector failed and did not contribute observational data." >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "</details>" >> $GITHUB_STEP_SUMMARY
 
       - name: Show test selection results
         shell: bash
         run: |
-          echo "::group::Test Selection Results (final, after audit overrides)"
+          echo "::group::Active test selection"
           echo "run_all=${{ steps.detect.outputs.run_all }}"
+          echo "run_integrations=${{ steps.detect.outputs.run_integrations }}"
+          echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
           echo "run_extension=${{ steps.detect.outputs.run_extension }}"
           echo "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
           echo "affected_test_projects=${{ steps.detect.outputs.affected_test_projects }}"
+          echo "default_coverage_projects=${{ steps.detect.outputs.default_coverage_projects }}"
           echo "::endgroup::"
 
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "::group::Audit test selection"
+            echo "run_all=${{ steps.detect_audit_raw.outputs.run_all }}"
+            echo "run_integrations=${{ steps.detect_audit_raw.outputs.run_integrations }}"
+            echo "run_cli_e2e=${{ steps.detect_audit_raw.outputs.run_cli_e2e }}"
+            echo "run_extension=${{ steps.detect_audit_raw.outputs.run_extension }}"
+            echo "run_polyglot=${{ steps.detect_audit_raw.outputs.run_polyglot }}"
+            echo "selection_reason=${{ steps.detect_audit_raw.outputs.selection_reason }}"
+            echo "affected_test_projects=${{ steps.detect_audit_raw.outputs.affected_test_projects }}"
+            echo "::endgroup::"
+          fi
+
+      - name: Upload selector active artifact
+        if: ${{ github.event_name == 'pull_request' && steps.detect_active_raw.outcome == 'success' }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: test-scope-selector-active
+          path: ${{ github.workspace }}/artifacts/test-selection/selector-active.json
+          if-no-files-found: error
+
       - name: Upload selector audit artifact
-        if: ${{ github.event_name == 'pull_request' && steps.detect_raw.outcome == 'success' }}
+        if: ${{ github.event_name == 'pull_request' && steps.detect_audit_raw.outcome == 'success' }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: test-scope-selector-audit
@@ -140,7 +293,7 @@ jobs:
         id: generate_tests_matrix
         with:
           prepareEnvironment: 'false'
-          buildArgs: '/p:IncludeTemplateTests=true /p:IncludeCliE2ETests=${{ github.event_name == ''pull_request'' }}'
+          buildArgs: '/p:IncludeTemplateTests=true /p:IncludeCliE2ETests=${{ steps.detect.outputs.run_all == ''true'' || steps.detect.outputs.run_cli_e2e == ''true'' }}'
 
       - name: Split matrix by dependency type
         id: split_matrix
@@ -149,7 +302,7 @@ jobs:
           $splitScript = "${{ github.workspace }}/eng/scripts/split-test-matrix-by-deps.ps1"
           & $splitScript -AllTestsMatrix '${{ steps.generate_tests_matrix.outputs.all_tests }}' -OutputToGitHubEnv
 
-      - name: Filter matrices by test scope (audit mode)
+      - name: Filter matrices by test scope
         id: filter_matrix
         shell: pwsh
         run: |
@@ -167,17 +320,17 @@ jobs:
           & $filterScript `
             -Matrices $matrices `
             -AffectedProjects '${{ steps.detect.outputs.affected_test_projects }}' `
+            -DefaultCoverageProjects '${{ steps.detect.outputs.default_coverage_projects }}' `
             -RunAll:$runAll `
-            -AuditOnly `
             -AuditFilePath "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json" `
             -OutputToGitHubEnv
 
-      - name: Write audit-mode project summary
+      - name: Write selected project summary
         shell: pwsh
         run: |
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Matrix audit details</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Matrix selection details</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Audit Mode - Projects That Would Run"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Projects Selected After Matrix Filtering"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
           $projectsJson = '${{ steps.filter_matrix.outputs.audit_would_run_projects }}'
@@ -188,13 +341,13 @@ jobs:
 
           $projects = @($projectsJson | ConvertFrom-Json)
           if ($projects.Count -eq 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects would have been selected after matrix filtering.*"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects were selected after matrix filtering.*"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
             exit 0
           }
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "The following test projects would have been selected after matrix filtering:"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "The following test projects were selected after matrix filtering:"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
           foreach ($project in $projects) {
@@ -261,6 +414,9 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   tests_no_nugets_overflow:
     name: ${{ matrix.shortname }}
@@ -280,6 +436,9 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   # Split requires-nugets tests by OS so each group depends only on
   # the CLI archive build for its platform, avoiding cross-OS blocking.
@@ -301,6 +460,9 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   tests_requires_nugets_windows:
     name: ${{ matrix.shortname }}
@@ -320,6 +482,9 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   tests_requires_nugets_macos:
     name: ${{ matrix.shortname }}
@@ -339,6 +504,9 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   tests_requires_cli_archive:
     name: ${{ matrix.shortname }}
@@ -359,6 +527,9 @@ jobs:
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
       requiresCliArchive: true
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall }}
+      conditionalSelectionRunAll: ${{ needs.setup_for_tests.outputs.run_all }}
+      directlyAffectedTestProjects: ${{ join(fromJson(needs.setup_for_tests.outputs.affected_test_projects), ';') }}
 
   polyglot_validation:
     name: Polyglot SDK Validation
@@ -443,13 +614,21 @@ jobs:
           merge-multiple: true
           path: testresults/macos-latest
 
+      - name: Download selector active artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: test-scope-selector-active
+          path: ${{ github.workspace }}/audit/selector/active
+
       - name: Download selector audit artifact
         if: ${{ github.event_name == 'pull_request' }}
         continue-on-error: true
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: test-scope-selector-audit
-          path: ${{ github.workspace }}/audit/selector
+          path: ${{ github.workspace }}/audit/selector/audit
 
       - name: Download matrix audit artifact
         if: ${{ github.event_name == 'pull_request' }}
@@ -485,7 +664,8 @@ jobs:
           New-Item -ItemType Directory -Path "${{ github.workspace }}/audit/results" -Force | Out-Null
           $script = "${{ github.workspace }}/eng/scripts/find-test-scope-audit-misses.ps1"
           & $script `
-            -SelectorAuditPath "${{ github.workspace }}/audit/selector/selector-audit.json" `
+            -SelectorActivePath "${{ github.workspace }}/audit/selector/active/selector-active.json" `
+            -SelectorAuditPath "${{ github.workspace }}/audit/selector/audit/selector-audit.json" `
             -MatrixAuditPath "${{ github.workspace }}/audit/matrix/matrix-audit.json" `
             -TestResultsRoot "${{ github.workspace }}/testresults" `
             -OutputPath "${{ github.workspace }}/audit/results/audit-miss-report.json"
@@ -510,7 +690,10 @@ jobs:
 
           $report = Get-Content -Path $reportPath -Raw | ConvertFrom-Json
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Status: `{0}`' -f $report.status)
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Selector run_all: `{0}`' -f $report.selectorRunAll)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Active selector run_all: `{0}`' -f $report.activeSelectorRunAll)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Active selector reason: `{0}`' -f $report.activeSelectorReason)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Audit selector run_all: `{0}`' -f $report.auditSelectorRunAll)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Audit selector reason: `{0}`' -f $report.auditSelectorReason)
 
           if ($null -ne $report.templateGate) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Template test project would run: `{0}`' -f $report.templateGate.wouldRun)

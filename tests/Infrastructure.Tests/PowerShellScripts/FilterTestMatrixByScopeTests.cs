@@ -91,6 +91,48 @@ public class FilterTestMatrixByScopeTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task DefaultCoverageProjects_KeepPreferredRunnerWhenNotDirectlyAffected()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("ProjA-linux", "tests/ProjA/ProjA.csproj", runsOn: "ubuntu-latest"),
+            CreateEntry("Templates-linux", "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", runsOn: "ubuntu-latest"),
+            CreateEntry("Templates-win", "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", runsOn: "windows-latest"));
+
+        var affected = JsonSerializer.Serialize(new[] { "tests/ProjA/ProjA.csproj" });
+        var defaultCoverage = JsonSerializer.Serialize(new[] { "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj" });
+
+        var result = await RunFilter(matrix, affected, runAll: false, defaultCoverageProjects: defaultCoverage);
+
+        result.EnsureSuccessful("Default coverage project should be kept on the preferred runner");
+        var filtered = ParseOutputMatrix(result.Output, "test_matrix");
+        Assert.Equal(2, filtered.Length);
+        Assert.Contains(filtered, e => e.GetProperty("shortname").GetString() == "ProjA-linux");
+        Assert.Contains(filtered, e => e.GetProperty("shortname").GetString() == "Templates-linux");
+        Assert.DoesNotContain(filtered, e => e.GetProperty("shortname").GetString() == "Templates-win");
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task DirectlyAffectedProjects_KeepAllRunnersEvenWhenInDefaultCoverage()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("Templates-linux", "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", runsOn: "ubuntu-latest"),
+            CreateEntry("Templates-win", "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", runsOn: "windows-latest"));
+
+        var affected = JsonSerializer.Serialize(new[] { "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj" });
+        var defaultCoverage = JsonSerializer.Serialize(new[] { "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj" });
+
+        var result = await RunFilter(matrix, affected, runAll: false, defaultCoverageProjects: defaultCoverage);
+
+        result.EnsureSuccessful("Directly affected projects should keep all runners");
+        var filtered = ParseOutputMatrix(result.Output, "test_matrix");
+        Assert.Equal(2, filtered.Length);
+        Assert.Contains(filtered, e => e.GetProperty("shortname").GetString() == "Templates-linux");
+        Assert.Contains(filtered, e => e.GetProperty("shortname").GetString() == "Templates-win");
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task AuditOnly_LogsButDoesNotFilter()
     {
         var matrix = CreateMatrix(
@@ -187,7 +229,8 @@ public class FilterTestMatrixByScopeTests : IDisposable
         string matrixJson,
         string affectedProjects,
         bool runAll,
-        bool auditOnly = false)
+        bool auditOnly = false,
+        string defaultCoverageProjects = "[]")
     {
         // Write a small wrapper script that calls filter-test-matrix-by-scope.ps1
         // with hashtable parameter (can't pass hashtable directly from CLI)
@@ -201,6 +244,7 @@ public class FilterTestMatrixByScopeTests : IDisposable
             & '{{_scriptPath}}' `
                 -Matrices $matrices `
                 -AffectedProjects '{{affectedProjects.Replace("'", "''")}}' `
+                -DefaultCoverageProjects '{{defaultCoverageProjects.Replace("'", "''")}}' `
                 {{runAllSwitch}} {{auditSwitch}}
             """);
 
@@ -273,15 +317,22 @@ public class FilterTestMatrixByScopeTests : IDisposable
         return JsonSerializer.Serialize(matrix);
     }
 
-    private static object CreateEntry(string shortname, string testProjectPath)
+    private static Dictionary<string, object> CreateEntry(string shortname, string testProjectPath, string? runsOn = null)
     {
-        return new
+        var entry = new Dictionary<string, object>
         {
-            shortname,
-            testProjectPath,
-            testSessionTimeout = "20m",
-            testHangTimeout = "10m"
+            ["shortname"] = shortname,
+            ["testProjectPath"] = testProjectPath,
+            ["testSessionTimeout"] = "20m",
+            ["testHangTimeout"] = "10m"
         };
+
+        if (runsOn is not null)
+        {
+            entry["runs-on"] = runsOn;
+        }
+
+        return entry;
     }
 
     private static JsonElement[] ParseOutputMatrix(string output, string matrixName)

@@ -11,6 +11,9 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$false)]
+  [string]$SelectorActivePath,
+
+  [Parameter(Mandatory=$false)]
   [string]$SelectorAuditPath,
 
   [Parameter(Mandatory=$false)]
@@ -89,23 +92,38 @@ function Resolve-ShortNameMatch {
   return $null
 }
 
+$selectorActive = Get-JsonFile -Path $SelectorActivePath
 $selectorAudit = Get-JsonFile -Path $SelectorAuditPath
 $matrixAudit = Get-JsonFile -Path $MatrixAuditPath
 $missingArtifacts = [System.Collections.Generic.List[string]]::new()
+$requiredMissingArtifacts = [System.Collections.Generic.List[string]]::new()
+
+if ($null -eq $selectorActive) {
+  $missingArtifacts.Add('selector-active')
+}
 
 if ($null -eq $selectorAudit) {
   $missingArtifacts.Add('selector-audit')
+  $requiredMissingArtifacts.Add('selector-audit')
 }
 
 if ($null -eq $matrixAudit) {
   $missingArtifacts.Add('matrix-audit')
+  $requiredMissingArtifacts.Add('matrix-audit')
 }
 
-$selectorRunAll = $false
-$selectorReason = $null
+$activeSelectorRunAll = $null
+$activeSelectorReason = $null
+if ($null -ne $selectorActive) {
+  $activeSelectorRunAll = [bool]$selectorActive.runAllTests
+  $activeSelectorReason = $selectorActive.reason
+}
+
+$auditSelectorRunAll = $false
+$auditSelectorReason = $null
 if ($null -ne $selectorAudit) {
-  $selectorRunAll = [bool]$selectorAudit.runAllTests
-  $selectorReason = $selectorAudit.reason
+  $auditSelectorRunAll = [bool]$selectorAudit.runAllTests
+  $auditSelectorReason = $selectorAudit.reason
 }
 
 $templateGate = $null
@@ -145,7 +163,7 @@ foreach ($trxFile in $failedTrxFiles) {
 
   [void]$failedProjects.Add($matchedEntry.testProjectPath)
 
-  if (-not $selectorRunAll -and $predictedWouldRunProjects -notcontains $matchedEntry.testProjectPath) {
+  if (-not $auditSelectorRunAll -and $predictedWouldRunProjects -notcontains $matchedEntry.testProjectPath) {
     $auditMisses.Add([pscustomobject]@{
       trxFile = $trxFile.fileName
       shortname = $matchedEntry.shortname
@@ -156,7 +174,7 @@ foreach ($trxFile in $failedTrxFiles) {
 }
 
 $status = 'ok'
-if ($missingArtifacts.Count -gt 0) {
+if ($requiredMissingArtifacts.Count -gt 0) {
   $status = 'missing_audit_data'
 } elseif ($failedTrxFiles.Count -eq 0) {
   $status = 'no_failed_tests'
@@ -168,8 +186,12 @@ $result = [pscustomobject]@{
   status = $status
   hasAuditMiss = ($auditMisses.Count -gt 0)
   hasDataIssues = ($missingArtifacts.Count -gt 0 -or $unmappedFailedResults.Count -gt 0)
-  selectorRunAll = $selectorRunAll
-  selectorReason = $selectorReason
+  selectorRunAll = $auditSelectorRunAll
+  selectorReason = $auditSelectorReason
+  activeSelectorRunAll = $activeSelectorRunAll
+  activeSelectorReason = $activeSelectorReason
+  auditSelectorRunAll = $auditSelectorRunAll
+  auditSelectorReason = $auditSelectorReason
   templateGate = $templateGate
   predictedWouldRunProjects = @($predictedWouldRunProjects | Sort-Object)
   failedProjects = @(@($failedProjects) | Sort-Object)

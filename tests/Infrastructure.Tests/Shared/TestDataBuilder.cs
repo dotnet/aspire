@@ -30,6 +30,7 @@ public static class TestDataBuilder
         bool requiresNugets = false,
         bool requiresTestSdk = false,
         bool requiresCliArchive = false,
+        bool enablePlaywrightInstall = false,
         string? extraTestArgs = null,
         string[]? supportedOSes = null,
         Dictionary<string, string>? runners = null)
@@ -45,6 +46,7 @@ public static class TestDataBuilder
             RequiresNugets = requiresNugets ? "true" : null,
             RequiresTestSdk = requiresTestSdk ? "true" : null,
             RequiresCliArchive = requiresCliArchive ? "true" : null,
+            EnablePlaywrightInstall = enablePlaywrightInstall ? "true" : null,
             ExtraTestArgs = extraTestArgs,
             SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
             Runners = runners
@@ -74,6 +76,7 @@ public static class TestDataBuilder
         string? uncollectedTestsHangTimeout = null,
         bool requiresNugets = false,
         bool requiresTestSdk = false,
+        bool enablePlaywrightInstall = false,
         string[]? supportedOSes = null,
         Dictionary<string, string>? runners = null)
     {
@@ -89,6 +92,7 @@ public static class TestDataBuilder
             UncollectedTestsHangTimeout = uncollectedTestsHangTimeout,
             RequiresNugets = requiresNugets ? "true" : null,
             RequiresTestSdk = requiresTestSdk ? "true" : null,
+            EnablePlaywrightInstall = enablePlaywrightInstall ? "true" : null,
             SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
             Runners = runners
         };
@@ -187,6 +191,7 @@ public static class TestDataBuilder
         bool requiresNugets = false,
         bool requiresTestSdk = false,
         bool requiresCliArchive = false,
+        bool enablePlaywrightInstall = false,
         string[]? supportedOSes = null,
         Dictionary<string, string>? runners = null)
     {
@@ -206,6 +211,7 @@ public static class TestDataBuilder
             RequiresNugets = requiresNugets,
             RequiresTestSdk = requiresTestSdk,
             RequiresCliArchive = requiresCliArchive,
+            EnablePlaywrightInstall = enablePlaywrightInstall,
             SupportedOSes = supportedOSes ?? ["windows", "linux", "macos"],
             Runners = runners
         };
@@ -245,6 +251,9 @@ public static class TestDataBuilder
 
         [JsonPropertyName("requiresCliArchive")]
         public string? RequiresCliArchive { get; set; }
+
+        [JsonPropertyName("enablePlaywrightInstall")]
+        public string? EnablePlaywrightInstall { get; set; }
 
         [JsonPropertyName("extraTestArgs")]
         public string? ExtraTestArgs { get; set; }
@@ -318,6 +327,9 @@ public class CanonicalMatrixEntry
 
     [JsonPropertyName("requiresCliArchive")]
     public bool RequiresCliArchive { get; set; }
+
+    [JsonPropertyName("enablePlaywrightInstall")]
+    public bool EnablePlaywrightInstall { get; set; }
 
     [JsonPropertyName("splitTests")]
     public bool SplitTests { get; set; }

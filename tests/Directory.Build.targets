@@ -17,6 +17,17 @@
     <!-- don't capture on local runs -->
     <TestCaptureOutput Condition="'$(TestCaptureOutput)' == ''">false</TestCaptureOutput>
 
+    <ConditionalSelectionRunAll Condition="'$(ConditionalSelectionRunAll)' == ''">false</ConditionalSelectionRunAll>
+    <ConditionalSelectionIsActive Condition="'$(ConditionalSelectionIsActive)' == ''">false</ConditionalSelectionIsActive>
+    <ConditionalSelectionIsActive Condition="'$(ConditionalSelectionRunAll)' == 'true' or '$(DirectlyAffectedTestProjects)' != ''">true</ConditionalSelectionIsActive>
+
+    <_NormalizedCurrentTestProjectPath>$([System.String]::Copy('$(MSBuildProjectFullPath)').Replace('$(RepoRoot)', '').Replace('\','/'))</_NormalizedCurrentTestProjectPath>
+    <_NormalizedCurrentTestProjectPath Condition="$(_NormalizedCurrentTestProjectPath.StartsWith('/')) or $(_NormalizedCurrentTestProjectPath.StartsWith('\\'))">$(_NormalizedCurrentTestProjectPath.Substring(1))</_NormalizedCurrentTestProjectPath>
+    <_NormalizedDirectlyAffectedTestProjects Condition="'$(DirectlyAffectedTestProjects)' != ''">$([System.String]::Copy('$(DirectlyAffectedTestProjects)').Replace('\','/'))</_NormalizedDirectlyAffectedTestProjects>
+    <_DelimitedDirectlyAffectedTestProjects Condition="'$(_NormalizedDirectlyAffectedTestProjects)' != ''">;$(_NormalizedDirectlyAffectedTestProjects);</_DelimitedDirectlyAffectedTestProjects>
+    <IsDirectlyAffectedProject>false</IsDirectlyAffectedProject>
+    <IsDirectlyAffectedProject Condition="'$(_DelimitedDirectlyAffectedTestProjects)' != '' and $(_DelimitedDirectlyAffectedTestProjects.Contains(';$(_NormalizedCurrentTestProjectPath);'))">true</IsDirectlyAffectedProject>
+    <RunOnlyBasicBuildTemplateTests Condition="'$(MSBuildProjectName)' == 'Aspire.Templates.Tests' and '$(RunOnlyBasicBuildTemplateTests)' == '' and '$(ConditionalSelectionIsActive)' == 'true' and '$(ConditionalSelectionRunAll)' != 'true' and '$(IsDirectlyAffectedProject)' != 'true'">true</RunOnlyBasicBuildTemplateTests>
   </PropertyGroup>
 
   <ItemGroup>

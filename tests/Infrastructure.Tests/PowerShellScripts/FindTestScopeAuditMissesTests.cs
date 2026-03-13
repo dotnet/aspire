@@ -28,12 +28,19 @@ public class FindTestScopeAuditMissesTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task FailedProjectOutsideWouldRun_ReportsAuditMiss()
     {
+        var selectorActivePath = Path.Combine(_tempDir.Path, "selector-active.json");
         var selectorAuditPath = Path.Combine(_tempDir.Path, "selector-audit.json");
         var matrixAuditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
         var testResultsPath = Path.Combine(_tempDir.Path, "testresults");
         var reportPath = Path.Combine(_tempDir.Path, "audit-miss-report.json");
 
         Directory.CreateDirectory(testResultsPath);
+        await File.WriteAllTextAsync(selectorActivePath, """
+            {
+              "runAllTests": false,
+              "reason": "selective"
+            }
+            """);
         await File.WriteAllTextAsync(selectorAuditPath, """
             {
               "runAllTests": false,
@@ -68,7 +75,7 @@ public class FindTestScopeAuditMissesTests : IDisposable
             """);
         await File.WriteAllTextAsync(Path.Combine(testResultsPath, "ProjB.trx"), CreateTrx(failedCount: 2));
 
-        var result = await RunScript(selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
+        var result = await RunScript(selectorActivePath, selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
 
         result.EnsureSuccessful("Audit miss comparison should succeed");
 
@@ -77,6 +84,10 @@ public class FindTestScopeAuditMissesTests : IDisposable
 
         Assert.True(root.GetProperty("hasAuditMiss").GetBoolean());
         Assert.Equal("ok", root.GetProperty("status").GetString());
+        Assert.False(root.GetProperty("activeSelectorRunAll").GetBoolean());
+        Assert.Equal("selective", root.GetProperty("activeSelectorReason").GetString());
+        Assert.False(root.GetProperty("auditSelectorRunAll").GetBoolean());
+        Assert.Equal("selective", root.GetProperty("auditSelectorReason").GetString());
         var misses = root.GetProperty("auditMisses").EnumerateArray().ToArray();
         Assert.Single(misses);
         Assert.Equal("tests/ProjB/ProjB.csproj", misses[0].GetProperty("testProjectPath").GetString());
@@ -86,12 +97,19 @@ public class FindTestScopeAuditMissesTests : IDisposable
     [RequiresTools(["pwsh"])]
     public async Task RunAll_DoesNotReportAuditMiss()
     {
+        var selectorActivePath = Path.Combine(_tempDir.Path, "selector-active.json");
         var selectorAuditPath = Path.Combine(_tempDir.Path, "selector-audit.json");
         var matrixAuditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
         var testResultsPath = Path.Combine(_tempDir.Path, "testresults");
         var reportPath = Path.Combine(_tempDir.Path, "audit-miss-report.json");
 
         Directory.CreateDirectory(testResultsPath);
+        await File.WriteAllTextAsync(selectorActivePath, """
+            {
+              "runAllTests": false,
+              "reason": "selective"
+            }
+            """);
         await File.WriteAllTextAsync(selectorAuditPath, """
             {
               "runAllTests": true,
@@ -126,7 +144,7 @@ public class FindTestScopeAuditMissesTests : IDisposable
             """);
         await File.WriteAllTextAsync(Path.Combine(testResultsPath, "ProjB.trx"), CreateTrx(failedCount: 1));
 
-        var result = await RunScript(selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
+        var result = await RunScript(selectorActivePath, selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
 
         result.EnsureSuccessful("RunAll audit comparison should succeed");
 
@@ -135,18 +153,28 @@ public class FindTestScopeAuditMissesTests : IDisposable
 
         Assert.False(root.GetProperty("hasAuditMiss").GetBoolean());
         Assert.Equal("critical_path", root.GetProperty("selectorReason").GetString());
+        Assert.False(root.GetProperty("activeSelectorRunAll").GetBoolean());
+        Assert.True(root.GetProperty("auditSelectorRunAll").GetBoolean());
+        Assert.Equal("critical_path", root.GetProperty("auditSelectorReason").GetString());
     }
 
     [Fact]
     [RequiresTools(["pwsh"])]
     public async Task NoFailedTrxFiles_ReportsNoFailedTestsStatus()
     {
+        var selectorActivePath = Path.Combine(_tempDir.Path, "selector-active.json");
         var selectorAuditPath = Path.Combine(_tempDir.Path, "selector-audit.json");
         var matrixAuditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
         var testResultsPath = Path.Combine(_tempDir.Path, "testresults");
         var reportPath = Path.Combine(_tempDir.Path, "audit-miss-report.json");
 
         Directory.CreateDirectory(testResultsPath);
+        await File.WriteAllTextAsync(selectorActivePath, """
+            {
+              "runAllTests": false,
+              "reason": "selective"
+            }
+            """);
         await File.WriteAllTextAsync(selectorAuditPath, """
             {
               "runAllTests": false,
@@ -172,7 +200,7 @@ public class FindTestScopeAuditMissesTests : IDisposable
             """);
         await File.WriteAllTextAsync(Path.Combine(testResultsPath, "ProjA.trx"), CreateTrx(failedCount: 0, passedCount: 1));
 
-        var result = await RunScript(selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
+        var result = await RunScript(selectorActivePath, selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
 
         result.EnsureSuccessful("Audit miss comparison should succeed when there are no failed TRX files");
 
@@ -184,16 +212,70 @@ public class FindTestScopeAuditMissesTests : IDisposable
         Assert.Empty(root.GetProperty("failedProjects").EnumerateArray());
     }
 
-    private async Task<CommandResult> RunScript(string selectorAuditPath, string matrixAuditPath, string testResultsPath, string reportPath)
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task MissingActiveSelectorArtifact_DoesNotBlockAuditReport()
+    {
+        var selectorAuditPath = Path.Combine(_tempDir.Path, "selector-audit.json");
+        var matrixAuditPath = Path.Combine(_tempDir.Path, "matrix-audit.json");
+        var testResultsPath = Path.Combine(_tempDir.Path, "testresults");
+        var reportPath = Path.Combine(_tempDir.Path, "audit-miss-report.json");
+
+        Directory.CreateDirectory(testResultsPath);
+        await File.WriteAllTextAsync(selectorAuditPath, """
+            {
+              "runAllTests": false,
+              "reason": "audit_config_only"
+            }
+            """);
+        await File.WriteAllTextAsync(matrixAuditPath, """
+            {
+              "runAll": false,
+              "auditOnly": false,
+              "skipFiltering": true,
+              "wouldRunProjects": [],
+              "wouldRunEntries": [],
+              "templateGate": {
+                "projectPath": "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj",
+                "wouldRun": false
+              }
+            }
+            """);
+
+        var result = await RunScript(null, selectorAuditPath, matrixAuditPath, testResultsPath, reportPath);
+
+        result.EnsureSuccessful("Audit miss comparison should succeed without the active selector artifact");
+
+        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(reportPath));
+        var root = report.RootElement;
+
+        Assert.Equal("no_failed_tests", root.GetProperty("status").GetString());
+        Assert.Contains(
+            root.GetProperty("missingArtifacts").EnumerateArray().Select(x => x.GetString()),
+            value => value == "selector-active");
+        Assert.Equal(JsonValueKind.Null, root.GetProperty("activeSelectorRunAll").ValueKind);
+        Assert.Equal(JsonValueKind.Null, root.GetProperty("activeSelectorReason").ValueKind);
+    }
+
+    private async Task<CommandResult> RunScript(string? selectorActivePath, string selectorAuditPath, string matrixAuditPath, string testResultsPath, string reportPath)
     {
         var wrapperScript = Path.Combine(_tempDir.Path, "run-find-test-scope-audit-misses.ps1");
-        File.WriteAllText(wrapperScript, $$"""
-            & '{{_scriptPath}}' `
-                -SelectorAuditPath '{{selectorAuditPath.Replace("'", "''")}}' `
-                -MatrixAuditPath '{{matrixAuditPath.Replace("'", "''")}}' `
-                -TestResultsRoot '{{testResultsPath.Replace("'", "''")}}' `
-                -OutputPath '{{reportPath.Replace("'", "''")}}'
-            """);
+        var scriptLines = new List<string>
+        {
+            $"& '{_scriptPath}' `"
+        };
+
+        if (!string.IsNullOrEmpty(selectorActivePath))
+        {
+            scriptLines.Add($"    -SelectorActivePath '{selectorActivePath.Replace("'", "''")}' `");
+        }
+
+        scriptLines.Add($"    -SelectorAuditPath '{selectorAuditPath.Replace("'", "''")}' `");
+        scriptLines.Add($"    -MatrixAuditPath '{matrixAuditPath.Replace("'", "''")}' `");
+        scriptLines.Add($"    -TestResultsRoot '{testResultsPath.Replace("'", "''")}' `");
+        scriptLines.Add($"    -OutputPath '{reportPath.Replace("'", "''")}'");
+
+        File.WriteAllText(wrapperScript, string.Join(Environment.NewLine, scriptLines));
 
         using var cmd = new PowerShellCommand(wrapperScript, _output)
             .WithTimeout(TimeSpan.FromMinutes(1));

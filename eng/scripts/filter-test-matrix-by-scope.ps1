@@ -20,6 +20,14 @@
 .PARAMETER RunAll
   If true, skip filtering and pass through all entries unchanged.
 
+.PARAMETER DefaultCoverageProjects
+  JSON array string of test project .csproj paths that should stay in the matrix even
+  when they are not directly affected. These entries are reduced to the preferred
+  runner unless they are also directly affected.
+
+.PARAMETER DefaultCoverageRunsOn
+  Runner name used for default coverage entries that are not directly affected.
+
 .PARAMETER AuditOnly
   If set, log what would be filtered but return unfiltered matrices.
 
@@ -40,6 +48,12 @@ param(
 
   [Parameter(Mandatory=$false)]
   [switch]$RunAll,
+
+  [Parameter(Mandatory=$false)]
+  [string]$DefaultCoverageProjects = "[]",
+
+  [Parameter(Mandatory=$false)]
+  [string]$DefaultCoverageRunsOn = "ubuntu-latest",
 
   [Parameter(Mandatory=$false)]
   [switch]$AuditOnly,
@@ -63,16 +77,37 @@ if ($AffectedProjects -and $AffectedProjects -ne "[]") {
   }
 }
 
+$defaultCoverage = @()
+if ($DefaultCoverageProjects -and $DefaultCoverageProjects -ne "[]") {
+  $parsedDefaultCoverage = $DefaultCoverageProjects | ConvertFrom-Json
+  if ($null -ne $parsedDefaultCoverage) {
+    $defaultCoverage = @($parsedDefaultCoverage)
+  }
+}
+
 # Normalize paths for comparison (forward slashes, case-insensitive)
 $affectedSet = [System.Collections.Generic.HashSet[string]]::new(
   [StringComparer]::OrdinalIgnoreCase
 )
-foreach ($p in $affected) {
-  if ([string]::IsNullOrWhiteSpace($p)) {
+foreach ($path in $affected) {
+  if ([string]::IsNullOrWhiteSpace($path)) {
     continue
   }
-  $normalized = $p -replace '\\', '/'
-  [void]$affectedSet.Add($normalized)
+
+  $normalizedPath = $path -replace '\\', '/'
+  [void]$affectedSet.Add($normalizedPath)
+}
+
+$defaultCoverageSet = [System.Collections.Generic.HashSet[string]]::new(
+  [StringComparer]::OrdinalIgnoreCase
+)
+foreach ($path in $defaultCoverage) {
+  if ([string]::IsNullOrWhiteSpace($path)) {
+    continue
+  }
+
+  $normalizedPath = $path -replace '\\', '/'
+  [void]$defaultCoverageSet.Add($normalizedPath)
 }
 
 Write-Host "Affected test projects: $($affectedSet.Count)"
@@ -82,11 +117,18 @@ if ($affectedSet.Count -gt 0 -and $affectedSet.Count -le 20) {
   }
 }
 
+Write-Host "Default coverage test projects: $($defaultCoverageSet.Count)"
+if ($defaultCoverageSet.Count -gt 0 -and $defaultCoverageSet.Count -le 20) {
+  foreach ($p in $defaultCoverageSet) {
+    Write-Host "  - $p"
+  }
+}
+
 $skipFiltering = $false
 if ($RunAll) {
   Write-Host "RunAll=true — skipping matrix filtering"
   $skipFiltering = $true
-} elseif ($affectedSet.Count -eq 0) {
+} elseif ($affectedSet.Count -eq 0 -and $defaultCoverageSet.Count -eq 0) {
   Write-Host "No affected projects — skipping matrix filtering (pass-through)"
   $skipFiltering = $true
 }
@@ -121,9 +163,10 @@ foreach ($matrixName in $Matrices.Keys) {
   $matrixJson = $Matrices[$matrixName]
   $matrix = $matrixJson | ConvertFrom-Json
 
-  $entries = @()
-  if ($matrix.include -and $matrix.include.Count -gt 0) {
-    $entries = @($matrix.include)
+  $entries = if ($matrix.PSObject.Properties.Name -contains 'include' -and $null -ne $matrix.include) {
+    @($matrix.include)
+  } else {
+    @()
   }
 
   if ($skipFiltering) {
@@ -157,7 +200,17 @@ foreach ($matrixName in $Matrices.Keys) {
       continue
     }
     $testPath = ($entry.testProjectPath -replace '\\', '/')
-    if ($affectedSet.Contains($testPath)) {
+    $isDirectlyAffected = $affectedSet.Contains($testPath)
+    $isDefaultCoverage = $defaultCoverageSet.Contains($testPath)
+
+    if ($isDirectlyAffected -or $isDefaultCoverage) {
+      $runnerName = if ($entry.PSObject.Properties.Name -contains 'runs-on') { [string]$entry.'runs-on' } else { '' }
+      if ($isDefaultCoverage -and -not $isDirectlyAffected -and -not [string]::IsNullOrWhiteSpace($runnerName) -and $runnerName -ne $DefaultCoverageRunsOn) {
+        $removed += $entry
+        $auditFilteredEntries.Add((New-AuditEntry -MatrixName $matrixName -Entry $entry))
+        continue
+      }
+
       $kept += $entry
       [void]$auditWouldRunProjects.Add($testPath)
       $auditWouldRunEntries.Add((New-AuditEntry -MatrixName $matrixName -Entry $entry))
@@ -226,6 +279,7 @@ $auditPayload = [pscustomobject]@{
   auditOnly = [bool]$AuditOnly
   skipFiltering = $skipFiltering
   affectedProjects = $sortedAffectedProjects
+  defaultCoverageProjects = @(@($defaultCoverageSet) | Sort-Object)
   wouldRunProjects = $sortedWouldRunProjects
   wouldRunEntries = $sortedWouldRunEntries
   filteredEntries = $sortedFilteredEntries

@@ -108,7 +108,8 @@ internal static class TestEvaluator
         string? toRef,
         string workingDir,
         string ciEnvironment,
-        bool verbose)
+        bool verbose,
+        IReadOnlyCollection<string>? nonApplyingPaths = null)
     {
         var logger = new DiagnosticLogger(verbose);
 
@@ -139,6 +140,12 @@ internal static class TestEvaluator
         if (activeFiles.Count == 0)
         {
             return HandleAllFilesIgnored(logger, config, ignoredFiles);
+        }
+
+        var nonApplyingResult = CheckNonApplyingPaths(logger, config, activeFiles, ignoredFiles, nonApplyingPaths);
+        if (nonApplyingResult is not null)
+        {
+            return nonApplyingResult;
         }
 
         // Step 3: Check for triggerAll paths
@@ -287,6 +294,37 @@ internal static class TestEvaluator
         InitializeCategories(result, config);
         logger.LogSummary(false, "all_ignored", 0, []);
         return result;
+    }
+
+    private static TestSelectionResult? CheckNonApplyingPaths(
+        DiagnosticLogger logger,
+        TestSelectorConfig? config,
+        List<string> activeFiles,
+        List<string> ignoredFiles,
+        IReadOnlyCollection<string>? nonApplyingPaths)
+    {
+        if (nonApplyingPaths is null || nonApplyingPaths.Count == 0)
+        {
+            return null;
+        }
+
+        var normalizedNonApplyingPaths = new HashSet<string>(
+            nonApplyingPaths.Select(path => path.Replace('\\', '/')),
+            StringComparer.OrdinalIgnoreCase);
+
+        if (activeFiles.All(file => normalizedNonApplyingPaths.Contains(file.Replace('\\', '/'))))
+        {
+            logger.LogDecision("Record audit-only change", "All active files are marked as non-applying");
+
+            var result = TestSelectionResult.NonApplying("audit_config_only");
+            result.ChangedFiles = activeFiles;
+            result.IgnoredFiles = ignoredFiles;
+            InitializeCategories(result, config);
+            logger.LogSummary(false, "audit_config_only", 0, []);
+            return result;
+        }
+
+        return null;
     }
 
     private static TestSelectionResult? CheckTriggerAllPaths(

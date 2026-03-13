@@ -52,7 +52,7 @@ runs:
 
     - name: Build ExtractTestPartitions tool
       shell: bash
-      run: dotnet build tools/ExtractTestPartitions/ExtractTestPartitions.csproj -c Release --nologo -v quiet
+      run: ./dotnet.sh build tools/ExtractTestPartitions/ExtractTestPartitions.csproj -c Release --nologo -v quiet
 
     - name: Generate canonical test matrix
       shell: bash

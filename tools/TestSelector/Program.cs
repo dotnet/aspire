@@ -11,6 +11,7 @@ var configOption = new Option<string?>("--config", "-c") { Description = "Path t
 var fromOption = new Option<string?>("--from", "-f") { Description = "Git ref to compare from (e.g., origin/main). Required unless --changed-files is provided" };
 var toOption = new Option<string?>("--to", "-t") { Description = "Git ref to compare to (default: HEAD)" };
 var changedFilesOption = new Option<string?>("--changed-files") { Description = "Comma-separated list of changed files (bypasses git entirely)" };
+var nonApplyingPathsOption = new Option<string?>("--non-applying-paths") { Description = "Comma-separated list of paths that should return a non-applying result when they are the only active changes" };
 var outputOption = new Option<string?>("--output", "-o") { Description = "Output file path for the JSON result" };
 var githubOutputOption = new Option<bool>("--github-output") { Description = "Output in GitHub Actions format" };
 var verboseOption = new Option<bool>("--verbose", "-v") { Description = "Enable verbose output" };
@@ -22,6 +23,7 @@ var rootCommand = new RootCommand("Test selection tool for Aspire")
     fromOption,
     toOption,
     changedFilesOption,
+    nonApplyingPathsOption,
     outputOption,
     githubOutputOption,
     verboseOption
@@ -34,6 +36,7 @@ rootCommand.SetAction(async result =>
     var fromRef = result.GetValue(fromOption);
     var toRef = result.GetValue(toOption);
     var changedFilesStr = result.GetValue(changedFilesOption);
+    var nonApplyingPathsStr = result.GetValue(nonApplyingPathsOption);
     var outputPath = result.GetValue(outputOption);
     var githubOutput = result.GetValue(githubOutputOption);
     var verbose = result.GetValue(verboseOption);
@@ -117,8 +120,12 @@ rootCommand.SetAction(async result =>
             }
         }
 
+        var nonApplyingPaths = string.IsNullOrWhiteSpace(nonApplyingPathsStr)
+            ? []
+            : nonApplyingPathsStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
         // Run the evaluation
-        var evaluationResult = await TestEvaluator.EvaluateAsync(config, changedFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose).ConfigureAwait(false);
+        var evaluationResult = await TestEvaluator.EvaluateAsync(config, changedFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose, nonApplyingPaths).ConfigureAwait(false);
 
         // For RunAll/CriticalPath results, populate NuGet-dependent tests (all of them)
         if (evaluationResult.RunAllTests && evaluationResult.NuGetDependentTests is null)

@@ -7,6 +7,8 @@ namespace Aspire.Templates.Tests;
 
 public static class EnvironmentVariables
 {
+    private const string TemplateTestProjectPath = "tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj";
+
     public static readonly string? SdkForTemplateTestingPath       = Environment.GetEnvironmentVariable("SDK_FOR_TEMPLATES_TESTING_PATH");
     public static readonly string? TestLogPath                     = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
     public static readonly string? SkipProjectCleanup              = Environment.GetEnvironmentVariable("SKIP_PROJECT_CLEANUP");
@@ -17,5 +19,24 @@ public static class EnvironmentVariables
     public static readonly string? TestScenario                    = Environment.GetEnvironmentVariable("TEST_SCENARIO");
     public static readonly string? DefaultTFMForTesting            = Environment.GetEnvironmentVariable("DEFAULT_TFM_FOR_TESTING");
     public static readonly string? TestRootPath                    = Environment.GetEnvironmentVariable("DEV_TEMP");
-    public static readonly bool    RunOnlyBasicBuildTemplatesTests = Environment.GetEnvironmentVariable("RunOnlyBasicBuildTemplateTests") is "true";
+    public static readonly bool    ConditionalSelectionRunAll      = Environment.GetEnvironmentVariable("ConditionalSelectionRunAll") is "true";
+    public static readonly string? DirectlyAffectedTestProjects    = Environment.GetEnvironmentVariable("DirectlyAffectedTestProjects");
+    public static readonly bool    IsDirectlyAffectedProject       = IsDirectlyAffected(TemplateTestProjectPath, DirectlyAffectedTestProjects);
+    public static readonly bool    RunOnlyBasicBuildTemplatesTests = Environment.GetEnvironmentVariable("RunOnlyBasicBuildTemplateTests") is "true"
+        || (!ConditionalSelectionRunAll
+            && !string.IsNullOrWhiteSpace(DirectlyAffectedTestProjects)
+            && !IsDirectlyAffectedProject);
+
+    private static bool IsDirectlyAffected(string projectPath, string? directlyAffectedProjects)
+    {
+        if (string.IsNullOrWhiteSpace(directlyAffectedProjects))
+        {
+            return false;
+        }
+
+        var normalizedProjectPath = $";{projectPath.Replace('\\', '/')};";
+        var normalizedDirectlyAffectedProjects = $";{directlyAffectedProjects.Replace('\\', '/')};";
+
+        return normalizedDirectlyAffectedProjects.Contains(normalizedProjectPath, StringComparison.OrdinalIgnoreCase);
+    }
 }
