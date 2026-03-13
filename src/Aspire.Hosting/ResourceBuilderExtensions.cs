@@ -912,8 +912,7 @@ public static class ResourceBuilderExtensions
 
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
-            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
-            .SingleOrDefault();
+            .SingleOrDefault(ea => string.Equals(ea.Name, endpointName, StringComparisons.EndpointAnnotationName));
 
         if (endpoint != null)
         {
