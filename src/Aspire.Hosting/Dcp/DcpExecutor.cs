@@ -1244,7 +1244,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             return; // No container resources--no need to set up container-to-host tunnels.
         }
 
-        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(containers, _executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(
+            containers, 
+            _executionContext,
+            // We will re-evaluate the annotations when starting individual resources and there exceptions will not be suppressed,
+            // resulting in resource startup failure if annotation callbacks fail. But here, we just want to discover
+            // host-dependent containers and any failures should not prevent the whole app from starting up.
+            // This is the reason for using ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions.
+            ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions,
+            cancellationToken
+        ).ConfigureAwait(false);
 
         // Host dependencies are host network resources with endpoints that containers depend on.
         List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
@@ -3069,7 +3078,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(_executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+                var dependencies = await cr.ModelResource.GetResourceDependenciesAsync(
+                    _executionContext,
+                    // See PrepareServicesAsync for explanation of why we use ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions here.
+                    ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions,
+                    cancellationToken).ConfigureAwait(false);
 
                 if (dependencies.Any(dep => AsHostResourceWithEndpoints(dep) is { }))
                 {

@@ -6,13 +6,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Specifies how resource dependencies are discovered.
 /// </summary>
+[Flags]
 public enum ResourceDependencyDiscoveryMode
 {
     /// <summary>
     /// Discover the full transitive closure of all dependencies.
     /// This includes direct dependencies and all dependencies of those dependencies, recursively.
     /// </summary>
-    Recursive,
+    Recursive = 0,
 
     /// <summary>
     /// Discover only direct dependencies.
@@ -20,5 +21,11 @@ public enum ResourceDependencyDiscoveryMode
     /// and from environment variables and command-line arguments, but does not recurse
     /// into the dependencies of those dependencies.
     /// </summary>
-    DirectOnly
+    DirectOnly = 1,
+
+    /// <summary>
+    /// When set, exceptions from running annotation callbacks will be logged but suppressed,
+    /// allowing dependency discovery to continue, possibly missing dependencies from failing annotations.
+    /// </summary>
+    SuppressAnnotationCallbackExceptions = 2,
 }

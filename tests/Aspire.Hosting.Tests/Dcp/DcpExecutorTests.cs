@@ -2363,6 +2363,80 @@ public class DcpExecutorTests
         Assert.True(resourceStartingRaised, "OnResourceStarting should be raised for the container");
     }
 
+    [Fact]
+    public async Task EnvironmentCallbackThrows_OtherResourcesStillStart()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddContainer("failing", "image")
+            .WithEnvironment(c =>
+            {
+                throw new InvalidOperationException("env callback failure");
+            });
+
+        builder.AddContainer("healthy", "image");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var failedResources = new List<string>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceFailedToStartContext>(c =>
+        {
+            failedResources.Add(c.Resource.Name);
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        // The healthy container should have been created successfully.
+        var createdContainers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        Assert.Single(createdContainers, c => c.AppModelResourceName == "healthy");
+
+        // The failing container should not have been created and should be reported as failed.
+        Assert.DoesNotContain(createdContainers, c => c.AppModelResourceName == "failing");
+        Assert.Single(failedResources, name => name == "failing");
+    }
+
+    [Fact]
+    public async Task ArgsCallbackThrows_OtherResourcesStillStart()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddContainer("failing", "image")
+            .WithArgs(c =>
+            {
+                throw new InvalidOperationException("args callback failure");
+            });
+
+        builder.AddContainer("healthy", "image");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var failedResources = new List<string>();
+        var events = new DcpExecutorEvents();
+        events.Subscribe<OnResourceFailedToStartContext>(c =>
+        {
+            failedResources.Add(c.Resource.Name);
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        // The healthy container should have been created successfully.
+        var createdContainers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        Assert.Single(createdContainers, c => c.AppModelResourceName == "healthy");
+
+        // The failing container should not have been created and should be reported as failed.
+        Assert.DoesNotContain(createdContainers, c => c.AppModelResourceName == "failing");
+        Assert.Single(failedResources, name => name == "failing");
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
