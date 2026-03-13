@@ -37,29 +37,24 @@ internal class DotNetTemplateFactory(
     : ITemplateFactory
 {
     // Template-specific options
-    private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
+    private readonly Option<bool?> _localhostTldOption = new("--localhost-tld")
     {
         Description = TemplatingStrings.UseLocalhostTld_Description,
         DefaultValueFactory = _ => false
     };
-    private static readonly Option<bool?> s_useRedisCacheOption = new("--use-redis-cache")
+    private readonly Option<bool?> _useRedisCacheOption = new("--use-redis-cache")
     {
         Description = TemplatingStrings.UseRedisCache_Description,
         DefaultValueFactory = _ => false
     };
-    private static readonly Option<string?> s_testFrameworkOption = new("--test-framework")
+    private readonly Option<string?> _testFrameworkOption = new("--test-framework")
     {
         Description = TemplatingStrings.PromptForTFMOptions_Description
     };
-    private static readonly Option<string?> s_xunitVersionOption = new("--xunit-version")
+    private readonly Option<string?> _xunitVersionOption = new("--xunit-version")
     {
         Description = TemplatingStrings.EnterXUnitVersion_Description
     };
-
-    private static bool SupportsOnlyCSharp(string? languageId)
-    {
-        return string.Equals(languageId, KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase);
-    }
 
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -149,7 +144,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         yield return new CallbackTemplate(
@@ -160,7 +155,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         yield return new CallbackTemplate(
@@ -171,18 +166,19 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct),
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         if (showAllTemplates)
         {
             yield return new CallbackTemplate(
-                "aspire",
-                TemplatingStrings.AspireEmpty_Description,
+                KnownTemplateId.DotNetEmptyAppHost,
+                "Empty (C# AppHost, dotnet template)",
                 projectName => $"./{projectName}",
                 ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsOnlyCSharp
+                languageId: KnownLanguageId.CSharp,
+                isEmpty: true
                 );
 
             yield return new CallbackTemplate(
@@ -191,7 +187,7 @@ internal class DotNetTemplateFactory(
                 projectName => $"./{projectName}",
                 ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsOnlyCSharp
+                languageId: KnownLanguageId.CSharp
                 );
 
             yield return new CallbackTemplate(
@@ -200,7 +196,7 @@ internal class DotNetTemplateFactory(
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplyTemplateWithNoExtraArgsAsync,
-                supportsLanguageCallback: SupportsOnlyCSharp
+                languageId: KnownLanguageId.CSharp
                 );
         }
 
@@ -211,7 +207,7 @@ internal class DotNetTemplateFactory(
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync,
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         // Folded into the last yielded template.
@@ -221,7 +217,7 @@ internal class DotNetTemplateFactory(
             projectName => $"./{projectName}",
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync,
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         // Folded into the last yielded template.
@@ -233,7 +229,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplyTemplateAsync(template, inputs, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct),
-            supportsLanguageCallback: SupportsOnlyCSharp
+            languageId: KnownLanguageId.CSharp
             );
 
         // Prepends a test framework selection step then calls the
@@ -255,7 +251,7 @@ internal class DotNetTemplateFactory(
                     var testCallbackTemplate = (CallbackTemplate)testTemplate;
                     return await testCallbackTemplate.ApplyTemplateAsync(inputs, parseResult, ct);
                 },
-                supportsLanguageCallback: SupportsOnlyCSharp);
+                languageId: KnownLanguageId.CSharp);
         }
     }
 
@@ -269,7 +265,7 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplySingleFileTemplateWithNoExtraArgsAsync
                 : (template, inputs, parseResult, ct) => ApplySingleFileTemplate(template, inputs, parseResult, PromptForExtraAspireSingleFileOptionsAsync, ct),
-            supportsLanguageCallback: SupportsOnlyCSharp,
+            languageId: KnownLanguageId.CSharp,
             isEmpty: true
             );
     }
@@ -325,7 +321,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForDevLocalhostTldOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var useLocalhostTld = result.GetValue(s_localhostTldOption);
+        var useLocalhostTld = result.GetValue(_localhostTldOption);
         if (!useLocalhostTld.HasValue)
         {
             useLocalhostTld = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseLocalhostTld_Prompt, [TemplatingStrings.No, TemplatingStrings.Yes], choice => choice, cancellationToken) switch
@@ -345,7 +341,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForRedisCacheOptionAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var useRedisCache = result.GetValue(s_useRedisCacheOption);
+        var useRedisCache = result.GetValue(_useRedisCacheOption);
         if (!useRedisCache.HasValue)
         {
             useRedisCache = await interactionService.PromptForSelectionAsync(TemplatingStrings.UseRedisCache_Prompt, [TemplatingStrings.Yes, TemplatingStrings.No], choice => choice, cancellationToken) switch
@@ -365,7 +361,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForTestFrameworkOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var testFramework = result.GetValue(s_testFrameworkOption);
+        var testFramework = result.GetValue(_testFrameworkOption);
 
         if (testFramework is null)
         {
@@ -406,7 +402,7 @@ internal class DotNetTemplateFactory(
 
     private async Task PromptForXUnitVersionOptionsAsync(ParseResult result, List<string> extraArgs, CancellationToken cancellationToken)
     {
-        var xunitVersion = result.GetValue(s_xunitVersionOption);
+        var xunitVersion = result.GetValue(_xunitVersionOption);
         if (string.IsNullOrEmpty(xunitVersion))
         {
             xunitVersion = await interactionService.PromptForSelectionAsync(
@@ -420,25 +416,25 @@ internal class DotNetTemplateFactory(
         extraArgs.Add(xunitVersion);
     }
 
-    private static void ApplyExtraAspireStarterOptions(Command command)
+    private void ApplyExtraAspireStarterOptions(Command command)
     {
         ApplyDevLocalhostTldOption(command);
 
-        AddOptionIfMissing(command, s_useRedisCacheOption);
-        AddOptionIfMissing(command, s_testFrameworkOption);
-        AddOptionIfMissing(command, s_xunitVersionOption);
+        AddOptionIfMissing(command, _useRedisCacheOption);
+        AddOptionIfMissing(command, _testFrameworkOption);
+        AddOptionIfMissing(command, _xunitVersionOption);
     }
 
-    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    private void ApplyExtraAspireJsFrontendStarterOptions(Command command)
     {
         ApplyDevLocalhostTldOption(command);
 
-        AddOptionIfMissing(command, s_useRedisCacheOption);
+        AddOptionIfMissing(command, _useRedisCacheOption);
     }
 
-    private static void ApplyDevLocalhostTldOption(Command command)
+    private void ApplyDevLocalhostTldOption(Command command)
     {
-        AddOptionIfMissing(command, s_localhostTldOption);
+        AddOptionIfMissing(command, _localhostTldOption);
     }
 
     private static void AddOptionIfMissing(Command command, Option option)

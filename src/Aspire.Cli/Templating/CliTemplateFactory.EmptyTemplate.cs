@@ -107,7 +107,7 @@ internal sealed partial class CliTemplateFactory
     {
         var localhostTldOptionSpecified = parseResult.Tokens.Any(token =>
             string.Equals(token.Value, "--localhost-tld", StringComparisons.CliInputOrOutput));
-        var useLocalhostTld = parseResult.GetValue(s_localhostTldOption);
+        var useLocalhostTld = parseResult.GetValue(_localhostTldOption);
         if (!localhostTldOptionSpecified)
         {
             if (!_hostEnvironment.SupportsInteractiveInput)
