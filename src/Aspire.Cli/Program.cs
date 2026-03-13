@@ -6,6 +6,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.CopilotCli;
@@ -126,19 +127,22 @@ public class Program
         var usersAspirePath = GetUsersAspirePath();
         var newPath = Path.Combine(usersAspirePath, Configuration.AspireConfigFile.FileName);
 
-        // Copy legacy globalsettings.json → aspire.config.json on first access.
-        // Use Copy (not Move) so older CLI versions that still read globalsettings.json
-        // continue to work without data loss.
+        // Migrate legacy globalsettings.json → aspire.config.json on first access,
+        // transforming flat keys to the new nested schema. Use a copy-based approach
+        // so older CLI versions that still read globalsettings.json continue to work.
         var legacyPath = Path.Combine(usersAspirePath, "globalsettings.json");
         if (!File.Exists(newPath) && File.Exists(legacyPath))
         {
             try
             {
-                File.Copy(legacyPath, newPath);
+                var legacyJson = File.ReadAllText(legacyPath);
+                var legacyConfig = JsonSerializer.Deserialize(legacyJson, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
+                var config = AspireConfigFile.FromLegacy(legacyConfig, profiles: null);
+                config.Save(usersAspirePath);
             }
             catch
             {
-                // If copy fails, newPath will be created on first write.
+                // If migration fails, newPath will be created on first write.
             }
         }
 
