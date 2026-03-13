@@ -8,6 +8,9 @@ param(
     [Parameter(HelpMessage = "Version of the Aspire CLI to download")]
     [string]$Version = "",
 
+    [Parameter(HelpMessage = "ci.dot.net folder version when it differs from the CLI archive filename version")]
+    [string]$ArtifactVersion = "",
+
     [Parameter(HelpMessage = "Quality to download")]
     [ValidateSet("", "release", "staging", "dev")]
     [string]$Quality = "",
@@ -133,11 +136,13 @@ DESCRIPTION:
     The default quality is '$($Script:Config.DefaultQuality)'.
 
     Pass a specific version to get CLI for that version.
+    Use -ArtifactVersion when the ci.dot.net folder version differs from -Version.
 
 PARAMETERS:
     -InstallPath <string>       Directory to install the CLI (default: %USERPROFILE%\.aspire\bin on Windows, `$HOME/.aspire/bin on Unix)
     -Quality <string>           Quality to download (default: $($Script:Config.DefaultQuality))
     -Version <string>           Version of the Aspire CLI to download (default: unset)
+    -ArtifactVersion <string>   ci.dot.net folder version when it differs from -Version (default: -Version)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
     -InstallExtension           Install VS Code extension along with the CLI
@@ -723,12 +728,15 @@ function Get-AspireExtension {
         [string]$Version,
 
         [Parameter()]
+        [string]$ArtifactVersion,
+
+        [Parameter()]
         [string]$Quality
     )
 
     Write-Message "Downloading Aspire VS Code extension" -Level Info
 
-    $extensionUrl = Get-AspireExtensionUrl -Version $Version -Quality $Quality
+    $extensionUrl = Get-AspireExtensionUrl -Version $Version -ArtifactVersion $ArtifactVersion -Quality $Quality
     $extensionArchive = Join-Path $TempDir $Script:ExtensionArtifactName
 
     try {
@@ -823,6 +831,9 @@ function Get-AspireExtensionUrl {
         [string]$Version,
 
         [Parameter()]
+        [string]$ArtifactVersion = $Version,
+
+        [Parameter()]
         [string]$Quality
     )
 
@@ -844,7 +855,7 @@ function Get-AspireExtensionUrl {
     else {
         # Version-based URL
         $baseUrl = $Script:Config.BaseUrls["versioned"]
-        return "$baseUrl/$Version/aspire-vscode-$Version.$extension"
+        return "$baseUrl/$ArtifactVersion/aspire-vscode-$Version.$extension"
     }
 }
 
@@ -858,6 +869,9 @@ function Get-AspireCliUrl {
 
         [Parameter()]
         [string]$Quality,
+
+        [Parameter()]
+        [string]$ArtifactVersion = $Version,
 
         [Parameter(Mandatory = $true)]
         [string]$RuntimeIdentifier,
@@ -894,9 +908,9 @@ function Get-AspireCliUrl {
         $checksumFilename = "$archiveFilename.sha512"
 
         return [PSCustomObject]@{
-            ArchiveUrl = "$($Script:Config.BaseUrls["versioned"])/$Version/$archiveFilename"
+            ArchiveUrl = "$($Script:Config.BaseUrls["versioned"])/$ArtifactVersion/$archiveFilename"
             ArchiveFilename = $archiveFilename
-            ChecksumUrl = "$($Script:Config.BaseUrls["versioned-checksums"])/$Version/$checksumFilename"
+            ChecksumUrl = "$($Script:Config.BaseUrls["versioned-checksums"])/$ArtifactVersion/$checksumFilename"
             ChecksumFilename = $checksumFilename
         }
     }
@@ -910,6 +924,7 @@ function Install-AspireCli {
         [Parameter(Mandatory = $true)]
         [string]$InstallPath,
         [string]$Version,
+        [string]$ArtifactVersion,
         [string]$Quality,
         [string]$OS,
         [string]$Architecture
@@ -953,7 +968,7 @@ function Install-AspireCli {
         # Construct the runtime identifier and URLs
         $runtimeIdentifier = "$targetOS-$targetArch"
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
-        $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
+        $urls = Get-AspireCliUrl -Version $Version -ArtifactVersion $ArtifactVersion -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
 
         $archivePath = Join-Path $tempDir $urls.ArchiveFilename
         $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
@@ -989,7 +1004,7 @@ function Install-AspireCli {
 
             if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
                 try {
-                    $extensionArchive = Get-AspireExtension -TempDir $tempDir -Version $Version -Quality $Quality
+                    $extensionArchive = Get-AspireExtension -TempDir $tempDir -Version $Version -ArtifactVersion $ArtifactVersion -Quality $Quality
                     Install-AspireExtension -ExtensionArchive $extensionArchive -UseInsiders:$UseInsiders
                 }
                 catch {
@@ -1037,9 +1052,17 @@ function Start-AspireCliInstallation {
             throw "Cannot specify both -Version and -Quality. Use -Version for a specific version or -Quality for a quality level."
         }
 
+        if (-not [string]::IsNullOrWhiteSpace($ArtifactVersion) -and [string]::IsNullOrWhiteSpace($Version)) {
+            throw "Cannot specify -ArtifactVersion without -Version."
+        }
+
         # Set default quality if not specified and no version is provided
         if ([string]::IsNullOrWhiteSpace($Version) -and [string]::IsNullOrWhiteSpace($Quality)) {
             $Quality = $Script:Config.DefaultQuality
+        }
+
+        if ([string]::IsNullOrWhiteSpace($ArtifactVersion)) {
+            $ArtifactVersion = $Version
         }
 
         # Additional parameter validation
@@ -1073,7 +1096,7 @@ function Start-AspireCliInstallation {
         }
 
         # Download and install the Aspire CLI
-        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
+        $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -ArtifactVersion $ArtifactVersion -Quality $Quality -OS $OS -Architecture $Architecture
 
         # Update PATH environment variables unless -SkipPath is specified
         if ($SkipPath) {
