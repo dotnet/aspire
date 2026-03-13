@@ -1,6 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-namespace Aspire.Hosting.Foundry;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Generated strongly typed model descriptors for Microsoft Foundry.
@@ -1599,12 +1599,12 @@ public partial class FoundryModel
         ///     </item>
         ///     <item>
         ///       <description>
-        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all as part of one Microsoft Foundry platform.</para>
+        ///         <para>Streamlined operations: Benefit from unified billing, governance, and seamless PTU portability across models hosted on Azure - all as part of one Azure AI Foundry platform.</para>
         ///       </description>
         ///     </item>
         ///     <item>
         ///       <description>
-        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Microsoft Foundry; reducing integration effort.</para>
+        ///         <para>Future-ready flexibility: Access the latest models as they become available, and easily test, deploy, or switch between them within Azure AI Foundry; reducing integration effort.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -2781,6 +2781,16 @@ public partial class FoundryModel
         public static readonly FoundryModel Gpt53Codex = new() { Name = "gpt-5.3-codex", Version = "2026-02-24", Format = "OpenAI" };
 
         /// <summary>
+        /// GPT‑5.4 is OpenAI’s most capable frontier model, built to deliver faster, more reliable results for complex professional work.
+        /// </summary>
+        public static readonly FoundryModel Gpt54 = new() { Name = "gpt-5.4", Version = "2026-03-05", Format = "OpenAI" };
+
+        /// <summary>
+        /// GPT‑5.4-Pro is OpenAI’s most capable frontier model, built to deliver faster, more reliable results for complex professional work.
+        /// </summary>
+        public static readonly FoundryModel Gpt54Pro = new() { Name = "gpt-5.4-pro", Version = "2026-03-05", Format = "OpenAI" };
+
+        /// <summary>
         /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
         /// </summary>
         public static readonly FoundryModel GptAudio = new() { Name = "gpt-audio", Version = "2025-08-28", Format = "OpenAI" };
@@ -3463,7 +3473,7 @@ public partial class FoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Seamless Azure integration:</b> Standard Microsoft Foundry experience, with support managed by the model provider.</para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -3597,7 +3607,7 @@ public partial class FoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Seamless Azure integration:</b> Standard Microsoft Foundry experience, with support managed by the model provider.</para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
         ///       </description>
         ///     </item>
         ///     <item>
@@ -3760,7 +3770,7 @@ public partial class FoundryModel
         ///     <item>
         ///       <description>
         ///         <para>
-        ///           <b>Seamless Azure integration:</b> Standard Microsoft Foundry experience, with support managed by the model provider.</para>
+        ///           <b>Seamless Azure integration:</b> Standard Azure AI Foundry experience, with support managed by the model provider.</para>
         ///       </description>
         ///     </item>
         ///     <item>
