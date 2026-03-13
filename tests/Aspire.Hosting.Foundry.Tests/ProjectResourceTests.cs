@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Foundry.Tests;
@@ -57,6 +58,19 @@ public class ProjectResourceTests
 
         var registry = project.Resource.ContainerRegistry;
         Assert.NotNull(registry);
+        Assert.Contains(registry, project.Resource.References);
+    }
+
+    [Fact]
+    public void AddProject_InRunMode_ModelsDefaultContainerRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var project = builder.AddFoundry("account")
+            .AddProject("my-project");
+
+        var registry = Assert.Single(builder.Resources.OfType<AzureContainerRegistryResource>());
+        Assert.Same(registry, project.Resource.ContainerRegistry);
         Assert.Contains(registry, project.Resource.References);
     }
 
