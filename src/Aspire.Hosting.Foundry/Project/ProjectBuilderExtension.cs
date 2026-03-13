@@ -48,7 +48,10 @@ public static class AzureCognitiveServicesProjectExtensions
     /// <summary>
     /// Adds an Azure Cognitive Services project resource to the application model.
     ///
-    /// This will create a default Microsoft Foundry account resource.
+    /// This convenience method will create a default Microsoft Foundry account resource named
+    /// <c>{name}-foundry</c> and then add the project beneath it. It is equivalent to calling
+    /// <c>builder.AddFoundry($"{name}-foundry").AddProject(name)</c>.
+    ///
     /// This will also set the project as a deployment target for agents.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the parent Azure Cognitive Services account resource.</param>

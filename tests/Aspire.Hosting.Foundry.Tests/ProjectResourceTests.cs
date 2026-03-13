@@ -36,6 +36,18 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void AddFoundryProject_GeneratesParentFoundryName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var project = builder.AddFoundryProject("my-project");
+
+        var account = Assert.Single(builder.Resources.OfType<FoundryResource>());
+        Assert.Equal("my-project-foundry", account.Name);
+        Assert.Same(account, project.Resource.Parent);
+    }
+
+    [Fact]
     public void ConnectionStringExpression_HasCorrectFormat()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
