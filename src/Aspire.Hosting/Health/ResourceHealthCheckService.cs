@@ -279,9 +279,9 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         foreach (var (key, entry) in report.Entries)
         {
             // Check if this health check result contains multiple individual health check entries
-            if (entry.Data.TryGetValue("__AspireMultipleHealthChecks", out var hasMultiple) &&
+            if (entry.Data.TryGetValue(HealthCheckConstants.DataKeys.MultipleHealthChecks, out var hasMultiple) &&
                 hasMultiple is true &&
-                entry.Data.TryGetValue("SubEntries", out var subEntriesObj) &&
+                entry.Data.TryGetValue(HealthCheckConstants.DataKeys.SubEntries, out var subEntriesObj) &&
                 subEntriesObj is Dictionary<string, HealthReportEntry> subEntries)
             {
                 // Expand sub-entries into individual health report snapshots

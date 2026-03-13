@@ -42,14 +42,11 @@ internal sealed class AspireHttpHealthCheck(
                 // Contains multiple health check entries - mark for expansion
                 var data = new Dictionary<string, object>
                 {
-                    ["__AspireMultipleHealthChecks"] = true,
-                    ["SubEntries"] = entries
+                    [HealthCheckConstants.DataKeys.MultipleHealthChecks] = true,
+                    [HealthCheckConstants.DataKeys.SubEntries] = entries
                 };
 
-                return new HealthCheckResult(
-                    overallStatus,
-                    description: $"Health check for {resourceName}",
-                    data: data);
+                return new HealthCheckResult(overallStatus, description: $"Health check for {resourceName}", data: data);
             }
 
             // Response is not in Aspire format - fall back to status code check
@@ -71,11 +68,11 @@ internal sealed class AspireHttpHealthCheck(
         string json,
         [NotNullWhen(true)] out Dictionary<string, HealthReportEntry>? entries,
         out HealthStatus overallStatus,
-        [NotNullWhen(false)] out string? errorMessage)
+        [NotNullWhen(false)] out Exception? exception)
     {
         entries = null;
         overallStatus = HealthStatus.Unhealthy;
-        errorMessage = null;
+        exception = null;
 
         try
         {
@@ -83,7 +80,7 @@ internal sealed class AspireHttpHealthCheck(
             var root = document.RootElement;
 
             // Parse overall status
-            if (root.TryGetProperty("status", out var statusElement))
+            if (root.TryGetProperty(HealthCheckConstants.JsonProperties.Status, out var statusElement))
             {
                 overallStatus = Enum.Parse<HealthStatus>(statusElement.GetString()!, ignoreCase: true);
             }
@@ -91,7 +88,7 @@ internal sealed class AspireHttpHealthCheck(
             // Parse entries
             if (!root.TryGetProperty("entries", out var entriesElement))
             {
-                errorMessage = "Response does not contain 'entries' property";
+                exception = new InvalidOperationException("Response does not contain 'entries' property");
                 return false;
             }
 
@@ -101,24 +98,23 @@ internal sealed class AspireHttpHealthCheck(
                 var entryName = entryProperty.Name;
                 var entryValue = entryProperty.Value;
                 var status = HealthStatus.Unhealthy;
-                if (entryValue.TryGetProperty("status", out var entryStatusElement))
+                if (entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Status, out var entryStatusElement))
                 {
                     status = Enum.Parse<HealthStatus>(entryStatusElement.GetString()!, ignoreCase: true);
                 }
 
-                var description = entryValue.TryGetProperty("description", out var descElement)
+                var description = entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Description, out var descElement)
                     ? descElement.GetString()
                     : null;
 
                 var duration = TimeSpan.Zero;
-                if (entryValue.TryGetProperty("duration", out var durationElement) &&
+                if (entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Duration, out var durationElement) &&
                     TimeSpan.TryParse(durationElement.GetString(), out var parsedDuration))
                 {
                     duration = parsedDuration;
                 }
 
-                Exception? exception = null;
-                if (entryValue.TryGetProperty("exception", out var exceptionElement))
+                if (entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Exception, out var exceptionElement))
                 {
                     var exceptionText = exceptionElement.GetString();
                     if (!string.IsNullOrEmpty(exceptionText))
@@ -128,7 +124,7 @@ internal sealed class AspireHttpHealthCheck(
                 }
 
                 var data = new Dictionary<string, object>();
-                if (entryValue.TryGetProperty("data", out var dataElement))
+                if (entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Data, out var dataElement))
                 {
                     foreach (var dataProp in dataElement.EnumerateObject())
                     {
@@ -136,19 +132,14 @@ internal sealed class AspireHttpHealthCheck(
                     }
                 }
 
-                entries[entryName] = new HealthReportEntry(
-                    status,
-                    description,
-                    duration,
-                    exception,
-                    data);
+                entries[entryName] = new HealthReportEntry(status, description, duration, exception, data);
             }
 
             return true;
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            exception = ex;
             return false;
         }
     }
