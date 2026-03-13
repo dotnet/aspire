@@ -38,6 +38,7 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> AddEntraIdApplication(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -56,6 +57,7 @@ public static class EntraIdResourceExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configSectionName">The configuration section name (e.g., <c>"AzureAd"</c>, <c>"AzureAdApi"</c>).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> AddEntraIdApplication(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -134,6 +136,7 @@ public static class EntraIdResourceExtensions
     /// live in a specific tenant directory and are uniquely identified by their client ID within that tenant.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> AsExisting(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         IResourceBuilder<ParameterResource> tenantId,
@@ -162,6 +165,7 @@ public static class EntraIdResourceExtensions
     /// live in a specific tenant directory and are uniquely identified by their client ID within that tenant.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> AsExisting(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string tenantId,
@@ -188,6 +192,7 @@ public static class EntraIdResourceExtensions
     /// configuration with <c>SourceType</c> set to <c>"ClientSecret"</c>.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithClientSecret(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         IResourceBuilder<ParameterResource> clientSecret)
@@ -218,6 +223,7 @@ public static class EntraIdResourceExtensions
     /// configuration with <c>SourceType</c> set to <c>"SignedAssertionFromManagedIdentity"</c>.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithFicMsi(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string? managedIdentityClientId = null)
@@ -247,6 +253,7 @@ public static class EntraIdResourceExtensions
     /// This is currently a Microsoft-internal concept.
     /// </para>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithManagedCertificate(
         this IResourceBuilder<EntraIdApplicationResource> builder)
     {
@@ -264,6 +271,7 @@ public static class EntraIdResourceExtensions
     /// <param name="keyVaultUrl">The URL of the Key Vault (e.g., <c>"https://myvault.vault.azure.net"</c>).</param>
     /// <param name="certificateName">The name of the certificate in Key Vault.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithCertificateFromKeyVault(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string keyVaultUrl,
@@ -289,6 +297,7 @@ public static class EntraIdResourceExtensions
     /// <param name="storePath">The certificate store path (e.g., <c>"CurrentUser/My"</c>).</param>
     /// <param name="thumbprint">The certificate thumbprint.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithCertificateThumbprint(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string storePath,
@@ -314,6 +323,7 @@ public static class EntraIdResourceExtensions
     /// <param name="storePath">The certificate store path (e.g., <c>"CurrentUser/My"</c>).</param>
     /// <param name="distinguishedName">The certificate distinguished name (e.g., <c>"CN=MyCert"</c>).</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithCertificateDistinguishedName(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string storePath,
@@ -338,6 +348,7 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="credential">A fully configured <see cref="EntraIdClientCredential"/>.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithCredential(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         EntraIdClientCredential credential)
@@ -355,6 +366,7 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="instance">The Entra ID instance URL (e.g., <c>https://login.microsoftonline.us/</c> for sovereign clouds).</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithInstance(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string instance)
@@ -375,6 +387,7 @@ public static class EntraIdResourceExtensions
     /// <remarks>
     /// Useful for multi-tenant apps and for navigating to the Azure Portal app registration.
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithAppHomeTenantId(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string appHomeTenantId)
@@ -392,6 +405,7 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="capability">The capability identifier.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithClientCapability(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string capability)
@@ -409,6 +423,7 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="azureRegion">The Azure region (e.g., <c>"westus2"</c>) or <c>"TryAutoDetect"</c>.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithAzureRegion(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string azureRegion)
@@ -425,6 +440,7 @@ public static class EntraIdResourceExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithAllowWebApiToBeAuthorizedByACL(
         this IResourceBuilder<EntraIdApplicationResource> builder)
     {
@@ -441,6 +457,7 @@ public static class EntraIdResourceExtensions
     /// <param name="key">The query parameter key.</param>
     /// <param name="value">The query parameter value.</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithExtraQueryParameter(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string key,
@@ -460,6 +477,7 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="audience">The audience value (e.g., <c>api://&lt;client-id&gt;</c>).</param>
     /// <returns>The resource builder for chaining.</returns>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<EntraIdApplicationResource> WithAudience(
         this IResourceBuilder<EntraIdApplicationResource> builder,
         string audience)
@@ -504,6 +522,7 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExportIgnore(Reason = "Entra ID resources are not yet ATS-compatible for polyglot AppHosts.")]
     public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<EntraIdApplicationResource> source)
