@@ -6,7 +6,7 @@
 // but their different namespace makes them negative test cases for
 // full-name matching.
 
-namespace Aspire.Hosting.Tests.Ats.ThirdParty;
+namespace Aspire.Hosting.RemoteHost.Tests.ThirdParty;
 
 [AttributeUsage(
     AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Assembly | AttributeTargets.Property,

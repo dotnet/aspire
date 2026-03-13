@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Contains all scanned types, capabilities, and metadata from ATS assembly scanning.
@@ -40,7 +39,6 @@ namespace Aspire.Hosting.Ats;
 ///   </item>
 /// </list>
 /// </remarks>
-[Experimental("ASPIREATS001")]
 public sealed class AtsContext
 {
     private HashSet<Type>? _dtoTypes;
@@ -80,15 +78,13 @@ public sealed class AtsContext
 
     /// <summary>
     /// Runtime registry mapping capability IDs to methods.
-    /// Internal - only used by dispatcher, not part of the serializable model.
     /// </summary>
-    internal Dictionary<string, MethodInfo> Methods { get; } = new();
+    public Dictionary<string, MethodInfo> Methods { get; } = new();
 
     /// <summary>
     /// Runtime registry mapping capability IDs to properties.
-    /// Internal - only used by dispatcher, not part of the serializable model.
     /// </summary>
-    internal Dictionary<string, PropertyInfo> Properties { get; } = new();
+    public Dictionary<string, PropertyInfo> Properties { get; } = new();
 
     /// <summary>
     /// Gets the type category for a CLR type based on scanned data.

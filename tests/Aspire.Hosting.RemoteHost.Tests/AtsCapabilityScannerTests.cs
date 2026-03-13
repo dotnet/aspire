@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Ats;
 using System.Reflection;
 using System.Reflection.Emit;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.TypeSystem;
+using Xunit;
 
-namespace Aspire.Hosting.Tests.Ats;
+namespace Aspire.Hosting.RemoteHost.Tests;
 
-[Trait("Partition", "4")]
 public class AtsCapabilityScannerTests
 {
     #region MapToAtsTypeId Tests
@@ -107,7 +108,7 @@ public class AtsCapabilityScannerTests
 
         // Should derive type ID from TestResource's full name
         // Format: {AssemblyName}/{FullTypeName}
-        Assert.Equal("Aspire.Hosting.Tests/Aspire.Hosting.Tests.Ats.AtsCapabilityScannerTests+TestResource", result);
+        Assert.Equal("Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.AtsCapabilityScannerTests+TestResource", result);
     }
 
     [Fact]

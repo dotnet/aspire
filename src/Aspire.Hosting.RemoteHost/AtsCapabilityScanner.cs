@@ -4,15 +4,15 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Xml.Linq;
-using Aspire.Hosting.ApplicationModel;
+using Aspire.TypeSystem;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.Hosting.RemoteHost;
 
 /// <summary>
 /// Scans assemblies for [AspireExport] and [AspireContextType] attributes and creates capability models.
 /// Uses System.Reflection types directly for runtime scanning.
 /// </summary>
-internal static class AtsCapabilityScanner
+public static class AtsCapabilityScanner
 {
     [ThreadStatic]
     private static HashSet<Type>? s_currentScanAssemblyExportedTypes;
@@ -20,7 +20,7 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Result of scanning an assembly.
     /// </summary>
-    internal sealed class ScanResult
+    public sealed class ScanResult
     {
         /// <summary>Capabilities (methods/properties with [AspireExport]) that can be invoked via RPC.</summary>
         public required List<AtsCapabilityInfo> Capabilities { get; init; }
@@ -993,9 +993,16 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Result of creating context type capabilities, including any member-level diagnostics.
     /// </summary>
-    internal sealed class ContextTypeCapabilitiesResult
+    public sealed class ContextTypeCapabilitiesResult
     {
+        /// <summary>
+        /// Gets the list of capabilities discovered for the context type.
+        /// </summary>
         public required List<AtsCapabilityInfo> Capabilities { get; init; }
+
+        /// <summary>
+        /// Gets the list of diagnostics produced during capability scanning.
+        /// </summary>
         public List<AtsDiagnostic> Diagnostics { get; init; } = [];
 
         /// <summary>
@@ -1951,7 +1958,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool IsResourceBuilderType(Type type)
     {
-        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IResourceBuilder<>);
+        return HostingTypeHelpers.IsResourceBuilderType(type);
     }
 
     /// <summary>
@@ -2274,7 +2281,7 @@ internal static class AtsCapabilityScanner
         }
 
         var genericDef = type.GetGenericTypeDefinition();
-        if (genericDef != typeof(IResourceBuilder<>))
+        if (!IsResourceBuilderType(genericDef))
         {
             return false;
         }
@@ -2426,7 +2433,7 @@ internal static class AtsCapabilityScanner
         }
 
         // Handle IResourceBuilder<T> - this is what we're looking for
-        if (genericDef == typeof(IResourceBuilder<>))
+        if (IsResourceBuilderType(genericDef))
         {
             if (genericArgs.Length > 0)
             {
@@ -2657,7 +2664,7 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Loads the XML documentation file (.xml) for the given assembly, if available.
     /// </summary>
-    internal static XDocument? LoadXmlDocumentation(Assembly assembly)
+    public static XDocument? LoadXmlDocumentation(Assembly assembly)
     {
         var assemblyLocation = assembly.Location;
         if (string.IsNullOrEmpty(assemblyLocation))
@@ -2691,7 +2698,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     /// <param name="xmlDoc">The loaded XML documentation, or null.</param>
     /// <param name="memberName">The documentation member name (e.g., "T:Namespace.TypeName" or "P:Namespace.TypeName.Property").</param>
-    internal static string? GetXmlDocSummary(XDocument? xmlDoc, string memberName)
+    public static string? GetXmlDocSummary(XDocument? xmlDoc, string memberName)
     {
         if (xmlDoc is null)
         {

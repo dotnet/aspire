@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Aspire.Hosting.Ats;
 
-namespace Aspire.Hosting.Tests.Ats;
+namespace Aspire.Hosting.RemoteHost.Tests;
 
 [Trait("Partition", "4")]
 public class AtsExportsTests
