@@ -42,6 +42,7 @@ public static class AzureCognitiveServicesProjectExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         var project = builder.ApplicationBuilder.AddResource(new AzureCognitiveServicesProjectResource(name, ConfigureInfrastructure, builder.Resource));
         project.Resource.DefaultContainerRegistry = CreateDefaultRegistry(builder.ApplicationBuilder, $"{name}-acr");
+        project.Resource.References.Add(project.Resource.DefaultContainerRegistry);
         return project;
     }
 
@@ -78,6 +79,10 @@ public static class AzureCognitiveServicesProjectExtensions
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureContainerRegistryResource> registryBuilder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(registryBuilder);
+
+        builder.Resource.References.Add(registryBuilder.Resource);
         return builder.WithContainerRegistry(registryBuilder.Resource);
     }
 
@@ -93,6 +98,11 @@ public static class AzureCognitiveServicesProjectExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(registry);
+
+        if (registry is AzureContainerRegistryResource azureRegistry)
+        {
+            builder.Resource.References.Add(azureRegistry);
+        }
 
         // This will be queried during the "publish" phase
         builder.Resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(registry));

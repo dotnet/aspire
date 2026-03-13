@@ -48,6 +48,32 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void AddProject_ReferencesDefaultContainerRegistryForProvisioningOrdering()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var project = builder.AddFoundry("account")
+            .AddProject("my-project");
+
+        var registry = project.Resource.ContainerRegistry;
+        Assert.NotNull(registry);
+        Assert.Contains(registry, project.Resource.References);
+    }
+
+    [Fact]
+    public void WithContainerRegistry_ReferencesExplicitContainerRegistryForProvisioningOrdering()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddAzureContainerRegistry("registry");
+        var project = builder.AddFoundry("account")
+            .AddProject("my-project")
+            .WithContainerRegistry(registry);
+
+        Assert.Contains(registry.Resource, project.Resource.References);
+    }
+
+    [Fact]
     public void ConnectionStringExpression_HasCorrectFormat()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
