@@ -159,19 +159,53 @@ function New-AuditEntry {
   }
 }
 
+function Get-FriendlyTypeName {
+  param(
+    [AllowNull()]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return 'null'
+  }
+
+  return $Value.GetType().FullName
+}
+
 function Get-MatrixEntries {
   param(
     [Parameter(Mandatory=$true)]
-    [object]$Matrix
+    [object]$Matrix,
+
+    [Parameter(Mandatory=$true)]
+    [string]$MatrixName
   )
 
-  $entries = [System.Collections.Generic.List[object]]::new()
-  if ($Matrix.PSObject.Properties.Name -notcontains 'include' -or $null -eq $Matrix.include) {
-    return $entries
+  if ($null -eq $Matrix) {
+    throw "Matrix '$MatrixName' could not be parsed from JSON."
   }
 
-  foreach ($entry in @($Matrix.include)) {
-    $entries.Add($entry)
+  if ($Matrix.PSObject.Properties.Name -notcontains 'include') {
+    throw "Matrix '$MatrixName' must contain an 'include' property."
+  }
+
+  if ($null -eq $Matrix.include) {
+    return @()
+  }
+
+  if ($Matrix.include -is [string] -or $Matrix.include -is [System.ValueType]) {
+    throw "Matrix '$MatrixName' has an invalid 'include' value of type $(Get-FriendlyTypeName $Matrix.include). Expected an object or array of matrix entries."
+  }
+
+  $entries = @($Matrix.include)
+  foreach ($entry in $entries) {
+    if ($null -eq $entry) {
+      throw "Matrix '$MatrixName' contains a null entry in 'include'."
+    }
+
+    if ($entry -is [string] -or $entry -is [System.ValueType]) {
+      throw "Matrix '$MatrixName' contains an invalid entry of type $(Get-FriendlyTypeName $entry). Expected each matrix entry to be an object."
+    }
   }
 
   return $entries
@@ -180,7 +214,7 @@ function Get-MatrixEntries {
 foreach ($matrixName in $Matrices.Keys) {
   $matrixJson = $Matrices[$matrixName]
   $matrix = $matrixJson | ConvertFrom-Json
-  $entries = @(Get-MatrixEntries -Matrix $matrix)
+  $entries = @(Get-MatrixEntries -Matrix $matrix -MatrixName $matrixName)
 
   if ($skipFiltering) {
     $results[$matrixName] = ConvertTo-Json @{ include = @($entries) } -Compress -Depth 10

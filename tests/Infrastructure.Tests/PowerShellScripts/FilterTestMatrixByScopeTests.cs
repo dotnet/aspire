@@ -69,6 +69,21 @@ public class FilterTestMatrixByScopeTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task RunAll_FailsWithHelpfulErrorForInvalidIncludeType()
+    {
+        const string matrix = """
+            {"include":"oops"}
+            """;
+
+        var result = await RunFilter(matrix, "[]", runAll: true);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Matrix 'test_matrix' has an invalid 'include' value of type", result.Output);
+        Assert.Contains("System.String", result.Output);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task EmptyAffectedList_PassesThrough()
     {
         var matrix = CreateMatrix(
