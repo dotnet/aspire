@@ -51,6 +51,17 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void GenerateDistributedApplication_WithHostingTypes_KeepsReferenceExpressionInBaseTs()
+    {
+        var atsContext = CreateContextFromBothAssemblies();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+
+        Assert.DoesNotContain("export class ReferenceExpression {", files["aspire.ts"]);
+        Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
+    }
+
+    [Fact]
     public void GenerateDistributedApplication_WithTestTypes_IncludesCapabilities()
     {
         // Arrange
@@ -966,6 +977,19 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_ReferenceExpressionGetValueAsync_IsExported()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var getValueAsync = capabilities.FirstOrDefault(c =>
+            c.CapabilityId == "Aspire.Hosting.ApplicationModel/getValue" &&
+            c.TargetTypeId == AtsConstants.ReferenceExpressionTypeId);
+
+        Assert.NotNull(getValueAsync);
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, getValueAsync.CapabilityKind);
+    }
+
+    [Fact]
     public void Scanner_ExtensionMethod_HasCorrectCapabilityKind()
     {
         // Extension methods should be CapabilityKind.Method
@@ -1318,5 +1342,64 @@ public class AtsTypeScriptCodeGeneratorTests
             index += pattern.Length;
         }
         return count;
+    }
+
+    // ===== JavaScript Assembly Expansion Tests =====
+
+    [Fact]
+    public void Scanner_WithNpm_ExpandsToAllJavaScriptResourceTypes()
+    {
+        // Verify that withNpm (constrained to JavaScriptAppResource) expands to all three
+        // concrete JS resource types: JavaScriptAppResource, NodeAppResource, ViteAppResource.
+        // This is a regression test for capability ID expansion where concrete types
+        // were not registered under their own type ID in the compatibility map.
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var jsAssembly = typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, jsAssembly]);
+
+        var withNpm = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.JavaScript/withNpm");
+        Assert.NotNull(withNpm);
+
+        var expandedTypeIds = withNpm.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
+
+        // All three JS resource types should be present
+        var javaScriptAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource));
+        var nodeAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.NodeAppResource));
+        var viteAppTypeId = AtsTypeMapping.DeriveTypeId(typeof(Aspire.Hosting.JavaScript.ViteAppResource));
+
+        Assert.Contains(javaScriptAppTypeId, expandedTypeIds);
+        Assert.Contains(nodeAppTypeId, expandedTypeIds);
+        Assert.Contains(viteAppTypeId, expandedTypeIds);
+    }
+
+    [Theory]
+    [InlineData("withNpm")]
+    [InlineData("withBun")]
+    [InlineData("withYarn")]
+    [InlineData("withPnpm")]
+    public void Scanner_PackageManagerMethods_ExpandToAllJavaScriptResourceTypes(string methodName)
+    {
+        // Verify all package manager methods expand to the known JS resource types.
+        // Assert the minimum expected set rather than an exact count so the test
+        // remains valid when new JavaScriptAppResource-derived types are added.
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var jsAssembly = typeof(Aspire.Hosting.JavaScript.JavaScriptAppResource).Assembly;
+
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, jsAssembly]);
+
+        var capability = result.Capabilities
+            .FirstOrDefault(c => c.CapabilityId == $"Aspire.Hosting.JavaScript/{methodName}");
+        Assert.NotNull(capability);
+
+        var expandedTypeIds = capability.ExpandedTargetTypes.Select(t => t.TypeId).ToList();
+        Assert.True(expandedTypeIds.Count >= 3, $"Expected at least 3 expanded types but found {expandedTypeIds.Count}");
+        Assert.Contains(expandedTypeIds,
+            id => id.Contains(nameof(JavaScript.JavaScriptAppResource), StringComparison.Ordinal)
+               && !id.Contains("NodeApp", StringComparison.Ordinal)
+               && !id.Contains("ViteApp", StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.NodeAppResource), StringComparison.Ordinal));
+        Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.ViteAppResource), StringComparison.Ordinal));
     }
 }

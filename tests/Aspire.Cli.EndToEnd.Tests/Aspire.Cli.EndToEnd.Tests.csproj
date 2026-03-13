@@ -8,6 +8,7 @@
     <IsTestProject>true</IsTestProject>
     <IsUnitTestProject>true</IsUnitTestProject>
     <OutputType>Exe</OutputType>
+    <SkipTests Condition="'$(IsGitHubActionsRunner)' == 'true' and '$(IsGithubPullRequest)' != 'true'">true</SkipTests>
 
     <SplitTestsOnCI>true</SplitTestsOnCI>
     <RequiresCliArchive>true</RequiresCliArchive>

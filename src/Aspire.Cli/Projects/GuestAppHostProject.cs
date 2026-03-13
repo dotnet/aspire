@@ -25,7 +25,7 @@ namespace Aspire.Cli.Projects;
 /// Handler for guest (non-.NET) AppHost projects.
 /// Supports any language registered via <see cref="ILanguageDiscovery"/>.
 /// </summary>
-internal sealed class GuestAppHostProject : IAppHostProject
+internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGenerator
 {
     private const string GeneratedFolderName = ".modules";
 
@@ -242,6 +242,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 }
             }
         }
+    }
+
+    Task<bool> IGuestAppHostSdkGenerator.BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        return BuildAndGenerateSdkAsync(directory, cancellationToken);
     }
 
     // ═══════════════════════════════════════════════════════════════

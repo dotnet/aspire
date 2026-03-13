@@ -686,7 +686,7 @@ internal static class CliE2ETestHelpers
                 return builder
                     .Type("/opt/aspire-scripts/get-aspire-cli.sh")
                     .Enter()
-                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
+                    .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(120))
                     .Type("export PATH=~/.aspire/bin:$PATH")
                     .Enter()
                     .WaitForSuccessPrompt(counter);
@@ -698,7 +698,7 @@ internal static class CliE2ETestHelpers
                 return builder
                     .Type($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber}")
                     .Enter()
-                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300))
+                    .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300))
                     .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH")
                     .Enter()
                     .WaitForSuccessPrompt(counter);

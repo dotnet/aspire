@@ -499,6 +499,34 @@ internal static class Hex1bTestHelpers
     }
 
     /// <summary>
+    /// Runs <c>aspire init --language csharp</c> and handles the NuGet.config and agent init prompts.
+    /// Explicitly waits for the NuGet.config prompt (or init completion) rather than using a blind timer,
+    /// then declines the agent init prompt so the command exits cleanly.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder AspireInit(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        var waitingForNuGetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
+        var waitingForInitComplete = new CellPatternSearcher()
+            .Find("Aspire initialization complete");
+
+        return builder
+            .Type("aspire init --language csharp")
+            .Enter()
+            // NuGet.config prompt may or may not appear depending on environment.
+            // Wait for either the NuGet.config prompt or init completion.
+            .WaitUntil(s => waitingForNuGetConfigPrompt.Search(s).Count > 0
+                || waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .Enter()  // Dismiss NuGet.config prompt if present
+            .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+            .DeclineAgentInitPrompt()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+    }
+
+    /// <summary>
     /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
     /// The bundle is a self-contained distribution that includes:
     /// - Native AOT Aspire CLI
