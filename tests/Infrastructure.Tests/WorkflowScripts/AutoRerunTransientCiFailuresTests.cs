@@ -758,6 +758,22 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
     }
 
     [Fact]
+    [RequiresTools(["node"])]
+    public async Task AttemptsBeyondTheWorkflowGateAreNotEligible()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 1,
+                runAttempt = 4
+            });
+
+        Assert.False(rerunEligible);
+    }
+
+    [Fact]
     public async Task RepresentativeWorkflowFixturesStayAlignedWithCurrentWorkflowDefinitions()
     {
         Dictionary<string, string[]> expectations = new()

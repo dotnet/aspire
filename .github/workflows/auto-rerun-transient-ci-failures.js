@@ -2,6 +2,7 @@
 const failureConclusions = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure']);
 const ignoredJobs = new Set(['Final Results', 'Tests / Final Test Results']);
 const defaultMaxRetryableJobs = 5;
+const defaultMaxRunAttempt = 3;
 
 const retryableWithAnnotationStepPatterns = [
     /^Set up job$/i,
@@ -484,8 +485,13 @@ async function analyzeFailedJobs({
     return { failedJobs, retryableJobs, skippedJobs };
 }
 
-function computeRerunEligibility({ retryableCount, maxRetryableJobs = defaultMaxRetryableJobs, runAttempt = 1 }) {
-    if (retryableCount <= 0) {
+function computeRerunEligibility({
+    retryableCount,
+    maxRetryableJobs = defaultMaxRetryableJobs,
+    runAttempt = 1,
+    maxRunAttempt = defaultMaxRunAttempt
+}) {
+    if (retryableCount <= 0 || runAttempt > maxRunAttempt) {
         return false;
     }
 
@@ -497,8 +503,14 @@ function computeRerunEligibility({ retryableCount, maxRetryableJobs = defaultMax
         : retryableCount < maxRetryableJobs;
 }
 
-function computeRerunExecutionEligibility({ dryRun, retryableCount, maxRetryableJobs = defaultMaxRetryableJobs, runAttempt = 1 }) {
-    return !dryRun && computeRerunEligibility({ retryableCount, maxRetryableJobs, runAttempt });
+function computeRerunExecutionEligibility({
+    dryRun,
+    retryableCount,
+    maxRetryableJobs = defaultMaxRetryableJobs,
+    runAttempt = 1,
+    maxRunAttempt = defaultMaxRunAttempt
+}) {
+    return !dryRun && computeRerunEligibility({ retryableCount, maxRetryableJobs, runAttempt, maxRunAttempt });
 }
 
 function buildSummaryReference(url, text) {
