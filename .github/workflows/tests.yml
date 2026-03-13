@@ -371,6 +371,8 @@ jobs:
           $auditPath = "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json"
           $selectorActivePath = "${{ github.workspace }}/artifacts/test-selection/selector-active.json"
           $selectorAuditPath = "${{ github.workspace }}/artifacts/test-selection/selector-audit.json"
+          $activeRulesPath = "eng/scripts/test-selection-rules.json"
+          $auditRulesPath = "eng/scripts/test-selection-rules.audit.json"
           $audit = Get-Content -Raw $auditPath | ConvertFrom-Json -Depth 10
           $selectorActive = if (Test-Path $selectorActivePath) { Get-Content -Raw $selectorActivePath | ConvertFrom-Json -Depth 10 } else { $null }
           $selectorAudit = if (Test-Path $selectorAuditPath) { Get-Content -Raw $selectorAuditPath | ConvertFrom-Json -Depth 10 } else { $null }
@@ -405,6 +407,10 @@ jobs:
               $auditMatch += " ($auditReason)"
             }
           }
+          $auditContext = ""
+          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+            $auditContext = "Audit selector is observational only and uses `"$auditRulesPath`". Execution still followed the active selector rules in `"$activeRulesPath`"."
+          }
 
           Write-Host "::group::Final applied test selection result"
           Write-Host "Changed files considered by the active selector:"
@@ -416,10 +422,17 @@ jobs:
           }
           if ($activeIgnoredFiles.Count -gt 0) {
             Write-Host "Ignored by active selector: $($activeIgnoredFiles.Count) file(s)"
+            Write-Host "These files were ignored by selector rules from `"$activeRulesPath`":"
+            foreach ($file in $activeIgnoredFiles) {
+              Write-Host "  [IGNORED FILE] $file"
+            }
           }
           Write-Host $activeMatch
           if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
             Write-Host $auditMatch
+          }
+          if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
+            Write-Host $auditContext
           }
           Write-Host "Final selected test project paths:"
           if ($selectedProjects.Count -eq 0) {
@@ -446,7 +459,11 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
           if ($activeIgnoredFiles.Count -gt 0) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('Ignored by active selector: `{0}` file(s)' -f $activeIgnoredFiles.Count)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('### Ignored by active selector (`{0}` file(s))' -f $activeIgnoredFiles.Count)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('These files were ignored by selector rules from `{0}`:' -f $activeRulesPath)
+            foreach ($file in $activeIgnoredFiles) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $file)
+            }
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           }
 
@@ -455,6 +472,10 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+          if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditContext)
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           }
 
