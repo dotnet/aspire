@@ -904,6 +904,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(KnownLanguageId.TypeScript, scaffoldedLanguageId);
         Assert.NotNull(promptedTemplateNames);
         Assert.Contains("aspire-empty", promptedTemplateNames);
+        Assert.Contains("aspire-ts-starter", promptedTemplateNames);
+        Assert.DoesNotContain("aspire-starter", promptedTemplateNames);
+        Assert.DoesNotContain("aspire-ts-cs-starter", promptedTemplateNames);
+        Assert.DoesNotContain("aspire-py-starter", promptedTemplateNames);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts")));
     }
 
