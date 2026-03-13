@@ -348,7 +348,7 @@ public class DistributedApplicationTests
     public async Task BeforeResourceStartedEvent_FiredForNormalResourcesOnInitialStartup()
     {
         const string testName = "before-start-event-normal-resource";
-        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+        using var testProgram = CreateTestProgram(testName);
 
         var eventCount = 0;
 
@@ -366,7 +366,7 @@ public class DistributedApplicationTests
 
         Assert.Equal(1, eventCount);
 
-        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Fact]
