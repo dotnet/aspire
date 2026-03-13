@@ -159,18 +159,31 @@ function New-AuditEntry {
   }
 }
 
+function Get-MatrixEntries {
+  param(
+    [Parameter(Mandatory=$true)]
+    [object]$Matrix
+  )
+
+  $entries = [System.Collections.Generic.List[object]]::new()
+  if ($Matrix.PSObject.Properties.Name -notcontains 'include' -or $null -eq $Matrix.include) {
+    return $entries
+  }
+
+  foreach ($entry in @($Matrix.include)) {
+    $entries.Add($entry)
+  }
+
+  return $entries
+}
+
 foreach ($matrixName in $Matrices.Keys) {
   $matrixJson = $Matrices[$matrixName]
   $matrix = $matrixJson | ConvertFrom-Json
-
-  $entries = if ($matrix.PSObject.Properties.Name -contains 'include' -and $null -ne $matrix.include) {
-    @($matrix.include)
-  } else {
-    @()
-  }
+  $entries = Get-MatrixEntries -Matrix $matrix
 
   if ($skipFiltering) {
-    $results[$matrixName] = $matrixJson
+    $results[$matrixName] = ConvertTo-Json @{ include = @($entries) } -Compress -Depth 10
     foreach ($entry in $entries) {
       if ([string]::IsNullOrWhiteSpace($entry.testProjectPath)) {
         continue
@@ -232,7 +245,7 @@ foreach ($matrixName in $Matrices.Keys) {
 
   if ($AuditOnly) {
     # In audit mode, return unfiltered matrix
-    $results[$matrixName] = $matrixJson
+    $results[$matrixName] = ConvertTo-Json @{ include = @($entries) } -Compress -Depth 10
   } else {
     $results[$matrixName] = ConvertTo-Json @{ include = @($kept) } -Compress -Depth 10
   }

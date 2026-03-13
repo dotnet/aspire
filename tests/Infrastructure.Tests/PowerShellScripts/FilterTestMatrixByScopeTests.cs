@@ -41,6 +41,21 @@ public class FilterTestMatrixByScopeTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task RunAll_PassesThroughSingleIncludeObject()
+    {
+        var matrix = CreateMatrixWithSingleIncludeObject(
+            CreateEntry("Only-linux", "tests/Only/Only.csproj"));
+
+        var result = await RunFilter(matrix, "[]", runAll: true);
+
+        result.EnsureSuccessful("RunAll should pass through a single include object");
+        var filtered = ParseOutputMatrix(result.Output, "test_matrix");
+        var onlyEntry = Assert.Single(filtered);
+        Assert.Equal("Only-linux", onlyEntry.GetProperty("shortname").GetString());
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task EmptyAffectedList_PassesThrough()
     {
         var matrix = CreateMatrix(
@@ -314,6 +329,16 @@ public class FilterTestMatrixByScopeTests : IDisposable
     private static string CreateMatrix(params object[] entries)
     {
         var matrix = new { include = entries };
+        return JsonSerializer.Serialize(matrix);
+    }
+
+    private static string CreateMatrixWithSingleIncludeObject(object entry)
+    {
+        var matrix = new Dictionary<string, object>
+        {
+            ["include"] = entry
+        };
+
         return JsonSerializer.Serialize(matrix);
     }
 
