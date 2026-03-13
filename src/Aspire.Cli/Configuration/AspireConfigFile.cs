@@ -82,6 +82,121 @@ internal sealed class AspireConfigFile
     }
 
     /// <summary>
+    /// Loads aspire.config.json from the specified directory, falling back to legacy
+    /// .aspire/settings.json + apphost.run.json and migrating if needed.
+    /// </summary>
+    public static AspireConfigFile LoadOrCreate(string directory, string? defaultSdkVersion = null)
+    {
+        // Prefer aspire.config.json
+        var config = Load(directory);
+        if (config is not null)
+        {
+            if (defaultSdkVersion is not null)
+            {
+                config.Sdk ??= new AspireConfigSdk();
+                config.Sdk.Version ??= defaultSdkVersion;
+            }
+
+            return config;
+        }
+
+        // Fall back to .aspire/settings.json + apphost.run.json → migrate
+        var legacyConfig = AspireJsonConfiguration.Load(directory);
+        if (legacyConfig is not null)
+        {
+            var profiles = ReadApphostRunProfiles(Path.Combine(directory, "apphost.run.json"));
+            config = FromLegacy(legacyConfig, profiles);
+
+            // Persist the migrated config (legacy files are kept for older CLI versions)
+            config.Save(directory);
+        }
+        else
+        {
+            config = new AspireConfigFile();
+        }
+
+        if (defaultSdkVersion is not null)
+        {
+            config.Sdk ??= new AspireConfigSdk();
+            config.Sdk.Version ??= defaultSdkVersion;
+        }
+
+        return config;
+    }
+
+    /// <summary>
+    /// Saves an <see cref="AspireJsonConfiguration"/> to aspire.config.json, merging with any
+    /// existing aspire.config.json content in the specified directory.
+    /// </summary>
+    public static void SaveFromLegacy(string directory, AspireJsonConfiguration config)
+    {
+        var aspireConfig = Load(directory) ?? new AspireConfigFile();
+        aspireConfig.AppHost ??= new AspireConfigAppHost();
+        aspireConfig.AppHost.Path = config.AppHostPath;
+        aspireConfig.AppHost.Language = config.Language;
+        aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
+        aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
+        aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
+        aspireConfig.Features = config.Features ?? aspireConfig.Features;
+        aspireConfig.Save(directory);
+    }
+
+    /// <summary>
+    /// Reads launch profiles from an apphost.run.json file.
+    /// </summary>
+    internal static Dictionary<string, AspireConfigProfile>? ReadApphostRunProfiles(string apphostRunPath)
+    {
+        try
+        {
+            if (!File.Exists(apphostRunPath))
+            {
+                return null;
+            }
+
+            var json = File.ReadAllText(apphostRunPath);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
+            {
+                return null;
+            }
+
+            var profiles = new Dictionary<string, AspireConfigProfile>();
+            foreach (var prop in profilesElement.EnumerateObject())
+            {
+                var profile = new AspireConfigProfile();
+
+                if (prop.Value.TryGetProperty("applicationUrl", out var appUrl) &&
+                    appUrl.ValueKind == JsonValueKind.String)
+                {
+                    profile.ApplicationUrl = appUrl.GetString();
+                }
+
+                if (prop.Value.TryGetProperty("environmentVariables", out var envVars) &&
+                    envVars.ValueKind == JsonValueKind.Object)
+                {
+                    profile.EnvironmentVariables = new Dictionary<string, string>();
+                    foreach (var envProp in envVars.EnumerateObject())
+                    {
+                        if (envProp.Value.ValueKind == JsonValueKind.String)
+                        {
+                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
+                        }
+                    }
+                }
+
+                profiles[prop.Name] = profile;
+            }
+
+            return profiles.Count > 0 ? profiles : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Checks if aspire.config.json exists in the specified directory.
     /// </summary>
     public static bool Exists(string directory)

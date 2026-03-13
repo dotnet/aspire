@@ -36,6 +36,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
+    private readonly IConfigurationService _configurationService;
     private readonly IFeatures _features;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly ILogger<GuestAppHostProject> _logger;
@@ -55,6 +56,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         IDotNetCliRunner runner,
         IPackagingService packagingService,
         IConfiguration configuration,
+        IConfigurationService configurationService,
         IFeatures features,
         ILanguageDiscovery languageDiscovery,
         ILogger<GuestAppHostProject> logger,
@@ -68,6 +70,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         _runner = runner;
         _packagingService = packagingService;
         _configuration = configuration;
+        _configurationService = configurationService;
         _features = features;
         _languageDiscovery = languageDiscovery;
         _logger = logger;
@@ -158,108 +161,43 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         return integrations;
     }
 
+    /// <summary>
+    /// Resolves the directory containing the nearest aspire.config.json (or legacy settings file)
+    /// by using the already-resolved path from <see cref="IConfigurationService"/>.
+    /// Falls back to <paramref name="appHostDirectory"/> when no config file is found.
+    /// </summary>
+    private DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
+    {
+        var settingsFilePath = _configurationService.GetSettingsFilePath(isGlobal: false);
+        var settingsFile = new FileInfo(settingsFilePath);
+
+        // If the settings file exists and has a parent directory, use that
+        if (settingsFile.Directory is { Exists: true })
+        {
+            // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
+            if (string.Equals(settingsFile.Directory.Name, AspireJsonConfiguration.SettingsFolder, StringComparison.OrdinalIgnoreCase)
+                && settingsFile.Directory.Parent is not null)
+            {
+                return settingsFile.Directory.Parent;
+            }
+
+            return settingsFile.Directory;
+        }
+
+        return appHostDirectory;
+    }
+
     private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
     {
-        var effectiveSdkVersion = GetEffectiveSdkVersion();
-
-        // If aspire.config.json exists, load from it
-        if (AspireConfigFile.Exists(directory.FullName))
-        {
-            var aspireConfig = AspireConfigFile.Load(directory.FullName);
-            if (aspireConfig is not null)
-            {
-                var config = aspireConfig.ToLegacyConfiguration();
-                config.SdkVersion ??= effectiveSdkVersion;
-                return config;
-            }
-        }
-
-        // If .aspire/settings.json exists but aspire.config.json doesn't, migrate
-        var legacyConfig = AspireJsonConfiguration.Load(directory.FullName);
-        if (legacyConfig is not null)
-        {
-            // Read apphost.run.json profiles if it exists
-            Dictionary<string, AspireConfigProfile>? profiles = null;
-            var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
-            if (File.Exists(apphostRunPath))
-            {
-                profiles = ReadApphostRunProfiles(apphostRunPath);
-            }
-
-            // Merge into AspireConfigFile. Keep legacy files in place so older CLI
-            // versions that still read .aspire/settings.json continue to work.
-            var aspireConfig = AspireConfigFile.FromLegacy(legacyConfig, profiles);
-            aspireConfig.Save(directory.FullName);
-
-            _interactionService.DisplayMessage(KnownEmojis.FileCabinet, "Migrated configuration to aspire.config.json");
-
-            legacyConfig.SdkVersion ??= effectiveSdkVersion;
-            return legacyConfig;
-        }
-
-        // Neither exists — create new
-        var newConfig = new AspireJsonConfiguration();
-        newConfig.SdkVersion ??= effectiveSdkVersion;
-        return newConfig;
+        var configDir = GetConfigDirectory(directory);
+        var aspireConfig = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
+        return aspireConfig.ToLegacyConfiguration();
     }
 
-    private static Dictionary<string, AspireConfigProfile>? ReadApphostRunProfiles(string apphostRunPath)
+    private void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
     {
-        try
-        {
-            var json = File.ReadAllText(apphostRunPath);
-            using var doc = JsonDocument.Parse(json);
-
-            if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
-            {
-                return null;
-            }
-
-            var profiles = new Dictionary<string, AspireConfigProfile>();
-            foreach (var prop in profilesElement.EnumerateObject())
-            {
-                var profile = new AspireConfigProfile();
-
-                if (prop.Value.TryGetProperty("applicationUrl", out var appUrl) &&
-                    appUrl.ValueKind == JsonValueKind.String)
-                {
-                    profile.ApplicationUrl = appUrl.GetString();
-                }
-
-                if (prop.Value.TryGetProperty("environmentVariables", out var envVars))
-                {
-                    profile.EnvironmentVariables = new Dictionary<string, string>();
-                    foreach (var envProp in envVars.EnumerateObject())
-                    {
-                        if (envProp.Value.ValueKind == JsonValueKind.String)
-                        {
-                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
-                        }
-                    }
-                }
-
-                profiles[prop.Name] = profile;
-            }
-
-            return profiles.Count > 0 ? profiles : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
-    {
-        var aspireConfig = AspireConfigFile.Load(directory.FullName) ?? new AspireConfigFile();
-        aspireConfig.AppHost ??= new AspireConfigAppHost();
-        aspireConfig.AppHost.Path = config.AppHostPath;
-        aspireConfig.AppHost.Language = config.Language;
-        aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
-        aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
-        aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
-        aspireConfig.Features = config.Features ?? aspireConfig.Features;
-        aspireConfig.Save(directory.FullName);
+        var configDir = GetConfigDirectory(directory);
+        AspireConfigFile.SaveFromLegacy(configDir.FullName, config);
     }
 
     private string GetPrepareSdkVersion(AspireJsonConfiguration config)
@@ -653,8 +591,9 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // Check aspire.config.json first for launch profiles
-        var aspireConfig = AspireConfigFile.Load(directory.FullName);
+        // Check aspire.config.json first for launch profiles (may be in a parent directory)
+        var configDir = GetConfigDirectory(directory);
+        var aspireConfig = AspireConfigFile.Load(configDir.FullName);
         if (aspireConfig?.Profiles is { Count: > 0 })
         {
             return ReadProfileFromAspireConfig(aspireConfig);

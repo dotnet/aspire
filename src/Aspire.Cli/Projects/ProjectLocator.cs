@@ -446,9 +446,8 @@ internal sealed class ProjectLocator(
     {
         logger.LogDebug("Migrating legacy settings to {SettingsFilePath}", Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName));
 
-        var legacyConfig = AspireJsonConfiguration.Load(settingsRootDirectory.FullName);
-        var profiles = ReadApphostRunProfiles(Path.Combine(settingsRootDirectory.FullName, "apphost.run.json"));
-        var aspireConfig = AspireConfigFile.FromLegacy(legacyConfig, profiles);
+        // LoadOrCreate handles the legacy fallback and migration internally
+        var aspireConfig = AspireConfigFile.LoadOrCreate(settingsRootDirectory.FullName);
 
         await File.WriteAllTextAsync(
             Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName),
@@ -470,57 +469,6 @@ internal sealed class ProjectLocator(
         }
 
         return settingsDirectory.Parent;
-    }
-
-    private static Dictionary<string, AspireConfigProfile>? ReadApphostRunProfiles(string apphostRunPath)
-    {
-        try
-        {
-            if (!File.Exists(apphostRunPath))
-            {
-                return null;
-            }
-
-            var json = File.ReadAllText(apphostRunPath);
-            using var doc = JsonDocument.Parse(json);
-
-            if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
-            {
-                return null;
-            }
-
-            var profiles = new Dictionary<string, AspireConfigProfile>();
-            foreach (var prop in profilesElement.EnumerateObject())
-            {
-                var profile = new AspireConfigProfile();
-
-                if (prop.Value.TryGetProperty("applicationUrl", out var appUrl) &&
-                    appUrl.ValueKind == JsonValueKind.String)
-                {
-                    profile.ApplicationUrl = appUrl.GetString();
-                }
-
-                if (prop.Value.TryGetProperty("environmentVariables", out var envVars))
-                {
-                    profile.EnvironmentVariables = new Dictionary<string, string>();
-                    foreach (var envProp in envVars.EnumerateObject())
-                    {
-                        if (envProp.Value.ValueKind == JsonValueKind.String)
-                        {
-                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
-                        }
-                    }
-                }
-
-                profiles[prop.Name] = profile;
-            }
-
-            return profiles.Count > 0 ? profiles : null;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
 }

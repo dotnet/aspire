@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Utils;
@@ -19,7 +20,7 @@ internal static class ConfigurationHelper
         while (currentDirectory is not null)
         {
             // Check for aspire.config.json first (new format)
-            var newSettingsPath = Path.Combine(currentDirectory.FullName, "aspire.config.json");
+            var newSettingsPath = Path.Combine(currentDirectory.FullName, AspireConfigFile.FileName);
             if (File.Exists(newSettingsPath))
             {
                 localSettingsFile = new FileInfo(newSettingsPath);
