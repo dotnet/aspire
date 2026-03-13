@@ -4,12 +4,12 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Aspire.TypeSystem;
+namespace Aspire.Hosting.RemoteHost.Ats;
 
 /// <summary>
 /// Represents an error that occurred during ATS capability invocation.
 /// </summary>
-public sealed class AtsError
+internal sealed class AtsError
 {
     /// <summary>
     /// Gets or sets the machine-readable error code.
@@ -48,12 +48,12 @@ public sealed class AtsError
             ["message"] = Message
         };
 
-        if (Capability != null)
+        if (Capability is not null)
         {
             obj["capability"] = Capability;
         }
 
-        if (Details != null)
+        if (Details is not null)
         {
             obj["details"] = Details.ToJsonObject();
         }
@@ -65,7 +65,7 @@ public sealed class AtsError
 /// <summary>
 /// Additional details about an ATS error.
 /// </summary>
-public sealed class AtsErrorDetails
+internal sealed class AtsErrorDetails
 {
     /// <summary>
     /// Gets or sets the parameter that had the issue.
@@ -95,17 +95,17 @@ public sealed class AtsErrorDetails
     {
         var obj = new JsonObject();
 
-        if (Parameter != null)
+        if (Parameter is not null)
         {
             obj["parameter"] = Parameter;
         }
 
-        if (Expected != null)
+        if (Expected is not null)
         {
             obj["expected"] = Expected;
         }
 
-        if (Actual != null)
+        if (Actual is not null)
         {
             obj["actual"] = Actual;
         }
@@ -117,7 +117,7 @@ public sealed class AtsErrorDetails
 /// <summary>
 /// Standard ATS error codes.
 /// </summary>
-public static class AtsErrorCodes
+internal static class AtsErrorCodes
 {
     /// <summary>
     /// The specified capability ID was not found.
