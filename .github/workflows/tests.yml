@@ -444,7 +444,7 @@ jobs:
           }
           Write-Host "::endgroup::"
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Test selection result</summary>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Applied test selection result</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Final Applied Test Scope Result"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
@@ -470,14 +470,6 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matched rule"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $activeMatch)
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          }
-          if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditContext)
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          }
 
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected test projects"
           if ($selectedProjects.Count -eq 0) {
@@ -489,6 +481,25 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+          if (-not [string]::IsNullOrWhiteSpace($auditMatch) -or -not [string]::IsNullOrWhiteSpace($auditContext)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Audit selector result (observational only)</summary>"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Audit Selector Result"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matched rule"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            }
+            if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Context"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditContext)
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            }
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
+          }
 
       - name: Upload test scope diagnostics artifact
         if: ${{ github.event_name == 'pull_request' && always() }}
