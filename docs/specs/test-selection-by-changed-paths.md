@@ -468,11 +468,11 @@ All `run_<category>` outputs set to `false`.
 
 ### GitHub Actions
 
-The workflow runs the tool in the `detect_scope` job:
+The workflow runs the tool in the `setup_for_tests` job inside `tests.yml` after the lightweight `prepare_for_ci` changed-files gate:
 
 ```yaml
 jobs:
-  detect_scope:
+  setup_for_tests:
     runs-on: ubuntu-latest
     outputs:
       run_all: ${{ steps.detect.outputs.run_all }}
@@ -510,12 +510,12 @@ jobs:
 
 ```yaml
 extension_tests_win:
-  needs: detect_scope
-  if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_extension == 'true' }}
+  needs: setup_for_tests
+  if: ${{ needs.setup_for_tests.outputs.run_all == 'true' || needs.setup_for_tests.outputs.run_extension == 'true' }}
 
 integrations_test_lin:
-  needs: [detect_scope, setup_for_tests_lin]
-  if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_integrations == 'true' }}
+  needs: [setup_for_tests, setup_for_tests_lin]
+  if: ${{ needs.setup_for_tests.outputs.run_all == 'true' || needs.setup_for_tests.outputs.run_integrations == 'true' }}
 ```
 
 ### Event Type Behavior

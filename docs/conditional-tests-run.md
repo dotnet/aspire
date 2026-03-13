@@ -80,7 +80,7 @@ Files matching these glob patterns are completely ignored — they don't trigger
 ]
 ```
 
-When **all** changed files in a pull request match `ignorePaths`, the system sets `all_skipped=true`, which causes the build and test jobs to be skipped entirely. This replaces the previous `github-ci-trigger-patterns.txt` mechanism with a single, unified configuration.
+When **all** changed files in a pull request match `ignorePaths`, the selector produces no active files for the managed test matrix. Whole-workflow skipping is still handled earlier by the lightweight `prepare_for_ci` gate using `eng/testing/github-ci-trigger-patterns.txt`, while the selector outputs are consumed later in `tests.yml` `setup_for_tests`.
 
 ### `triggerAllPaths`
 

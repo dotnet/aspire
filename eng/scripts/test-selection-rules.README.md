@@ -115,7 +115,9 @@ Use `testProjectPatterns` to configure how test projects are identified from dot
 
 ## Workflow Integration
 
-The test selector outputs are used in `.github/workflows/tests.yml`:
+The lightweight workflow skip remains in `prepare_for_ci` via `.github/actions/check-changed-files` and `eng/testing/github-ci-trigger-patterns.txt`.
+
+The test selector outputs are produced in `.github/workflows/tests.yml` `setup_for_tests` and used by downstream jobs:
 
 - `run_all` - Set to `true` when critical paths change or on non-PR events
 - `run_integrations`, `run_cli_e2e`, `run_extension`, `run_polyglot` - Category flags
@@ -128,7 +130,7 @@ Example workflow usage:
 
 ```yaml
 jobs:
-  detect_scope:
+  setup_for_tests:
     outputs:
       run_all: ${{ steps.detect.outputs.run_all }}
       run_cli_e2e: ${{ steps.detect.outputs.run_cli_e2e }}
@@ -136,8 +138,8 @@ jobs:
       affected_test_projects: ${{ steps.detect.outputs.affected_test_projects }}
 
   my_standalone_job:
-    needs: detect_scope
-    if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_my_category == 'true' }}
+    needs: setup_for_tests
+    if: ${{ needs.setup_for_tests.outputs.run_all == 'true' || needs.setup_for_tests.outputs.run_my_category == 'true' }}
 ```
 
 ## Adding a New Category
@@ -155,23 +157,21 @@ jobs:
    }
    ```
 
-2. Add the output to `detect_scope` job in `tests.yml`:
+2. Add the output to `setup_for_tests` in `tests.yml`:
 
    ```yaml
    outputs:
      run_my_category: ${{ steps.detect.outputs.run_my_category }}
    ```
 
-3. Update `all_skipped` expression to include the new category
+3. Add `run_my_category=true` to the non-PR event case.
 
-4. Add `run_my_category=true` to the non-PR event case
+4. Add the category to the "Show test selection results" step.
 
-5. Add the category to the "Show test selection results" step
-
-6. Create or update jobs to use the new condition:
+5. Create or update jobs to use the new condition:
 
    ```yaml
-   if: ${{ needs.detect_scope.outputs.run_all == 'true' || needs.detect_scope.outputs.run_my_category == 'true' }}
+   if: ${{ needs.setup_for_tests.outputs.run_all == 'true' || needs.setup_for_tests.outputs.run_my_category == 'true' }}
    ```
 
 ## Testing Changes
