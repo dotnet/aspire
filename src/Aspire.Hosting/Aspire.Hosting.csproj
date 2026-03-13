@@ -53,6 +53,7 @@
     <Compile Include="$(SharedDir)UserSecrets\UserSecretsPathHelper.cs" Link="UserSecrets\UserSecretsPathHelper.cs" />
     <Compile Include="$(SharedDir)X509Certificate2Extensions.cs" Link="Utils\X509Certificate2Extensions.cs" />
     <Compile Include="$(SharedDir)PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
+    <Compile Include="$(VendoringDir)SemVer\**\*.cs" LinkBase="SemVer" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,7 +64,6 @@
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
-    <PackageReference Include="Semver" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>

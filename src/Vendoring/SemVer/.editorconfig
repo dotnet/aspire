@@ -1,0 +1,51 @@
+root = true
+
+[*.{cs,vb}]
+
+# Vendored third-party code (MIT License - Jeff Walker, Max Hauser)
+# Suppress all .NET analyzer diagnostics
+dotnet_analyzer_diagnostic.severity = none
+
+# Suppress IDE style enforcement for vendored code
+csharp_prefer_braces = false:none
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.IDE0016.severity = none
+dotnet_diagnostic.IDE0018.severity = none
+dotnet_diagnostic.IDE0019.severity = none
+dotnet_diagnostic.IDE0020.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0031.severity = none
+dotnet_diagnostic.IDE0034.severity = none
+dotnet_diagnostic.IDE0036.severity = none
+dotnet_diagnostic.IDE0040.severity = none
+dotnet_diagnostic.IDE0044.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0047.severity = none
+dotnet_diagnostic.IDE0048.severity = none
+dotnet_diagnostic.IDE0049.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0057.severity = none
+dotnet_diagnostic.IDE0060.severity = none
+dotnet_diagnostic.IDE0063.severity = none
+dotnet_diagnostic.IDE0065.severity = none
+dotnet_diagnostic.IDE0066.severity = none
+dotnet_diagnostic.IDE0071.severity = none
+dotnet_diagnostic.IDE0073.severity = none
+dotnet_diagnostic.IDE0074.severity = none
+dotnet_diagnostic.IDE0078.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.IDE0130.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0180.severity = none
+dotnet_diagnostic.IDE0200.severity = none
+dotnet_diagnostic.IDE0230.severity = none
+dotnet_diagnostic.IDE0250.severity = none
+dotnet_diagnostic.IDE0251.severity = none
+dotnet_diagnostic.IDE0260.severity = none
+dotnet_diagnostic.IDE0270.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0301.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.CS1591.severity = none
