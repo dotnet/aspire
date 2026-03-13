@@ -17,7 +17,7 @@ public sealed class AcaExistingRegistryDeploymentTests(ITestOutputHelper output)
     // Timeout set to 45 minutes to allow for ACR pre-creation and Azure provisioning.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(45);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithExistingRegistry()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

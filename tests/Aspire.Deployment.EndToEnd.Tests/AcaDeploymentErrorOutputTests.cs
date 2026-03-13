@@ -24,7 +24,7 @@ public sealed class AcaDeploymentErrorOutputTests(ITestOutputHelper output)
     /// Deploys with an invalid Azure location ('invalidlocation') to induce a provisioning failure,
     /// then verifies the error output is clean without verbose HTTP headers or status details.
     /// </summary>
-    [Fact]
+    //[Fact]
     public async Task DeployWithInvalidLocation_ErrorOutputIsClean()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

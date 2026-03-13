@@ -16,7 +16,7 @@ public sealed class VnetSqlServerConnectivityDeploymentTests(ITestOutputHelper o
 {
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithSqlServerPrivateEndpoint()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

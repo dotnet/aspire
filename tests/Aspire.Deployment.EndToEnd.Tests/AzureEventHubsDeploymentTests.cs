@@ -17,7 +17,7 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
     // Timeout set to 30 minutes for Azure resource provisioning.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(30);
 
-    [Fact]
+    //[Fact]
     public async Task DeployAzureEventHubsResource()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

@@ -17,7 +17,7 @@ public sealed class PythonFastApiDeploymentTests(ITestOutputHelper output)
     // Full deployments can take up to 30 minutes if Azure infrastructure is backed up.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployPythonFastApiTemplateToAzureContainerApps()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

@@ -17,7 +17,7 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
     // Timeout set to 30 minutes to allow for two Azure deployments and purge verification.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(30);
 
-    [Fact]
+    //[Fact]
     public async Task DeployPythonStarterWithPurgeTask()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

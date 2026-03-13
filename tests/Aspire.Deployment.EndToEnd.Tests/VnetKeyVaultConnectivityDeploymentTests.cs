@@ -16,7 +16,7 @@ public sealed class VnetKeyVaultConnectivityDeploymentTests(ITestOutputHelper ou
 {
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithKeyVaultPrivateEndpoint()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

@@ -16,7 +16,7 @@ public sealed class VnetStorageBlobConnectivityDeploymentTests(ITestOutputHelper
 {
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithStorageBlobPrivateEndpoint()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

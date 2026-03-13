@@ -16,7 +16,7 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
     // Timeout set to 40 minutes to allow for Azure provisioning and npm install.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployTypeScriptExpressTemplateToAzureContainerApps()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

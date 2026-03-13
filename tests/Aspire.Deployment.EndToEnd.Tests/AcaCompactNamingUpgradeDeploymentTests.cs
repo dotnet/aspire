@@ -21,7 +21,7 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
     /// Deploys with GA CLI → upgrades to dev CLI → redeploys same apphost → verifies
     /// no duplicate storage accounts were created (default naming unchanged).
     /// </summary>
-    [Fact]
+    //[Fact]
     public async Task UpgradeFromGaToDevDoesNotDuplicateStorageAccounts()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

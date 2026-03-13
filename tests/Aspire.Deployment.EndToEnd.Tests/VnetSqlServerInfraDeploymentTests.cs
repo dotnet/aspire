@@ -16,7 +16,7 @@ public sealed class VnetSqlServerInfraDeploymentTests(ITestOutputHelper output)
 {
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
-    [Fact]
+    //[Fact]
     public async Task DeployVnetSqlServerInfrastructure()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

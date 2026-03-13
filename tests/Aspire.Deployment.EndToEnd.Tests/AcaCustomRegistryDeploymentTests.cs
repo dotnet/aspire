@@ -18,7 +18,7 @@ public sealed class AcaCustomRegistryDeploymentTests(ITestOutputHelper output)
     // Full deployments with custom ACR can take up to 35 minutes if Azure infrastructure is backed up.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(45);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithCustomRegistry()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

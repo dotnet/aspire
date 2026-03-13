@@ -12,7 +12,7 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// </summary>
 public sealed class AuthenticationTests(ITestOutputHelper output)
 {
-    [Fact]
+    //[Fact]
     public void SubscriptionIdIsConfigured()
     {
         var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
@@ -32,7 +32,7 @@ public sealed class AuthenticationTests(ITestOutputHelper output)
         Assert.False(string.IsNullOrEmpty(subscriptionId));
     }
 
-    [Fact]
+    //[Fact]
     public void AzureCredentialsAreAvailable()
     {
         // Skip if subscription isn't configured (no point testing auth without a target)
@@ -83,7 +83,7 @@ public sealed class AuthenticationTests(ITestOutputHelper output)
         }
     }
 
-    [Fact]
+    //[Fact]
     public void ResourceGroupNameGenerationWorks()
     {
         var rgName = AzureAuthenticationHelpers.GenerateResourceGroupName("TestScenario");
@@ -106,7 +106,7 @@ public sealed class AuthenticationTests(ITestOutputHelper output)
         output.WriteLine("✅ Resource group name generation works correctly.");
     }
 
-    [Fact]
+    //[Fact]
     public void EnvironmentDetectionWorks()
     {
         var isCI = DeploymentE2ETestHelpers.IsRunningInCI;

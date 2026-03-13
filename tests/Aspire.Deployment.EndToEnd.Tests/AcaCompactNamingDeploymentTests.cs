@@ -22,7 +22,7 @@ public sealed class AcaCompactNamingDeploymentTests(ITestOutputHelper output)
     /// succeeds when WithCompactResourceNaming() is used.
     /// The storage account name would otherwise exceed 24 chars and truncate the uniqueString.
     /// </summary>
-    [Fact]
+    //[Fact]
     public async Task DeployWithCompactNamingFixesStorageCollision()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

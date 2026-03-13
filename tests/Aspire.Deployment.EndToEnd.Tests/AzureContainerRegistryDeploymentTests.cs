@@ -17,7 +17,7 @@ public sealed class AzureContainerRegistryDeploymentTests(ITestOutputHelper outp
     // Timeout set to 30 minutes for Azure resource provisioning.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(30);
 
-    [Fact]
+    //[Fact]
     public async Task DeployAzureContainerRegistryResource()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

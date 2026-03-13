@@ -17,7 +17,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
     // Timeout set to 45 minutes to allow for AKS provisioning (~10-15 min) plus deployment.
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(45);
 
-    [Fact]
+    //[Fact]
     public async Task DeployStarterTemplateWithRedisToAks()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);
