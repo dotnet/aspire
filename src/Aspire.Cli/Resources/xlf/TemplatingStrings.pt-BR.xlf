@@ -7,6 +7,11 @@
         <target state="translated">AppHost</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireEmptyDotNetTemplate_Description">
+        <source>Empty (C# AppHost, dotnet template)</source>
+        <target state="translated">Empty (C# AppHost, dotnet template)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
         <target state="translated">AppHost e padrões de serviço</target>
@@ -221,6 +226,7 @@
         <source>Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</source>
         <target state="new">Run 'cd "{0}"' and then 'aspire run' to start your AppHost.</target>
         <note>{0} is the relative path to the project directory</note>
-      </trans-unit>    </body>
+      </trans-unit>
+    </body>
   </file>
 </xliff>

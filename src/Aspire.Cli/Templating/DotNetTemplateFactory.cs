@@ -173,7 +173,7 @@ internal class DotNetTemplateFactory(
         {
             yield return new CallbackTemplate(
                 KnownTemplateId.DotNetEmptyAppHost,
-                "Empty (C# AppHost, dotnet template)",
+                TemplatingStrings.AspireEmptyDotNetTemplate_Description,
                 projectName => $"./{projectName}",
                 ApplyDevLocalhostTldOption,
                 ApplyTemplateWithNoExtraArgsAsync,
