@@ -126,18 +126,19 @@ public class Program
         var usersAspirePath = GetUsersAspirePath();
         var newPath = Path.Combine(usersAspirePath, Configuration.AspireConfigFile.FileName);
 
-        // Migrate legacy globalsettings.json → aspire.config.json on first access
+        // Copy legacy globalsettings.json → aspire.config.json on first access.
+        // Use Copy (not Move) so older CLI versions that still read globalsettings.json
+        // continue to work without data loss.
         var legacyPath = Path.Combine(usersAspirePath, "globalsettings.json");
         if (!File.Exists(newPath) && File.Exists(legacyPath))
         {
             try
             {
-                File.Move(legacyPath, newPath);
+                File.Copy(legacyPath, newPath);
             }
             catch
             {
-                // If move fails, fall back to legacy
-                return legacyPath;
+                // If copy fails, newPath will be created on first write.
             }
         }
 
