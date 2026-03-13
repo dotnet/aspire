@@ -303,7 +303,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         // Create collector and store in context for exception handling
         // This must be set BEFORE signaling build completion to avoid a race condition
-        var runOutputCollector = new OutputCollector(_fileLoggerProvider, "AppHost");
+        var runOutputCollector = new OutputCollector(
+            _fileLoggerProvider,
+            "AppHost",
+            (stream, line) => _interactionService.WriteConsoleLog(
+                line,
+                type: "running",
+                isErrorMessage: stream == "stderr"));
         context.OutputCollector = runOutputCollector;
 
         // Signal that build/preparation is complete

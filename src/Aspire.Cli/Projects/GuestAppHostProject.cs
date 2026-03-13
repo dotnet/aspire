@@ -457,7 +457,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
             else
             {
-                launcher = _guestRuntime.CreateDefaultLauncher();
+                launcher = _guestRuntime.CreateDefaultLauncher((stream, line) => _interactionService.WriteConsoleLog(
+                    line,
+                    type: "running",
+                    isErrorMessage: stream == "stderr"));
             }
 
             // Start guest apphost - it will connect to AppHost server, define resources.
@@ -478,7 +481,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                if (guestOutput is not null)
+                if (guestOutput is { HasLiveOutputCallback: false })
                 {
                     _interactionService.DisplayLines(guestOutput.GetLines());
                 }

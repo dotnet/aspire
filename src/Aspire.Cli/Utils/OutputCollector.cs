@@ -11,6 +11,7 @@ internal sealed class OutputCollector
     private readonly object _lock = new object();
     private readonly FileLoggerProvider? _fileLogger;
     private readonly string _category;
+    private readonly Action<string, string>? _liveOutputCallback;
 
     /// <summary>
     /// Creates an OutputCollector that only buffers output in memory.
@@ -24,28 +25,24 @@ internal sealed class OutputCollector
     /// </summary>
     /// <param name="fileLogger">Optional file logger for writing output to disk.</param>
     /// <param name="category">Category for log entries (e.g., "Build", "AppHost").</param>
-    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost")
+    /// <param name="liveOutputCallback">Optional callback invoked immediately when a line is appended.</param>
+    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost", Action<string, string>? liveOutputCallback = null)
     {
         _fileLogger = fileLogger;
         _category = category;
+        _liveOutputCallback = liveOutputCallback;
     }
+
+    public bool HasLiveOutputCallback => _liveOutputCallback is not null;
 
     public void AppendOutput(string line)
     {
-        lock (_lock)
-        {
-            _lines.Add(("stdout", line));
-            _fileLogger?.WriteLog(FormatLogLine("stdout", line));
-        }
+        AppendLine("stdout", line);
     }
 
     public void AppendError(string line)
     {
-        lock (_lock)
-        {
-            _lines.Add(("stderr", line));
-            _fileLogger?.WriteLog(FormatLogLine("stderr", line));
-        }
+        AppendLine("stderr", line);
     }
 
     public IEnumerable<(string Stream, string Line)> GetLines()
@@ -53,6 +50,16 @@ internal sealed class OutputCollector
         lock (_lock)
         {
             return _lines.ToArray();
+        }
+    }
+
+    private void AppendLine(string stream, string line)
+    {
+        lock (_lock)
+        {
+            _lines.Add((stream, line));
+            _fileLogger?.WriteLog(FormatLogLine(stream, line));
+            _liveOutputCallback?.Invoke(stream, line);
         }
     }
 
