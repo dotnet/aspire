@@ -190,7 +190,7 @@ public partial class FoundryModel
         ///   <para>
         ///     <b>Base Model Information</b>
         ///   </para>
-        ///   <para>See Microsoft Foundry model <see href="https://ai.azure.com/catalog/models/gpt-oss-20b">gpt-oss-20b</see> for details.</para>
+        ///   <para>See Azure AI Foundry model <see href="https://ai.azure.com/catalog/models/gpt-oss-20b">gpt-oss-20b</see> for details.</para>
         /// </summary>
         public static readonly FoundryModel GptOss20b = new() { Name = "gpt-oss-20b", Version = "1", Format = "Microsoft" };
 
@@ -941,5 +941,137 @@ public partial class FoundryModel
         ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen3-4B">Qwen3-4B</see> for details.</para>
         /// </summary>
         public static readonly FoundryModel Qwen34b = new() { Name = "qwen3-4b", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>This model is an optimized version of Qwen3-VL-2B-Instruct to enable local inference. This model uses RTN quantization.</para>
+        ///   <para>
+        ///     <b>Model Description</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Developed by:</b> Microsoft</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model type:</b> ONNX</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>License:</b> apache-2.0</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model Description:</b> This is a conversion of the Qwen3-VL-2B-Instruct for local inference.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Disclaimer:</b> Model is only an optimization of the base model, any risk associated with the model is the responsibility of the user of the model. Please verify and test for your scenarios. There may be a slight difference in output from the base model with the optimizations applied. Note that optimizations applied are distinct from fine tuning and thus do not alter the intended uses or capabilities of the model.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Base Model Information</b>
+        ///   </para>
+        ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct">Qwen3-VL-2B-Instruct</see> for details.</para>
+        /// </summary>
+        public static readonly FoundryModel Qwen3Vl2bInstruct = new() { Name = "qwen3-vl-2b-instruct", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>This model is an optimized version of Qwen3-VL-4B-Instruct to enable local inference. This model uses RTN quantization.</para>
+        ///   <para>
+        ///     <b>Model Description</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Developed by:</b> Microsoft</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model type:</b> ONNX</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>License:</b> apache-2.0</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model Description:</b> This is a conversion of the Qwen3-VL-4B-Instruct for local inference.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Disclaimer:</b> Model is only an optimization of the base model, any risk associated with the model is the responsibility of the user of the model. Please verify and test for your scenarios. There may be a slight difference in output from the base model with the optimizations applied. Note that optimizations applied are distinct from fine tuning and thus do not alter the intended uses or capabilities of the model.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Base Model Information</b>
+        ///   </para>
+        ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct">Qwen3-VL-4B-Instruct</see> for details.</para>
+        /// </summary>
+        public static readonly FoundryModel Qwen3Vl4bInstruct = new() { Name = "qwen3-vl-4b-instruct", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        ///   <para>This model is an optimized version of Qwen3-VL-8B-Instruct to enable local inference. This model uses RTN quantization.</para>
+        ///   <para>
+        ///     <b>Model Description</b>
+        ///   </para>
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Developed by:</b> Microsoft</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model type:</b> ONNX</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>License:</b> apache-2.0</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Model Description:</b> This is a conversion of the Qwen3-VL-8B-Instruct for local inference.</para>
+        ///       </description>
+        ///     </item>
+        ///     <item>
+        ///       <description>
+        ///         <para>
+        ///           <b>Disclaimer:</b> Model is only an optimization of the base model, any risk associated with the model is the responsibility of the user of the model. Please verify and test for your scenarios. There may be a slight difference in output from the base model with the optimizations applied. Note that optimizations applied are distinct from fine tuning and thus do not alter the intended uses or capabilities of the model.</para>
+        ///       </description>
+        ///     </item>
+        ///   </list>
+        ///   <para>
+        ///     <b>Base Model Information</b>
+        ///   </para>
+        ///   <para>See Hugging Face model <see href="https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct">Qwen3-VL-8B-Instruct</see> for details.</para>
+        /// </summary>
+        public static readonly FoundryModel Qwen3Vl8bInstruct = new() { Name = "qwen3-vl-8b-instruct", Version = "1", Format = "Microsoft" };
     }
 }
