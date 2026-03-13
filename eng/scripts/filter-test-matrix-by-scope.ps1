@@ -180,7 +180,7 @@ function Get-MatrixEntries {
 foreach ($matrixName in $Matrices.Keys) {
   $matrixJson = $Matrices[$matrixName]
   $matrix = $matrixJson | ConvertFrom-Json
-  $entries = Get-MatrixEntries -Matrix $matrix
+  $entries = @(Get-MatrixEntries -Matrix $matrix)
 
   if ($skipFiltering) {
     $results[$matrixName] = ConvertTo-Json @{ include = @($entries) } -Compress -Depth 10

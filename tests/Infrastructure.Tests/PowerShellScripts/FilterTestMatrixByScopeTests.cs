@@ -56,6 +56,19 @@ public class FilterTestMatrixByScopeTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task RunAll_PassesThroughEmptyIncludeArray()
+    {
+        var matrix = CreateMatrix();
+
+        var result = await RunFilter(matrix, "[]", runAll: true);
+
+        result.EnsureSuccessful("RunAll should pass through an empty include array");
+        var filtered = ParseOutputMatrix(result.Output, "test_matrix");
+        Assert.Empty(filtered);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task EmptyAffectedList_PassesThrough()
     {
         var matrix = CreateMatrix(
