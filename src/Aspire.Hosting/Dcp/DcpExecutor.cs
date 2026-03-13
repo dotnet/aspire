@@ -1247,7 +1247,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containerDependencies = await ResourceExtensions.GetDependenciesAsync(
             containers, 
             _executionContext,
-            // We will re-evaluate the annotations when starting individual resources and there exceptions will not be suppressed,
+            // We will re-evaluate the annotations when starting individual resources and their exceptions will not be suppressed,
             // resulting in resource startup failure if annotation callbacks fail. But here, we just want to discover
             // host-dependent containers and any failures should not prevent the whole app from starting up.
             // This is the reason for using ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions.
