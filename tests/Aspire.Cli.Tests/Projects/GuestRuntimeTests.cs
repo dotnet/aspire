@@ -3,7 +3,7 @@
 
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Projects;
