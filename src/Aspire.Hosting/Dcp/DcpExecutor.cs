@@ -1175,7 +1175,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// </summary>
     private async Task PrepareServicesAsync(CancellationToken cancellationToken)
     {
-        _ = cancellationToken; // Reserved for future use.
         _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
 
         var serviceProducers = _model.Resources
