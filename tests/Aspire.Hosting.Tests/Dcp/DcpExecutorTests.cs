@@ -1276,7 +1276,7 @@ public class DcpExecutorTests
 
         HasKnownCommandAnnotations(exe.Resource);
         HasKnownCommandAnnotations(container.Resource);
-        HasKnownCommandAnnotations(project.Resource);
+        HasKnownProjectCommandAnnotations(project.Resource);
     }
 
     [Fact]
@@ -2315,6 +2315,16 @@ public class DcpExecutorTests
             a => Assert.Equal(KnownResourceCommands.StartCommand, a.Name),
             a => Assert.Equal(KnownResourceCommands.StopCommand, a.Name),
             a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name));
+    }
+
+    private static void HasKnownProjectCommandAnnotations(IResource resource)
+    {
+        var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        Assert.Collection(commandAnnotations,
+            a => Assert.Equal(KnownResourceCommands.StartCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.StopCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.RestartCommand, a.Name),
+            a => Assert.Equal(KnownResourceCommands.RebuildCommand, a.Name));
     }
 
     [Fact]

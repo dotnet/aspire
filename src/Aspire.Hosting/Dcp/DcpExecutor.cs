@@ -671,6 +671,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ignore
                     _logger.LogDebug("Log streaming for {ResourceName} was cancelled.", resource.Metadata.Name);
                 }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Resource was deleted — this is expected for short-lived resources like rebuilders.
+                    _logger.LogDebug("Log streaming for {ResourceName} ended because the resource was deleted.", resource.Metadata.Name);
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
