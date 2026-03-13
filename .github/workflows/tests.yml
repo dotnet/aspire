@@ -312,6 +312,7 @@ jobs:
           echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
           echo "run_extension=${{ steps.detect.outputs.run_extension }}"
           echo "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
+          echo "selection_reason=$(normalize_reason "$ACTIVE_SELECTION_REASON")"
           echo "affected_test_projects=$(normalize_reason "$ACTIVE_AFFECTED_TEST_PROJECTS_JSON")"
           echo "default_coverage_projects=$(normalize_reason "$ACTIVE_DEFAULT_COVERAGE_PROJECTS_JSON")"
           echo "::endgroup::"
@@ -327,22 +328,6 @@ jobs:
             echo "affected_test_projects=$(normalize_reason "$AUDIT_AFFECTED_TEST_PROJECTS_JSON")"
             echo "::endgroup::"
           fi
-
-      - name: Upload selector active artifact
-        if: ${{ github.event_name == 'pull_request' && steps.detect_active_raw.outcome == 'success' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: test-scope-selector-active
-          path: ${{ github.workspace }}/artifacts/test-selection/selector-active.json
-          if-no-files-found: error
-
-      - name: Upload selector audit artifact
-        if: ${{ github.event_name == 'pull_request' && steps.detect_audit_raw.outcome == 'success' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
-        with:
-          name: test-scope-selector-audit
-          path: ${{ github.workspace }}/artifacts/test-selection/selector-audit.json
-          if-no-files-found: error
 
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
@@ -383,42 +368,131 @@ jobs:
       - name: Write selected project summary
         shell: pwsh
         run: |
+          $auditPath = "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json"
+          $audit = Get-Content -Raw $auditPath | ConvertFrom-Json -Depth 10
+          $selectionReason = '${{ steps.detect.outputs.selection_reason }}'
+          if ([string]::IsNullOrWhiteSpace($selectionReason)) {
+            $selectionReason = 'unknown'
+          }
+
+          $selectedProjects = @($audit.wouldRunProjects)
+          $selectedEntries = @($audit.wouldRunEntries)
+          $matrixAuditEntries = @($audit.matrices.PSObject.Properties | Sort-Object Name)
+
+          Write-Host "::group::Final applied test selection result"
+          Write-Host "selection_reason=$selectionReason"
+          Write-Host "run_all=${{ steps.detect.outputs.run_all }}"
+          Write-Host "run_integrations=${{ steps.detect.outputs.run_integrations }}"
+          Write-Host "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
+          Write-Host "run_extension=${{ steps.detect.outputs.run_extension }}"
+          Write-Host "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
+          Write-Host "skip_filtering=$($audit.skipFiltering)"
+          Write-Host "affected_test_projects_count=$(@($audit.affectedProjects).Count)"
+          foreach ($project in @($audit.affectedProjects)) {
+            Write-Host "  [AFFECTED] $project"
+          }
+          Write-Host "default_coverage_projects_count=$(@($audit.defaultCoverageProjects).Count)"
+          foreach ($project in @($audit.defaultCoverageProjects)) {
+            Write-Host "  [DEFAULT] $project"
+          }
+          Write-Host "selected_projects_count=$($selectedProjects.Count)"
+          if ($selectedProjects.Count -eq 0) {
+            Write-Host "  [SELECTED PROJECT] <none>"
+          } else {
+            foreach ($project in $selectedProjects) {
+              Write-Host "  [SELECTED PROJECT] $project"
+            }
+          }
+          Write-Host "selected_matrix_entries_count=$($selectedEntries.Count)"
+          if ($selectedEntries.Count -eq 0) {
+            Write-Host "  [SELECTED ENTRY] <none>"
+          } else {
+            foreach ($entry in $selectedEntries) {
+              Write-Host "  [SELECTED ENTRY] $($entry.shortname) | $($entry.matrixName) | $($entry.testProjectPath)"
+            }
+          }
+          foreach ($matrixEntry in $matrixAuditEntries) {
+            $matrixName = $matrixEntry.Name
+            $matrixData = $matrixEntry.Value
+            Write-Host "  [MATRIX] $matrixName input=$($matrixData.inputCount) output=$($matrixData.outputCount) kept=$($matrixData.keptCount) removed=$($matrixData.removedCount) mode=$($matrixData.mode)"
+          }
+          Write-Host "::endgroup::"
+
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Matrix selection details</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Projects Selected After Matrix Filtering"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Final Applied Test Scope Result"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Property | Value |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|----------|-------|"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selection_reason | ``$selectionReason`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_all | ``${{ steps.detect.outputs.run_all }}`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_integrations | ``${{ steps.detect.outputs.run_integrations }}`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_cli_e2e | ``${{ steps.detect.outputs.run_cli_e2e }}`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_extension | ``${{ steps.detect.outputs.run_extension }}`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| run_polyglot | ``${{ steps.detect.outputs.run_polyglot }}`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| skip_filtering | ``$($audit.skipFiltering)`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selected_projects_count | ``$($selectedProjects.Count)`` |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| selected_matrix_entries_count | ``$($selectedEntries.Count)`` |"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
-          $projectsJson = '${{ steps.filter_matrix.outputs.audit_would_run_projects }}'
-
-          if ([string]::IsNullOrWhiteSpace($projectsJson)) {
-            $projectsJson = '[]'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Affected test projects"
+          if (@($audit.affectedProjects).Count -eq 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
+          } else {
+            foreach ($project in @($audit.affectedProjects)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+            }
           }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
-          $projects = @($projectsJson | ConvertFrom-Json)
-          if ($projects.Count -eq 0) {
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Default coverage test projects"
+          if (@($audit.defaultCoverageProjects).Count -eq 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
+          } else {
+            foreach ($project in @($audit.defaultCoverageProjects)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+            }
+          }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected test projects"
+          if ($selectedProjects.Count -eq 0) {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects were selected after matrix filtering.*"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
-            exit 0
+          } else {
+            foreach ($project in $selectedProjects) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+            }
           }
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "The following test projects were selected after matrix filtering:"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
-          foreach ($project in $projects) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected matrix entries"
+          if ($selectedEntries.Count -eq 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No matrix entries were selected.*"
+          } else {
+            foreach ($entry in $selectedEntries) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}` via `{1}` -> `{2}`' -f $entry.shortname, $entry.matrixName, $entry.testProjectPath)
+            }
           }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matrix bucket results"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Matrix | Input | Output | Kept | Removed | Mode |"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|--------|-------|--------|------|---------|------|"
+          foreach ($matrixEntry in $matrixAuditEntries) {
+            $matrixName = $matrixEntry.Name
+            $matrixData = $matrixEntry.Value
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` |' -f $matrixName, $matrixData.inputCount, $matrixData.outputCount, $matrixData.keptCount, $matrixData.removedCount, $matrixData.mode)
+          }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
 
-      - name: Upload matrix audit artifact
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Upload test scope diagnostics artifact
+        if: ${{ github.event_name == 'pull_request' && always() }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: test-scope-matrix-audit
-          path: ${{ github.workspace }}/artifacts/test-selection/matrix-audit.json
-          if-no-files-found: error
+          name: test-scope-diagnostics
+          path: ${{ github.workspace }}/artifacts/test-selection
+          if-no-files-found: warn
 
   build_packages:
     name: Build packages
@@ -669,29 +743,13 @@ jobs:
           merge-multiple: true
           path: testresults/macos-latest
 
-      - name: Download selector active artifact
+      - name: Download test scope diagnostics artifact
         if: ${{ github.event_name == 'pull_request' }}
         continue-on-error: true
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
-          name: test-scope-selector-active
-          path: ${{ github.workspace }}/audit/selector/active
-
-      - name: Download selector audit artifact
-        if: ${{ github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: test-scope-selector-audit
-          path: ${{ github.workspace }}/audit/selector/audit
-
-      - name: Download matrix audit artifact
-        if: ${{ github.event_name == 'pull_request' }}
-        continue-on-error: true
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          name: test-scope-matrix-audit
-          path: ${{ github.workspace }}/audit/matrix
+          name: test-scope-diagnostics
+          path: ${{ github.workspace }}/audit/test-selection
 
       - name: Upload test results
         if: always()
@@ -719,9 +777,9 @@ jobs:
           New-Item -ItemType Directory -Path "${{ github.workspace }}/audit/results" -Force | Out-Null
           $script = "${{ github.workspace }}/eng/scripts/find-test-scope-audit-misses.ps1"
           & $script `
-            -SelectorActivePath "${{ github.workspace }}/audit/selector/active/selector-active.json" `
-            -SelectorAuditPath "${{ github.workspace }}/audit/selector/audit/selector-audit.json" `
-            -MatrixAuditPath "${{ github.workspace }}/audit/matrix/matrix-audit.json" `
+            -SelectorActivePath "${{ github.workspace }}/audit/test-selection/selector-active.json" `
+            -SelectorAuditPath "${{ github.workspace }}/audit/test-selection/selector-audit.json" `
+            -MatrixAuditPath "${{ github.workspace }}/audit/test-selection/matrix-audit.json" `
             -TestResultsRoot "${{ github.workspace }}/testresults" `
             -OutputPath "${{ github.workspace }}/audit/results/audit-miss-report.json"
 
