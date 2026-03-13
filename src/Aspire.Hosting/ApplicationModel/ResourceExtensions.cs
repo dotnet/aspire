@@ -1450,7 +1450,7 @@ public static class ResourceExtensions
     /// Collects dependencies from resource annotations (parent, wait, connection string redirect).
     /// </summary>
     /// <returns>A set of newly collected dependencies added to <paramref name="dependencies"/>.</returns>
-    internal static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    private static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
     {
         // Parent relationship
         if (resource is IResourceWithParent resourceWithParent)
@@ -1486,7 +1486,7 @@ public static class ResourceExtensions
     /// <summary>
     /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
     /// </summary>
-    internal static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
+    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
     {
         if (value is null || !visitedValues.Add(value))
         {
