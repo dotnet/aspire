@@ -6,6 +6,11 @@ inputs:
     type: string
     default: ''
     description: 'Additional MSBuild arguments passed to the test matrix generation step (e.g., /p:IncludeTemplateTests=true /p:OnlyDeploymentTests=true)'
+  prepareEnvironment:
+    required: false
+    type: string
+    default: 'true'
+    description: 'When true, performs checkout, setup-dotnet, and restore before enumerating tests. Set to false when the caller already prepared the job environment.'
 
 # Output format: JSON with structure {"include": [{...}, ...]}
 # Each entry contains:
@@ -31,14 +36,17 @@ runs:
   using: "composite"
   steps:
     - name: Checkout code
+      if: ${{ inputs.prepareEnvironment == 'true' }}
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Set up .NET Core
+      if: ${{ inputs.prepareEnvironment == 'true' }}
       uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
       with:
         global-json-file: ${{ github.workspace }}/global.json
 
     - name: Restore
+      if: ${{ inputs.prepareEnvironment == 'true' }}
       shell: bash
       run: ./restore.sh
 

@@ -43,7 +43,7 @@ The CI test infrastructure uses a unified matrix generation system that:
 
 ### Phase 1: Test Enumeration
 
-The `enumerate-tests` GitHub Action (`.github/actions/enumerate-tests/action.yml`) triggers a special build:
+The `enumerate-tests` GitHub Action (`.github/actions/enumerate-tests/action.yml`) triggers a special build. By default it prepares the job environment (checkout, setup-dotnet, restore) before running, but callers that already did that work can pass `prepareEnvironment: 'false'` to skip the duplicate setup:
 
 ```bash
 ./build.sh -test /p:TestRunnerName=TestEnumerationRunsheetBuilder
