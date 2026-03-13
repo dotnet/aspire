@@ -13,6 +13,7 @@
     <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.HealthChecks" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
