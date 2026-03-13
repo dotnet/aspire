@@ -105,6 +105,8 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation, IEnvCallbackAn
 
     private async Task<Dictionary<string, object>> ExecuteCallbackAsync(EnvironmentCallbackContext context)
     {
+        // When using EvaluateOnceAsync, do not modify original context.
+        // The caller will take the result and apply it as needed.
         var envVars = new Dictionary<string, object>();
         var callbackContext = new EnvironmentCallbackContext(context.ExecutionContext, context.Resource, envVars, context.CancellationToken)
         {

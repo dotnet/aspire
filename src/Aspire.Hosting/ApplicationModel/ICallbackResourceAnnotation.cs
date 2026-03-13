@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <typeparam name="TContext">The type of the context passed to the callback.</typeparam>
 /// <typeparam name="TResult">The type of the result produced by the callback.</typeparam>
-internal interface ICallbackResourceAnnotation<in TContext, TResult>
+internal interface ICallbackResourceAnnotation<TContext, TResult>
 {
     /// <summary>
     /// Evaluates the callback if it has not been evaluated yet, caching the result.

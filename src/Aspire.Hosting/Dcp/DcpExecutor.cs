@@ -1840,6 +1840,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 throw new FailedToApplyEnvironmentException();
             }
 
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, er.ModelResource)).ConfigureAwait(false);
+
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -2265,6 +2267,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
             }
+
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, cr.ModelResource)).ConfigureAwait(false);
 
             await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
         }

@@ -71,8 +71,16 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation, IArgCallba
 
     private async Task<IList<object>> ExecuteCallbackAsync(CommandLineArgsCallbackContext context)
     {
-        await Callback(context).ConfigureAwait(false);
-        return context.Args;
+        // When using EvaluateOnceAsync, do not modify original context.
+        // The caller will take the result and apply it as needed.
+        List<object> args = [];
+        var effectiveCtx = new CommandLineArgsCallbackContext(args, context.Resource, context.CancellationToken)
+        {
+            ExecutionContext = context.ExecutionContext,
+            Logger = context.Logger
+        };
+        await Callback(effectiveCtx).ConfigureAwait(false);
+        return args;
     }
 }
 
