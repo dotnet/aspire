@@ -205,15 +205,24 @@ internal static class CommandsConfigurationExtensions
             }
         }
 
-        // Stop all replicas.
-        mainLogger.LogInformation(BuildLogPrefix + "Stopping resource for rebuild...");
-        await Task.WhenAll(replicaNames.Select(name => orchestrator.StopResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
+        // Stop non-waiting replicas. Waiting replicas have no running process — their DCP
+        // lifecycle is blocked at WaitForInBeforeResourceStartedEvent waiting for dependencies.
+        // Attempting to stop them would fail because no DCP Executable has been created yet.
+        var replicasToStop = replicaNames.Where(name =>
+            !preRebuildStates.TryGetValue(name, out var state)
+            || state != KnownResourceStates.Waiting);
 
-        // Set state to Building after all replicas are stopped.
-        await resourceNotificationService.PublishUpdateAsync(projectResource, s => s with
-        {
-            State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info)
-        }).ConfigureAwait(false);
+        mainLogger.LogInformation(BuildLogPrefix + "Stopping resource for rebuild...");
+        await Task.WhenAll(replicasToStop.Select(name => orchestrator.StopResourceAsync(name, context.CancellationToken))).ConfigureAwait(false);
+
+        // Set state to Building after replicas are stopped. Leave Waiting replicas in their
+        // current state — changing their state text would unblock WaitForInBeforeResourceStartedEvent,
+        // causing CreateExecutableAsync to launch the OLD binary while the build is in progress.
+        await resourceNotificationService.PublishUpdateAsync(projectResource, s =>
+            s.State?.Text == KnownResourceStates.Waiting
+                ? s
+                : s with { State = new ResourceStateSnapshot(KnownResourceStates.Building, KnownResourceStateStyles.Info) }
+        ).ConfigureAwait(false);
 
         // Start forwarding logs from the rebuilder to the main resource's console.
         using var logCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
@@ -257,16 +266,28 @@ internal static class CommandsConfigurationExtensions
 
             if (exitCode == 0)
             {
-                // Restart replicas that were active (Running or Waiting) before the rebuild;
-                // leave previously-inactive replicas in their terminal state.
+                // Restart replicas that were Running before the rebuild.
+                // Waiting replicas are already in the startup pipeline — when their deps become
+                // ready, CreateExecutableAsync will launch the freshly-built binary automatically.
                 mainLogger.LogInformation(BuildLogPrefix + "Build succeeded. Restarting resource...");
                 var anyRestarted = false;
                 foreach (var name in replicaNames)
                 {
                     var wasActive = preRebuildStates.TryGetValue(name, out var priorState)
-                        && (priorState == KnownResourceStates.Running || priorState == KnownResourceStates.Waiting);
+                        && priorState == KnownResourceStates.Running;
 
-                    if (wasActive)
+                    var wasWaiting = preRebuildStates.TryGetValue(name, out var waitState)
+                        && waitState == KnownResourceStates.Waiting;
+
+                    if (wasWaiting)
+                    {
+                        // The resource is still waiting for dependencies. The build output on disk
+                        // has been updated, so when dependencies become ready the new binary will
+                        // be launched. Log a message so the user knows the build succeeded.
+                        mainLogger.LogInformation(BuildLogPrefix + "Build succeeded. Resource will start with the updated binary when dependencies are ready.");
+                        anyRestarted = true;
+                    }
+                    else if (wasActive)
                     {
                         anyRestarted = true;
                         await resourceNotificationService.PublishUpdateAsync(projectResource, name, s => s with
