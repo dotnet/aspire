@@ -37,7 +37,7 @@ internal sealed class AspireHttpHealthCheck(
             // Try to parse as Aspire JSON format with multiple entries
             // We parse the body REGARDLESS of status code to allow services to use 503 for unhealthy dependencies
             // while still surfacing detailed health check information to the dashboard
-            if (TryParseHealthCheckResponse(content, out var entries, out var overallStatus, out var parseError))
+            if (TryParseHealthCheckResponse(content, out var entries, out var parsedStatus, out var parseError))
             {
                 // Contains multiple health check entries - mark for expansion
                 var data = new Dictionary<string, object>
@@ -46,6 +46,7 @@ internal sealed class AspireHttpHealthCheck(
                     [HealthCheckConstants.DataKeys.SubEntries] = entries
                 };
 
+                var overallStatus = parsedStatus ?? HealthStatus.Unhealthy;
                 return new HealthCheckResult(overallStatus, description: $"Health check for {resourceName}", data: data);
             }
 
@@ -67,26 +68,23 @@ internal sealed class AspireHttpHealthCheck(
     private static bool TryParseHealthCheckResponse(
         string json,
         [NotNullWhen(true)] out Dictionary<string, HealthReportEntry>? entries,
-        out HealthStatus overallStatus,
+        out HealthStatus? parsedStatus,
         [NotNullWhen(false)] out Exception? exception)
     {
         entries = null;
-        overallStatus = HealthStatus.Unhealthy;
+        parsedStatus = null;
         exception = null;
 
         try
         {
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
-
-            // Parse overall status
             if (root.TryGetProperty(HealthCheckConstants.JsonProperties.Status, out var statusElement))
             {
-                overallStatus = Enum.Parse<HealthStatus>(statusElement.GetString()!, ignoreCase: true);
+                parsedStatus = Enum.Parse<HealthStatus>(statusElement.GetString()!, ignoreCase: true);
             }
 
-            // Parse entries
-            if (!root.TryGetProperty("entries", out var entriesElement))
+            if (!root.TryGetProperty(HealthCheckConstants.JsonProperties.Entries, out var entriesElement))
             {
                 exception = new InvalidOperationException("Response does not contain 'entries' property");
                 return false;
