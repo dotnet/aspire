@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "computeParam": {
       "type": "parameter.v0",
@@ -149,7 +148,7 @@
     },
     "cache": {
       "type": "container.v1",
-      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}",
+      "connectionString": "{cache.bindings.tcp.host}:{cache.bindings.tcp.port},password={cache-password.value}{cond-cache-bindings-tcp-tlsenabled-3eddb73a.connectionString}",
       "image": "docker.io/library/redis:8.6",
       "deployment": {
         "type": "azure.bicep.v0",
@@ -170,7 +169,7 @@
       },
       "bindings": {
         "tcp": {
-          "scheme": "tcp",
+          "scheme": "redis",
           "protocol": "tcp",
           "transport": "tcp",
           "targetPort": 6379
@@ -507,6 +506,10 @@
           }
         }
       }
+    },
+    "cond-cache-bindings-tcp-tlsenabled-3eddb73a": {
+      "type": "value.v0",
+      "connectionString": ""
     }
   }
 }
