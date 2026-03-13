@@ -362,18 +362,49 @@ jobs:
             -AffectedProjects '${{ steps.detect.outputs.affected_test_projects }}' `
             -DefaultCoverageProjects '${{ steps.detect.outputs.default_coverage_projects }}' `
             -RunAll:$runAll `
-            -AuditFilePath "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json" `
+            -AuditFilePath "${{ github.workspace }}/artifacts/test-selection/matrix-active.json" `
             -OutputToGitHubEnv
+
+      - name: Filter matrices by audit test scope
+        if: ${{ github.event_name == 'pull_request' && steps.detect_audit_raw.outcome == 'success' }}
+        id: filter_matrix_audit
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/artifacts/test-selection" -Force | Out-Null
+          $filterScript = "${{ github.workspace }}/eng/scripts/filter-test-matrix-by-scope.ps1"
+          $matrices = @{
+            'tests_matrix_no_nugets' = '${{ steps.split_matrix.outputs.tests_matrix_no_nugets }}'
+            'tests_matrix_no_nugets_overflow' = '${{ steps.split_matrix.outputs.tests_matrix_no_nugets_overflow }}'
+            'tests_matrix_requires_nugets_linux' = '${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_linux }}'
+            'tests_matrix_requires_nugets_windows' = '${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_windows }}'
+            'tests_matrix_requires_nugets_macos' = '${{ steps.split_matrix.outputs.tests_matrix_requires_nugets_macos }}'
+            'tests_matrix_requires_cli_archive' = '${{ steps.split_matrix.outputs.tests_matrix_requires_cli_archive }}'
+          }
+          $runAll = ('${{ steps.detect_audit_raw.outputs.run_all }}' -eq 'true')
+          $affectedProjects = '${{ steps.detect_audit_raw.outputs.affected_test_projects }}'
+          $defaultCoverageProjects = '[]'
+          if (-not $runAll -and '${{ steps.detect_audit_raw.outputs.run_integrations }}' -eq 'true' -and $affectedProjects -eq '[]') {
+            $defaultCoverageProjects = '["tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"]'
+          }
+          & $filterScript `
+            -Matrices $matrices `
+            -AffectedProjects $affectedProjects `
+            -DefaultCoverageProjects $defaultCoverageProjects `
+            -RunAll:$runAll `
+            -AuditFilePath "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json"
 
       - name: Write selected project summary
         shell: pwsh
         run: |
-          $auditPath = "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json"
+          $activeMatrixPath = "${{ github.workspace }}/artifacts/test-selection/matrix-active.json"
+          $auditMatrixPath = "${{ github.workspace }}/artifacts/test-selection/matrix-audit.json"
           $selectorActivePath = "${{ github.workspace }}/artifacts/test-selection/selector-active.json"
           $selectorAuditPath = "${{ github.workspace }}/artifacts/test-selection/selector-audit.json"
           $activeRulesPath = "eng/scripts/test-selection-rules.json"
           $auditRulesPath = "eng/scripts/test-selection-rules.audit.json"
-          $audit = Get-Content -Raw $auditPath | ConvertFrom-Json -Depth 10
+          $activeMatrix = if (Test-Path $activeMatrixPath) { Get-Content -Raw $activeMatrixPath | ConvertFrom-Json -Depth 10 } else { $null }
+          $auditMatrix = if (Test-Path $auditMatrixPath) { Get-Content -Raw $auditMatrixPath | ConvertFrom-Json -Depth 10 } else { $null }
           $selectorActive = if (Test-Path $selectorActivePath) { Get-Content -Raw $selectorActivePath | ConvertFrom-Json -Depth 10 } else { $null }
           $selectorAudit = if (Test-Path $selectorAuditPath) { Get-Content -Raw $selectorAuditPath | ConvertFrom-Json -Depth 10 } else { $null }
 
@@ -383,10 +414,13 @@ jobs:
           $activeTriggerFile = if ($null -ne $selectorActive -and -not [string]::IsNullOrWhiteSpace($selectorActive.triggerFile)) { [string]$selectorActive.triggerFile } else { '' }
           $activeTriggerPattern = if ($null -ne $selectorActive -and -not [string]::IsNullOrWhiteSpace($selectorActive.triggerPattern)) { [string]$selectorActive.triggerPattern } else { '' }
           $auditReason = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.reason)) { [string]$selectorAudit.reason } else { 'unknown' }
+          $auditChangedFiles = if ($null -ne $selectorAudit) { @($selectorAudit.changedFiles) } else { @() }
+          $auditIgnoredFiles = if ($null -ne $selectorAudit) { @($selectorAudit.ignoredFiles) } else { @() }
           $auditTriggerFile = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.triggerFile)) { [string]$selectorAudit.triggerFile } else { '' }
           $auditTriggerPattern = if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($selectorAudit.triggerPattern)) { [string]$selectorAudit.triggerPattern } else { '' }
 
-          $selectedProjects = @($audit.wouldRunProjects)
+          $selectedProjects = if ($null -ne $activeMatrix) { @($activeMatrix.wouldRunProjects) } else { @() }
+          $auditSelectedProjects = if ($null -ne $auditMatrix) { @($auditMatrix.wouldRunProjects) } else { @() }
           $activeMatch = "Active selector reason: $selectionReason"
           if (-not [string]::IsNullOrWhiteSpace($activeTriggerFile)) {
             $activeMatch = "Active selector matched `"$activeTriggerFile`""
@@ -397,7 +431,7 @@ jobs:
           }
 
           $auditMatch = ""
-          if ($null -ne $selectorAudit -and -not [string]::IsNullOrWhiteSpace($auditReason) -and $auditReason -ne $selectionReason) {
+          if ($null -ne $selectorAudit) {
             $auditMatch = "Audit selector reason: $auditReason"
             if (-not [string]::IsNullOrWhiteSpace($auditTriggerFile)) {
               $auditMatch = "Audit selector matched `"$auditTriggerFile`""
@@ -407,10 +441,7 @@ jobs:
               $auditMatch += " ($auditReason)"
             }
           }
-          $auditContext = ""
-          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
-            $auditContext = "Audit selector is observational only and uses `"$auditRulesPath`". Execution still followed the active selector rules in `"$activeRulesPath`"."
-          }
+          $auditContext = "This block shows the hypothetical final selection if selector rules from `"$auditRulesPath`" had been applied. It did not affect execution."
 
           Write-Host "::group::Final applied test selection result"
           Write-Host "Changed files considered by the active selector:"
@@ -428,12 +459,6 @@ jobs:
             }
           }
           Write-Host $activeMatch
-          if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
-            Write-Host $auditMatch
-          }
-          if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
-            Write-Host $auditContext
-          }
           Write-Host "Final selected test project paths:"
           if ($selectedProjects.Count -eq 0) {
             Write-Host "  [RESULT] <none>"
@@ -443,6 +468,39 @@ jobs:
             }
           }
           Write-Host "::endgroup::"
+
+          if ($null -ne $selectorAudit -or $null -ne $auditMatrix) {
+            Write-Host "::group::Hypothetical audit test selection result"
+            Write-Host "Changed files considered by the audit selector:"
+            if ($auditChangedFiles.Count -eq 0) {
+              Write-Host "  [CHANGED FILE] <none>"
+            }
+            foreach ($file in $auditChangedFiles) {
+              Write-Host "  [CHANGED FILE] $file"
+            }
+            if ($auditIgnoredFiles.Count -gt 0) {
+              Write-Host "Ignored by audit selector: $($auditIgnoredFiles.Count) file(s)"
+              Write-Host "These files were ignored by selector rules from `"$auditRulesPath`":"
+              foreach ($file in $auditIgnoredFiles) {
+                Write-Host "  [IGNORED FILE] $file"
+              }
+            }
+            if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+              Write-Host $auditMatch
+            }
+            Write-Host $auditContext
+            Write-Host "Final selected test project paths if audit rules were applied:"
+            if ($null -eq $auditMatrix) {
+              Write-Host "  [RESULT] <not produced>"
+            } elseif ($auditSelectedProjects.Count -eq 0) {
+              Write-Host "  [RESULT] <none>"
+            } else {
+              foreach ($project in $auditSelectedProjects) {
+                Write-Host "  [RESULT] $project"
+              }
+            }
+            Write-Host "::endgroup::"
+          }
 
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Applied test selection result</summary>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
@@ -483,19 +541,58 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
 
-          if (-not [string]::IsNullOrWhiteSpace($auditMatch) -or -not [string]::IsNullOrWhiteSpace($auditContext)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Audit selector result (observational only)</summary>"
+          if ($null -ne $selectorAudit -or $null -ne $auditMatrix) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "<details><summary>Hypothetical audit test selection result</summary>"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Audit Selector Result"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Hypothetical Audit Test Selection Result"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-            if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matched rule"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('This block shows what the final test selection would have been if `{0}` had been applied. It did not affect execution.' -f $auditRulesPath)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Changed files"
+            if ($auditChangedFiles.Count -eq 0) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*None*"
+            } else {
+              foreach ($file in $auditChangedFiles) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $file)
+              }
+            }
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+            if ($auditIgnoredFiles.Count -gt 0) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('### Ignored by audit selector (`{0}` file(s))' -f $auditIgnoredFiles.Count)
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('These files were ignored by selector rules from `{0}`:' -f $auditRulesPath)
+              foreach ($file in $auditIgnoredFiles) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $file)
+              }
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             }
-            if (-not [string]::IsNullOrWhiteSpace($auditContext)) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Context"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditContext)
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Matched rule"
+            if (-not [string]::IsNullOrWhiteSpace($auditMatch)) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditMatch)
+            } else {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Audit selector reason: `{0}`' -f $auditReason)
+            }
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Final selected test projects"
+            if ($null -eq $auditMatrix) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*Audit final selection was not produced.*"
+            } elseif ($auditSelectedProjects.Count -eq 0) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*No test projects would have been selected after matrix filtering.*"
+            } else {
+              foreach ($project in $auditSelectedProjects) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- `{0}`' -f $project)
+              }
+            }
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Context"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- {0}' -f $auditContext)
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+
+            if ($null -eq $auditMatrix) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ('- Audit matrix artifact expected at `{0}` was not produced.' -f $auditMatrixPath)
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
             }
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "</details>"
