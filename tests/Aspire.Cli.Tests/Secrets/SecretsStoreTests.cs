@@ -130,6 +130,36 @@ public class SecretsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_ConvertsPrimitiveValuesToStrings()
+    {
+        var path = GetSecretsPath();
+        var dir = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(dir);
+
+        File.WriteAllText(path, """
+        {
+            "StringValue": "text",
+            "NumberValue": 42,
+            "BoolValue": true,
+            "Nested": {
+                "InnerNumber": 3.14,
+                "InnerBool": false,
+                "InnerNull": null
+            }
+        }
+        """);
+
+        var store = new SecretsStore(path);
+
+        Assert.Equal("text", store.Get("StringValue"));
+        Assert.Equal("42", store.Get("NumberValue"));
+        Assert.Equal("true", store.Get("BoolValue"));
+        Assert.Equal("3.14", store.Get("Nested:InnerNumber"));
+        Assert.Equal("false", store.Get("Nested:InnerBool"));
+        Assert.Null(store.Get("Nested:InnerNull"));
+    }
+
+    [Fact]
     public void Save_UsesRelaxedEscaping()
     {
         var path = GetSecretsPath();
