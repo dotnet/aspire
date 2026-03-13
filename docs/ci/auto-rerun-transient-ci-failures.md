@@ -35,7 +35,7 @@ It is intentionally conservative:
 - Automatic rerun triggers only when the run attempt is 3 or fewer (`run_attempt <= 3`), allowing up to 2 automatic reruns (3 total attempts) per PR run.
 - Automatic rerun requires at least one retryable job.
 - Automatic rerun is suppressed when matched jobs exceed the configured cap (default: 5).
-- For attempts after the first (`run_attempt > 1`), a stricter cap applies: rerun is suppressed unless the matched job count is strictly less than the configured cap (for example, fewer than 5 jobs with the default cap). Aggregator jobs such as `Final Results` and `Tests / Final Test Results` are excluded from this count.
+- For attempts after the first (`run_attempt > 1`), a stricter cap applies: rerun is suppressed unless the matched job count is strictly less than the configured cap (for example, fewer than 5 jobs by default). Aggregator jobs such as `Final Results` and `Tests / Final Test Results` are excluded from this count.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.
 - The workflow targets only the matched jobs when issuing rerun requests rather than rerunning the entire source run, although GitHub's job-rerun API also reruns dependent jobs automatically.
 - The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.

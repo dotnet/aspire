@@ -656,7 +656,6 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "computeRerunEligibility",
             new
             {
-                dryRun = false,
                 retryableCount = 0
             });
 
@@ -671,7 +670,6 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "computeRerunEligibility",
             new
             {
-                dryRun = false,
                 retryableCount = 2
             });
 
@@ -686,35 +684,38 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             "computeRerunEligibility",
             new
             {
-                dryRun = false,
                 retryableCount = 6
             });
 
         Assert.False(rerunEligible);
     }
 
-    [Fact]
+    [Theory]
     [RequiresTools(["node"])]
-    public async Task FirstAttemptAllowsRetryableCountAtTheCap()
+    [InlineData(5, 1, true)]
+    [InlineData(5, 2, false)]
+    [InlineData(4, 2, true)]
+    [InlineData(5, 3, false)]
+    [InlineData(1, 4, false)]
+    public async Task AttemptSpecificEligibilityRulesAreApplied(int retryableCount, int runAttempt, bool expectedEligible)
     {
         bool rerunEligible = await InvokeHarnessAsync<bool>(
             "computeRerunEligibility",
             new
             {
-                dryRun = false,
-                retryableCount = 5,
-                runAttempt = 1
+                retryableCount,
+                runAttempt
             });
 
-        Assert.True(rerunEligible);
+        Assert.Equal(expectedEligible, rerunEligible);
     }
 
     [Fact]
     [RequiresTools(["node"])]
-    public async Task LaterAttemptIsSuppressedWhenRetryableCountEqualsTheCap()
+    public async Task ExecutionEligibilityAppliesTheStricterCapAfterTheFirstAttempt()
     {
-        bool rerunEligible = await InvokeHarnessAsync<bool>(
-            "computeRerunEligibility",
+        bool rerunExecutionEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunExecutionEligibility",
             new
             {
                 dryRun = false,
@@ -722,55 +723,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                 runAttempt = 2
             });
 
-        Assert.False(rerunEligible);
-    }
-
-    [Fact]
-    [RequiresTools(["node"])]
-    public async Task LaterAttemptIsEligibleWhenRetryableCountIsBelowTheCap()
-    {
-        bool rerunEligible = await InvokeHarnessAsync<bool>(
-            "computeRerunEligibility",
-            new
-            {
-                dryRun = false,
-                retryableCount = 4,
-                runAttempt = 2
-            });
-
-        Assert.True(rerunEligible);
-    }
-
-    [Fact]
-    [RequiresTools(["node"])]
-    public async Task ThirdAttemptIsAlsoSubjectToStricterCap()
-    {
-        bool rerunEligible = await InvokeHarnessAsync<bool>(
-            "computeRerunEligibility",
-            new
-            {
-                dryRun = false,
-                retryableCount = 5,
-                runAttempt = 3
-            });
-
-        Assert.False(rerunEligible);
-    }
-
-    [Fact]
-    [RequiresTools(["node"])]
-    public async Task AttemptsBeyondTheWorkflowGateAreNotEligible()
-    {
-        bool rerunEligible = await InvokeHarnessAsync<bool>(
-            "computeRerunEligibility",
-            new
-            {
-                dryRun = false,
-                retryableCount = 1,
-                runAttempt = 4
-            });
-
-        Assert.False(rerunEligible);
+        Assert.False(rerunExecutionEligible);
     }
 
     [Fact]
