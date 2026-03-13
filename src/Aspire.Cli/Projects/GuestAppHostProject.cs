@@ -186,27 +186,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 profiles = ReadApphostRunProfiles(apphostRunPath);
             }
 
-            // Merge into AspireConfigFile
+            // Merge into AspireConfigFile. Keep legacy files in place so older CLI
+            // versions that still read .aspire/settings.json continue to work.
             var aspireConfig = AspireConfigFile.FromLegacy(legacyConfig, profiles);
             aspireConfig.Save(directory.FullName);
-
-            // Delete legacy files
-            var settingsPath = AspireJsonConfiguration.GetFilePath(directory.FullName);
-            if (File.Exists(settingsPath))
-            {
-                File.Delete(settingsPath);
-            }
-            if (File.Exists(apphostRunPath))
-            {
-                File.Delete(apphostRunPath);
-            }
-
-            // Delete .aspire/ directory if empty
-            var aspireFolder = Path.Combine(directory.FullName, AspireJsonConfiguration.SettingsFolder);
-            if (Directory.Exists(aspireFolder) && !Directory.EnumerateFileSystemEntries(aspireFolder).Any())
-            {
-                Directory.Delete(aspireFolder);
-            }
 
             _interactionService.DisplayMessage(KnownEmojis.FileCabinet, "Migrated configuration to aspire.config.json");
 
