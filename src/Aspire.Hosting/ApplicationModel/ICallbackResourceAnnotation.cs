@@ -23,7 +23,7 @@ internal interface ICallbackResourceAnnotation<TContext, TResult>
     /// Clears the cached result so that the next call to <see cref="EvaluateOnceAsync"/> will re-execute the callback. 
     ///</summary>
     /// <remarks>
-    /// <see cref="ForgetCachedResult" /> is used when when a resource decorated with callback annotation is restarted.
+    /// Use <see cref="ForgetCachedResult"/> when a resource decorated with this callback annotation is restarted.
     /// </remarks>
     void ForgetCachedResult();
 }
