@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.HealthChecks\Aspire.HealthChecks.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.HealthChecks" />
   </ItemGroup>
 
 </Project>
