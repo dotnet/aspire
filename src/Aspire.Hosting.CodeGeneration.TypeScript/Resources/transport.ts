@@ -200,6 +200,7 @@ export class CapabilityError extends Error {
     ) {
         super(error.message);
         this.name = 'CapabilityError';
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 
     /** Machine-readable error code */
@@ -220,6 +221,7 @@ export class AppHostUsageError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'AppHostUsageError';
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
 

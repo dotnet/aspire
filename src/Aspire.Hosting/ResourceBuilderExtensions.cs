@@ -211,7 +211,7 @@ public static class ResourceBuilderExtensions
                     var url = await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
                     if (!ExternalServiceResource.UrlIsValidForExternalService(url, out var _, out var message))
                     {
-                        throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                        throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for source resource '{externalService.Resource.Name}' is invalid while configuring target resource '{builder.Resource.Name}': {message}");
                     }
                 }
 
@@ -703,22 +703,22 @@ public static class ResourceBuilderExtensions
 
         if (!uri.IsAbsoluteUri)
         {
-            throw new InvalidOperationException("The uri for service reference must be absolute.");
+            throw new InvalidOperationException($"The URI for service reference '{name}' is invalid while configuring target resource '{builder.Resource.Name}': it must be absolute.");
         }
 
-        if (!uri.AbsolutePath.EndsWith("/", StringComparison.Ordinal))
+        if (!uri.AbsolutePath.EndsWith('/'))
         {
-            throw new InvalidOperationException("The uri absolute path must end with '/'.");
+            throw new InvalidOperationException($"The URI for service reference '{name}' is invalid while configuring target resource '{builder.Resource.Name}': the absolute path must end with '/'.");
         }
 
         if (!string.IsNullOrEmpty(uri.Fragment))
         {
-            throw new InvalidOperationException("The URI cannot contain a fragment.");
+            throw new InvalidOperationException($"The URI for service reference '{name}' is invalid while configuring target resource '{builder.Resource.Name}': it cannot contain a fragment.");
         }
 
         if (!string.IsNullOrEmpty(uri.Query))
         {
-            throw new InvalidOperationException("The URI cannot contain a query string.");
+            throw new InvalidOperationException($"The URI for service reference '{name}' is invalid while configuring target resource '{builder.Resource.Name}': it cannot contain a query string.");
         }
 
         // Determine what to inject based on the annotation on the destination resource
@@ -795,7 +795,7 @@ public static class ResourceBuilderExtensions
                 }
                 else
                 {
-                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
+                    throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for source resource '{externalService.Resource.Name}' is invalid while configuring target resource '{builder.Resource.Name}': {message}");
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -975,7 +975,7 @@ public static class ResourceBuilderExtensions
 
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
         {
-            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking");
+            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists on resource '{builder.Resource.Name}'. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in Aspire see: https://aka.ms/dotnet/aspire/networking");
         }
 
         // Set the environment variable on the resource
@@ -1982,7 +1982,7 @@ public static class ResourceBuilderExtensions
         {
             if (uri is null)
             {
-                throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
+                throw new DistributedApplicationException($"The URI for the health check on resource '{builder.Resource.Name}' is not set. Ensure that the resource has been allocated before the health check is executed.");
             }
 
             options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode ?? 200));
