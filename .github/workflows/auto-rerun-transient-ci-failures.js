@@ -484,12 +484,21 @@ async function analyzeFailedJobs({
     return { failedJobs, retryableJobs, skippedJobs };
 }
 
-function computeRerunEligibility({ retryableCount, maxRetryableJobs = defaultMaxRetryableJobs }) {
-    return retryableCount > 0 && retryableCount <= maxRetryableJobs;
+function computeRerunEligibility({ retryableCount, maxRetryableJobs = defaultMaxRetryableJobs, runAttempt = 1 }) {
+    if (retryableCount <= 0) {
+        return false;
+    }
+
+    // For attempts after the first (runAttempt > 1) apply a stricter cap:
+    // fewer than maxRetryableJobs jobs (i.e. strictly less than the cap rather
+    // than less-than-or-equal).
+    return runAttempt <= 1
+        ? retryableCount <= maxRetryableJobs
+        : retryableCount < maxRetryableJobs;
 }
 
-function computeRerunExecutionEligibility({ dryRun, retryableCount, maxRetryableJobs = defaultMaxRetryableJobs }) {
-    return !dryRun && computeRerunEligibility({ retryableCount, maxRetryableJobs });
+function computeRerunExecutionEligibility({ dryRun, retryableCount, maxRetryableJobs = defaultMaxRetryableJobs, runAttempt = 1 }) {
+    return !dryRun && computeRerunEligibility({ retryableCount, maxRetryableJobs, runAttempt });
 }
 
 function buildSummaryReference(url, text) {

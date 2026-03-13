@@ -694,6 +694,70 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
     }
 
     [Fact]
+    [RequiresTools(["node"])]
+    public async Task FirstAttemptAllowsRetryableCountAtTheCap()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 5,
+                runAttempt = 1
+            });
+
+        Assert.True(rerunEligible);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task LaterAttemptIsSuppressedWhenRetryableCountEqualsTheCap()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 5,
+                runAttempt = 2
+            });
+
+        Assert.False(rerunEligible);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task LaterAttemptIsEligibleWhenRetryableCountIsBelowTheCap()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 4,
+                runAttempt = 2
+            });
+
+        Assert.True(rerunEligible);
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task ThirdAttemptIsAlsoSubjectToStricterCap()
+    {
+        bool rerunEligible = await InvokeHarnessAsync<bool>(
+            "computeRerunEligibility",
+            new
+            {
+                dryRun = false,
+                retryableCount = 5,
+                runAttempt = 3
+            });
+
+        Assert.False(rerunEligible);
+    }
+
+    [Fact]
     public async Task RepresentativeWorkflowFixturesStayAlignedWithCurrentWorkflowDefinitions()
     {
         Dictionary<string, string[]> expectations = new()
@@ -749,7 +813,6 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Contains("workflow_dispatch:", workflowText);
         Assert.Contains("dry_run:", workflowText);
         Assert.Contains("default: false", workflowText);
-        Assert.Contains("github.event.workflow_run.run_attempt == 1", workflowText);
         Assert.Contains("rerun_execution_eligible", workflowText);
         Assert.Contains("needs.analyze-transient-failures.outputs.rerun_execution_eligible == 'true'", workflowText);
         Assert.Contains("MANUAL_DRY_RUN", workflowText);
@@ -757,6 +820,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
         Assert.Contains("const dryRun = parseManualDryRun();", workflowText);
         Assert.Contains("computeRerunExecutionEligibility", workflowText);
         Assert.Contains("getAssociatedPullRequestNumbers", workflowText);
+        Assert.Contains("github.event.workflow_run.run_attempt <= 3", workflowText);
     }
 
     [Fact]
