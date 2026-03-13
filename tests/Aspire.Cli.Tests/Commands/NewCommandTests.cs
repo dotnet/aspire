@@ -912,6 +912,69 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandWithLanguageOptionAndShowAllTemplatesFiltersOutAspireTest()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        string[]? promptedTemplateNames = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.FeatureFlagsFactory = _ => new NewCommandTestFeatures(showAllTemplates: true);
+            options.InteractionServiceFactory = _ => new TestInteractionService
+            {
+                PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
+            };
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, dotnetOptions, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                };
+
+                return runner;
+            };
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestNewCommandPrompter(interactionService);
+                prompter.PromptForTemplateCallback = templates =>
+                {
+                    promptedTemplateNames = templates.Select(t => t.Name).ToArray();
+                    return templates.Single(t => t.Name.Equals("aspire-empty", StringComparison.OrdinalIgnoreCase));
+                };
+
+                return prompter;
+            };
+        });
+
+        services.AddSingleton<IScaffoldingService>(new TestScaffoldingService
+        {
+            ScaffoldAsyncCallback = (context, cancellationToken) =>
+            {
+                File.WriteAllText(Path.Combine(context.TargetDirectory.FullName, "apphost.ts"), "// test apphost");
+                return Task.CompletedTask;
+            }
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new --language typescript --name TestApp --output .");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(promptedTemplateNames);
+        Assert.DoesNotContain("aspire-test", promptedTemplateNames);
+    }
+
+    [Fact]
     public async Task NewCommandWithLanguageOptionFiltersOutTypeScriptStarterForCSharp()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -1646,6 +1709,18 @@ internal sealed class TestScaffoldingService : IScaffoldingService
         }
 
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class NewCommandTestFeatures(bool showAllTemplates = false) : IFeatures
+{
+    public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
+    {
+        return featureFlag switch
+        {
+            "showAllTemplates" => showAllTemplates,
+            _ => defaultValue
+        };
     }
 }
 

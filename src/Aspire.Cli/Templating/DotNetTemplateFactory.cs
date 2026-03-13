@@ -254,7 +254,8 @@ internal class DotNetTemplateFactory(
 
                     var testCallbackTemplate = (CallbackTemplate)testTemplate;
                     return await testCallbackTemplate.ApplyTemplateAsync(inputs, parseResult, ct);
-                });
+                },
+                supportsLanguageCallback: SupportsCSharpAppHost);
         }
     }
 
