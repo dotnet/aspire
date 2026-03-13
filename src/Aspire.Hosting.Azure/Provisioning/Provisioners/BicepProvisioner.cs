@@ -315,7 +315,7 @@ internal sealed class BicepProvisioner(
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
     {
-        static void ValidateUnknownPrincipalParameter(ProvisioningContext context)
+        void ValidateUnknownPrincipalParameter(ProvisioningContext context)
         {
             // Well-known principal parameters can only be populated in run mode.
             // In publish mode, principal parameters must be provided by the creator of the bicep resource.
@@ -324,7 +324,8 @@ internal sealed class BicepProvisioner(
             // and not from azd. azd fills in principal parameters during its deployment process with a managed
             // identity it creates. But the BicepProvisioner only fills them in with the current principal,
             // which is not correct in publish mode.
-            if (context.ExecutionContext.IsPublishMode)
+            if (context.ExecutionContext.IsPublishMode &&
+                !resource.TryGetLastAnnotation<AllowCurrentPrincipalInPublishModeAnnotation>(out _))
             {
                 throw new InvalidOperationException("An Azure principal parameter was not supplied a value. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
             }
