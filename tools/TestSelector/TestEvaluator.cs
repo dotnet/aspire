@@ -176,6 +176,29 @@ internal static class TestEvaluator
             return unmatchedResult;
         }
 
+        if (CanUseSourceToTestMappingsOnly(logger, activeFiles, mappingMatchedFiles, mappedProjects))
+        {
+            logger.LogStep("Skip dotnet-affected");
+            logger.LogDecision("Use source-to-test mappings only", "All active files were resolved by source-to-test mappings");
+
+            var mappedOnlyTestProjects = FilterAndCombineTestProjects(logger, config, [], mappedProjects);
+            var mappedOnlyNugetInfo = DetectNuGetDependentTests(logger, config, [], activeFiles, workingDir);
+
+            UpdateCategoriesFromTestProjects(logger, config, pathTriggeredCategories, mappedOnlyTestProjects);
+
+            var mappedOnlyResult = BuildSelectiveResult(
+                logger,
+                activeFiles,
+                ignoredFiles,
+                [],
+                mappedOnlyTestProjects,
+                pathTriggeredCategories,
+                reason: "selective_mappings_only");
+
+            mappedOnlyResult.NuGetDependentTests = mappedOnlyNugetInfo;
+            return mappedOnlyResult;
+        }
+
         // Step 8: Run dotnet-affected
         var affectedResult = await RunDotnetAffectedAsync(
             logger, config, activeFiles, ignoredFiles, solution, fromRef, toRef, workingDir, ciEnvironment, verbose).ConfigureAwait(false);
@@ -378,6 +401,7 @@ internal static class TestEvaluator
         {
             logger.LogWarning("No --from ref provided - cannot run dotnet-affected without git refs");
             logger.LogDecision("Run ALL tests", "Conservative fallback - no git ref to compare against");
+            CIHelper.WriteWarning(ciEnvironment, "Selective test scope could not be evaluated because no --from git ref was provided. IGNORING selective scope and running all tests.");
 
             var fallbackResult = TestSelectionResult.RunAll("No git ref provided (--from) - cannot determine affected projects");
             fallbackResult.ChangedFiles = activeFiles;
@@ -396,6 +420,7 @@ internal static class TestEvaluator
         if (!affectedResult.Success)
         {
             CIHelper.WriteError(ciEnvironment, $"dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+            CIHelper.WriteWarning(ciEnvironment, "dotnet-affected failed during test selection. IGNORING selective scope and running all tests as a conservative fallback.");
             logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
             logger.LogDecision("Run ALL tests", "Conservative fallback due to dotnet-affected failure");
 
@@ -550,6 +575,7 @@ internal static class TestEvaluator
         {
             logger.LogWarning("No --from ref provided - cannot run dotnet-affected without git refs");
             logger.LogDecision("Run ALL tests", "Conservative fallback - no git ref to compare against");
+            CIHelper.WriteWarning(ciEnvironment, "Selective test scope could not be evaluated because no --from git ref was provided. IGNORING selective scope and running all tests.");
 
             var fallbackResult = TestSelectionResult.RunAll("No git ref provided (--from) - cannot determine affected projects");
             fallbackResult.ChangedFiles = activeFiles;
@@ -575,6 +601,7 @@ internal static class TestEvaluator
 
         // dotnet-affected failed - conservative fallback
         CIHelper.WriteError(ciEnvironment, $"dotnet-affected failed (exit code {affectedResult.ExitCode}): {affectedResult.Error}");
+        CIHelper.WriteWarning(ciEnvironment, "dotnet-affected failed during test selection. IGNORING selective scope and running all tests as a conservative fallback.");
         logger.LogWarning($"dotnet-affected failed (exit code {affectedResult.ExitCode})");
         if (!string.IsNullOrWhiteSpace(affectedResult.Error))
         {
@@ -672,13 +699,14 @@ internal static class TestEvaluator
         List<string> ignoredFiles,
         List<string> affectedProjects,
         List<string> allTestProjects,
-        Dictionary<string, bool> categories)
+        Dictionary<string, bool> categories,
+        string reason = "selective")
     {
         logger.LogStep("Build Final Result");
         var finalResult = new TestSelectionResult
         {
             RunAllTests = false,
-            Reason = "selective",
+            Reason = reason,
             ChangedFiles = activeFiles,
             IgnoredFiles = ignoredFiles,
             DotnetAffectedProjects = affectedProjects,
@@ -687,9 +715,37 @@ internal static class TestEvaluator
             IntegrationsProjects = allTestProjects
         };
 
-        logger.LogSummary(false, "selective", allTestProjects.Count, allTestProjects);
+        logger.LogSummary(false, reason, allTestProjects.Count, allTestProjects);
 
         return finalResult;
+    }
+
+    private static bool CanUseSourceToTestMappingsOnly(
+        DiagnosticLogger logger,
+        List<string> activeFiles,
+        List<string> mappingMatchedFiles,
+        List<string> mappedProjects)
+    {
+        if (mappedProjects.Count == 0)
+        {
+            return false;
+        }
+
+        var mappingMatchedFileSet = mappingMatchedFiles
+            .Select(f => f.Replace('\\', '/'))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var unmappedActiveFiles = activeFiles
+            .Where(f => !mappingMatchedFileSet.Contains(f.Replace('\\', '/')))
+            .ToList();
+
+        if (unmappedActiveFiles.Count > 0)
+        {
+            logger.LogInfo($"Source-to-test mapping only mode unavailable: {unmappedActiveFiles.Count} active file(s) are not covered by source-to-test mappings");
+            return false;
+        }
+
+        return true;
     }
 
     private static NuGetDependentTestsInfo? DetectNuGetDependentTests(

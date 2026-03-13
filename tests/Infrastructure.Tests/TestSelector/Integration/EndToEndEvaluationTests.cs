@@ -994,6 +994,34 @@ public class EndToEndEvaluationTests
         Assert.Single(matchedFiles);
     }
 
+    [Fact]
+    public async Task Evaluate_RealActiveConfig_TemplateSupportChanges_UseMappingsOnly()
+    {
+        var repoRoot = FindRepoRoot();
+        var configPath = Path.Combine(repoRoot, "eng", "scripts", "test-selection-rules.json");
+        var config = TestSelectorConfig.LoadFromJson(File.ReadAllText(configPath));
+
+        var result = await TestEvaluator.EvaluateAsync(
+            config,
+            [
+                ".github/workflows/tests.yml",
+                "tests/Aspire.Templates.Tests/TemplateSmokeTests.cs",
+                "tests/Shared/TemplatesTesting/EnvironmentVariables.cs"
+            ],
+            solution: "Aspire.slnx",
+            fromRef: null,
+            toRef: null,
+            workingDir: repoRoot,
+            ciEnvironment: "GitHub",
+            verbose: false);
+
+        Assert.False(result.RunAllTests);
+        Assert.Equal("selective_mappings_only", result.Reason);
+        Assert.Equal(["tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"], result.AffectedTestProjects);
+        Assert.Empty(result.DotnetAffectedProjects);
+        Assert.True(result.Categories["integrations"]);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = AppContext.BaseDirectory;

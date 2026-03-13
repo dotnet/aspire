@@ -148,6 +148,7 @@ rootCommand.SetAction(async result =>
     catch (Exception ex)
     {
         CIHelper.WriteError(ciEnvironment, $"Test selector failed: {ex.Message}");
+        CIHelper.WriteWarning(ciEnvironment, "Test selector failed before it could determine a selective scope. IGNORING selective scope and expecting CI to run all tests as a conservative fallback.");
         var errorResult = TestSelectionResult.WithError(ex.Message);
         WriteJsonResult(errorResult, workingDir, outputPath);
         if (githubOutput)

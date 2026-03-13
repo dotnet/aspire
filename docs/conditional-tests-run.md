@@ -20,14 +20,14 @@ The system combines glob pattern matching with `dotnet-affected` for transitive 
 2. **Check for critical infrastructure changes** — files matching `triggerAllPaths` run everything
 3. **Match files to categories** via `triggerPaths` patterns — sets `run_<category>` flags
 4. **Apply source-to-test mappings** — resolve files to test project directories via `{name}` capture patterns
-5. **Run `dotnet-affected`** to find all projects affected by the changes
+5. **Run `dotnet-affected`** to find all projects affected by the changes when source-to-test mappings do not already fully account for the active files
 6. **Check for unmatched files** — conservative fallback runs everything if any file is unaccounted for
 7. **Filter test projects** — identify test projects using glob patterns from `testProjectPatterns`
 8. **Combine test projects** from dotnet-affected + source-to-test mappings
 9. **Match test projects to categories** — categories can be triggered by both source and test paths
 10. **Build final result** — `run_integrations` is `true` if the category is triggered by paths OR if any test projects were discovered
 
-The key insight is that source-to-test mappings use naming conventions (e.g., `src/Components/Aspire.Redis/**` → `tests/Aspire.Redis.Tests/`) to discover test projects, while `dotnet-affected` provides MSBuild's transitive dependency graph for comprehensive coverage.
+The key insight is that source-to-test mappings use naming conventions (e.g., `src/Components/Aspire.Redis/**` → `tests/Aspire.Redis.Tests/`) to discover test projects, while `dotnet-affected` provides MSBuild's transitive dependency graph for comprehensive coverage. When every active file is already covered by explicit source-to-test mappings, the selector can use those mappings directly and skip the `dotnet-affected` graph walk.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ A C# CLI tool that:
 - Gets changed files from git
 - Matches files to categories via `triggerPaths`
 - Applies source-to-test mappings via `{name}` capture patterns
-- Runs `dotnet-affected` for transitive dependency analysis
+- Runs `dotnet-affected` for transitive dependency analysis when mapping-only resolution is not sufficient
 - Filters test projects using glob patterns
 - Outputs JSON results and GitHub Actions outputs
 
@@ -208,7 +208,7 @@ Glob patterns to identify which projects are test projects. Used to filter `dotn
 
 4. **Apply Source-to-Test Mappings**: Resolve changed files to test project directories via `{name}` capture patterns.
 
-5. **Run dotnet-affected**: Find all MSBuild projects affected by the changed files (transitive dependencies).
+5. **Run dotnet-affected**: Find all MSBuild projects affected by the changed files (transitive dependencies) when active files are not already fully covered by source-to-test mappings.
 
 6. **Check Unmatched Files**: If any active file isn't matched by categories, solution scope, or source-to-test mappings, conservatively run all tests.
 

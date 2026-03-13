@@ -39,4 +39,18 @@ internal static class CIHelper
         };
         Console.Error.WriteLine(formatted);
     }
+
+    /// <summary>
+    /// Writes a warning message in a format appropriate for the CI environment.
+    /// </summary>
+    public static void WriteWarning(string environment, string message)
+    {
+        var formatted = environment switch
+        {
+            "GitHub" => $"::warning::{message}",
+            "AzureDevOps" => $"##vso[task.logissue type=warning]{message}",
+            _ => $"Warning: {message}"
+        };
+        Console.Error.WriteLine(formatted);
+    }
 }

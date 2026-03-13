@@ -123,8 +123,32 @@ jobs:
             fi
           }
 
+          emit_fallback_banner() {
+            local reason="$1"
+            echo "::error::Selective test scope failed or was bypassed: ${reason}"
+            echo "::warning::IGNORING selective scope and running all tests as a conservative fallback."
+          }
+
+          reason_is_selector_failure() {
+            case "$1" in
+              dotnet-affected\ failed:*)
+                return 0
+                ;;
+              Test\ selector\ failed:*)
+                return 0
+                ;;
+              error)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
           if [ "${{ steps.detect_active_raw.outcome }}" != "success" ]; then
-            echo "::warning::Test selector failed - falling back to running all tests"
+            ACTIVE_FAILURE_REASON="$(normalize_reason "$ACTIVE_SELECTION_REASON")"
+            emit_fallback_banner "$ACTIVE_FAILURE_REASON"
             echo "run_all=true" >> $GITHUB_OUTPUT
             echo "run_integrations=true" >> $GITHUB_OUTPUT
             echo "run_cli_e2e=true" >> $GITHUB_OUTPUT
@@ -137,7 +161,11 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## Test Scope - Fallback Mode" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ Active test selector failed. Running **all tests** as a fallback." >> $GITHUB_STEP_SUMMARY
+            echo "🚨 Active test selector failed." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**IGNORING selective scope and running all tests.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- Failure reason: \`$ACTIVE_FAILURE_REASON\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
             if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -185,6 +213,10 @@ jobs:
           ACTIVE_REASON="$(normalize_reason "$ACTIVE_SELECTION_REASON")"
           DEFAULT_COVERAGE='[]'
 
+          if [ "${ACTIVE_RUN_ALL}" = "true" ] && reason_is_selector_failure "$ACTIVE_REASON"; then
+            emit_fallback_banner "$ACTIVE_REASON"
+          fi
+
           if [ "${ACTIVE_RUN_ALL}" != "true" ] && [ "${ACTIVE_RUN_INTEGRATIONS}" == "true" ] && [ "${ACTIVE_AFFECTED}" == "[]" ]; then
             DEFAULT_COVERAGE='["tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj"]'
           fi
@@ -201,7 +233,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Active Test Selection" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Conditional scope is **applied** to category and matrix selection." >> $GITHUB_STEP_SUMMARY
+          if [ "${ACTIVE_RUN_ALL}" = "true" ] && reason_is_selector_failure "$ACTIVE_REASON"; then
+            echo "🚨 Selective scope was **not applied** because selector evaluation failed." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**IGNORING selective scope and running all tests.**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Conditional scope is **applied** to category and matrix selection." >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Reason: \`$ACTIVE_REASON\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
