@@ -32,7 +32,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <remarks>
     /// Dev tunnels can be used to expose local endpoints to the public internet via a secure tunnel. By default,
     /// the tunnel requires authentication, but anonymous access can be enabled via <see cref="WithAnonymousAccess(IResourceBuilder{DevTunnelResource})"/>.
-    /// This overload is not available in polyglot app hosts. Use <see cref="AddDevTunnelForPolyglot"/> instead.
     /// </remarks>
     /// <example>
     /// The following example shows how to create a dev tunnel resource that exposes all endpoints on a web application project and enable anonymous access:
@@ -45,7 +44,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    [AspireExportIgnore(Reason = "Use the dedicated polyglot overload instead.")]
+    [AspireExport("addDevTunnel", Description = "Adds a Dev Tunnel resource to the distributed application model.")]
     public static IResourceBuilder<DevTunnelResource> AddDevTunnel(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -234,21 +233,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return rb;
     }
 
-    [AspireExport("addDevTunnel", Description = "Adds a Dev Tunnel resource to the distributed application model.")]
-    internal static IResourceBuilder<DevTunnelResource> AddDevTunnelForPolyglot(
-        this IDistributedApplicationBuilder builder,
-        [ResourceName] string name,
-        string? tunnelId = null,
-        bool allowAnonymous = false,
-        string? description = null,
-        string[]? labels = null)
-        => AddDevTunnel(builder, name, tunnelId, new DevTunnelOptions
-        {
-            AllowAnonymous = allowAnonymous,
-            Description = description,
-            Labels = labels is null ? null : [.. labels]
-        });
-
     /// <summary>
     /// Adds ports on the dev tunnel for all endpoints found on the referenced resource and sets whether anonymous access is allowed.
     /// </summary>
@@ -405,7 +389,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(endpointName);
 
         var portResource = tunnelBuilder.Resource.Ports
-            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, endpointName));
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && string.Equals(p.TargetEndpoint.EndpointName, endpointName, StringComparisons.EndpointAnnotationName));
 
         if (portResource is null)
         {
@@ -429,7 +413,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         var portResource = tunnelBuilder.Resource.Ports
             .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource
-                && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName));
+                && string.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName, StringComparisons.EndpointAnnotationName));
 
         if (portResource is null)
         {
@@ -541,7 +525,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         }
 
         if (targetEndpoint.Resource.Annotations.OfType<EndpointAnnotation>()
-            .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, targetEndpoint.EndpointName)) is { } targetEndpointAnnotation)
+            .SingleOrDefault(a => string.Equals(a.Name, targetEndpoint.EndpointName, StringComparisons.EndpointAnnotationName)) is { } targetEndpointAnnotation)
         {
             // The target endpoint already exists so let's ensure it's target is localhost
             if (!EndpointHostHelpers.IsLocalhostOrLocalhostTld(targetEndpointAnnotation.TargetHost))
