@@ -95,6 +95,9 @@ jobs:
       - name: Apply conditional scope
         id: detect
         shell: bash
+        env:
+          ACTIVE_SELECTION_REASON: ${{ steps.detect_active_raw.outputs.selection_reason }}
+          AUDIT_SELECTION_REASON: ${{ steps.detect_audit_raw.outputs.selection_reason }}
         run: |
           normalize_bool() {
             if [ "$1" = "true" ]; then
@@ -109,6 +112,14 @@ jobs:
               echo "$1"
             else
               echo "[]"
+            fi
+          }
+
+          normalize_reason() {
+            if [ -z "$1" ]; then
+              echo "unknown"
+            else
+              printf '%s' "$1" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g'
             fi
           }
 
@@ -139,10 +150,7 @@ jobs:
                 AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
                 AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
                 AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
-                AUDIT_REASON="${{ steps.detect_audit_raw.outputs.selection_reason }}"
-                if [ -z "$AUDIT_REASON" ]; then
-                  AUDIT_REASON="unknown"
-                fi
+                AUDIT_REASON="$(normalize_reason "$AUDIT_SELECTION_REASON")"
 
                 echo "Audit selector still completed and produced observational data." >> $GITHUB_STEP_SUMMARY
                 echo "" >> $GITHUB_STEP_SUMMARY
@@ -174,10 +182,7 @@ jobs:
           ACTIVE_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_extension }}")"
           ACTIVE_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_polyglot }}")"
           ACTIVE_AFFECTED="$(normalize_json_array "${{ steps.detect_active_raw.outputs.affected_test_projects }}")"
-          ACTIVE_REASON="${{ steps.detect_active_raw.outputs.selection_reason }}"
-          if [ -z "$ACTIVE_REASON" ]; then
-            ACTIVE_REASON="unknown"
-          fi
+          ACTIVE_REASON="$(normalize_reason "$ACTIVE_SELECTION_REASON")"
           DEFAULT_COVERAGE='[]'
 
           if [ "${ACTIVE_RUN_ALL}" != "true" ] && [ "${ACTIVE_RUN_INTEGRATIONS}" == "true" ] && [ "${ACTIVE_AFFECTED}" == "[]" ]; then
@@ -222,10 +227,7 @@ jobs:
               AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
               AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
               AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
-              AUDIT_REASON="${{ steps.detect_audit_raw.outputs.selection_reason }}"
-              if [ -z "$AUDIT_REASON" ]; then
-                AUDIT_REASON="unknown"
-              fi
+              AUDIT_REASON="$(normalize_reason "$AUDIT_SELECTION_REASON")"
 
               echo "The audit selector is **observational only** and does not change execution." >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
@@ -250,7 +252,17 @@ jobs:
 
       - name: Show test selection results
         shell: bash
+        env:
+          AUDIT_SELECTION_REASON: ${{ steps.detect_audit_raw.outputs.selection_reason }}
         run: |
+          normalize_reason() {
+            if [ -z "$1" ]; then
+              echo "unknown"
+            else
+              printf '%s' "$1" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g'
+            fi
+          }
+
           echo "::group::Active test selection"
           echo "run_all=${{ steps.detect.outputs.run_all }}"
           echo "run_integrations=${{ steps.detect.outputs.run_integrations }}"
@@ -268,7 +280,7 @@ jobs:
             echo "run_cli_e2e=${{ steps.detect_audit_raw.outputs.run_cli_e2e }}"
             echo "run_extension=${{ steps.detect_audit_raw.outputs.run_extension }}"
             echo "run_polyglot=${{ steps.detect_audit_raw.outputs.run_polyglot }}"
-            echo "selection_reason=${{ steps.detect_audit_raw.outputs.selection_reason }}"
+            echo "selection_reason=$(normalize_reason "$AUDIT_SELECTION_REASON")"
             echo "affected_test_projects=${{ steps.detect_audit_raw.outputs.affected_test_projects }}"
             echo "::endgroup::"
           fi
