@@ -8,6 +8,8 @@ The workflow analyzes failed `CI` pull request runs, identifies retry-safe trans
 
 GitHub's job-rerun API also reruns downstream dependent jobs, so the workflow targets only the matched jobs when issuing rerun requests, but the resulting rerun attempt can include dependents that GitHub schedules automatically.
 
+When GitHub's `workflow_run` payload omits `pull_requests` for a failed PR run, the workflow falls back to resolving the source pull request from the CI run's `head_repository.owner.login` and `head_branch`. The fallback proceeds only when that lookup yields exactly one matching pull request, so ambiguous branch reuse still results in a skip. When the `workflow_run` payload also includes a `head_sha`, the fallback further filters candidate pull requests to those whose head SHA matches that value, which can also cause the lookup to skip if the branch still matches but the pull request head has advanced since the analyzed run.
+
 It is intentionally conservative:
 
 - it does not rerun every failed job in a run
@@ -29,6 +31,7 @@ It is intentionally conservative:
 
 - `workflow_dispatch` can inspect any `CI` workflow run by ID and request reruns when the same retry-safety rules are satisfied.
 - `workflow_dispatch` also exposes an optional `dry_run` input so manual runs can produce the analysis summary without sending rerun requests.
+- Dry-run summaries still report whether the analyzed run would be eligible to rerun if dry run were disabled; the execution gate remains suppressed separately.
 - Automatic rerun requires at least one retryable job.
 - Automatic rerun is suppressed when matched jobs exceed the configured cap.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.

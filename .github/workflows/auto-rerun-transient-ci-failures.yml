@@ -50,6 +50,7 @@ jobs:
       retryable_count: ${{ steps.analyze.outputs.retryable_count }}
       skipped_count: ${{ steps.analyze.outputs.skipped_count }}
       rerun_eligible: ${{ steps.analyze.outputs.rerun_eligible }}
+      rerun_execution_eligible: ${{ steps.analyze.outputs.rerun_execution_eligible }}
       dry_run: ${{ steps.analyze.outputs.dry_run }}
       max_retryable_jobs: ${{ steps.analyze.outputs.max_retryable_jobs }}
     steps:
@@ -70,6 +71,7 @@ jobs:
             const repo = context.repo.repo;
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
             const maxRetryableJobs = rerunWorkflow.defaultMaxRetryableJobs;
+            const maxJobLogInspectionBytes = 256 * 1024;
 
             async function paginate(route, parameters, selectItems) {
               const items = [];
@@ -178,7 +180,7 @@ jobs:
                   throw new Error(`HTTP ${response.status}`);
                 }
 
-                return await response.text();
+                return (await response.text()).slice(-maxJobLogInspectionBytes);
               }
               catch (error) {
                 core.warning(`Failed to fetch logs for job ${jobId}: ${error.message}`);
@@ -200,19 +202,24 @@ jobs:
             core.setOutput('retryable_count', '0');
             core.setOutput('skipped_count', '0');
             core.setOutput('rerun_eligible', 'false');
+            core.setOutput('rerun_execution_eligible', 'false');
 
             if (workflowRun.name && workflowRun.name !== 'CI') {
               console.log(`Workflow run ${workflowRun.id} is '${workflowRun.name}', not 'CI'. Skipping.`);
               return;
             }
 
-            const pullRequestNumbers = [...new Set((workflowRun.pull_requests || [])
-              .map(pullRequest => pullRequest.number)
-              .filter(Number.isInteger))];
+            const pullRequestNumbers = await rerunWorkflow.getAssociatedPullRequestNumbers({
+              github,
+              owner,
+              repo,
+              workflowRun,
+              warn: message => core.warning(message),
+            });
             core.setOutput('pull_request_numbers', JSON.stringify(pullRequestNumbers));
 
             if (pullRequestNumbers.length === 0) {
-              console.log('No pull request is associated with this workflow run. Skipping.');
+              console.log('No associated pull request could be resolved for this workflow run. Skipping.');
               return;
             }
 
@@ -223,6 +230,7 @@ jobs:
               jobs,
               getAnnotationsForJob: async job => listAnnotations(job),
               getJobLogTextForJob: async job => getJobLogText(job.id),
+              maxRetryableJobs,
             });
 
             core.setOutput('retryable_jobs', JSON.stringify(retryableJobs.map(job => ({
@@ -235,11 +243,16 @@ jobs:
             core.setOutput('skipped_count', String(skippedJobs.length));
 
             const rerunEligible = rerunWorkflow.computeRerunEligibility({
+              retryableCount: retryableJobs.length,
+              maxRetryableJobs,
+            });
+            const rerunExecutionEligible = rerunWorkflow.computeRerunExecutionEligibility({
               dryRun,
               retryableCount: retryableJobs.length,
               maxRetryableJobs,
             });
             core.setOutput('rerun_eligible', String(rerunEligible));
+            core.setOutput('rerun_execution_eligible', String(rerunExecutionEligible));
 
             await rerunWorkflow.writeAnalysisSummary({
               summary: core.summary,
@@ -261,7 +274,7 @@ jobs:
   rerun-transient-failures:
     name: Rerun transient CI failures
     needs: [analyze-transient-failures]
-    if: ${{ needs.analyze-transient-failures.outputs.rerun_eligible == 'true' }}
+    if: ${{ needs.analyze-transient-failures.outputs.rerun_execution_eligible == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
