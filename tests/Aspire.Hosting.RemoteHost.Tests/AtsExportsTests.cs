@@ -6,6 +6,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Aspire.Hosting.Ats;
+using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
 

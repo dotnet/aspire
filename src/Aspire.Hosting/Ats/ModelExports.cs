@@ -49,6 +49,6 @@ internal static class ModelExports
         ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return model.Resources.SingleOrDefault(resource => string.Equals(resource.Name, name, StringComparison.Ordinal));
+        return model.Resources.SingleOrDefault(resource => StringComparers.ResourceName.Equals(resource.Name, name));
     }
 }
