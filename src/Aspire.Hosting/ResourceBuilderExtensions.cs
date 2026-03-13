@@ -1941,6 +1941,7 @@ public static class ResourceBuilderExtensions
             sp =>
             {
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+
                 return new Health.AspireHttpHealthCheck(
                     () =>
                     {
@@ -1948,6 +1949,7 @@ public static class ResourceBuilderExtensions
                         {
                             throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
                         }
+
                         return uri;
                     },
                     () => httpClientFactory.CreateClient(healthCheckKey),

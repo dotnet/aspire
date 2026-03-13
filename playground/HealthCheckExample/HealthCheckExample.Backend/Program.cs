@@ -1,7 +1,6 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Aspire.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +24,7 @@ builder.Services.AddHealthChecks()
     .AddCheck("message_queue", () =>
     {
         // Simulate a message queue health check
-        return HealthCheckResult.Healthy("Message queue is connected");
+        return HealthCheckResult.Unhealthy("Message queue is unavailable");
     });
 
 var app = builder.Build();
@@ -39,38 +38,3 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 app.MapGet("/", () => "Backend service with multiple health checks!");
 
 app.Run();
-
-// Standalone AspireHealthCheckResponseWriter
-// (Copied from Aspire.Hosting.Health.AspireHealthCheckResponseWriter - you can also reference Aspire.Hosting directly)
-static class AspireHealthCheckResponseWriter
-{
-    public static Task WriteResponse(HttpContext context, HealthReport report)
-    {
-        context.Response.ContentType = "application/json; charset=utf-8";
-
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var result = new
-        {
-            status = report.Status.ToString(),
-            totalDuration = report.TotalDuration.ToString(),
-            entries = report.Entries.ToDictionary(
-                entry => entry.Key,
-                entry => new
-                {
-                    status = entry.Value.Status.ToString(),
-                    duration = entry.Value.Duration.ToString(),
-                    description = entry.Value.Description,
-                    exception = entry.Value.Exception?.Message,
-                    data = entry.Value.Data.Count > 0 ? entry.Value.Data : null
-                })
-        };
-
-        return context.Response.WriteAsJsonAsync(result, options);
-    }
-}

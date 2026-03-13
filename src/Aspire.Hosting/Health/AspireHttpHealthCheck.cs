@@ -32,16 +32,12 @@ internal sealed class AspireHttpHealthCheck(
             var uri = uriProvider();
             var httpClient = httpClientFactory();
             var response = await httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
-            if ((int)response.StatusCode != expectedStatusCode)
-            {
-                return HealthCheckResult.Unhealthy(
-                    $"HTTP request to {uri} returned status code {response.StatusCode} (expected {expectedStatusCode})");
-            }
-
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             // Try to parse as Aspire JSON format with multiple entries
-            if (TryParseHealthCheckResponse(content, out var entries, out var overallStatus, out _))
+            // We parse the body REGARDLESS of status code to allow services to use 503 for unhealthy dependencies
+            // while still surfacing detailed health check information to the dashboard
+            if (TryParseHealthCheckResponse(content, out var entries, out var overallStatus, out var parseError))
             {
                 // Contains multiple health check entries - mark for expansion
                 var data = new Dictionary<string, object>
@@ -56,8 +52,14 @@ internal sealed class AspireHttpHealthCheck(
                     data: data);
             }
 
-            // Response is not in Aspire format - treat as single health check based on status code
-            return HealthCheckResult.Healthy($"HTTP request to {uri} returned expected status code {expectedStatusCode}");
+            // Response is not in Aspire format - fall back to status code check
+            if ((int)response.StatusCode != expectedStatusCode)
+            {
+                return HealthCheckResult.Unhealthy(
+                    $"HTTP request to {uri} returned status code {response.StatusCode} (expected {expectedStatusCode}). Parse error: {parseError}");
+            }
+
+            return HealthCheckResult.Healthy($"HTTP request to {uri} returned expected status code {expectedStatusCode}. Content length: {content.Length}");
         }
         catch (Exception ex)
         {

@@ -6,25 +6,13 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Hosting.Health;
+namespace Aspire.HealthChecks;
 
 /// <summary>
 /// A health check response writer that formats health check results in a way that Aspire can parse and display individual checks.
 /// </summary>
 /// <remarks>
-/// <para>
-/// This response writer is designed to be used with <c>MapHealthChecks</c> in your service to expose all registered
-/// health checks through a single endpoint. The Aspire Dashboard will parse this response and display each health check
-/// as a separate entry.
-/// </para>
-/// <para>
-/// <strong>Note for service projects:</strong> Since services typically don't reference the <c>Aspire.Hosting</c> package,
-/// you can either:
-/// <list type="bullet">
-/// <item><description>Copy this class into your service project</description></item>
-/// <item><description>Add a reference to <c>Aspire.Hosting</c> in your service project (less common)</description></item>
-/// </list>
-/// </para>
+/// This response writer formats the health check results as JSON with a structure that includes the overall status
 /// <example>
 /// In your service's Program.cs:
 /// <code lang="C#">
@@ -48,7 +36,7 @@ namespace Aspire.Hosting.Health;
 /// Then in your AppHost's Program.cs:
 /// <code lang="C#">
 /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend")
-///                      .WithHttpHealthCheck("/health", useAggregate: true);
+///                      .WithHttpHealthCheck("/health");
 /// </code>
 /// </example>
 /// </remarks>

@@ -53,7 +53,7 @@ Shows three separate health checks:
 
 ```bash
 cd playground/HealthCheckExample/HealthCheckExample.AppHost
-dotnet run
+aspire run
 ```
 
 Open the Dashboard and check the "backend" resource's health checks!

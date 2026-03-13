@@ -21,6 +21,7 @@
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />
     <ProjectReference Include="..\TestProject.ServiceC\TestProject.ServiceC.csproj" AspireProjectMetadataTypeName="ServiceC" />
     <ProjectReference Include="..\TestProject.WorkerA\TestProject.WorkerA.csproj" AspireProjectMetadataTypeName="WorkerA" />
+    <ProjectReference Include="..\TestProject.HealthCheckService\TestProject.HealthCheckService.csproj" AspireProjectMetadataTypeName="HealthCheckService" />
   </ItemGroup>
 
 </Project>
