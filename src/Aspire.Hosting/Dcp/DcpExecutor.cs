@@ -1662,6 +1662,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 return;
             }
 
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, resource)).ConfigureAwait(false);
             await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
             foreach (var er in executables)
             {
@@ -1883,7 +1884,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     exe.Spec.ExecutionType = ExecutionType.Process;
                 }
             }
-            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, er.ModelResource)).ConfigureAwait(false);
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
         }
@@ -2121,6 +2121,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // If explicit startup is configured, we aren't going to start the resource now. A DCP resource WILL be created,
                 // but it will be explicitly set to not start. We don't want to send the BeforeResourceStarted event here as it will
                 // be sent later when the resource is explicitly started via user action or API.
+                await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, cr.ModelResource)).ConfigureAwait(false);
                 await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
             }
 
@@ -2311,7 +2312,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
             }
 
-            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, cr.ModelResource)).ConfigureAwait(false);
+            
 
             await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
         }
@@ -2615,12 +2616,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ensure we explicitly start the container
                     c.Spec.Start = true;
 
+                    await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, appResource.ModelResource)).ConfigureAwait(false);
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
                 case Executable e:
                     await EnsureResourceDeletedAsync<Executable>(appResource.DcpResourceName).ConfigureAwait(false);
 
+                    await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cancellationToken, appResource.ModelResource)).ConfigureAwait(false);
                     await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
                     await CreateExecutableAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
