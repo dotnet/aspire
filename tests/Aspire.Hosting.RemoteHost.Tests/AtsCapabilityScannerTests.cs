@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+using System.Reflection.Emit;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.TypeSystem;
 using Xunit;
@@ -214,6 +216,86 @@ public class AtsCapabilityScannerTests
         Assert.NotNull(cancellationTokenType);
     }
 
+    [Fact]
+    public void ScanAssembly_HostingAssembly_CoreFrameworkAndLifecycleCapabilitiesAreRegistered()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        var expectedCapabilities = new[]
+        {
+            "Aspire.Hosting/getSection",
+            "Aspire.Hosting/getChildren",
+            "Aspire.Hosting/exists",
+            "Aspire.Hosting/isProduction",
+            "Aspire.Hosting/isStaging",
+            "Aspire.Hosting/isEnvironment",
+            "Aspire.Hosting/subscribeBeforeStart",
+            "Aspire.Hosting/subscribeAfterResourcesCreated",
+            "Aspire.Hosting/onBeforeResourceStarted",
+            "Aspire.Hosting/onResourceStopped",
+            "Aspire.Hosting/onConnectionStringAvailable",
+            "Aspire.Hosting/onInitializeResource",
+            "Aspire.Hosting/onResourceEndpointsAllocated",
+            "Aspire.Hosting/onResourceReady",
+            "Aspire.Hosting/getLoggerFactory",
+            "Aspire.Hosting/createLogger",
+            "Aspire.Hosting/getResourceLoggerService",
+            "Aspire.Hosting/getResourceNotificationService",
+            "Aspire.Hosting/getDistributedApplicationModel",
+            "Aspire.Hosting/getResources",
+            "Aspire.Hosting/findResourceByName",
+            "Aspire.Hosting/getUserSecretsManager",
+            "Aspire.Hosting/getEventing",
+            "Aspire.Hosting/saveStateJson"
+        };
+
+        foreach (var expectedCapability in expectedCapabilities)
+        {
+            Assert.Contains(result.Capabilities, capability => capability.CapabilityId == expectedCapability);
+        }
+    }
+
+    [Fact]
+    public void ScanAssembly_HostingAssembly_ExportsExpectedHandleTypesAndInstanceMembers()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        var expectedHandleTypes = new[]
+        {
+            "IConfigurationSection",
+            "ILogger",
+            "ILoggerFactory",
+            "DistributedApplicationModel",
+            "IDistributedApplicationEventing",
+            "BeforeStartEvent",
+            "AfterResourcesCreatedEvent",
+            "BeforeResourceStartedEvent",
+            "ConnectionStringAvailableEvent",
+            "InitializeResourceEvent",
+            "ResourceEndpointsAllocatedEvent",
+            "ResourceReadyEvent",
+            "ResourceStoppedEvent",
+            "IUserSecretsManager",
+            "IReportingStep",
+            "IReportingTask",
+            "PipelineContext",
+            "PipelineStepFactoryContext",
+            "PipelineSummary"
+        };
+
+        foreach (var expectedHandleType in expectedHandleTypes)
+        {
+            Assert.Contains(result.HandleTypes, type => type.AtsTypeId.Contains(expectedHandleType, StringComparison.Ordinal));
+        }
+
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/BeforeStartEvent.services", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/IUserSecretsManager.trySetSecret", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/PipelineStepContext.reportingStep", StringComparison.Ordinal));
+        Assert.Contains(result.Capabilities, capability => capability.CapabilityId.EndsWith("/PipelineSummary.add", StringComparison.Ordinal));
+    }
+
     #endregion
 
     #region Callback Parameter Type Resolution Tests
@@ -245,6 +327,28 @@ public class AtsCapabilityScannerTests
             Assert.NotNull(cbParam.Type);
             Assert.NotEqual(AtsTypeCategory.Unknown, cbParam.Type.Category);
         }
+    }
+
+    [Fact]
+    public void ScanAssemblies_AssemblyLevelExportedTypes_AreResolvedAcrossScanOrder()
+    {
+        Assert.Null(AtsCapabilityScanner.MapToAtsTypeId(typeof(AssemblyLevelExportedTestType)));
+
+        var capabilityAssembly = CreateAssemblyLevelExportCapabilityAssembly(typeof(AssemblyLevelExportedTestType));
+        var exportAssembly = CreateAssemblyLevelExportAssembly(typeof(AssemblyLevelExportedTestType));
+
+        var result = AtsCapabilityScanner.ScanAssemblies([capabilityAssembly, exportAssembly]);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/usesAssemblyExportedType", StringComparison.Ordinal));
+        var parameter = Assert.Single(capability.Parameters);
+
+        Assert.NotNull(parameter.Type);
+        Assert.Equal(AtsTypeCategory.Handle, parameter.Type.Category);
+        Assert.Equal(AtsTypeMapping.DeriveTypeId(typeof(AssemblyLevelExportedTestType)), parameter.Type.TypeId);
+        Assert.Equal(
+            AtsTypeMapping.DeriveTypeId(typeof(AssemblyLevelExportedTestType)),
+            AtsCapabilityScanner.MapToAtsTypeId(typeof(AssemblyLevelExportedTestType)));
     }
 
     [Fact]
@@ -290,6 +394,10 @@ public class AtsCapabilityScannerTests
         }
     }
 
+    public sealed class AssemblyLevelExportedTestType
+    {
+    }
+
     private static class TestExports
     {
         [AspireExport("testEnumerableParameter")]
@@ -314,6 +422,45 @@ public class AtsCapabilityScannerTests
             _ = callback;
             return builder;
         }
+    }
+
+    private static Assembly CreateAssemblyLevelExportCapabilityAssembly(Type parameterType)
+    {
+        var assemblyName = new AssemblyName($"AssemblyLevelExportCapability_{Guid.NewGuid():N}");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+        var exportsTypeBuilder = moduleBuilder.DefineType(
+            "Generated.AssemblyLevelExportedTypeExports",
+            TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+        var methodBuilder = exportsTypeBuilder.DefineMethod(
+            "UsesAssemblyExportedType",
+            MethodAttributes.Public | MethodAttributes.Static,
+            typeof(void),
+            [typeof(IDistributedApplicationBuilder), parameterType]);
+        methodBuilder.DefineParameter(1, ParameterAttributes.None, "builder");
+        methodBuilder.DefineParameter(2, ParameterAttributes.None, "value");
+        methodBuilder.SetCustomAttribute(
+            new CustomAttributeBuilder(
+                typeof(AspireExportAttribute).GetConstructor([typeof(string)])!,
+                ["usesAssemblyExportedType"]));
+        methodBuilder.GetILGenerator().Emit(OpCodes.Ret);
+
+        _ = exportsTypeBuilder.CreateType();
+
+        return assemblyBuilder;
+    }
+
+    private static Assembly CreateAssemblyLevelExportAssembly(Type exportedType)
+    {
+        var assemblyName = new AssemblyName($"AssemblyLevelExport_{Guid.NewGuid():N}");
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        _ = assemblyBuilder.DefineDynamicModule(assemblyName.Name!);
+        assemblyBuilder.SetCustomAttribute(
+            new CustomAttributeBuilder(
+                typeof(AspireExportAttribute).GetConstructor([typeof(Type)])!,
+                [exportedType]));
+
+        return assemblyBuilder;
     }
 
     [AspireExport(RunSyncOnBackgroundThread = true)]
