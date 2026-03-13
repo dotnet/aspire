@@ -98,6 +98,34 @@ public class FilterTestMatrixByScopeTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task InvalidAffectedProjectsJson_FailsWithHelpfulError()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("Proj-linux", "tests/ProjA/ProjA.csproj"));
+
+        var result = await RunFilter(matrix, "[tests/ProjA/ProjA.csproj]", runAll: false);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("AffectedProjects must be a JSON array string.", result.Output);
+        Assert.Contains("[tests/ProjA/ProjA.csproj]", result.Output);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task InvalidDefaultCoverageProjectsJson_FailsWithHelpfulError()
+    {
+        var matrix = CreateMatrix(
+            CreateEntry("Proj-linux", "tests/ProjA/ProjA.csproj"));
+
+        var result = await RunFilter(matrix, "[]", runAll: false, defaultCoverageProjects: "[tests/ProjA/ProjA.csproj]");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("DefaultCoverageProjects must be a JSON array string.", result.Output);
+        Assert.Contains("[tests/ProjA/ProjA.csproj]", result.Output);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task FiltersToAffectedProjects()
     {
         var matrix = CreateMatrix(

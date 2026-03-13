@@ -98,6 +98,8 @@ jobs:
         env:
           ACTIVE_SELECTION_REASON: ${{ steps.detect_active_raw.outputs.selection_reason }}
           AUDIT_SELECTION_REASON: ${{ steps.detect_audit_raw.outputs.selection_reason }}
+          ACTIVE_AFFECTED_TEST_PROJECTS_JSON: ${{ steps.detect_active_raw.outputs.affected_test_projects }}
+          AUDIT_AFFECTED_TEST_PROJECTS_JSON: ${{ steps.detect_audit_raw.outputs.affected_test_projects }}
         run: |
           normalize_bool() {
             if [ "$1" = "true" ]; then
@@ -177,7 +179,7 @@ jobs:
                 AUDIT_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_cli_e2e }}")"
                 AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
                 AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
-                AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
+                AUDIT_AFFECTED="$(normalize_json_array "$AUDIT_AFFECTED_TEST_PROJECTS_JSON")"
                 AUDIT_REASON="$(normalize_reason "$AUDIT_SELECTION_REASON")"
 
                 echo "Audit selector still completed and produced observational data." >> $GITHUB_STEP_SUMMARY
@@ -209,7 +211,7 @@ jobs:
           ACTIVE_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_cli_e2e }}")"
           ACTIVE_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_extension }}")"
           ACTIVE_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_active_raw.outputs.run_polyglot }}")"
-          ACTIVE_AFFECTED="$(normalize_json_array "${{ steps.detect_active_raw.outputs.affected_test_projects }}")"
+          ACTIVE_AFFECTED="$(normalize_json_array "$ACTIVE_AFFECTED_TEST_PROJECTS_JSON")"
           ACTIVE_REASON="$(normalize_reason "$ACTIVE_SELECTION_REASON")"
           DEFAULT_COVERAGE='[]'
 
@@ -264,7 +266,7 @@ jobs:
               AUDIT_RUN_CLI_E2E="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_cli_e2e }}")"
               AUDIT_RUN_EXTENSION="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_extension }}")"
               AUDIT_RUN_POLYGLOT="$(normalize_bool "${{ steps.detect_audit_raw.outputs.run_polyglot }}")"
-              AUDIT_AFFECTED="$(normalize_json_array "${{ steps.detect_audit_raw.outputs.affected_test_projects }}")"
+              AUDIT_AFFECTED="$(normalize_json_array "$AUDIT_AFFECTED_TEST_PROJECTS_JSON")"
               AUDIT_REASON="$(normalize_reason "$AUDIT_SELECTION_REASON")"
 
               echo "The audit selector is **observational only** and does not change execution." >> $GITHUB_STEP_SUMMARY
@@ -292,6 +294,9 @@ jobs:
         shell: bash
         env:
           AUDIT_SELECTION_REASON: ${{ steps.detect_audit_raw.outputs.selection_reason }}
+          ACTIVE_AFFECTED_TEST_PROJECTS_JSON: ${{ steps.detect.outputs.affected_test_projects }}
+          ACTIVE_DEFAULT_COVERAGE_PROJECTS_JSON: ${{ steps.detect.outputs.default_coverage_projects }}
+          AUDIT_AFFECTED_TEST_PROJECTS_JSON: ${{ steps.detect_audit_raw.outputs.affected_test_projects }}
         run: |
           normalize_reason() {
             if [ -z "$1" ]; then
@@ -307,8 +312,8 @@ jobs:
           echo "run_cli_e2e=${{ steps.detect.outputs.run_cli_e2e }}"
           echo "run_extension=${{ steps.detect.outputs.run_extension }}"
           echo "run_polyglot=${{ steps.detect.outputs.run_polyglot }}"
-          echo "affected_test_projects=${{ steps.detect.outputs.affected_test_projects }}"
-          echo "default_coverage_projects=${{ steps.detect.outputs.default_coverage_projects }}"
+          echo "affected_test_projects=$(normalize_reason "$ACTIVE_AFFECTED_TEST_PROJECTS_JSON")"
+          echo "default_coverage_projects=$(normalize_reason "$ACTIVE_DEFAULT_COVERAGE_PROJECTS_JSON")"
           echo "::endgroup::"
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -319,7 +324,7 @@ jobs:
             echo "run_extension=${{ steps.detect_audit_raw.outputs.run_extension }}"
             echo "run_polyglot=${{ steps.detect_audit_raw.outputs.run_polyglot }}"
             echo "selection_reason=$(normalize_reason "$AUDIT_SELECTION_REASON")"
-            echo "affected_test_projects=${{ steps.detect_audit_raw.outputs.affected_test_projects }}"
+            echo "affected_test_projects=$(normalize_reason "$AUDIT_AFFECTED_TEST_PROJECTS_JSON")"
             echo "::endgroup::"
           fi
 

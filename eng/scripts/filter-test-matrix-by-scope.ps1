@@ -68,21 +68,58 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+function Get-FriendlyTypeName {
+  param(
+    [AllowNull()]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return 'null'
+  }
+
+  return $Value.GetType().FullName
+}
+
+function Parse-ProjectListJson {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$Value,
+
+    [Parameter(Mandatory=$true)]
+    [string]$ParameterName
+  )
+
+  if (-not $Value -or $Value -eq "[]") {
+    return @()
+  }
+
+  try {
+    $parsed = $Value | ConvertFrom-Json -NoEnumerate
+  } catch {
+    throw "$ParameterName must be a JSON array string. Received: $Value"
+  }
+
+  if ($null -eq $parsed) {
+    return @()
+  }
+
+  if ($parsed -isnot [System.Collections.IEnumerable] -or $parsed -is [string] -or $parsed -is [System.ValueType]) {
+    throw "$ParameterName must be a JSON array string. Received a value of type $(Get-FriendlyTypeName $parsed)."
+  }
+
+  return @($parsed)
+}
+
 # Parse affected projects
 $affected = @()
 if ($AffectedProjects -and $AffectedProjects -ne "[]") {
-  $parsed = $AffectedProjects | ConvertFrom-Json
-  if ($null -ne $parsed) {
-    $affected = @($parsed)
-  }
+  $affected = Parse-ProjectListJson -Value $AffectedProjects -ParameterName 'AffectedProjects'
 }
 
 $defaultCoverage = @()
 if ($DefaultCoverageProjects -and $DefaultCoverageProjects -ne "[]") {
-  $parsedDefaultCoverage = $DefaultCoverageProjects | ConvertFrom-Json
-  if ($null -ne $parsedDefaultCoverage) {
-    $defaultCoverage = @($parsedDefaultCoverage)
-  }
+  $defaultCoverage = Parse-ProjectListJson -Value $DefaultCoverageProjects -ParameterName 'DefaultCoverageProjects'
 }
 
 # Normalize paths for comparison (forward slashes, case-insensitive)
@@ -157,19 +194,6 @@ function New-AuditEntry {
     shortname = $Entry.shortname
     testProjectPath = $testProjectPath
   }
-}
-
-function Get-FriendlyTypeName {
-  param(
-    [AllowNull()]
-    [object]$Value
-  )
-
-  if ($null -eq $Value) {
-    return 'null'
-  }
-
-  return $Value.GetType().FullName
 }
 
 function Get-MatrixEntries {
