@@ -179,10 +179,10 @@ public sealed class TestSelectionResult
     public void WriteGitHubOutput()
     {
         var outputPath = Environment.GetEnvironmentVariable("GITHUB_OUTPUT");
-        var lines = new List<string>
+        var outputs = new List<KeyValuePair<string, string>>
         {
-            $"run_all={RunAllTests.ToString().ToLowerInvariant()}",
-            $"selection_reason={Reason}"
+            new("run_all", RunAllTests.ToString().ToLowerInvariant()),
+            new("selection_reason", Reason)
         };
 
         // Output run_integrations based on both the category trigger status AND whether
@@ -195,38 +195,56 @@ public sealed class TestSelectionResult
             {
                 // Merge: integrations runs if triggered by paths OR if test projects were discovered
                 var integrationsEnabled = enabled || runIntegrations;
-                lines.Add($"run_integrations={integrationsEnabled.ToString().ToLowerInvariant()}");
+                outputs.Add(new("run_integrations", integrationsEnabled.ToString().ToLowerInvariant()));
             }
             else
             {
-                lines.Add($"run_{category}={enabled.ToString().ToLowerInvariant()}");
+                outputs.Add(new($"run_{category}", enabled.ToString().ToLowerInvariant()));
             }
         }
 
         if (!Categories.ContainsKey("integrations"))
         {
-            lines.Add($"run_integrations={runIntegrations.ToString().ToLowerInvariant()}");
+            outputs.Add(new("run_integrations", runIntegrations.ToString().ToLowerInvariant()));
         }
 
         // Output affected test projects as JSON array of .csproj paths for matrix filtering
-        lines.Add($"affected_test_projects={JsonSerializer.Serialize(AffectedTestProjects)}");
+        outputs.Add(new("affected_test_projects", JsonSerializer.Serialize(AffectedTestProjects)));
 
         // NuGet-dependent test outputs
         var nugetTriggered = NuGetDependentTests?.Triggered == true;
-        lines.Add($"run_nuget_tests={nugetTriggered.ToString().ToLowerInvariant()}");
-        lines.Add($"nuget_test_projects={JsonSerializer.Serialize(NuGetDependentTests?.Projects ?? [])}");
+        outputs.Add(new("run_nuget_tests", nugetTriggered.ToString().ToLowerInvariant()));
+        outputs.Add(new("nuget_test_projects", JsonSerializer.Serialize(NuGetDependentTests?.Projects ?? [])));
 
         if (!string.IsNullOrEmpty(outputPath))
         {
-            File.AppendAllLines(outputPath, lines);
+            using var writer = new StreamWriter(outputPath, append: true);
+            foreach (var (name, value) in outputs)
+            {
+                WriteGitHubOutputValue(writer, name, value);
+            }
         }
         else
         {
-            foreach (var line in lines)
+            foreach (var (name, value) in outputs)
             {
-                Console.WriteLine(line);
+                Console.WriteLine($"{name}={value}");
             }
         }
+    }
+
+    private static void WriteGitHubOutputValue(TextWriter writer, string name, string value)
+    {
+        if (value.Contains('\n') || value.Contains('\r'))
+        {
+            var delimiter = $"EOF_{Guid.NewGuid():N}";
+            writer.WriteLine($"{name}<<{delimiter}");
+            writer.WriteLine(value);
+            writer.WriteLine(delimiter);
+            return;
+        }
+
+        writer.WriteLine($"{name}={value}");
     }
 }
 

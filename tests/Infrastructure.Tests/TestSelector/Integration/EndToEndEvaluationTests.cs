@@ -788,8 +788,8 @@ public class EndToEndEvaluationTests
     [Fact]
     public void Evaluate_AllCiTriggerPatterns_CoveredByIgnorePaths()
     {
-        // Load the REAL test-selection-rules.json config
-        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        // Load the REAL audit config, which carries the broad ignore rules.
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.audit.json");
         var configJson = File.ReadAllText(configPath);
         var config = TestSelectorConfig.LoadFromJson(configJson);
         var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
@@ -898,7 +898,7 @@ public class EndToEndEvaluationTests
     [Fact]
     public void Evaluate_DocOnlyPr_AllSkipped()
     {
-        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.audit.json");
         var configJson = File.ReadAllText(configPath);
         var config = TestSelectorConfig.LoadFromJson(configJson);
         var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
@@ -926,7 +926,7 @@ public class EndToEndEvaluationTests
     [Fact]
     public void Evaluate_WorkflowOnlyPr_AllSkipped()
     {
-        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var configPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.audit.json");
         var configJson = File.ReadAllText(configPath);
         var config = TestSelectorConfig.LoadFromJson(configJson);
         var ignoreFilter = new IgnorePathFilter(config.IgnorePaths);
@@ -964,6 +964,34 @@ public class EndToEndEvaluationTests
         var testProjects = resolver.ResolveAllTestProjects(changedFiles);
 
         Assert.Contains("tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj", testProjects);
+    }
+
+    [Fact]
+    public void Evaluate_RealConfig_ComponentChanges_AreAuditOnly()
+    {
+        var activeConfigPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.json");
+        var activeConfig = TestSelectorConfig.LoadFromJson(File.ReadAllText(activeConfigPath));
+        var activeIgnoreFilter = new IgnorePathFilter(activeConfig.IgnorePaths);
+
+        var auditConfigPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "test-selection-rules.audit.json");
+        var auditConfig = TestSelectorConfig.LoadFromJson(File.ReadAllText(auditConfigPath));
+        var auditIgnoreFilter = new IgnorePathFilter(auditConfig.IgnorePaths);
+        var auditCategoryMapper = new CategoryMapper(auditConfig.Categories);
+
+        var changedFiles = new[]
+        {
+            "src/Components/Aspire.Pomelo.EntityFrameworkCore.MySql/Aspire.Pomelo.EntityFrameworkCore.MySql.csproj"
+        };
+
+        var (_, activeFiles) = activeIgnoreFilter.SplitFiles(changedFiles);
+        Assert.Empty(activeFiles);
+
+        var (_, auditFiles) = auditIgnoreFilter.SplitFiles(changedFiles);
+        Assert.Single(auditFiles);
+
+        var (auditCategories, matchedFiles) = auditCategoryMapper.GetCategoriesTriggeredByFiles(auditFiles);
+        Assert.True(auditCategories["integrations"]);
+        Assert.Single(matchedFiles);
     }
 
     private static string FindRepoRoot()

@@ -437,6 +437,22 @@ public class TestSelectionResultTests
         Assert.Contains("nuget_test_projects=[]", output);
     }
 
+    [Fact]
+    public void WriteGitHubOutput_UsesMultilineSyntax_ForMultilineSelectionReason()
+    {
+        var result = new TestSelectionResult
+        {
+            RunAllTests = true,
+            Reason = "dotnet-affected failed: line 1\n   at Example.Frame()"
+        };
+
+        var output = CaptureGitHubOutput(result);
+
+        Assert.Contains("selection_reason<<EOF_", output);
+        Assert.Contains("dotnet-affected failed: line 1", output);
+        Assert.Contains("   at Example.Frame()", output);
+    }
+
     private static string CaptureGitHubOutput(TestSelectionResult result)
     {
         var tempFile = Path.GetTempFileName();
