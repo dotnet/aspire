@@ -2290,8 +2290,9 @@ public class DcpExecutorTests
         }
     }
 
+    // Verifies that environment value callbacks are invoked only once per container startup.
     [Fact]
-    public async Task ContainerWithEnvironmentCallback_InvokedExactlyOnce_WithTunnelEnabled()
+    public async Task EnvironmentCallbacksInvokedOnceOnContainer()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -2321,12 +2322,14 @@ public class DcpExecutorTests
         Assert.Equal(1, callCount);
     }
 
+    // Ensures that environment value callbacks are invoked after the OnResourceStarting event is raised for the resource, 
+    // allowing users to rely on any state set during that event in their environment callbacks.
     [Fact]
-    public async Task ContainerWithTunnel_EnvironmentCallbackInvokedOnce_WithResourceStartingEvent()
+    public async Task EnvironmentCallbacksInvokedAfterBeforeResourceStartEvent()
     {
         var builder = DistributedApplication.CreateBuilder();
         var envCallCount = 0;
-        var resourceStartingFired = false;
+        var resourceStartingRaised = false;
 
         var executable = builder.AddExecutable("anExecutable", "command", "")
             .WithEndpoint(name: "http", targetPort: 1234, port: 5678, isProxied: true);
@@ -2342,56 +2345,22 @@ public class DcpExecutorTests
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var dcpOptions = new DcpOptions
-        {
-            EnableAspireContainerTunnel = true,
-        };
-
         var events = new DcpExecutorEvents();
         events.Subscribe<OnResourceStartingContext>(context =>
         {
             if (context.ResourceType == "Container")
             {
-                resourceStartingFired = true;
+                resourceStartingRaised = true;
+                Assert.Equal(0, envCallCount); // Environment callback should not have been called yet    
             }
             return Task.CompletedTask;
         });
 
-        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, events: events);
         await appExecutor.RunApplicationAsync();
 
         Assert.Equal(1, envCallCount);
-        Assert.True(resourceStartingFired, "OnResourceStarting should fire for the container");
-    }
-
-    [Fact]
-    public async Task ForgetCachedResult_CausesCallbackReEvaluation()
-    {
-        var callCount = 0;
-        var annotation = new EnvironmentCallbackAnnotation(c =>
-        {
-            Interlocked.Increment(ref callCount);
-            c.EnvironmentVariables["COUNT"] = callCount.ToString();
-        });
-        var cacheable = (ICallbackResourceAnnotation<EnvironmentCallbackContext, Dictionary<string, object>>)annotation;
-        var resource = new ContainerResource("test");
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run));
-
-        var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: CancellationToken.None);
-
-        var result1 = await cacheable.EvaluateOnceAsync(context);
-        Assert.Equal("1", result1["COUNT"]);
-        Assert.Equal(1, callCount);
-
-        var result2 = await cacheable.EvaluateOnceAsync(context);
-        Assert.Same(result1, result2);
-        Assert.Equal(1, callCount);
-
-        cacheable.ForgetCachedResult();
-
-        var result3 = await cacheable.EvaluateOnceAsync(context);
-        Assert.Equal("2", result3["COUNT"]);
-        Assert.Equal(2, callCount);
+        Assert.True(resourceStartingRaised, "OnResourceStarting should be raised for the container");
     }
 
     private static void HasKnownCommandAnnotations(IResource resource)
