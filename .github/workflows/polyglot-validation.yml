@@ -278,6 +278,7 @@ jobs:
             .github/workflows/polyglot-validation/
 
       - name: Run TypeScript SDK validation
+        timeout-minutes: 15
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
