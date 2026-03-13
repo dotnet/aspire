@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Foundry;
 public partial class FoundryModel
 {
     /// <summary>
-    /// Models available on Foundry Local.
+    /// Models available on Microsoft Foundry Local.
     /// </summary>
     public static partial class Local
     {

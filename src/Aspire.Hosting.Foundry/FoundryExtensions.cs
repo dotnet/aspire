@@ -125,11 +125,11 @@ public static class FoundryExtensions
     }
 
     /// <summary>
-    /// Adds a Foundry Local resource to the distributed application builder.
+    /// Adds a Microsoft Foundry Local resource to the distributed application builder.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    /// <returns>A resource builder for the Foundry Local resource.</returns>
-    [AspireExport("runAsFoundryLocal", Description = "Configures the Microsoft Foundry resource to run by using Foundry Local.")]
+    /// <returns>A resource builder for the Microsoft Foundry Local resource.</returns>
+    [AspireExport("runAsFoundryLocal", Description = "Configures the Microsoft Foundry resource to run by using Microsoft Foundry Local.")]
     public static IResourceBuilder<FoundryResource> RunAsFoundryLocal(this IResourceBuilder<FoundryResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
@@ -285,7 +285,7 @@ public static class FoundryExtensions
     }
 
     /// <summary>
-    /// Configure a deployment for use with Foundry Local
+    /// Configure a deployment for use with Microsoft Foundry Local
     /// </summary>
     internal static IResourceBuilder<FoundryDeploymentResource> AsLocalDeployment(this IResourceBuilder<FoundryDeploymentResource> builder, FoundryDeploymentResource deployment)
     {

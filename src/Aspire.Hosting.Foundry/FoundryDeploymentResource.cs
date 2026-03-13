@@ -36,7 +36,7 @@ public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryRe
     }
 
     /// <summary>
-    /// This field is used to store the model id that is downloaded by Foundry Local based on the local machine's GPU.
+    /// This field is used to store the model id that is downloaded by Microsoft Foundry Local based on the local machine's GPU.
     /// It is used in the connection string instead of <see cref="ModelName" />.
     /// </summary>
     internal string? ModelId { get; set; }
@@ -46,7 +46,7 @@ public class FoundryDeploymentResource : Resource, IResourceWithParent<FoundryRe
     /// </summary>
     /// <remarks>
     /// This defaults to <see cref="ModelName"/>, but allows for a different deployment name in Azure.
-    /// When using Foundry Local, this is the model id.
+    /// When using Microsoft Foundry Local, this is the model id.
     /// </remarks>
     public string DeploymentName { get; set; }
 
