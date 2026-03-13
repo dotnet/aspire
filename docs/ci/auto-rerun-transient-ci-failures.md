@@ -32,8 +32,10 @@ It is intentionally conservative:
 - `workflow_dispatch` can inspect any `CI` workflow run by ID and request reruns when the same retry-safety rules are satisfied.
 - `workflow_dispatch` also exposes an optional `dry_run` input so manual runs can produce the analysis summary without sending rerun requests.
 - Dry-run summaries still report whether the analyzed run would be eligible to rerun if dry run were disabled; the execution gate remains suppressed separately.
+- Automatic rerun triggers only when the run attempt is 3 or fewer (`run_attempt <= 3`), allowing up to 2 automatic reruns (3 total attempts) per PR run.
 - Automatic rerun requires at least one retryable job.
-- Automatic rerun is suppressed when matched jobs exceed the configured cap.
+- Automatic rerun is suppressed when matched jobs exceed the configured cap (default: 5).
+- For attempts after the first (`run_attempt > 1`), a stricter cap applies: rerun is suppressed unless the matched job count is strictly less than the configured cap (for example, fewer than 5 jobs by default). Aggregator jobs such as `Final Results` and `Tests / Final Test Results` are excluded from this count.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.
 - The workflow targets only the matched jobs when issuing rerun requests rather than rerunning the entire source run, although GitHub's job-rerun API also reruns dependent jobs automatically.
 - The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.
@@ -49,4 +51,4 @@ Those tests are intentionally behavior-focused rather than regex-focused:
 - they use representative fixtures for each supported behavior
 - they keep representative job and step fixtures anchored to the current CI workflow names so matcher coverage does not drift from the implementation
 - they cover the mixed-failure veto and ignored-step override explicitly
-- they keep only a minimal set of YAML contract checks for safety rails such as first-attempt-only automatic reruns, the optional manual `dry_run` override, enabling manual reruns through `workflow_dispatch`, and gating the rerun job on `rerun_eligible`
+- they keep only a minimal set of YAML contract checks for safety rails such as the optional manual `dry_run` override, up-to-three-attempt automatic reruns, enabling manual reruns through `workflow_dispatch`, and gating the rerun job on `rerun_execution_eligible`
