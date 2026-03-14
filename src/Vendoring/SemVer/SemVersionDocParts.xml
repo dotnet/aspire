@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<docParts>
+    <part id="CompareToReturns">
+        <returns>
+            An integer that indicates whether this instance precedes, follows, or is equal to
+            the other in the sort order.
+            <list type="table">
+                <listheader>
+                    <term>Value</term>
+                    <description>Condition</description>
+                </listheader>
+                <item>
+                    <term>Less than zero</term>
+                    <description>This instance precedes the other in the sort order.</description>
+                </item>
+                <item>
+                    <term>Zero</term>
+                    <description>This instance is equal to the other.</description>
+                </item>
+                <item>
+                    <term>Greater than zero</term>
+                    <description>
+                        This instance follows the other in the sort order
+                        or the other is <see langword="null" />.
+                    </description>
+                </item>
+            </list>
+        </returns>
+    </part>
+    <part id="MetadataIdentifiers">
+        <remarks>
+            <para>The build metadata is a series of dot separated identifiers separated from the
+            rest of the version number with a plus sign ('<c>+</c>'). Valid metadata identifiers are
+            non-empty and consist of ASCII alphanumeric characters and hyphens (<c>[0-9A-Za-z-]</c>).</para>
+
+            <para>The metadata does not affect precedence. Two version numbers differing only in
+            build metadata have the same precedence. However, metadata does affect sort order. An
+            otherwise identical version without metadata sorts before one that has metadata.</para>
+        </remarks>
+    </part>
+    <part id="PrereleaseIdentifiers">
+        <remarks>
+            <para>A prerelease version is denoted by appending a hyphen ('<c>-</c>') and a series
+            of dot separated identifiers immediately following the patch version number. Each
+            prerelease identifier may be numeric or alphanumeric. Valid numeric identifiers consist
+            of ASCII digits (<c>[0-9]</c>) without leading zeros. Valid alphanumeric identifiers are
+            non-empty strings of ASCII alphanumeric and hyphen characters (<c>[0-9A-Za-z-]</c>) with
+            at least one non-digit character.</para>
+
+            <para>Prerelease versions have lower precedence than release versions. Prerelease
+            version precedence is determined by comparing each prerelease identifier in order from
+            left to right. Numeric identifiers have lower precedence than alphanumeric identifiers.
+            Numeric identifiers are compared numerically. Alphanumeric identifiers are compared
+            lexically in ASCII sort order.</para>
+        </remarks>
+    </part>
+    <part id="PrecedenceOrder">
+        <remarks>
+            <para>Precedence order is determined by comparing the major, minor, patch, and prerelease
+            portion in order from left to right. Versions that differ only by build metadata have the
+            same precedence. The major, minor, and patch version numbers are compared numerically. A
+            prerelease version precedes a release version.</para>
+
+            <para>The prerelease portion is compared by comparing each prerelease identifier from
+            left to right. Numeric prerelease identifiers precede alphanumeric identifiers. Numeric
+            identifiers are compared numerically. Alphanumeric identifiers are compared lexically
+            in ASCII sort order. A longer series of prerelease identifiers follows a shorter series
+            if all the preceding identifiers are equal.</para>
+        </remarks>
+    </part>
+    <part id="SortOrder">
+        <remarks>
+            <para>Sort order is consistent with precedence order, but provides an order for versions
+            with the same precedence. Sort order is determined by comparing the major, minor,
+            patch, prerelease portion, and build metadata in order from left to right. The major,
+            minor, and patch version numbers are compared numerically. A prerelease version precedes
+            a release version.</para>
+            <para>The prerelease portion is compared by comparing each prerelease identifier from
+            left to right. Numeric prerelease identifiers precede alphanumeric identifiers. Numeric
+            identifiers are compared numerically. Alphanumeric identifiers are compared lexically
+            in ASCII sort order. A longer series of prerelease identifiers follows a shorter series
+            if all the preceding identifiers are equal.</para>
+            <para>Otherwise equal versions without build metadata precede those with metadata. The
+            build metadata is compared by comparing each metadata identifier. Identifiers are
+            compared lexically in ASCII sort order. A longer series of metadata identifiers follows
+            a shorter series if all the preceding identifiers are equal.</para>
+        </remarks>
+    </part>
+</docParts>

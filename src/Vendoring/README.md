@@ -60,6 +60,24 @@ git checkout tags/Instrumentation.StackExchangeRedis-1.0.0-rc9.13
 - In `StackExchangeRedisConnectionInstrumentation.cs` update `ActivitySourceName` to `internal const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";` and `Version` to `internal static readonly Version Version = new Version(1, 0, 0, 13);`
 - Apply the changes from https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/1625 if necessary.
 
+## SemVer
+
+```console
+git clone https://github.com/WalkerCodeRanger/semver.git
+git fetch --tags
+git checkout tags/v3.0.0
+```
+
+### Instructions
+
+- Copy files from `Semver` to `src/Vendoring/SemVer`:
+    - `**\*.cs`
+    - `SemVersionDocParts.xml`
+- Copy files from the repo root to `src/Vendoring/SemVer`:
+    - `License.txt`
+- Do not copy project files, tests, or repo metadata such as `Semver.csproj`, `README.md`, `ApiCompatSuppressions.xml`, `Properties/**`, or `PublicAPI/**`.
+- Add `src/Vendoring/SemVer/.editorconfig` to suppress analyzer and style diagnostics for the vendored code.
+
 ## Customizations
 
 - Add `#nullable disable` in files that require it.

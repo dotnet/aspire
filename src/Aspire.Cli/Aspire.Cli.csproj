@@ -56,7 +56,6 @@
     <PackageReference Include="OpenTelemetry.Exporter.Console" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="Semver" />
     <PackageReference Include="Sigstore" />
     <PackageReference Include="Tuf" />
     <PackageReference Include="ModelContextProtocol" />
@@ -123,6 +122,7 @@
     <Compile Include="$(SharedDir)ConsoleLogs\SharedAIHelpers.cs" Link="ConsoleLogs\SharedAIHelpers.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="ConsoleLogs\TimestampParser.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\UrlParser.cs" Link="ConsoleLogs\UrlParser.cs" />
+    <Compile Include="$(VendoringDir)SemVer\**\*.cs" LinkBase="SemVer" />
   </ItemGroup>
 
   <ItemGroup>
