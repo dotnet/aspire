@@ -304,6 +304,11 @@ internal sealed class AtsMarshaller
     {
         if (node == null)
         {
+            if (targetType == typeof(CancellationToken))
+            {
+                return CancellationToken.None;
+            }
+
             return null;
         }
 

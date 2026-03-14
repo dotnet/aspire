@@ -25,6 +25,9 @@ console.log(`AppHost directory: ${dir}`);
 // Add PostgreSQL server and database
 const postgres = await builder.addPostgres("postgres");
 const db = await postgres.addDatabase("db");
+const localCancellation = new AbortController();
+const dbUriExpression = await db.uriExpression.get();
+const _dbUri = await dbUriExpression.getValue(localCancellation.signal);
 
 console.log("Added PostgreSQL server with database 'db'");
 

@@ -263,6 +263,17 @@ public class AtsMarshallerTests
     }
 
     [Fact]
+    public void UnmarshalFromJson_ReturnsCancellationTokenNoneForNullNode()
+    {
+        var (marshaller, context) = CreateMarshallerWithContext();
+
+        var result = marshaller.UnmarshalFromJson(null, typeof(CancellationToken), context);
+
+        var token = Assert.IsType<CancellationToken>(result);
+        Assert.Equal(CancellationToken.None, token);
+    }
+
+    [Fact]
     public void UnmarshalFromJson_UnmarshalsHandleReference()
     {
         var registry = new HandleRegistry();

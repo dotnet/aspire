@@ -176,10 +176,10 @@ export class Handle<T extends string = string> {
 export class CancellationToken {
     private readonly _signal?: AbortSignal;
     private readonly _remoteTokenId?: string;
-    private _registeredTokenId?: string | null;
+    private _registeredTokenId?: string;
 
     constructor(signal?: AbortSignal);
-    constructor(tokenId?: string | null);
+    constructor(tokenId?: string);
     constructor(value?: AbortSignal | string | null) {
         if (typeof value === 'string') {
             this._remoteTokenId = value;
@@ -218,7 +218,7 @@ export class CancellationToken {
     /**
      * Serializes the token for JSON-RPC transport.
      */
-    toJSON(): string | null {
+    toJSON(): string | undefined {
         if (this._remoteTokenId) {
             return this._remoteTokenId;
         }
@@ -227,7 +227,7 @@ export class CancellationToken {
             return this._registeredTokenId;
         }
 
-        this._registeredTokenId = registerCancellation(this._signal) ?? null;
+        this._registeredTokenId = registerCancellation(this._signal);
         return this._registeredTokenId;
     }
 }
@@ -503,7 +503,7 @@ let currentClient: AspireClient | null = null;
  * When the AbortSignal is aborted, sends a cancelToken request to the host.
  *
  * @param signalOrToken - The signal or token to register (optional)
- * @returns The cancellation ID, null for CancellationToken.None, or undefined if no value was provided
+ * @returns The cancellation ID, or undefined if no value was provided or the token maps to CancellationToken.None
  *
  * @example
  * const controller = new AbortController();
@@ -515,7 +515,7 @@ let currentClient: AspireClient | null = null;
  * // Pass id to capability invocation
  * // Later: controller.abort() will cancel the operation
  */
-export function registerCancellation(signalOrToken?: AbortSignal | CancellationToken): string | null | undefined {
+export function registerCancellation(signalOrToken?: AbortSignal | CancellationToken): string | undefined {
     if (!signalOrToken) {
         return undefined;
     }

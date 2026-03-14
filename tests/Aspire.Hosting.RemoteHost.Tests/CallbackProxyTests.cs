@@ -177,7 +177,26 @@ public class CallbackProxyTests
         var tokenId = args["p1"]?.GetValue<string>();
         Assert.NotNull(tokenId);
         Assert.StartsWith("ct_", tokenId);
-        Assert.StartsWith("ct_", args["$cancellationToken"]?.GetValue<string>());
+        Assert.Equal(tokenId, args["$cancellationToken"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task InvokedProxy_WithOnlyCancellationToken_UsesPositionalTokenId()
+    {
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
+        using var cts = new CancellationTokenSource();
+
+        var proxy = (TestCallbackWithOnlyCancellation)factory.CreateProxy("test-callback", typeof(TestCallbackWithOnlyCancellation))!;
+
+        await proxy(cts.Token);
+
+        Assert.Single(invoker.Invocations);
+        var args = invoker.Invocations[0].Args as JsonObject;
+        Assert.NotNull(args);
+        var tokenId = args["p0"]?.GetValue<string>();
+        Assert.NotNull(tokenId);
+        Assert.Equal(tokenId, args["$cancellationToken"]?.GetValue<string>());
     }
 
     // Callback error handling tests
@@ -369,6 +388,8 @@ public class CallbackProxyTests
     public delegate Task<string> TestCallbackWithStringResult(string input);
 
     public delegate Task TestCallbackWithCancellation(string value, CancellationToken cancellationToken);
+
+    public delegate Task TestCallbackWithOnlyCancellation(CancellationToken cancellationToken);
 
     public delegate void TestSyncVoidCallbackWithDto(TestCallbackDto dto);
 
