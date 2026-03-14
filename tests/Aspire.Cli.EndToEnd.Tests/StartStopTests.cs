@@ -26,47 +26,44 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for start/stop commands
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        // Prepare Docker environment (prompt counting, umask, env vars)
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        // Install the Aspire CLI
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Create a new project using aspire new
-        sequenceBuilder.AspireNew("AspireStarterApp", counter);
+        await auto.AspireNewAsync("AspireStarterApp", counter);
 
         // Navigate to the AppHost directory
-        sequenceBuilder.Type("cd AspireStarterApp/AspireStarterApp.AppHost")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("cd AspireStarterApp/AspireStarterApp.AppHost");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Start the AppHost in the background using aspire start
-        sequenceBuilder.Type("aspire start")
-            .Enter()
-            .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire start");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(3),
+            description: "AppHost started successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
-        sequenceBuilder.Type("aspire stop")
-            .Enter()
-            .WaitUntil(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(1))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(1),
+            description: "AppHost stopped successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell
-        sequenceBuilder.Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -83,30 +80,27 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searcher for the informational message (not an error)
-        var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHost found");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        // Prepare Docker environment (prompt counting, umask, env vars)
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        // Install the Aspire CLI
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Run aspire stop with no running AppHost - should exit with code 0
-        sequenceBuilder.Type("aspire stop")
-            .Enter()
-            .WaitUntil(s => waitForNoRunningAppHosts.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0,
+            timeout: TimeSpan.FromSeconds(30),
+            description: "No running AppHost found message");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell
-        sequenceBuilder.Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -123,62 +117,59 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for detach/add/stop
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForPackageAddedSuccessfully = new CellPatternSearcher()
-            .Find("was added successfully.");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        // Prepare Docker environment (prompt counting, umask, env vars)
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        // Install the Aspire CLI
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Create a new project using aspire new
-        sequenceBuilder.AspireNew("AspireAddTestApp", counter);
+        await auto.AspireNewAsync("AspireAddTestApp", counter);
 
         // Navigate to the AppHost directory
-        sequenceBuilder.Type("cd AspireAddTestApp/AspireAddTestApp.AppHost")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("cd AspireAddTestApp/AspireAddTestApp.AppHost");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Start the AppHost in detached mode (locks the project file)
-        sequenceBuilder.Type("aspire start")
-            .Enter()
-            .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire start");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(3),
+            description: "AppHost started successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Add a package while the AppHost is running - this should auto-stop the
         // running instance before modifying the project, then succeed.
         // --non-interactive skips the version selection prompt.
-        sequenceBuilder.Type("aspire add mongodb --non-interactive")
-            .Enter()
-            .WaitUntil(s => waitForPackageAddedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire add mongodb --non-interactive");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("was added successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(3),
+            description: "package added successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: stop if still running (the add command may have stopped it)
         // aspire stop may return a non-zero exit code if no instances are found
         // (already stopped by aspire add), so wait for known output patterns.
-        var waitForStopResult = new CellPatternSearcher()
-            .Find("No running AppHost found");
-        var waitForStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        sequenceBuilder.Type("aspire stop")
-            .Enter()
-            .WaitUntil(s => waitForStopResult.Search(s).Count > 0 || waitForStoppedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(1))
-            .IncrementSequence(counter);
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s =>
+        {
+            var noRunning = new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0;
+            var stopped = new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0;
+            return noRunning || stopped;
+        }, timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
+        await auto.WaitForAnyPromptAsync(counter);
 
         // Exit the shell
-        sequenceBuilder.Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -195,73 +186,70 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for detach/add/stop
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForIntegrationSelectionPrompt = new CellPatternSearcher()
-            .Find("Select an integration to add:");
-
-        var waitForVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("Select a version of");
-
-        var waitForPackageAddedSuccessfully = new CellPatternSearcher()
-            .Find("was added successfully.");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        // Prepare Docker environment (prompt counting, umask, env vars)
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        // Install the Aspire CLI
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Create a new project using aspire new
-        sequenceBuilder.AspireNew("AspireAddInteractiveApp", counter);
+        await auto.AspireNewAsync("AspireAddInteractiveApp", counter);
 
         // Navigate to the AppHost directory
-        sequenceBuilder.Type("cd AspireAddInteractiveApp/AspireAddInteractiveApp.AppHost")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("cd AspireAddInteractiveApp/AspireAddInteractiveApp.AppHost");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Start the AppHost in detached mode (locks the project file)
-        sequenceBuilder.Type("aspire start")
-            .Enter()
-            .WaitUntil(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire start");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(3),
+            description: "AppHost started successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire add interactively (no integration argument) while AppHost is running.
         // This exercises the interactive package selection flow and verifies the
         // running instance is auto-stopped before modifying the project.
-        sequenceBuilder.Type("aspire add")
-            .Enter()
-            .WaitUntil(s => waitForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromMinutes(1))
-            .Type("mongodb") // type to filter the list
-            .Enter() // select the filtered result
-            .WaitUntil(s => waitForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // Accept the default version
-            .WaitUntil(s => waitForPackageAddedSuccessfully.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire add");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("Select an integration to add:").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(1),
+            description: "integration selection prompt");
+        await auto.TypeAsync("mongodb"); // type to filter the list
+        await auto.EnterAsync(); // select the filtered result
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("Select a version of").Search(s).Count > 0,
+            timeout: TimeSpan.FromSeconds(30),
+            description: "version selection prompt");
+        await auto.EnterAsync(); // Accept the default version
+        await auto.WaitUntilAsync(
+            s => new CellPatternSearcher().Find("was added successfully.").Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(2),
+            description: "package added successfully");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: stop if still running
         // aspire stop may return a non-zero exit code if no instances are found
         // (already stopped by aspire add), so wait for known output patterns.
-        var waitForStopResult2 = new CellPatternSearcher()
-            .Find("No running AppHost found");
-        var waitForStoppedSuccessfully2 = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        sequenceBuilder.Type("aspire stop")
-            .Enter()
-            .WaitUntil(s => waitForStopResult2.Search(s).Count > 0 || waitForStoppedSuccessfully2.Search(s).Count > 0, TimeSpan.FromMinutes(1))
-            .IncrementSequence(counter);
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s =>
+        {
+            var noRunning = new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0;
+            var stopped = new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0;
+            return noRunning || stopped;
+        }, timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
+        await auto.WaitForAnyPromptAsync(counter);
 
         // Exit the shell
-        sequenceBuilder.Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
