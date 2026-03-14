@@ -135,7 +135,7 @@ internal sealed class AtsMarshaller
             return null;
         }
 
-        if (typeRef.TypeId == Hosting.Ats.AtsConstants.CancellationToken && value is CancellationToken cancellationToken)
+        if (typeRef.TypeId == AtsConstants.CancellationToken && value is CancellationToken cancellationToken)
         {
             return SerializeCancellationToken(cancellationToken);
         }
