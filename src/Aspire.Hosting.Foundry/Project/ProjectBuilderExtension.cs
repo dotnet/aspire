@@ -48,30 +48,6 @@ public static class AzureCognitiveServicesProjectExtensions
     }
 
     /// <summary>
-    /// Adds a Microsoft Foundry project resource to the application model.
-    ///
-    /// This convenience method will create a default Microsoft Foundry account resource named
-    /// <c>{name}-foundry</c> and then add the project beneath it. It is equivalent to calling
-    /// <c>builder.AddFoundry($"{name}-foundry").AddProject(name)</c>.
-    ///
-    /// This will also set the project as a deployment target for agents.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the Microsoft Foundry project resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the Microsoft Foundry project resource.</returns>
-    [AspireExport("addFoundryProject", Description = "Adds a Microsoft Foundry project resource and its parent Microsoft Foundry resource to the application model.")]
-    public static IResourceBuilder<AzureCognitiveServicesProjectResource> AddFoundryProject(
-        this IDistributedApplicationBuilder builder,
-        [ResourceName] string name)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
-
-        var account = builder.AddFoundry($"{name}-foundry");
-        return account.AddProject(name);
-    }
-
-    /// <summary>
     /// Associates a container registry with the Microsoft Foundry project resource for
     /// publishing and locating hosted agents.
     /// </summary>

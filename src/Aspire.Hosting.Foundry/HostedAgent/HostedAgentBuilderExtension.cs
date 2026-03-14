@@ -74,6 +74,50 @@ public static class HostedAgentResourceBuilderExtensions
     /// Microsoft Foundry project resource in the application model. If none exists,
     /// a new project resource (and its parent account resource) will be created automatically.
     /// </summary>
+    [AspireExport("publishAsHostedAgentExecutable", MethodName = "publishAsHostedAgent", Description = "Publishes an executable resource as a hosted agent in Microsoft Foundry.")]
+    internal static IResourceBuilder<T> PublishAsHostedAgentForPolyglot<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<AzureCognitiveServicesProjectResource>? project = null,
+        Action<HostedAgentAtsConfiguration>? configure = null)
+        where T : ExecutableResource
+    {
+        Action<HostedAgentConfiguration>? hostedAgentConfigure = null;
+        if (configure is not null)
+        {
+            hostedAgentConfigure = configuration =>
+            {
+                var atsConfiguration = new HostedAgentAtsConfiguration();
+                configure(atsConfiguration);
+
+                var mappedConfiguration = atsConfiguration.ToHostedAgentConfiguration(configuration.Image);
+                configuration.Description = mappedConfiguration.Description;
+                configuration.Cpu = mappedConfiguration.Cpu;
+                configuration.Memory = mappedConfiguration.Memory;
+
+                configuration.Metadata.Clear();
+                foreach (var kvp in mappedConfiguration.Metadata)
+                {
+                    configuration.Metadata[kvp.Key] = kvp.Value;
+                }
+
+                configuration.EnvironmentVariables.Clear();
+                foreach (var kvp in mappedConfiguration.EnvironmentVariables)
+                {
+                    configuration.EnvironmentVariables[kvp.Key] = kvp.Value;
+                }
+            };
+        }
+
+        return PublishAsHostedAgent(builder, project, configure: hostedAgentConfigure);
+    }
+
+    /// <summary>
+    /// Publish the containerized agent as a hosted agent in Microsoft Foundry.
+    ///
+    /// If a project resource is not provided, the method will attempt to find an existing
+    /// Microsoft Foundry project resource in the application model. If none exists,
+    /// a new project resource (and its parent account resource) will be created automatically.
+    /// </summary>
     /// <remarks>This overload is not available in polyglot app hosts. Use other Microsoft Foundry project APIs to configure hosted agents from .NET.</remarks>
     [AspireExportIgnore(Reason = "HostedAgentConfiguration callback parameters are not ATS-compatible.")]
     public static IResourceBuilder<T> PublishAsHostedAgent<T>(
@@ -252,7 +296,9 @@ public static class HostedAgentResourceBuilderExtensions
             projResource = builder.ApplicationBuilder.Resources.OfType<AzureCognitiveServicesProjectResource>().FirstOrDefault();
             if (projResource is null)
             {
-                project = builder.ApplicationBuilder.AddFoundryProject($"{resource.Name}-proj");
+                project = builder.ApplicationBuilder
+                    .AddFoundry($"{resource.Name}-proj-foundry")
+                    .AddProject($"{resource.Name}-proj");
                 projResource = project.Resource;
             }
             else

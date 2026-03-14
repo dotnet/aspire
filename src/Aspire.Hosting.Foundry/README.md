@@ -140,8 +140,6 @@ var myService = builder.AddPythonApp("agent", "./app", "main:app")
                        .WithReference(project);
 ```
 
-If you do not need to customize or reuse the parent Microsoft Foundry account, `builder.AddFoundryProject("my-project")` is a shorthand for `builder.AddFoundry("my-project-foundry").AddProject("my-project")`.
-
 The project can also be configured with additional Azure resources:
 
 ```csharp

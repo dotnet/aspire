@@ -22,33 +22,6 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void AddFoundryProject_CreatesAccountAndProject()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddFoundryProject("my-project");
-
-        Assert.IsType<AzureCognitiveServicesProjectResource>(project.Resource);
-        Assert.Equal("my-project", project.Resource.Name);
-
-        // Should also create a parent account
-        var account = builder.Resources.OfType<FoundryResource>().SingleOrDefault();
-        Assert.NotNull(account);
-        Assert.Same(account, project.Resource.Parent);
-    }
-
-    [Fact]
-    public void AddFoundryProject_GeneratesParentFoundryName()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var project = builder.AddFoundryProject("my-project");
-
-        var account = Assert.Single(builder.Resources.OfType<FoundryResource>());
-        Assert.Equal("my-project-foundry", account.Name);
-        Assert.Same(account, project.Resource.Parent);
-    }
-
-    [Fact]
     public void AddProject_ReferencesDefaultContainerRegistryForProvisioningOrdering()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -212,14 +185,4 @@ public class ProjectResourceTests
         Assert.Same(foundry.Resource, project.Resource.CapabilityHostConfiguration.AzureOpenAI);
     }
 
-    [Fact]
-    public void AddFoundryProject_ResourceIsCreated()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddFoundryProject("my-project");
-
-        // If the resource was created, the basic infrastructure is functional
-        Assert.NotNull(project.Resource);
-        Assert.IsType<AzureCognitiveServicesProjectResource>(project.Resource);
-    }
 }
