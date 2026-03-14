@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Dashboard.Model;
@@ -21,6 +22,7 @@ namespace Aspire.Hosting;
 public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
+    private static readonly MethodInfo s_dispatchPolyglotWithReferenceMethod = typeof(ResourceBuilderExtensions).GetMethod(nameof(DispatchPolyglotWithReference), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     /// <summary>
     /// Adds an environment variable to the resource.
@@ -547,6 +549,122 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(flags));
     }
 
+    [AspireExport("withReference", Description = "Adds a reference to another resource")]
+    internal static IResourceBuilder<TDestination> WithReference<TDestination>(
+        this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName = null,
+        bool optional = false,
+        string? name = null)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        var polyglotBuilder = (IResourceBuilder<IResourceWithEnvironment>)builder;
+        var dispatched = WithReferenceCore(polyglotBuilder, source, connectionName, optional, name);
+        return (IResourceBuilder<TDestination>)dispatched;
+    }
+
+    private static IResourceBuilder<IResourceWithEnvironment> WithReferenceCore(
+        IResourceBuilder<IResourceWithEnvironment> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName,
+        bool optional,
+        string? name)
+    {
+        if (TryDispatchPolyglotWithReference(builder, source, connectionName, optional, name, out var customDispatch))
+        {
+            return customDispatch;
+        }
+
+        if (source.Resource is IResourceWithConnectionString && source is IResourceBuilder<IResourceWithConnectionString> connectionStringSource)
+        {
+            if (name is not null)
+            {
+                throw new InvalidOperationException("Named service references are not supported for connection string resources.");
+            }
+
+            return WithReference(builder, connectionStringSource, connectionName, optional);
+        }
+
+        if (source.Resource is IResourceWithServiceDiscovery && source is IResourceBuilder<IResourceWithServiceDiscovery> serviceDiscoverySource)
+        {
+            if (optional)
+            {
+                throw new InvalidOperationException("Optional references are only supported for connection string resources.");
+            }
+
+            var serviceName = GetServiceReferenceName(connectionName, name);
+            return serviceName is null
+                ? WithReference(builder, serviceDiscoverySource)
+                : WithReference(builder, serviceDiscoverySource, serviceName);
+        }
+
+        if (source.Resource is ExternalServiceResource && source is IResourceBuilder<ExternalServiceResource> externalServiceSource)
+        {
+            if (optional)
+            {
+                throw new InvalidOperationException("Optional references are only supported for connection string resources.");
+            }
+
+            if (connectionName is not null || name is not null)
+            {
+                throw new InvalidOperationException("Named references are not supported for external services.");
+            }
+
+            return WithReference(builder, externalServiceSource);
+        }
+
+        throw new InvalidOperationException($"The resource '{source.Resource.Name}' does not support polyglot WithReference dispatch.");
+    }
+
+    private static bool TryDispatchPolyglotWithReference(
+        IResourceBuilder<IResourceWithEnvironment> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName,
+        bool optional,
+        string? name,
+        [NotNullWhen(true)] out IResourceBuilder<IResourceWithEnvironment>? dispatchedBuilder)
+    {
+        var sourceType = source.Resource.GetType();
+        var polyglotInterface = sourceType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType
+                && i.GetGenericTypeDefinition() == typeof(IResourceWithPolyglotWithReference<>)
+                && i.GetGenericArguments()[0] == sourceType);
+
+        if (polyglotInterface is null)
+        {
+            dispatchedBuilder = null;
+            return false;
+        }
+
+        var dispatchMethod = s_dispatchPolyglotWithReferenceMethod.MakeGenericMethod(sourceType);
+        dispatchedBuilder = (IResourceBuilder<IResourceWithEnvironment>)dispatchMethod.Invoke(null, [builder, source, connectionName, optional, name])!;
+        return true;
+    }
+
+    private static IResourceBuilder<IResourceWithEnvironment> DispatchPolyglotWithReference<TSource>(
+        IResourceBuilder<IResourceWithEnvironment> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName,
+        bool optional,
+        string? name)
+        where TSource : class, IResource, IResourceWithPolyglotWithReference<TSource>
+    {
+        return TSource.WithReference(builder, (IResourceBuilder<TSource>)source, connectionName, optional, name);
+    }
+
+    private static string? GetServiceReferenceName(string? connectionName, string? name)
+    {
+        if (connectionName is not null && name is not null && !string.Equals(connectionName, name, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Specify either connectionName or name for service discovery references, but not both.");
+        }
+
+        return name ?? connectionName;
+    }
+
     /// <summary>
     /// Injects a connection string as an environment variable from the source resource into the destination resource, using the source resource's name as the connection string name (if not overridden).
     /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
@@ -566,7 +684,7 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withReference", Description = "Adds a reference to another resource")]
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal withReference dispatcher export.")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
@@ -651,7 +769,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withServiceReference", Description = "Adds a service discovery reference to another resource")]
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the generic withReference export.")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
@@ -672,7 +790,7 @@ public static class ResourceBuilderExtensions
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <param name="name">The name of the resource for the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withServiceReferenceNamed", Description = "Adds a named service discovery reference")]
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the generic withReference export.")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string name)
         where TDestination : IResourceWithEnvironment
     {
