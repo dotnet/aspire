@@ -64,6 +64,22 @@ When reviewing pull requests:
   - Use existing internal feeds that already mirror public packages (like dotnet-public, dotnet-eng)
 * The wildcard pattern mappings (`<package pattern="*" />`) in dotnet-public and dotnet-eng feeds typically provide access to commonly-used public packages
 
+### Vendored Source
+
+The vendored source under `src/Vendoring/**` is copied from third-party projects and may intentionally preserve upstream structure, naming, and implementation details.
+
+When reviewing pull requests:
+
+* **Do not leave style or refactoring comments on vendored files** just because they differ from local repository conventions.
+* Focus review on:
+  - whether the vendored code matches the documented upstream source/tag
+  - whether Aspire-specific customizations are minimal and intentional
+  - whether licensing, attribution, and sync instructions are kept up to date
+* Only flag vendored code issues when:
+  - the vendored content appears to diverge unintentionally from upstream
+  - Aspire-specific edits introduce bugs or maintenance risk
+  - the accompanying vendoring documentation is missing or inconsistent
+
 ## Formatting
 
 * Apply code-formatting style defined in `.editorconfig`.
