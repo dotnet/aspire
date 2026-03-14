@@ -96,6 +96,31 @@ internal static class ConfigurationHelper
         // (e.g., both "features:key" flat entry and "features" nested object).
         TryNormalizeSettingsFile(filePath);
 
+        // Pre-process the file to handle comments and trailing commas.
+        // Microsoft.Extensions.Configuration.Json doesn't support JSON comments,
+        // so we parse with comment support and load the clean JSON via stream.
+        try
+        {
+            var content = File.ReadAllText(filePath);
+            var node = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+            if (node is not null)
+            {
+                var cleanJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                var bytes = System.Text.Encoding.UTF8.GetBytes(cleanJson);
+                configuration.AddJsonStream(new MemoryStream(bytes));
+                return;
+            }
+        }
+        catch
+        {
+            // If pre-processing fails, fall through to direct file loading.
+            // AddJsonFile will throw a clearer error for the user.
+        }
+
         configuration.AddJsonFile(filePath, optional: true);
     }
 
@@ -113,7 +138,11 @@ internal static class ConfigurationHelper
                 return false;
             }
 
-            var settings = JsonNode.Parse(content)?.AsObject();
+            var settings = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            })?.AsObject();
 
             if (settings is null)
             {

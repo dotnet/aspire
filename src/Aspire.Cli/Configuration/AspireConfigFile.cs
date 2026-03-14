@@ -88,7 +88,8 @@ internal sealed class AspireConfigFile
     /// <summary>
     /// Loads aspire.config.json from the specified directory.
     /// </summary>
-    /// <returns>The deserialized config, or <c>null</c> if the file does not exist or is malformed.</returns>
+    /// <returns>The deserialized config, or <c>null</c> if the file does not exist.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the file exists but contains invalid JSON.</exception>
     public static AspireConfigFile? Load(string directory)
     {
         var filePath = Path.Combine(directory, FileName);
@@ -100,12 +101,15 @@ internal sealed class AspireConfigFile
         try
         {
             var json = File.ReadAllText(filePath);
-            return JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.AspireConfigFile);
+            return JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.AspireConfigFile)
+                ?? new AspireConfigFile();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // The file may have been hand-edited with invalid JSON.
-            return null;
+            throw new InvalidOperationException(
+                $"The configuration file '{filePath}' contains invalid JSON: {ex.Message}" +
+                Environment.NewLine +
+                "Please fix the JSON syntax error and try again.", ex);
         }
     }
 
@@ -229,9 +233,32 @@ internal sealed class AspireConfigFile
                     profile.EnvironmentVariables = new Dictionary<string, string>();
                     foreach (var envProp in envVars.EnumerateObject())
                     {
-                        if (envProp.Value.ValueKind == JsonValueKind.String)
+                        var envValue = envProp.Value.ValueKind switch
                         {
-                            profile.EnvironmentVariables[envProp.Name] = envProp.Value.GetString()!;
+                            JsonValueKind.String => envProp.Value.GetString()!,
+                            JsonValueKind.True => "true",
+                            JsonValueKind.False => "false",
+                            JsonValueKind.Number => envProp.Value.GetRawText(),
+                            JsonValueKind.Null => "",
+                            _ => null
+                        };
+
+                        if (envValue is not null)
+                        {
+                            if (envProp.Value.ValueKind != JsonValueKind.String)
+                            {
+                                logger?.LogWarning(
+                                    "Environment variable '{Name}' has a non-string value ({ValueKind}). Converting to string \"{Value}\".",
+                                    envProp.Name, envProp.Value.ValueKind, envValue);
+                            }
+
+                            profile.EnvironmentVariables[envProp.Name] = envValue;
+                        }
+                        else
+                        {
+                            logger?.LogWarning(
+                                "Environment variable '{Name}' has an unsupported value type ({ValueKind}) and will be ignored.",
+                                envProp.Name, envProp.Value.ValueKind);
                         }
                     }
                 }

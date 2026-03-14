@@ -177,7 +177,16 @@ internal sealed class ProjectLocator(
         while (true)
         {
             // Check aspire.config.json first
-            var aspireConfig = AspireConfigFile.Load(searchDirectory.FullName);
+            AspireConfigFile? aspireConfig;
+            try
+            {
+                aspireConfig = AspireConfigFile.Load(searchDirectory.FullName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                interactionService.DisplayError(ex.Message);
+                return null;
+            }
             if (aspireConfig?.AppHost?.Path is { } configAppHostPath)
             {
                 var qualifiedPath = Path.IsPathRooted(configAppHostPath)

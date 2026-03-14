@@ -190,9 +190,17 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
     {
         var configDir = GetConfigDirectory(directory);
-        var aspireConfig = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
-        _logger.LogDebug("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
-        return aspireConfig.ToLegacyConfiguration();
+        try
+        {
+            var aspireConfig = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
+            _logger.LogDebug("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
+            return aspireConfig.ToLegacyConfiguration();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Failed to load configuration from {Directory}", configDir.FullName);
+            throw;
+        }
     }
 
     private void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
@@ -594,10 +602,17 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     {
         // Check aspire.config.json first for launch profiles (may be in a parent directory)
         var configDir = GetConfigDirectory(directory);
-        var aspireConfig = AspireConfigFile.Load(configDir.FullName);
-        if (aspireConfig?.Profiles is { Count: > 0 })
+        try
         {
-            return ReadProfileFromAspireConfig(aspireConfig);
+            var aspireConfig = AspireConfigFile.Load(configDir.FullName);
+            if (aspireConfig?.Profiles is { Count: > 0 })
+            {
+                return ReadProfileFromAspireConfig(aspireConfig);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Failed to load config for launch profiles from {Directory}", configDir.FullName);
         }
 
         // Fall back to apphost.run.json / launchSettings.json

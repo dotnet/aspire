@@ -104,8 +104,16 @@ internal sealed class AddCommand : BaseCommand
                 {
                     // TODO: Remove legacy AspireJsonConfiguration fallback once confident most users
                     // have migrated. Tracked by https://github.com/dotnet/aspire/issues/15239
-                    configuredChannel = AspireConfigFile.Load(appHostDirectory)?.Channel
-                        ?? AspireJsonConfiguration.Load(appHostDirectory)?.Channel;
+                    try
+                    {
+                        configuredChannel = AspireConfigFile.Load(appHostDirectory)?.Channel
+                            ?? AspireJsonConfiguration.Load(appHostDirectory)?.Channel;
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        InteractionService.DisplayError(ex.Message);
+                        return ExitCodeConstants.FailedToLoadConfiguration;
+                    }
                 }
             }
 
