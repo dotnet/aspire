@@ -524,6 +524,7 @@ internal static class CliE2ETestHelpers
         DockerfileVariant variant = DockerfileVariant.DotNet,
         bool mountDockerSocket = false,
         TemporaryWorkspace? workspace = null,
+        IEnumerable<string>? additionalVolumes = null,
         int width = 160,
         int height = 48,
         [CallerMemberName] string testName = "")
@@ -567,6 +568,14 @@ internal static class CliE2ETestHelpers
                     // workspace.WorkspaceRoot.Name matches inside the container
                     // (e.g., aspire CLI uses the dir name as the default project name).
                     c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace/{workspace.WorkspaceRoot.Name}");
+                }
+
+                if (additionalVolumes is not null)
+                {
+                    foreach (var volume in additionalVolumes)
+                    {
+                        c.Volumes.Add(volume);
+                    }
                 }
 
                 // Always skip the expensive source build inside Docker.

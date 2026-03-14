@@ -1,0 +1,696 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Cli.EndToEnd.Tests.Helpers;
+using Aspire.Cli.Tests.Utils;
+using Aspire.TestUtilities;
+using Hex1b;
+using Hex1b.Automation;
+using Xunit;
+
+namespace Aspire.Cli.EndToEnd.Tests;
+
+/// <summary>
+/// End-to-end tests verifying configuration migration from legacy CLI config formats
+/// (globalsettings.json, .aspire/settings.json) to the new unified aspire.config.json format.
+/// These tests simulate the upgrade path users experience when updating from older CLI versions.
+/// </summary>
+/// <remarks>
+/// Each test bind-mounts a host-side directory as <c>/root/.aspire/</c> in the container,
+/// enabling direct host-side file creation and verification via <c>ExecuteCallback</c>.
+/// </remarks>
+public sealed class ConfigMigrationTests(ITestOutputHelper output)
+{
+    /// <summary>
+    /// Pin to the last CLI version before the aspire.config.json consolidation.
+    /// When 13.2 ships with the config change, this version ensures the upgrade
+    /// test exercises the real legacy-to-new migration path.
+    /// </summary>
+    private const string LegacyCliVersion = "13.1.0";
+
+    /// <summary>
+    /// Creates a Docker test terminal with a bind-mounted <c>~/.aspire/</c> directory
+    /// for host-side file creation and verification.
+    /// </summary>
+    /// <returns>
+    /// A tuple containing the host-side path to the mounted .aspire directory
+    /// and the configured terminal.
+    /// </returns>
+    private (string AspireHomeDir, Hex1bTerminal Terminal) CreateMigrationTerminal(
+        string repoRoot,
+        CliE2ETestHelpers.DockerInstallMode installMode,
+        TemporaryWorkspace workspace,
+        [System.Runtime.CompilerServices.CallerMemberName] string testName = "")
+    {
+        // Create a host-side directory that will be bind-mounted as /root/.aspire/ in the container.
+        var aspireHomeDir = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire-home");
+        Directory.CreateDirectory(aspireHomeDir);
+
+        var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
+            repoRoot, installMode, output,
+            workspace: workspace,
+            additionalVolumes: [$"{aspireHomeDir}:/root/.aspire"],
+            testName: testName);
+
+        return (aspireHomeDir, terminal);
+    }
+
+    /// <summary>
+    /// Throws if the file at <paramref name="filePath"/> does not contain all
+    /// <paramref name="expectedStrings"/>. Used inside <c>ExecuteCallback</c>.
+    /// </summary>
+    private static void AssertFileContains(string filePath, params string[] expectedStrings)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new InvalidOperationException($"Expected file does not exist: {filePath}");
+        }
+
+        var content = File.ReadAllText(filePath);
+        foreach (var expected in expectedStrings)
+        {
+            if (!content.Contains(expected))
+            {
+                throw new InvalidOperationException(
+                    $"File {filePath} does not contain '{expected}'. Actual content:\n{content}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Throws if the file at <paramref name="filePath"/> contains any of the
+    /// <paramref name="unexpectedStrings"/>. Used inside <c>ExecuteCallback</c>.
+    /// </summary>
+    private static void AssertFileDoesNotContain(string filePath, params string[] unexpectedStrings)
+    {
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        var content = File.ReadAllText(filePath);
+        foreach (var unexpected in unexpectedStrings)
+        {
+            if (content.Contains(unexpected))
+            {
+                throw new InvalidOperationException(
+                    $"File {filePath} unexpectedly contains '{unexpected}'. Actual content:\n{content}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a legacy ~/.aspire/globalsettings.json is automatically migrated to
+    /// ~/.aspire/aspire.config.json when a CLI command is run, and that the legacy file
+    /// is preserved for backward compatibility with older CLI versions.
+    /// </summary>
+    [Fact]
+    public async Task GlobalSettings_MigratedFromLegacyFormat()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Pre-populate legacy globalsettings.json on the host (visible in container via bind mount).
+        var legacyPath = Path.Combine(aspireHomeDir, "globalsettings.json");
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            File.WriteAllText(legacyPath,
+                """{"channel":"staging","features":{"polyglotSupportEnabled":true},"sdkVersion":"9.1.0"}""");
+
+            // Ensure no aspire.config.json exists yet.
+            if (File.Exists(newConfigPath))
+            {
+                File.Delete(newConfigPath);
+            }
+        });
+
+        // Run any CLI command to trigger global migration in Program.cs.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify aspire.config.json was created with migrated values (host-side).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath, "staging", "polyglotSupportEnabled");
+        });
+
+        // Verify the legacy file was preserved (intentional for backward compat).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(legacyPath, "channel");
+        });
+
+        // Verify migrated values are accessible via aspire config get.
+        var channelPattern = new CellPatternSearcher().Find("staging");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.polyglotSupportEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Verifies that global migration does NOT overwrite an existing aspire.config.json.
+    /// If the user already has the new format, legacy globalsettings.json should be ignored.
+    /// </summary>
+    [Fact]
+    public async Task GlobalMigration_SkipsWhenNewConfigExists()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Pre-populate BOTH files on the host: aspire.config.json with "preview",
+        // globalsettings.json with "staging".
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+        var legacyPath = Path.Combine(aspireHomeDir, "globalsettings.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            File.WriteAllText(newConfigPath,
+                """{"channel":"preview"}""");
+            File.WriteAllText(legacyPath,
+                """{"channel":"staging","features":{"polyglotSupportEnabled":true}}""");
+        });
+
+        // Run CLI. Migration should be skipped because aspire.config.json already exists.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify aspire.config.json still has "preview" (NOT overwritten with "staging").
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath, "preview");
+            AssertFileDoesNotContain(newConfigPath, "staging");
+        });
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Verifies that the CLI gracefully handles malformed JSON in legacy globalsettings.json
+    /// without crashing, and that subsequent config operations still work.
+    /// </summary>
+    [Fact]
+    public async Task GlobalMigration_HandlesMalformedLegacyJson()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Write malformed JSON to the legacy file.
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            File.WriteAllText(
+                Path.Combine(aspireHomeDir, "globalsettings.json"),
+                "this is not valid json {{{");
+
+            if (File.Exists(newConfigPath))
+            {
+                File.Delete(newConfigPath);
+            }
+        });
+
+        // Run CLI. Should not crash despite malformed legacy file.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify CLI still works by setting and reading a value.
+        sequenceBuilder
+            .Type("aspire config set channel stable -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        var stablePattern = new CellPatternSearcher().Find("stable");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => stablePattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Verifies that legacy globalsettings.json containing JSON comments and trailing commas
+    /// (common when hand-edited) is correctly parsed and migrated to aspire.config.json.
+    /// </summary>
+    [Fact]
+    public async Task GlobalMigration_HandlesCommentsAndTrailingCommas()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Write legacy JSON with comments and trailing commas.
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+        var legacyPath = Path.Combine(aspireHomeDir, "globalsettings.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            File.WriteAllText(legacyPath,
+                """
+                {
+                  // User-added comment
+                  "channel": "staging",
+                  "features": {
+                    "polyglotSupportEnabled": true,
+                  }
+                }
+                """);
+
+            if (File.Exists(newConfigPath))
+            {
+                File.Delete(newConfigPath);
+            }
+        });
+
+        // Run CLI to trigger migration.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify migration succeeded despite comments/trailing commas (host-side).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath, "staging", "polyglotSupportEnabled");
+        });
+
+        // Verify value accessible via config get.
+        var channelPattern = new CellPatternSearcher().Find("staging");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.polyglotSupportEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Verifies that aspire config set writes nested JSON to aspire.config.json
+    /// (the new format) and that aspire config get correctly reads from this structure.
+    /// Also confirms globalsettings.json is NOT created when using the new CLI.
+    /// </summary>
+    [Fact]
+    public async Task ConfigSetGet_CreatesNestedJsonFormat()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Ensure clean state.
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+        var legacyPath = Path.Combine(aspireHomeDir, "globalsettings.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            foreach (var f in new[] { newConfigPath, legacyPath })
+            {
+                if (File.Exists(f))
+                {
+                    File.Delete(f);
+                }
+            }
+        });
+
+        // Set nested config values.
+        sequenceBuilder
+            .Type("aspire config set channel preview -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config set features.polyglotSupportEnabled true -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config set features.stagingChannelEnabled false -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify the file has nested JSON structure (host-side).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath, "features", "polyglotSupportEnabled", "preview");
+        });
+
+        // Verify values are readable via aspire config get.
+        var channelPattern = new CellPatternSearcher().Find("preview");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        var truePattern = new CellPatternSearcher().Find("true");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get features.polyglotSupportEnabled")
+            .Enter()
+            .WaitUntil(s => truePattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Verify globalsettings.json was NOT created.
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            if (File.Exists(legacyPath))
+            {
+                throw new InvalidOperationException(
+                    "globalsettings.json should not be created by the new CLI");
+            }
+        });
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.polyglotSupportEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.stagingChannelEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Verifies that migration from globalsettings.json preserves all supported
+    /// value types: channel (string), features (dictionary of bools), and packages
+    /// (dictionary of strings).
+    /// </summary>
+    [Fact]
+    public async Task GlobalMigration_PreservesAllValueTypes()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Create a comprehensive legacy globalsettings.json with all value types.
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+        var legacyPath = Path.Combine(aspireHomeDir, "globalsettings.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            File.WriteAllText(legacyPath,
+                """
+                {
+                    "channel": "preview",
+                    "sdkVersion": "9.1.0",
+                    "features": {
+                        "polyglotSupportEnabled": true,
+                        "stagingChannelEnabled": false
+                    },
+                    "packages": {
+                        "Aspire.Hosting.Redis": "9.1.0"
+                    }
+                }
+                """);
+
+            if (File.Exists(newConfigPath))
+            {
+                File.Delete(newConfigPath);
+            }
+        });
+
+        // Trigger migration.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify all value types were migrated (host-side).
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath,
+                "preview",
+                "polyglotSupportEnabled",
+                "stagingChannelEnabled",
+                "Aspire.Hosting.Redis");
+        });
+
+        // Verify individual value via config get.
+        var channelPattern = new CellPatternSearcher().Find("preview");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.polyglotSupportEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.stagingChannelEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete packages -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    /// <summary>
+    /// Full end-to-end upgrade test: installs a released (legacy) CLI version that
+    /// predates the aspire.config.json consolidation, sets global config values using the
+    /// old format, then upgrades to the new CLI and verifies all settings are migrated.
+    /// </summary>
+    [Fact]
+    [OuterloopTest("Requires downloading two separate CLI versions from GitHub")]
+    public async Task FullUpgrade_LegacyCliToNewCli_MigratesGlobalSettings()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var (aspireHomeDir, terminal) = CreateMigrationTerminal(repoRoot, installMode, workspace);
+        using var _ = terminal;
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+
+        // Step 1: Install a released CLI that uses the legacy config format.
+        sequenceBuilder
+            .InstallAspireCliVersion(LegacyCliVersion, counter)
+            .SourceAspireCliEnvironment(counter);
+
+        // Verify the legacy CLI is installed.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Step 2: Set global values using the legacy CLI.
+        // In versions before 13.2, this writes to ~/.aspire/globalsettings.json.
+        sequenceBuilder
+            .Type("aspire config set channel staging -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config set features.polyglotSupportEnabled true -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Verify values were persisted by the legacy CLI.
+        var channelPattern = new CellPatternSearcher().Find("staging");
+
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Snapshot which files exist after using the legacy CLI (for debugging).
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("ls -la ~/.aspire/")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Step 3: Install the new CLI (from this PR), overwriting the legacy CLI.
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Step 4: Run the new CLI to trigger global migration.
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Step 5: Verify aspire.config.json exists with migrated values (host-side).
+        var newConfigPath = Path.Combine(aspireHomeDir, "aspire.config.json");
+
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            AssertFileContains(newConfigPath, "staging", "polyglotSupportEnabled");
+        });
+
+        // Step 6: Verify values are still accessible via the new CLI.
+        sequenceBuilder
+            .ClearScreen(counter)
+            .Type("aspire config get channel")
+            .Enter()
+            .WaitUntil(s => channelPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitForSuccessPrompt(counter);
+
+        // Cleanup.
+        sequenceBuilder
+            .Type("aspire config delete channel -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("aspire config delete features.polyglotSupportEnabled -g")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+}
