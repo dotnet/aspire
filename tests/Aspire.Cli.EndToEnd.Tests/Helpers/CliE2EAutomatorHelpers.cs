@@ -8,7 +8,7 @@ namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 
 /// <summary>
 /// Extension methods for <see cref="Hex1bTerminalAutomator"/> providing Docker E2E test helpers.
-/// These parallel the <see cref="Hex1bTerminalInputSequenceBuilder"/>-based methods in <see cref="CliE2ETestHelpers"/>.
+/// These parallel the <see cref="Hex1b.Automation.Hex1bTerminalInputSequenceBuilder"/>-based methods in <see cref="CliE2ETestHelpers"/>.
 /// </summary>
 internal static class CliE2EAutomatorHelpers
 {
