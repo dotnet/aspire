@@ -68,7 +68,7 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire agent init");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s => workspacePrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for workspace prompt");
-        await Task.Delay(500);
+        await auto.WaitAsync(500);
         await auto.EnterAsync(); // Accept default workspace path
 
         // Second prompt: agent environments (select Claude Code)
