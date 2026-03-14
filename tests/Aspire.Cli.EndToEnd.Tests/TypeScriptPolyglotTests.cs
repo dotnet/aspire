@@ -4,6 +4,7 @@
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
+using Hex1b.Input;
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests;
@@ -46,88 +47,72 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
             .Find("Press CTRL+C to stop the apphost and exit.");
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
-
-        // Enable polyglot support feature flag
-        sequenceBuilder.EnablePolyglotSupport(counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Step 1: Create TypeScript AppHost using aspire init with interactive language selection
-        sequenceBuilder
-            .Type("aspire init")
-            .Enter()
-            .WaitUntil(s => waitingForLanguageSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "TypeScript (Node.js)" which is the 2nd option
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select TypeScript
-            .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .DeclineAgentInitPrompt(counter);
+        await auto.TypeAsync("aspire init");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForLanguageSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for language selection prompt");
+        // Navigate down to "TypeScript (Node.js)" which is the 2nd option
+        await auto.DownAsync();
+        await auto.WaitUntilAsync(s => waitingForTypeScriptSelected.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for TypeScript option to be selected");
+        await auto.EnterAsync(); // select TypeScript
+        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts creation");
+        await auto.DeclineAgentInitPromptAsync(counter);
 
         // Step 2: Create a Vite app using npm create vite
         // Using --template vanilla-ts for a minimal TypeScript Vite app
         // Use -y to skip npm prompts and -- to pass args to create-vite
         // Use --no-interactive to skip vite's interactive prompts (rolldown, install now, etc.)
-        sequenceBuilder
-            .Type("npm create -y vite@latest viteapp -- --template vanilla-ts --no-interactive")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+        await auto.TypeAsync("npm create -y vite@latest viteapp -- --template vanilla-ts --no-interactive");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
         // Step 3: Install Vite app dependencies
-        sequenceBuilder
-            .Type("cd viteapp && npm install && cd ..")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+        await auto.TypeAsync("cd viteapp && npm install && cd ..");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
         // Step 4: Add Aspire.Hosting.JavaScript package
         // When channel is set (CI) and there's only one channel with one version,
         // the version is auto-selected without prompting.
-        sequenceBuilder
-            .Type("aspire add Aspire.Hosting.JavaScript")
-            .Enter()
-            .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire add Aspire.Hosting.JavaScript");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for JavaScript package to be added");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 5: Modify apphost.ts to add the Vite app
-        sequenceBuilder.ExecuteCallback(() =>
-        {
-            var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
-            var newContent = """
-                // Aspire TypeScript AppHost
-                // For more information, see: https://aspire.dev
+        var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
+        var newContent = """
+            // Aspire TypeScript AppHost
+            // For more information, see: https://aspire.dev
 
-                import { createBuilder } from './.modules/aspire.js';
+            import { createBuilder } from './.modules/aspire.js';
 
-                const builder = await createBuilder();
+            const builder = await createBuilder();
 
-                // Add the Vite frontend application
-                const viteApp = await builder.addViteApp("viteapp", "./viteapp");
+            // Add the Vite frontend application
+            const viteApp = await builder.addViteApp("viteapp", "./viteapp");
 
-                await builder.build().run();
-                """;
+            await builder.build().run();
+            """;
 
-            File.WriteAllText(appHostPath, newContent);
-        });
+        File.WriteAllText(appHostPath, newContent);
 
         // Step 6: Run the apphost
-        sequenceBuilder
-            .Type("aspire run")
-            .Enter()
-            .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromMinutes(3));
+        await auto.TypeAsync("aspire run");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitForCtrlCMessage.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for Ctrl+C message from apphost");
 
         // Step 7: Stop the apphost
-        sequenceBuilder
-            .Ctrl().Key(Hex1b.Input.Hex1bKey.C)
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.Ctrl().KeyAsync(Hex1bKey.C);
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }

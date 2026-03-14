@@ -34,37 +34,33 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             .Find("dev-certs");
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Generate and trust dev certs inside the container (Docker images don't have them by default)
-        sequenceBuilder
-            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Unset SSL_CERT_DIR to trigger partial trust detection on Linux
-        sequenceBuilder
-            .ClearSslCertDir(counter)
-            .Type("aspire doctor")
-            .Enter()
-            .WaitUntil(s =>
-            {
-                // Wait for doctor to complete and show partial trust warning
-                var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
-                var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
-                return hasDevCerts && hasPartiallyTrusted;
-            }, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("unset SSL_CERT_DIR");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("aspire doctor");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s =>
+        {
+            // Wait for doctor to complete and show partial trust warning
+            var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
+            var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
+            return hasDevCerts && hasPartiallyTrusted;
+        }, timeout: TimeSpan.FromSeconds(60), description: "doctor to complete with partial trust warning");
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -93,52 +89,48 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             .Find("dev-certs");
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Generate and trust dev certs inside the container (Docker images don't have them by default)
-        sequenceBuilder
-            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Set SSL_CERT_DIR to include dev-certs trust path for full trust
-        sequenceBuilder
-            .ConfigureSslCertDir(counter)
-            .Type("aspire doctor")
-            .Enter()
-            .WaitUntil(s =>
+        await auto.TypeAsync("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("aspire doctor");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s =>
+        {
+            // Wait for doctor to complete
+            var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
+            if (!hasDevCerts)
             {
-                // Wait for doctor to complete
-                var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
-                if (!hasDevCerts)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                // Verify we see "trusted" but NOT "partially trusted"
-                var hasTrusted = trustedPattern.Search(s).Count > 0;
-                var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
+            // Verify we see "trusted" but NOT "partially trusted"
+            var hasTrusted = trustedPattern.Search(s).Count > 0;
+            var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
 
-                // Fail if we see partial trust when SSL_CERT_DIR is configured
-                if (hasPartiallyTrusted)
-                {
-                    throw new InvalidOperationException(
-                        "Unexpected 'partially trusted' message when SSL_CERT_DIR is configured!");
-                }
+            // Fail if we see partial trust when SSL_CERT_DIR is configured
+            if (hasPartiallyTrusted)
+            {
+                throw new InvalidOperationException(
+                    "Unexpected 'partially trusted' message when SSL_CERT_DIR is configured!");
+            }
 
-                return hasTrusted;
-            }, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+            return hasTrusted;
+        }, timeout: TimeSpan.FromSeconds(60), description: "doctor to complete with trusted certificate");
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }

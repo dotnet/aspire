@@ -40,18 +40,17 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             .Find("Update successful!");
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Disable update notifications to prevent the CLI self-update prompt
         // from appearing after "Update successful!" and blocking the test.
-        sequenceBuilder
-            .Type("aspire config set features.updateNotificationsEnabled false -g")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire config set features.updateNotificationsEnabled false -g");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Set up an old-format AppHost project with CPM that has a PackageVersion
         // for Aspire.Hosting.AppHost. This simulates a pre-migration project where
@@ -62,71 +61,72 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var directoryPackagesPropsPath = Path.Combine(projectDir, "Directory.Packages.props");
         var containerAppHostCsprojPath = CliE2ETestHelpers.ToContainerPath(appHostCsprojPath, workspace);
 
-        sequenceBuilder
-            .ExecuteCallback(() =>
+        Directory.CreateDirectory(appHostDir);
+
+        File.WriteAllText(appHostCsprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.1.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDir, "Program.cs"), """
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        File.WriteAllText(directoryPackagesPropsPath, """
+            <Project>
+                <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.1.0" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        // Use --channel stable to skip the channel selection prompt that appears
+        // in CI when PR hive directories are present.
+        await auto.TypeAsync($"aspire update --project \"{containerAppHostCsprojPath}\" --channel stable");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForPerformUpdates.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for 'Perform updates?' prompt");
+        await auto.EnterAsync(); // confirm "Perform updates?" (default: Yes)
+        // The updater may prompt for a NuGet.config location and ask to apply changes
+        // when the project doesn't have an existing NuGet.config. Accept defaults for both.
+        await auto.WaitUntilAsync(s => waitingForNuGetConfigDirectory.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for 'Which directory for NuGet.config file?' prompt");
+        await auto.EnterAsync(); // accept default directory
+        await auto.WaitUntilAsync(s => waitingForApplyNuGetConfig.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for 'Apply these changes to NuGet.config?' prompt");
+        await auto.EnterAsync(); // confirm "Apply these changes to NuGet.config?" (default: Yes)
+        await auto.WaitUntilAsync(s => waitingForUpdateSuccessful.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for 'Update successful!' message");
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
+        {
+            var content = File.ReadAllText(directoryPackagesPropsPath);
+            if (content.Contains("Aspire.Hosting.AppHost"))
             {
-                Directory.CreateDirectory(appHostDir);
+                throw new InvalidOperationException($"File {directoryPackagesPropsPath} unexpectedly contains: Aspire.Hosting.AppHost");
+            }
+        }
 
-                File.WriteAllText(appHostCsprojPath, """
-                    <Project Sdk="Microsoft.NET.Sdk">
-                        <Sdk Name="Aspire.AppHost.Sdk" Version="9.1.0" />
-                        <PropertyGroup>
-                            <OutputType>Exe</OutputType>
-                            <TargetFramework>net9.0</TargetFramework>
-                            <IsAspireHost>true</IsAspireHost>
-                        </PropertyGroup>
-                        <ItemGroup>
-                            <PackageReference Include="Aspire.Hosting.AppHost" />
-                        </ItemGroup>
-                    </Project>
-                    """);
-
-                File.WriteAllText(Path.Combine(appHostDir, "Program.cs"), """
-                    var builder = DistributedApplication.CreateBuilder(args);
-                    builder.Build().Run();
-                    """);
-
-                File.WriteAllText(directoryPackagesPropsPath, """
-                    <Project>
-                        <PropertyGroup>
-                            <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-                        </PropertyGroup>
-                        <ItemGroup>
-                            <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.1.0" />
-                        </ItemGroup>
-                    </Project>
-                    """);
-            })
-            // Use --channel stable to skip the channel selection prompt that appears
-            // in CI when PR hive directories are present.
-            .Type($"aspire update --project \"{containerAppHostCsprojPath}\" --channel stable")
-            .Enter()
-            .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Enter() // confirm "Perform updates?" (default: Yes)
-            // The updater may prompt for a NuGet.config location and ask to apply changes
-            // when the project doesn't have an existing NuGet.config. Accept defaults for both.
-            .WaitUntil(s => waitingForNuGetConfigDirectory.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // accept default directory
-            .WaitUntil(s => waitingForApplyNuGetConfig.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Enter() // confirm "Apply these changes to NuGet.config?" (default: Yes)
-            .WaitUntil(s => waitingForUpdateSuccessful.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
-            .VerifyFileDoesNotContain(directoryPackagesPropsPath, "Aspire.Hosting.AppHost")
-            // Verify dotnet restore succeeds (would fail with NU1009 without the fix)
-            .Type($"dotnet restore \"{containerAppHostCsprojPath}\"")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
-            // Clean up: re-enable update notifications
-            .Type("aspire config delete features.updateNotificationsEnabled -g")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        // Verify dotnet restore succeeds (would fail with NU1009 without the fix)
+        await auto.TypeAsync($"dotnet restore \"{containerAppHostCsprojPath}\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(120));
+        // Clean up: re-enable update notifications
+        await auto.TypeAsync("aspire config delete features.updateNotificationsEnabled -g");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -143,11 +143,11 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Set up an AppHost project with CPM, but no installed packages
         var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, "CpmTest");
@@ -156,49 +156,50 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var directoryPackagesPropsPath = Path.Combine(projectDir, "Directory.Packages.props");
         var containerAppHostCsprojPath = CliE2ETestHelpers.ToContainerPath(appHostCsprojPath, workspace);
 
-        sequenceBuilder
-            .ExecuteCallback(() =>
+        Directory.CreateDirectory(appHostDir);
+
+        File.WriteAllText(appHostCsprojPath, """
+            <Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        File.WriteAllText(Path.Combine(appHostDir, "Program.cs"), """
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        File.WriteAllText(directoryPackagesPropsPath, """
+            <Project>
+                <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        await auto.TypeAsync($"aspire add Aspire.Hosting.Redis --version 13.1.2");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
+        {
+            var content = File.ReadAllText(appHostCsprojPath);
+            if (content.Contains("Version=\"13.1.2\""))
             {
-                Directory.CreateDirectory(appHostDir);
+                throw new InvalidOperationException($"File {appHostCsprojPath} unexpectedly contains: Version=\"13.1.2\"");
+            }
+        }
 
-                File.WriteAllText(appHostCsprojPath, """
-                    <Project Sdk="Aspire.AppHost.Sdk/13.1.2">
-                        <PropertyGroup>
-                            <OutputType>Exe</OutputType>
-                            <TargetFramework>net9.0</TargetFramework>
-                            <IsAspireHost>true</IsAspireHost>
-                        </PropertyGroup>
-                    </Project>
-                    """);
-
-                File.WriteAllText(Path.Combine(appHostDir, "Program.cs"), """
-                    var builder = DistributedApplication.CreateBuilder(args);
-                    builder.Build().Run();
-                    """);
-
-                File.WriteAllText(directoryPackagesPropsPath, """
-                    <Project>
-                        <PropertyGroup>
-                            <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-                        </PropertyGroup>
-                    </Project>
-                    """);
-            })
-            .Type($"aspire add Aspire.Hosting.Redis --version 13.1.2")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
-            .VerifyFileDoesNotContain(appHostCsprojPath, "Version=\"13.1.2\"")
-            // Verify dotnet restore succeeds (would fail with NU1009 if AppHost.csproj contained a version)
-            .Type($"dotnet restore \"{containerAppHostCsprojPath}\"")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        // Verify dotnet restore succeeds (would fail with NU1009 if AppHost.csproj contained a version)
+        await auto.TypeAsync($"dotnet restore \"{containerAppHostCsprojPath}\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(120));
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }

@@ -44,77 +44,64 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
         var skillFileExists = new CellPatternSearcher().Find("SKILL.md");
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Step 1: Verify playwright-cli is not installed.
-        sequenceBuilder
-            .Type("playwright-cli --version 2>&1 || true")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("playwright-cli --version 2>&1 || true");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 2: Create an Aspire project (accept all defaults).
-        sequenceBuilder.AspireNew("TestProject", counter);
+        await auto.AspireNewAsync("TestProject", counter);
 
         // Step 3: Navigate into the project and create .claude folder to trigger Claude Code detection.
-        sequenceBuilder
-            .Type("cd TestProject && mkdir -p .claude")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("cd TestProject && mkdir -p .claude");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 4: Run aspire agent init.
         // First prompt: workspace path
-        sequenceBuilder
-            .Type("aspire agent init")
-            .Enter()
-            .WaitUntil(s => workspacePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Wait(500)
-            .Enter(); // Accept default workspace path
+        await auto.TypeAsync("aspire agent init");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => workspacePrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for workspace prompt");
+        await Task.Delay(500);
+        await auto.EnterAsync(); // Accept default workspace path
 
         // Second prompt: agent environments (select Claude Code)
-        sequenceBuilder
-            .WaitUntil(s => agentEnvPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Type(" ") // Toggle first option (Claude Code)
-            .Enter();
+        await auto.WaitUntilAsync(s => agentEnvPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for agent environments prompt");
+        await auto.TypeAsync(" "); // Toggle first option (Claude Code)
+        await auto.EnterAsync();
 
         // Third prompt: additional options (select Playwright CLI installation)
         // Aspire skill file (priority 0) appears first, Playwright CLI (priority 1) second.
-        sequenceBuilder
-            .WaitUntil(s => additionalOptionsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .WaitUntil(s => playwrightOption.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type(" ") // Toggle first option (Aspire skill file)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow) // Move to Playwright CLI option
-            .Type(" ") // Toggle Playwright CLI option
-            .Enter();
+        await auto.WaitUntilAsync(s => additionalOptionsPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for additional options prompt");
+        await auto.WaitUntilAsync(s => playwrightOption.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for Playwright CLI option");
+        await auto.TypeAsync(" "); // Toggle first option (Aspire skill file)
+        await auto.DownAsync(); // Move to Playwright CLI option
+        await auto.TypeAsync(" "); // Toggle Playwright CLI option
+        await auto.EnterAsync();
 
         // Wait for installation to complete (this downloads from npm, can take a while)
-        sequenceBuilder
-            .WaitUntil(s => configComplete.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.WaitUntilAsync(s => configComplete.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for configuration complete");
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 5: Verify playwright-cli is now installed.
-        sequenceBuilder
-            .Type("playwright-cli --version")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("playwright-cli --version");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 6: Verify the skill file was generated.
-        sequenceBuilder
-            .Type("ls .claude/skills/playwright-cli/SKILL.md")
-            .Enter()
-            .WaitUntil(s => skillFileExists.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("ls .claude/skills/playwright-cli/SKILL.md");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => skillFileExists.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for SKILL.md file listing");
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
