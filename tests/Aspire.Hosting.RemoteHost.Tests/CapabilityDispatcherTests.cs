@@ -278,6 +278,29 @@ public class CapabilityDispatcherTests
     }
 
     [Fact]
+    public void Invoke_CancellationTokenPropertyResultCanBePassedToCapability()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), [typeof(TestCancellationTokenContext).Assembly]);
+        using var cts = new CancellationTokenSource();
+
+        var context = new TestCancellationTokenContext { CancellationToken = cts.Token };
+        var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestCancellationTokenContext");
+        var getArgs = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        var tokenResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestCancellationTokenContext.cancellationToken", getArgs);
+
+        Assert.NotNull(tokenResult);
+        cts.Cancel();
+
+        var invokeArgs = new JsonObject { ["cancellationToken"] = tokenResult };
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/canObserveCancellation", invokeArgs);
+
+        Assert.NotNull(result);
+        Assert.True(result.GetValue<bool>());
+    }
+
+    [Fact]
     public void Constructor_RegistersVersionedContextTypeProperties()
     {
         var dispatcher = CreateDispatcher(typeof(VersionedContextType).Assembly);
@@ -1421,6 +1444,12 @@ internal static class TestCapabilities
         await Task.Delay(1);
         throw new InvalidOperationException("Async error: " + value);
     }
+
+    [AspireExport("canObserveCancellation", Description = "Tests cancellation token round-tripping")]
+    public static bool CanObserveCancellation(CancellationToken cancellationToken)
+    {
+        return cancellationToken.IsCancellationRequested;
+    }
 }
 
 /// <summary>
@@ -1435,6 +1464,12 @@ internal sealed class TestContextType
 
     // This property should be skipped - IDisposable is not ATS-compatible
     public IDisposable? NonAtsProperty { get; set; }
+}
+
+[AspireExport(ExposeProperties = true)]
+internal sealed class TestCancellationTokenContext
+{
+    public CancellationToken CancellationToken { get; set; }
 }
 
 /// <summary>

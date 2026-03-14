@@ -137,17 +137,11 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         var jsonObjVar = Expression.Variable(jsonObjectType, "args");
         expressions.Add(Expression.Assign(jsonObjVar, newJsonObject));
 
-        var paramIndex = 0; // Track positional index (excludes CancellationToken)
+        var paramIndex = 0;
         for (int i = 0; i < parameters.Length; i++)
         {
             var param = parameters[i];
             var paramExpr = paramExprs[i];
-
-            // Skip CancellationToken for now (handled separately)
-            if (param.ParameterType == typeof(CancellationToken))
-            {
-                continue;
-            }
 
             // Call MarshalArg to convert to JsonNode
             var marshalMethod = typeof(AtsCallbackProxyFactory).GetMethod(

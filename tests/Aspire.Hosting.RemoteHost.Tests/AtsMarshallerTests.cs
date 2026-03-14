@@ -166,6 +166,43 @@ public class AtsMarshallerTests
     }
 
     [Fact]
+    public void MarshalToJson_MarshalsCancellationTokenAsTokenId()
+    {
+        using var registry = new CancellationTokenRegistry();
+        var marshaller = CreateTestMarshaller(ctRegistry: registry);
+        using var cts = new CancellationTokenSource();
+
+        var result = marshaller.MarshalToJson(cts.Token);
+
+        var tokenValue = Assert.IsAssignableFrom<JsonValue>(result);
+        var tokenId = tokenValue.GetValue<string>();
+        Assert.StartsWith("ct_", tokenId);
+        Assert.True(registry.TryGetToken(tokenId, out var token));
+        Assert.True(token.CanBeCanceled);
+    }
+
+    [Fact]
+    public void MarshalToJson_WithCancellationTokenTypeRef_MarshalsAsTokenId()
+    {
+        using var registry = new CancellationTokenRegistry();
+        var marshaller = CreateTestMarshaller(ctRegistry: registry);
+        using var cts = new CancellationTokenSource();
+        var typeRef = new AtsTypeRef
+        {
+            TypeId = AtsConstants.CancellationToken,
+            Category = AtsTypeCategory.Primitive
+        };
+
+        var result = marshaller.MarshalToJson(cts.Token, typeRef);
+
+        var tokenValue = Assert.IsAssignableFrom<JsonValue>(result);
+        var tokenId = tokenValue.GetValue<string>();
+        Assert.StartsWith("ct_", tokenId);
+        Assert.True(registry.TryGetToken(tokenId, out var token));
+        Assert.True(token.CanBeCanceled);
+    }
+
+    [Fact]
     public void ConvertPrimitive_ConvertsStringCorrectly()
     {
         var value = JsonValue.Create("test");

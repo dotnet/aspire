@@ -173,9 +173,11 @@ public class CallbackProxyTests
         Assert.Single(invoker.Invocations);
         var args = invoker.Invocations[0].Args as JsonObject;
         Assert.NotNull(args);
-        // Arguments are passed with positional keys (p0, p1, p2, ...)
-        // CancellationToken is not included in positional args, but added as $cancellationToken if not None
         Assert.Equal("test", args["p0"]?.GetValue<string>());
+        var tokenId = args["p1"]?.GetValue<string>();
+        Assert.NotNull(tokenId);
+        Assert.StartsWith("ct_", tokenId);
+        Assert.StartsWith("ct_", args["$cancellationToken"]?.GetValue<string>());
     }
 
     // Callback error handling tests
