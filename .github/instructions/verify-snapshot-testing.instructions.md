@@ -70,9 +70,9 @@ These placeholders are intentional and ensure snapshots are deterministic across
 
 ## Verified file conventions
 
-- Encoding: UTF-8 with BOM
+- Encoding: UTF-8 (no BOM)
 - Line endings: LF (not CRLF)
-- No trailing newline
+- Files end with a trailing newline (per `.editorconfig` `insert_final_newline = true`)
 
 ## Common patterns
 
