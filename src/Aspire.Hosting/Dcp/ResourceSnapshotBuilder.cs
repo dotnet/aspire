@@ -108,7 +108,7 @@ internal class ResourceSnapshotBuilder
 
         return previous with
         {
-            ResourceType = previous.ResourceType ?? KnownResourceTypes.Executable,
+            ResourceType = previous.ResourceType ?? (appModelResource is PackageExecutableResource ? KnownResourceTypes.PackageExecutable : KnownResourceTypes.Executable),
             State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = previous.Properties.SetResourcePropertyRange([
@@ -183,7 +183,7 @@ internal class ResourceSnapshotBuilder
 
         return previous with
         {
-            ResourceType = previous.ResourceType ?? KnownResourceTypes.Executable,
+            ResourceType = previous.ResourceType ?? (appModelResource is PackageExecutableResource ? KnownResourceTypes.PackageExecutable : KnownResourceTypes.Executable),
             State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = previous.Properties.SetResourcePropertyRange([

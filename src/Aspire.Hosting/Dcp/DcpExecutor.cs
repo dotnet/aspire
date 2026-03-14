@@ -610,7 +610,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return resource switch
         {
             Container => KnownResourceTypes.Container,
-            Executable => appModelResource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable,
+            Executable => appModelResource switch
+            {
+                ProjectResource => KnownResourceTypes.Project,
+                PackageExecutableResource => KnownResourceTypes.PackageExecutable,
+                _ => KnownResourceTypes.Executable
+            },
             ContainerExec => KnownResourceTypes.ContainerExec,
             _ => throw new InvalidOperationException($"Unknown resource type {resource.GetType().Name}")
         };
@@ -1594,7 +1599,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         CancellationToken cancellationToken)
     {
         var resourceLogger = _loggerService.GetLogger(resource);
-        var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
+        var resourceType = resource switch
+        {
+            ProjectResource => KnownResourceTypes.Project,
+            PackageExecutableResource => KnownResourceTypes.PackageExecutable,
+            _ => KnownResourceTypes.Executable
+        };
 
         try
         {

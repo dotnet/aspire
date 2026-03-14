@@ -213,6 +213,20 @@ public class AtsCapabilityScannerTests
         Assert.NotNull(cancellationTokenType);
     }
 
+    [Fact]
+    public void ScanAssembly_PackageExecutableCapability_IsDiscovered()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        var capability = Assert.Single(result.Capabilities,
+            c => c.CapabilityId.EndsWith("/addPackageExecutable", StringComparison.Ordinal));
+
+        Assert.Equal("addPackageExecutable", capability.MethodName);
+        Assert.Equal("Aspire.Hosting", AtsCapabilityScanner.DerivePackage(capability.CapabilityId));
+        Assert.Equal(2, capability.Parameters.Count);
+    }
+
     #endregion
 
     #region Callback Parameter Type Resolution Tests

@@ -28,6 +28,7 @@ internal static class ResourceIconHelpers
         var icon = resource.ResourceType switch
         {
             KnownResourceTypes.Executable => iconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
+            KnownResourceTypes.PackageExecutable => iconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
             KnownResourceTypes.Project => ResolveProjectIcon(iconResolver, resource, desiredSize, desiredVariant),
             KnownResourceTypes.Container => iconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
             KnownResourceTypes.Parameter => iconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
