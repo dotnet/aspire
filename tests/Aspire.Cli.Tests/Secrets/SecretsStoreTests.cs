@@ -160,6 +160,24 @@ public class SecretsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_DecodesEncodedStringValues()
+    {
+        var path = GetSecretsPath();
+        var dir = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(dir);
+
+        File.WriteAllText(path, """
+        {
+            "EncodedStringValue": "value with \"quotes\", \u0027apostrophes\u0027, and \u4F60\u597D"
+        }
+        """);
+
+        var store = new SecretsStore(path);
+
+        Assert.Equal("value with \"quotes\", 'apostrophes', and 你好", store.Get("EncodedStringValue"));
+    }
+
+    [Fact]
     public void Save_UsesRelaxedEscaping()
     {
         var path = GetSecretsPath();
