@@ -1,4 +1,4 @@
-﻿// aspire.ts - Capability-based Aspire SDK
+// aspire.ts - Capability-based Aspire SDK
 // This SDK uses the ATS (Aspire Type System) capability API.
 // Capabilities are endpoints like 'Aspire.Hosting/createBuilder'.
 //
@@ -415,17 +415,14 @@ export class TestResourceContextPromise implements PromiseLike<TestResourceConte
     getValueAsync(): Promise<string> {
         return this._promise.then(obj => obj.getValueAsync());
     }
-
     /** Invokes the SetValueAsync method */
     setValueAsync(value: string): TestResourceContextPromise {
         return new TestResourceContextPromise(this._promise.then(obj => obj.setValueAsync(value)));
     }
-
     /** Invokes the ValidateAsync method */
     validateAsync(): Promise<boolean> {
         return this._promise.then(obj => obj.validateAsync());
     }
-
 }
 
 // ============================================================================
@@ -492,12 +489,10 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     addTestRedis(name: string, options?: AddTestRedisOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.addTestRedis(name, options)));
     }
-
     /** Adds a test vault resource */
     addTestVault(name: string): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.addTestVault(name)));
     }
-
 }
 
 // ============================================================================

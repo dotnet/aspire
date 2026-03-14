@@ -256,7 +256,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="resourceBuilder">The resource builder for the referenced resource.</param>
     /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReferenceResourceAnonymous", MethodName = "withTunnelReferenceAll", Description = "Configures the dev tunnel to expose all endpoints on the referenced resource.")]
+    [AspireExport("withReferenceResourceAnonymous", MethodName = "withTunnelReferenceAll", MethodFamilyName = "withReference", Description = "Configures the dev tunnel to expose all endpoints on the referenced resource.")]
     public static IResourceBuilder<DevTunnelResource> WithReference<TResource>(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         IResourceBuilder<TResource> resourceBuilder,
@@ -305,7 +305,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The resource builder.</param>
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReferenceEndpoint", MethodName = "withTunnelReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
+    [AspireExport("withReferenceEndpoint", MethodName = "withTunnelReference", MethodFamilyName = "withReference", Description = "Configures the dev tunnel to expose a target endpoint.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint)
@@ -318,7 +318,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="targetEndpoint">The endpoint to expose via the dev tunnel.</param>
     /// <param name="allowAnonymous">Whether anonymous access is allowed.</param>
     /// <returns>The resource builder.</returns>
-    [AspireExport("withReferenceEndpointAnonymous", MethodName = "withTunnelReferenceAnonymous", Description = "Configures the dev tunnel to expose a target endpoint with access control.")]
+    [AspireExport("withReferenceEndpointAnonymous", MethodName = "withTunnelReferenceAnonymous", MethodFamilyName = "withReference", Description = "Configures the dev tunnel to expose a target endpoint with access control.")]
     public static IResourceBuilder<DevTunnelResource> WithReference(
         this IResourceBuilder<DevTunnelResource> tunnelBuilder,
         EndpointReference targetEndpoint,

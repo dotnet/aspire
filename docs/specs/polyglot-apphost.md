@@ -55,7 +55,7 @@ ATS then flattens .NET's polymorphism into a simple, portable model that any lan
 |--------------|--------------|
 | Interface inheritance | Expanded to concrete types at scan time |
 | Generic constraints | Resolved to concrete types at scan time |
-| Method overloading | **Not supported** - method names must be unique within each target type |
+| Method overloading | **Not supported** - exact method names must be unique within each target type |
 | Capability versioning | **Not needed** - NuGet package version handles compatibility |
 
 **The result**: A flat type system where:
@@ -74,7 +74,7 @@ ATS then flattens .NET's polymorphism into a simple, portable model that any lan
 
 ### Collision Detection
 
-The same method name can appear on different types (e.g., `withEnvironment` on Redis, Container, Project). However, within a single target type, method names must be unique—even across packages.
+The same method name can appear on different types (e.g., `withEnvironment` on Redis, Container, Project). However, within a single target type, exact method names must be unique—even across packages.
 
 The scanner detects and reports conflicts:
 
@@ -85,6 +85,14 @@ Error: Method 'withDataVolume' has multiple definitions for target 'Aspire.Hosti
 
 Resolution: Use [AspireExport("uniqueMethodName")] to disambiguate.
 ```
+
+This uniqueness rule applies to the exported capability identity, not to higher-level SDK presentation. A capability may optionally include `MethodFamilyName` metadata so generators can group multiple exact capabilities under one public guest-language method. For example, several exact `WithReference(...)` exports can remain distinct ATS capabilities while a TypeScript generator presents them as overloaded `withReference(...)` methods.
+
+`MethodFamilyName` is additive metadata only:
+
+- Exact capability IDs remain unique and are still the runtime dispatch key
+- Collision detection still operates on the exported `MethodName`
+- Generators may ignore `MethodFamilyName` if the target language cannot or should not surface grouped methods
 
 ---
 
@@ -1385,6 +1393,7 @@ public sealed class AtsContext
 **AtsCapabilityInfo** contains:
 - `CapabilityId` - Unique ID (e.g., `Aspire.Hosting.Redis/addRedis`)
 - `MethodName` - Method name (e.g., `addRedis`)
+- `MethodFamilyName` - Optional public SDK grouping name for related exact capabilities (e.g., `withReference`)
 - `TargetTypeId` - Original declared target (e.g., `Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder`)
 - `ExpandedTargetTypeIds` - Concrete types for interface targets
 - `ReturnType` - Return type reference with category
@@ -1398,7 +1407,7 @@ public sealed class AtsContext
 
 **Generation steps:**
 
-1. Group capabilities by target type
+1. Group capabilities by target type and optional method family metadata
 2. Generate builder classes with methods for each capability
 3. Generate DTO classes, enums, handle wrappers
 4. Implement JSON-RPC client for the language

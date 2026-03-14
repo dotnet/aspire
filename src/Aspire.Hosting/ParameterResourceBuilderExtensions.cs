@@ -23,7 +23,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    [AspireExport("addParameter", Description = "Adds a parameter resource")]
+    [AspireExport("addParameter", MethodFamilyName = "addParameter", Description = "Adds a parameter resource")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -49,7 +49,7 @@ public static class ParameterResourceBuilderExtensions
     /// <remarks>publishValueAsDefault and secret are mutually exclusive.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    [AspireExport("addParameterWithValue", MethodName = "addParameter", Description = "Adds a parameter with a default value")]
+    [AspireExport("addParameterWithValue", MethodFamilyName = "addParameter", Description = "Adds a parameter with a default value")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, string value, bool publishValueAsDefault = false, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -252,7 +252,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    [AspireExport("addConnectionString", Description = "Adds a connection string resource")]
+    [AspireExport("addConnectionString", MethodFamilyName = "addConnectionString", Description = "Adds a connection string resource")]
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);

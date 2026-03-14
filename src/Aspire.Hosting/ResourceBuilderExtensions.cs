@@ -566,7 +566,7 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withReference", Description = "Adds a reference to another resource")]
+    [AspireExport("withReference", MethodFamilyName = "withReference", Description = "Adds a reference to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
@@ -651,7 +651,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withServiceReference", Description = "Adds a service discovery reference to another resource")]
+    [AspireExport("withServiceReference", MethodFamilyName = "withReference", Description = "Adds a service discovery reference to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
@@ -672,7 +672,7 @@ public static class ResourceBuilderExtensions
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <param name="name">The name of the resource for the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withServiceReferenceNamed", Description = "Adds a named service discovery reference")]
+    [AspireExport("withServiceReferenceNamed", MethodFamilyName = "withReference", Description = "Adds a named service discovery reference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string name)
         where TDestination : IResourceWithEnvironment
     {
@@ -693,7 +693,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the service.</param>
     /// <param name="uri">The uri of the service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withReferenceUri", Description = "Adds a reference to a URI")]
+    [AspireExport("withReferenceUri", MethodFamilyName = "withReference", Description = "Adds a reference to a URI")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
         where TDestination : IResourceWithEnvironment
     {
@@ -746,7 +746,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="externalService">The external service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withReferenceExternalService", Description = "Adds a reference to an external service")]
+    [AspireExport("withReferenceExternalService", MethodFamilyName = "withReference", Description = "Adds a reference to an external service")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ExternalServiceResource> externalService)
         where TDestination : IResourceWithEnvironment
     {
@@ -822,7 +822,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withReferenceEndpoint", Description = "Adds a reference to an endpoint")]
+    [AspireExport("withReferenceEndpoint", MethodFamilyName = "withReference", Description = "Adds a reference to an endpoint")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {

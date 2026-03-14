@@ -483,7 +483,9 @@ internal sealed class SdkDumpCommand : BaseCommand
         foreach (var group in capsByTarget)
         {
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "   [{0}]", group.Key));
-            foreach (var c in group.OrderBy(c => c.MethodName))
+            foreach (var c in group
+                .OrderBy(GetDisplayMethodName, StringComparer.Ordinal)
+                .ThenBy(c => c.CapabilityId, StringComparer.Ordinal))
             {
                 var paramStr = string.Join(", ", c.Parameters.Select(p =>
                 {
@@ -492,7 +494,7 @@ internal sealed class SdkDumpCommand : BaseCommand
                     return string.Format(CultureInfo.InvariantCulture, "{0}{1}: {2}", p.Name, optional, simpleType);
                 }));
                 var returnType = SimplifyTypeName(c.ReturnType?.TypeId ?? "void");
-                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "      {0}({1}) -> {2}", c.MethodName, paramStr, returnType));
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "      {0}({1}) -> {2}", GetDisplayMethodName(c), paramStr, returnType));
                 if (!string.IsNullOrEmpty(c.Description))
                 {
                     sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "         {0}", c.Description));
@@ -502,6 +504,9 @@ internal sealed class SdkDumpCommand : BaseCommand
 
         return sb.ToString();
     }
+
+    private static string GetDisplayMethodName(CapabilityInfo capability) =>
+        capability.MethodFamilyName ?? capability.MethodName;
 
     private static string SimplifyTypeName(string typeId)
     {
@@ -551,6 +556,7 @@ internal sealed class CapabilityInfo
 {
     public string CapabilityId { get; set; } = "";
     public string MethodName { get; set; } = "";
+    public string? MethodFamilyName { get; set; }
     public string? OwningTypeName { get; set; }
     public string QualifiedMethodName { get; set; } = "";
     public string? Description { get; set; }

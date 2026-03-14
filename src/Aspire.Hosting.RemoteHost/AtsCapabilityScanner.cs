@@ -1429,6 +1429,7 @@ public static class AtsCapabilityScanner
         // Get named arguments
         var description = exportAttr.Description;
         var methodNameOverride = exportAttr.MethodName;
+        var methodFamilyName = exportAttr.MethodFamilyName;
 
         var methodName = methodNameOverride ?? methodNameFromAttr;
         // New format: {AssemblyName}/{methodName}
@@ -1500,6 +1501,7 @@ public static class AtsCapabilityScanner
         {
             CapabilityId = capabilityId,
             MethodName = methodName,
+            MethodFamilyName = methodFamilyName,
             Description = description,
             Parameters = paramInfos,
             ReturnType = returnTypeRef ?? CreateVoidTypeRef(),

@@ -865,11 +865,32 @@ public class AtsTypeScriptCodeGeneratorTests
         return result.ToAtsContext();
     }
 
+    private static List<AtsCapabilityInfo> ScanCapabilitiesFromHostingAndQdrantAssemblies()
+    {
+        var (hostingAssembly, qdrantAssembly) = LoadHostingAndQdrantAssemblies();
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, qdrantAssembly]);
+        return result.Capabilities;
+    }
+
+    private static AtsContext CreateContextFromHostingAndQdrantAssemblies()
+    {
+        var (hostingAssembly, qdrantAssembly) = LoadHostingAndQdrantAssemblies();
+        var result = AtsCapabilityScanner.ScanAssemblies([hostingAssembly, qdrantAssembly]);
+        return result.ToAtsContext();
+    }
+
     private static (Assembly testAssembly, Assembly hostingAssembly) LoadBothAssemblies()
     {
         var testAssembly = typeof(TestRedisResource).Assembly;
         var hostingAssembly = typeof(DistributedApplication).Assembly;
         return (testAssembly, hostingAssembly);
+    }
+
+    private static (Assembly hostingAssembly, Assembly qdrantAssembly) LoadHostingAndQdrantAssemblies()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var qdrantAssembly = typeof(QdrantServerResource).Assembly;
+        return (hostingAssembly, qdrantAssembly);
     }
 
     [Fact]
@@ -949,6 +970,126 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("getUserSecretsManager", aspireTs);
         Assert.Contains("getEventing", aspireTs);
         Assert.Contains("saveStateJson", aspireTs);
+    }
+
+    [Fact]
+    public void ScanCapabilities_WithReferenceFamilyMetadata_IsExposed()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAndQdrantAssemblies();
+
+        var builtInReference = capabilities.First(c => c.CapabilityId == "Aspire.Hosting/withReference");
+        var builtInServiceReference = capabilities.First(c => c.CapabilityId == "Aspire.Hosting/withServiceReference");
+        var qdrantReference = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.Qdrant/withQdrantReference");
+
+        Assert.Equal("withReference", builtInReference.MethodFamilyName);
+        Assert.Equal("withReference", builtInServiceReference.MethodFamilyName);
+        Assert.Equal("withReference", qdrantReference.MethodFamilyName);
+    }
+
+    [Fact]
+    public void ScanCapabilities_AddFamiliesMetadata_IsExposed()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        Assert.Equal("addConnectionString", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addConnectionString").MethodFamilyName);
+        Assert.Equal("addConnectionString", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addConnectionStringExpression").MethodFamilyName);
+        Assert.Equal("addContainerRegistry", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addContainerRegistry").MethodFamilyName);
+        Assert.Equal("addContainerRegistry", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addContainerRegistryFromString").MethodFamilyName);
+        Assert.Equal("addExternalService", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addExternalService").MethodFamilyName);
+        Assert.Equal("addExternalService", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addExternalServiceUri").MethodFamilyName);
+        Assert.Equal("addExternalService", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addExternalServiceParameter").MethodFamilyName);
+        Assert.Equal("addParameter", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addParameter").MethodFamilyName);
+        Assert.Equal("addParameter", capabilities.First(c => c.CapabilityId == "Aspire.Hosting/addParameterWithValue").MethodFamilyName);
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_WithReferenceFamily_HidesLegacyPublicMethodNames()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("withReference(", aspireTs);
+        Assert.DoesNotContain("withServiceReference(", aspireTs);
+        Assert.DoesNotContain("withServiceReferenceNamed(", aspireTs);
+        Assert.Contains("_withServiceReferenceInternal(", aspireTs);
+        Assert.Contains("_withServiceReferenceNamedInternal(", aspireTs);
+    }
+
+    [Fact]
+    public void Generate_HostingAndQdrantAssemblies_WithReferenceFamily_HidesQdrantLegacyMethodName()
+    {
+        var atsContext = CreateContextFromHostingAndQdrantAssemblies();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("withReference(qdrantResource: QdrantServerResource", aspireTs);
+        Assert.DoesNotContain("withQdrantReference(", aspireTs);
+        Assert.Contains("_withQdrantReferenceInternal(", aspireTs);
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_AddFamilies_HideLegacyPublicMethodNames()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("addConnectionString(", aspireTs);
+        Assert.Contains("addContainerRegistry(", aspireTs);
+        Assert.Contains("addExternalService(", aspireTs);
+        Assert.Contains("addParameter(", aspireTs);
+
+        Assert.DoesNotContain("addConnectionStringExpression(", aspireTs);
+        Assert.DoesNotContain("addContainerRegistryFromString(", aspireTs);
+        Assert.DoesNotContain("addExternalServiceUri(", aspireTs);
+        Assert.DoesNotContain("addExternalServiceParameter(", aspireTs);
+        Assert.DoesNotContain("addParameterWithValue(", aspireTs);
+
+        Assert.Contains("_addConnectionStringExpressionInternal(", aspireTs);
+        Assert.Contains("_addContainerRegistryFromStringInternal(", aspireTs);
+        Assert.Contains("_addExternalServiceUriInternal(", aspireTs);
+        Assert.Contains("_addExternalServiceParameterInternal(", aspireTs);
+        Assert.Contains("_addParameterWithValueInternal(", aspireTs);
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_AddFamilies_PreserveOverloadSpecificTypes()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("addConnectionString(name: string, connectionStringExpression: ReferenceExpression): ConnectionStringResourcePromise;", aspireTs);
+        Assert.Contains("addConnectionString(name: string, options?: AddConnectionStringOptions): ResourceWithConnectionStringPromise;", aspireTs);
+        Assert.Contains("addConnectionString(arg0?: unknown, arg1?: unknown): ConnectionStringResourcePromise | ResourceWithConnectionStringPromise {", aspireTs);
+
+        Assert.Contains("addContainerRegistry(name: string, endpoint: ParameterResource, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise;", aspireTs);
+        Assert.Contains("addContainerRegistry(name: string, endpoint: string, options?: AddContainerRegistryFromStringOptions): ContainerRegistryResourcePromise;", aspireTs);
+
+        Assert.Contains("addParameter(name: string, value: string, options?: AddParameterWithValueOptions): ParameterResourcePromise;", aspireTs);
+        Assert.Contains("addParameter(name: string, options?: AddParameterOptions): ParameterResourcePromise;", aspireTs);
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_WithReferenceFamily_PreservesDistinctOverloadConstraints()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("withReference(source: ConnectionStringResource | ResourceWithConnectionString, options?: WithReferenceOptions)", aspireTs);
+        Assert.Contains("withReference(source: CSharpAppResource | ProjectResource | ResourceWithServiceDiscovery, name: string)", aspireTs);
+        Assert.Contains("withReference(endpointReference: EndpointReference)", aspireTs);
+        Assert.Contains("withReference(externalService: ExternalServiceResource)", aspireTs);
+        Assert.Contains("withReference(name: string, uri: string)", aspireTs);
+        Assert.Contains("withReference(arg0?: unknown, arg1?: unknown)", aspireTs);
+        Assert.Contains("No matching overload for withReference(...)", aspireTs);
     }
 
     [Fact]

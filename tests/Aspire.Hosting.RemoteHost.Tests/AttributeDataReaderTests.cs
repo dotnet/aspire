@@ -117,6 +117,7 @@ public class AttributeDataReaderTests
         Assert.NotNull(result);
         Assert.Equal("overriddenMethod", result.Id);
         Assert.Equal("customName", result.MethodName);
+        Assert.Equal("withReference", result.MethodFamilyName);
     }
 
     [Fact]
@@ -184,7 +185,7 @@ public class AttributeDataReaderTests
             _ = resource;
         }
 
-        [AspireExport("overriddenMethod", MethodName = "customName")]
+        [AspireExport("overriddenMethod", MethodName = "customName", MethodFamilyName = "withReference")]
         public static void OverriddenNameMethod(IResource resource)
         {
             _ = resource;

@@ -34,6 +34,6 @@ await builder
     .withReference(queue)
     .withReference(blob)
     .withReference(eventHub).waitFor(eventHub)
-    .withServiceReference(funcApp).waitFor(funcApp);
+    .withReference(funcApp).waitFor(funcApp);
 
 await builder.build().run();

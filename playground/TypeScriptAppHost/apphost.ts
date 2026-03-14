@@ -45,10 +45,10 @@ const cache = await builder
 
 console.log("Added Redis cache");
 
-// Add Vite frontend that connects to the API (using withServiceReference for endpoints)
+// Add Vite frontend that connects to the API using withReference for service discovery.
 await builder
     .addViteApp("frontend", "./vite-frontend")
-    .withServiceReference(api)
+    .withReference(api)
     .waitFor(api)
     .withEnvironment("CUSTOM_ENV", "value")
     .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {

@@ -171,6 +171,23 @@ public sealed class AspireExportAttribute : Attribute
     public string? MethodName { get; set; }
 
     /// <summary>
+    /// Gets or sets the public method family name to use when multiple ATS capabilities should be
+    /// presented as a single operation in generated polyglot SDKs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This does not change the capability ID or the underlying ATS dispatch target.
+    /// It only tells generators that related capabilities should share one public surface.
+    /// </para>
+    /// <para>
+    /// This is useful for CLR overload families such as <c>WithReference(...)</c>, where guest
+    /// languages should see one method while the generated implementation still routes to the
+    /// correct exact capability ID.
+    /// </para>
+    /// </remarks>
+    public string? MethodFamilyName { get; set; }
+
+    /// <summary>
     /// Gets or sets whether to expose properties of this type as ATS capabilities.
     /// </summary>
     /// <remarks>

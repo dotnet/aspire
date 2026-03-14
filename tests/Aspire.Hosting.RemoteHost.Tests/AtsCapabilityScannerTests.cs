@@ -257,6 +257,25 @@ public class AtsCapabilityScannerTests
     }
 
     [Fact]
+    public void ScanAssembly_HostingAssembly_AddFamilies_ArePreservedWithoutCollisionWarnings()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+
+        Assert.Contains(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting/addConnectionStringExpression" && c.MethodFamilyName == "addConnectionString");
+        Assert.Contains(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting/addContainerRegistryFromString" && c.MethodFamilyName == "addContainerRegistry");
+        Assert.Contains(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting/addExternalServiceUri" && c.MethodFamilyName == "addExternalService");
+        Assert.Contains(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting/addExternalServiceParameter" && c.MethodFamilyName == "addExternalService");
+        Assert.Contains(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting/addParameterWithValue" && c.MethodFamilyName == "addParameter");
+
+        Assert.DoesNotContain(result.Diagnostics, d =>
+            d.Message.Contains("Method 'addConnectionString'", StringComparison.Ordinal) ||
+            d.Message.Contains("Method 'addContainerRegistry'", StringComparison.Ordinal) ||
+            d.Message.Contains("Method 'addExternalService'", StringComparison.Ordinal) ||
+            d.Message.Contains("Method 'addParameter'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ScanAssembly_HostingAssembly_ExportsExpectedHandleTypesAndInstanceMembers()
     {
         var hostingAssembly = typeof(DistributedApplication).Assembly;

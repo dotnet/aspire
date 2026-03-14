@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -175,5 +176,64 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
 
         // "Aspire.Hosting.Redis@" is not a valid semver, so it should fail version validation
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    [Fact]
+    public void FormatPretty_UsesMethodFamilyNameWhenPresent()
+    {
+        var capabilities = new CapabilitiesInfo
+        {
+            Capabilities =
+            [
+                new CapabilityInfo
+                {
+                    CapabilityId = "Aspire.Hosting/addConnectionStringExpression",
+                    MethodName = "addConnectionStringExpression",
+                    MethodFamilyName = "addConnectionString",
+                    OwningTypeName = "DistributedApplicationBuilder",
+                    ReturnType = new TypeRefInfo { TypeId = "Aspire.Hosting/Aspire.Hosting.ConnectionStringResource" },
+                    Parameters =
+                    [
+                        new ParameterInfo { Name = "name", Type = new TypeRefInfo { TypeId = "string" } },
+                        new ParameterInfo { Name = "connectionStringExpression", Type = new TypeRefInfo { TypeId = "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression" } }
+                    ]
+                }
+            ]
+        };
+
+        var output = InvokePrivateFormatter("FormatPretty", capabilities);
+
+        Assert.Contains("addConnectionString(name: string, connectionStringExpression: ReferenceExpression)", output);
+        Assert.DoesNotContain("addConnectionStringExpression(", output);
+    }
+
+    [Fact]
+    public void FormatJson_IncludesMethodFamilyName()
+    {
+        var capabilities = new CapabilitiesInfo
+        {
+            Capabilities =
+            [
+                new CapabilityInfo
+                {
+                    CapabilityId = "Aspire.Hosting/addExternalServiceUri",
+                    MethodName = "addExternalServiceUri",
+                    MethodFamilyName = "addExternalService"
+                }
+            ]
+        };
+
+        var output = InvokePrivateFormatter("FormatJson", capabilities);
+
+        Assert.Contains("\"MethodFamilyName\"", output);
+        Assert.Contains("addExternalService", output);
+    }
+
+    private static string InvokePrivateFormatter(string methodName, CapabilitiesInfo capabilities)
+    {
+        var method = typeof(SdkDumpCommand).GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(method);
+
+        return Assert.IsType<string>(method.Invoke(null, [capabilities]));
     }
 }

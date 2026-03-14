@@ -32,6 +32,7 @@ public sealed class AspireExportAttribute : Attribute
     public Type? Type { get; set; }
     public string? Description { get; set; }
     public string? MethodName { get; set; }
+    public string? MethodFamilyName { get; set; }
     public bool ExposeProperties { get; set; }
     public bool ExposeMethods { get; set; }
 }

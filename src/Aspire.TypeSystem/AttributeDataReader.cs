@@ -152,6 +152,7 @@ public static class AttributeDataReader
         // Read named arguments
         string? description = null;
         string? methodName = null;
+        string? methodFamilyName = null;
         var exposeProperties = false;
         var exposeMethods = false;
         var runSyncOnBackgroundThread = false;
@@ -172,6 +173,9 @@ public static class AttributeDataReader
                     break;
                 case nameof(AspireExportData.MethodName):
                     methodName = named.TypedValue.Value as string;
+                    break;
+                case nameof(AspireExportData.MethodFamilyName):
+                    methodFamilyName = named.TypedValue.Value as string;
                     break;
                 case nameof(AspireExportData.ExposeProperties):
                     if (named.TypedValue.Value is bool ep)
@@ -200,6 +204,7 @@ public static class AttributeDataReader
             Type = type,
             Description = description,
             MethodName = methodName,
+            MethodFamilyName = methodFamilyName,
             ExposeProperties = exposeProperties,
             ExposeMethods = exposeMethods,
             RunSyncOnBackgroundThread = runSyncOnBackgroundThread
@@ -269,6 +274,11 @@ public sealed class AspireExportData
     /// Gets the method name override for generated polyglot SDKs.
     /// </summary>
     public string? MethodName { get; init; }
+
+    /// <summary>
+    /// Gets the public method family name for generated polyglot SDKs.
+    /// </summary>
+    public string? MethodFamilyName { get; init; }
 
     /// <summary>
     /// Gets whether to expose properties of this type as ATS capabilities.

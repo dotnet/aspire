@@ -162,6 +162,12 @@ public sealed class AtsCapabilityInfo
     public required string MethodName { get; set; }
 
     /// <summary>
+    /// Gets or sets the public method family name used by generators to collapse related
+    /// capabilities into a single user-facing operation.
+    /// </summary>
+    public string? MethodFamilyName { get; init; }
+
+    /// <summary>
     /// Gets or sets the owning type name for property/method capabilities.
     /// </summary>
     /// <remarks>

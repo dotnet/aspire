@@ -63,6 +63,7 @@ internal sealed class CodeGenerationService
     {
         CapabilityId = c.CapabilityId,
         MethodName = c.MethodName,
+        MethodFamilyName = c.MethodFamilyName,
         OwningTypeName = c.OwningTypeName,
         QualifiedMethodName = c.QualifiedMethodName,
         Description = c.Description,
@@ -189,6 +190,7 @@ internal sealed class CapabilityResponse
 {
     public string CapabilityId { get; set; } = "";
     public string MethodName { get; set; } = "";
+    public string? MethodFamilyName { get; set; }
     public string? OwningTypeName { get; set; }
     public string QualifiedMethodName { get; set; } = "";
     public string? Description { get; set; }

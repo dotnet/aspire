@@ -24,7 +24,7 @@ public static class ExternalServiceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="url">The URL of the external service.</param>
     /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    [AspireExport("addExternalService", Description = "Adds an external service resource")]
+    [AspireExport("addExternalService", MethodFamilyName = "addExternalService", Description = "Adds an external service resource")]
     public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, string url)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -46,7 +46,7 @@ public static class ExternalServiceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="uri">The URI of the external service.</param>
     /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    [AspireExport("addExternalServiceUri", MethodName = "addExternalService", Description = "Adds an external service with a URI")]
+    [AspireExport("addExternalServiceUri", MethodFamilyName = "addExternalService", Description = "Adds an external service with a URI")]
     public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, Uri uri)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -63,7 +63,7 @@ public static class ExternalServiceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="urlParameter">The parameter containing the URL of the external service.</param>
     /// <returns>An <see cref="IResourceBuilder{ExternalServiceResource}"/> instance.</returns>
-    [AspireExport("addExternalServiceParameter", MethodName = "addExternalService", Description = "Adds an external service with a parameter URL")]
+    [AspireExport("addExternalServiceParameter", MethodFamilyName = "addExternalService", Description = "Adds an external service with a parameter URL")]
     public static IResourceBuilder<ExternalServiceResource> AddExternalService(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<ParameterResource> urlParameter)
     {
         ArgumentNullException.ThrowIfNull(builder);

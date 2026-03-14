@@ -122,6 +122,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Mapping of enum type IDs to TypeScript enum names
     private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
 
+    // Mapping of ATS handle type ID to handle type metadata.
+    private readonly Dictionary<string, AtsTypeInfo> _handleTypesById = new(StringComparer.Ordinal);
+
     /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
     /// </summary>
@@ -362,6 +365,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var capabilities = context.Capabilities;
         var dtoTypes = context.DtoTypes;
         var enumTypes = context.EnumTypes;
+
+        _handleTypesById.Clear();
+        foreach (var handleType in context.HandleTypes)
+        {
+            _handleTypesById[handleType.AtsTypeId] = handleType;
+        }
 
         // Get builder models (flattened - each builder has all its applicable capabilities)
         var allBuilders = CreateBuilderModels(capabilities);
@@ -696,6 +705,144 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         return (required, optional);
     }
 
+    private static List<List<AtsCapabilityInfo>> GroupCapabilitiesForPublicMethods(List<AtsCapabilityInfo> capabilities)
+    {
+        var groups = new List<List<AtsCapabilityInfo>>();
+        var seenFamilies = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var capability in capabilities)
+        {
+            if (string.IsNullOrEmpty(capability.MethodFamilyName))
+            {
+                groups.Add([capability]);
+                continue;
+            }
+
+            if (seenFamilies.Add(capability.MethodFamilyName))
+            {
+                groups.Add([.. capabilities.Where(c => string.Equals(c.MethodFamilyName, capability.MethodFamilyName, StringComparison.Ordinal))]);
+            }
+        }
+
+        return groups;
+    }
+
+    private static List<AtsCapabilityInfo> OrderMethodFamilyCapabilities(string builderTypeId, IEnumerable<AtsCapabilityInfo> capabilities)
+    {
+        return 
+        [
+            .. capabilities
+                .OrderByDescending(c => GetTargetSpecificityScore(builderTypeId, c))
+                .ThenByDescending(GetRequiredParameterCount)
+                .ThenByDescending(GetConcreteHandleParameterCount)
+                .ThenBy(GetInterfaceHandleParameterCount)
+                .ThenBy(c => c.CapabilityId, StringComparer.Ordinal)
+        ];
+    }
+
+    private static int GetTargetSpecificityScore(string builderTypeId, AtsCapabilityInfo capability)
+    {
+        if (string.Equals(capability.TargetTypeId, builderTypeId, StringComparison.Ordinal))
+        {
+            return 2;
+        }
+
+        if (capability.TargetType?.IsInterface == false)
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static int GetRequiredParameterCount(AtsCapabilityInfo capability) =>
+        capability.Parameters.Count(p => !p.IsOptional && !p.IsNullable);
+
+    private static int GetConcreteHandleParameterCount(AtsCapabilityInfo capability) =>
+        capability.Parameters.Count(p => p.Type?.Category == AtsTypeCategory.Handle && p.Type.IsInterface == false);
+
+    private static int GetInterfaceHandleParameterCount(AtsCapabilityInfo capability) =>
+        capability.Parameters.Count(p => p.Type?.Category == AtsTypeCategory.Handle && p.Type.IsInterface);
+
+    private string MapFamilyParameterToTypeScript(AtsParameterInfo param)
+    {
+        if (param.Type?.Category == AtsTypeCategory.Handle && param.Type.IsInterface)
+        {
+            var concreteTypes = GetFamilyConcreteParameterTypes(param.Type.TypeId);
+            if (concreteTypes.Count > 0)
+            {
+                return string.Join(" | ", concreteTypes);
+            }
+        }
+
+        return MapParameterToTypeScript(param);
+    }
+
+    private List<string> GetFamilyConcreteParameterTypes(string interfaceTypeId)
+    {
+        var typeNames = new HashSet<string>(StringComparer.Ordinal);
+
+        if (_wrapperClassNames.TryGetValue(interfaceTypeId, out var interfaceWrapperName))
+        {
+            typeNames.Add(interfaceWrapperName);
+        }
+
+        foreach (var handleType in _handleTypesById.Values)
+        {
+            if (handleType.IsInterface)
+            {
+                continue;
+            }
+
+            if (!handleType.ImplementedInterfaces.Any(i => string.Equals(i.TypeId, interfaceTypeId, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            if (_wrapperClassNames.TryGetValue(handleType.AtsTypeId, out var wrapperClassName))
+            {
+                typeNames.Add(wrapperClassName);
+            }
+        }
+
+        return [.. typeNames.OrderBy(static n => n, StringComparer.Ordinal)];
+    }
+
+    private string BuildPublicParameterString(
+        AtsCapabilityInfo capability,
+        IReadOnlyList<AtsParameterInfo> requiredParams,
+        IReadOnlyList<AtsParameterInfo> optionalParams,
+        bool useFamilyParameterTypes = false)
+    {
+        var publicParamDefs = new List<string>();
+        foreach (var param in requiredParams)
+        {
+            var tsType = useFamilyParameterTypes ? MapFamilyParameterToTypeScript(param) : MapParameterToTypeScript(param);
+            publicParamDefs.Add($"{param.Name}: {tsType}");
+        }
+        if (optionalParams.Count > 0)
+        {
+            publicParamDefs.Add($"options?: {ResolveOptionsInterfaceName(capability)}");
+        }
+
+        return string.Join(", ", publicParamDefs);
+    }
+
+    private static List<string> BuildForwardArguments(IReadOnlyList<AtsParameterInfo> requiredParams, bool hasOptionals)
+    {
+        var forwardArgs = new List<string>();
+        foreach (var param in requiredParams)
+        {
+            forwardArgs.Add(param.Name);
+        }
+        if (hasOptionals)
+        {
+            forwardArgs.Add("options");
+        }
+
+        return forwardArgs;
+    }
+
     /// <summary>
     /// Registers an options interface to be generated later.
     /// Uses method name to create the interface name. When methods share a name but have
@@ -903,14 +1050,22 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
-        // Generate internal methods and public fluent methods
-        // Capabilities are already flattened - no need to collect from parents
-        // Filter out property getters and setters - they are not methods
-        foreach (var capability in builder.Capabilities.Where(c =>
-            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
-            c.CapabilityKind != AtsCapabilityKind.PropertySetter))
+        // Generate internal methods and public fluent methods.
+        var methodCapabilities = builder.Capabilities
+            .Where(c => c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+                c.CapabilityKind != AtsCapabilityKind.PropertySetter)
+            .ToList();
+
+        foreach (var group in GroupCapabilitiesForPublicMethods(methodCapabilities))
         {
-            GenerateBuilderMethod(builder, capability);
+            if (group.Count == 1 && string.IsNullOrEmpty(group[0].MethodFamilyName))
+            {
+                GenerateBuilderMethod(builder, group[0]);
+            }
+            else
+            {
+                GenerateBuilderMethodFamily(builder, group[0].MethodFamilyName ?? group[0].MethodName, group);
+            }
         }
 
         WriteLine("}");
@@ -928,20 +1083,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Separate required and optional parameters
         var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
         var hasOptionals = optionalParams.Count > 0;
-        var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
         // Build parameter list for public method
-        var publicParamDefs = new List<string>();
-        foreach (var param in requiredParams)
-        {
-            var tsType = MapParameterToTypeScript(param);
-            publicParamDefs.Add($"{param.Name}: {tsType}");
-        }
-        if (hasOptionals)
-        {
-            publicParamDefs.Add($"options?: {optionsInterfaceName}");
-        }
-        var publicParamsString = string.Join(", ", publicParamDefs);
+        var publicParamsString = BuildPublicParameterString(capability, requiredParams, optionalParams);
 
         // Build parameter list for internal method (all params positional for callback registration)
         var internalParamDefs = new List<string>();
@@ -1024,48 +1168,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return;
         }
 
-        // Generate internal async method for fluent builder methods
-        WriteLine($"    /** @internal */");
-        Write($"    private async {internalMethodName}(");
-        Write(internalParamsString);
-        Write($"): Promise<{returnClassName}> {{");
-        WriteLine();
-
-        // Handle callback registration if any
-        var callbackParams = capability.Parameters.Where(p => p.IsCallback).ToList();
-        foreach (var callbackParam in callbackParams)
-        {
-            GenerateCallbackRegistration(callbackParam);
-        }
-
-        // Handle cancellation token registration if any
-        var cancellationParams = capability.Parameters.Where(IsCancellationToken).ToList();
-        foreach (var ctParam in cancellationParams)
-        {
-            GenerateCancellationRegistration(ctParam);
-        }
-
-        // Build args object with conditional inclusion
-        GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams, cancellationParams);
-
-        if (returnsBuilder)
-        {
-            WriteLine($"        const result = await this._client.invokeCapability<{returnHandle}>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpcArgs");
-            WriteLine("        );");
-            WriteLine($"        return new {returnClassName}(result, this._client);");
-        }
-        else
-        {
-            WriteLine($"        await this._client.invokeCapability<void>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpcArgs");
-            WriteLine("        );");
-            WriteLine($"        return this;");
-        }
-        WriteLine("    }");
-        WriteLine();
+        GenerateBuilderInternalMethod(
+            capability,
+            internalMethodName,
+            internalParamsString,
+            requiredParams,
+            optionalParams,
+            targetParamName,
+            returnClassName,
+            returnHandle,
+            returnsBuilder);
 
         // Generate public fluent method (returns thenable wrapper)
         if (!string.IsNullOrEmpty(capability.Description))
@@ -1092,6 +1204,311 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("    }");
         WriteLine();
     }
+
+    private void GenerateBuilderInternalMethod(
+        AtsCapabilityInfo capability,
+        string internalMethodName,
+        string internalParamsString,
+        IReadOnlyList<AtsParameterInfo> requiredParams,
+        IReadOnlyList<AtsParameterInfo> optionalParams,
+        string targetParamName,
+        string returnClassName,
+        string returnHandle,
+        bool returnsBuilder)
+    {
+        WriteLine($"    /** @internal */");
+        Write($"    private async {internalMethodName}(");
+        Write(internalParamsString);
+        Write($"): Promise<{returnClassName}> {{");
+        WriteLine();
+
+        // Handle callback registration if any
+        var callbackParams = capability.Parameters.Where(p => p.IsCallback).ToList();
+        foreach (var callbackParam in callbackParams)
+        {
+            GenerateCallbackRegistration(callbackParam);
+        }
+
+        // Handle cancellation token registration if any
+        var cancellationParams = capability.Parameters.Where(IsCancellationToken).ToList();
+        foreach (var ctParam in cancellationParams)
+        {
+            GenerateCancellationRegistration(ctParam);
+        }
+
+        // Build args object with conditional inclusion
+        GenerateArgsObjectWithConditionals(targetParamName, [.. requiredParams], [.. optionalParams], cancellationParams);
+
+        if (returnsBuilder)
+        {
+            WriteLine($"        const result = await this._client.invokeCapability<{returnHandle}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpcArgs");
+            WriteLine("        );");
+            WriteLine($"        return new {returnClassName}(result, this._client);");
+        }
+        else
+        {
+            WriteLine($"        await this._client.invokeCapability<void>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            rpcArgs");
+            WriteLine("        );");
+            WriteLine($"        return this;");
+        }
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    private (string ReturnClassName, string ReturnHandle, bool ReturnsBuilder) ResolveBuilderMethodReturnInfo(BuilderModel builder, AtsCapabilityInfo capability)
+    {
+        var returnTypeId = builder.TypeId;
+        var returnClassName = builder.BuilderClassName;
+        if (capability.ReturnsBuilder && capability.ReturnType?.TypeId != null &&
+            !string.Equals(capability.ReturnType.TypeId, builder.TypeId, StringComparison.Ordinal) &&
+            !string.Equals(capability.ReturnType.TypeId, capability.TargetTypeId, StringComparison.Ordinal))
+        {
+            returnTypeId = capability.ReturnType.TypeId;
+            returnClassName = _wrapperClassNames.GetValueOrDefault(returnTypeId)
+                ?? DeriveClassName(returnTypeId);
+        }
+
+        var returnHandle = capability.ReturnsBuilder
+            ? GetHandleTypeName(returnTypeId)
+            : "void";
+
+        return (returnClassName, returnHandle, capability.ReturnsBuilder);
+    }
+
+    private void GenerateBuilderMethodFamily(BuilderModel builder, string methodFamilyName, List<AtsCapabilityInfo> familyCapabilities)
+    {
+        var orderedCapabilities = OrderMethodFamilyCapabilities(builder.TypeId, familyCapabilities);
+
+        if (orderedCapabilities.Any(c => !c.ReturnsBuilder && c.ReturnType.TypeId != AtsConstants.Void))
+        {
+            throw new InvalidOperationException($"Method family '{methodFamilyName}' currently supports only fluent builder or void-returning methods.");
+        }
+
+        var returnInfos = orderedCapabilities
+            .Select(c => ResolveBuilderMethodReturnInfo(builder, c))
+            .ToList();
+
+        var distinctReturnClasses = returnInfos
+            .Select(r => r.ReturnClassName)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (distinctReturnClasses.Count != 1)
+        {
+            throw new InvalidOperationException($"Method family '{methodFamilyName}' must resolve to a single builder return type.");
+        }
+
+        foreach (var (capability, returnInfo) in orderedCapabilities.Zip(returnInfos))
+        {
+            var internalMethodName = $"_{capability.MethodName}Internal";
+            var internalParamDefs = new List<string>();
+            foreach (var param in capability.Parameters)
+            {
+                var tsType = MapParameterToTypeScript(param);
+                var optional = param.IsOptional || param.IsNullable ? "?" : "";
+                internalParamDefs.Add($"{param.Name}{optional}: {tsType}");
+            }
+
+            var targetParamName = capability.TargetParameterName ?? "builder";
+            var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+
+            GenerateBuilderInternalMethod(
+                capability,
+                internalMethodName,
+                string.Join(", ", internalParamDefs),
+                requiredParams,
+                optionalParams,
+                targetParamName,
+                returnInfo.ReturnClassName,
+                returnInfo.ReturnHandle,
+                returnInfo.ReturnsBuilder);
+        }
+
+        var promiseClass = $"{distinctReturnClasses[0]}Promise";
+        var description = orderedCapabilities
+            .Select(c => c.Description)
+            .FirstOrDefault(static d => !string.IsNullOrEmpty(d));
+
+        if (!string.IsNullOrEmpty(description))
+        {
+            WriteLine($"    /** {description} */");
+        }
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+            Write($"    {methodFamilyName}(");
+            Write(BuildPublicParameterString(capability, requiredParams, optionalParams, useFamilyParameterTypes: true));
+            WriteLine($"): {promiseClass};");
+        }
+
+        var maxArgumentCount = orderedCapabilities
+            .Select(GetMethodFamilyUserArgumentCount)
+            .DefaultIfEmpty()
+            .Max();
+        var argumentNames = Enumerable.Range(0, maxArgumentCount)
+            .Select(i => $"arg{i}")
+            .ToList();
+
+        Write($"    {methodFamilyName}(");
+        Write(BuildMethodFamilyImplementationParameterString(maxArgumentCount));
+        Write($"): {promiseClass} {{");
+        WriteLine();
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var condition = BuildMethodFamilyDispatchCondition(capability, argumentNames);
+            var forwardArgs = BuildMethodFamilyForwardArguments(capability, argumentNames);
+            var internalMethodName = $"_{capability.MethodName}Internal";
+
+            WriteLine($"        if ({condition}) {{");
+            Write($"            return new {promiseClass}(this.{internalMethodName}(");
+            Write(forwardArgs);
+            WriteLine("));");
+            WriteLine("        }");
+        }
+
+        WriteLine($"        throw new AppHostUsageError('No matching overload for {methodFamilyName}(...) on {builder.BuilderClassName}.');");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    private static int GetMethodFamilyUserArgumentCount(AtsCapabilityInfo capability)
+    {
+        var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+        return requiredParams.Count + (optionalParams.Count > 0 ? 1 : 0);
+    }
+
+    private static string BuildMethodFamilyImplementationParameterString(int maxArgumentCount)
+    {
+        if (maxArgumentCount == 0)
+        {
+            return "";
+        }
+
+        var paramDefs = new List<string>(capacity: maxArgumentCount);
+        for (var i = 0; i < maxArgumentCount; i++)
+        {
+            paramDefs.Add($"arg{i}?: unknown");
+        }
+
+        return string.Join(", ", paramDefs);
+    }
+
+    private string BuildMethodFamilyDispatchCondition(AtsCapabilityInfo capability, IReadOnlyList<string> argumentNames)
+    {
+        var conditions = new List<string>();
+        var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+
+        for (var i = 0; i < requiredParams.Count; i++)
+        {
+            conditions.Add(BuildMethodFamilyRequiredArgumentCondition(requiredParams[i], argumentNames[i]));
+        }
+
+        if (optionalParams.Count > 0)
+        {
+            conditions.Add(BuildMethodFamilyOptionsCondition(argumentNames[requiredParams.Count]));
+        }
+
+        var usedArgumentCount = requiredParams.Count + (optionalParams.Count > 0 ? 1 : 0);
+        for (var i = usedArgumentCount; i < argumentNames.Count; i++)
+        {
+            conditions.Add($"{argumentNames[i]} === undefined");
+        }
+
+        return conditions.Count > 0
+            ? string.Join(" && ", conditions)
+            : "true";
+    }
+
+    private string BuildMethodFamilyRequiredArgumentCondition(AtsParameterInfo param, string argumentName)
+    {
+        if (param.Type == null)
+        {
+            return "true";
+        }
+
+        return param.Type.Category switch
+        {
+            AtsTypeCategory.Primitive => BuildPrimitiveArgumentCondition(param.Type.TypeId, argumentName),
+            AtsTypeCategory.Enum => $"typeof {argumentName} === 'string'",
+            AtsTypeCategory.Handle when param.Type.IsInterface => BuildInterfaceHandleArgumentCondition(param.Type.TypeId, argumentName),
+            AtsTypeCategory.Handle => BuildConcreteHandleArgumentCondition(param.Type.TypeId, argumentName),
+            AtsTypeCategory.Dto => $"typeof {argumentName} === 'object' && {argumentName} !== null && !Array.isArray({argumentName})",
+            AtsTypeCategory.Array or AtsTypeCategory.List => $"Array.isArray({argumentName})",
+            AtsTypeCategory.Dict => $"typeof {argumentName} === 'object' && {argumentName} !== null && !Array.isArray({argumentName})",
+            _ => "true"
+        };
+    }
+
+    private static string BuildPrimitiveArgumentCondition(string typeId, string argumentName) => typeId switch
+    {
+        AtsConstants.String or AtsConstants.Char or AtsConstants.Guid or AtsConstants.Uri or
+        AtsConstants.DateTime or AtsConstants.DateTimeOffset or AtsConstants.DateOnly or AtsConstants.TimeOnly =>
+            $"typeof {argumentName} === 'string'",
+        AtsConstants.Number or AtsConstants.TimeSpan =>
+            $"typeof {argumentName} === 'number'",
+        AtsConstants.Boolean =>
+            $"typeof {argumentName} === 'boolean'",
+        _ => "true"
+    };
+
+    private string BuildInterfaceHandleArgumentCondition(string interfaceTypeId, string argumentName)
+    {
+        var matchingTypeIds = _handleTypesById.Values
+            .Where(t => !t.IsInterface && t.ImplementedInterfaces.Any(i => string.Equals(i.TypeId, interfaceTypeId, StringComparison.Ordinal)))
+            .Select(t => $"'{EscapeTypeScriptString(t.AtsTypeId)}'")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static id => id, StringComparer.Ordinal)
+            .ToList();
+
+        if (matchingTypeIds.Count == 0)
+        {
+            return $"{argumentName} instanceof ResourceBuilderBase";
+        }
+
+        return $"{argumentName} instanceof ResourceBuilderBase && [{string.Join(", ", matchingTypeIds)}].includes({argumentName}.toJSON().$type)";
+    }
+
+    private string BuildConcreteHandleArgumentCondition(string typeId, string argumentName)
+    {
+        var wrapperClassName = _wrapperClassNames.GetValueOrDefault(typeId) ?? DeriveClassName(typeId);
+        return $"{argumentName} instanceof {wrapperClassName}";
+    }
+
+    private static string BuildMethodFamilyOptionsCondition(string argumentName) =>
+        $"({argumentName} === undefined || (typeof {argumentName} === 'object' && {argumentName} !== null && !Array.isArray({argumentName})))";
+
+    private string BuildMethodFamilyForwardArguments(AtsCapabilityInfo capability, IReadOnlyList<string> argumentNames)
+    {
+        var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+        var forwardArgs = new List<string>();
+
+        for (var i = 0; i < requiredParams.Count; i++)
+        {
+            forwardArgs.Add($"({argumentNames[i]} as {MapFamilyParameterToTypeScript(requiredParams[i])})");
+        }
+
+        if (optionalParams.Count > 0)
+        {
+            var optionsArgumentName = argumentNames[requiredParams.Count];
+            var optionsTypeName = ResolveOptionsInterfaceName(capability);
+
+            foreach (var optionalParam in optionalParams)
+            {
+                forwardArgs.Add($"({optionsArgumentName} as {optionsTypeName} | undefined)?.{optionalParam.Name}");
+            }
+        }
+
+        return string.Join(", ", forwardArgs);
+    }
+
+    private static string EscapeTypeScriptString(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal);
 
     /// <summary>
     /// Generates an args object with conditional inclusion of optional parameters.
@@ -1159,93 +1576,139 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("    }");
         WriteLine();
 
-        // Generate fluent methods that chain via .then()
-        // Capabilities are already flattened - no need to collect from parents
-        // Filter out property getters and setters - they are not methods
-        foreach (var capability in builder.Capabilities.Where(c =>
-            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
-            c.CapabilityKind != AtsCapabilityKind.PropertySetter))
+        // Generate fluent methods that chain via .then().
+        var methodCapabilities = builder.Capabilities
+            .Where(c => c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+                c.CapabilityKind != AtsCapabilityKind.PropertySetter)
+            .ToList();
+
+        foreach (var group in GroupCapabilitiesForPublicMethods(methodCapabilities))
         {
-            var methodName = capability.MethodName;
-
-            // Separate required and optional parameters
-            var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
-            var hasOptionals = optionalParams.Count > 0;
-            var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
-
-            // Build parameter list using options pattern
-            var publicParamDefs = new List<string>();
-            foreach (var param in requiredParams)
+            if (group.Count == 1 && string.IsNullOrEmpty(group[0].MethodFamilyName))
             {
-                var tsType = MapParameterToTypeScript(param);
-                publicParamDefs.Add($"{param.Name}: {tsType}");
-            }
-            if (hasOptionals)
-            {
-                publicParamDefs.Add($"options?: {optionsInterfaceName}");
-            }
-            var paramsString = string.Join(", ", publicParamDefs);
+                var capability = group[0];
+                var methodName = capability.MethodName;
 
-            // Forward args to underlying object's method (which handles options extraction)
-            var forwardArgs = new List<string>();
-            foreach (var param in requiredParams)
-            {
-                forwardArgs.Add(param.Name);
-            }
-            if (hasOptionals)
-            {
-                forwardArgs.Add("options");
-            }
-            var argsString = string.Join(", ", forwardArgs);
+                // Separate required and optional parameters
+                var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+                var hasOptionals = optionalParams.Count > 0;
 
-            // Check if this method returns a non-builder type
-            var hasNonBuilderReturn = !capability.ReturnsBuilder && capability.ReturnType != null;
+                var paramsString = BuildPublicParameterString(capability, requiredParams, optionalParams);
+                var argsString = string.Join(", ", BuildForwardArguments(requiredParams, hasOptionals));
 
-            if (!string.IsNullOrEmpty(capability.Description))
-            {
-                WriteLine($"    /** {capability.Description} */");
-            }
+                // Check if this method returns a non-builder type
+                var hasNonBuilderReturn = !capability.ReturnsBuilder && capability.ReturnType != null;
 
-            if (hasNonBuilderReturn)
-            {
-                // For non-builder returns, call the public method directly
-                var returnType = MapTypeRefToTypeScript(capability.ReturnType);
-                Write($"    {methodName}(");
-                Write(paramsString);
-                WriteLine($"): Promise<{returnType}> {{");
-                Write($"        return this._promise.then(obj => obj.{methodName}(");
-                Write(argsString);
-                WriteLine("));");
-                WriteLine("    }");
+                if (!string.IsNullOrEmpty(capability.Description))
+                {
+                    WriteLine($"    /** {capability.Description} */");
+                }
+
+                if (hasNonBuilderReturn)
+                {
+                    // For non-builder returns, call the public method directly
+                    var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+                    Write($"    {methodName}(");
+                    Write(paramsString);
+                    WriteLine($"): Promise<{returnType}> {{");
+                    Write($"        return this._promise.then(obj => obj.{methodName}(");
+                    Write(argsString);
+                    WriteLine("));");
+                    WriteLine("    }");
+                }
+                else
+                {
+                    // For fluent builder methods, determine the correct promise class.
+                    // Factory methods returning a different builder type use the return type's promise class.
+                    var methodPromiseClass = promiseClass;
+                    if (capability.ReturnsBuilder && capability.ReturnType?.TypeId != null &&
+                        !string.Equals(capability.ReturnType.TypeId, builder.TypeId, StringComparison.Ordinal) &&
+                        !string.Equals(capability.ReturnType.TypeId, capability.TargetTypeId, StringComparison.Ordinal))
+                    {
+                        var returnClass = _wrapperClassNames.GetValueOrDefault(capability.ReturnType.TypeId)
+                            ?? DeriveClassName(capability.ReturnType.TypeId);
+                        methodPromiseClass = $"{returnClass}Promise";
+                    }
+
+                    Write($"    {methodName}(");
+                    Write(paramsString);
+                    Write($"): {methodPromiseClass} {{");
+                    WriteLine();
+                    // Forward to the public method on the underlying object, wrapping result in promise class
+                    Write($"        return new {methodPromiseClass}(this._promise.then(obj => obj.{methodName}(");
+                    Write(argsString);
+                    WriteLine(")));");
+                    WriteLine("    }");
+                }
+
+                WriteLine();
             }
             else
             {
-                // For fluent builder methods, determine the correct promise class.
-                // Factory methods returning a different builder type use the return type's promise class.
-                var methodPromiseClass = promiseClass;
-                if (capability.ReturnsBuilder && capability.ReturnType?.TypeId != null &&
-                    !string.Equals(capability.ReturnType.TypeId, builder.TypeId, StringComparison.Ordinal) &&
-                    !string.Equals(capability.ReturnType.TypeId, capability.TargetTypeId, StringComparison.Ordinal))
-                {
-                    var returnClass = _wrapperClassNames.GetValueOrDefault(capability.ReturnType.TypeId)
-                        ?? DeriveClassName(capability.ReturnType.TypeId);
-                    methodPromiseClass = $"{returnClass}Promise";
-                }
-
-                Write($"    {methodName}(");
-                Write(paramsString);
-                Write($"): {methodPromiseClass} {{");
-                WriteLine();
-                // Forward to the public method on the underlying object, wrapping result in promise class
-                Write($"        return new {methodPromiseClass}(this._promise.then(obj => obj.{methodName}(");
-                Write(argsString);
-                WriteLine(")));");
-                WriteLine("    }");
+                GenerateThenableMethodFamily(builder, group[0].MethodFamilyName ?? group[0].MethodName, group);
             }
-            WriteLine();
         }
 
         WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateThenableMethodFamily(BuilderModel builder, string methodFamilyName, List<AtsCapabilityInfo> familyCapabilities)
+    {
+        var orderedCapabilities = OrderMethodFamilyCapabilities(builder.TypeId, familyCapabilities);
+
+        if (orderedCapabilities.Any(c => !c.ReturnsBuilder && c.ReturnType.TypeId != AtsConstants.Void))
+        {
+            throw new InvalidOperationException($"Method family '{methodFamilyName}' currently supports only fluent builder or void-returning methods.");
+        }
+
+        var returnInfos = orderedCapabilities
+            .Select(c => ResolveBuilderMethodReturnInfo(builder, c))
+            .ToList();
+        var distinctReturnClasses = returnInfos
+            .Select(r => r.ReturnClassName)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (distinctReturnClasses.Count != 1)
+        {
+            throw new InvalidOperationException($"Method family '{methodFamilyName}' must resolve to a single builder return type.");
+        }
+
+        var promiseClass = $"{distinctReturnClasses[0]}Promise";
+        var description = orderedCapabilities
+            .Select(c => c.Description)
+            .FirstOrDefault(static d => !string.IsNullOrEmpty(d));
+
+        if (!string.IsNullOrEmpty(description))
+        {
+            WriteLine($"    /** {description} */");
+        }
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var (requiredParams, optionalParams) = SeparateParameters(capability.Parameters);
+            Write($"    {methodFamilyName}(");
+            Write(BuildPublicParameterString(capability, requiredParams, optionalParams, useFamilyParameterTypes: true));
+            WriteLine($"): {promiseClass};");
+        }
+
+        var maxArgumentCount = orderedCapabilities
+            .Select(GetMethodFamilyUserArgumentCount)
+            .DefaultIfEmpty()
+            .Max();
+        var argumentNames = Enumerable.Range(0, maxArgumentCount)
+            .Select(i => $"arg{i}")
+            .ToList();
+
+        Write($"    {methodFamilyName}(");
+        Write(BuildMethodFamilyImplementationParameterString(maxArgumentCount));
+        Write($"): {promiseClass} {{");
+        WriteLine();
+        Write($"        return new {promiseClass}(this._promise.then(obj => obj.{methodFamilyName}(");
+        Write(string.Join(", ", argumentNames));
+        WriteLine(")));");
+        WriteLine("    }");
         WriteLine();
     }
 
@@ -1713,9 +2176,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate methods - use thenable pattern if this type has a Promise wrapper
         if (hasMethods)
         {
-            foreach (var method in allMethods)
+            foreach (var group in GroupCapabilitiesForPublicMethods(allMethods))
             {
-                GenerateTypeClassMethod(model, method);
+                if (group.Count == 1 && string.IsNullOrEmpty(group[0].MethodFamilyName))
+                {
+                    GenerateTypeClassMethod(model, group[0]);
+                }
+                else
+                {
+                    GenerateTypeClassMethodFamily(model, group[0].MethodFamilyName ?? group[0].MethodName, group);
+                }
             }
         }
         else
@@ -2161,15 +2631,48 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// Generates a method on a type class using the thenable pattern.
     /// Generates both an internal async method and a public fluent method.
     /// </summary>
+    private static string GetTypeClassPublicMethodName(AtsCapabilityInfo capability)
+    {
+        return !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
+            ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
+            : GetTypeScriptMethodName(capability.MethodName);
+    }
+
+    private string GetTypeClassFamilyReturnType(BuilderModel model, AtsCapabilityInfo capability)
+    {
+        var className = DeriveClassName(model.TypeId);
+        var promiseClass = $"{className}Promise";
+        var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+        var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+        var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+        if (returnPromiseWrapper != null)
+        {
+            return returnPromiseWrapper;
+        }
+
+        if (isVoid)
+        {
+            return promiseClass;
+        }
+
+        return $"Promise<{returnType}>";
+    }
+
+    private string GetTypeClassFamilyImplementationReturnType(BuilderModel model, IEnumerable<AtsCapabilityInfo> familyCapabilities)
+    {
+        return string.Join(" | ",
+            familyCapabilities
+                .Select(c => GetTypeClassFamilyReturnType(model, c))
+                .Distinct(StringComparer.Ordinal));
+    }
+
     private void GenerateTypeClassMethod(BuilderModel model, AtsCapabilityInfo capability)
     {
         var className = DeriveClassName(model.TypeId);
         var promiseClass = $"{className}Promise";
 
-        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
-        var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
-            ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
-            : GetTypeScriptMethodName(capability.MethodName);
+        var methodName = GetTypeClassPublicMethodName(capability);
 
         var internalMethodName = $"_{methodName}Internal";
 
@@ -2338,6 +2841,170 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
+    private void GenerateTypeClassMethodFamily(BuilderModel model, string methodFamilyName, List<AtsCapabilityInfo> familyCapabilities)
+    {
+        var orderedCapabilities = OrderMethodFamilyCapabilities(model.TypeId, familyCapabilities);
+        var className = DeriveClassName(model.TypeId);
+        var promiseClass = $"{className}Promise";
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var methodName = GetTypeClassPublicMethodName(capability);
+            var internalMethodName = $"_{methodName}Internal";
+            var targetParamName = capability.TargetParameterName ?? "context";
+            var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
+            var (requiredParams, optionalParams) = SeparateParameters(userParams);
+            var internalParamDefs = new List<string>();
+
+            foreach (var param in userParams)
+            {
+                var tsType = MapParameterToTypeScript(param);
+                var optional = param.IsOptional || param.IsNullable ? "?" : "";
+                internalParamDefs.Add($"{param.Name}{optional}: {tsType}");
+            }
+
+            var internalParamsString = string.Join(", ", internalParamDefs);
+            var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+            var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+            WriteLine("    /** @internal */");
+
+            if (returnPromiseWrapper != null)
+            {
+                var returnWrapperClass = _wrapperClassNames.GetValueOrDefault(capability.ReturnType!.TypeId)
+                    ?? DeriveClassName(capability.ReturnType.TypeId);
+                var returnHandleType = GetHandleTypeName(capability.ReturnType.TypeId);
+
+                Write($"    async {internalMethodName}(");
+                Write(internalParamsString);
+                WriteLine($"): Promise<{returnWrapperClass}> {{");
+
+                var callbackParams = userParams.Where(p => p.IsCallback).ToList();
+                foreach (var callbackParam in callbackParams)
+                {
+                    GenerateCallbackRegistration(callbackParam);
+                }
+
+                GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+
+                WriteLine($"        const result = await this._client.invokeCapability<{returnHandleType}>(");
+                WriteLine($"            '{capability.CapabilityId}',");
+                WriteLine("            rpcArgs");
+                WriteLine("        );");
+                WriteLine($"        return new {returnWrapperClass}(result, this._client);");
+                WriteLine("    }");
+                WriteLine();
+                continue;
+            }
+
+            if (isVoid)
+            {
+                Write($"    async {internalMethodName}(");
+                Write(internalParamsString);
+                WriteLine($"): Promise<{className}> {{");
+
+                var callbackParams = userParams.Where(p => p.IsCallback).ToList();
+                foreach (var callbackParam in callbackParams)
+                {
+                    GenerateCallbackRegistration(callbackParam);
+                }
+
+                GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+
+                WriteLine("        await this._client.invokeCapability<void>(");
+                WriteLine($"            '{capability.CapabilityId}',");
+                WriteLine("            rpcArgs");
+                WriteLine("        );");
+                WriteLine("        return this;");
+                WriteLine("    }");
+                WriteLine();
+                continue;
+            }
+
+            Write($"    async {internalMethodName}(");
+            Write(internalParamsString);
+            WriteLine($"): Promise<{returnType}> {{");
+
+            var nonWrapperCallbackParams = userParams.Where(p => p.IsCallback).ToList();
+            foreach (var callbackParam in nonWrapperCallbackParams)
+            {
+                GenerateCallbackRegistration(callbackParam);
+            }
+
+            GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine("            rpcArgs");
+            WriteLine("        );");
+            WriteLine("    }");
+            WriteLine();
+        }
+
+        var description = orderedCapabilities
+            .Select(c => c.Description)
+            .FirstOrDefault(static d => !string.IsNullOrEmpty(d));
+
+        if (!string.IsNullOrEmpty(description))
+        {
+            WriteLine($"    /** {description} */");
+        }
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var targetParamName = capability.TargetParameterName ?? "context";
+            var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
+            var (requiredParams, optionalParams) = SeparateParameters(userParams);
+
+            Write($"    {methodFamilyName}(");
+            Write(BuildPublicParameterString(capability, requiredParams, optionalParams, useFamilyParameterTypes: true));
+            WriteLine($"): {GetTypeClassFamilyReturnType(model, capability)};");
+        }
+
+        var maxArgumentCount = orderedCapabilities
+            .Select(GetMethodFamilyUserArgumentCount)
+            .DefaultIfEmpty()
+            .Max();
+        var argumentNames = Enumerable.Range(0, maxArgumentCount)
+            .Select(i => $"arg{i}")
+            .ToList();
+
+        Write($"    {methodFamilyName}(");
+        Write(BuildMethodFamilyImplementationParameterString(maxArgumentCount));
+        WriteLine($"): {GetTypeClassFamilyImplementationReturnType(model, orderedCapabilities)} {{");
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var condition = BuildMethodFamilyDispatchCondition(capability, argumentNames);
+            var forwardArgs = BuildMethodFamilyForwardArguments(capability, argumentNames);
+            var internalMethodName = $"_{GetTypeClassPublicMethodName(capability)}Internal";
+            var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+            var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+            WriteLine($"        if ({condition}) {{");
+
+            if (returnPromiseWrapper != null)
+            {
+                WriteLine($"            return new {returnPromiseWrapper}(this.{internalMethodName}({forwardArgs}));");
+            }
+            else if (isVoid)
+            {
+                WriteLine($"            return new {promiseClass}(this.{internalMethodName}({forwardArgs}));");
+            }
+            else
+            {
+                WriteLine($"            return this.{internalMethodName}({forwardArgs});");
+            }
+
+            WriteLine("        }");
+        }
+
+        WriteLine($"        throw new AppHostUsageError('No matching overload for {methodFamilyName}(...) on {className}.');");
+        WriteLine("    }");
+        WriteLine();
+    }
+
     /// <summary>
     /// Generates a thenable wrapper class for a type class.
     /// </summary>
@@ -2363,92 +3030,166 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Generate fluent methods that chain via .then()
-        foreach (var capability in methods)
+        foreach (var group in GroupCapabilitiesForPublicMethods(methods))
         {
-            var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
-                ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
-                : GetTypeScriptMethodName(capability.MethodName);
-
-            var targetParamName = capability.TargetParameterName ?? "context";
-            var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
-
-            // Separate required and optional parameters
-            var (requiredParams, optionalParams) = SeparateParameters(userParams);
-            var hasOptionals = optionalParams.Count > 0;
-            var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
-
-            // Build parameter list using options pattern
-            var publicParamDefs = new List<string>();
-            foreach (var param in requiredParams)
+            if (group.Count == 1 && string.IsNullOrEmpty(group[0].MethodFamilyName))
             {
-                var tsType = MapParameterToTypeScript(param);
-                publicParamDefs.Add($"{param.Name}: {tsType}");
-            }
-            if (hasOptionals)
-            {
-                publicParamDefs.Add($"options?: {optionsInterfaceName}");
-            }
-            var paramsString = string.Join(", ", publicParamDefs);
+                var capability = group[0];
+                var methodName = GetTypeClassPublicMethodName(capability);
 
-            // Forward args to underlying object's public method
-            var forwardArgs = new List<string>();
-            foreach (var param in requiredParams)
-            {
-                forwardArgs.Add(param.Name);
-            }
-            if (hasOptionals)
-            {
-                forwardArgs.Add("options");
-            }
-            var argsString = string.Join(", ", forwardArgs);
+                var targetParamName = capability.TargetParameterName ?? "context";
+                var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
 
-            // Check if return type has a Promise wrapper
-            var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
-            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
-            var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+                // Separate required and optional parameters
+                var (requiredParams, optionalParams) = SeparateParameters(userParams);
+                var hasOptionals = optionalParams.Count > 0;
+                var optionsInterfaceName = ResolveOptionsInterfaceName(capability);
 
-            if (!string.IsNullOrEmpty(capability.Description))
-            {
-                WriteLine($"    /** {capability.Description} */");
-            }
+                // Build parameter list using options pattern
+                var publicParamDefs = new List<string>();
+                foreach (var param in requiredParams)
+                {
+                    var tsType = MapParameterToTypeScript(param);
+                    publicParamDefs.Add($"{param.Name}: {tsType}");
+                }
+                if (hasOptionals)
+                {
+                    publicParamDefs.Add($"options?: {optionsInterfaceName}");
+                }
+                var paramsString = string.Join(", ", publicParamDefs);
 
-            if (returnPromiseWrapper != null)
-            {
-                // Return type has Promise wrapper - forward to public method, wrap result
-                Write($"    {methodName}(");
-                Write(paramsString);
-                WriteLine($"): {returnPromiseWrapper} {{");
-                Write($"        return new {returnPromiseWrapper}(this._promise.then(obj => obj.{methodName}(");
-                Write(argsString);
-                WriteLine(")));");
-                WriteLine("    }");
-            }
-            else if (isVoid)
-            {
-                // Void return - forward to public method, wrap result in this class's promise
-                Write($"    {methodName}(");
-                Write(paramsString);
-                WriteLine($"): {promiseClass} {{");
-                Write($"        return new {promiseClass}(this._promise.then(obj => obj.{methodName}(");
-                Write(argsString);
-                WriteLine(")));");
-                WriteLine("    }");
+                // Forward args to underlying object's public method
+                var forwardArgs = new List<string>();
+                foreach (var param in requiredParams)
+                {
+                    forwardArgs.Add(param.Name);
+                }
+                if (hasOptionals)
+                {
+                    forwardArgs.Add("options");
+                }
+                var argsString = string.Join(", ", forwardArgs);
+
+                // Check if return type has a Promise wrapper
+                var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+                var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+                var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+                if (!string.IsNullOrEmpty(capability.Description))
+                {
+                    WriteLine($"    /** {capability.Description} */");
+                }
+
+                if (returnPromiseWrapper != null)
+                {
+                    // Return type has Promise wrapper - forward to public method, wrap result
+                    Write($"    {methodName}(");
+                    Write(paramsString);
+                    WriteLine($"): {returnPromiseWrapper} {{");
+                    Write($"        return new {returnPromiseWrapper}(this._promise.then(obj => obj.{methodName}(");
+                    Write(argsString);
+                    WriteLine(")));");
+                    WriteLine("    }");
+                }
+                else if (isVoid)
+                {
+                    // Void return - forward to public method, wrap result in this class's promise
+                    Write($"    {methodName}(");
+                    Write(paramsString);
+                    WriteLine($"): {promiseClass} {{");
+                    Write($"        return new {promiseClass}(this._promise.then(obj => obj.{methodName}(");
+                    Write(argsString);
+                    WriteLine(")));");
+                    WriteLine("    }");
+                }
+                else
+                {
+                    // Non-void, non-wrapper return - plain Promise
+                    Write($"    {methodName}(");
+                    Write(paramsString);
+                    WriteLine($"): Promise<{returnType}> {{");
+                    Write($"        return this._promise.then(obj => obj.{methodName}(");
+                    Write(argsString);
+                    WriteLine("));");
+                    WriteLine("    }");
+                }
             }
             else
             {
-                // Non-void, non-wrapper return - plain Promise
-                Write($"    {methodName}(");
-                Write(paramsString);
-                WriteLine($"): Promise<{returnType}> {{");
-                Write($"        return this._promise.then(obj => obj.{methodName}(");
-                Write(argsString);
-                WriteLine("));");
-                WriteLine("    }");
+                GenerateTypeClassThenableMethodFamily(model, group[0].MethodFamilyName ?? group[0].MethodName, group);
             }
-            WriteLine();
         }
 
         WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateTypeClassThenableMethodFamily(BuilderModel model, string methodFamilyName, List<AtsCapabilityInfo> familyCapabilities)
+    {
+        var orderedCapabilities = OrderMethodFamilyCapabilities(model.TypeId, familyCapabilities);
+        var className = DeriveClassName(model.TypeId);
+        var promiseClass = $"{className}Promise";
+        var description = orderedCapabilities
+            .Select(c => c.Description)
+            .FirstOrDefault(static d => !string.IsNullOrEmpty(d));
+
+        if (!string.IsNullOrEmpty(description))
+        {
+            WriteLine($"    /** {description} */");
+        }
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var targetParamName = capability.TargetParameterName ?? "context";
+            var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
+            var (requiredParams, optionalParams) = SeparateParameters(userParams);
+
+            Write($"    {methodFamilyName}(");
+            Write(BuildPublicParameterString(capability, requiredParams, optionalParams, useFamilyParameterTypes: true));
+            WriteLine($"): {GetTypeClassFamilyReturnType(model, capability)};");
+        }
+
+        var maxArgumentCount = orderedCapabilities
+            .Select(GetMethodFamilyUserArgumentCount)
+            .DefaultIfEmpty()
+            .Max();
+        var argumentNames = Enumerable.Range(0, maxArgumentCount)
+            .Select(i => $"arg{i}")
+            .ToList();
+
+        Write($"    {methodFamilyName}(");
+        Write(BuildMethodFamilyImplementationParameterString(maxArgumentCount));
+        WriteLine($"): {GetTypeClassFamilyImplementationReturnType(model, orderedCapabilities)} {{");
+
+        foreach (var capability in orderedCapabilities)
+        {
+            var condition = BuildMethodFamilyDispatchCondition(capability, argumentNames);
+            var forwardArgs = BuildMethodFamilyForwardArguments(capability, argumentNames);
+            var internalMethodName = $"_{GetTypeClassPublicMethodName(capability)}Internal";
+            var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+            var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+
+            WriteLine($"        if ({condition}) {{");
+
+            if (returnPromiseWrapper != null)
+            {
+                WriteLine($"            return new {returnPromiseWrapper}(this._promise.then(obj => obj.{internalMethodName}({forwardArgs})));");
+            }
+            else if (isVoid)
+            {
+                WriteLine($"            return new {promiseClass}(this._promise.then(obj => obj.{internalMethodName}({forwardArgs})));");
+            }
+            else
+            {
+                WriteLine($"            return this._promise.then(obj => obj.{internalMethodName}({forwardArgs})) as Promise<{returnType}>;");
+            }
+
+            WriteLine("        }");
+        }
+
+        WriteLine($"        throw new AppHostUsageError('No matching overload for {methodFamilyName}(...) on {className}.');");
+        WriteLine("    }");
         WriteLine();
     }
 
