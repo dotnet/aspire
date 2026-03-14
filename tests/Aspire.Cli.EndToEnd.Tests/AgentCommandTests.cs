@@ -137,15 +137,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         // Verify the deprecated config was created
         var fileContent = File.ReadAllText(configPath);
-        if (!fileContent.Contains("\"mcp\""))
-        {
-            throw new InvalidOperationException($"Expected file '{configPath}' to contain '\"mcp\"' but it did not. Content: {fileContent}");
-        }
-        fileContent = File.ReadAllText(configPath);
-        if (!fileContent.Contains("\"start\""))
-        {
-            throw new InvalidOperationException($"Expected file '{configPath}' to contain '\"start\"' but it did not. Content: {fileContent}");
-        }
+        Assert.Contains("\"mcp\"", fileContent);
+        Assert.Contains("\"start\"", fileContent);
 
         // Debug: Show that the file exists and where we are
         var fileExistsPattern = new CellPatternSearcher().Find(".mcp.json");
@@ -191,20 +184,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Step 3: Verify config was updated to new format
         // The updated config should contain "agent" and "mcp" but not "start"
         fileContent = File.ReadAllText(configPath);
-        if (!fileContent.Contains("\"agent\""))
-        {
-            throw new InvalidOperationException($"Expected file '{configPath}' to contain '\"agent\"' but it did not. Content: {fileContent}");
-        }
-        fileContent = File.ReadAllText(configPath);
-        if (!fileContent.Contains("\"mcp\""))
-        {
-            throw new InvalidOperationException($"Expected file '{configPath}' to contain '\"mcp\"' but it did not. Content: {fileContent}");
-        }
-        fileContent = File.ReadAllText(configPath);
-        if (fileContent.Contains("\"start\""))
-        {
-            throw new InvalidOperationException($"Expected file '{configPath}' to NOT contain '\"start\"' but it did. Content: {fileContent}");
-        }
+        Assert.Contains("\"agent\"", fileContent);
+        Assert.Contains("\"mcp\"", fileContent);
+        Assert.DoesNotContain("\"start\"", fileContent);
 
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -312,10 +294,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Verify skill file was created
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire", "SKILL.md");
         var fileContent = File.ReadAllText(skillFilePath);
-        if (!fileContent.Contains("aspire start"))
-        {
-            throw new InvalidOperationException($"Expected file '{skillFilePath}' to contain 'aspire start' but it did not. Content: {fileContent}");
-        }
+        Assert.Contains("aspire start", fileContent);
 
         await auto.TypeAsync("exit");
         await auto.EnterAsync();

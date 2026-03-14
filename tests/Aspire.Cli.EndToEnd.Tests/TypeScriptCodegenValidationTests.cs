@@ -136,43 +136,13 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
             .Find("Did you forget 'await'");
 
         // PrepareEnvironment
-        await auto.WaitUntilAsync(s => new CellPatternSearcher().Find("b").RightUntil("$").Right(' ').Right(' ').Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for input prompt");
-        await auto.WaitAsync(500);
-        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
-        await auto.TypeAsync(promptSetup);
-        await auto.EnterAsync();
-        await auto.WaitForSuccessPromptAsync(counter);
-        await auto.TypeAsync($"cd {workspace.WorkspaceRoot.FullName}");
-        await auto.EnterAsync();
-        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.PrepareEnvironmentAsync(workspace, counter);
 
         if (isCI)
         {
-            // InstallAspireBundleFromPullRequest
-            var bundleInstallCommand = OperatingSystem.IsWindows()
-                ? $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\""
-                : $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
-            await auto.TypeAsync(bundleInstallCommand);
-            await auto.EnterAsync();
-            await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
-
-            // SourceAspireBundleEnvironment
-            await auto.TypeAsync("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
-            await auto.EnterAsync();
-            await auto.WaitForSuccessPromptAsync(counter);
-
-            // VerifyAspireCliVersion
-            if (commitSha.Length != 40)
-            {
-                throw new ArgumentException($"Commit SHA must be exactly 40 characters, got {commitSha.Length}: '{commitSha}'", nameof(commitSha));
-            }
-            var shortCommitSha = commitSha[..8];
-            var expectedVersionSuffix = $"g{shortCommitSha}";
-            var versionPattern = new CellPatternSearcher().Find(expectedVersionSuffix);
-            await auto.TypeAsync("aspire --version");
-            await auto.EnterAsync();
-            await auto.WaitUntilAsync(s => versionPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "CLI version contains expected commit SHA");
-            await auto.WaitForSuccessPromptAsync(counter);
+            await auto.InstallAspireBundleFromPullRequestAsync(prNumber, counter);
+            await auto.SourceAspireBundleEnvironmentAsync(counter);
+            await auto.VerifyAspireCliVersionAsync(commitSha, counter);
         }
 
         await auto.TypeAsync("aspire init --language typescript --non-interactive");
