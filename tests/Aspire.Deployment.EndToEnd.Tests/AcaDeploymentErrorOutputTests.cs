@@ -76,55 +76,54 @@ public sealed class AcaDeploymentErrorOutputTests(ITestOutputHelper output)
                 .Find("PIPELINE FAILED");
 
             var counter = new SequenceCounter();
-            var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+            var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
-            sequenceBuilder.PrepareEnvironment(workspace, counter);
+            await auto.PrepareEnvironmentAsync(workspace, counter);
 
             // Step 2: Set up CLI
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 output.WriteLine("Step 2: Using pre-installed Aspire CLI...");
-                sequenceBuilder.SourceAspireCliEnvironment(counter);
+                await auto.SourceAspireCliEnvironmentAsync(counter);
             }
 
             // Step 3: Create single-file AppHost
             output.WriteLine("Step 3: Creating single-file AppHost...");
-            sequenceBuilder.AspireInit(counter);
+            await auto.AspireInitAsync(counter);
 
             // Step 4: Add Azure Container Apps package
             output.WriteLine("Step 4: Adding Azure Container Apps package...");
-            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.AppContainers")
-                .Enter();
+            await auto.TypeAsync("aspire add Aspire.Hosting.Azure.AppContainers");
+            await auto.EnterAsync();
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter();
+                await auto.WaitUntilAsync(
+                    s => waitingForVersionSelectionPrompt.Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(60),
+                    description: "version selection prompt");
+                await auto.EnterAsync();
             }
 
-            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
             // Step 5: Modify apphost.cs to add Azure Container App Environment
-            sequenceBuilder.ExecuteCallback(() =>
-            {
-                var appHostFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
-                var content = File.ReadAllText(appHostFilePath);
+            var appHostFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
+            var content = File.ReadAllText(appHostFilePath);
 
-                var buildRunPattern = "builder.Build().Run();";
-                var replacement = """
+            var buildRunPattern = "builder.Build().Run();";
+            var replacement = """
 builder.AddAzureContainerAppEnvironment("infra");
 
 builder.Build().Run();
 """;
 
-                content = content.Replace(buildRunPattern, replacement);
-                File.WriteAllText(appHostFilePath, content);
+            content = content.Replace(buildRunPattern, replacement);
+            File.WriteAllText(appHostFilePath, content);
 
-                output.WriteLine($"Modified apphost.cs with Azure Container App Environment");
-            });
+            output.WriteLine($"Modified apphost.cs with Azure Container App Environment");
 
             // Step 6: Set environment variables with an INVALID Azure location to induce failure.
             // 'invalidlocation' is not a real Azure region, so provisioning will fail with
@@ -133,23 +132,24 @@ builder.Build().Run();
             // sets Azure__Location=westus3 at the job level, and on Linux env vars are
             // case-sensitive. Then set the invalid location with both casings to be safe.
             output.WriteLine("Step 6: Setting invalid Azure location to induce failure...");
-            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && unset Azure__Location && export AZURE__LOCATION=invalidlocation && export Azure__Location=invalidlocation && export AZURE__RESOURCEGROUP={resourceGroupName}")
-                .Enter()
-                .WaitForSuccessPrompt(counter);
+            await auto.TypeAsync($"unset ASPIRE_PLAYGROUND && unset Azure__Location && export AZURE__LOCATION=invalidlocation && export Azure__Location=invalidlocation && export AZURE__RESOURCEGROUP={resourceGroupName}");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter);
 
             // Step 7: Deploy (expecting failure) and capture output to a file
             output.WriteLine("Step 7: Starting deployment with invalid location (expecting failure)...");
-            sequenceBuilder
-                .Type($"aspire deploy --clear-cache 2>&1 | tee {deployOutputFile}")
-                .Enter()
-                .WaitUntil(s => waitingForPipelineFailed.Search(s).Count > 0, TimeSpan.FromMinutes(30))
-                .WaitForAnyPrompt(counter, TimeSpan.FromMinutes(2));
+            await auto.TypeAsync($"aspire deploy --clear-cache 2>&1 | tee {deployOutputFile}");
+            await auto.EnterAsync();
+            await auto.WaitUntilAsync(
+                s => waitingForPipelineFailed.Search(s).Count > 0,
+                timeout: TimeSpan.FromMinutes(30),
+                description: "pipeline failed");
+            await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             // Step 8: Exit terminal
-            sequenceBuilder.Type("exit").Enter();
+            await auto.TypeAsync("exit");
+            await auto.EnterAsync();
 
-            var sequence = sequenceBuilder.Build();
-            await sequence.ApplyAsync(terminal, cancellationToken);
             await pendingRun;
 
             // Step 9: Read captured output and verify error messages are clean

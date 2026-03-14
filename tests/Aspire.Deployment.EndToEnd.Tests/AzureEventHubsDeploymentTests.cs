@@ -77,71 +77,76 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
                 .Find("PIPELINE SUCCEEDED");
 
             var counter = new SequenceCounter();
-            var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+            var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
-            sequenceBuilder.PrepareEnvironment(workspace, counter);
+            await auto.PrepareEnvironmentAsync(workspace, counter);
 
             // Step 2: Set up CLI environment (in CI)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
-                sequenceBuilder.SourceAspireCliEnvironment(counter);
+                await auto.SourceAspireCliEnvironmentAsync(counter);
             }
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.AspireInit(counter);
+            await auto.AspireInitAsync(counter);
 
             // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)
             // This command triggers TWO prompts in sequence:
             // 1. Integration selection prompt (because "ContainerApps" matches multiple Azure packages)
             // 2. Version selection prompt (in CI, to select package version)
             output.WriteLine("Step 4a: Adding Azure Container Apps hosting package...");
-            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.ContainerApps")
-                .Enter();
+            await auto.TypeAsync("aspire add Aspire.Hosting.Azure.ContainerApps");
+            await auto.EnterAsync();
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 // First, handle integration selection prompt
-                sequenceBuilder
-                    .WaitUntil(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter()  // Select first integration (azure-appcontainers)
-                    // Then, handle version selection prompt
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter();  // Select first version (PR build)
+                await auto.WaitUntilAsync(
+                    s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(60),
+                    description: "integration selection prompt");
+                await auto.EnterAsync();  // Select first integration (azure-appcontainers)
+                // Then, handle version selection prompt
+                await auto.WaitUntilAsync(
+                    s => waitingForVersionSelectionPrompt.Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(60),
+                    description: "version selection prompt");
+                await auto.EnterAsync();  // Select first version (PR build)
             }
 
-            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
             // Step 4b: Add Aspire.Hosting.Azure.EventHubs package
             // This command may only show version selection prompt (unique match)
             output.WriteLine("Step 4b: Adding Azure Event Hubs hosting package...");
-            sequenceBuilder.Type("aspire add Aspire.Hosting.Azure.EventHubs")
-                .Enter();
+            await auto.TypeAsync("aspire add Aspire.Hosting.Azure.EventHubs");
+            await auto.EnterAsync();
 
             // In CI, aspire add shows version selection prompt
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                sequenceBuilder
-                    .WaitUntil(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-                    .Enter(); // Select first version
+                await auto.WaitUntilAsync(
+                    s => waitingForVersionSelectionPrompt.Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(60),
+                    description: "version selection prompt");
+                await auto.EnterAsync(); // Select first version
             }
 
-            sequenceBuilder.WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(180));
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
             // Step 5: Modify apphost.cs to add Azure Event Hubs resource
-            sequenceBuilder.ExecuteCallback(() =>
-            {
-                var appHostFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
+            var appHostFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
 
-                output.WriteLine($"Looking for apphost.cs at: {appHostFilePath}");
+            output.WriteLine($"Looking for apphost.cs at: {appHostFilePath}");
 
-                var content = File.ReadAllText(appHostFilePath);
+            var content = File.ReadAllText(appHostFilePath);
 
-                var buildRunPattern = "builder.Build().Run();";
-                var replacement = """
+            var buildRunPattern = "builder.Build().Run();";
+            var replacement = """
 // Add Azure Container App Environment for managed identity support
 _ = builder.AddAzureContainerAppEnvironment("env");
 
@@ -151,39 +156,36 @@ builder.AddAzureEventHubs("eventhubs");
 builder.Build().Run();
 """;
 
-                content = content.Replace(buildRunPattern, replacement);
-                File.WriteAllText(appHostFilePath, content);
+            content = content.Replace(buildRunPattern, replacement);
+            File.WriteAllText(appHostFilePath, content);
 
-                output.WriteLine($"Modified apphost.cs to add Azure Event Hubs resource");
-            });
+            output.WriteLine($"Modified apphost.cs to add Azure Event Hubs resource");
 
             // Step 6: Set environment variables for deployment
-            sequenceBuilder.Type($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}")
-                .Enter()
-                .WaitForSuccessPrompt(counter);
+            await auto.TypeAsync($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter);
 
             // Step 7: Deploy to Azure using aspire deploy
             output.WriteLine("Step 7: Starting Azure deployment...");
-            sequenceBuilder
-                .Type("aspire deploy --clear-cache")
-                .Enter()
-                .WaitUntil(s => waitingForPipelineSucceeded.Search(s).Count > 0, TimeSpan.FromMinutes(20))
-                .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
+            await auto.TypeAsync("aspire deploy --clear-cache");
+            await auto.EnterAsync();
+            await auto.WaitUntilAsync(
+                s => waitingForPipelineSucceeded.Search(s).Count > 0,
+                timeout: TimeSpan.FromMinutes(20),
+                description: "pipeline succeeded");
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             // Step 8: Verify the Azure Event Hubs namespace was created
             output.WriteLine("Step 8: Verifying Azure Event Hubs namespace...");
-            sequenceBuilder
-                .Type($"az eventhubs namespace list -g \"{resourceGroupName}\" --query \"[].name\" -o tsv")
-                .Enter()
-                .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
+            await auto.TypeAsync($"az eventhubs namespace list -g \"{resourceGroupName}\" --query \"[].name\" -o tsv");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(30));
 
             // Step 9: Exit terminal
-            sequenceBuilder
-                .Type("exit")
-                .Enter();
+            await auto.TypeAsync("exit");
+            await auto.EnterAsync();
 
-            var sequence = sequenceBuilder.Build();
-            await sequence.ApplyAsync(terminal, cancellationToken);
             await pendingRun;
 
             var duration = DateTime.UtcNow - startTime;
