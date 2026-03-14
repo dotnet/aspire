@@ -14,7 +14,7 @@ namespace Semver;
 /// <c>SemVersionStyles.AllowWhitespace | SemVersionStyles.AllowV</c>).</para>
 /// </summary>
 [Flags]
-public enum SemVersionStyles
+internal enum SemVersionStyles
 {
     /// <summary>
     /// Accept version strings strictly conforming to the SemVer 2.0 spec.

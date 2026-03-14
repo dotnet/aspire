@@ -21,7 +21,7 @@ namespace Semver;
 /// <c>SemVersionRangeOptions.OptionalPatch | SemVersionRangeOptions.AllowV</c>).</para>
 /// </summary>
 [Flags]
-public enum SemVersionRangeOptions
+internal enum SemVersionRangeOptions
 {
     #region Matching SemVersionStyles
     /// <summary>

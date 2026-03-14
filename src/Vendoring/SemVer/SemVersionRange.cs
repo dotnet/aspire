@@ -15,7 +15,7 @@ namespace Semver;
 /// some prerelease versions between included release versions. For a range that cannot have
 /// gaps see the <see cref="UnbrokenSemVersionRange"/> class.
 /// </summary>
-public sealed class SemVersionRange : IReadOnlyList<UnbrokenSemVersionRange>, IEquatable<SemVersionRange>
+internal sealed class SemVersionRange : IReadOnlyList<UnbrokenSemVersionRange>, IEquatable<SemVersionRange>
 {
     internal const int MaxRangeLength = 2048;
     internal const string InvalidOptionsMessage = "An invalid SemVersionRangeOptions value was used.";

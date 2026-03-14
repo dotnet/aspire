@@ -17,7 +17,7 @@ namespace Semver;
 /// <remarks>An <see cref="UnbrokenSemVersionRange"/> is represented as an interval between two
 /// versions, the <see cref="Start"/> and <see cref="End"/>. For each, that version may or may
 /// not be included.</remarks>
-public sealed class UnbrokenSemVersionRange : IEquatable<UnbrokenSemVersionRange>
+internal sealed class UnbrokenSemVersionRange : IEquatable<UnbrokenSemVersionRange>
 {
     /// <summary>
     /// A standard representation for the empty range that contains no versions.

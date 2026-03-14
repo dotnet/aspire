@@ -15,6 +15,6 @@ namespace Semver.Comparers;
 /// <para>Consumers of this library should not implement this interface. Doing so may expose your
 /// code to breaking changes in a future release.</para>
 /// </remarks>
-public interface ISemVersionComparer : IEqualityComparer<SemVersion?>, IEqualityComparer, IComparer<SemVersion?>, IComparer
+internal interface ISemVersionComparer : IEqualityComparer<SemVersion?>, IEqualityComparer, IComparer<SemVersion?>, IComparer
 {
 }

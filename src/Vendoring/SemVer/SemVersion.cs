@@ -17,7 +17,7 @@ namespace Semver;
 /// (<a href="https://semver.org">semver.org</a>).
 /// </summary>
 [Serializable]
-public sealed class SemVersion : IEquatable<SemVersion>, ISerializable
+internal sealed class SemVersion : IEquatable<SemVersion>, ISerializable
 {
     internal static readonly SemVersion Min = new SemVersion(BigInteger.Zero, BigInteger.Zero, BigInteger.Zero, new[] { PrereleaseIdentifier.Zero });
     internal static readonly SemVersion MinRelease = new SemVersion(BigInteger.Zero, BigInteger.Zero, BigInteger.Zero);
