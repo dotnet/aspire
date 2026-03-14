@@ -127,9 +127,9 @@ public class Program
         var usersAspirePath = GetUsersAspirePath();
         var newPath = Path.Combine(usersAspirePath, Configuration.AspireConfigFile.FileName);
 
-        // Migrate legacy globalsettings.json → aspire.config.json on first access,
-        // transforming flat keys to the new nested schema. Use a copy-based approach
-        // so older CLI versions that still read globalsettings.json continue to work.
+        // TODO: Remove globalsettings.json migration once confident most users have migrated.
+        // The old file is intentionally kept so older CLI versions continue to work during
+        // the transition period. Tracked by https://github.com/dotnet/aspire/issues/15239
         var legacyPath = Path.Combine(usersAspirePath, "globalsettings.json");
         if (!File.Exists(newPath) && File.Exists(legacyPath))
         {
@@ -508,7 +508,8 @@ public class Program
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(configuration, executionContext, globalSettingsFile);
+        var logger = serviceProvider.GetRequiredService<ILogger<ConfigurationService>>();
+        return new ConfigurationService(configuration, executionContext, globalSettingsFile, logger);
     }
 
     internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, string[] args, CancellationToken cancellationToken = default)

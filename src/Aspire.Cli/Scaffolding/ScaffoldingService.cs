@@ -134,7 +134,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
             // Save channel and language to aspire.config.json (new format)
             // Read profiles from apphost.run.json (created by codegen) and merge into aspire.config.json
             var appHostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
-            var profiles = AspireConfigFile.ReadApphostRunProfiles(appHostRunPath);
+            var profiles = AspireConfigFile.ReadApphostRunProfiles(appHostRunPath, _logger);
 
             if (profiles is not null && File.Exists(appHostRunPath))
             {

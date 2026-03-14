@@ -33,7 +33,11 @@ internal sealed class LanguageService : ILanguageService
     /// <inheritdoc />
     public async Task<IAppHostProject?> GetConfiguredProjectAsync(CancellationToken cancellationToken = default)
     {
-        var languageId = await _configurationService.GetConfigurationAsync(LanguageConfigKey, cancellationToken);
+        // Try new nested key first, then fall back to legacy flat key.
+        // TODO: Remove "language" fallback once legacy .aspire/settings.json is no longer supported.
+        // Tracked by https://github.com/dotnet/aspire/issues/15239
+        var languageId = await _configurationService.GetConfigurationAsync(LanguageConfigKey, cancellationToken)
+            ?? await _configurationService.GetConfigurationAsync("language", cancellationToken);
 
         if (string.IsNullOrWhiteSpace(languageId))
         {

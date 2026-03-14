@@ -298,7 +298,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var config = new ConfigurationBuilder().Build();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
+        var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile, NullLogger<ConfigurationService>.Instance);
 
         var locator = CreateProjectLocator(executionContext, configurationService: configurationService, projectFactory: projectFactory);
 

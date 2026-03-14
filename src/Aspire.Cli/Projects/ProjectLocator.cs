@@ -188,6 +188,7 @@ internal sealed class ProjectLocator(
 
                 if (appHostFile.Exists)
                 {
+                    logger.LogDebug("Found AppHost path '{AppHostPath}' from config file in {Directory}", configAppHostPath, searchDirectory.FullName);
                     return appHostFile;
                 }
                 else
@@ -198,6 +199,8 @@ internal sealed class ProjectLocator(
                 }
             }
 
+            // TODO: Remove legacy .aspire/settings.json fallback once confident most users have migrated.
+            // Tracked by https://github.com/dotnet/aspire/issues/15239
             // Fall back to .aspire/settings.json
             var settingsFile = new FileInfo(ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName));
 
@@ -389,7 +392,7 @@ internal sealed class ProjectLocator(
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFile = await GetOrCreateLocalAspireConfigFileAsync(cancellationToken);
+        var settingsFile = GetOrCreateLocalAspireConfigFile();
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
@@ -418,41 +421,42 @@ internal sealed class ProjectLocator(
         interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
     }
 
-    private async Task<FileInfo> GetOrCreateLocalAspireConfigFileAsync(CancellationToken cancellationToken)
+    private FileInfo GetOrCreateLocalAspireConfigFile()
     {
         var settingsFile = new FileInfo(configurationService.GetSettingsFilePath(isGlobal: false));
 
         if (string.Equals(settingsFile.Name, AspireConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
         {
+            logger.LogDebug("Using existing config file at {Path}", settingsFile.FullName);
             return settingsFile;
         }
 
         var legacySettingsRootDirectory = GetLegacySettingsRootDirectory(settingsFile);
         if (legacySettingsRootDirectory is null)
         {
-            return new FileInfo(Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName));
+            var newConfigPath = Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
+            logger.LogDebug("No existing config found, will create new config at {Path}", newConfigPath);
+            return new FileInfo(newConfigPath);
         }
 
         var aspireConfigFile = new FileInfo(Path.Combine(legacySettingsRootDirectory.FullName, AspireConfigFile.FileName));
         if (!aspireConfigFile.Exists)
         {
-            await MigrateLegacySettingsAsync(legacySettingsRootDirectory, cancellationToken);
+            logger.LogDebug("Migrating legacy settings from {LegacyDir} to {ConfigFile}", legacySettingsRootDirectory.FullName, aspireConfigFile.FullName);
+            MigrateLegacySettings(legacySettingsRootDirectory);
         }
 
         return aspireConfigFile;
     }
 
-    private async Task MigrateLegacySettingsAsync(DirectoryInfo settingsRootDirectory, CancellationToken cancellationToken)
+    private void MigrateLegacySettings(DirectoryInfo settingsRootDirectory)
     {
-        logger.LogDebug("Migrating legacy settings to {SettingsFilePath}", Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName));
+        var configFilePath = Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName);
+        logger.LogDebug("Migrating legacy settings to {SettingsFilePath}", configFilePath);
 
-        // LoadOrCreate handles the legacy fallback and migration internally
-        var aspireConfig = AspireConfigFile.LoadOrCreate(settingsRootDirectory.FullName);
-
-        await File.WriteAllTextAsync(
-            Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName),
-            JsonSerializer.Serialize(aspireConfig, JsonSourceGenerationContext.Default.AspireConfigFile),
-            cancellationToken);
+        // LoadOrCreate handles the legacy fallback and migration internally,
+        // including saving the migrated config to disk.
+        _ = AspireConfigFile.LoadOrCreate(settingsRootDirectory.FullName);
     }
 
     private static DirectoryInfo? GetLegacySettingsRootDirectory(FileInfo settingsFile)

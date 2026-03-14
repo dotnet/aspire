@@ -4,10 +4,11 @@
 using System.Text.Json.Nodes;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed class ConfigurationService(IConfiguration configuration, CliExecutionContext executionContext, FileInfo globalSettingsFile) : IConfigurationService
+internal sealed class ConfigurationService(IConfiguration configuration, CliExecutionContext executionContext, FileInfo globalSettingsFile, ILogger<ConfigurationService> logger) : IConfigurationService
 {
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -100,13 +101,17 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             var newSettingsPath = Path.Combine(searchDirectory.FullName, AspireConfigFile.FileName);
             if (File.Exists(newSettingsPath))
             {
+                logger.LogDebug("Found settings file at {Path}", newSettingsPath);
                 return newSettingsPath;
             }
 
+            // TODO: Remove legacy .aspire/settings.json fallback once confident most users have migrated.
+            // Tracked by https://github.com/dotnet/aspire/issues/15239
             // Fall back to .aspire/settings.json (legacy)
             var legacySettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);
             if (File.Exists(legacySettingsPath))
             {
+                logger.LogDebug("Found legacy settings file at {Path}", legacySettingsPath);
                 return legacySettingsPath;
             }
 
@@ -114,7 +119,9 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         }
 
         // If no existing settings file found, default to aspire.config.json in current directory
-        return Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
+        var defaultPath = Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
+        logger.LogDebug("No existing settings file found, defaulting to {Path}", defaultPath);
+        return defaultPath;
     }
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)

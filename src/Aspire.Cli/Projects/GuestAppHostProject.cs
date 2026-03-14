@@ -191,6 +191,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     {
         var configDir = GetConfigDirectory(directory);
         var aspireConfig = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
+        _logger.LogDebug("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
         return aspireConfig.ToLegacyConfiguration();
     }
 
