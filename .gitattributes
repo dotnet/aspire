@@ -4,6 +4,7 @@
 # Collapse these files in PRs by default
 *.xlf linguist-generated=true
 *.lcl linguist-generated=true
+src/Vendoring/** linguist-generated=true
 
 *.jpg  	binary
 *.png 	binary
