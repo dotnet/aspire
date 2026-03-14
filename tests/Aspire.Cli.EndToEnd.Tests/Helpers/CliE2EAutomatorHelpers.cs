@@ -94,4 +94,16 @@ internal static class CliE2EAutomatorHelpers
                 throw new ArgumentOutOfRangeException(nameof(installMode));
         }
     }
+
+    /// <summary>
+    /// Clears the terminal screen by running the <c>clear</c> command and waiting for the prompt.
+    /// </summary>
+    internal static async Task ClearScreenAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync("clear");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
 }
