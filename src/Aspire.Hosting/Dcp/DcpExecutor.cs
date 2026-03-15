@@ -2142,7 +2142,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 throw new FailedToApplyEnvironmentException();
             }
 
-<<<<<<< HEAD
             // In watch-aspire mode, pass environment variables as -e KEY=VALUE arguments
             // to the resource command instead of setting them on the DCP executable directly.
             // The resource command forwards them to the watch server via the named pipe.
@@ -2158,7 +2157,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     spec.Args.Add($"{envVar.Name}={envVar.Value}");
                 }
                 spec.Env = [];
-=======
+            }
+
             // Invoke the debug configuration callback now that endpoints are allocated.
             // This allows launch configurations to access endpoint URLs that were not
             // available during PrepareExecutables().
@@ -2179,7 +2179,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     _logger.LogWarning(ex, "Failed to apply launch configuration for resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
                     exe.Spec.ExecutionType = ExecutionType.Process;
                 }
->>>>>>> main
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
