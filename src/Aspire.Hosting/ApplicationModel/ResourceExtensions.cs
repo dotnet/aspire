@@ -1390,56 +1390,52 @@ public static class ResourceExtensions
         // Gather environment variable values
         if (resource.TryGetEnvironmentVariables(out var envAnnotations))
         {
-            var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
-
-            foreach (var ann in envAnnotations)
+            var envVars = new Dictionary<string, object>();
+            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken: cancellationToken);
+            
+            if (mode.HasFlag(ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults))
             {
-                try
+                foreach (var ann in envAnnotations)
                 {
-                    var envVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
-                    rawValues.AddRange(envVars.Values);
+                    var resultingVars = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                    rawValues.AddRange(resultingVars.Values);
                 }
-                catch (Exception ex)
+                
+            }
+            else
+            {
+                foreach (var ann in envAnnotations)
                 {
-                    if (!mode.HasFlag(ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions))
-                    {
-                        throw;
-                    }
-                    else
-                    {
-                        context.Logger.LogWarning(ex, "Failed to evaluate environment variable callback for resource '{ResourceName}'. This may result in missing dependencies.", resource.Name);
-                    }
+                    await ann.Callback(context).ConfigureAwait(false);
                 }
-
+                rawValues.AddRange(envVars.Values);
             }
         }
 
         // Gather command-line argument values
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext(new List<object>(), resource, cancellationToken)
+            var args = new List<object>();
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 ExecutionContext = executionContext
             };
 
-            foreach (var ann in argAnnotations)
+            if (mode.HasFlag(ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults))
             {
-                try
+                foreach (var ann in argAnnotations)
                 {
-                    var args = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
-                    rawValues.AddRange(args);
+                    var resultingArgs = await ann.AsCallbackAnnotation().EvaluateOnceAsync(context).ConfigureAwait(false);
+                    rawValues.AddRange(resultingArgs);
                 }
-                catch (Exception ex)
+            }
+            else
+            {
+                foreach (var ann in argAnnotations)
                 {
-                    if (!mode.HasFlag(ResourceDependencyDiscoveryMode.SuppressAnnotationCallbackExceptions))
-                    {
-                        throw;
-                    }
-                    else
-                    {
-                        context.Logger.LogWarning(ex, "Failed to evaluate command-line argument callback for resource '{ResourceName}'. This may result in missing dependencies.", resource.Name);
-                    }
+                    await ann.Callback(context).ConfigureAwait(false);
                 }
+                rawValues.AddRange(args);
             }
         }
 
