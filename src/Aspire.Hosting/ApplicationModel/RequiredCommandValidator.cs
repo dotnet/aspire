@@ -183,12 +183,9 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator, IDis
     /// <summary>
     /// Cache key for command validation state.
     /// </summary>
-    private readonly record struct CommandValidationCacheKey(string command, Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? callback)
-    {
-        public string Command { get; } = command;
-
-        public Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? Callback { get; } = callback;
-    }
+    private readonly record struct CommandValidationCacheKey(
+        string Command,
+        Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? Callback);
 
     /// <summary>
     /// Attempts to resolve a command (file name or path) to a full path.
