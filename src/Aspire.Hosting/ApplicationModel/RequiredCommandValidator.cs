@@ -21,8 +21,8 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator, IDis
     private readonly IInteractionService _interactionService;
     private readonly ILogger<RequiredCommandValidator> _logger;
 
-    // Track validation state per command to coalesce notifications
-    private readonly ConcurrentDictionary<string, CommandValidationState> _commandStates = new(StringComparer.OrdinalIgnoreCase);
+    // Track validation state per command/callback pair to coalesce notifications and validation work.
+    private readonly ConcurrentDictionary<CommandValidationCacheKey, CommandValidationState> _commandStates = new();
 
     public RequiredCommandValidator(
         IServiceProvider serviceProvider,
@@ -59,8 +59,9 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator, IDis
             throw new InvalidOperationException($"Required command on resource '{resource.Name}' cannot be null or empty.");
         }
 
-        // Get or create state for this command
-        var state = _commandStates.GetOrAdd(command, _ => new CommandValidationState());
+        // Get or create state for this command/callback combination.
+        var cacheKey = new CommandValidationCacheKey(command, annotation.ValidationCallback);
+        var state = _commandStates.GetOrAdd(cacheKey, _ => new CommandValidationState());
 
         await state.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -177,6 +178,16 @@ internal sealed class RequiredCommandValidator : IRequiredCommandValidator, IDis
         /// Disposes the semaphore.
         /// </summary>
         public void Dispose() => Gate.Dispose();
+    }
+
+    /// <summary>
+    /// Cache key for command validation state.
+    /// </summary>
+    private readonly record struct CommandValidationCacheKey(string command, Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? callback)
+    {
+        public string Command { get; } = command;
+
+        public Func<RequiredCommandValidationContext, Task<RequiredCommandValidationResult>>? Callback { get; } = callback;
     }
 
     /// <summary>
