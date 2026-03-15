@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using Aspire.Cli.Configuration;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,6 @@ namespace Aspire.Cli.DotNet;
 internal sealed class DotNetCliExecutionFactory(
     ILogger<DotNetCliExecutionFactory> logger,
     IConfiguration configuration,
-    IFeatures features,
     CliExecutionContext executionContext) : IDotNetCliExecutionFactory
 {
     internal static int GetCurrentProcessId() => Environment.ProcessId;
@@ -73,10 +71,7 @@ internal sealed class DotNetCliExecutionFactory(
 
         // Set the CLI process start time for robust orphan detection to prevent PID reuse issues.
         // The AppHost will verify both PID and start time to ensure it's monitoring the correct process.
-        if (features.IsFeatureEnabled(KnownFeatures.OrphanDetectionWithTimestampEnabled, true))
-        {
-            startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTimeUnixSeconds().ToString(CultureInfo.InvariantCulture);
-        }
+        startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTimeUnixSeconds().ToString(CultureInfo.InvariantCulture);
 
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";

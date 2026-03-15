@@ -1682,11 +1682,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            if (executable.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
+            if (executable.SupportsDebugging(_configuration, out _))
             {
+                // Just mark as IDE execution here - the actual launch configuration callback
+                // will be invoked in CreateExecutableAsync after endpoints are allocated.
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
-                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
             }
             else
             {
@@ -1730,28 +1731,36 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exe);
 
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                 var projectArgs = new List<string>();
 
-                if (project.SupportsDebugging(_configuration, out _))
+                if (project.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation))
                 {
                     exe.Spec.ExecutionType = ExecutionType.IDE;
                     exe.Spec.FallbackExecutionTypes = [ExecutionType.Process];
 
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    // Use the effective launch profile which has fallback logic
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                    if (supportsDebuggingAnnotation.LaunchConfigurationType is "project")
                     {
-                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                        projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+
+                        projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                        // Use the effective launch profile which has fallback logic
+                        if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                        {
+                            projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
+                        }
+
+                        // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+                        exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                     }
+                    // Non-project launch types (e.g. azure-functions) have their launch configuration
+                    // applied later in CreateExecutableAsync() after endpoints are allocated.
                 }
                 else
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
-                    if (_watchAspireServerPipeName is not null && !projectMetadata.IsFileBasedApp && _projectPathToResource?.ContainsKey(projectMetadata.ProjectPath) == true)
+                    if (_watchAspireServerPipeName is not null && _projectPathToResource?.ContainsKey(projectMetadata.ProjectPath) == true)
                     {
                         // Use Watch.Aspire resource command - the server handles building and hot reload
                         var watchAspireDllPath = _options.Value.WatchAspirePath!;
@@ -1773,16 +1782,33 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
                     else
                     {
-                        projectArgs.Add("run");
-                        projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
-                        projectArgs.Add(projectMetadata.ProjectPath);
-                        if (projectMetadata.IsFileBasedApp)
+                        var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                        projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+
+                        // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
+                        if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                         {
-                            projectArgs.Add("--no-cache");
+                            projectArgs.Add("run");
+                            projectArgs.Add(projectMetadata.IsFileBasedApp ? "--file" : "--project");
+                            projectArgs.Add(projectMetadata.ProjectPath);
+                            if (projectMetadata.IsFileBasedApp)
+                            {
+                                projectArgs.Add("--no-cache");
+                            }
+                            if (projectMetadata.SuppressBuild)
+                            {
+                                projectArgs.Add("--no-build");
+                            }
                         }
-                        if (projectMetadata.SuppressBuild)
+                        else
                         {
-                            projectArgs.Add("--no-build");
+                            projectArgs.AddRange([
+                                "watch",
+                                "--non-interactive",
+                                "--no-hot-reload",
+                                "--project",
+                                projectMetadata.ProjectPath
+                            ]);
                         }
 
                         if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
@@ -1790,12 +1816,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                             projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
                         }
 
+                        // We pretty much always want to suppress the normal launch profile handling
+                        // because the settings from the profile will override the ambient environment settings, which is not what we want
+                        // (the ambient environment settings for service processes come from the application model
+                        // and should be HIGHER priority than the launch profile settings).
+                        // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                         projectArgs.Add("--no-launch-profile");
                     }
+
+                    // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+                    exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 }
 
-                // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exe.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
                 var exeAppResource = new RenderedModelResource(project, exe);
@@ -2110,6 +2142,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 throw new FailedToApplyEnvironmentException();
             }
 
+<<<<<<< HEAD
             // In watch-aspire mode, pass environment variables as -e KEY=VALUE arguments
             // to the resource command instead of setting them on the DCP executable directly.
             // The resource command forwards them to the watch server via the named pipe.
@@ -2125,6 +2158,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     spec.Args.Add($"{envVar.Name}={envVar.Value}");
                 }
                 spec.Env = [];
+=======
+            // Invoke the debug configuration callback now that endpoints are allocated.
+            // This allows launch configurations to access endpoint URLs that were not
+            // available during PrepareExecutables().
+            // "project" launch types configure their launch configs in PrepareProjectExecutables() directly;
+            // all other types (plain executables and project subtypes like azure-functions) are handled here.
+            if (er.ModelResource.SupportsDebugging(_configuration, out var supportsDebuggingAnnotation)
+                && supportsDebuggingAnnotation.LaunchConfigurationType is not "project")
+            {
+                var mode = _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug;
+                try
+                {
+                    // Clear any existing launch configurations (needed for restart scenarios).
+                    exe.Annotate(Executable.LaunchConfigurationsAnnotation, string.Empty);
+                    supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, mode);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to apply launch configuration for resource '{ResourceName}'. Falling back to process execution.", er.ModelResource.Name);
+                    exe.Spec.ExecutionType = ExecutionType.Process;
+                }
+>>>>>>> main
             }
 
             await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);

@@ -296,6 +296,13 @@ class TestDatabaseResource(ResourceBuilderBase):
             args["operation"] = operation_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation", args)
 
+    def with_data_volume(self, name: str | None = None) -> TestDatabaseResource:
+        """Adds a data volume"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if name is not None:
+            args["name"] = serialize_value(name)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume", args)
+
 
 class TestEnvironmentContext(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
@@ -522,6 +529,14 @@ class TestRedisResource(ResourceBuilderBase):
         if callback_id is not None:
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback", args)
+
+    def with_data_volume(self, name: str | None = None, is_read_only: bool = False) -> TestRedisResource:
+        """Adds a data volume with persistence"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        if name is not None:
+            args["name"] = serialize_value(name)
+        args["isReadOnly"] = serialize_value(is_read_only)
+        return self._client.invoke_capability("Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume", args)
 
 
 class TestResourceContext(HandleWrapperBase):

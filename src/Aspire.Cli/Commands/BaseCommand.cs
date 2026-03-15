@@ -92,23 +92,25 @@ internal abstract class BaseCommand : Command
         ArgumentNullException.ThrowIfNull(ex);
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var errorMessage = ex.Message switch
+        var (exitCode, errorMessage) = ex.FailureReason switch
         {
-            var m when string.Equals(m, ErrorStrings.ProjectFileNotAppHostProject, StringComparisons.CliInputOrOutput)
-                => InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject,
-            var m when string.Equals(m, ErrorStrings.ProjectFileDoesntExist, StringComparisons.CliInputOrOutput)
-                => InteractionServiceStrings.ProjectOptionDoesntExist,
-            var m when string.Equals(m, ErrorStrings.MultipleProjectFilesFound, StringComparisons.CliInputOrOutput)
-                => InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound,
-            var m when string.Equals(m, ErrorStrings.NoProjectFileFound, StringComparisons.CliInputOrOutput)
-                => InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound,
-            var m when string.Equals(m, ErrorStrings.AppHostsMayNotBeBuildable, StringComparisons.CliInputOrOutput)
-                => InteractionServiceStrings.UnbuildableAppHostsDetected,
-            _ => string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message)
+            ProjectLocatorFailureReason.UnsupportedProjects
+                => (ExitCodeConstants.SdkNotInstalled, "No supported app hosts were found."),
+            ProjectLocatorFailureReason.ProjectFileNotAppHostProject
+                => (ExitCodeConstants.FailedToFindProject, InteractionServiceStrings.SpecifiedProjectFileNotAppHostProject),
+            ProjectLocatorFailureReason.ProjectFileDoesntExist
+                => (ExitCodeConstants.FailedToFindProject, InteractionServiceStrings.ProjectOptionDoesntExist),
+            ProjectLocatorFailureReason.MultipleProjectFilesFound
+                => (ExitCodeConstants.FailedToFindProject, InteractionServiceStrings.ProjectOptionNotSpecifiedMultipleAppHostsFound),
+            ProjectLocatorFailureReason.NoProjectFileFound
+                => (ExitCodeConstants.FailedToFindProject, InteractionServiceStrings.ProjectOptionNotSpecifiedNoCsprojFound),
+            ProjectLocatorFailureReason.AppHostsMayNotBeBuildable
+                => (ExitCodeConstants.FailedToFindProject, InteractionServiceStrings.UnbuildableAppHostsDetected),
+            _ => (ExitCodeConstants.FailedToFindProject, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message))
         };
 
         telemetry.RecordError(errorMessage, ex);
         interactionService.DisplayError(errorMessage);
-        return ExitCodeConstants.FailedToFindProject;
+        return exitCode;
     }
 }

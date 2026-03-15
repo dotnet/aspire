@@ -43,7 +43,7 @@ public class ConsoleInteractionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<EmptyChoicesException>(() =>
-            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, cancellationToken: CancellationToken.None));
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class ConsoleInteractionServiceTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, cancellationToken: CancellationToken.None));
         Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
 
@@ -436,6 +436,7 @@ public class ConsoleInteractionServiceTests
         // Assert
         Assert.Null(exception);
         var outputString = output.ToString();
+        Assert.Contains("A new version of Aspire is available:", outputString);
         Assert.Contains("13.2.0-preview [beta]", outputString);
         Assert.Contains("aspire update --channel [stable]", outputString);
     }

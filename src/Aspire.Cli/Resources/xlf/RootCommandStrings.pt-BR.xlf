@@ -64,7 +64,7 @@ Leia mais sobre a telemetria da CLI do Aspire: https://aka.ms/aspire/cli-telemet
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
         <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <target state="translated">Execute o comando no modo não interativo, desativando todos os prompts interativos e controles giratórios.</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">

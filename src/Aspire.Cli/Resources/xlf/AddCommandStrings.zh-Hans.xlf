@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost.</source>
-        <target state="new">Add a hosting integration to the apphost.</target>
+        <target state="translated">将托管集成添加到 apphost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file to add the integration to.</source>
-        <target state="new">The path to the Aspire AppHost project file to add the integration to.</target>
+        <target state="translated">要将集成添加到的 Aspire AppHost 项目文件的路径。</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -74,11 +74,11 @@
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
           <source>Stopped a running Aspire AppHost instance to allow package modification.</source>
-          <target state="new">Stopped a running Aspire AppHost instance to allow package modification.</target><note />
+          <target state="translated">已停止正在运行的 Aspire AppHost 实例以允许修改包。</target><note />
         </trans-unit>
       <trans-unit id="UnableToStopRunningInstances">
         <source>Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</source>
-        <target state="new">Unable to stop one or more running Aspire AppHost instances. Please stop the application and try again.</target>
+        <target state="translated">无法停止一个或多个正在运行的 Aspire AppHost 实例。请停止应用程序，然后重试。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">

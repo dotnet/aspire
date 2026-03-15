@@ -432,9 +432,12 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                     }
                 }
             }
+            // Also include expanded target types (concrete types discovered via interface expansion)
+            foreach (var expandedType in capability.ExpandedTargetTypes)
+            {
+                AddHandleTypeIfNeeded(handleTypeIds, expandedType);
+            }
         }
-
-        _classNames.Clear();
         foreach (var typeId in handleTypeIds)
         {
             _classNames[typeId] = CreateClassName(typeId);

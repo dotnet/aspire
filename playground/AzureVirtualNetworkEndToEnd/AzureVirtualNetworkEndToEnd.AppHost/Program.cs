@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable AZPROVISION001 // Azure.Provisioning.Network is experimental
+#pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Network;
@@ -47,8 +48,15 @@ var myqueue = storage.AddQueue("myqueue");
 privateEndpointsSubnet.AddPrivateEndpoint(blobs);
 privateEndpointsSubnet.AddPrivateEndpoint(queues);
 
+var sqlServer = builder.AddAzureSqlServer("sql")
+    .RunAsContainer(c => c.WithLifetime(ContainerLifetime.Persistent));
+privateEndpointsSubnet.AddPrivateEndpoint(sqlServer);
+
+var db = sqlServer.AddDatabase("sqldb");
+
 builder.AddProject<Projects.AzureVirtualNetworkEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
+       .WithReference(db).WaitFor(db)
        .WithReference(mycontainer).WaitFor(mycontainer)
        .WithReference(myqueue).WaitFor(myqueue);
 

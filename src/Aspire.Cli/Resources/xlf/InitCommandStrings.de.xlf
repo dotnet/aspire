@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
         <source>Resolving template version...</source>
-        <target state="new">Resolving template version...</target>
+        <target state="translated">Vorlagenversion wird ermittelt...</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionDetected">
@@ -60,6 +60,11 @@
       <trans-unit id="SolutionAlreadyInitialized">
         <source>Solution has already been initialized with Aspire.</source>
         <target state="translated">Die Lösung wurde bereits mit Aspire initialisiert.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionAndProjectInSameDirectory">
+        <source>The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
+        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
         <note />
       </trans-unit>
     </body>

@@ -9,22 +9,22 @@
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="needs-review-translation">CLI_PID</target>
+        <target state="translated">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="needs-review-translation">Dashboard</target>
+        <target state="translated">Dashboard</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="needs-review-translation">PATH</target>
+        <target state="translated">Pfad</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="needs-review-translation">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ResourcesOptionDescription">
         <source>Include resource details for each running app host. Only applies to JSON output.</source>
-        <target state="new">Include resource details for each running app host. Only applies to JSON output.</target>
+        <target state="translated">Ressourcendetails für jeden aktiven App-Host einschließen. Gilt nur für JSON-Ausgabe.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

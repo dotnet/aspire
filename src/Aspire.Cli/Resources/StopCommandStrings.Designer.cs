@@ -105,10 +105,5 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string AllAndResourceMutuallyExclusive {
-            get {
-                return ResourceManager.GetString("AllAndResourceMutuallyExclusive", resourceCulture);
-            }
-        }
     }
 }

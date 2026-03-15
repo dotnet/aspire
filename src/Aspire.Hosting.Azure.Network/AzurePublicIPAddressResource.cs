@@ -28,6 +28,11 @@ public class AzurePublicIPAddressResource(string name, Action<AzureResourceInfra
     /// </summary>
     public BicepOutputReference NameOutput => new("name", this);
 
+    /// <summary>
+    /// Gets the "ipAddress" output reference containing the allocated IP address for the resource.
+    /// </summary>
+    public BicepOutputReference IpAddress => new("ipAddress", this);
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {

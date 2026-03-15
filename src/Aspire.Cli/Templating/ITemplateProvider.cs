@@ -9,7 +9,14 @@ namespace Aspire.Cli.Templating;
 internal interface ITemplateProvider
 {
     /// <summary>
-    /// Gets templates available to the <c>aspire new</c> command.
+    /// Gets template definitions synchronously for command registration (e.g. subcommands).
+    /// This must not perform any I/O or async work.
+    /// </summary>
+    IEnumerable<ITemplate> GetTemplates();
+
+    /// <summary>
+    /// Gets templates available to the <c>aspire new</c> command, performing any
+    /// necessary runtime availability checks.
     /// </summary>
     /// <returns>The templates available for project creation.</returns>
     Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default);

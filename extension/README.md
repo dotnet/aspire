@@ -15,6 +15,7 @@ The extension adds the following commands to VS Code:
 | Aspire: Update integrations | Update hosting integrations and Aspire SDK in the apphost. |
 | Aspire: Publish deployment artifacts | Generate deployment artifacts for an Aspire apphost. |
 | Aspire: Deploy app | Deploy the contents of an Aspire apphost to its defined deployment targets. |
+| Aspire: Execute pipeline step (aspire do) | Execute a specific pipeline step and its dependencies. |
 | Aspire: Configure launch.json file | Add the default Aspire debugger launch configuration to your workspace's `launch.json`. |
 | Aspire: Extension settings | Open Aspire extension settings. |
 | Aspire: Open local Aspire settings | Open the local `.aspire/settings.json` file for the current workspace. |
@@ -40,6 +41,31 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
     "request": "launch",
     "name": "Aspire: Launch MyAppHost",
     "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj"
+}
+```
+
+You can also use the `command` property to run deploy, publish, or pipeline step commands with the debugger attached:
+
+```json
+{
+    "type": "aspire",
+    "request": "launch",
+    "name": "Aspire: Deploy MyAppHost",
+    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj",
+    "command": "deploy"
+}
+```
+
+Supported values for `command` are `run` (default), `deploy`, `publish`, and `do`. When using `do`, you can optionally set the `step` property to specify the pipeline step to execute:
+
+```json
+{
+    "type": "aspire",
+    "request": "launch",
+    "name": "Aspire: Run pipeline step",
+    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj",
+    "command": "do",
+    "step": "my-custom-step"
 }
 ```
 

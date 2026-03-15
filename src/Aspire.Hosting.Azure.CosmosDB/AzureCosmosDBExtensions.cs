@@ -10,7 +10,6 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CosmosDB;
-using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
@@ -58,7 +57,7 @@ public static class AzureCosmosExtensions
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>.
     /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    [AspireExport("runAsEmulator", Description = "Configures the Azure Cosmos DB resource to run using the local emulator")]
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Cosmos DB resource to run using the local emulator", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
         => RunAsEmulator(builder, configureContainer, useVNextPreview: false);
 
@@ -72,7 +71,7 @@ public static class AzureCosmosExtensions
     /// <remarks>
     /// This version of the package defaults to the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.TagVNextPreview"/> tag of the <inheritdoc cref="CosmosDBEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="CosmosDBEmulatorContainerImageTags.Image"/> container image.
     /// </remarks>
-    [AspireExport("runAsPreviewEmulator", Description = "Configures the Azure Cosmos DB resource to run using the preview emulator")]
+    [AspireExport("runAsPreviewEmulator", Description = "Configures the Azure Cosmos DB resource to run using the preview emulator", RunSyncOnBackgroundThread = true)]
     [Experimental("ASPIRECOSMOSDB001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<AzureCosmosDBResource> RunAsPreviewEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
         => RunAsEmulator(builder, configureContainer, useVNextPreview: true);
@@ -213,7 +212,7 @@ public static class AzureCosmosExtensions
 
             if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
-                return new CosmosClient(uri.OriginalString, new DefaultAzureCredential(), clientOptions);
+                return new CosmosClient(uri.OriginalString, AzureCredentialHelper.CreateDefaultAzureCredential(), clientOptions);
             }
             else
             {

@@ -199,7 +199,7 @@ public class AzureAppServiceEnvironmentResource :
             // Report each error through the activity reporter for user-friendly display
             foreach (var error in errors)
             {
-                context.ReportingStep.Log(LogLevel.Error, error, enableMarkdown: false);
+                context.ReportingStep.Log(LogLevel.Error, error);
             }
 
             await context.ReportingStep.CompleteAsync(

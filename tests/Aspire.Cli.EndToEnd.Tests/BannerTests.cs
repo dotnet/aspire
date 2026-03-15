@@ -17,13 +17,11 @@ public sealed class BannerTests(ITestOutputHelper output)
     [Fact]
     public async Task Banner_DisplayedOnFirstRun()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -39,14 +37,9 @@ public sealed class BannerTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Delete the first-time use sentinel file to simulate first run
         // The sentinel is stored at ~/.aspire/cli/cli.firstUseSentinel
@@ -81,13 +74,11 @@ public sealed class BannerTests(ITestOutputHelper output)
     [Fact]
     public async Task Banner_DisplayedWithExplicitFlag()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -104,14 +95,9 @@ public sealed class BannerTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Clear screen to have a clean slate for pattern matching
         sequenceBuilder
@@ -138,16 +124,13 @@ public sealed class BannerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/14307")]
     public async Task Banner_NotDisplayedWithNoLogoFlag()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -156,34 +139,30 @@ public sealed class BannerTests(ITestOutputHelper output)
         var bannerPattern = new CellPatternSearcher()
             .Find("Welcome to the");
 
-        // Pattern to detect the help text (confirms command completed)
-        var helpPattern = new CellPatternSearcher()
-            .Find("Commands:");
-
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Delete the first-time use sentinel file to simulate first run,
-        // but use --nologo to suppress the banner
+        // but use --nologo to suppress the banner.
+        // Use 'cache clear' instead of '--help' to keep output short enough
+        // to verify banner absence in the visible terminal area.
         sequenceBuilder
             .ClearFirstRunSentinel(counter)
             .ClearScreen(counter)
-            .Type("aspire --nologo --help")
+            .Type("aspire --nologo cache clear")
             .Enter()
             .WaitUntil(s =>
             {
-                // Wait for help output to confirm command completed
-                var hasHelp = helpPattern.Search(s).Count > 0;
-                if (!hasHelp)
+                // Wait for success prompt to confirm command completed
+                var successPromptSearcher = new CellPatternSearcher()
+                    .FindPattern(counter.Value.ToString())
+                    .RightText(" OK] $ ");
+
+                if (successPromptSearcher.Search(s).Count == 0)
                 {
                     return false;
                 }
@@ -198,7 +177,7 @@ public sealed class BannerTests(ITestOutputHelper output)
 
                 return true;
             }, TimeSpan.FromSeconds(30))
-            .WaitForSuccessPrompt(counter)
+            .IncrementSequence(counter)
             .Type("exit")
             .Enter();
 

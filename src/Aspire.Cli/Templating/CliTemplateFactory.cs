@@ -67,9 +67,24 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         _logger = logger;
     }
 
+    public IEnumerable<ITemplate> GetTemplates()
+    {
+        return GetTemplateDefinitions();
+    }
+
     public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        IEnumerable<ITemplate> templates =
+        return Task.FromResult(GetTemplateDefinitions());
+    }
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IEnumerable<ITemplate>>([]);
+    }
+
+    private IEnumerable<ITemplate> GetTemplateDefinitions()
+    {
+        return
         [
             new CallbackTemplate(
                 KnownTemplateId.TypeScriptStarter,
@@ -93,15 +108,9 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                     languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript],
+                isEmpty: true)
         ];
-
-        return Task.FromResult(templates);
-    }
-
-    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<ITemplate>>([]);
     }
 
     private static string ApplyTokens(string content, string projectName, string projectNameLower, string aspireVersion, TemplatePorts ports, string hostName = "localhost")
@@ -269,4 +278,23 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     }
 
     private sealed record ProcessExecutionResult(int ExitCode, string StandardOutput, string StandardError);
+
+    private void DisplayPostCreationInstructions(string outputPath)
+    {
+        var currentDir = _executionContext.WorkingDirectory.FullName;
+        var relativePath = Path.GetRelativePath(currentDir, outputPath);
+
+        var pathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), pathComparison))
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.RunCdThenAspireRun, relativePath));
+        }
+        else
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRun);
+        }
+    }
 }
