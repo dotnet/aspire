@@ -7,7 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a Qdrant database.
 /// </summary>
 [AspireExport(ExposeProperties = true)]
-public class QdrantServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithPolyglotWithReference<QdrantServerResource>
+public class QdrantServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithCustomWithReference<QdrantServerResource>
 {
     internal const string PrimaryEndpointName = "grpc";
     internal const string HttpEndpointName = "http";
@@ -102,7 +102,7 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
         yield return new("HttpUri", HttpUriExpression);
     }
 
-    static IResourceBuilder<IResourceWithEnvironment> IResourceWithPolyglotWithReference<QdrantServerResource>.WithReference(
+    static IResourceBuilder<IResourceWithEnvironment> IResourceWithCustomWithReference<QdrantServerResource>.WithReference(
         IResourceBuilder<IResourceWithEnvironment> builder,
         IResourceBuilder<QdrantServerResource> source,
         string? connectionName,

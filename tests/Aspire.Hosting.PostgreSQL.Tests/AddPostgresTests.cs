@@ -187,7 +187,7 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public async Task PolyglotWithReferenceDispatchesPostgresDatabaseReference()
+    public async Task WithReferenceDispatchesPostgresDatabaseReference()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
@@ -200,7 +200,7 @@ public class AddPostgresTests
         var database = postgres.AddDatabase("db");
         var consumer = appBuilder.AddContainer("consumer", "fake");
 
-        InvokePolyglotWithReference(consumer, database);
+        InvokeWithReference(consumer, database);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
@@ -738,7 +738,7 @@ public class AddPostgresTests
             && m.GetParameters() is { Length: 5 } parameters
             && parameters[1].ParameterType == typeof(IResourceBuilder<IResource>));
 
-    private static IResourceBuilder<TDestination> InvokePolyglotWithReference<TDestination>(
+    private static IResourceBuilder<TDestination> InvokeWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName = null,

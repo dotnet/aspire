@@ -22,7 +22,7 @@ namespace Aspire.Hosting;
 public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
-    private static readonly MethodInfo s_dispatchPolyglotWithReferenceMethod = typeof(ResourceBuilderExtensions).GetMethod(nameof(DispatchPolyglotWithReference), BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly MethodInfo s_dispatchCustomWithReferenceMethod = typeof(ResourceBuilderExtensions).GetMethod(nameof(DispatchCustomWithReference), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     /// <summary>
     /// Adds an environment variable to the resource.
@@ -561,8 +561,8 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        var polyglotBuilder = (IResourceBuilder<IResourceWithEnvironment>)builder;
-        var dispatched = WithReferenceCore(polyglotBuilder, source, connectionName, optional, name);
+        var environmentBuilder = (IResourceBuilder<IResourceWithEnvironment>)builder;
+        var dispatched = WithReferenceCore(environmentBuilder, source, connectionName, optional, name);
         return (IResourceBuilder<TDestination>)dispatched;
     }
 
@@ -573,7 +573,7 @@ public static class ResourceBuilderExtensions
         bool optional,
         string? name)
     {
-        if (TryDispatchPolyglotWithReference(builder, source, connectionName, optional, name, out var customDispatch))
+        if (TryDispatchCustomWithReference(builder, source, connectionName, optional, name, out var customDispatch))
         {
             return customDispatch;
         }
@@ -616,10 +616,10 @@ public static class ResourceBuilderExtensions
             return WithReference(builder, externalServiceSource);
         }
 
-        throw new InvalidOperationException($"The resource '{source.Resource.Name}' does not support polyglot WithReference dispatch.");
+        throw new InvalidOperationException($"The resource '{source.Resource.Name}' does not support WithReference dispatch.");
     }
 
-    private static bool TryDispatchPolyglotWithReference(
+    private static bool TryDispatchCustomWithReference(
         IResourceBuilder<IResourceWithEnvironment> builder,
         IResourceBuilder<IResource> source,
         string? connectionName,
@@ -628,29 +628,29 @@ public static class ResourceBuilderExtensions
         [NotNullWhen(true)] out IResourceBuilder<IResourceWithEnvironment>? dispatchedBuilder)
     {
         var sourceType = source.Resource.GetType();
-        var polyglotInterface = sourceType.GetInterfaces()
+        var customWithReferenceInterface = sourceType.GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType
-                && i.GetGenericTypeDefinition() == typeof(IResourceWithPolyglotWithReference<>)
+                && i.GetGenericTypeDefinition() == typeof(IResourceWithCustomWithReference<>)
                 && i.GetGenericArguments()[0] == sourceType);
 
-        if (polyglotInterface is null)
+        if (customWithReferenceInterface is null)
         {
             dispatchedBuilder = null;
             return false;
         }
 
-        var dispatchMethod = s_dispatchPolyglotWithReferenceMethod.MakeGenericMethod(sourceType);
+        var dispatchMethod = s_dispatchCustomWithReferenceMethod.MakeGenericMethod(sourceType);
         dispatchedBuilder = (IResourceBuilder<IResourceWithEnvironment>)dispatchMethod.Invoke(null, [builder, source, connectionName, optional, name])!;
         return true;
     }
 
-    private static IResourceBuilder<IResourceWithEnvironment> DispatchPolyglotWithReference<TSource>(
+    private static IResourceBuilder<IResourceWithEnvironment> DispatchCustomWithReference<TSource>(
         IResourceBuilder<IResourceWithEnvironment> builder,
         IResourceBuilder<IResource> source,
         string? connectionName,
         bool optional,
         string? name)
-        where TSource : class, IResource, IResourceWithPolyglotWithReference<TSource>
+        where TSource : class, IResource, IResourceWithCustomWithReference<TSource>
     {
         return TSource.WithReference(builder, (IResourceBuilder<TSource>)source, connectionName, optional, name);
     }

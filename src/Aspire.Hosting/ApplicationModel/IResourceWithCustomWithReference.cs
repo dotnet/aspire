@@ -6,16 +6,16 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Defines custom polyglot <c>WithReference</c> dispatch behavior for a resource type.
+/// Defines custom <c>WithReference</c> dispatch behavior for a resource type.
 /// </summary>
 /// <typeparam name="TSelf">The concrete resource type that provides the custom dispatch behavior.</typeparam>
 /// <remarks>
-/// This contract is used by polyglot AppHost integrations that route a single ATS-visible <c>withReference</c>
-/// capability to resource-specific logic at runtime.
+/// This contract is used by the internal ATS-visible <c>withReference</c> dispatcher
+/// to route references to resource-specific logic at runtime.
 /// </remarks>
 [Experimental("ASPIREATS001")]
-public interface IResourceWithPolyglotWithReference<TSelf> : IResource
-    where TSelf : IResource, IResourceWithPolyglotWithReference<TSelf>
+public interface IResourceWithCustomWithReference<TSelf> : IResource
+    where TSelf : IResource, IResourceWithCustomWithReference<TSelf>
 {
     /// <summary>
     /// Applies a reference from <paramref name="source"/> to <paramref name="builder"/> using resource-specific behavior.

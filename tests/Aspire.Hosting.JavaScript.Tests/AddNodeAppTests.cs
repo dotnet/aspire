@@ -551,7 +551,7 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public async Task PolyglotWithReferenceDispatchesNodeAppServiceReference()
+    public async Task WithReferenceDispatchesNodeAppServiceReference()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithResourceCleanUp(true);
         using var tempDir = new TestTempDirectory();
@@ -567,7 +567,7 @@ public class AddNodeAppTests
             });
         var consumer = builder.AddContainer("consumer", "fake");
 
-        InvokePolyglotWithReference(consumer, nodeApp, name: "custom-name");
+        InvokeWithReference(consumer, nodeApp, name: "custom-name");
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
@@ -575,7 +575,7 @@ public class AddNodeAppTests
         Assert.Equal("http://nodeapp.dev.internal:5031", config["custom_name_HTTP"]);
     }
 
-    private static IResourceBuilder<TDestination> InvokePolyglotWithReference<TDestination>(
+    private static IResourceBuilder<TDestination> InvokeWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName = null,

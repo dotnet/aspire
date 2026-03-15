@@ -213,7 +213,7 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task PolyglotWithReferenceDispatchesQdrantReference()
+    public async Task WithReferenceDispatchesQdrantReference()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
@@ -232,7 +232,7 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
             });
         var consumer = appBuilder.AddContainer("consumer", "fake");
 
-        InvokePolyglotWithReference(consumer, qdrant);
+        InvokeWithReference(consumer, qdrant);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
@@ -347,7 +347,7 @@ public class AddQdrantTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("http", httpEndpoint.UriScheme);
     }
 
-    private static IResourceBuilder<TDestination> InvokePolyglotWithReference<TDestination>(
+    private static IResourceBuilder<TDestination> InvokeWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName = null,
