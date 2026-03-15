@@ -70,7 +70,7 @@ public class ExecutableResourceFailureLoggingTests(ITestOutputHelper testOutputH
     private static CancellationTokenSource DefaultCancellationTokenSource()
     {
         var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
+        cts.CancelAfter(TestConstants.DefaultOrchestratorTestLongTimeout);
         return cts;
     }
 
