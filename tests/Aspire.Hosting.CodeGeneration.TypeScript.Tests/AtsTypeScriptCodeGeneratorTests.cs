@@ -55,24 +55,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void GenerateDistributedApplication_WithMultiParamHandleCallback_UsesSeparateCallbackParameters()
+    public async Task GenerateDistributedApplication_WithMultiParamHandleCallback_MatchesSnapshot()
     {
         var atsContext = CreateContextFromTestAssembly();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
+        var callbackSnippet = ExtractSnippet(
+            files["aspire.ts"],
+            "private async _withMultiParamHandleCallbackInternal(",
+            "const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };");
 
-        Assert.Contains(
-            "const callbackId = registerCallback(async (arg1Data: unknown, arg2Data: unknown) => {",
-            files["aspire.ts"]);
-        Assert.Contains(
-            "const arg1Handle = wrapIfHandle(arg1Data) as TestCallbackContextHandle;",
-            files["aspire.ts"]);
-        Assert.Contains(
-            "const arg2Handle = wrapIfHandle(arg2Data) as TestEnvironmentContextHandle;",
-            files["aspire.ts"]);
-        Assert.DoesNotContain(
-            "const args = argsData as { p0: unknown, p1: unknown };",
-            files["aspire.ts"]);
+        await Verify(callbackSnippet, extension: "ts")
+            .UseFileName("MultiParamHandleCallback");
     }
 
     [Fact]
@@ -1359,7 +1353,7 @@ public class AtsTypeScriptCodeGeneratorTests
     // ===== Multi-Parameter Callback Destructuring Tests =====
 
     [Fact]
-    public void Generate_MultiParamCallback_UsesPerPropertyTyping()
+    public void Generate_MultiParamCallback_UsesSeparateCallbackParameters()
     {
         // Regression test: multi-parameter callbacks must generate one callback parameter
         // per marshalled argument so registerCallback can spread p0/p1 values correctly.
@@ -1410,6 +1404,23 @@ public class AtsTypeScriptCodeGeneratorTests
             index += pattern.Length;
         }
         return count;
+    }
+
+    private static string ExtractSnippet(string text, string startMarker, string endMarker)
+    {
+        var start = text.IndexOf(startMarker, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Start marker '{startMarker}' not found in generated code");
+
+        var end = text.IndexOf(endMarker, start, StringComparison.Ordinal);
+        Assert.True(end >= 0, $"End marker '{endMarker}' not found in generated code");
+
+        var snippetEnd = text.IndexOf('\n', end);
+        if (snippetEnd < 0)
+        {
+            snippetEnd = text.Length;
+        }
+
+        return text[start..snippetEnd];
     }
 
     // ===== JavaScript Assembly Expansion Tests =====
