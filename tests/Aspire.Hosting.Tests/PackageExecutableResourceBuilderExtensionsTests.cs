@@ -8,6 +8,7 @@ using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -150,11 +151,12 @@ public class PackageExecutableResourceBuilderExtensionsTests
         Assert.NotNull(build);
 
         var dockerfileAnnotation = container.Annotations.OfType<DockerfileBuildAnnotation>().Single();
-        Assert.StartsWith(Path.Combine(builder.AppHostDirectory, "obj", "aspire-package-executables", "publish", "package-app"), dockerfileAnnotation.ContextPath);
+        Assert.StartsWith(Path.Combine(builder.Configuration["Aspire:Store:Path"]!, ".aspire", "package-executables", "publish", "package-app"), dockerfileAnnotation.ContextPath);
 
         var dockerfilePath = dockerfileAnnotation.DockerfilePath;
         var dockerfile = await File.ReadAllTextAsync(dockerfilePath);
-        Assert.Contains("FROM mcr.microsoft.com/dotnet/runtime:10.0", dockerfile);
+        Assert.Contains("ARG BASE_IMAGE=mcr.microsoft.com/dotnet/runtime:10.0", dockerfile);
+        Assert.Contains("FROM ${BASE_IMAGE}", dockerfile);
         Assert.Contains("COPY package/ /app/", dockerfile);
         Assert.Contains("WORKDIR /app/lib/net10.0", dockerfile);
     }
@@ -208,7 +210,8 @@ public class PackageExecutableResourceBuilderExtensionsTests
         var dockerfilePath = container.Annotations.OfType<DockerfileBuildAnnotation>().Single().DockerfilePath;
         var dockerfile = await File.ReadAllTextAsync(dockerfilePath);
 
-        Assert.Contains("FROM mcr.microsoft.com/dotnet/aspnet:8.0", dockerfile);
+        Assert.Contains("ARG BASE_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0", dockerfile);
+        Assert.Contains("FROM ${BASE_IMAGE}", dockerfile);
     }
 
     [Fact]
@@ -325,6 +328,75 @@ public class PackageExecutableResourceBuilderExtensionsTests
 
         Assert.Equal(Path.Combine(toolsDirectory, "sample.dll"), result.ExecutablePath);
         Assert.Equal(toolsDirectory, result.WorkingDirectory);
+    }
+
+    [Fact]
+    public async Task ResolverPrefersNearestFrameworkAndCurrentRidWhenMultipleCandidatesExist()
+    {
+        using var appHostDirectory = new TempDirectory();
+        using var packagesDirectory = new TempDirectory();
+
+        var packageDirectory = Path.Combine(packagesDirectory.Path, "contoso.packageexecutables.multitarget", "1.2.3");
+        var currentRid = GetCurrentRuntimeIdentifier();
+        var currentRidDirectory = Path.Combine(packageDirectory, "tools", "net10.0", currentRid);
+        var anyRidDirectory = Path.Combine(packageDirectory, "tools", "net10.0", "any");
+        var olderFrameworkDirectory = Path.Combine(packageDirectory, "tools", "net8.0", "any");
+
+        Directory.CreateDirectory(currentRidDirectory);
+        Directory.CreateDirectory(anyRidDirectory);
+        Directory.CreateDirectory(olderFrameworkDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(currentRidDirectory, "sample.dll"), string.Empty);
+        await File.WriteAllTextAsync(Path.Combine(currentRidDirectory, "sample.runtimeconfig.json"), "{}");
+        await File.WriteAllTextAsync(Path.Combine(anyRidDirectory, "sample.dll"), string.Empty);
+        await File.WriteAllTextAsync(Path.Combine(anyRidDirectory, "sample.runtimeconfig.json"), "{}");
+        await File.WriteAllTextAsync(Path.Combine(olderFrameworkDirectory, "sample.dll"), string.Empty);
+        await File.WriteAllTextAsync(Path.Combine(olderFrameworkDirectory, "sample.runtimeconfig.json"), "{}");
+
+        await File.WriteAllTextAsync(Path.Combine(appHostDirectory.Path, "NuGet.Config"), $$"""
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <config>
+    <add key="globalPackagesFolder" value="{{packagesDirectory.Path}}" />
+  </config>
+</configuration>
+""");
+
+        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        {
+            options.ProjectDirectory = appHostDirectory.Path;
+        });
+
+        var resource = builder.AddPackageExecutable("package-app", "Contoso.PackageExecutables.MultiTarget")
+            .WithPackageVersion("1.2.3")
+            .WithPackageExecutable("sample.dll");
+
+        var resolver = new PackageExecutableResolver(NullLogger<PackageExecutableResolver>.Instance);
+        var result = await resolver.ResolveAsync(resource.Resource, CancellationToken.None);
+
+        Assert.Equal(Path.Combine(currentRidDirectory, "sample.dll"), result.ExecutablePath);
+        Assert.Equal(currentRidDirectory, result.WorkingDirectory);
+    }
+
+    private static string GetCurrentRuntimeIdentifier()
+    {
+        var os = OperatingSystem.IsWindows() ? "win"
+            : OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "osx"
+            : "any";
+
+        var architecture = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => "any"
+        };
+
+        return os == "any" || architecture == "any"
+            ? "any"
+            : $"{os}-{architecture}";
     }
 
     private sealed class FakePackageExecutableResolver(PackageExecutableResolutionResult result) : IPackageExecutableResolver

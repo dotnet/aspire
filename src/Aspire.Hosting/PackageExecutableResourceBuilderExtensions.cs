@@ -5,6 +5,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.PackageManagement;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Text.Json;
@@ -21,6 +22,8 @@ namespace Aspire.Hosting;
 /// </remarks>
 public static class PackageExecutableResourceBuilderExtensions
 {
+    private const string BaseImageBuildArgumentName = "BASE_IMAGE";
+
     /// <summary>
     /// Adds a package-backed executable resource to the application model.
     /// </summary>
@@ -132,7 +135,7 @@ public static class PackageExecutableResourceBuilderExtensions
 
         builder.ApplicationBuilder.Resources.Remove(builder.Resource);
 
-        var publishContextPath = GetPublishContextPath(builder.ApplicationBuilder.AppHostDirectory, builder.Resource.Name);
+        var publishContextPath = GetPublishContextPath(builder.ApplicationBuilder.Configuration, builder.Resource.Name);
         Directory.CreateDirectory(publishContextPath);
         var container = new PackageExecutableContainerResource(builder.Resource, publishContextPath);
         var containerBuilder = builder.ApplicationBuilder.AddResource(container);
@@ -369,16 +372,24 @@ public static class PackageExecutableResourceBuilderExtensions
         var runtimeImage = GetRuntimeContainerImage(resolved.ExecutablePath);
 
         return string.Join("\n", [
-            $"FROM {runtimeImage}",
+            $"ARG {BaseImageBuildArgumentName}={runtimeImage}",
+            $"FROM ${{{BaseImageBuildArgumentName}}}",
             "WORKDIR /app",
             "COPY package/ /app/",
             $"WORKDIR {containerWorkingDirectory}"
         ]);
     }
 
-    private static string GetPublishContextPath(string appHostDirectory, string resourceName)
+    private static string GetPublishContextPath(IConfiguration configuration, string resourceName)
     {
-        return Path.Combine(appHostDirectory, "obj", "aspire-package-executables", "publish", resourceName);
+        var aspireStorePath = configuration[AspireStore.AspireStorePathKeyName];
+
+        if (string.IsNullOrWhiteSpace(aspireStorePath))
+        {
+            throw new InvalidOperationException($"Could not determine the Aspire store path. Set {AspireStore.AspireStorePathKeyName} before publishing package executable resources.");
+        }
+
+        return Path.Combine(aspireStorePath, ".aspire", "package-executables", "publish", resourceName);
     }
 
     private static string GetRuntimeContainerImage(string executablePath)

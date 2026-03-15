@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 using NuGet.Commands;
@@ -20,8 +22,8 @@ namespace Aspire.Hosting.PackageManagement;
 
 internal sealed class PackageExecutableResolver(ILogger<PackageExecutableResolver> logger) : IPackageExecutableResolver
 {
-    private const string DefaultTargetFramework = "net10.0";
-    private const string NuGetOrgUrl = "https://api.nuget.org/v3/index.json";
+    private static readonly NuGetFramework s_defaultTargetFramework = GetDefaultTargetFramework();
+    private static readonly string s_currentRuntimeIdentifier = GetCurrentRuntimeIdentifier();
 
     public async Task<PackageExecutableResolutionResult> ResolveAsync(PackageExecutableResource resource, CancellationToken cancellationToken)
     {
@@ -72,7 +74,12 @@ internal sealed class PackageExecutableResolver(ILogger<PackageExecutableResolve
     private async Task RestorePackageAsync(PackageExecutableAnnotation configuration, ISettings settings, string globalPackagesFolder, CancellationToken cancellationToken)
     {
         var packageSources = LoadPackageSources(configuration, settings);
-        var framework = NuGetFramework.Parse(DefaultTargetFramework);
+        if (packageSources.Count == 0)
+        {
+            throw new DistributedApplicationException($"Package executable resource '{configuration.PackageId}' could not determine any NuGet package sources. Configure a package source explicitly or provide one through NuGet.Config.");
+        }
+
+        var framework = s_defaultTargetFramework;
         var outputPath = Path.Combine(Path.GetTempPath(), "aspire-package-executables", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(outputPath);
 
@@ -213,11 +220,6 @@ internal sealed class PackageExecutableResolver(ILogger<PackageExecutableResolve
             }
         }
 
-        if (!packageSources.Any(source => string.Equals(source.Source, NuGetOrgUrl, StringComparison.OrdinalIgnoreCase)))
-        {
-            packageSources.Add(new PackageSource(NuGetOrgUrl, "nuget.org"));
-        }
-
         return packageSources;
     }
 
@@ -252,20 +254,24 @@ internal sealed class PackageExecutableResolver(ILogger<PackageExecutableResolve
         }
 
         var candidates = candidateRoots
-            .SelectMany(root => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
-            .Where(IsSupportedExecutableCandidate)
-            .Where(path => MatchesExecutableName(path, executableName))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .SelectMany(EnumerateExecutableCandidates)
+            .Where(candidate => MatchesExecutableName(candidate.Path, executableName))
             .ToArray();
 
         var searchLocations = string.Join("', '", candidateRoots);
 
-        return candidates.Length switch
+        if (candidates.Length == 0)
         {
-            0 => throw new DistributedApplicationException(executableName is null
+            throw new DistributedApplicationException(executableName is null
                 ? $"Unable to locate a runnable executable asset under '{searchLocations}' for package '{packageId}'. Use WithPackageExecutable(...) to select a specific executable file."
-                : $"Unable to locate an executable named '{executableName}' under '{searchLocations}' for package '{packageId}'."),
-            1 => candidates[0],
+                : $"Unable to locate an executable named '{executableName}' under '{searchLocations}' for package '{packageId}'.");
+        }
+
+        var selectedCandidates = SelectBestCandidates(candidates);
+
+        return selectedCandidates.Count switch
+        {
+            1 => selectedCandidates[0].Path,
             _ => throw new DistributedApplicationException(executableName is null
                 ? $"Multiple runnable executable assets were found under '{searchLocations}' for package '{packageId}'. Use WithPackageExecutable(...) to disambiguate."
                 : $"Multiple runnable executable assets matched '{executableName}' under '{searchLocations}' for package '{packageId}'.")
@@ -343,6 +349,170 @@ internal sealed class PackageExecutableResolver(ILogger<PackageExecutableResolve
         return string.Equals(fileName, executableName, StringComparison.OrdinalIgnoreCase)
             || string.Equals(fileNameWithoutExtension, executableName, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static IReadOnlyList<ExecutableCandidate> SelectBestCandidates(IReadOnlyList<ExecutableCandidate> candidates)
+    {
+        var compatibleRidCandidates = candidates
+            .Where(IsCompatibleWithCurrentRuntime)
+            .ToArray();
+
+        var ridFilteredCandidates = compatibleRidCandidates.Length > 0 ? compatibleRidCandidates : candidates.ToArray();
+        var bestRidSpecificity = ridFilteredCandidates.Max(GetRuntimeIdentifierSpecificity);
+        ridFilteredCandidates = ridFilteredCandidates
+            .Where(candidate => GetRuntimeIdentifierSpecificity(candidate) == bestRidSpecificity)
+            .ToArray();
+
+        var frameworkCandidates = ridFilteredCandidates
+            .Where(candidate => candidate.Framework is not null)
+            .ToArray();
+
+        if (frameworkCandidates.Length == 0)
+        {
+            return ridFilteredCandidates;
+        }
+
+        var nearestFramework = new FrameworkReducer().GetNearest(s_defaultTargetFramework, frameworkCandidates.Select(candidate => candidate.Framework!));
+        if (nearestFramework is null)
+        {
+            return ridFilteredCandidates;
+        }
+
+        return frameworkCandidates
+            .Where(candidate => NuGetFramework.Comparer.Equals(candidate.Framework, nearestFramework))
+            .ToArray();
+    }
+
+    private static IEnumerable<ExecutableCandidate> EnumerateExecutableCandidates(string rootPath)
+    {
+        foreach (var path in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
+        {
+            if (!IsSupportedExecutableCandidate(path))
+            {
+                continue;
+            }
+
+            yield return CreateExecutableCandidate(rootPath, path);
+        }
+    }
+
+    private static ExecutableCandidate CreateExecutableCandidate(string rootPath, string path)
+    {
+        var rootName = Path.GetFileName(rootPath);
+        var rootKind = string.Equals(rootName, "tools", StringComparison.OrdinalIgnoreCase)
+            ? CandidateRootKind.Tools
+            : CandidateRootKind.Lib;
+
+        var relativePath = Path.GetRelativePath(rootPath, path);
+        var segments = relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+
+        NuGetFramework? framework = null;
+        string? runtimeIdentifier = null;
+
+        if (rootKind == CandidateRootKind.Lib)
+        {
+            if (segments.Length > 1 && TryParseFramework(segments[0], out var parsedFramework))
+            {
+                framework = parsedFramework;
+            }
+        }
+        else
+        {
+            if (segments.Length > 2 && TryParseFramework(segments[0], out var parsedFramework))
+            {
+                framework = parsedFramework;
+                runtimeIdentifier = segments[1];
+            }
+            else if (segments.Length > 1)
+            {
+                runtimeIdentifier = segments[0];
+            }
+        }
+
+        return new ExecutableCandidate(path, framework, runtimeIdentifier, rootKind);
+    }
+
+    private static bool IsCompatibleWithCurrentRuntime(ExecutableCandidate candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate.RuntimeIdentifier)
+            || string.Equals(candidate.RuntimeIdentifier, "any", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.Equals(candidate.RuntimeIdentifier, s_currentRuntimeIdentifier, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int GetRuntimeIdentifierSpecificity(ExecutableCandidate candidate)
+    {
+        if (string.Equals(candidate.RuntimeIdentifier, s_currentRuntimeIdentifier, StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (string.IsNullOrWhiteSpace(candidate.RuntimeIdentifier)
+            || string.Equals(candidate.RuntimeIdentifier, "any", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static bool TryParseFramework(string value, out NuGetFramework? framework)
+    {
+        framework = null;
+
+        try
+        {
+            var parsed = NuGetFramework.Parse(value);
+            if (parsed.IsUnsupported)
+            {
+                return false;
+            }
+
+            framework = parsed;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static NuGetFramework GetDefaultTargetFramework()
+    {
+        var targetFrameworkAttribute = typeof(PackageExecutableResolver).Assembly.GetCustomAttributes(typeof(TargetFrameworkAttribute), inherit: false)
+            .OfType<TargetFrameworkAttribute>()
+            .SingleOrDefault();
+
+        if (targetFrameworkAttribute is not null)
+        {
+            return NuGetFramework.ParseFrameworkName(targetFrameworkAttribute.FrameworkName, DefaultFrameworkNameProvider.Instance);
+        }
+
+        return NuGetFramework.Parse($"net{Environment.Version.Major}.0");
+    }
+
+    private static string GetCurrentRuntimeIdentifier()
+    {
+        var os = OperatingSystem.IsWindows() ? "win"
+            : OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "osx"
+            : "any";
+
+        var architecture = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => "any"
+        };
+
+        return os == "any" || architecture == "any"
+            ? "any"
+            : $"{os}-{architecture}";
+    }
 }
 
 internal sealed class NuGetCommonLogger(MsalLogger logger) : NuGetLogger
@@ -396,3 +566,11 @@ internal sealed class NuGetCommonLogger(MsalLogger logger) : NuGetLogger
         _ => Microsoft.Extensions.Logging.LogLevel.Information
     };
 }
+
+internal enum CandidateRootKind
+{
+    Lib,
+    Tools
+}
+
+internal sealed record ExecutableCandidate(string Path, NuGetFramework? Framework, string? RuntimeIdentifier, CandidateRootKind RootKind);
