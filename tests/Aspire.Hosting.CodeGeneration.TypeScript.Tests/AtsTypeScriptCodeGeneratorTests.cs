@@ -1416,7 +1416,9 @@ public class AtsTypeScriptCodeGeneratorTests
             snippetEnd = text.Length;
         }
 
-        return text[start..snippetEnd];
+        return text[start..snippetEnd]
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
     }
 
     // ===== JavaScript Assembly Expansion Tests =====
