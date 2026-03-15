@@ -1353,22 +1353,18 @@ public class AtsTypeScriptCodeGeneratorTests
     // ===== Multi-Parameter Callback Destructuring Tests =====
 
     [Fact]
-    public void Generate_MultiParamCallback_UsesSeparateCallbackParameters()
+    public async Task Generate_MultiParamCallback_UsesSeparateCallbackParameters()
     {
         // Regression test: multi-parameter callbacks must generate one callback parameter
         // per marshalled argument so registerCallback can spread p0/p1 values correctly.
         var code = GenerateTwoPassCode();
+        var callbackSnippet = ExtractSnippet(
+            code,
+            "private async _withMultiParamHandleCallbackInternal(",
+            "const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };");
 
-        Assert.Contains(
-            "registerCallback(async (arg1Data: unknown, arg2Data: unknown) => {",
-            code);
-        Assert.Contains(
-            "const arg1Handle = wrapIfHandle(arg1Data) as TestCallbackContextHandle;",
-            code);
-        Assert.Contains(
-            "const arg2Handle = wrapIfHandle(arg2Data) as TestEnvironmentContextHandle;",
-            code);
-        Assert.DoesNotContain("const args = argsData as { p0: unknown, p1: unknown };", code);
+        await Verify(callbackSnippet, extension: "ts")
+            .UseFileName("TwoPassMultiParamHandleCallback");
     }
 
     // ===== Options Interface Merging Tests =====
