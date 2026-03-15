@@ -209,15 +209,17 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 3: Connect to server
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
-            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
-
-            // Step 5: Generate SDK code via RPC
+            // Step 4: Generate SDK code via RPC
+            // This must happen before dependency installation because the generated
+            // code directory (.modules) may not exist yet and dependency files reference it.
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
                 rpcClient,
                 integrations,
                 cancellationToken);
+
+            // Step 5: Install dependencies using GuestRuntime (best effort - don't block code generation)
+            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
         }
         finally
         {
@@ -377,7 +379,20 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 5: Connect to server for RPC calls
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            // Step 6: Install dependencies (using GuestRuntime)
+            // Step 6: Generate SDK code via RPC if needed
+            // This must happen before dependency installation because the generated
+            // code directory (.modules) may not exist yet (e.g., freshly cloned project)
+            // and dependency files (pylock.toml, requirements.txt) reference it.
+            if (buildResult.NeedsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    rpcClient,
+                    integrations,
+                    cancellationToken);
+            }
+
+            // Step 7: Install dependencies (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
             var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
             if (installResult != 0)
@@ -398,16 +413,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 }
 
                 return installResult;
-            }
-
-            // Step 7: Generate SDK code via RPC if needed
-            if (buildResult.NeedsCodeGen)
-            {
-                await GenerateCodeViaRpcAsync(
-                    directory.FullName,
-                    rpcClient,
-                    integrations,
-                    cancellationToken);
             }
 
             // Step 8: Execute the guest apphost
@@ -658,7 +663,20 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 3: Connect to server for RPC calls
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(jsonRpcSocketPath, cancellationToken);
 
-            // Step 4: Install dependencies if needed (using GuestRuntime)
+            // Step 4: Generate code via RPC if needed
+            // This must happen before dependency installation because the generated
+            // code directory (.modules) may not exist yet (e.g., freshly cloned project)
+            // and dependency files (pylock.toml, requirements.txt) reference it.
+            if (needsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    rpcClient,
+                    integrations,
+                    cancellationToken);
+            }
+
+            // Step 5: Install dependencies if needed (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
             var installResult = await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
             if (installResult != 0)
@@ -679,16 +697,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 }
 
                 return installResult;
-            }
-
-            // Step 5: Generate code via RPC if needed
-            if (needsCodeGen)
-            {
-                await GenerateCodeViaRpcAsync(
-                    directory.FullName,
-                    rpcClient,
-                    integrations,
-                    cancellationToken);
             }
 
             // Pass the socket path, project directory, and apphost file path to the guest process
