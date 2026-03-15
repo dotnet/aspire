@@ -39,6 +39,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ILanguageService _languageService;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IScaffoldingService _scaffoldingService;
+    private readonly AgentInitCommand _agentInitCommand;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     private static readonly Option<string?> s_sourceOption = new("--source", "-s")
     {
@@ -80,7 +82,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IConfigurationService configurationService,
         ILanguageService languageService,
         ILanguageDiscovery languageDiscovery,
-        IScaffoldingService scaffoldingService)
+        IScaffoldingService scaffoldingService,
+        AgentInitCommand agentInitCommand,
+        ICliHostEnvironment hostEnvironment)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -96,6 +100,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _languageService = languageService;
         _languageDiscovery = languageDiscovery;
         _scaffoldingService = scaffoldingService;
+        _agentInitCommand = agentInitCommand;
+        _hostEnvironment = hostEnvironment;
 
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
@@ -140,7 +146,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage(KnownEmojis.Information, $"Creating {languageInfo.DisplayName} AppHost...");
             InteractionService.DisplayEmptyLine();
-            return await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+            var polyglotResult = await CreatePolyglotAppHostAsync(languageInfo, cancellationToken);
+            return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, polyglotResult, _executionContext.WorkingDirectory, cancellationToken);
         }
 
         // For C#, we need the .NET SDK
@@ -155,25 +162,50 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Use SolutionLocator to find solution files, walking up the directory tree
         initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
 
+        int initResult;
+        DirectoryInfo workspaceRoot;
         if (initContext.SelectedSolutionFile is not null)
         {
             InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
             InteractionService.DisplayEmptyLine();
-            return await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
+            initResult = await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
+            workspaceRoot = initContext.SolutionDirectory ?? _executionContext.WorkingDirectory;
         }
         else
         {
             InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage(KnownEmojis.Information, InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
             InteractionService.DisplayEmptyLine();
-            return await CreateEmptyAppHostAsync(parseResult, cancellationToken);
+            initResult = await CreateEmptyAppHostAsync(parseResult, cancellationToken);
+            workspaceRoot = _executionContext.WorkingDirectory;
         }
+
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, initResult, workspaceRoot, cancellationToken);
     }
 
     private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var solutionFile = initContext.SelectedSolutionFile!;
+
+        // Verify that the solution directory does not contain project files.
+        // If the solution and a project file are in the same directory, the AppHost
+        // and ServiceDefaults directories would be created inside that project which
+        // is not supported.
+        var solutionDirectory = solutionFile.Directory!;
+        var projectFileInSolutionDir = solutionDirectory.EnumerateFiles()
+            .FirstOrDefault(f => DotNetAppHostProject.ProjectExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
+
+        if (projectFileInSolutionDir is not null)
+        {
+            InteractionService.DisplayError(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    InitCommandStrings.SolutionAndProjectInSameDirectory,
+                    solutionFile.Name,
+                    projectFileInSolutionDir.Name));
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
 
         initContext.GetSolutionProjectsOutputCollector = new OutputCollector();
         var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Reading solution...", async () =>
@@ -233,8 +265,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 "Select projects to add to the AppHost:",
                 initContext.ExecutableProjects,
                 project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
-                cancellationToken);
-
+                optional: true,
+                cancellationToken: cancellationToken);
             initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
 
             // If projects were selected, prompt for which should have ServiceDefaults added
@@ -286,7 +318,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                             "Select projects to add ServiceDefaults reference to:",
                             initContext.ExecutableProjectsToAddToAppHost,
                             project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name).EscapeMarkup(),
-                            cancellationToken);
+                            optional: true,
+                            cancellationToken: cancellationToken);
                         break;
                     case "none":
                         initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<ExecutableProjectInfo>();

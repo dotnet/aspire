@@ -118,11 +118,13 @@ internal sealed class CodeGenerationService
     {
         TypeId = t.TypeId,
         Name = t.Name,
+        Description = t.Description,
         Properties = t.Properties.Select(p => new DtoPropertyResponse
         {
             Name = p.Name,
             Type = MapTypeRef(p.Type),
-            IsOptional = p.IsOptional
+            IsOptional = p.IsOptional,
+            Description = p.Description
         }).ToList()
     };
 
@@ -243,6 +245,7 @@ internal sealed class DtoTypeResponse
 {
     public string TypeId { get; set; } = "";
     public string Name { get; set; } = "";
+    public string? Description { get; set; }
     public List<DtoPropertyResponse> Properties { get; set; } = [];
 }
 
@@ -251,6 +254,7 @@ internal sealed class DtoPropertyResponse
     public string Name { get; set; } = "";
     public TypeRefResponse? Type { get; set; }
     public bool IsOptional { get; set; }
+    public string? Description { get; set; }
 }
 
 internal sealed class EnumTypeResponse

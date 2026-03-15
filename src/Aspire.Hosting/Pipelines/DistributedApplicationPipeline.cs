@@ -1056,7 +1056,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             sb.AppendLine();
         }
 
-        context.ReportingStep.Log(LogLevel.Information, sb.ToString(), enableMarkdown: false);
+        context.ReportingStep.Log(LogLevel.Information, sb.ToString());
     }
 
     /// <summary>

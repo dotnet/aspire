@@ -655,6 +655,30 @@ public class CapabilityDispatcherTests
     }
 
     [Fact]
+    public void Invoke_SyncCapabilityWithoutBackgroundThreadOptIn_RunsInline()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestCapabilitiesWithBackgroundThreadDispatch).Assembly);
+        var callerThreadId = Environment.CurrentManagedThreadId;
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/syncInlineThreadProbe", null);
+
+        Assert.NotNull(result);
+        Assert.Equal(callerThreadId, result.GetValue<int>());
+    }
+
+    [Fact]
+    public void Invoke_SyncCapabilityWithBackgroundThreadOptIn_RunsOnBackgroundThread()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestCapabilitiesWithBackgroundThreadDispatch).Assembly);
+        var callerThreadId = Environment.CurrentManagedThreadId;
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/syncBackgroundThreadProbe", null);
+
+        Assert.NotNull(result);
+        Assert.NotEqual(callerThreadId, result.GetValue<int>());
+    }
+
+    [Fact]
     public void Invoke_MethodWithoutCallbackFactory_ThrowsForCallbackParameter()
     {
         var handles = new HandleRegistry();
@@ -1511,6 +1535,21 @@ internal static class TestCapabilitiesWithCallback
     public static int WithAsyncCallback(Func<Task<int>> callback)
     {
         return callback().GetAwaiter().GetResult();
+    }
+}
+
+internal static class TestCapabilitiesWithBackgroundThreadDispatch
+{
+    [AspireExport("syncInlineThreadProbe", Description = "Captures the current thread for inline sync invocation")]
+    public static int SyncInlineThreadProbe()
+    {
+        return Environment.CurrentManagedThreadId;
+    }
+
+    [AspireExport("syncBackgroundThreadProbe", Description = "Captures the current thread for background-thread sync invocation", RunSyncOnBackgroundThread = true)]
+    public static int SyncBackgroundThreadProbe()
+    {
+        return Environment.CurrentManagedThreadId;
     }
 }
 

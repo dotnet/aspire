@@ -3,7 +3,6 @@
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
-using Hex1b;
 using Hex1b.Automation;
 using Aspire.TestUtilities;
 using Xunit;
@@ -28,21 +27,11 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
     [Fact]
     public async Task AgentInit_InstallsPlaywrightCli_AndGeneratesSkillFiles()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(AgentInit_InstallsPlaywrightCli_AndGeneratesSkillFiles));
-
-        var builder = Hex1bTerminal.CreateBuilder()
-            .WithHeadless()
-            .WithDimensions(160, 48)
-            .WithAsciinemaRecording(recordingPath)
-            .WithPtyProcess("/bin/bash", ["--norc"]);
-
-        using var terminal = builder.Build();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -57,14 +46,9 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Step 1: Verify playwright-cli is not installed.
         sequenceBuilder
@@ -73,30 +57,7 @@ public sealed class PlaywrightCliInstallTests(ITestOutputHelper output)
             .WaitForSuccessPrompt(counter);
 
         // Step 2: Create an Aspire project (accept all defaults).
-        var starterAppTemplate = new CellPatternSearcher().FindPattern("> Starter App");
-        var projectNamePrompt = new CellPatternSearcher().Find("Enter the project name");
-        var outputPathPrompt = new CellPatternSearcher().Find("Enter the output path");
-        var urlsPrompt = new CellPatternSearcher().Find("*.dev.localhost URLs");
-        var redisPrompt = new CellPatternSearcher().Find("Use Redis Cache");
-        var testProjectPrompt = new CellPatternSearcher().Find("Do you want to create a test project?");
-
-        sequenceBuilder
-            .Type("aspire new")
-            .Enter()
-            .WaitUntil(s => starterAppTemplate.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .Enter() // Select Starter App template
-            .WaitUntil(s => projectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Type("TestProject")
-            .Enter()
-            .WaitUntil(s => outputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default output path
-            .WaitUntil(s => urlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default URL setting
-            .WaitUntil(s => redisPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default Redis setting
-            .WaitUntil(s => testProjectPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // Accept default test project setting
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestProject", counter);
 
         // Step 3: Navigate into the project and create .claude folder to trigger Claude Code detection.
         sequenceBuilder

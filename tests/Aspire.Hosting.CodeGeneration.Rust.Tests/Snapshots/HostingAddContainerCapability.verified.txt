@@ -236,5 +236,6 @@
     }
   ],
   ReturnsBuilder: true,
-  SourceLocation: Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer
+  SourceLocation: Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer,
+  RunSyncOnBackgroundThread: false
 }

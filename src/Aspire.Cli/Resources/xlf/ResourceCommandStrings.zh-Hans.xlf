@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart).</source>
-        <target state="translated">在资源上执行命令。</target>
+        <target state="translated">对资源执行命令(例如 start、stop、restart)。</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute (e.g. start, stop, restart).</source>
-        <target state="translated">要执行的命令的名称。</target>
+        <target state="translated">要执行的命令名称(例如 start、stop、restart)。</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">

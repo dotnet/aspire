@@ -78,6 +78,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
+    public bool IsUnsupported { get; set; }
+
+    /// <inheritdoc />
     public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />
@@ -97,7 +100,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
             return configuredVersion;
         }
-        
+
         _logger.LogDebug("Using default SDK version: {Version}", DotNetBasedAppHostServerProject.DefaultSdkVersion);
         return DotNetBasedAppHostServerProject.DefaultSdkVersion;
     }
@@ -117,7 +120,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public bool CanHandle(FileInfo appHostFile)
     {
         // Check if file matches this language's detection patterns
-        return _resolvedLanguage.DetectionPatterns.Any(p => 
+        return _resolvedLanguage.DetectionPatterns.Any(p =>
             appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -180,7 +183,8 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Builds the AppHost server project and generates SDK code.
     /// </summary>
-    private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    /// <returns><see langword="true"/> if the code was generated successfully; otherwise, <see langword="false"/>.</returns>
+    internal async Task<bool> BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
@@ -197,7 +201,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _interactionService.DisplayLines(buildOutput.GetLines());
             }
             _interactionService.DisplayError("Failed to prepare AppHost server.");
-            return;
+            return false;
         }
 
         // Step 2: Start the AppHost server temporarily for code generation
@@ -220,6 +224,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Step 5: Install dependencies using GuestRuntime (best effort - don't block code generation)
             await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+            return true;
         }
         finally
         {
@@ -245,6 +250,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
+        if (IsUnsupported)
+        {
+            return Task.FromResult(new AppHostValidationResult(IsValid: false, IsUnsupported: true));
+        }
+
         // Check if the file exists
         if (!appHostFile.Exists)
         {
@@ -256,7 +266,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var patterns = _resolvedLanguage.DetectionPatterns;
         if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
-            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}", 
+            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}",
                 appHostFile.Name, _resolvedLanguage.DisplayName, string.Join(", ", patterns));
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
@@ -431,19 +441,53 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 environmentVariables["ASPIRE_DEBUG"] = "true";
             }
 
-            // Start guest apphost - it will connect to AppHost server, define resources
-            // When hot reload is enabled, use watch mode
             // Pass through any additional command-line arguments from the user
             var additionalArgs = context.UnmatchedTokens.Length > 0 ? context.UnmatchedTokens : null;
+            
+            // Check if the extension should launch the guest app host (for VS Code debugging).
+            // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
+            // The RuntimeSpec declares the required extension capability (e.g., "node" for TypeScript);
+            // only use the extension launcher when the runtime requests it and the extension supports it.
+            if (_guestRuntime is null)
+            {
+                _interactionService.DisplayError("GuestRuntime not initialized.");
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
+            IGuestProcessLauncher launcher;
+            if (_guestRuntime.ExtensionLaunchCapability is { } requiredCapability
+                && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out var extensionBackchannel)
+                && await extensionBackchannel.HasCapabilityAsync(requiredCapability, cancellationToken))
+            {
+                launcher = new ExtensionGuestLauncher(extensionInteractionService, appHostFile, context.StartDebugSession);
+            }
+            else
+            {
+                launcher = _guestRuntime.CreateDefaultLauncher();
+            }
+
+            // Start guest apphost - it will connect to AppHost server, define resources.
+            // If launcher is an ExtensionGuestLauncher, it delegates to the VS Code extension.
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, additionalArgs, rpcClient, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, additionalArgs, rpcClient, launcher, cancellationToken);
+
+            if (launcher is ExtensionGuestLauncher)
+            {
+                // Extension manages the guest app host lifecycle via VS Code debug session.
+                // Wait for the AppHost server to exit (Ctrl+C or extension termination).
+                await appHostServerProcess.WaitForExitAsync(cancellationToken);
+                return appHostServerProcess.ExitCode;
+            }
 
             if (guestExitCode != 0)
             {
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -717,7 +761,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure so callers don't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -865,9 +912,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         config.Save(directory.FullName);
 
         // Build and regenerate SDK code with the new package
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
-
-        return true;
+        return await BuildAndGenerateSdkAsync(directory, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -979,13 +1024,24 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        await _interactionService.ShowStatusAsync(
+        var regenerateResult = await _interactionService.ShowStatusAsync(
             UpdateCommandStrings.RegeneratingSdkCode,
             async () =>
             {
-                await BuildAndGenerateSdkAsync(directory, cancellationToken);
-                return 0;
+                var regenerateSuccess = await BuildAndGenerateSdkAsync(directory, cancellationToken);
+
+                if (!regenerateSuccess)
+                {
+                    return new UpdatePackagesResult { UpdatesApplied = false };
+                }
+
+                return new UpdatePackagesResult { UpdatesApplied = true };
             });
+
+        if (!regenerateResult.UpdatesApplied)
+        {
+            return regenerateResult;
+        }
 
         _interactionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.RegeneratedSdkCode);
 
@@ -1019,7 +1075,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Stop all running instances
-        var stopTasks = matchingSockets.Select(socketPath => 
+        var stopTasks = matchingSockets.Select(socketPath =>
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
@@ -1152,17 +1208,33 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        var initResult = await _guestRuntime.InitializeAsync(directory, cancellationToken);
+        var (initResult, initOutput) = await _guestRuntime.InitializeAsync(directory, cancellationToken);
         if (initResult != 0)
         {
-            _interactionService.DisplayError($"Failed to initialize {_resolvedLanguage?.DisplayName ?? "guest"} environment.");
+            var lines = initOutput.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to initialize {_resolvedLanguage?.DisplayName ?? "guest"} environment.");
+            }
             return initResult;
         }
 
-        var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            }
         }
 
         return result;
@@ -1171,13 +1243,14 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Executes the guest AppHost using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
         string[]? additionalArgs,
         IAppHostRpcClient rpcClient,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
         await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
@@ -1188,13 +1261,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, additionalArgs, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, additionalArgs, launcher, cancellationToken);
     }
 
     /// <summary>
     /// Executes the guest AppHost for publishing using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostForPublishAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostForPublishAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
@@ -1210,7 +1283,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, _guestRuntime.CreateDefaultLauncher(), cancellationToken);
     }
 
     /// <summary>

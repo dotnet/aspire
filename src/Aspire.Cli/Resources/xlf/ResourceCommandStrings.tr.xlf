@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart).</source>
-        <target state="translated">Bir kaynak üzerinde bir komut çalıştırın.</target>
+        <target state="translated">Kaynakta bir komut yürütün (örneğin start, stop, restart).</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute (e.g. start, stop, restart).</source>
-        <target state="translated">Yürütülecek komutun adı.</target>
+        <target state="translated">Yürütülecek komutun adı (örneğin start, stop, restart).</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">

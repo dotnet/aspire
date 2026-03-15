@@ -310,8 +310,7 @@ internal sealed class CapabilityDispatcher
             object? result;
             try
             {
-                // Invoke instance method on the context object
-                result = methodToInvoke.Invoke(invokeTarget, methodArgs);
+                result = await InvokeMethodAsync(methodToInvoke, invokeTarget, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
             }
             catch (TargetInvocationException tie) when (tie.InnerException is not null)
             {
@@ -400,7 +399,7 @@ internal sealed class CapabilityDispatcher
             object? result;
             try
             {
-                result = methodToInvoke.Invoke(null, methodArgs);
+                result = await InvokeMethodAsync(methodToInvoke, target: null, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
             }
             catch (TargetInvocationException tie) when (tie.InnerException is not null)
             {
@@ -507,6 +506,28 @@ internal sealed class CapabilityDispatcher
     public JsonNode? Invoke(string capabilityId, JsonObject? args)
     {
         return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
+    }
+
+    private static async Task<object?> InvokeMethodAsync(MethodInfo method, object? target, object?[] methodArgs, bool runSyncOnBackgroundThread)
+    {
+        if (runSyncOnBackgroundThread && !typeof(Task).IsAssignableFrom(method.ReturnType))
+        {
+            return await Task.Run(() => InvokeMethodCore(method, target, methodArgs)).ConfigureAwait(false);
+        }
+
+        return InvokeMethodCore(method, target, methodArgs);
+    }
+
+    private static object? InvokeMethodCore(MethodInfo method, object? target, object?[] methodArgs)
+    {
+        try
+        {
+            return method.Invoke(target, methodArgs);
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw tie.InnerException;
+        }
     }
 
     /// <summary>

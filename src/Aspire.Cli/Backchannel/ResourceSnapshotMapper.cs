@@ -14,6 +14,16 @@ namespace Aspire.Cli.Backchannel;
 internal static class ResourceSnapshotMapper
 {
     /// <summary>
+    /// Filters resource snapshots by name, matching against both
+    /// <see cref="ResourceSnapshot.Name"/> and <see cref="ResourceSnapshot.DisplayName"/>.
+    /// </summary>
+    internal static IEnumerable<ResourceSnapshot> WhereMatchesResourceName(IEnumerable<ResourceSnapshot> snapshots, string resourceName)
+    {
+        return snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)
+                                 || string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName));
+    }
+
+    /// <summary>
     /// Maps a list of <see cref="ResourceSnapshot"/> to a list of <see cref="ResourceJson"/>.
     /// </summary>
     /// <param name="snapshots">The resource snapshots to map.</param>

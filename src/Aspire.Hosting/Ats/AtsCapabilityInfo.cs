@@ -186,7 +186,7 @@ public sealed class AtsCapabilityInfo
     /// Gets or sets the simple method name for generated SDKs (e.g., "addRedis", "isRunMode").
     /// For context type capabilities, this is just the property/method name without the type prefix.
     /// </summary>
-    public required string MethodName { get; init; }
+    public required string MethodName { get; set; }
 
     /// <summary>
     /// Gets or sets the owning type name for property/method capabilities.
@@ -269,6 +269,11 @@ public sealed class AtsCapabilityInfo
     /// Format: "TypeName.MethodName" or "TypeName.PropertyName" for diagnostics.
     /// </remarks>
     public string? SourceLocation { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether synchronous invocations of this capability should run on a background thread.
+    /// </summary>
+    public bool RunSyncOnBackgroundThread { get; init; }
 }
 
 /// <summary>
@@ -403,6 +408,11 @@ public sealed class AtsDtoTypeInfo
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets or sets a description of this DTO type.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
     /// Gets or sets the CLR type reference for direct type access.
     /// </summary>
     public Type? ClrType { get; init; }
@@ -428,6 +438,11 @@ public sealed class AtsDtoPropertyInfo
     /// Gets or sets the property type reference.
     /// </summary>
     public required AtsTypeRef Type { get; init; }
+
+    /// <summary>
+    /// Gets or sets a description of this property.
+    /// </summary>
+    public string? Description { get; init; }
 
     /// <summary>
     /// Gets or sets whether this property is optional (nullable or has default).

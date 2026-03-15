@@ -16,61 +16,23 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
     [Fact]
     public async Task SecretCrudOnDotNetAppHost()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Create an Empty AppHost project interactively
-        var waitingForTemplatePrompt = new CellPatternSearcher()
-            .Find("> Starter App");
-
-        var waitingForEmptySelected = new CellPatternSearcher()
-            .Find("> Empty AppHost");
-
-        var waitingForNamePrompt = new CellPatternSearcher()
-            .Find("Enter the project name");
-
-        var waitingForOutputPrompt = new CellPatternSearcher()
-            .Find("Enter the output path");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find("localhost");
-
-        sequenceBuilder
-            .Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForEmptySelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select Empty AppHost
-            .Enter() // select C#
-            .WaitUntil(s => waitingForNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TestSecrets")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TestSecrets", counter, template: AspireTemplate.EmptyAppHost);
 
         // cd into the project
         sequenceBuilder

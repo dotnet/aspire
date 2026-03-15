@@ -18,31 +18,13 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
     [Fact]
     public async Task CreateAndRunTypeScriptStarterProject()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // Pattern for template selection - find "Starter App (Express/React)"
-        var waitingForTemplateSelectionPrompt = new CellPatternSearcher()
-            .FindPattern("> Starter App");
-
-        // Use Find() for literal string with parentheses/slashes
-        var waitingForExpressReactTemplateSelected = new CellPatternSearcher()
-            .Find("> Starter App (Express/React)");
-
-        var waitingForProjectNamePrompt = new CellPatternSearcher()
-            .Find("Enter the project name (");
-
-        var waitingForOutputPathPrompt = new CellPatternSearcher()
-            .Find("Enter the output path:");
-
-        var waitingForUrlsPrompt = new CellPatternSearcher()
-            .Find("Use *.dev.localhost URLs");
 
         var waitForDashboardCurlSuccess = new CellPatternSearcher()
             .Find("dashboard-http-200");
@@ -50,35 +32,12 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            // TypeScript starter requires the bundle (not just CLI) because the AppHost server
-            // is bundled and cannot be obtained via NuGet packages in SDK-based fallback mode
-            sequenceBuilder.InstallAspireBundleFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireBundleEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Step 1: Create project using aspire new, selecting the Express/React template
-        sequenceBuilder.Type("aspire new")
-            .Enter()
-            .WaitUntil(s => waitingForTemplateSelectionPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            // Navigate down to "Starter App (Express/React)" which is the 4th option
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForExpressReactTemplateSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter() // select "Starter App (Express/React)"
-            .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Type("TsStarterApp")
-            .Enter()
-            .WaitUntil(s => waitingForOutputPathPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // accept default output path
-            .WaitUntil(s => waitingForUrlsPrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
-            .Enter() // select "No" for localhost URLs (default)
-            .WaitForSuccessPrompt(counter);
+        sequenceBuilder.AspireNew("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
 
         // Step 2: Navigate into the project and start it in background with JSON output
         sequenceBuilder

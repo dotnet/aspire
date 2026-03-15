@@ -56,6 +56,13 @@ public sealed class RuntimeSpec
     /// Gets the command to execute the AppHost for publish. Null to use Execute with args appended.
     /// </summary>
     public CommandSpec? PublishExecute { get; init; }
+
+    /// <summary>
+    /// Gets the extension capability required to launch this language via the VS Code extension.
+    /// When set (e.g., "node"), the CLI will use the extension launcher if the extension reports
+    /// this capability. When null, the CLI always uses the default process-based launcher.
+    /// </summary>
+    public string? ExtensionLaunchCapability { get; init; }
 }
 
 /// <summary>

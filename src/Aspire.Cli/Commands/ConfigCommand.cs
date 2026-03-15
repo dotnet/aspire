@@ -198,17 +198,33 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
-        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+    private sealed class ListCommand : BaseConfigSubCommand
     {
+        private static readonly Option<bool> s_allOption = new("--all")
+        {
+            Description = ConfigCommandStrings.ListCommand_AllOptionDescription
+        };
+
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Options.Add(s_allOption);
+        }
+
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            return InteractiveExecuteAsync(cancellationToken);
+            var showAll = parseResult.GetValue(s_allOption);
+            return ExecuteAsync(showAll, cancellationToken);
         }
 
-        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        public override Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteAsync(showAll: false, cancellationToken);
+        }
+
+        private async Task<int> ExecuteAsync(bool showAll, CancellationToken cancellationToken)
         {
             if (InteractionService is ExtensionInteractionService extensionInteractionService)
             {
@@ -268,14 +284,22 @@ internal sealed class ConfigCommand : BaseCommand
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                foreach (var feature in unconfiguredFeatures)
+
+                if (showAll)
                 {
-                    var defaultText = feature.DefaultValue ? "true" : "false";
-                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
-                    InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    foreach (var feature in unconfiguredFeatures)
+                    {
+                        var defaultText = feature.DefaultValue ? "true" : "false";
+                        InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
+                        InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    }
+                    InteractionService.DisplayEmptyLine();
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
                 }
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
+                else
+                {
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.ListCommand_AllFeaturesHint.EscapeMarkup()}[/]");
+                }
             }
 
             return ExitCodeConstants.Success;
@@ -446,7 +470,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (useJson)
             {
-                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema);
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema, KnownCapabilities.GetAdvertisedCapabilities());
                 var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)

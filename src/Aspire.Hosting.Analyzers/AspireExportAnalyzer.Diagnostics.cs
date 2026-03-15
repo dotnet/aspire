@@ -10,7 +10,7 @@ public partial class AspireExportAnalyzer
 {
     internal static class Diagnostics
     {
-        private const string ExportMethodMustBeStaticId = "ASPIRE007";
+        private const string ExportMethodMustBeStaticId = "ASPIREEXPORT001";
         internal static readonly DiagnosticDescriptor s_exportMethodMustBeStatic = new(
             id: ExportMethodMustBeStaticId,
             title: "AspireExport method must be static",
@@ -20,7 +20,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportMethodMustBeStaticId}");
 
-        private const string InvalidExportIdFormatId = "ASPIRE008";
+        private const string InvalidExportIdFormatId = "ASPIREEXPORT002";
         internal static readonly DiagnosticDescriptor s_invalidExportIdFormat = new(
             id: InvalidExportIdFormatId,
             title: "Invalid AspireExport ID format",
@@ -30,7 +30,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{InvalidExportIdFormatId}");
 
-        private const string ReturnTypeMustBeAtsCompatibleId = "ASPIRE009";
+        private const string ReturnTypeMustBeAtsCompatibleId = "ASPIREEXPORT003";
         internal static readonly DiagnosticDescriptor s_returnTypeMustBeAtsCompatible = new(
             id: ReturnTypeMustBeAtsCompatibleId,
             title: "AspireExport return type must be ATS-compatible",
@@ -40,7 +40,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ReturnTypeMustBeAtsCompatibleId}");
 
-        private const string ParameterTypeMustBeAtsCompatibleId = "ASPIRE010";
+        private const string ParameterTypeMustBeAtsCompatibleId = "ASPIREEXPORT004";
         internal static readonly DiagnosticDescriptor s_parameterTypeMustBeAtsCompatible = new(
             id: ParameterTypeMustBeAtsCompatibleId,
             title: "AspireExport parameter type must be ATS-compatible",
@@ -50,7 +50,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ParameterTypeMustBeAtsCompatibleId}");
 
-        private const string UnionRequiresAtLeastTwoTypesId = "ASPIRE011";
+        private const string UnionRequiresAtLeastTwoTypesId = "ASPIREEXPORT005";
         internal static readonly DiagnosticDescriptor s_unionRequiresAtLeastTwoTypes = new(
             id: UnionRequiresAtLeastTwoTypesId,
             title: "AspireUnion requires at least 2 types",
@@ -60,7 +60,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{UnionRequiresAtLeastTwoTypesId}");
 
-        private const string UnionTypeMustBeAtsCompatibleId = "ASPIRE012";
+        private const string UnionTypeMustBeAtsCompatibleId = "ASPIREEXPORT006";
         internal static readonly DiagnosticDescriptor s_unionTypeMustBeAtsCompatible = new(
             id: UnionTypeMustBeAtsCompatibleId,
             title: "AspireUnion type must be ATS-compatible",
@@ -70,7 +70,7 @@ public partial class AspireExportAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{UnionTypeMustBeAtsCompatibleId}");
 
-        private const string DuplicateExportIdId = "ASPIRE013";
+        private const string DuplicateExportIdId = "ASPIREEXPORT007";
         internal static readonly DiagnosticDescriptor s_duplicateExportId = new(
             id: DuplicateExportIdId,
             title: "Duplicate AspireExport ID for same target type",
@@ -81,6 +81,36 @@ public partial class AspireExportAnalyzer
             helpLinkUri: $"https://aka.ms/aspire/diagnostics/{DuplicateExportIdId}",
             customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
+        private const string MissingExportAttributeId = "ASPIREEXPORT008";
+        internal static readonly DiagnosticDescriptor s_missingExportAttribute = new(
+            id: MissingExportAttributeId,
+            title: "Extension method missing AspireExport or AspireExportIgnore attribute",
+            messageFormat: "Extension method '{0}' on builder type is missing [AspireExport] or [AspireExportIgnore]: {1}",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{MissingExportAttributeId}");
+
+        private const string ExportNameShouldBeUniqueId = "ASPIREEXPORT009";
+        internal static readonly DiagnosticDescriptor s_exportNameShouldBeUnique = new(
+            id: ExportNameShouldBeUniqueId,
+            title: "Export name should be unique for methods targeting a specific resource type",
+            messageFormat: "Export name '{0}' on method '{1}' may collide across integrations because it targets IResourceBuilder<{2}>. Use a unique name like '{3}'.",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportNameShouldBeUniqueId}");
+
+        private const string ExportedSyncDelegateInvokedInlineId = "ASPIREEXPORT010";
+        internal static readonly DiagnosticDescriptor s_exportedSyncDelegateInvokedInline = new(
+            id: ExportedSyncDelegateInvokedInlineId,
+            title: "Exported synchronous callback should not be invoked inline",
+            messageFormat: "Exported builder method '{0}' directly invokes synchronous delegate parameter '{1}'. Defer the callback, expose an async delegate, or set RunSyncOnBackgroundThread = true to avoid polyglot deadlocks.",
+            category: "Design",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            helpLinkUri: $"https://aka.ms/aspire/diagnostics/{ExportedSyncDelegateInvokedInlineId}");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = ImmutableArray.Create(
             s_exportMethodMustBeStatic,
             s_invalidExportIdFormat,
@@ -88,7 +118,10 @@ public partial class AspireExportAnalyzer
             s_parameterTypeMustBeAtsCompatible,
             s_unionRequiresAtLeastTwoTypes,
             s_unionTypeMustBeAtsCompatible,
-            s_duplicateExportId
+            s_duplicateExportId,
+            s_missingExportAttribute,
+            s_exportNameShouldBeUnique,
+            s_exportedSyncDelegateInvokedInline
         );
     }
 }

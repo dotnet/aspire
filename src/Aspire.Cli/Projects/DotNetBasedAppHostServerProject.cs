@@ -93,7 +93,20 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         else
         {
             var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
-            _projectModelPath = Path.Combine(Path.GetTempPath(), FolderPrefix, AppsFolder, pathDir);
+            var tempPath = Path.GetTempPath();
+            // On macOS, /var is a symlink to /private/var. MSBuild resolves symlinks when
+            // computing relative paths between projects, but then tries to resolve those
+            // relative paths from the original (unresolved) directory. This mismatch causes
+            // transitive project references to fail. Using the canonical path ensures consistency.
+            if (OperatingSystem.IsMacOS() && tempPath.StartsWith("/var/", StringComparison.Ordinal))
+            {
+                var canonical = "/private" + tempPath;
+                if (Directory.Exists(canonical))
+                {
+                    tempPath = canonical;
+                }
+            }
+            _projectModelPath = Path.Combine(tempPath, FolderPrefix, AppsFolder, pathDir);
         }
 
         // Create a stable UserSecretsId based on the app path hash
@@ -377,7 +390,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create the project file
         var doc = CreateProjectFile(integrations);
 
-        // Add channel sources to the project so project references can resolve packages
+        // Add channel sources to the project
         if (channelSources.Count > 0)
         {
             var sourceList = string.Join(";", channelSources);
@@ -394,6 +407,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
         // Create Directory.Packages.props to enable central package management
         // This ensures transitive dependencies use versions from the repo's Directory.Packages.props
         var repoDirectoryPackagesProps = Path.Combine(_repoRoot, "Directory.Packages.props");
+
         var directoryPackagesProps = $"""
             <Project>
               <PropertyGroup>
@@ -404,6 +418,12 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
             </Project>
             """;
         File.WriteAllText(Path.Combine(_projectModelPath, "Directory.Packages.props"), directoryPackagesProps);
+
+        // Write empty Directory.Build.props/targets to prevent MSBuild from walking up and
+        // importing the repo's build infrastructure (Arcade SDK, etc.) which can rewrite
+        // project reference paths and cause resolution failures from the temp directory.
+        File.WriteAllText(Path.Combine(_projectModelPath, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(_projectModelPath, "Directory.Build.targets"), "<Project />");
 
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
 

@@ -87,8 +87,16 @@ function Expand-MatrixEntriesByOS {
         }
       }
 
-      # Add GitHub-specific runner
-      $expandedEntry['runs-on'] = $runnerMap[$osLower]
+      # Add GitHub-specific runner (use custom runner if specified and non-empty, otherwise default)
+      $hasRunners = $entry.PSObject.Properties.Name -contains 'runners'
+      $customRunner = $null
+      if ($hasRunners -and $entry.runners) {
+        $runnerProp = $entry.runners.PSObject.Properties[$osLower]
+        if ($runnerProp -and -not [string]::IsNullOrWhiteSpace([string]$runnerProp.Value)) {
+          $customRunner = [string]$runnerProp.Value
+        }
+      }
+      $expandedEntry['runs-on'] = if ($customRunner) { $customRunner } else { $runnerMap[$osLower] }
 
       $expandedEntries += [PSCustomObject]$expandedEntry
     }

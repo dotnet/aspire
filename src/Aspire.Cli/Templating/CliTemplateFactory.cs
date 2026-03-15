@@ -109,7 +109,8 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                     languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.Python, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript, KnownLanguageId.Python])
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript, KnownLanguageId.Python],
+                isEmpty: true)
         ];
     }
 
@@ -278,4 +279,23 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     }
 
     private sealed record ProcessExecutionResult(int ExitCode, string StandardOutput, string StandardError);
+
+    private void DisplayPostCreationInstructions(string outputPath)
+    {
+        var currentDir = _executionContext.WorkingDirectory.FullName;
+        var relativePath = Path.GetRelativePath(currentDir, outputPath);
+
+        var pathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), pathComparison))
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.RunCdThenAspireRun, relativePath));
+        }
+        else
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRun);
+        }
+    }
 }
