@@ -94,10 +94,13 @@ internal sealed class ScaffoldingService : IScaffoldingService
             // Step 3: Connect to server and get scaffold templates via RPC
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
+            var generatedFolderName = LanguageInfo.ResolveGeneratedFolderName(language.GeneratedFolderName);
+
             var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
                 language.LanguageId,
                 directory.FullName,
                 context.ProjectName,
+                generatedFolderName,
                 cancellationToken);
 
             // Step 4: Write scaffold files to disk
@@ -166,6 +169,13 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(language.LanguageId.Value, cancellationToken);
         var runtime = new GuestRuntime(runtimeSpec, _logger);
 
+        var initResult = await runtime.InitializeAsync(directory, cancellationToken);
+        if (initResult != 0)
+        {
+            _interactionService.DisplayError($"Failed to initialize {language.DisplayName} environment.");
+            return initResult;
+        }
+
         var result = await runtime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
@@ -184,7 +194,8 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(directoryPath, language.GeneratedFolderName ?? string.Empty);
+        var generatedFolderName = LanguageInfo.ResolveGeneratedFolderName(language.GeneratedFolderName);
+        var outputPath = Path.Combine(directoryPath, generatedFolderName);
         Directory.CreateDirectory(outputPath);
 
         foreach (var (fileName, content) in generatedFiles)

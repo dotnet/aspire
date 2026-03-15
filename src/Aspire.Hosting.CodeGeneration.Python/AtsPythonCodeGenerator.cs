@@ -308,12 +308,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         var files = new Dictionary<string, string>();
 
-        // Add embedded resource files (transport.py, base.py, requirements.txt)
-        files["_transport.py"] = GetEmbeddedResource("_transport.py");
-        files["_base.py"] = GetEmbeddedResource("_base.py");
-
         // Generate the capability-based aspire.py SDK
-        files["__init__.py"] = GenerateAspireSdk(context);
+        files["aspire_app.py"] = GenerateAspireSdk(context);
+        files["pyproject.toml"] = GetEmbeddedResource("pyproject.toml");
+        files[".gitignore"] = "*";
 
         return files;
     }

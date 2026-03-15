@@ -39,6 +39,33 @@ internal sealed class GuestRuntime
     public string DisplayName => _spec.DisplayName;
 
     /// <summary>
+    /// Initializes the project environment (e.g., creates a virtual environment and installs dependencies).
+    /// Runs each command in <see cref="RuntimeSpec.Initialize"/> sequentially.
+    /// </summary>
+    /// <param name="directory">The project directory.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The exit code from the first failing command, or 0 if all succeed.</returns>
+    public async Task<int> InitializeAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        if (_spec.Initialize is null or { Length: 0 })
+        {
+            _logger.LogDebug("No initialization configured for {Language}", _spec.Language);
+            return 0;
+        }
+
+        foreach (var commandSpec in _spec.Initialize)
+        {
+            var result = await RunSimpleCommandAsync(commandSpec, directory, cancellationToken);
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     /// Installs dependencies for the guest language project.
     /// </summary>
     /// <param name="directory">The project directory.</param>
@@ -93,6 +120,52 @@ internal sealed class GuestRuntime
         await process.WaitForExitAsync(cancellationToken);
 
         return process.ExitCode;
+    }
+
+    /// <summary>
+    /// Runs a simple command spec and returns the exit code.
+    /// </summary>
+    private async Task<int> RunSimpleCommandAsync(CommandSpec commandSpec, DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        var command = FindCommand(commandSpec.Command);
+        if (command is null)
+        {
+            _logger.LogError("Command '{Command}' not found in PATH", commandSpec.Command);
+            return -1;
+        }
+
+        var args = ReplacePlaceholders(commandSpec.Args, null, directory, null);
+
+        _logger.LogDebug("Running: {Command} {Args}", command, string.Join(" ", args));
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = command,
+            WorkingDirectory = directory.FullName,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        foreach (var arg in args)
+        {
+            startInfo.ArgumentList.Add(arg);
+        }
+
+        if (commandSpec.EnvironmentVariables is not null)
+        {
+            foreach (var (key, value) in commandSpec.EnvironmentVariables)
+            {
+                startInfo.EnvironmentVariables[key] = value;
+            }
+        }
+
+        using var proc = new Process { StartInfo = startInfo };
+        proc.Start();
+        await proc.WaitForExitAsync(cancellationToken);
+
+        return proc.ExitCode;
     }
 
     /// <summary>

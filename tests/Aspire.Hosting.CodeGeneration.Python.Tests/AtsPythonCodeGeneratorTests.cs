@@ -31,11 +31,10 @@ public class AtsPythonCodeGeneratorTests
         var files = _generator.GenerateDistributedApplication(atsContext);
 
         // Assert
-        Assert.Contains("__init__.py", files.Keys);
-        Assert.Contains("_transport.py", files.Keys);
-        Assert.Contains("_base.py", files.Keys);
+        Assert.Contains("aspire_app.py", files.Keys);
+        Assert.Contains("pyproject.toml", files.Keys);
 
-        await Verify(files["__init__.py"], extension: "py")
+        await Verify(files["aspire_app.py"], extension: "py")
             .UseFileName("AtsGeneratedAspire");
     }
 
@@ -211,7 +210,7 @@ public class AtsPythonCodeGeneratorTests
 
         // Generate Python
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["__init__.py"];
+        var aspirePy = files["aspire_app.py"];
 
         // Verify environment-related methods appear (method names may vary by generator)
         Assert.Contains("with_env", aspirePy);
@@ -228,7 +227,7 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["__init__.py"];
+        var aspirePy = files["aspire_app.py"];
 
         // Python should use snake_case, not camelCase
         Assert.Contains("add_test_redis", aspirePy);
@@ -244,7 +243,7 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["__init__.py"];
+        var aspirePy = files["aspire_app.py"];
 
         Assert.Contains("def create_builder", aspirePy);
     }
@@ -256,7 +255,7 @@ public class AtsPythonCodeGeneratorTests
         var atsContext = CreateContextFromBothAssemblies();
 
         var files = _generator.GenerateDistributedApplication(atsContext);
-        var aspirePy = files["__init__.py"];
+        var aspirePy = files["aspire_app.py"];
 
         // Python type hints use -> for return types and : for parameters
         Assert.Contains("->", aspirePy);

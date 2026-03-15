@@ -1038,7 +1038,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(appPath, _resolvedLanguage.GeneratedFolderName ?? string.Empty);
+        var outputPath = Path.Combine(appPath, LanguageInfo.ResolveGeneratedFolderName(_resolvedLanguage.GeneratedFolderName));
         Directory.CreateDirectory(outputPath);
 
         foreach (var (fileName, content) in files)
@@ -1139,6 +1139,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
         {
             _interactionService.DisplayError("GuestRuntime not initialized. This is a bug.");
             return ExitCodeConstants.FailedToBuildArtifacts;
+        }
+
+        var initResult = await _guestRuntime.InitializeAsync(directory, cancellationToken);
+        if (initResult != 0)
+        {
+            _interactionService.DisplayError($"Failed to initialize {_resolvedLanguage?.DisplayName ?? "guest"} environment.");
+            return initResult;
         }
 
         var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);

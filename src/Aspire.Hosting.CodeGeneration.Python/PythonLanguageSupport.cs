@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
@@ -11,7 +10,8 @@ namespace Aspire.Hosting.CodeGeneration.Python;
 /// </summary>
 /// <remarks>
 /// This implementation generates the files required for a Python-based Aspire AppHost and configures
-/// the runtime to install dependencies via <c>uv</c> and execute the AppHost with <c>uv run python</c>.
+/// the runtime to create a virtual environment and install dependencies via <c>uv</c>,
+/// and execute the AppHost with <c>uv run python</c>.
 /// </remarks>
 public sealed class PythonLanguageSupport : ILanguageSupport
 {
@@ -40,10 +40,9 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// <param name="request">The scaffold request containing project details such as the project name and an optional port seed.</param>
     /// <returns>
     /// A dictionary mapping relative file paths to their contents. The generated files include
-    /// <c>apphost.py</c>, <c>requirements.txt</c>, <c>uv-install.py</c>, and <c>apphost.run.json</c>.
+    /// <c>apphost.py</c>, <c>pylock.toml</c>, and <c>apphost.run.json</c>.
     /// </returns>
     /// <remarks>
-    /// The <c>uv-install.py</c> script creates a virtual environment and installs dependencies using <c>uv</c>.
     /// The <c>apphost.run.json</c> file is generated with randomly assigned port numbers unless
     /// <see cref="ScaffoldRequest.PortSeed"/> is provided, in which case ports are deterministically assigned.
     /// </remarks>
@@ -65,38 +64,20 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 builder.run()
             """;
 
-        // Create requirements.txt
-        files["requirements.txt"] = """
+        // Create pylock.toml
+        var version = typeof(PythonLanguageSupport).Assembly.GetName().Version?.ToString() ?? "0.1.0";
+        var generatedPath = request.GeneratedFolderPath ?? ".aspire/python";
+        files["pylock.toml"] = $$"""
             # Aspire Python AppHost requirements
-            """;
+            requires-python = '>=3.11'
 
-        // Create uv-install.py
-        files["uv-install.py"] = """
-            # Creates a venv and installs dependencies with uv.
-            from __future__ import annotations
+            [[packages]]
+            name = "aspire_app"
+            version = "{{version}}"
+            editable = true
 
-            import os
-            import subprocess
-            import sys
-            from pathlib import Path
-
-
-            def run(command: list[str]) -> None:
-                result = subprocess.run(command)
-                if result.returncode != 0:
-                    sys.exit(result.returncode)
-
-
-            root = Path(__file__).resolve().parent
-            venv_dir = root / ".venv"
-            python_path = venv_dir / ("Scripts" if os.name == "nt" else "bin") / (
-                "python.exe" if os.name == "nt" else "python"
-            )
-
-            if not python_path.exists():
-                run(["uv", "venv", str(venv_dir)])
-
-            run(["uv", "pip", "install", "-r", "requirements.txt", "--python", str(python_path)])
+            [packages.directory]
+            path = "{{generatedPath}}"
             """;
 
         // Create apphost.run.json with random ports
@@ -133,7 +114,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// <param name="directoryPath">The full path to the directory to inspect.</param>
     /// <returns>
     /// A <see cref="DetectionResult"/> with <see cref="DetectionResult.Found"/> if both <c>apphost.py</c>
-    /// and <c>requirements.txt</c> exist in <paramref name="directoryPath"/>; otherwise <see cref="DetectionResult.NotFound"/>.
+    /// and <c>pylock.toml</c> exist in <paramref name="directoryPath"/>; otherwise <see cref="DetectionResult.NotFound"/>.
     /// </returns>
     public DetectionResult Detect(string directoryPath)
     {
@@ -143,8 +124,8 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             return DetectionResult.NotFound;
         }
 
-        var requirementsPath = Path.Combine(directoryPath, "requirements.txt");
-        if (!File.Exists(requirementsPath))
+        var pylockPath = Path.Combine(directoryPath, "pylock.toml");
+        if (!File.Exists(pylockPath))
         {
             return DetectionResult.NotFound;
         }
@@ -156,14 +137,10 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// Gets the runtime execution specification for Python AppHosts.
     /// </summary>
     /// <returns>
-    /// A <see cref="RuntimeSpec"/> that configures dependency installation via <c>python uv-install.py</c>
-    /// and AppHost execution via <c>uv run python {appHostFile}</c>.
+    /// A <see cref="RuntimeSpec"/> that configures initialization via <c>uv venv</c> and <c>uv pip sync</c>,
+    /// runtime dependency installation via <c>uv pip sync</c>, and AppHost execution via
+    /// <c>uv run python {appHostFile}</c>.
     /// </returns>
-    /// <remarks>
-    /// The Python command used for dependency installation is determined at call time by probing the system
-    /// PATH. On Windows the method tries <c>python</c> then <c>py</c>; on other platforms it tries <c>python3</c>
-    /// then <c>python</c>.
-    /// </remarks>
     public RuntimeSpec GetRuntimeSpec()
     {
         return new RuntimeSpec
@@ -172,10 +149,18 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             DisplayName = LanguageDisplayName,
             CodeGenLanguage = CodeGenTarget,
             DetectionPatterns = s_detectionPatterns,
+            Initialize =
+            [
+                new CommandSpec
+                {
+                    Command = "uv",
+                    Args = ["venv", ".venv"]
+                }
+            ],
             InstallDependencies = new CommandSpec
             {
-                Command = GetPythonCommand(),
-                Args = ["uv-install.py"]
+                Command = "uv",
+                Args = ["pip", "sync", "pylock.toml"]
             },
             Execute = new CommandSpec
             {
@@ -183,71 +168,5 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 Args = ["run", "python", "{appHostFile}"]
             }
         };
-    }
-
-    /// <summary>
-    /// Gets the appropriate Python command for the current platform.
-    /// On Windows: tries 'python' first, then 'py' (Python launcher)
-    /// On Linux/macOS: tries 'python3' first (more specific), then 'python'
-    /// </summary>
-    private static string GetPythonCommand()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // Try 'python' first, then 'py' (Python launcher)
-            if (CommandExists("python"))
-            {
-                return "python";
-            }
-            return "py";
-        }
-        else
-        {
-            // Try 'python3' first (more specific), then 'python'
-            if (CommandExists("python3"))
-            {
-                return "python3";
-            }
-            return "python";
-        }
-    }
-
-    /// <summary>
-    /// Checks if a command exists in the system PATH.
-    /// </summary>
-    private static bool CommandExists(string command)
-    {
-        try
-        {
-            var pathEnv = Environment.GetEnvironmentVariable("PATH");
-            if (string.IsNullOrEmpty(pathEnv))
-            {
-                return false;
-            }
-
-            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
-            var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-            var extensions = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new[] { ".exe", ".cmd", ".bat", "" }
-                : new[] { "" };
-
-            foreach (var path in paths)
-            {
-                foreach (var ext in extensions)
-                {
-                    var fullPath = Path.Combine(path, command + ext);
-                    if (File.Exists(fullPath))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

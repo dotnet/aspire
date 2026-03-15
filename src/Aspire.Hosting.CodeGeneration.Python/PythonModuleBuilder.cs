@@ -73,9 +73,13 @@ internal sealed class PythonModuleBuilder
     /// <returns>The complete Python module as a string.</returns>
     public string Write()
     {
+        var version = typeof(PythonModuleBuilder).Assembly.GetName().Version?.ToString() ?? "0.1.0";
+
         var output = new StringBuilder();
         output.AppendLine(Header);
         output.AppendLine(StandardImports);
+        output.AppendLine(CultureInfo.InvariantCulture, $"__version__ = \"{version}\"");
+        output.AppendLine();
         output.AppendLine(Utils);
 
         // Enums
@@ -216,32 +220,36 @@ internal sealed class PythonModuleBuilder
         from __future__ import annotations
 
         import os
+        import base64
         import sys
+        import json
+        import logging
+        import secrets
+        import signal
+        import socket
+        import threading
+        import time
         from functools import cached_property
         from abc import ABC, abstractmethod
         from contextlib import AbstractContextManager
         from re import compile
+        from datetime import date, datetime, timedelta, time as dt_time, timezone
         from dataclasses import dataclass
         from warnings import warn
         from collections.abc import Iterable, Mapping, Callable
         from typing import (
-            Any, Unpack, Self, Literal, TypedDict, Annotated, Required,
-            Generic, TypeVar, get_origin, get_args, get_type_hints, cast
+            Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Protocol, Union
+            Generic, TypeVar, get_origin, get_args, get_type_hints, cast, runtime_checkable
         )
 
-        from ._base import (
-            Handle,
-            AspireClient,
-            ReferenceExpression,
-            ref_expr,
-            AspireList,
-            AspireDict,
-        )
-        from ._transport import (
-            _register_handle_wrapper,
-            _CallbackCancelled,
-            AspireError,
-        )
+        _logger = logging.getLogger(__name__)
+
+        # Maximum allowed message size (64 MB) to prevent memory exhaustion from malicious Content-Length
+        _MAX_MESSAGE_SIZE = 64 * 1024 * 1024
+
+        # Maximum number of headers and total header size to prevent header-flooding attacks
+        _MAX_HEADER_COUNT = 16
+        _MAX_HEADER_BYTES = 8 * 1024
 
         """;
 
