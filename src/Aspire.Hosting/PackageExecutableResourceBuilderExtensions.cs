@@ -3,10 +3,11 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Packages;
+using Aspire.Hosting.PackageManagement;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Text.Json;
 
 namespace Aspire.Hosting;
 
@@ -131,12 +132,7 @@ public static class PackageExecutableResourceBuilderExtensions
 
         builder.ApplicationBuilder.Resources.Remove(builder.Resource);
 
-        var publishContextPath = Path.Combine(
-            Path.GetTempPath(),
-            "aspire-package-executables",
-            "publish",
-            builder.Resource.Name,
-            Guid.NewGuid().ToString("n"));
+        var publishContextPath = GetPublishContextPath(builder.ApplicationBuilder.AppHostDirectory, builder.Resource.Name);
         Directory.CreateDirectory(publishContextPath);
         var container = new PackageExecutableContainerResource(builder.Resource, publishContextPath);
         var containerBuilder = builder.ApplicationBuilder.AddResource(container);
@@ -370,13 +366,117 @@ public static class PackageExecutableResourceBuilderExtensions
         var containerWorkingDirectory = string.Equals(workingDirectoryRelativePath, ".", StringComparison.Ordinal)
             ? "/app"
             : $"/app/{workingDirectoryRelativePath}";
+        var runtimeImage = GetRuntimeContainerImage(resolved.ExecutablePath);
 
         return string.Join("\n", [
-            "FROM mcr.microsoft.com/dotnet/runtime:10.0",
+            $"FROM {runtimeImage}",
             "WORKDIR /app",
             "COPY package/ /app/",
             $"WORKDIR {containerWorkingDirectory}"
         ]);
+    }
+
+    private static string GetPublishContextPath(string appHostDirectory, string resourceName)
+    {
+        return Path.Combine(appHostDirectory, "obj", "aspire-package-executables", "publish", resourceName);
+    }
+
+    private static string GetRuntimeContainerImage(string executablePath)
+    {
+        const string defaultImage = "mcr.microsoft.com/dotnet/runtime:10.0";
+
+        var runtimeConfigPath = Path.Combine(
+            Path.GetDirectoryName(executablePath)!,
+            $"{Path.GetFileNameWithoutExtension(executablePath)}.runtimeconfig.json");
+
+        if (!File.Exists(runtimeConfigPath))
+        {
+            return defaultImage;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(runtimeConfigPath);
+            using var document = JsonDocument.Parse(stream);
+
+            if (!document.RootElement.TryGetProperty("runtimeOptions", out var runtimeOptions))
+            {
+                return defaultImage;
+            }
+
+            var frameworks = GetFrameworkReferences(runtimeOptions);
+            var selectedFramework = frameworks.FirstOrDefault(f => string.Equals(f.Name, "Microsoft.AspNetCore.App", StringComparison.Ordinal))
+                ?? frameworks.FirstOrDefault(f => string.Equals(f.Name, "Microsoft.NETCore.App", StringComparison.Ordinal));
+
+            if (selectedFramework is null || string.IsNullOrWhiteSpace(selectedFramework.Version))
+            {
+                return defaultImage;
+            }
+
+            var version = GetMajorMinorVersion(selectedFramework.Version);
+            if (version is null)
+            {
+                return defaultImage;
+            }
+
+            var imageFamily = string.Equals(selectedFramework.Name, "Microsoft.AspNetCore.App", StringComparison.Ordinal)
+                ? "aspnet"
+                : "runtime";
+
+            return $"mcr.microsoft.com/dotnet/{imageFamily}:{version}";
+        }
+        catch (IOException)
+        {
+            return defaultImage;
+        }
+        catch (JsonException)
+        {
+            return defaultImage;
+        }
+    }
+
+    private static List<FrameworkReference> GetFrameworkReferences(JsonElement runtimeOptions)
+    {
+        var frameworks = new List<FrameworkReference>();
+
+        if (runtimeOptions.TryGetProperty("framework", out var framework))
+        {
+            AddFrameworkReference(frameworks, framework);
+        }
+
+        if (runtimeOptions.TryGetProperty("frameworks", out var frameworkArray) && frameworkArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var frameworkElement in frameworkArray.EnumerateArray())
+            {
+                AddFrameworkReference(frameworks, frameworkElement);
+            }
+        }
+
+        return frameworks;
+    }
+
+    private static void AddFrameworkReference(List<FrameworkReference> frameworks, JsonElement framework)
+    {
+        if (!framework.TryGetProperty("name", out var nameProperty) || !framework.TryGetProperty("version", out var versionProperty))
+        {
+            return;
+        }
+
+        var name = nameProperty.GetString();
+        var version = versionProperty.GetString();
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(version))
+        {
+            return;
+        }
+
+        frameworks.Add(new FrameworkReference(name, version));
+    }
+
+    private static string? GetMajorMinorVersion(string version)
+    {
+        var parts = version.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : null;
     }
 
     private static void ResetDirectory(string path)
@@ -412,4 +512,6 @@ public static class PackageExecutableResourceBuilderExtensions
 
         public override ResourceAnnotationCollection Annotations => packageResource.Annotations;
     }
+
+    private sealed record FrameworkReference(string Name, string Version);
 }

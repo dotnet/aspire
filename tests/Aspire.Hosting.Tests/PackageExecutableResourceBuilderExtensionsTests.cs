@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Eventing;
-using Aspire.Hosting.Packages;
+using Aspire.Hosting.PackageManagement;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -149,11 +149,66 @@ public class PackageExecutableResourceBuilderExtensionsTests
         var build = manifest["build"]?.AsObject();
         Assert.NotNull(build);
 
-        var dockerfilePath = container.Annotations.OfType<DockerfileBuildAnnotation>().Single().DockerfilePath;
+        var dockerfileAnnotation = container.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+        Assert.StartsWith(Path.Combine(builder.AppHostDirectory, "obj", "aspire-package-executables", "publish", "package-app"), dockerfileAnnotation.ContextPath);
+
+        var dockerfilePath = dockerfileAnnotation.DockerfilePath;
         var dockerfile = await File.ReadAllTextAsync(dockerfilePath);
         Assert.Contains("FROM mcr.microsoft.com/dotnet/runtime:10.0", dockerfile);
         Assert.Contains("COPY package/ /app/", dockerfile);
         Assert.Contains("WORKDIR /app/lib/net10.0", dockerfile);
+    }
+
+    [Fact]
+    public async Task AddPackageExecutableInPublishModeUsesAspNetRuntimeImageWhenRuntimeConfigRequiresIt()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var packageDirectory = new TempDirectory();
+
+        var toolsDirectory = Path.Combine(packageDirectory.Path, "tools", "net8.0", "any");
+        Directory.CreateDirectory(toolsDirectory);
+        await File.WriteAllTextAsync(Path.Combine(toolsDirectory, "sample.dll"), string.Empty);
+        await File.WriteAllTextAsync(Path.Combine(toolsDirectory, "sample.runtimeconfig.json"), """
+{
+    "runtimeOptions": {
+        "tfm": "net8.0",
+        "frameworks": [
+            {
+                "name": "Microsoft.NETCore.App",
+                "version": "8.0.0"
+            },
+            {
+                "name": "Microsoft.AspNetCore.App",
+                "version": "8.0.0"
+            }
+        ]
+    }
+}
+""");
+
+        builder.Services.AddSingleton<IPackageExecutableResolver>(new FakePackageExecutableResolver(new PackageExecutableResolutionResult
+        {
+            PackageId = "Contoso.PackageExecutables.SampleApp",
+            PackageVersion = "1.2.3",
+            PackageDirectory = packageDirectory.Path,
+            ExecutablePath = Path.Combine(toolsDirectory, "sample.dll"),
+            Command = "dotnet",
+            WorkingDirectory = toolsDirectory,
+            Arguments = [Path.Combine(toolsDirectory, "sample.dll")]
+        }));
+
+        var resource = builder.AddPackageExecutable("package-app", "Contoso.PackageExecutables.SampleApp")
+                .WithPackageVersion("1.2.3");
+
+        using var app = builder.Build();
+
+        _ = await GetManifestAsync(resource.Resource, app.Services, packageDirectory.Path);
+
+        var container = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        var dockerfilePath = container.Annotations.OfType<DockerfileBuildAnnotation>().Single().DockerfilePath;
+        var dockerfile = await File.ReadAllTextAsync(dockerfilePath);
+
+        Assert.Contains("FROM mcr.microsoft.com/dotnet/aspnet:8.0", dockerfile);
     }
 
     [Fact]
