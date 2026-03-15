@@ -1266,36 +1266,31 @@ internal sealed class PythonModuleBuilder
         # ============================================================================
 
         class ReferenceExpression:
-            '''
-            Represents a reference expression that can be passed to capabilities.
-
-            Reference expressions are serialized in the protocol as:
-            ```json
-            {
-            "$expr": {
-                "format": "redis://{0}:{1}",
-                "valueProviders": [
-                { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:1" },
-                { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:2" }
-                ]
-            }
-            }
-            ```
-
-            Example:
-                ```python
-                redis = await builder.add_redis("cache")
-                endpoint = await redis.get_endpoint("tcp")
-
-                # Create a reference expression
-                expr = ref_expr(f"redis://{endpoint}:6379")
-
-                # Use it in an environment variable
-                await api.with_environment("REDIS_URL", expr)
-                ```
+            '''Represents a reference expression passed to capabilities.
+            Supports both value mode (format + valueProviders) and conditional mode (condition + whenTrue + whenFalse).
             '''
 
-            def __init__(self, ref: Handle | str, *value_providers: typing.Any) -> None:
+            def __init__(self, handle: Handle | None, **kwargs) -> None:
+                '''
+                Creates a reference expression from a format string and value providers.
+
+                Args:
+                    format_str: Format string with {0}, {1}, etc. placeholders
+                    *value_providers: Handles to value providers
+
+                Returns:
+                    A ReferenceExpression instance
+                '''
+                self._handle = handle
+                self._format = kwargs.get("format_str")
+                self._value_providers = kwargs.get("value_providers", [])
+                self._condition = kwargs.get("condition")
+                self._when_true = kwargs.get("when_true")
+                self._when_false = kwargs.get("when_false")
+                self._match_value = kwargs.get("match")
+            
+            @classmethod
+            def format_string(cls, format_str: str, *value_providers: typing.Any) -> "ReferenceExpression":
                 '''
                 Creates a reference expression from a format string and value providers.
 
@@ -1307,13 +1302,23 @@ internal sealed class PythonModuleBuilder
                     A ReferenceExpression instance
                 '''
                 providers = [_extract_handle_for_expr(v) for v in value_providers]
-                self._handle = None
-                self._format = None
-                if isinstance(ref, Handle):
-                    self._handle = ref
-                else:
-                    self._format = ref
-                self._value_providers = providers
+                return cls(None, format_str=format_str, value_providers=providers)
+
+            @classmethod
+            def conditional(cls, condition: Any, **kwargs) -> "ReferenceExpression":
+                '''
+                Creates a conditional reference expression.
+
+                Args:
+                    condition: The condition to evaluate
+                    match: The value to match against
+                    when_true: ReferenceExpression if condition matches
+                    when_false: ReferenceExpression if condition does not match
+
+                Returns:
+                    A ReferenceExpression instance
+                '''
+                return cls(None, condition=condition, **kwargs)
 
             def to_json(self) -> typing.Mapping[str, typing.Any]:
                 '''
@@ -1322,20 +1327,32 @@ internal sealed class PythonModuleBuilder
                 '''
                 if self._handle:
                     return self._handle.to_json()
-
-                result: dict[str, typing.Any] = {
-                    "$expr": {
-                        "format": self._format,
+                if self._condition:
+                    return {
+                        "$expr": {
+                            "condition": self._condition,
+                            "whenTrue": self._when_true.to_json(),
+                            "whenFalse": self._when_false.to_json(),
+                            "matchValue": self._match_value,
+                        }
                     }
-                }
-                if self._value_providers:
-                    result["$expr"]["valueProviders"] = self._value_providers
-                return result
+                if self._format:
+                    result: dict[str, typing.Any] = {
+                        "$expr": {
+                            "format": self._format,
+                        }
+                    }
+                    if self._value_providers:
+                        result["$expr"]["valueProviders"] = self._value_providers
+                    return result
+                raise ValueError("Invalid ReferenceExpression: must have either handle, condition, or format")
 
             def __repr__(self) -> str:
                 if self._handle:
                     return f"ReferenceExpression(handle={self._handle.handle_id})"
-                return f"ReferenceExpression(format={self._format})"
+                if self._condition:
+                    return "ReferenceExpression(conditional)"
+                return f"ReferenceExpression(formattedString)"
 
 
         def _extract_handle_for_expr(value: typing.Any) -> typing.Any:
@@ -1368,7 +1385,7 @@ internal sealed class PythonModuleBuilder
             )
 
 
-        def ref_expr(template: str, **kwargs: typing.Any) -> ReferenceExpression:
+        def string_expr(value: str, **kwargs: typing.Any) -> ReferenceExpression:
             '''
             Helper function for creating reference expressions with named placeholders.
 
@@ -1381,7 +1398,7 @@ internal sealed class PythonModuleBuilder
                 endpoint = await redis.get_endpoint("tcp")
 
                 # Create a reference expression using named placeholders
-                expr = ref_expr("redis://{host}:{port}", host=endpoint, port=6379)
+                expr = string_expr("redis://{host}:{port}", host=endpoint, port=6379)
 
                 # Use it in an environment variable
                 await api.with_environment("REDIS_URL", expr)
@@ -1398,7 +1415,32 @@ internal sealed class PythonModuleBuilder
                     format_str = format_str.replace(placeholder, f"{{{index}}}")
                     value_providers.append(value)
 
-            return ReferenceExpression(format_str, *value_providers)
+            return ReferenceExpression.format_string(format_str, *value_providers)
+
+
+        def conditional_expr(condition: Any, *, match: str, when_true: str | ReferenceExpression, when_false: str | ReferenceExpression) -> ReferenceExpression:
+            '''
+            Helper function for creating conditional reference expressions.
+
+            This allows you to create dynamic expressions that evaluate conditions at runtime.
+
+            Example:
+                ```python
+                # Create a conditional expression based on an environment variable
+                condition = {"$handle": "Aspire.Hosting.EnvironmentVariableReference:ENVIRONMENT"}
+                expr = conditional_expr(condition, match="production",
+                    when_true="redis://prod-redis:6379",
+                    when_false="redis://dev-redis:6379"
+                )
+
+                await api.with_environment("REDIS_URL", expr)
+                ```
+            '''
+            if isinstance(when_true, str):
+                when_true = ReferenceExpression.format_string(when_true)
+            if isinstance(when_false, str):
+                when_false = ReferenceExpression.format_string(when_false)
+            return ReferenceExpression.conditional(condition, match=match, when_true=when_true, when_false=when_false)
 
 
         # ============================================================================
