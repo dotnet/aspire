@@ -132,7 +132,7 @@ internal static class CliE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     internal static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
@@ -198,10 +198,8 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Enables polyglot support feature flag using the aspire config set command.
-    /// This allows the CLI to create TypeScript and Python AppHosts.
-    /// Uses the global (-g) flag to ensure the setting persists across CLI invocations,
-    /// even when aspire init creates a new local settings.json file.
+    /// Ensures polyglot support is enabled for tests.
+    /// Polyglot support now defaults to enabled, so this is currently a no-op.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
     /// <param name="counter">The sequence counter for prompt detection.</param>
@@ -210,10 +208,8 @@ internal static class CliE2ETestHelpers
         this Hex1bTerminalInputSequenceBuilder builder,
         SequenceCounter counter)
     {
-        return builder
-            .Type("aspire config set features.polyglotSupportEnabled true -g")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        _ = counter;
+        return builder;
     }
 
     /// <summary>
@@ -327,7 +323,7 @@ internal static class CliE2ETestHelpers
         return builder
             .Type(command)
             .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+            .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
     }
 
     /// <summary>
@@ -428,77 +424,324 @@ internal static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
-    /// The bundle is a self-contained distribution that includes:
-    /// - Native AOT Aspire CLI
-    /// - .NET runtime
-    /// - Dashboard, DCP, AppHost Server (for polyglot apps)
-    /// This is required for polyglot (TypeScript, Python) AppHost scenarios which
-    /// cannot use SDK-based fallback mode.
+    /// Specifies how the Aspire CLI should be installed inside a Docker container.
     /// </summary>
-    /// <param name="builder">The sequence builder.</param>
-    /// <param name="prNumber">The pull request number to download from.</param>
-    /// <param name="counter">The sequence counter for prompt detection.</param>
-    /// <returns>The builder for chaining.</returns>
-    internal static Hex1bTerminalInputSequenceBuilder InstallAspireBundleFromPullRequest(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        int prNumber,
-        SequenceCounter counter)
+    internal enum DockerInstallMode
     {
-        // The install script may not be on main yet, so we need to fetch it from the PR's branch.
-        // Use the PR head SHA (not branch ref) to avoid CDN caching on raw.githubusercontent.com
-        // which can serve stale script content for several minutes after a push.
-        string command;
-        if (OperatingSystem.IsWindows())
-        {
-            // PowerShell: Get PR head SHA, then fetch and run install script from that SHA
-            command = $"$ref = (gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha'); " +
-                      $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\"";
-        }
-        else
-        {
-            // Bash: Get PR head SHA, then fetch and run install script from that SHA
-            command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
-                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
-        }
+        /// <summary>
+        /// The CLI was built from source by the Dockerfile and is already on PATH.
+        /// </summary>
+        SourceBuild,
 
-        return builder
-            .Type(command)
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300));
+        /// <summary>
+        /// Install the latest GA release from aspire.dev.
+        /// </summary>
+        GaRelease,
+
+        /// <summary>
+        /// Install from PR artifacts using the get-aspire-cli-pr.sh script.
+        /// </summary>
+        PullRequest,
     }
 
     /// <summary>
-    /// Sources the Aspire Bundle environment after installation.
-    /// Adds both the bundle's bin/ directory and root directory to PATH so the CLI
-    /// is discoverable regardless of which version of the install script ran
-    /// (the script is fetched from raw.githubusercontent.com which has CDN caching).
-    /// The CLI auto-discovers bundle components (runtime, dashboard, DCP, AppHost server)
-    /// in the parent directory via relative path resolution.
+    /// Specifies which Dockerfile variant to use for the test container.
+    /// </summary>
+    internal enum DockerfileVariant
+    {
+        /// <summary>
+        /// .NET SDK + Docker + Python + Node.js. For tests that create/run .NET AppHosts.
+        /// </summary>
+        DotNet,
+
+        /// <summary>
+        /// Docker + Python + Node.js (no .NET SDK). For TypeScript-only AppHost tests.
+        /// </summary>
+        Polyglot,
+    }
+
+    /// <summary>
+    /// Detects the install mode for Docker-based tests based on the current environment.
+    /// </summary>
+    /// <param name="repoRoot">The repo root directory on the host.</param>
+    /// <returns>The detected <see cref="DockerInstallMode"/>.</returns>
+    internal static DockerInstallMode DetectDockerInstallMode(string repoRoot)
+    {
+        if (IsRunningInCI)
+        {
+            return DockerInstallMode.PullRequest;
+        }
+
+        // Check if a locally-built native AOT CLI binary exists (developer has run ./build.sh --bundle).
+        var cliPublishDir = FindLocalCliBinary(repoRoot);
+        if (cliPublishDir is not null)
+        {
+            return DockerInstallMode.SourceBuild;
+        }
+
+        return DockerInstallMode.GaRelease;
+    }
+
+    /// <summary>
+    /// Finds the locally-built native AOT CLI publish directory.
+    /// Searches for the aspire binary under artifacts/bin/Aspire.Cli/*/net*/linux-x64/publish/.
+    /// </summary>
+    /// <returns>The publish directory path, or null if not found.</returns>
+    internal static string? FindLocalCliBinary(string repoRoot)
+    {
+        var cliBaseDir = Path.Combine(repoRoot, "artifacts", "bin", "Aspire.Cli");
+        if (!Directory.Exists(cliBaseDir))
+        {
+            return null;
+        }
+
+        // Search for the native AOT binary under any config/TFM combination.
+        var matches = Directory.GetFiles(cliBaseDir, "aspire", SearchOption.AllDirectories)
+            .Where(f => f.Contains("linux-x64") && f.Contains("publish"))
+            .ToArray();
+
+        return matches.Length > 0 ? Path.GetDirectoryName(matches[0]) : null;
+    }
+
+    /// <summary>
+    /// Creates a Hex1b terminal that runs inside a Docker container built from the shared E2E Dockerfile.
+    /// The Dockerfile builds the CLI from source (local dev) or accepts pre-built artifacts (CI).
+    /// </summary>
+    /// <param name="repoRoot">The repo root directory, used as the Docker build context.</param>
+    /// <param name="installMode">The detected install mode, controlling Docker build args and volumes.</param>
+    /// <param name="output">Test output helper for logging configuration details.</param>
+    /// <param name="variant">Which Dockerfile variant to use (DotNet or Polyglot).</param>
+    /// <param name="mountDockerSocket">Whether to mount the Docker socket for DCP/container access.</param>
+    /// <param name="workspace">Optional workspace to mount into the container at /workspace.</param>
+    /// <param name="width">Terminal width in columns.</param>
+    /// <param name="height">Terminal height in rows.</param>
+    /// <param name="testName">The test name for the recording file path.</param>
+    /// <returns>A configured <see cref="Hex1bTerminal"/>. Caller is responsible for disposal.</returns>
+    internal static Hex1bTerminal CreateDockerTestTerminal(
+        string repoRoot,
+        DockerInstallMode installMode,
+        ITestOutputHelper output,
+        DockerfileVariant variant = DockerfileVariant.DotNet,
+        bool mountDockerSocket = false,
+        TemporaryWorkspace? workspace = null,
+        int width = 160,
+        int height = 48,
+        [CallerMemberName] string testName = "")
+    {
+        var recordingPath = GetTestResultsRecordingPath(testName);
+        var dockerfileName = variant switch
+        {
+            DockerfileVariant.DotNet => "Dockerfile.e2e",
+            DockerfileVariant.Polyglot => "Dockerfile.e2e-polyglot",
+            _ => throw new ArgumentOutOfRangeException(nameof(variant)),
+        };
+        var dockerfilePath = Path.Combine(repoRoot, "tests", "Shared", "Docker", dockerfileName);
+
+        output.WriteLine($"Creating Docker test terminal:");
+        output.WriteLine($"  Test name:      {testName}");
+        output.WriteLine($"  Install mode:   {installMode}");
+        output.WriteLine($"  Variant:        {variant}");
+        output.WriteLine($"  Dockerfile:     {dockerfilePath}");
+        output.WriteLine($"  Workspace:      {workspace?.WorkspaceRoot.FullName ?? "(none)"}");
+        output.WriteLine($"  Docker socket:  {mountDockerSocket}");
+        output.WriteLine($"  Dimensions:     {width}x{height}");
+        output.WriteLine($"  Recording:      {recordingPath}");
+
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithDimensions(width, height)
+            .WithAsciinemaRecording(recordingPath)
+            .WithDockerContainer(c =>
+            {
+                c.DockerfilePath = dockerfilePath;
+                c.BuildContext = repoRoot;
+
+                if (mountDockerSocket)
+                {
+                    c.MountDockerSocket = true;
+                }
+
+                if (workspace is not null)
+                {
+                    // Mount using the same directory name so that
+                    // workspace.WorkspaceRoot.Name matches inside the container
+                    // (e.g., aspire CLI uses the dir name as the default project name).
+                    c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace/{workspace.WorkspaceRoot.Name}");
+                }
+
+                // Always skip the expensive source build inside Docker.
+                // For SourceBuild mode, the CLI is installed from a mounted local bundle.
+                // For PullRequest/GaRelease, it's installed via scripts after container start.
+                c.BuildArgs["SKIP_SOURCE_BUILD"] = "true";
+
+                if (installMode == DockerInstallMode.SourceBuild)
+                {
+                    // Mount the locally-built native AOT CLI binary into the container.
+                    var cliPublishDir = FindLocalCliBinary(repoRoot)
+                        ?? throw new InvalidOperationException("SourceBuild mode detected but CLI binary not found");
+                    c.Volumes.Add($"{cliPublishDir}:/opt/aspire-cli:ro");
+                    output.WriteLine($"  CLI binary:     {cliPublishDir}");
+                }
+
+                if (installMode == DockerInstallMode.PullRequest)
+                {
+                    var ghToken = Environment.GetEnvironmentVariable("GH_TOKEN");
+                    if (!string.IsNullOrEmpty(ghToken))
+                    {
+                        c.Environment["GH_TOKEN"] = ghToken;
+                    }
+
+                    var prNumber = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "";
+                    var prSha = Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA") ?? "";
+                    c.Environment["GITHUB_PR_NUMBER"] = prNumber;
+                    c.Environment["GITHUB_PR_HEAD_SHA"] = prSha;
+                    output.WriteLine($"  PR number:      {prNumber}");
+                    output.WriteLine($"  PR head SHA:    {prSha}");
+                }
+            });
+
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Sets up the bash prompt tracking inside a Docker container.
+    /// Docker containers run as root, so the default prompt uses '#' instead of '$'.
+    /// Optionally changes to the /workspace directory if a workspace is mounted.
     /// </summary>
     /// <param name="builder">The sequence builder.</param>
-    /// <param name="counter">The sequence counter for prompt detection.</param>
-    /// <returns>The builder for chaining.</returns>
-    internal static Hex1bTerminalInputSequenceBuilder SourceAspireBundleEnvironment(
+    /// <param name="counter">The sequence counter.</param>
+    /// <param name="workspace">Optional workspace — when provided, cd into /workspace.</param>
+    internal static Hex1bTerminalInputSequenceBuilder PrepareDockerEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder,
-        SequenceCounter counter)
+        SequenceCounter counter,
+        TemporaryWorkspace? workspace = null)
     {
-        if (OperatingSystem.IsWindows())
+        // Docker containers run as root, so bash shows '# ' (not '$ ').
+        var waitingForContainerReady = new CellPatternSearcher()
+            .Find("# ");
+
+        builder
+            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .Wait(500);
+
+        // Set up the same prompt counting mechanism used by all E2E tests.
+        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
+
+        builder
+            .Type(promptSetup)
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Set permissive umask so files created by the container (as root) are
+        // writable by the host-side test process via the volume mount.
+        builder
+            .Type("umask 000")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        // Set TERM and other environment variables needed by all Docker tests.
+        // TERM=xterm is also in the Dockerfile but re-exporting ensures it
+        // survives any login-shell profile resets.
+        builder
+            .Type("export ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
+
+        if (workspace is not null)
         {
-            // PowerShell environment setup for bundle
-            return builder
-                .Type("$env:PATH=\"$HOME\\.aspire\\bin;$HOME\\.aspire;$env:PATH\"; $env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
+            builder
+                .Type($"cd /workspace/{workspace.WorkspaceRoot.Name}")
                 .Enter()
                 .WaitForSuccessPrompt(counter);
         }
 
-        // Bash environment setup for bundle
-        // Add both ~/.aspire/bin (new layout) and ~/.aspire (old layout) to PATH
-        // The install script is downloaded from raw.githubusercontent.com which has CDN caching,
-        // so the old version may still be served for a while after push.
-        return builder
-            .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        return builder;
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI inside a Docker container based on the detected install mode.
+    /// For <see cref="DockerInstallMode.SourceBuild"/>, the CLI is already installed by the Dockerfile.
+    /// For <see cref="DockerInstallMode.GaRelease"/>, downloads and installs from aspire.dev.
+    /// For <see cref="DockerInstallMode.PullRequest"/>, uses the PR install script.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder InstallAspireCliInDocker(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        DockerInstallMode installMode,
+        SequenceCounter counter)
+    {
+        switch (installMode)
+        {
+            case DockerInstallMode.SourceBuild:
+                // Copy the mounted native AOT CLI binary to ~/.aspire/bin and add to PATH.
+                return builder
+                    .Type("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30))
+                    .Type("export PATH=~/.aspire/bin:$PATH")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+            case DockerInstallMode.GaRelease:
+                // Install the latest GA release using the script baked into the container image.
+                return builder
+                    .Type("/opt/aspire-scripts/get-aspire-cli.sh")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
+                    .Type("export PATH=~/.aspire/bin:$PATH")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+            case DockerInstallMode.PullRequest:
+                var prNumber = GetRequiredPrNumber();
+                // Use the local script instead of downloading from raw.githubusercontent.com.
+                // The PR bundle installs binaries to both ~/.aspire/bin and ~/.aspire.
+                return builder
+                    .Type($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber}")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(300))
+                    .Type("export PATH=~/.aspire/bin:~/.aspire:$PATH")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter);
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(installMode));
+        }
+    }
+
+    /// <summary>
+    /// Walks up from the test assembly directory to find the repo root (contains Aspire.slnx).
+    /// </summary>
+    internal static string GetRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
+            {
+                return dir.FullName;
+            }
+
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "Could not find repo root (directory containing Aspire.slnx) " +
+            $"by walking up from {AppContext.BaseDirectory}");
+    }
+
+    /// <summary>
+    /// Converts a host-side path (under the workspace root) to the corresponding
+    /// container-side path (under /workspace/{workspaceName}). Use this when a path
+    /// constructed from <see cref="TemporaryWorkspace.WorkspaceRoot"/> needs to be
+    /// used in a command typed into the Docker container terminal.
+    /// </summary>
+    /// <param name="hostPath">The full host-side path.</param>
+    /// <param name="workspace">The workspace whose root is mounted at /workspace/{name}.</param>
+    /// <returns>The equivalent path inside the container.</returns>
+    internal static string ToContainerPath(string hostPath, TemporaryWorkspace workspace)
+    {
+        var relativePath = Path.GetRelativePath(workspace.WorkspaceRoot.FullName, hostPath);
+        return $"/workspace/{workspace.WorkspaceRoot.Name}/" + relativePath.Replace('\\', '/');
     }
 }

@@ -8,18 +8,18 @@
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="translated">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
+        <source>Dashboard</source>
         <target state="translated">ダッシュボード</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">PATH</target>
+        <source>Path</source>
+        <target state="translated">パス</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
@@ -30,6 +30,11 @@
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="translated">出力形式 (テーブルまたは JSON)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="translated">実行中の各アプリ ホストのリソースの詳細を含めます。JSON 出力にのみ適用されます。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

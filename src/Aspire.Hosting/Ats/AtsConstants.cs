@@ -42,7 +42,7 @@ public enum AtsTypeCategory
 
     /// <summary>
     /// Readonly array/collection types that serialize as JSON arrays (copied).
-    /// Examples: T[], IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;.
+    /// Examples: T[], IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;, IEnumerable&lt;T&gt;.
     /// </summary>
     Array,
 

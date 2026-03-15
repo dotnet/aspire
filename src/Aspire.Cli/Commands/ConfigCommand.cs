@@ -198,17 +198,33 @@ internal sealed class ConfigCommand : BaseCommand
         }
     }
 
-    private sealed class ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
-        : BaseConfigSubCommand("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+    private sealed class ListCommand : BaseConfigSubCommand
     {
+        private static readonly Option<bool> s_allOption = new("--all")
+        {
+            Description = ConfigCommandStrings.ListCommand_AllOptionDescription
+        };
+
+        public ListCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, AspireCliTelemetry telemetry)
+            : base("list", ConfigCommandStrings.ListCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService, telemetry)
+        {
+            Options.Add(s_allOption);
+        }
+
         protected override bool UpdateNotificationsEnabled => false;
 
         protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            return InteractiveExecuteAsync(cancellationToken);
+            var showAll = parseResult.GetValue(s_allOption);
+            return ExecuteAsync(showAll, cancellationToken);
         }
 
-        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        public override Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteAsync(showAll: false, cancellationToken);
+        }
+
+        private async Task<int> ExecuteAsync(bool showAll, CancellationToken cancellationToken)
         {
             if (InteractionService is ExtensionInteractionService extensionInteractionService)
             {
@@ -226,23 +242,33 @@ internal sealed class ConfigCommand : BaseCommand
             // Check if we have any configuration at all
             if (localConfig.Count == 0 && globalConfig.Count == 0)
             {
-                InteractionService.DisplayMessage("information", ConfigCommandStrings.NoConfigurationValuesFound);
+                InteractionService.DisplayMessage(KnownEmojis.Information, ConfigCommandStrings.NoConfigurationValuesFound);
                 return ExitCodeConstants.Success;
             }
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 
+            // Compute max column widths across both tables for consistent alignment
+            var keyWidth = MaxWidth(ConfigCommandStrings.HeaderKey, localConfig.Keys, globalConfig.Keys);
+            var valueWidth = MaxWidth(ConfigCommandStrings.HeaderValue, localConfig.Values, globalConfig.Values);
+
             // Display Local Configuration
             RenderConfigTable(
                 ConfigCommandStrings.LocalConfigurationHeader,
                 localConfig,
-                ConfigCommandStrings.NoLocalConfigurationFound);
+                ConfigCommandStrings.NoLocalConfigurationFound,
+                keyWidth,
+                valueWidth);
+
+            InteractionService.DisplayEmptyLine();
 
             // Display Global Configuration
             RenderConfigTable(
                 ConfigCommandStrings.GlobalConfigurationHeader,
                 globalConfig,
-                ConfigCommandStrings.NoGlobalConfigurationFound);
+                ConfigCommandStrings.NoGlobalConfigurationFound,
+                keyWidth,
+                valueWidth);
 
             // Display Available Features
             var allConfiguredFeatures = localConfig.Concat(globalConfig)
@@ -258,26 +284,44 @@ internal sealed class ConfigCommand : BaseCommand
             {
                 InteractionService.DisplayEmptyLine();
                 InteractionService.DisplayMarkdown($"**{ConfigCommandStrings.AvailableFeaturesHeader}:**");
-                foreach (var feature in unconfiguredFeatures)
+
+                if (showAll)
                 {
-                    var defaultText = feature.DefaultValue ? "true" : "false";
-                    InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
-                    InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    foreach (var feature in unconfiguredFeatures)
+                    {
+                        var defaultText = feature.DefaultValue ? "true" : "false";
+                        InteractionService.DisplayMarkupLine($"  [cyan]{feature.Name.EscapeMarkup()}[/] [dim](default: {defaultText})[/]");
+                        InteractionService.DisplayMarkupLine($"    [dim]{feature.Description.EscapeMarkup()}[/]");
+                    }
+                    InteractionService.DisplayEmptyLine();
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
                 }
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.SetFeatureHint.EscapeMarkup()}[/]");
+                else
+                {
+                    InteractionService.DisplayMarkupLine($"  [dim]{ConfigCommandStrings.ListCommand_AllFeaturesHint.EscapeMarkup()}[/]");
+                }
             }
 
             return ExitCodeConstants.Success;
+
+            static int MaxWidth(string header, IEnumerable<string> localValues, IEnumerable<string> globalValues)
+            {
+                const int minColumnWidth = 30;
+
+                return localValues.Concat(globalValues)
+                    .Select(s => s.Length)
+                    .Append(header.Length)
+                    .Append(minColumnWidth)
+                    .Max();
+            }
         }
 
-        private static void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage)
+        private void RenderConfigTable(string title, Dictionary<string, string> config, string emptyMessage, int keyWidth, int valueWidth)
         {
             var table = new Table();
             table.Title = new TableTitle($"[bold]{title.EscapeMarkup()}[/]");
-            table.Border(TableBorder.Rounded);
-            table.AddColumn(new TableColumn("[bold]Key[/]").NoWrap());
-            table.AddColumn(new TableColumn("[bold]Value[/]"));
+            table.AddBoldColumn(ConfigCommandStrings.HeaderKey, width: keyWidth);
+            table.AddBoldColumn(ConfigCommandStrings.HeaderValue, width: valueWidth);
 
             if (config.Count > 0)
             {
@@ -293,7 +337,7 @@ internal sealed class ConfigCommand : BaseCommand
                 table.AddRow($"[dim]{emptyMessage.EscapeMarkup()}[/]", "");
             }
 
-            AnsiConsole.Write(table);
+            InteractionService.DisplayRenderable(table);
         }
     }
 
@@ -426,7 +470,7 @@ internal sealed class ConfigCommand : BaseCommand
 
             if (useJson)
             {
-                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema);
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema, KnownCapabilities.GetAdvertisedCapabilities());
                 var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)
@@ -457,7 +501,7 @@ internal sealed class ConfigCommand : BaseCommand
                 foreach (var property in localSchema.Properties)
                 {
                     var requiredText = property.Required ? "[red]*[/]" : "";
-                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type}[/]) - {property.Description.EscapeMarkup()}");
+                    InteractionService.DisplayMarkupLine($"  {requiredText}[cyan]{property.Name.EscapeMarkup()}[/] ([yellow]{property.Type.EscapeMarkup()}[/]) - {property.Description.EscapeMarkup()}");
                 }
             }
 

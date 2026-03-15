@@ -177,6 +177,8 @@ The system uses MSBuild properties to control where each test project runs. Thes
 
 When `PrepareForHelix=true` is passed during build, the following happens for each test project:
 
+This is also the easiest way to inspect locally what payload Helix agents will receive for test projects. After running a build with `PrepareForHelix=true`, review the generated `.zip` files under `artifacts/helix/*` to confirm that expected binaries, resources, snapshots, and support files were included before queueing Helix work items.
+
 1. **`ZipTestArchive` target** (in `tests/Directory.Build.targets`):
    - Runs after `Build` for projects where `IsTestProject=true`, `RunOnAzdoHelix=true`, and `IsTestUtilityProject!=true`
    - Zips the `$(OutDir)` contents to `artifacts/helix/<category>/<ProjectName>.zip`
@@ -219,9 +221,37 @@ This disables parallel test execution within assemblies on Helix (parallelism is
 
 The `eng/test-configuration.json` configures test retries:
 
-- **Local reruns**: 1 retry
+- **Local reruns**: 0 retries (disabled so the first retry is queued on a different machine)
 - **Remote (Helix) reruns**: 3 retries
-- **Retry-on rules**: Matches Docker image pull failures (`open.*docker.*GetImageBlob.*: no such file or directory`)
+- **Retry-on rules**: Matches reported Testcontainers Ryuk image failures (`No such image: .*testcontainers/ryuk:.*`)
+
+## Local validation tip: Helix dry runs
+
+When changing Helix infrastructure, you can validate the generated work item commands locally without sending anything to Helix.
+
+First, build the Helix archives:
+
+```bash
+./build.sh --build /p:SkipNativeBuild=true /p:PrepareForHelix=true /p:ArchiveTests=true
+```
+
+Then run the Helix project in dry-run mode:
+
+```bash
+./dotnet.sh msbuild tests/helix/send-to-helix-ci.proj \
+  /t:Test \
+  /p:HelixDryRun=true \
+  /p:Configuration=Release \
+  /p:HelixTargetQueues=Ubuntu.2204.Amd64.Open
+```
+
+This prints `HelixWorkItem:` lines that include the generated command, pre-commands, and payload archive for each work item. It is a fast way to verify that environment variables, command-line arguments, and payload wiring are being propagated as expected.
+
+Important notes:
+
+- The dry run still requires the test archives under `artifacts/helix/*`, so run the build step above first.
+- Outside AzDO, you must pass `HelixTargetQueues` explicitly or the Helix SDK fails before printing any work items.
+- `HelixDryRun=true` intentionally stops the build after printing the generated work items.
 
 ## Known Breakage Patterns (from Real Incidents)
 

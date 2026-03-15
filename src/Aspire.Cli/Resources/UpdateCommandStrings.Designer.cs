@@ -109,5 +109,11 @@ namespace Aspire.Cli.Resources {
     internal static string MigratedToNewSdkFormat => ResourceManager.GetString("MigratedToNewSdkFormat", resourceCulture);
     internal static string RemovedObsoleteAppHostPackage => ResourceManager.GetString("RemovedObsoleteAppHostPackage", resourceCulture);
     internal static string NoWritePermissionToInstallDirectory => ResourceManager.GetString("NoWritePermissionToInstallDirectory", resourceCulture);
+    internal static string CheckingForUpdates => ResourceManager.GetString("CheckingForUpdates", resourceCulture);
+    internal static string ApplyingUpdates => ResourceManager.GetString("ApplyingUpdates", resourceCulture);
+    internal static string ExtractingNewCli => ResourceManager.GetString("ExtractingNewCli", resourceCulture);
+    internal static string ExtractedNewCli => ResourceManager.GetString("ExtractedNewCli", resourceCulture);
+    internal static string RegeneratingSdkCode => ResourceManager.GetString("RegeneratingSdkCode", resourceCulture);
+    internal static string RegeneratedSdkCode => ResourceManager.GetString("RegeneratedSdkCode", resourceCulture);
     }
 }

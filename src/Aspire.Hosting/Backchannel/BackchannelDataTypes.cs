@@ -271,7 +271,7 @@ internal sealed class ExecuteResourceCommandRequest
     public required string ResourceName { get; init; }
 
     /// <summary>
-    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// Gets the command name (e.g., "start", "stop", "restart").
     /// </summary>
     public required string CommandName { get; init; }
 }
@@ -472,10 +472,10 @@ internal sealed class PublishingActivityData
 
     /// <summary>
     /// Gets the pipeline summary information to display after pipeline completion.
-    /// This is a list of key-value pairs with deployment targets, resource names, URLs, etc.
+    /// Each item carries its own key, value, and Markdown formatting flag.
     /// The list preserves the order items were added.
     /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>>? PipelineSummary { get; init; }
+    public IReadOnlyList<BackchannelPipelineSummaryItem>? PipelineSummary { get; init; }
 
     /// <summary>
     /// Gets the input information for prompt activities, if available.
@@ -496,6 +496,27 @@ internal sealed class PublishingActivityData
     /// Gets a value indicating whether markdown formatting is enabled for the publishing activity.
     /// </summary>
     public bool EnableMarkdown { get; init; } = true;
+}
+
+/// <summary>
+/// Represents a single item in a pipeline summary for backchannel transport.
+/// </summary>
+internal sealed class BackchannelPipelineSummaryItem
+{
+    /// <summary>
+    /// Gets the key or label for the summary item.
+    /// </summary>
+    public required string Key { get; init; }
+
+    /// <summary>
+    /// Gets the string value for the summary item.
+    /// </summary>
+    public required string Value { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the value contains Markdown formatting.
+    /// </summary>
+    public bool EnableMarkdown { get; init; }
 }
 
 /// <summary>
@@ -739,7 +760,7 @@ internal sealed class ResourceSnapshot
 internal sealed class ResourceSnapshotCommand
 {
     /// <summary>
-    /// Gets the command name (e.g., "resource-start", "resource-stop", "resource-restart").
+    /// Gets the command name (e.g., "start", "stop", "restart").
     /// </summary>
     public required string Name { get; init; }
 

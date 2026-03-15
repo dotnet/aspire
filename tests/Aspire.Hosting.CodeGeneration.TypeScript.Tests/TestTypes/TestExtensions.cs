@@ -634,6 +634,73 @@ public static class TestExtensions
     {
         return Task.FromResult(true);
     }
+
+    // ===== Multi-Parameter Callback Tests =====
+
+    /// <summary>
+    /// Tests multi-parameter callback with handle types for destructuring codegen.
+    /// </summary>
+    [AspireExport("withMultiParamHandleCallback", Description = "Tests multi-param callback destructuring")]
+    public static IResourceBuilder<TestRedisResource> WithMultiParamHandleCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<TestCallbackContext, TestEnvironmentContext, Task> callback)
+    {
+        return builder;
+    }
+
+    // ===== Options Interface Merging Tests =====
+
+    /// <summary>
+    /// WithDataVolume on TestRedisResource — has both name and isReadOnly parameters.
+    /// Tests that options interfaces merge parameters across overloads targeting different types.
+    /// </summary>
+    [AspireExport("withDataVolume", Description = "Adds a data volume with persistence")]
+    public static IResourceBuilder<TestRedisResource> WithDataVolume(
+        this IResourceBuilder<TestRedisResource> builder,
+        string? name = null,
+        bool isReadOnly = false)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// WithDataVolume on TestDatabaseResource — has only name parameter.
+    /// When combined with the TestRedisResource overload, the generated WithDataVolumeOptions
+    /// interface must include both name and isReadOnly (the union of all parameters).
+    /// </summary>
+    [AspireExport("withDataVolume", Description = "Adds a data volume")]
+    public static IResourceBuilder<TestDatabaseResource> WithDataVolume(
+        this IResourceBuilder<TestDatabaseResource> builder,
+        string? name = null)
+    {
+        return builder;
+    }
+
+    // ===== Duplicate Class Name Tests =====
+
+    /// <summary>
+    /// Targets the concrete TestVaultResource so it gets a builder class named "TestVaultResource".
+    /// </summary>
+    [AspireExport("addTestVault", Description = "Adds a test vault resource")]
+    public static IResourceBuilder<TestVaultResource> AddTestVault(
+        this IDistributedApplicationBuilder builder,
+        string name)
+    {
+        return builder.AddResource(new TestVaultResource(name));
+    }
+
+    /// <summary>
+    /// Directly targets the ITestVaultResource interface.
+    /// DeriveClassName strips the 'I' prefix producing "TestVaultResource" — the same name
+    /// as the concrete builder. The codegen must deduplicate to avoid emitting two classes.
+    /// </summary>
+    [AspireExport("withVaultDirect", Description = "Configures vault using direct interface target")]
+    public static IResourceBuilder<ITestVaultResource> WithVaultDirect(
+        IResourceBuilder<ITestVaultResource> builder,
+        string option)
+    {
+        return builder;
+    }
 }
 
 /// <summary>

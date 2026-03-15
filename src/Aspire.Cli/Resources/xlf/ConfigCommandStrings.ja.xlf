@@ -82,6 +82,16 @@
         <target state="translated">グローバル構成</target>
         <note />
       </trans-unit>
+      <trans-unit id="HeaderKey">
+        <source>Key</source>
+        <target state="translated">キー</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderValue">
+        <source>Value</source>
+        <target state="translated">値</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
         <source>Available features</source>
         <target state="translated">使用可能な機能</target>
@@ -110,6 +120,16 @@
       <trans-unit id="InfoCommand_SettingsProperties">
         <source>Settings file properties</source>
         <target state="translated">設定ファイルのプロパティ</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_AllFeaturesHint">
+        <source>Run 'aspire config list --all' to see all available feature flags.</source>
+        <target state="new">Run 'aspire config list --all' to see all available feature flags.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ListCommand_AllOptionDescription">
+        <source>Show all available features that can be configured.</source>
+        <target state="new">Show all available features that can be configured.</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">

@@ -54,8 +54,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onBeforeResourceStarted", Description = "Subscribes a callback to the BeforeResourceStartedEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnBeforeResourceStarted<T>(this IResourceBuilder<T> builder, Func<T, BeforeResourceStartedEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnResourceEvent(callback);
@@ -66,8 +67,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onResourceStopped", Description = "Subscribes a callback to the ResourceStoppedEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnResourceStopped<T>(this IResourceBuilder<T> builder, Func<T, ResourceStoppedEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnResourceEvent(callback);
@@ -78,8 +80,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onConnectionStringAvailable", Description = "Subscribes a callback to the ConnectionStringAvailableEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnConnectionStringAvailable<T>(this IResourceBuilder<T> builder, Func<T, ConnectionStringAvailableEvent, CancellationToken, Task> callback)
         where T : IResourceWithConnectionString
         => builder.OnResourceEvent(callback);
@@ -90,8 +93,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onInitializeResource", Description = "Subscribes a callback to the InitializeResourceEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnInitializeResource<T>(this IResourceBuilder<T> builder, Func<T, InitializeResourceEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnResourceEvent(callback);
@@ -102,8 +106,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onResourceEndpointsAllocated", Description = "Subscribes a callback to the ResourceEndpointsAllocatedEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnResourceEndpointsAllocated<T>(this IResourceBuilder<T> builder, Func<T, ResourceEndpointsAllocatedEvent, CancellationToken, Task> callback)
         where T : IResourceWithEndpoints
         => builder.OnResourceEvent(callback);
@@ -114,8 +119,9 @@ public static class DistributedApplicationEventingExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to handle the event.</param>
-    /// <returns>The <paramref name="builder"/> for chaining.</returns>
-    [AspireExport("onResourceReady", Description = "Subscribes a callback to the ResourceReadyEvent event of the resource.")]
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
+    [AspireExportIgnore(Reason = "Complex generic delegates with event/CancellationToken types — not ATS-compatible.")]
     public static IResourceBuilder<T> OnResourceReady<T>(this IResourceBuilder<T> builder, Func<T, ResourceReadyEvent, CancellationToken, Task> callback)
         where T : IResource
         => builder.OnResourceEvent(callback);

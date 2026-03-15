@@ -18,12 +18,11 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
     [Fact]
     public async Task AspireUpdateRemovesAppHostPackageVersionFromDirectoryPackagesProps()
     {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-        using var terminal = CliE2ETestHelpers.CreateTestTerminal();
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -43,14 +42,9 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
 
-        sequenceBuilder.PrepareEnvironment(workspace, counter);
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
 
-        if (isCI)
-        {
-            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
-            sequenceBuilder.SourceAspireCliEnvironment(counter);
-            sequenceBuilder.VerifyAspireCliVersion(commitSha, counter);
-        }
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
 
         // Disable update notifications to prevent the CLI self-update prompt
         // from appearing after "Update successful!" and blocking the test.
@@ -66,6 +60,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         var appHostDir = Path.Combine(projectDir, "CpmTest.AppHost");
         var appHostCsprojPath = Path.Combine(appHostDir, "CpmTest.AppHost.csproj");
         var directoryPackagesPropsPath = Path.Combine(projectDir, "Directory.Packages.props");
+        var containerAppHostCsprojPath = CliE2ETestHelpers.ToContainerPath(appHostCsprojPath, workspace);
 
         sequenceBuilder
             .ExecuteCallback(() =>
@@ -104,7 +99,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             })
             // Use --channel stable to skip the channel selection prompt that appears
             // in CI when PR hive directories are present.
-            .Type($"aspire update --project \"{appHostCsprojPath}\" --channel stable")
+            .Type($"aspire update --project \"{containerAppHostCsprojPath}\" --channel stable")
             .Enter()
             .WaitUntil(s => waitingForPerformUpdates.Search(s).Count > 0, TimeSpan.FromSeconds(60))
             .Enter() // confirm "Perform updates?" (default: Yes)
@@ -119,13 +114,85 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
             .VerifyFileDoesNotContain(directoryPackagesPropsPath, "Aspire.Hosting.AppHost")
             // Verify dotnet restore succeeds (would fail with NU1009 without the fix)
-            .Type($"dotnet restore \"{appHostCsprojPath}\"")
+            .Type($"dotnet restore \"{containerAppHostCsprojPath}\"")
             .Enter()
             .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
             // Clean up: re-enable update notifications
             .Type("aspire config delete features.updateNotificationsEnabled -g")
             .Enter()
             .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+
+        await pendingRun;
+    }
+
+    [Fact]
+    public async Task AspireAddPackageVersionToDirectoryPackagesProps()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+
+        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+
+        // Set up an AppHost project with CPM, but no installed packages
+        var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, "CpmTest");
+        var appHostDir = Path.Combine(projectDir, "CpmTest.AppHost");
+        var appHostCsprojPath = Path.Combine(appHostDir, "CpmTest.AppHost.csproj");
+        var directoryPackagesPropsPath = Path.Combine(projectDir, "Directory.Packages.props");
+        var containerAppHostCsprojPath = CliE2ETestHelpers.ToContainerPath(appHostCsprojPath, workspace);
+
+        sequenceBuilder
+            .ExecuteCallback(() =>
+            {
+                Directory.CreateDirectory(appHostDir);
+
+                File.WriteAllText(appHostCsprojPath, """
+                    <Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+                        <PropertyGroup>
+                            <OutputType>Exe</OutputType>
+                            <TargetFramework>net9.0</TargetFramework>
+                            <IsAspireHost>true</IsAspireHost>
+                        </PropertyGroup>
+                    </Project>
+                    """);
+
+                File.WriteAllText(Path.Combine(appHostDir, "Program.cs"), """
+                    var builder = DistributedApplication.CreateBuilder(args);
+                    builder.Build().Run();
+                    """);
+
+                File.WriteAllText(directoryPackagesPropsPath, """
+                    <Project>
+                        <PropertyGroup>
+                            <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                        </PropertyGroup>
+                    </Project>
+                    """);
+            })
+            .Type($"aspire add Aspire.Hosting.Redis --version 13.1.2")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
+            .VerifyFileDoesNotContain(appHostCsprojPath, "Version=\"13.1.2\"")
+            // Verify dotnet restore succeeds (would fail with NU1009 if AppHost.csproj contained a version)
+            .Type($"dotnet restore \"{containerAppHostCsprojPath}\"")
+            .Enter()
+            .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(120))
             .Type("exit")
             .Enter();
 

@@ -23,8 +23,8 @@ public class ResourceSnapshotMapperTests
             ],
             Commands =
             [
-                new ResourceSnapshotCommand { Name = "resource-stop", State = "Enabled", Description = "Stop" },
-                new ResourceSnapshotCommand { Name = "resource-start", State = "Disabled", Description = "Start" }
+                new ResourceSnapshotCommand { Name = "stop", State = "Enabled", Description = "Stop" },
+                new ResourceSnapshotCommand { Name = "start", State = "Disabled", Description = "Start" }
             ],
             EnvironmentVariables =
             [
@@ -45,7 +45,7 @@ public class ResourceSnapshotMapperTests
 
         // Only enabled commands should be included
         Assert.Single(result.Commands!);
-        Assert.True(result.Commands!.ContainsKey("resource-stop"));
+        Assert.True(result.Commands!.ContainsKey("stop"));
 
         // Only IsFromSpec environment variables should be included
         Assert.Single(result.Environment!);
@@ -54,6 +54,95 @@ public class ResourceSnapshotMapperTests
         // Dashboard URL should be generated
         Assert.NotNull(result.DashboardUrl);
         Assert.Contains("localhost:18080", result.DashboardUrl);
+    }
+
+    [Fact]
+    public void ResolveResources_ByExactName_ReturnsMatch()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache-zuyppzgw", snapshots);
+
+        Assert.Single(result);
+        Assert.Equal("cache-zuyppzgw", result[0].Name);
+    }
+
+    [Fact]
+    public void ResolveResources_ByDisplayName_WhenNoReplicas_ReturnsMatch()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache", snapshots);
+
+        Assert.Single(result);
+        Assert.Equal("cache-zuyppzgw", result[0].Name);
+    }
+
+    [Fact]
+    public void ResolveResources_ByDisplayName_WhenReplicas_ReturnsEmpty()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-abc12345", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "cache-def67890", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache", snapshots);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ResolveResources_ByExactName_WhenReplicas_ReturnsMatch()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-abc12345", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "cache-def67890", DisplayName = "cache", ResourceType = "Container", State = "Running" },
+            new() { Name = "frontend", DisplayName = "frontend", ResourceType = "Project", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("cache-abc12345", snapshots);
+
+        Assert.Single(result);
+        Assert.Equal("cache-abc12345", result[0].Name);
+    }
+
+    [Fact]
+    public void ResolveResources_NoMatch_ReturnsEmpty()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "cache-zuyppzgw", DisplayName = "cache", ResourceType = "Container", State = "Running" }
+        };
+
+        var result = ResourceSnapshotMapper.ResolveResources("nonexistent", snapshots);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ResolveResources_IsCaseInsensitive()
+    {
+        var snapshots = new List<ResourceSnapshot>
+        {
+            new() { Name = "Cache-Zuyppzgw", DisplayName = "Cache", ResourceType = "Container", State = "Running" }
+        };
+
+        var resultByName = ResourceSnapshotMapper.ResolveResources("cache-zuyppzgw", snapshots);
+        Assert.Single(resultByName);
+
+        var resultByDisplayName = ResourceSnapshotMapper.ResolveResources("CACHE", snapshots);
+        Assert.Single(resultByDisplayName);
     }
 
 }

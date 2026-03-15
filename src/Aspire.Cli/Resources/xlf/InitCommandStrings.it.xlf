@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase.</source>
-        <target state="new">Initialize Aspire in an existing codebase.</target>
+        <target state="translated">Inizializzare Aspire in una codebase esistente.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -47,6 +47,11 @@
         <target state="translated">Nessun file di soluzione trovato. Creazione di AppHost a file singolo in corso...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResolvingTemplateVersion">
+        <source>Resolving template version...</source>
+        <target state="translated">Risoluzione della versione del modello in corso...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
         <target state="translated">Soluzione rilevata: {0}</target>
@@ -55,6 +60,11 @@
       <trans-unit id="SolutionAlreadyInitialized">
         <source>Solution has already been initialized with Aspire.</source>
         <target state="translated">La soluzione è già stata inizializzata con Aspire.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionAndProjectInSameDirectory">
+        <source>The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
+        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The AppHost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
         <note />
       </trans-unit>
     </body>

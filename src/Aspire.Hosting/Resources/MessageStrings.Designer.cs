@@ -160,7 +160,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource &apos;{0}&apos; has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run &apos;aspire secret set&apos; in the AppHost directory to configure secrets..
+        ///   Looks up a localized string similar to Resource &apos;{0}&apos; has a persistent lifetime but the AppHost project does not have user secrets configured. Generated parameter values (such as passwords) may change on each restart, causing persistent containers to be recreated. Run &apos;aspire secret set&apos; to initialize user secrets..
         /// </summary>
         internal static string PersistentContainerWithoutUserSecrets {
             get {

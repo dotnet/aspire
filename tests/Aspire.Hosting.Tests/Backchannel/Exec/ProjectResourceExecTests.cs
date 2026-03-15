@@ -5,6 +5,7 @@ using Aspire.Hosting.Testing;
 
 namespace Aspire.Hosting.Tests.Backchannel.Exec;
 
+[Trait("Partition", "4")]
 public class ProjectResourceExecTests : ExecTestsBase
 {
     public ProjectResourceExecTests(ITestOutputHelper outputHelper)

@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>connect to</source>
-        <target state="new">connect to</target>
+        <target state="translated">şuna bağlanın:</target>
         <note />
       </trans-unit>
       <trans-unit id="StatusOptionDescription">

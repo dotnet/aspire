@@ -4,12 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost.</source>
-        <target state="new">Describe resources in a running apphost.</target>
+        <target state="translated">Décrivez les ressources d'un hôte d'application en cours d'exécution.</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes.</source>
-        <target state="new">Continuously stream resource state changes.</target>
+        <target state="translated">Flux continu des changements d'état des ressources.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderEndpoints">
+        <source>Endpoints</source>
+        <target state="translated">Points de terminaison</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderHealth">
+        <source>Health</source>
+        <target state="translated">Intégrité</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderName">
+        <source>Name</source>
+        <target state="translated">Nom</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderState">
+        <source>State</source>
+        <target state="translated">État</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderType">
+        <source>Type</source>
+        <target state="translated">Type</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
@@ -34,7 +59,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>describe</source>
-        <target state="new">describe</target>
+        <target state="translated">décrire</target>
         <note />
       </trans-unit>
     </body>

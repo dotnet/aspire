@@ -319,6 +319,12 @@ if [[ $SKIP_CLI -eq 0 ]]; then
 
     log "Aspire CLI installed to: $CLI_BIN_DIR/aspire"
 
+    if "$CLI_BIN_DIR/aspire" config set channel "$HIVE_NAME" -g >/dev/null 2>&1; then
+      log "Set global channel to '$HIVE_NAME'"
+    else
+      warn "Failed to set global channel to '$HIVE_NAME'. Run: aspire config set channel '$HIVE_NAME' -g"
+    fi
+
     # Check if the bin directory is in PATH
     if [[ ":$PATH:" != *":$CLI_BIN_DIR:"* ]]; then
       warn "The CLI bin directory is not in your PATH."

@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">列出正在运行的 apphosts。</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="translated">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
+        <source>Dashboard</source>
         <target state="translated">仪表板</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">PATH</target>
+        <source>Path</source>
+        <target state="translated">路径</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
@@ -30,6 +30,11 @@
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="translated">输出格式(表格或 Json)。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="translated">包括每个正在运行的应用主机的资源详细信息。仅适用于 JSON 输出。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

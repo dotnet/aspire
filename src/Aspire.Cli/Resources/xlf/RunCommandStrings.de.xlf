@@ -52,11 +52,6 @@
         <target state="translated">Details finden Sie in den Protokollen: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Es wird nach ausgeführten Instanzen gesucht…</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Verbindung zum AppHost wird hergestellt...</target>
@@ -79,7 +74,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="new">Run an Aspire AppHost interactively for development.</target>
+        <target state="translated">Führen Sie einen Aspire AppHost interaktiv zur Entwicklung aus.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +114,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Ausgabeformat für getrennte AppHost-Ergebnisse.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -68,7 +70,6 @@ internal sealed class AppHostConnectionResolver(
     /// <param name="projectFile">Optional project file. If specified, uses fast path to find matching socket.</param>
     /// <param name="scanningMessage">Message to display while scanning for AppHosts.</param>
     /// <param name="selectPrompt">Prompt to display when multiple AppHosts are found.</param>
-    /// <param name="noInScopeMessage">Message to display when no in-scope AppHosts are found but others exist.</param>
     /// <param name="notFoundMessage">Message to display when no AppHosts are found.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The resolved connection, or null with an error message.</returns>
@@ -76,7 +77,6 @@ internal sealed class AppHostConnectionResolver(
         FileInfo? projectFile,
         string scanningMessage,
         string selectPrompt,
-        string noInScopeMessage,
         string notFoundMessage,
         CancellationToken cancellationToken)
     {
@@ -139,48 +139,21 @@ internal sealed class AppHostConnectionResolver(
         }
         else if (inScopeConnections.Count > 1)
         {
-            // Multiple in-scope AppHosts running, prompt for selection
-            // Order by most recently started first
-            var choices = inScopeConnections
-                .OrderByDescending(c => c.AppHostInfo?.StartedAt ?? DateTimeOffset.MinValue)
-                .Select(c =>
-                {
-                    var appHostPath = c.AppHostInfo?.AppHostPath ?? "Unknown";
-                    var relativePath = Path.GetRelativePath(workingDirectory, appHostPath);
-                    return (Display: relativePath, Connection: c);
-                })
-                .ToList();
-
-            var selectedDisplay = await interactionService.PromptForSelectionAsync(
+            selectedConnection = await PromptForAppHostSelectionAsync(
+                inScopeConnections,
+                SharedCommandStrings.MultipleInScopeAppHosts,
                 selectPrompt,
-                choices.Select(c => c.Display).ToArray(),
-                c => c.EscapeMarkup(),
+                path => Path.GetRelativePath(workingDirectory, path),
                 cancellationToken);
-
-            selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
         }
         else if (outOfScopeConnections.Count > 0)
         {
-            // No in-scope AppHosts, but there are out-of-scope ones - let user pick
-            interactionService.DisplayMessage("information", noInScopeMessage);
-
-            // Order by most recently started first
-            var choices = outOfScopeConnections
-                .OrderByDescending(c => c.AppHostInfo?.StartedAt ?? DateTimeOffset.MinValue)
-                .Select(c =>
-                {
-                    var path = c.AppHostInfo?.AppHostPath ?? "Unknown";
-                    return (Display: path, Connection: c);
-                })
-                .ToList();
-
-            var selectedDisplay = await interactionService.PromptForSelectionAsync(
+            selectedConnection = await PromptForAppHostSelectionAsync(
+                outOfScopeConnections,
+                SharedCommandStrings.NoInScopeAppHostsShowingAll,
                 selectPrompt,
-                choices.Select(c => c.Display).ToArray(),
-                c => c.EscapeMarkup(),
+                path => path,
                 cancellationToken);
-
-            selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
         }
 
         if (selectedConnection is null)
@@ -189,5 +162,41 @@ internal sealed class AppHostConnectionResolver(
         }
 
         return new AppHostConnectionResult { Connection = selectedConnection };
+    }
+
+    /// <summary>
+    /// Displays an informational message, prompts the user to select from available AppHost connections,
+    /// and displays the selected AppHost.
+    /// </summary>
+    private async Task<IAppHostAuxiliaryBackchannel?> PromptForAppHostSelectionAsync(
+        List<IAppHostAuxiliaryBackchannel> candidateConnections,
+        string contextMessage,
+        string selectPrompt,
+        Func<string, string> formatPath,
+        CancellationToken cancellationToken)
+    {
+        interactionService.DisplayMessage(KnownEmojis.Information, contextMessage);
+
+        // Order by most recently started first
+        var choices = candidateConnections
+            .OrderByDescending(c => c.AppHostInfo?.StartedAt ?? DateTimeOffset.MinValue)
+            .Select(c =>
+            {
+                var appHostPath = c.AppHostInfo?.AppHostPath ?? "Unknown";
+                return (Display: formatPath(appHostPath), Connection: c);
+            })
+            .ToList();
+
+        var selectedDisplay = await interactionService.PromptForSelectionAsync(
+            selectPrompt,
+            choices.Select(c => c.Display).ToArray(),
+            c => c.EscapeMarkup(),
+            cancellationToken);
+
+        var selectedConnection = choices.FirstOrDefault(c => c.Display == selectedDisplay).Connection;
+
+        interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, SharedCommandStrings.UsingAppHost, selectedDisplay));
+
+        return selectedConnection;
     }
 }

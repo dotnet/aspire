@@ -171,4 +171,19 @@
   <data name="SelectAppHostAction" xml:space="preserve">
     <value>view telemetry for</value>
   </data>
+  <data name="HeaderTimestamp" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+  <data name="HeaderName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="HeaderDuration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="HeaderSpans" xml:space="preserve">
+    <value>Spans</value>
+  </data>
+  <data name="HeaderStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
 </root>

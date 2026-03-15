@@ -96,13 +96,14 @@ public sealed class AzureEventHubsDeploymentTests(ITestOutputHelper output)
 
             // Step 3: Create single-file AppHost using aspire init
             output.WriteLine("Step 3: Creating single-file AppHost with aspire init...");
-            sequenceBuilder.Type("aspire init")
+            sequenceBuilder.Type("aspire init --language csharp")
                 .Enter()
                 // NuGet.config prompt may or may not appear depending on environment.
                 // Wait a moment then press Enter to dismiss if present, then wait for completion.
                 .Wait(TimeSpan.FromSeconds(5))
                 .Enter()  // Dismiss NuGet.config prompt if present (no-op if already auto-accepted)
                 .WaitUntil(s => waitingForInitComplete.Search(s).Count > 0, TimeSpan.FromMinutes(2))
+                .DeclineAgentInitPrompt()
                 .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(2));
 
             // Step 4a: Add Aspire.Hosting.Azure.ContainerApps package (for managed identity support)

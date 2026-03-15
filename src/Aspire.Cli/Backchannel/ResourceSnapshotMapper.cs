@@ -14,6 +14,16 @@ namespace Aspire.Cli.Backchannel;
 internal static class ResourceSnapshotMapper
 {
     /// <summary>
+    /// Filters resource snapshots by name, matching against both
+    /// <see cref="ResourceSnapshot.Name"/> and <see cref="ResourceSnapshot.DisplayName"/>.
+    /// </summary>
+    internal static IEnumerable<ResourceSnapshot> WhereMatchesResourceName(IEnumerable<ResourceSnapshot> snapshots, string resourceName)
+    {
+        return snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparisons.ResourceName)
+                                 || string.Equals(s.DisplayName, resourceName, StringComparisons.ResourceName));
+    }
+
+    /// <summary>
     /// Maps a list of <see cref="ResourceSnapshot"/> to a list of <see cref="ResourceJson"/>.
     /// </summary>
     /// <param name="snapshots">The resource snapshots to map.</param>
@@ -136,6 +146,35 @@ internal static class ResourceSnapshotMapper
             Relationships = relationships.ToArray(),
             Commands = commands
         };
+    }
+
+    /// <summary>
+    /// Resolves a user-provided resource name to matching snapshots.
+    /// First tries an exact match on <see cref="ResourceSnapshot.Name"/>, then falls back
+    /// to matching by <see cref="ResourceSnapshot.DisplayName"/> only when the display name is
+    /// unique (i.e., not a replica set).
+    /// </summary>
+    /// <param name="resourceName">The user-provided resource name to resolve.</param>
+    /// <param name="snapshots">All available resource snapshots.</param>
+    /// <returns>The matching snapshots.</returns>
+    public static IReadOnlyList<ResourceSnapshot> ResolveResources(string resourceName, IReadOnlyList<ResourceSnapshot> snapshots)
+    {
+        // First try exact match on the unique resource Name.
+        var exactMatches = snapshots.Where(s => string.Equals(s.Name, resourceName, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (exactMatches.Count > 0)
+        {
+            return exactMatches;
+        }
+
+        // Fall back to matching by DisplayName, but only when there is exactly one match
+        // (no replicas). When there are replicas the user must specify the full suffixed name.
+        var displayNameMatches = snapshots.Where(s => string.Equals(s.DisplayName, resourceName, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (displayNameMatches.Count == 1)
+        {
+            return displayNameMatches;
+        }
+
+        return [];
     }
 
     /// <summary>

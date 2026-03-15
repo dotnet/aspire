@@ -131,7 +131,7 @@ internal sealed class LanguageService : ILanguageService
         if (saveSelection)
         {
             await SetLanguageAsync(selectedLanguage.LanguageId, isGlobal: false, cancellationToken);
-            _interactionService.DisplayMessage("check_mark", $"Language preference saved to local settings: {selectedProject.DisplayName}");
+            _interactionService.DisplayMessage(KnownEmojis.CheckMark, $"Language preference saved to local settings: {selectedProject.DisplayName}");
         }
 
         return selectedProject;

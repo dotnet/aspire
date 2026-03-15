@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Shared.Model.Serialization;
 using Microsoft.Extensions.DependencyInjection;
@@ -195,7 +198,7 @@ public class DescribeCommandTests(ITestOutputHelper outputHelper)
 
         // Act - serialize each resource separately (simulating NDJSON streaming output for --follow)
         var ndjsonLines = resources
-            .Select(r => System.Text.Json.JsonSerializer.Serialize(r, ResourcesCommandJsonContext.Ndjson.ResourceJson))
+            .Select(r => JsonSerializer.Serialize(r, ResourcesCommandJsonContext.Ndjson.ResourceJson))
             .ToList();
 
         // Assert - each line is a complete, valid JSON object with no internal newlines
@@ -206,14 +209,14 @@ public class DescribeCommandTests(ITestOutputHelper outputHelper)
             Assert.DoesNotContain('\r', line);
 
             // Verify it's valid JSON that can be deserialized
-            var deserialized = System.Text.Json.JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson);
+            var deserialized = JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson);
             Assert.NotNull(deserialized);
         }
 
         // Verify NDJSON format: joining with newlines creates parseable multi-line output
         var ndjsonOutput = string.Join('\n', ndjsonLines);
         var parsedLines = ndjsonOutput.Split('\n')
-            .Select(line => System.Text.Json.JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson))
+            .Select(line => JsonSerializer.Deserialize(line, ResourcesCommandJsonContext.Ndjson.ResourceJson))
             .ToList();
 
         Assert.Equal(3, parsedLines.Count);
@@ -236,7 +239,7 @@ public class DescribeCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act - serialize as snapshot (wrapped JSON)
-        var json = System.Text.Json.JsonSerializer.Serialize(resourcesOutput, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
+        var json = JsonSerializer.Serialize(resourcesOutput, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
 
         // Assert - it's a single JSON object with "resources" array
         Assert.Contains("\"resources\"", json);
@@ -244,9 +247,116 @@ public class DescribeCommandTests(ITestOutputHelper outputHelper)
         Assert.EndsWith("}", json.TrimEnd());
 
         // Verify it can be deserialized back
-        var deserialized = System.Text.Json.JsonSerializer.Deserialize(json, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
+        var deserialized = JsonSerializer.Deserialize(json, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
         Assert.NotNull(deserialized);
         Assert.Equal(2, deserialized.Resources.Length);
         Assert.Equal("frontend", deserialized.Resources[0].Name);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_Follow_JsonFormat_DeduplicatesIdenticalSnapshots()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var provider = CreateDescribeTestServices(workspace, outputWriter, [
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+            // Duplicate - identical to the first snapshot
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+            // Changed state - should be emitted
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Stopping" },
+            // Duplicate of the changed state - should be suppressed
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Stopping" },
+        ]);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --follow --format json");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+        // Parse all JSON lines from output
+        var jsonLines = outputWriter.Logs
+            .Where(l => l.TrimStart().StartsWith("{", StringComparison.Ordinal))
+            .ToList();
+
+        // Should only have 2 lines: the initial "Running" snapshot and the "Stopping" change.
+        // The duplicate "Running" and duplicate "Stopping" snapshots should be suppressed.
+        Assert.Equal(2, jsonLines.Count);
+
+        var first = JsonSerializer.Deserialize(jsonLines[0], ResourcesCommandJsonContext.Ndjson.ResourceJson);
+        Assert.NotNull(first);
+        Assert.Equal("redis", first.Name);
+        Assert.Equal("Container", first.ResourceType);
+        Assert.Equal("Running", first.State);
+
+        var second = JsonSerializer.Deserialize(jsonLines[1], ResourcesCommandJsonContext.Ndjson.ResourceJson);
+        Assert.NotNull(second);
+        Assert.Equal("redis", second.Name);
+        Assert.Equal("Container", second.ResourceType);
+        Assert.Equal("Stopping", second.State);
+    }
+
+    [Fact]
+    public async Task DescribeCommand_Follow_TableFormat_DeduplicatesIdenticalSnapshots()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var provider = CreateDescribeTestServices(workspace, outputWriter, [
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+            // Duplicate - identical to the first snapshot
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Running" },
+            // Changed state - should be emitted
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Stopping" },
+            // Duplicate of the changed state - should be suppressed
+            new ResourceSnapshot { Name = "redis", DisplayName = "redis", ResourceType = "Container", State = "Stopping" },
+        ], disableAnsi: true);
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("describe --follow");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+        // Filter to lines containing the resource name indicator
+        var resourceLines = outputWriter.Logs
+            .Where(l => l.StartsWith("[redis]", StringComparison.Ordinal))
+            .ToList();
+
+        // Should only have 2 lines: one for "Running" and one for "Stopping".
+        // Duplicate snapshots with the same state should be suppressed.
+        Assert.Equal(2, resourceLines.Count);
+        Assert.Equal("[redis] Running", resourceLines[0]);
+        Assert.Equal("[redis] Stopping", resourceLines[1]);
+    }
+
+    private ServiceProvider CreateDescribeTestServices(
+        TemporaryWorkspace workspace,
+        TestOutputTextWriter outputWriter,
+        List<ResourceSnapshot> resourceSnapshots,
+        bool disableAnsi = false)
+    {
+        var monitor = new TestAuxiliaryBackchannelMonitor();
+        var connection = new TestAppHostAuxiliaryBackchannel
+        {
+            IsInScope = true,
+            AppHostInfo = new AppHostInformation
+            {
+                AppHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "TestAppHost", "TestAppHost.csproj"),
+                ProcessId = 1234
+            },
+            ResourceSnapshots = resourceSnapshots
+        };
+        monitor.AddConnection("hash1", "socket.hash1", connection);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AuxiliaryBackchannelMonitorFactory = _ => monitor;
+            options.OutputTextWriter = outputWriter;
+            options.DisableAnsi = disableAnsi;
+        });
+
+        return services.BuildServiceProvider();
     }
 }

@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">実行中の AppHost または指定したリソースを停止します。</target>
+        <source>Stop a running apphost.</source>
+        <target state="translated">実行中の AppHost を停止します。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple AppHosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">複数の AppHost が実行されています。--apphost を使用して停止するものを指定するか、次のいずれかを選択します。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stop</source>
-        <target state="new">stop</target>
+        <target state="translated">停止</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAppHost">
@@ -50,11 +50,6 @@
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
         <target state="translated">{0} オプションと {1} オプションは同時に使用できません。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AllAndResourceMutuallyExclusive">
-        <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="translated">{0} オプションは、リソース引数と一緒に使用できません。</target>
         <note />
       </trans-unit>
     </body>

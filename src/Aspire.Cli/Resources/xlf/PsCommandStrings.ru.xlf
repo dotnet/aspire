@@ -8,18 +8,18 @@
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="translated">PID CLI</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
-        <target state="translated">ПАНЕЛЬ МОНИТОРИНГА</target>
+        <source>Dashboard</source>
+        <target state="translated">Панель мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">PATH</target>
+        <source>Path</source>
+        <target state="translated">Путь</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
@@ -30,6 +30,11 @@
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="translated">Формат вывода (таблица или JSON).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="translated">Включите сведения о ресурсах для каждого запущенного хоста приложений. Применяется только к выходным данным JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

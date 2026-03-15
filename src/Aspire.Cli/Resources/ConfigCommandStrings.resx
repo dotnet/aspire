@@ -138,6 +138,12 @@
   <data name="ListCommand_Description" xml:space="preserve">
     <value>List all configuration values.</value>
   </data>
+  <data name="ListCommand_AllOptionDescription" xml:space="preserve">
+    <value>Show all available features that can be configured.</value>
+  </data>
+  <data name="ListCommand_AllFeaturesHint" xml:space="preserve">
+    <value>Run 'aspire config list --all' to see all available feature flags.</value>
+  </data>
   <data name="NoConfigurationValuesFound" xml:space="preserve">
     <value>No configuration values found.</value>
   </data>
@@ -218,5 +224,11 @@
   </data>
   <data name="SetFeatureHint" xml:space="preserve">
     <value>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</value>
+  </data>
+  <data name="HeaderKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="HeaderValue" xml:space="preserve">
+    <value>Value</value>
   </data>
 </root>

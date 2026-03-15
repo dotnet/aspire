@@ -52,11 +52,6 @@
         <target state="translated">Controllare i log per i dettagli: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Verifica delle istanze in esecuzione in corso...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Connessione all'AppHost Aspire in corso...</target>
@@ -79,7 +74,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="new">Run an Aspire AppHost interactively for development.</target>
+        <target state="translated">Esegui un AppHost Aspire in modo interattivo per lo sviluppo.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +114,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Formato di output per i risultati di AppHost separati.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

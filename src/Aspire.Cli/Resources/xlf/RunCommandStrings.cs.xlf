@@ -52,11 +52,6 @@
         <target state="translated">Podrobnosti najdete v protokolech: {0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="CheckingForRunningInstances">
-        <source>Checking for running instances...</source>
-        <target state="translated">Kontrolují se spuštěné instance...</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
         <target state="translated">Připojování k hostiteli aplikací...</target>
@@ -79,7 +74,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire AppHost interactively for development.</source>
-        <target state="new">Run an Aspire AppHost interactively for development.</target>
+        <target state="translated">Spusťte Aspire AppHost interaktivně pro vývoj.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
@@ -119,7 +114,7 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached AppHost results.</source>
-        <target state="new">Output format for detached AppHost results.</target>
+        <target state="translated">Výstupní formát pro odpojené výsledky AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">

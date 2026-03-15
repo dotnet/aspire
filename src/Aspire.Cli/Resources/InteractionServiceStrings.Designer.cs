@@ -205,7 +205,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [yellow]A new version of the Aspire CLI is available: {0}[/].
+        ///   Looks up a localized string similar to [yellow]A new version of Aspire is available: {0}[/].
         /// </summary>
         public static string NewCliVersionAvailable {
             get {

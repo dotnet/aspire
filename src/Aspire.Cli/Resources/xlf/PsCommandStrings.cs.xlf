@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts.</source>
-        <target state="new">List running apphosts.</target>
+        <target state="translated">Vypíše spuštěné hostitele aplikací.</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
-        <source>CLI_PID</source>
-        <target state="translated">CLI_PID</target>
+        <source>CLI PID</source>
+        <target state="translated">CLI PID</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
-        <source>DASHBOARD</source>
-        <target state="translated">ŘÍDICÍ PANEL</target>
+        <source>Dashboard</source>
+        <target state="translated">Řídicí panel</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
-        <source>PATH</source>
-        <target state="translated">CESTA</target>
+        <source>Path</source>
+        <target state="translated">Cesta</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
@@ -30,6 +30,11 @@
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json).</source>
         <target state="translated">Výstupní formát (tabulka nebo JSON)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesOptionDescription">
+        <source>Include resource details for each running app host. Only applies to JSON output.</source>
+        <target state="translated">Zahrňte podrobnosti o prostředku pro každého běžícího hostitele aplikací. Platí jenom pro výstup JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

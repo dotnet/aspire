@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Aspire.Cli.Backchannel;
 using Aspire.Shared;
 using Spectre.Console;
 
@@ -40,7 +41,7 @@ internal sealed class ConsoleActivityLogger
 
     private string? _finalStatusHeader;
     private bool _pipelineSucceeded;
-    private IReadOnlyList<KeyValuePair<string, string>>? _pipelineSummary;
+    private IReadOnlyList<BackchannelPipelineSummaryItem>? _pipelineSummary;
 
     // No raw ANSI escape codes; rely on Spectre.Console markup tokens.
 
@@ -257,7 +258,7 @@ internal sealed class ConsoleActivityLogger
                     };
                     var name = rec.DisplayName.EscapeMarkup();
                     var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
-                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!.EscapeMarkup())}[/]" : $" — {rec.FailureReason!.EscapeMarkup()}" )
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
@@ -281,9 +282,9 @@ internal sealed class ConsoleActivityLogger
                 if (_pipelineSucceeded && pipelineSummary is { Count: > 0 })
                 {
                     _console.WriteLine();
-                    foreach (var kvp in pipelineSummary)
+                    foreach (var item in pipelineSummary)
                     {
-                        var formattedLine = FormatPipelineSummaryKvp(kvp.Key, kvp.Value);
+                        var formattedLine = FormatPipelineSummaryItem(item);
                         _console.MarkupLine(formattedLine);
                     }
                 }
@@ -303,22 +304,27 @@ internal sealed class ConsoleActivityLogger
     }
 
     /// <summary>
-    /// Formats a single key-value pair for the pipeline summary display.
-    /// Values may contain markdown links which are converted to clickable links when supported.
+    /// Formats a pipeline summary item for display.
+    /// Values with Markdown enabled are converted to Spectre markup; plain-text values are escaped.
     /// </summary>
-    private string FormatPipelineSummaryKvp(string key, string value)
+    private string FormatPipelineSummaryItem(BackchannelPipelineSummaryItem item)
     {
         if (_enableColor)
         {
-            var escapedKey = key.EscapeMarkup();
-            var convertedValue = MarkdownToSpectreConverter.ConvertToSpectre(value);
+            var escapedKey = item.Key.EscapeMarkup();
+            var convertedValue = item.EnableMarkdown
+                ? MarkdownToSpectreConverter.ConvertToSpectre(item.Value)
+                : item.Value.EscapeMarkup();
             convertedValue = HighlightMessage(convertedValue);
             return $"  [blue]{escapedKey}[/]: {convertedValue}";
         }
         else
         {
-            var plainValue = MarkdownToSpectreConverter.ConvertLinksToPlainText(value);
-            return $"  {key}: {plainValue}";
+            var plainKey = item.Key.EscapeMarkup();
+            var plainValue = item.EnableMarkdown
+                ? MarkdownToSpectreConverter.ConvertLinksToPlainText(item.Value).EscapeMarkup()
+                : item.Value.EscapeMarkup();
+            return $"  {plainKey}: {plainValue}";
         }
     }
 
@@ -328,7 +334,7 @@ internal sealed class ConsoleActivityLogger
     /// </summary>
     /// <param name="succeeded">Whether the pipeline succeeded.</param>
     /// <param name="pipelineSummary">Optional pipeline summary as key-value pairs to display after the result. The list preserves insertion order.</param>
-    public void SetFinalResult(bool succeeded, IReadOnlyList<KeyValuePair<string, string>>? pipelineSummary = null)
+    public void SetFinalResult(bool succeeded, IReadOnlyList<BackchannelPipelineSummaryItem>? pipelineSummary = null)
     {
         _pipelineSucceeded = succeeded;
         _pipelineSummary = pipelineSummary;

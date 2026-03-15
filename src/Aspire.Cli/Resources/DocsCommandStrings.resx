@@ -162,4 +162,19 @@
   <data name="FoundSearchResults" xml:space="preserve">
     <value>Found {0} results for '{1}'.</value>
   </data>
+  <data name="HeaderTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="HeaderSlug" xml:space="preserve">
+    <value>Slug</value>
+  </data>
+  <data name="HeaderSummary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="HeaderSection" xml:space="preserve">
+    <value>Section</value>
+  </data>
+  <data name="HeaderScore" xml:space="preserve">
+    <value>Score</value>
+  </data>
 </root>

@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Reflection;
+using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Ats;
@@ -270,6 +272,42 @@ internal static class AtsCapabilityScanner
             types = ex.Types.Where(t => t != null).ToArray()!;
         }
 
+        // Process assembly-level [AspireExport(typeof(T))] attributes for cross-assembly type exports
+        // This enables exporting types from external assemblies (e.g., Azure.Provisioning types)
+        foreach (var assemblyExportAttr in AttributeDataReader.GetAspireExportDataAll(assembly))
+        {
+            if (assemblyExportAttr.Type is null)
+            {
+                continue;
+            }
+
+            var exportedType = assemblyExportAttr.Type;
+
+            // Register the type info for the exported type
+            var typeInfo = CreateTypeInfo(exportedType, assemblyExportAttr);
+            if (typeInfo != null)
+            {
+                typeInfos.Add(typeInfo);
+            }
+
+            // If ExposeProperties or ExposeMethods, create context type capabilities
+            if (assemblyExportAttr.ExposeProperties || assemblyExportAttr.ExposeMethods)
+            {
+                var contextResult = CreateContextTypeCapabilities(exportedType, assemblyName);
+                capabilities.AddRange(contextResult.Capabilities);
+                diagnostics.AddRange(contextResult.Diagnostics);
+
+                foreach (var (id, method) in contextResult.Methods)
+                {
+                    methods[id] = method;
+                }
+                foreach (var (id, property) in contextResult.Properties)
+                {
+                    properties[id] = property;
+                }
+            }
+        }
+
         foreach (var type in types)
         {
             // Check for [AspireDto] attribute - scan DTO types for code generation
@@ -522,6 +560,19 @@ internal static class AtsCapabilityScanner
             foreach (var param in capability.Parameters)
             {
                 ResolveTypeRef(param.Type, validTypes);
+
+                // Also resolve callback parameter types and return type
+                if (param.IsCallback)
+                {
+                    if (param.CallbackParameters != null)
+                    {
+                        foreach (var cbParam in param.CallbackParameters)
+                        {
+                            ResolveTypeRef(cbParam.Type, validTypes);
+                        }
+                    }
+                    ResolveTypeRef(param.CallbackReturnType, validTypes);
+                }
             }
         }
     }
@@ -768,43 +819,71 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Detects method name collisions after capability expansion and removes overloaded methods.
-    /// Since ATS doesn't support method overloading, each (TargetTypeId, MethodName) pair must be unique.
-    /// Colliding capabilities are filtered out and diagnostics are added.
+    /// Detects method name collisions after capability expansion and removes colliding methods,
+    /// keeping only the first one (sorted by CapabilityId). A warning is emitted for each
+    /// removed capability. Since ATS doesn't support method overloading, each (TargetTypeId, MethodName)
+    /// pair must be unique. Use [AspireExport(MethodName = "uniqueName")] to resolve collisions.
     /// </summary>
     private static void FilterMethodNameCollisions(List<AtsCapabilityInfo> capabilities, List<AtsDiagnostic> diagnostics)
     {
-        // Group by (TargetTypeId, MethodName) to find collisions
-        var collisions = capabilities
+        var capabilitiesWithTargets = capabilities
             .Where(c => c.ExpandedTargetTypes.Count > 0)
             .SelectMany(c => c.ExpandedTargetTypes.Select(t => (Target: t.TypeId, Capability: c)))
+            .ToList();
+
+        var collisionGroups = capabilitiesWithTargets
             .GroupBy(x => (x.Target, x.Capability.MethodName))
             .Where(g => g.Count() > 1)
             .ToList();
 
-        if (collisions.Count > 0)
+        if (collisionGroups.Count == 0)
         {
-            // Collect all colliding capability IDs to filter them out
-            var collidingCapabilityIds = new HashSet<string>();
+            return;
+        }
 
-            foreach (var g in collisions)
+        // Collect all MethodName values that have collisions and their colliding CapabilityIds.
+        var collidingMethodNames = new Dictionary<string, List<string>>();
+
+        foreach (var g in collisionGroups)
+        {
+            var methodName = g.Key.MethodName;
+            var capIds = g.Select(x => x.Capability.CapabilityId).Distinct().ToList();
+
+            if (!collidingMethodNames.TryGetValue(methodName, out var existingIds))
             {
-                var conflictingIds = g.Select(x => x.Capability.CapabilityId).ToList();
-                var conflictingIdsStr = string.Join(", ", conflictingIds);
-
-                diagnostics.Add(AtsDiagnostic.Warning(
-                    $"Method '{g.Key.MethodName}' has multiple definitions for target '{g.Key.Target}' ({conflictingIdsStr}) and will be skipped. Use [AspireExport(MethodName = \"uniqueName\")] to disambiguate.",
-                    g.Key.Target));
-
-                foreach (var id in conflictingIds)
-                {
-                    collidingCapabilityIds.Add(id);
-                }
+                existingIds = [];
+                collidingMethodNames[methodName] = existingIds;
             }
 
-            // Remove all colliding capabilities
-            capabilities.RemoveAll(c => collidingCapabilityIds.Contains(c.CapabilityId));
+            foreach (var id in capIds)
+            {
+                if (!existingIds.Contains(id))
+                {
+                    existingIds.Add(id);
+                }
+            }
         }
+
+        var capabilitiesToRemove = new HashSet<string>();
+
+        foreach (var (methodName, capIds) in collidingMethodNames)
+        {
+            capIds.Sort(StringComparer.Ordinal);
+
+            var conflictingIdsStr = string.Join(", ", capIds);
+
+            // First capability keeps original name, others are removed
+            for (var i = 1; i < capIds.Count; i++)
+            {
+                capabilitiesToRemove.Add(capIds[i]);
+
+                diagnostics.Add(AtsDiagnostic.Warning(
+                    $"Method '{methodName}' has collisions ({conflictingIdsStr}). '{capIds[i]}' was removed. Use [AspireExport(MethodName = \"uniqueName\")] to set an explicit name.",
+                    capIds[i]));
+            }
+        }
+
+        capabilities.RemoveAll(c => capabilitiesToRemove.Contains(c.CapabilityId));
     }
 
     /// <summary>
@@ -818,7 +897,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsTypeInfo? CreateTypeInfo(
         Type type,
-        AspireExportAttribute exportAttr)
+        AspireExportData exportAttr)
     {
         // Get the AtsTypeId - if not specified, derive it from the type
         var atsTypeId = exportAttr.Type != null
@@ -858,6 +937,10 @@ internal static class AtsCapabilityScanner
         var typeId = AtsTypeMapping.DeriveTypeId(type);
         var typeName = type.Name;
 
+        // Load XML documentation for descriptions
+        var xmlDoc = LoadXmlDocumentation(type.Assembly);
+        var typeDescription = GetXmlDocSummary(xmlDoc, $"T:{type.FullName}");
+
         // Collect public properties for the DTO interface
         var properties = new List<AtsDtoPropertyInfo>();
 
@@ -875,11 +958,14 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
+            var propDescription = GetXmlDocSummary(xmlDoc, $"P:{type.FullName}.{prop.Name}");
+
             properties.Add(new AtsDtoPropertyInfo
             {
                 Name = prop.Name,
                 Type = propTypeRef,
-                IsOptional = !prop.CanWrite // If no setter, it's likely init-only and required
+                IsOptional = !prop.CanWrite, // If no setter, it's likely init-only and required
+                Description = propDescription
             });
         }
 
@@ -888,6 +974,7 @@ internal static class AtsCapabilityScanner
             TypeId = typeId,
             Name = typeName,
             ClrType = type,
+            Description = typeDescription,
             Properties = properties
         };
     }
@@ -933,6 +1020,7 @@ internal static class AtsCapabilityScanner
         // Check for ExposeProperties and ExposeMethods flags
         var exposeAllProperties = HasExposePropertiesAttribute(contextType);
         var exposeAllMethods = HasExposeMethodsAttribute(contextType);
+        var typeExportAttr = GetAspireExportAttribute(contextType);
 
         // Scan properties
         foreach (var property in contextType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
@@ -1055,7 +1143,7 @@ internal static class AtsCapabilityScanner
                         OwningTypeName = typeName,
                         Description = $"Gets the {property.Name} property",
                         Parameters = [
-                            new AtsParameterInfo
+                           new AtsParameterInfo
                             {
                                 Name = "context",
                                 Type = contextTypeRef,
@@ -1064,14 +1152,15 @@ internal static class AtsCapabilityScanner
                                 IsCallback = false,
                                 DefaultValue = null
                             }
-                        ],
+                       ],
                         ReturnType = propertyTypeRef!,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertyGetter,
-                        SourceLocation = $"{fullName}.{property.Name}"
+                        SourceLocation = $"{fullName}.{property.Name}",
+                        RunSyncOnBackgroundThread = false
                     });
 
                     // Register property for runtime dispatch
@@ -1092,7 +1181,7 @@ internal static class AtsCapabilityScanner
                         OwningTypeName = typeName,
                         Description = $"Sets the {property.Name} property",
                         Parameters = [
-                            new AtsParameterInfo
+                           new AtsParameterInfo
                             {
                                 Name = "context",
                                 Type = contextTypeRef,
@@ -1110,14 +1199,15 @@ internal static class AtsCapabilityScanner
                                 IsCallback = false,
                                 DefaultValue = null
                             }
-                        ],
+                       ],
                         ReturnType = contextTypeRef,
                         TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         TargetParameterName = "context",
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertySetter,
-                        SourceLocation = $"{fullName}.{property.Name}"
+                        SourceLocation = $"{fullName}.{property.Name}",
+                        RunSyncOnBackgroundThread = false
                     });
 
                     // Register property for runtime dispatch
@@ -1174,6 +1264,8 @@ internal static class AtsCapabilityScanner
             // Check if method should be exported
             // ExposeMethods=true exports public only; explicit [AspireExport] can export internal too
             var memberExportAttr = GetAspireExportAttribute(method);
+            var effectiveRunSyncOnBackgroundThread = (memberExportAttr?.RunSyncOnBackgroundThread ?? false) ||
+                (typeExportAttr?.RunSyncOnBackgroundThread ?? false);
             if (!ShouldExportMember(method.IsPublic, exposeAllMethods, memberExportAttr))
             {
                 continue;
@@ -1267,7 +1359,8 @@ internal static class AtsCapabilityScanner
                     TargetParameterName = "context",
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.InstanceMethod,
-                    SourceLocation = $"{contextType.FullName}.{method.Name}"
+                    SourceLocation = $"{contextType.FullName}.{method.Name}",
+                    RunSyncOnBackgroundThread = effectiveRunSyncOnBackgroundThread
                 });
 
                 // Register method for runtime dispatch
@@ -1291,7 +1384,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsCapabilityInfo? CreateCapabilityInfo(
         MethodInfo method,
-        AspireExportAttribute exportAttr,
+        AspireExportData exportAttr,
         string assemblyName,
         out AtsDiagnostic? diagnostic)
     {
@@ -1389,7 +1482,9 @@ internal static class AtsCapabilityScanner
             TargetType = extendsTypeRef,
             TargetParameterName = targetParameterName,
             ReturnsBuilder = returnsBuilder,
-            SourceLocation = methodLocation
+            SourceLocation = methodLocation,
+            RunSyncOnBackgroundThread = exportAttr.RunSyncOnBackgroundThread ||
+                (method.DeclaringType is not null && (GetAspireExportAttribute(method.DeclaringType)?.RunSyncOnBackgroundThread ?? false))
         };
     }
 
@@ -1714,8 +1809,8 @@ internal static class AtsCapabilityScanner
                 }
             }
 
-            // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable (array)
-            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>))
+            // Handle IReadOnlyList<T>, IReadOnlyCollection<T>, IEnumerable<T> - immutable (array)
+            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>) || genericDef == typeof(IEnumerable<>))
             {
                 if (genericArgs.Length == 1)
                 {
@@ -2021,8 +2116,8 @@ internal static class AtsCapabilityScanner
                 return null;
             }
 
-            // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable (serialized copy as array)
-            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>))
+            // Handle IReadOnlyList<T>, IReadOnlyCollection<T>, IEnumerable<T> - immutable (serialized copy as array)
+            if (genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>) || genericDef == typeof(IEnumerable<>))
             {
                 if (genericArgs.Length == 1)
                 {
@@ -2378,14 +2473,14 @@ internal static class AtsCapabilityScanner
         }
     }
 
-    private static AspireExportAttribute? GetAspireExportAttribute(Type type)
+    private static AspireExportData? GetAspireExportAttribute(Type type)
     {
-        return type.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(type);
     }
 
-    private static AspireExportAttribute? GetAspireExportAttribute(MethodInfo method)
+    private static AspireExportData? GetAspireExportAttribute(MethodInfo method)
     {
-        return method.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(method);
     }
 
     /// <summary>
@@ -2393,7 +2488,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExposePropertiesAttribute(Type type)
     {
-        var attr = type.GetCustomAttribute<AspireExportAttribute>();
+        var attr = AttributeDataReader.GetAspireExportData(type);
         return attr?.ExposeProperties == true;
     }
 
@@ -2402,7 +2497,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExposeMethodsAttribute(Type type)
     {
-        var attr = type.GetCustomAttribute<AspireExportAttribute>();
+        var attr = AttributeDataReader.GetAspireExportData(type);
         return attr?.ExposeMethods == true;
     }
 
@@ -2411,7 +2506,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExportIgnoreAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireExportIgnoreAttribute>() != null;
+        return AttributeDataReader.HasAspireExportIgnoreData(property);
     }
 
     /// <summary>
@@ -2419,7 +2514,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasExportIgnoreAttribute(MethodInfo method)
     {
-        return method.GetCustomAttribute<AspireExportIgnoreAttribute>() != null;
+        return AttributeDataReader.HasAspireExportIgnoreData(method);
     }
 
     /// <summary>
@@ -2427,7 +2522,7 @@ internal static class AtsCapabilityScanner
     /// Explicit [AspireExport] can export public + internal members.
     /// Auto-expose (ExposeMethods/ExposeProperties=true) only exports public members.
     /// </summary>
-    private static bool ShouldExportMember(bool isPublic, bool exposeAll, AspireExportAttribute? exportAttr)
+    private static bool ShouldExportMember(bool isPublic, bool exposeAll, AspireExportData? exportAttr)
     {
         // Explicit [AspireExport] can export public + internal members
         if (exportAttr != null)
@@ -2442,25 +2537,25 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Gets [AspireExport] attribute from a property (for member-level export).
     /// </summary>
-    private static AspireExportAttribute? GetAspireExportAttribute(PropertyInfo property)
+    private static AspireExportData? GetAspireExportAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireExportAttribute>();
+        return AttributeDataReader.GetAspireExportData(property);
     }
 
     /// <summary>
     /// Gets [AspireUnion] attribute from a parameter.
     /// </summary>
-    private static AspireUnionAttribute? GetAspireUnionAttribute(ParameterInfo parameter)
+    private static AspireUnionData? GetAspireUnionAttribute(ParameterInfo parameter)
     {
-        return parameter.GetCustomAttribute<AspireUnionAttribute>();
+        return AttributeDataReader.GetAspireUnionData(parameter);
     }
 
     /// <summary>
     /// Gets [AspireUnion] attribute from a property.
     /// </summary>
-    private static AspireUnionAttribute? GetAspireUnionAttribute(PropertyInfo property)
+    private static AspireUnionData? GetAspireUnionAttribute(PropertyInfo property)
     {
-        return property.GetCustomAttribute<AspireUnionAttribute>();
+        return AttributeDataReader.GetAspireUnionData(property);
     }
 
     /// <summary>
@@ -2468,7 +2563,7 @@ internal static class AtsCapabilityScanner
     /// </summary>
     private static bool HasAspireDtoAttribute(Type type)
     {
-        return type.GetCustomAttribute<AspireDtoAttribute>() != null;
+        return AttributeDataReader.HasAspireDtoData(type);
     }
 
     /// <summary>
@@ -2476,7 +2571,7 @@ internal static class AtsCapabilityScanner
     /// Throws if any type in the union is not a valid ATS type.
     /// </summary>
     private static AtsTypeRef CreateUnionTypeRef(
-        AspireUnionAttribute unionAttr,
+        AspireUnionData unionAttr,
         string context)
     {
         if (unionAttr.Types.Length < 2)
@@ -2518,6 +2613,73 @@ internal static class AtsCapabilityScanner
             return name;
         }
         return char.ToLowerInvariant(name[0]) + name[1..];
+    }
+
+    /// <summary>
+    /// Cache of loaded XML documentation indexed by assembly location.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, XDocument?> s_xmlDocCache = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Loads the XML documentation file (.xml) for the given assembly, if available.
+    /// </summary>
+    internal static XDocument? LoadXmlDocumentation(Assembly assembly)
+    {
+        var assemblyLocation = assembly.Location;
+        if (string.IsNullOrEmpty(assemblyLocation))
+        {
+            return null;
+        }
+
+        return s_xmlDocCache.GetOrAdd(assemblyLocation, static location =>
+        {
+            var xmlPath = Path.ChangeExtension(location, ".xml");
+
+            if (File.Exists(xmlPath))
+            {
+                try
+                {
+                    return XDocument.Load(xmlPath);
+                }
+                catch (System.Xml.XmlException ex)
+                {
+                    // Ignore malformed XML doc files; descriptions will be omitted
+                    System.Diagnostics.Debug.WriteLine($"Failed to load XML documentation for {location}: {ex.Message}");
+                }
+            }
+
+            return null;
+        });
+    }
+
+    /// <summary>
+    /// Extracts the summary text for a given member from the XML documentation.
+    /// </summary>
+    /// <param name="xmlDoc">The loaded XML documentation, or null.</param>
+    /// <param name="memberName">The documentation member name (e.g., "T:Namespace.TypeName" or "P:Namespace.TypeName.Property").</param>
+    internal static string? GetXmlDocSummary(XDocument? xmlDoc, string memberName)
+    {
+        if (xmlDoc is null)
+        {
+            return null;
+        }
+
+        var memberElement = xmlDoc.Descendants("member")
+            .FirstOrDefault(m => m.Attribute("name")?.Value == memberName);
+
+        var summary = memberElement?.Element("summary");
+        if (summary is null)
+        {
+            return null;
+        }
+
+        // Normalize whitespace: collapse inner whitespace from multiline XML doc comments
+        var text = string.Join(" ", summary.Value
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0));
+
+        return text.Length > 0 ? text : null;
     }
 
 }

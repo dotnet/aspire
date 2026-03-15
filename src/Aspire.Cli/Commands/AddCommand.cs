@@ -26,7 +26,6 @@ internal sealed class AddCommand : BaseCommand
     private readonly IAddCommandPrompter _prompter;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
-    private readonly IFeatures _features;
     private readonly IAppHostProjectFactory _projectFactory;
 
     private static readonly Argument<string> s_integrationArgument = new("integration")
@@ -52,7 +51,6 @@ internal sealed class AddCommand : BaseCommand
         _prompter = prompter;
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
-        _features = features;
         _projectFactory = projectFactory;
 
         Arguments.Add(s_integrationArgument);
@@ -86,7 +84,7 @@ internal sealed class AddCommand : BaseCommand
             // Check if the .NET SDK is available (only needed for .NET projects)
             if (project.LanguageId == KnownLanguageId.CSharp)
             {
-                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, Telemetry, _hostEnvironment, cancellationToken))
+                if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, Telemetry, cancellationToken))
                 {
                     return ExitCodeConstants.SdkNotInstalled;
                 }
@@ -210,22 +208,19 @@ internal sealed class AddCommand : BaseCommand
             // Stop any running AppHost instance before adding the package.
             // A running AppHost (especially in detach mode) locks project files,
             // which prevents 'dotnet add package' from modifying the project.
-            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
-            {
-                var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
-                    effectiveAppHostProjectFile,
-                    ExecutionContext.HomeDirectory,
-                    cancellationToken);
+            var runningInstanceResult = await project.FindAndStopRunningInstanceAsync(
+                effectiveAppHostProjectFile,
+                ExecutionContext.HomeDirectory,
+                cancellationToken);
 
-                if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
-                {
-                    InteractionService.DisplayMessage("information_source", AddCommandStrings.StoppedRunningInstance);
-                }
-                else if (runningInstanceResult == RunningInstanceResult.StopFailed)
-                {
-                    InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
-                    return ExitCodeConstants.FailedToAddPackage;
-                }
+            if (runningInstanceResult == RunningInstanceResult.InstanceStopped)
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Information, AddCommandStrings.StoppedRunningInstance);
+            }
+            else if (runningInstanceResult == RunningInstanceResult.StopFailed)
+            {
+                InteractionService.DisplayError(AddCommandStrings.UnableToStopRunningInstances);
+                return ExitCodeConstants.FailedToAddPackage;
             }
 
             var success = await InteractionService.ShowStatusAsync(
@@ -298,8 +293,12 @@ internal sealed class AddCommand : BaseCommand
             return preferredVersionPackage;
         }
 
-        // In non-interactive mode, auto-select the latest version.
-        var orderedPackageVersions = packageVersions.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+        // In non-interactive mode, prefer the implicit/default channel first to keep
+        // package selection aligned with the project's configured feeds. Then select
+        // the latest version within the chosen channel.
+        var orderedPackageVersions = packageVersions
+            .OrderByDescending(p => p.Channel.Type is PackageChannelType.Implicit)
+            .ThenByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
         if (!_hostEnvironment.SupportsInteractiveInput)
         {
             return orderedPackageVersions.First();

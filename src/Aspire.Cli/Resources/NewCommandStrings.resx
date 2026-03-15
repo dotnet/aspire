@@ -128,7 +128,7 @@
     <value>(use pre-release templates)</value>
   </data>
   <data name="EnterTheOutputPath" xml:space="preserve">
-    <value>Enter the output path:</value>
+    <value>Enter the output path</value>
   </data>
   <data name="EnterTheProjectName" xml:space="preserve">
     <value>Enter the project name</value>
@@ -144,5 +144,11 @@
   </data>
   <data name="ChannelOptionDescriptionWithStaging" xml:space="preserve">
     <value>Channel to use for templates (stable, staging, daily)</value>
+  </data>
+  <data name="LanguageOptionDescription" xml:space="preserve">
+    <value>The programming language for the AppHost.</value>
+  </data>
+  <data name="ResolvingTemplateVersion" xml:space="preserve">
+    <value>Resolving template version...</value>
   </data>
 </root>

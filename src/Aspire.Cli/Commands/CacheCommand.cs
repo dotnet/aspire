@@ -150,7 +150,7 @@ internal sealed class CacheCommand : BaseCommand
 
                 if (filesDeleted == 0)
                 {
-                    InteractionService.DisplayMessage("information", CacheCommandStrings.CacheAlreadyEmpty);
+                    InteractionService.DisplayMessage(KnownEmojis.Information, CacheCommandStrings.CacheAlreadyEmpty);
                 }
                 else
                 {

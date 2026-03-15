@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { noAppHostInWorkspace } from '../loc/strings';
 import { getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
+import { AspireCommandType } from '../dcp/types';
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
     private _workspaceAppHostPath: string | null = null;
@@ -58,19 +59,40 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         vscode.commands.executeCommand('setContext', 'aspire.editorSupportsRunDebug', isSupportedFile);
 
-        if (await this.isAppHostCsFile(document.uri.fsPath)) {
-            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', true);
+        if (await this.isAppHostFile(document.uri.fsPath)) {
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHost', true);
         }
         else {
-            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHostCs', false);
+            vscode.commands.executeCommand('setContext', 'aspire.fileIsAppHost', false);
         }
     }
 
-    private async isAppHostCsFile(filePath: string): Promise<boolean> {
+    private async isAppHostFile(filePath: string): Promise<boolean> {
         const fileText = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath)).then(buffer => buffer.toString());
         const lines = fileText.split(/\r?\n/);
 
-        return lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'));
+        // C# apphost detection
+        if (lines.some(line => line.startsWith('#:sdk Aspire.AppHost.Sdk'))) {
+            return true;
+        }
+
+        if (lines.some(line => line === 'var builder = DistributedApplication.CreateBuilder(args);')) {
+            return true;
+        }
+
+        // TypeScript/JavaScript apphost detection
+        const ext = path.extname(filePath).toLowerCase();
+        if (['.ts', '.js', '.mts', '.mjs'].includes(ext)) {
+            if (lines.some(line => /import\s+.*createBuilder.*from\s+['"].*\.modules\/aspire/.test(line))) {
+                return true;
+            }
+
+            if (lines.some(line => /require\s*\(['"].*\.modules\/aspire/.test(line))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private onChangeAppHostPath(newPath: string | null) {
@@ -113,26 +135,54 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         }
     }
 
+    /**
+     * Returns the resolved AppHost path from the active editor or workspace settings, or null if none is available.
+     */
+    public async getAppHostPath(): Promise<string | null> {
+        if (vscode.window.activeTextEditor && await this.isAppHostFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
+            return vscode.window.activeTextEditor.document.uri.fsPath;
+        }
+
+        return this._workspaceAppHostPath;
+    }
+
     public async tryExecuteRunAppHost(noDebug: boolean): Promise<void> {
-        let appHostToRun: string;
-        if (vscode.window.activeTextEditor && await this.isAppHostCsFile(vscode.window.activeTextEditor.document.uri.fsPath)) {
-            appHostToRun = vscode.window.activeTextEditor.document.uri.fsPath;
-        }
-        else if (this._workspaceAppHostPath) {
-            appHostToRun = this._workspaceAppHostPath;
-        }
-        else {
+        await this.launchAspireDebugSession('run', noDebug);
+    }
+
+    public async tryExecuteDeployAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('deploy', noDebug);
+    }
+
+    public async tryExecutePublishAppHost(noDebug: boolean): Promise<void> {
+        await this.launchAspireDebugSession('publish', noDebug);
+    }
+
+    public async tryExecuteDoAppHost(noDebug: boolean, doStep?: string): Promise<void> {
+        await this.launchAspireDebugSession('do', noDebug, doStep);
+    }
+
+    private async launchAspireDebugSession(aspireCommand: AspireCommandType, noDebug: boolean, doStep?: string): Promise<void> {
+        const appHostToRun = await this.getAppHostPath();
+        if (!appHostToRun) {
             vscode.window.showErrorMessage(noAppHostInWorkspace);
             return;
         }
 
-        await vscode.debug.startDebugging(undefined, {
+        const config: vscode.DebugConfiguration = {
             type: 'aspire',
-            name: `Aspire: ${vscode.workspace.asRelativePath(appHostToRun)}`,
+            name: `Aspire ${aspireCommand}: ${vscode.workspace.asRelativePath(appHostToRun)}`,
             request: 'launch',
             program: appHostToRun,
+            command: aspireCommand,
             noDebug: noDebug
-        });
+        };
+
+        if (doStep) {
+            config.step = doStep;
+        }
+
+        await vscode.debug.startDebugging(undefined, config);
     }
 
     dispose() {
