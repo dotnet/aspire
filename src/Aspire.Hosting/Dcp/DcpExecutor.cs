@@ -1760,6 +1760,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exe.Spec.ExecutionType = ExecutionType.Process;
 
+                    var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+
                     if (_watchAspireServerPipeName is not null && _projectPathToResource?.ContainsKey(projectMetadata.ProjectPath) == true)
                     {
                         // Use Watch.Aspire resource command - the server handles building and hot reload
@@ -1782,9 +1785,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
                     else
                     {
-                        var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                        projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                         // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
                         if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                         {
