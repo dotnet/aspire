@@ -21,7 +21,7 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
     // https://github.com/dotnet/aspire/issues/13756
     public async Task IllegalBindMount()
     {
-        using var cts = DefaultCancellationTokenSource();
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var illegalPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -51,7 +51,7 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
     [RequiresFeature(TestFeature.Docker)]
     public async Task BadContainerRuntimeArg()
     {
-        using var cts = DefaultCancellationTokenSource();
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var container = builder.AddContainer("container", "nginx")
@@ -74,7 +74,7 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
     [RequiresFeature(TestFeature.Docker)]
     public async Task BadImage()
     {
-        using var cts = DefaultCancellationTokenSource();
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var container = builder.AddContainer("container", "does-not-exist")
@@ -98,7 +98,7 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
     [RequiresFeature(TestFeature.Docker)]
     public async Task NeedsAuthentication()
     {
-        using var cts = DefaultCancellationTokenSource();
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var container = builder.AddContainer("container", "mattermost.com/go-msft-fips:1.24.6")
@@ -124,7 +124,7 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
     // https://github.com/dotnet/aspire/issues/14262 
     public async Task ContainerExitsImmediatelyAfterStart()
     {
-        using var cts = DefaultCancellationTokenSource();
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestLongTimeout);
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var container = builder.AddContainer("container", "alpine")
@@ -151,12 +151,6 @@ public class ContainerResourceFailureLoggingTests(ITestOutputHelper testOutputHe
         Assert.Contains(logLines, x => x.EndsWith("Hello from Stdout") || x.EndsWith("Hello from Stderr"));
     }
     */
-    private static CancellationTokenSource DefaultCancellationTokenSource()
-    {
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
-        return cts;
-    }
 
     private static void AddFakeLogging<T>(IResourceBuilder<T> builder)
         where T : IResource
