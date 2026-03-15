@@ -57,7 +57,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Step 1: Resolve SDK and package strategy
         var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, sdkVersion);
+        var config = AspireConfigFile.LoadOrCreate(directory.FullName, sdkVersion);
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
@@ -149,15 +149,15 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 }
             }
 
-            var aspireConfigFile = AspireConfigFile.FromLegacy(config, profiles);
+            config.Profiles = profiles;
             if (prepareResult.ChannelName is not null)
             {
-                aspireConfigFile.Channel = prepareResult.ChannelName;
+                config.Channel = prepareResult.ChannelName;
             }
-            aspireConfigFile.AppHost ??= new AspireConfigAppHost();
-            aspireConfigFile.AppHost.Path ??= language.AppHostFileName;
-            aspireConfigFile.AppHost.Language = language.LanguageId;
-            aspireConfigFile.Save(directory.FullName);
+            config.AppHost ??= new AspireConfigAppHost();
+            config.AppHost.Path ??= language.AppHostFileName;
+            config.AppHost.Language = language.LanguageId;
+            config.Save(directory.FullName);
             return true;
         }
         finally

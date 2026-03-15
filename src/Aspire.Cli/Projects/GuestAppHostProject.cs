@@ -146,7 +146,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// Gets all integration references including the code generation package for the current language.
     /// </summary>
     private async Task<List<IntegrationReference>> GetIntegrationReferencesAsync(
-        AspireJsonConfiguration config,
+        AspireConfigFile config,
         DirectoryInfo directory,
         CancellationToken cancellationToken)
     {
@@ -175,7 +175,9 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         if (settingsFile.Directory is { Exists: true })
         {
             // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
-            if (string.Equals(settingsFile.Directory.Name, AspireJsonConfiguration.SettingsFolder, StringComparison.OrdinalIgnoreCase)
+            // TODO: Remove legacy .aspire/ check once confident most users have migrated.
+            // Tracked by https://github.com/dotnet/aspire/issues/15239
+            if (string.Equals(settingsFile.Directory.Name, ".aspire", StringComparison.OrdinalIgnoreCase)
                 && settingsFile.Directory.Parent is not null)
             {
                 return settingsFile.Directory.Parent;
@@ -187,14 +189,14 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         return appHostDirectory;
     }
 
-    private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
+    private AspireConfigFile LoadConfiguration(DirectoryInfo directory)
     {
         var configDir = GetConfigDirectory(directory);
         try
         {
-            var aspireConfig = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
+            var config = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
             _logger.LogDebug("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
-            return aspireConfig.ToLegacyConfiguration();
+            return config;
         }
         catch (InvalidOperationException ex)
         {
@@ -203,13 +205,13 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
     }
 
-    private void SaveConfiguration(AspireJsonConfiguration config, DirectoryInfo directory)
+    private void SaveConfiguration(AspireConfigFile config, DirectoryInfo directory)
     {
         var configDir = GetConfigDirectory(directory);
-        AspireConfigFile.SaveFromLegacy(configDir.FullName, config);
+        config.Save(configDir.FullName);
     }
 
-    private string GetPrepareSdkVersion(AspireJsonConfiguration config)
+    private string GetPrepareSdkVersion(AspireConfigFile config)
     {
         return config.GetEffectiveSdkVersion(GetEffectiveSdkVersion());
     }

@@ -62,6 +62,18 @@ internal sealed class AspireConfigFile
     public AspireConfigSdk? Sdk { get; set; }
 
     /// <summary>
+    /// Convenience accessor for the Aspire SDK version.
+    /// Gets or sets <see cref="AspireConfigSdk.Version"/> on the <see cref="Sdk"/> object,
+    /// creating the nested object when setting a value.
+    /// </summary>
+    [JsonIgnore]
+    public string? SdkVersion
+    {
+        get => Sdk?.Version;
+        set => (Sdk ??= new AspireConfigSdk()).Version = value;
+    }
+
+    /// <summary>
     /// Aspire channel for package resolution.
     /// </summary>
     [JsonPropertyName("channel")]
@@ -137,8 +149,7 @@ internal sealed class AspireConfigFile
         {
             if (defaultSdkVersion is not null)
             {
-                config.Sdk ??= new AspireConfigSdk();
-                config.Sdk.Version ??= defaultSdkVersion;
+                config.SdkVersion ??= defaultSdkVersion;
             }
 
             return config;
@@ -163,28 +174,10 @@ internal sealed class AspireConfigFile
 
         if (defaultSdkVersion is not null)
         {
-            config.Sdk ??= new AspireConfigSdk();
-            config.Sdk.Version ??= defaultSdkVersion;
+            config.SdkVersion ??= defaultSdkVersion;
         }
 
         return config;
-    }
-
-    /// <summary>
-    /// Saves an <see cref="AspireJsonConfiguration"/> to aspire.config.json, merging with any
-    /// existing aspire.config.json content in the specified directory.
-    /// </summary>
-    public static void SaveFromLegacy(string directory, AspireJsonConfiguration config)
-    {
-        var aspireConfig = Load(directory) ?? new AspireConfigFile();
-        aspireConfig.AppHost ??= new AspireConfigAppHost();
-        aspireConfig.AppHost.Path = config.AppHostPath ?? aspireConfig.AppHost.Path;
-        aspireConfig.AppHost.Language = config.Language ?? aspireConfig.AppHost.Language;
-        aspireConfig.Sdk = !string.IsNullOrEmpty(config.SdkVersion) ? new AspireConfigSdk { Version = config.SdkVersion } : aspireConfig.Sdk;
-        aspireConfig.Channel = config.Channel ?? aspireConfig.Channel;
-        aspireConfig.Packages = config.Packages ?? aspireConfig.Packages;
-        aspireConfig.Features = config.Features ?? aspireConfig.Features;
-        aspireConfig.Save(directory);
     }
 
     /// <summary>
@@ -276,27 +269,94 @@ internal sealed class AspireConfigFile
     }
 
     /// <summary>
+    /// Gets the effective SDK version for package-based AppHost preparation.
+    /// Falls back to <paramref name="defaultSdkVersion"/> when no SDK version is configured.
+    /// </summary>
+    public string GetEffectiveSdkVersion(string defaultSdkVersion)
+    {
+        return string.IsNullOrWhiteSpace(Sdk?.Version) ? defaultSdkVersion : Sdk.Version;
+    }
+
+    /// <summary>
+    /// Adds a package reference, updating the version if it already exists.
+    /// </summary>
+    public void AddOrUpdatePackage(string packageId, string version)
+    {
+        Packages ??= [];
+        Packages[packageId] = version;
+    }
+
+    /// <summary>
+    /// Removes a package reference.
+    /// </summary>
+    public bool RemovePackage(string packageId)
+    {
+        if (Packages is null)
+        {
+            return false;
+        }
+
+        return Packages.Remove(packageId);
+    }
+
+    /// <summary>
+    /// Gets all integration references (both NuGet packages and project references)
+    /// including the base Aspire.Hosting package.
+    /// A value ending in ".csproj" is treated as a project reference; otherwise as a NuGet version.
+    /// Empty package versions are resolved to the effective SDK version.
+    /// </summary>
+    /// <param name="defaultSdkVersion">Default SDK version to use when not configured.</param>
+    /// <param name="configDirectory">The directory containing aspire.config.json, used to resolve relative project paths.</param>
+    public IEnumerable<IntegrationReference> GetIntegrationReferences(string defaultSdkVersion, string configDirectory)
+    {
+        var sdkVersion = GetEffectiveSdkVersion(defaultSdkVersion);
+
+        // Base package always included
+        yield return IntegrationReference.FromPackage("Aspire.Hosting", sdkVersion);
+
+        if (Packages is null)
+        {
+            yield break;
+        }
+
+        foreach (var (packageName, value) in Packages)
+        {
+            // Skip base packages and SDK-only packages
+            if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var trimmedValue = value?.Trim();
+
+            if (string.IsNullOrEmpty(trimmedValue))
+            {
+                // NuGet package reference with no explicit version — fall back to the SDK version
+                yield return IntegrationReference.FromPackage(packageName, sdkVersion);
+                continue;
+            }
+
+            if (trimmedValue.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                // Project reference — resolve relative path to absolute
+                var absolutePath = Path.GetFullPath(Path.Combine(configDirectory, trimmedValue));
+                yield return IntegrationReference.FromProject(packageName, absolutePath);
+            }
+            else
+            {
+                // NuGet package reference with explicit version
+                yield return IntegrationReference.FromPackage(packageName, trimmedValue);
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks if aspire.config.json exists in the specified directory.
     /// </summary>
     public static bool Exists(string directory)
     {
         return File.Exists(Path.Combine(directory, FileName));
-    }
-
-    /// <summary>
-    /// Converts this AspireConfigFile back to an AspireJsonConfiguration for compatibility with existing code.
-    /// </summary>
-    public AspireJsonConfiguration ToLegacyConfiguration()
-    {
-        return new AspireJsonConfiguration
-        {
-            AppHostPath = AppHost?.Path,
-            Language = AppHost?.Language,
-            SdkVersion = Sdk?.Version,
-            Channel = Channel,
-            Features = Features,
-            Packages = Packages
-        };
     }
 
     /// <summary>
