@@ -1038,8 +1038,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(appPath, LanguageInfo.ResolveGeneratedFolderName(_resolvedLanguage.GeneratedFolderName));
+        var outputPath = Path.Combine(appPath, LanguageInfo.GeneratedFolderName);
         Directory.CreateDirectory(outputPath);
+
+        // Ensure generated code directory is excluded from source control
+        await File.WriteAllTextAsync(Path.Combine(outputPath, ".gitignore"), "*\n", cancellationToken);
 
         foreach (var (fileName, content) in files)
         {

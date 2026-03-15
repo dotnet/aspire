@@ -73,12 +73,13 @@ internal sealed class PythonModuleBuilder
     /// <returns>The complete Python module as a string.</returns>
     public string Write()
     {
-        var version = typeof(PythonModuleBuilder).Assembly.GetName().Version?.ToString() ?? "0.1.0";
-
         var output = new StringBuilder();
         output.AppendLine(Header);
         output.AppendLine(StandardImports);
-        output.AppendLine(CultureInfo.InvariantCulture, $"__version__ = \"{version}\"");
+        // TODO: Not quite sure how to handle versioning, as users wont have direct control over the
+        // code generator version. Ideally this would reflect the .NET package version, but that will be
+        // painful for test snapshots, just going to hardcode a version for now.
+        output.AppendLine(CultureInfo.InvariantCulture, $"__version__ = \"0.1.0\"");
         output.AppendLine();
         output.AppendLine(Utils);
 
@@ -185,6 +186,7 @@ internal sealed class PythonModuleBuilder
         if (HandleRegistrations.Count > 0)
         {
             output.AppendLine();
+            output.AppendLine();
             output.AppendLine("# ============================================================================");
             output.AppendLine("# Handle Registrations");
             output.AppendLine("# ============================================================================");
@@ -230,18 +232,11 @@ internal sealed class PythonModuleBuilder
         import socket
         import threading
         import time
-        from functools import cached_property
-        from abc import ABC, abstractmethod
+        import abc
+        import datetime
+        import typing
+        from functools import cached_property as _cached_property
         from contextlib import AbstractContextManager
-        from re import compile
-        from datetime import date, datetime, timedelta, time as dt_time, timezone
-        from dataclasses import dataclass
-        from warnings import warn
-        from collections.abc import Iterable, Mapping, Callable
-        from typing import (
-            Any, Unpack, Self, Literal, TypedDict, Annotated, Required, Protocol, Union
-            Generic, TypeVar, get_origin, get_args, get_type_hints, cast, runtime_checkable
-        )
 
         _logger = logging.getLogger(__name__)
 
@@ -255,7 +250,7 @@ internal sealed class PythonModuleBuilder
         # Marker string for detecting generic .NET builder type names.
         _BUILDER_GENERIC_MARKER = "Builder`1["
 
-        uncached_property = property
+        _uncached_property = property
 
         """;
 
@@ -433,14 +428,14 @@ internal sealed class PythonModuleBuilder
         # Base Types
         # ============================================================================
 
-        class AtsErrorDetails(TypedDict, total=False):
+        class AtsErrorDetails(typing.TypedDict, total=False):
             '''Error details for ATS errors.'''
             parameter: str
             expected: str
             actual: str
 
 
-        class AtsErrorData(TypedDict, total=False):
+        class AtsErrorData(typing.TypedDict, total=False):
             '''Structured error from ATS capability invocation.'''
             code: str
             message: str
@@ -502,7 +497,7 @@ internal sealed class PythonModuleBuilder
                 return TypeError("Parameter type mismatch.")
 
 
-        def _is_ats_error(value: Any) -> bool:
+        def _is_ats_error(value: typing.Any) -> bool:
             '''Type guard to check if a value is an ATS error response.'''
             return (
                 isinstance(value, dict)
@@ -511,7 +506,7 @@ internal sealed class PythonModuleBuilder
             )
 
 
-        def _is_marshalled_handle(value: Any) -> bool:
+        def _is_marshalled_handle(value: typing.Any) -> bool:
             '''Type guard to check if a value is a marshalled handle.'''
             return (
                 isinstance(value, dict)
@@ -530,7 +525,7 @@ internal sealed class PythonModuleBuilder
             Handles are opaque references that can be passed to capabilities.
             '''
 
-            def __init__(self, handle_data: Mapping[str, Any]) -> None:
+            def __init__(self, handle_data: typing.Mapping[str, typing.Any]) -> None:
                 self._handle_id = handle_data["$handle"]
                 self._type_id = handle_data["$type"]
 
@@ -544,7 +539,7 @@ internal sealed class PythonModuleBuilder
                 '''The ATS type ID'''
                 return self._type_id
 
-            def to_json(self) -> Mapping[str, Any]:
+            def to_json(self) -> typing.Mapping[str, typing.Any]:
                 '''Serialize for JSON-RPC transport'''
                 return {
                     "$handle": self._handle_id,
@@ -561,7 +556,7 @@ internal sealed class PythonModuleBuilder
         # Handle Wrapper Registry
         # ============================================================================
 
-        _HandleWrapperFactory = Callable[[Handle, "AspireClient"], Any]
+        _HandleWrapperFactory = typing.Callable[[Handle, "AspireClient"], typing.Any]
 
         # Registry of handle wrapper factories by type ID
         _handle_wrapper_registry: dict[str, _HandleWrapperFactory] = {}
@@ -575,7 +570,7 @@ internal sealed class PythonModuleBuilder
             _handle_wrapper_registry[type_id] = factory
 
 
-        def _wrap_if_handle(value: Any, client: AspireClient | None = None, kwargs: Mapping[str, Any] | None = None) -> Any:
+        def _wrap_if_handle(value: typing.Any, client: AspireClient | None = None, kwargs: typing.Mapping[str, typing.Any] | None = None) -> typing.Any:
             '''
             Checks if a value is a marshalled handle and wraps it appropriately.
             Uses the wrapper registry to create typed wrapper instances when available.
@@ -628,8 +623,8 @@ internal sealed class PythonModuleBuilder
         # JSON Encoder
         # ============================================================================
 
-        @runtime_checkable
-        class _ReferenceHandle(Protocol):
+        @typing.runtime_checkable
+        class _ReferenceHandle(typing.Protocol):
             '''Protocol for objects that have a handle property.'''
 
             @property
@@ -637,7 +632,7 @@ internal sealed class PythonModuleBuilder
                 ...
 
 
-        def _timedelta_as_isostr(td: timedelta) -> str:
+        def _timedelta_as_isostr(td: datetime.timedelta) -> str:
             '''Converts a datetime.timedelta object into an ISO 8601 formatted string, e.g. 'P4DT12H30M05S'
 
             Function adapted from the Tin Can Python project: https://github.com/RusticiSoftware/TinCanPython
@@ -691,7 +686,7 @@ internal sealed class PythonModuleBuilder
             return "P" + date_str + time_str
 
 
-        def _datetime_as_isostr(dt: Union[datetime, date, dt_time, timedelta]) -> str:
+        def _datetime_as_isostr(dt: typing.Union[datetime.datetime, datetime.date, datetime.time, datetime.timedelta]) -> str:
             '''Converts a datetime.(datetime|date|time|timedelta) object into an ISO 8601 formatted string.
 
             :param dt: The datetime object to convert
@@ -701,36 +696,34 @@ internal sealed class PythonModuleBuilder
             '''
             # First try datetime.datetime
             if hasattr(dt, "year") and hasattr(dt, "hour"):
-                dt = cast(datetime, dt)
+                dt = typing.cast(datetime.datetime, dt)
                 # astimezone() fails for naive times in Python 2.7, so make make sure dt is aware (tzinfo is set)
                 if not dt.tzinfo:
-                    iso_formatted = dt.replace(tzinfo=timezone.utc).isoformat()
+                    iso_formatted = dt.replace(tzinfo=datetime.timezone.utc).isoformat()
                 else:
-                    iso_formatted = dt.astimezone(timezone.utc).isoformat()
+                    iso_formatted = dt.astimezone(datetime.timezone.utc).isoformat()
                 # Replace the trailing "+00:00" UTC offset with "Z" (RFC 3339: https://www.ietf.org/rfc/rfc3339.txt)
                 return iso_formatted.replace("+00:00", "Z")
             # Next try datetime.date or datetime.time
             try:
-                dt = cast(Union[date, dt_time], dt)
+                dt = typing.cast(typing.Union[datetime.date, datetime.time], dt)
                 return dt.isoformat()
             # Last, try datetime.timedelta
             except AttributeError:
-                dt = cast(timedelta, dt)
+                dt = typing.cast(datetime.timedelta, dt)
                 return _timedelta_as_isostr(dt)
 
 
         class _AspireJSONEncoder(json.JSONEncoder):
             '''A JSON encoder that's capable of serializing datetime objects and bytes.'''
 
-            def default(self, o: Any) -> Any:
+            def default(self, o: typing.Any) -> typing.Any:
                 '''Override the default method to handle datetime and bytes serialization.
                 :param o: The object to serialize.
                 :type o: Any
                 :return: A JSON-serializable representation of the object.
                 :rtype: Any
                 '''
-                from ._base import ReferenceExpression
-
                 if isinstance(o, ReferenceExpression):
                     return o.to_json()
                 if isinstance(o, _ReferenceHandle):
@@ -758,27 +751,27 @@ internal sealed class PythonModuleBuilder
                 self._socket: _PipeSocket | None = None
                 self._request_id = 0
                 self._pending_requests: dict[int, threading.Event] = {}
-                self._pending_results: dict[int, tuple[Any, Exception | None]] = {}
-                self._disconnect_callbacks: list[Callable[[], None]] = []
+                self._pending_results: dict[int, tuple[typing.Any, Exception | None]] = {}
+                self._disconnect_callbacks: list[typing.Callable[[], None]] = []
                 self._receive_thread: threading.Thread | None = None
                 self._heartbeat_thread: threading.Thread | None = None
-                self._cancellation_threads: dict[str, tuple[Callable[[], None], threading.Thread]] = {}
+                self._cancellation_threads: dict[str, tuple[typing.Callable[[], None], threading.Thread]] = {}
                 self._cancellation_id = 0
                 self._heartbeat_interval = heartbeat_interval if heartbeat_interval is not None else self.DEFAULT_HEARTBEAT_INTERVAL
                 self._heartbeat_stop_event = threading.Event()
                 self._connected = False
                 self._connection_error: ConnectionError | None = None
                 self._lock = threading.Lock()
-                self._callback_registry: dict[str, Callable[..., Any]] = {}
+                self._callback_registry: dict[str, typing.Callable[..., typing.Any]] = {}
                 self._callback_id_counter = 0
                 self._callback_threads: dict[str, threading.Thread] = {}
 
-            def on_disconnect(self, callback: Callable[[], None]) -> None:
+            def on_disconnect(self, callback: typing.Callable[[], None]) -> None:
                 '''Register a callback to be called when the connection is lost'''
                 with self._lock:
                     self._disconnect_callbacks.append(callback)
 
-            def _handle_sigint(self, signum: int, frame: Any) -> None:
+            def _handle_sigint(self, signum: int, frame: typing.Any) -> None:
                 '''Handle SIGINT (Ctrl+C) by cancelling all pending requests and closing connection.'''
                 # Close the connection
                 self._close_connection(ConnectionError("Shutdown by user"))
@@ -803,7 +796,7 @@ internal sealed class PythonModuleBuilder
                 - Notifies disconnect callbacks (only on first unexpected disconnection)
                 '''
                 should_notify = False
-                callbacks: list[Callable[[], None]] = []
+                callbacks: list[typing.Callable[[], None]] = []
 
                 with self._lock:
                     # Close socket if open
@@ -879,7 +872,7 @@ internal sealed class PythonModuleBuilder
                 '''Read exactly n bytes from the socket'''
                 data = b""
                 while len(data) < n:
-                    chunk = cast(_PipeSocket, self._socket).recv(n - len(data))
+                    chunk = typing.cast(_PipeSocket, self._socket).recv(n - len(data))
                     if not chunk:
                         raise ConnectionError("Connection closed")
                     data += chunk
@@ -889,7 +882,7 @@ internal sealed class PythonModuleBuilder
                 '''Read a line ending with \\r\\n from the socket'''
                 line = b""
                 while True:
-                    byte = cast(_PipeSocket, self._socket).recv(1)
+                    byte = typing.cast(_PipeSocket, self._socket).recv(1)
                     if not byte:
                         raise ConnectionError("Connection closed")
                     line += byte
@@ -983,7 +976,7 @@ internal sealed class PythonModuleBuilder
                         self._close_connection(ConnectionError(f"Heartbeat failed: {e}"))
                         break
 
-            def _handle_server_request(self, message: dict[str, Any]) -> None:
+            def _handle_server_request(self, message: dict[str, typing.Any]) -> None:
                 '''Handle a request from the server (e.g., callback invocation)'''
                 method = message.get("method")
                 request_id = message.get("id")
@@ -1008,7 +1001,7 @@ internal sealed class PythonModuleBuilder
             def _execute_callback_thread(
                 self,
                 callback_id: str | None,
-                args: Any,
+                args: typing.Any,
                 request_id: int | None,
                 thread_id: str
             ) -> None:
@@ -1076,7 +1069,7 @@ internal sealed class PythonModuleBuilder
                     with self._lock:
                         self._callback_threads.pop(thread_id, None)
 
-            def _send_message(self, message: dict[str, Any]) -> None:
+            def _send_message(self, message: dict[str, typing.Any]) -> None:
                 '''Send a JSON-RPC message to the server using header-delimited format'''
                 if self.debug:
                     if message.get("method") == "ping":
@@ -1091,7 +1084,7 @@ internal sealed class PythonModuleBuilder
                 header = f"Content-Length: {content_length}\r\n\r\n"
                 header_bytes = header.encode("utf-8")
                 with self._lock:
-                    cast(_PipeSocket, self._socket).sendall(header_bytes + message_bytes)
+                    typing.cast(_PipeSocket, self._socket).sendall(header_bytes + message_bytes)
 
             def _check_connection(self) -> None:
                 '''Check if connected and raise stored connection error if present.'''
@@ -1109,9 +1102,9 @@ internal sealed class PythonModuleBuilder
             def invoke_capability(
                 self,
                 capability_id: str,
-                args: dict[str, Any] | None = None,
-                kwargs: Mapping[str, Any] | None = None
-            ) -> Any:
+                args: dict[str, typing.Any] | None = None,
+                kwargs: typing.Mapping[str, typing.Any] | None = None
+            ) -> typing.Any:
                 '''
                 Invoke an ATS capability by ID.
 
@@ -1130,7 +1123,7 @@ internal sealed class PythonModuleBuilder
                 # Wrap handles automatically
                 return _wrap_if_handle(result, self, kwargs)
 
-            def _send_request(self, method: str, *params: Any) -> Any:
+            def _send_request(self, method: str, *params: typing.Any) -> typing.Any:
                 '''Send a JSON-RPC request and wait for response'''
                 with self._lock:
                     self._request_id += 1
@@ -1220,7 +1213,7 @@ internal sealed class PythonModuleBuilder
                     if thread.is_alive():
                         thread.join(timeout=1.0)
 
-            def register_callback(self, callback: Callable[..., Any] | None) -> str | None:
+            def register_callback(self, callback: typing.Callable[..., typing.Any] | None) -> str | None:
                 '''
                 Register a callback function that can be invoked from the .NET side.
                 Returns a callback ID that should be passed to methods accepting callbacks.
@@ -1235,7 +1228,7 @@ internal sealed class PythonModuleBuilder
                     self._callback_id_counter += 1
                     callback_id = f"callback_{secrets.token_hex(16)}"
 
-                def wrapper(args: Any, client: AspireClient) -> Any:
+                def wrapper(args: typing.Any, client: AspireClient) -> typing.Any:
                     # .NET sends args as object { p0: value0, p1: value1, ... }
                     if isinstance(args, dict):
                         arg_array = []
@@ -1302,7 +1295,7 @@ internal sealed class PythonModuleBuilder
                 ```
             '''
 
-            def __init__(self, ref: Handle | str, *value_providers: Any) -> None:
+            def __init__(self, ref: Handle | str, *value_providers: typing.Any) -> None:
                 '''
                 Creates a reference expression from a format string and value providers.
 
@@ -1322,7 +1315,7 @@ internal sealed class PythonModuleBuilder
                     self._format = ref
                 self._value_providers = providers
 
-            def to_json(self) -> Mapping[str, Any]:
+            def to_json(self) -> typing.Mapping[str, typing.Any]:
                 '''
                 Serializes the reference expression for JSON-RPC transport.
                 Uses the $expr format recognized by the server.
@@ -1330,7 +1323,7 @@ internal sealed class PythonModuleBuilder
                 if self._handle:
                     return self._handle.to_json()
 
-                result: dict[str, Any] = {
+                result: dict[str, typing.Any] = {
                     "$expr": {
                         "format": self._format,
                     }
@@ -1345,7 +1338,7 @@ internal sealed class PythonModuleBuilder
                 return f"ReferenceExpression(format={self._format})"
 
 
-        def _extract_handle_for_expr(value: Any) -> Any:
+        def _extract_handle_for_expr(value: typing.Any) -> typing.Any:
             '''
             Extracts a value for use in reference expressions.
             Supports handles (objects) and string literals.
@@ -1375,7 +1368,7 @@ internal sealed class PythonModuleBuilder
             )
 
 
-        def ref_expr(template: str, **kwargs: Any) -> ReferenceExpression:
+        def ref_expr(template: str, **kwargs: typing.Any) -> ReferenceExpression:
             '''
             Helper function for creating reference expressions with named placeholders.
 
@@ -1412,10 +1405,10 @@ internal sealed class PythonModuleBuilder
         # AspireList[T] - Mutable List Wrapper
         # ============================================================================
 
-        TItem = TypeVar("TItem")
+        TItem = typing.TypeVar("TItem")
 
 
-        class AspireList(MutableSequence[TItem]):
+        class AspireList(typing.MutableSequence[TItem]):
             '''
             Wrapper for a mutable .NET List<T>.
 
@@ -1448,9 +1441,9 @@ internal sealed class PythonModuleBuilder
                 )
                 return int(result)
 
-            @overload
+            @typing.overload
             def __getitem__(self, index: int) -> TItem: ...
-            @overload
+            @typing.overload
             def __getitem__(self, index: slice) -> list[TItem]: ...
             def __getitem__(self, index: int | slice) -> TItem | list[TItem]:
                 '''Gets the element at the specified index or a slice of elements.'''
@@ -1462,11 +1455,11 @@ internal sealed class PythonModuleBuilder
                 )
                 return list(result)
 
-            @overload
+            @typing.overload
             def __setitem__(self, index: int, value: TItem) -> None: ...
-            @overload
-            def __setitem__(self, index: slice, value: Iterable[TItem]) -> None: ...
-            def __setitem__(self, index: int | slice, value: TItem | Iterable[TItem]) -> None:
+            @typing.overload
+            def __setitem__(self, index: slice, value: typing.Iterable[TItem]) -> None: ...
+            def __setitem__(self, index: int | slice, value: TItem | typing.Iterable[TItem]) -> None:
                 '''Sets the element at the specified index or replaces a slice of elements.'''
                 if not isinstance(index, int):
                     raise NotImplementedError("Set by slice not yet supported.")
@@ -1475,9 +1468,9 @@ internal sealed class PythonModuleBuilder
                     {"list": self._handle, "index": index, "value": value}
                 )
 
-            @overload
+            @typing.overload
             def __delitem__(self, index: int) -> None: ...
-            @overload
+            @typing.overload
             def __delitem__(self, index: slice) -> None: ...
             def __delitem__(self, index: int | slice) -> None:
                 '''Deletes the element at the specified index or a slice of elements.'''
@@ -1504,11 +1497,11 @@ internal sealed class PythonModuleBuilder
         # AspireDict[K, V] - Mutable Dictionary Wrapper
         # ============================================================================
 
-        TKey = TypeVar("TKey")
-        TValue = TypeVar("TValue")
+        TKey = typing.TypeVar("TKey")
+        TValue = typing.TypeVar("TValue")
 
 
-        class AspireDict(MutableMapping[TKey, TValue]):
+        class AspireDict(typing.MutableMapping[TKey, TValue]):
             '''
             Wrapper for a mutable .NET Dictionary<K, V>.
 
@@ -1564,7 +1557,7 @@ internal sealed class PythonModuleBuilder
                 if result is False:
                     raise KeyError(key)
 
-            def __iter__(self) -> Iterator[TKey]:
+            def __iter__(self) -> typing.Iterator[TKey]:
                 '''Returns an iterator over the keys.'''
                 result = self._client.invoke_capability(
                     "Aspire.Hosting/Dict.keys",
@@ -1590,36 +1583,36 @@ internal sealed class PythonModuleBuilder
                 )
 
 
-        def _validate_type(arg: Any, expected_type: Any) -> bool:
-            if get_origin(expected_type) is Iterable:
+        def _validate_type(arg: typing.Any, expected_type: typing.Any) -> bool:
+            if typing.get_origin(expected_type) is typing.Iterable:
                 if isinstance(arg, str):
                     return False
-                item_type = get_args(expected_type)[0]
-                if not isinstance(arg, Iterable):
+                item_type = typing.get_args(expected_type)[0]
+                if not isinstance(arg, typing.Iterable):
                     return False
                 for item in arg:
                     if not _validate_type(item, item_type):
                         return False
-            elif get_origin(expected_type) is Mapping:
-                key_type, value_type = get_args(expected_type)
-                if not isinstance(arg, Mapping):
+            elif typing.get_origin(expected_type) is typing.Mapping:
+                key_type, value_type = typing.get_args(expected_type)
+                if not isinstance(arg, typing.Mapping):
                     return False
                 for key, value in arg.items():
                     if not _validate_type(key, key_type):
                         return False
                     if not _validate_type(value, value_type):
                         return False
-            elif get_origin(expected_type) is Callable:
+            elif typing.get_origin(expected_type) is typing.Callable:
                 return callable(arg)
-            elif isinstance(arg, (tuple, Mapping)):
+            elif isinstance(arg, (tuple, typing.Mapping)):
                 return False
-            elif get_origin(expected_type) is Literal:
-                if arg not in get_args(expected_type):
+            elif typing.get_origin(expected_type) is typing.Literal:
+                if arg not in typing.get_args(expected_type):
                     return False
             elif expected_type is None:
                 if arg is not None:
                     return False
-            elif subtypes := get_args(expected_type):
+            elif subtypes := typing.get_args(expected_type):
                 # This is probably a Union type
                 return any([_validate_type(arg, subtype) for subtype in subtypes])
             elif not isinstance(arg, expected_type):
@@ -1627,7 +1620,7 @@ internal sealed class PythonModuleBuilder
             return True
 
 
-        def _validate_tuple_types(args: Any, arg_types: tuple[Any, ...]) -> bool:
+        def _validate_tuple_types(args: typing.Any, arg_types: tuple[typing.Any, ...]) -> bool:
             if not isinstance(args, tuple):
                 return False
             if len(args) != len(arg_types):
@@ -1638,13 +1631,13 @@ internal sealed class PythonModuleBuilder
             return True
 
 
-        def _validate_dict_types(args: Any, arg_types: Any) -> bool:
-            if not isinstance(args, Mapping):
+        def _validate_dict_types(args: typing.Any, arg_types: typing.Any) -> bool:
+            if not isinstance(args, typing.Mapping):
                 return False
-            type_hints = get_type_hints(arg_types, include_extras=True)
+            type_hints = typing.get_type_hints(arg_types, include_extras=True)
             for key, expected_type in type_hints.items():
-                if get_origin(expected_type) is Required:
-                    expected_type = get_args(expected_type)[0]
+                if typing.get_origin(expected_type) is typing.Required:
+                    expected_type = typing.get_args(expected_type)[0]
                     if key not in args:
                         return False
                 if key not in args:
@@ -1715,7 +1708,7 @@ internal sealed class PythonModuleBuilder
 
         def create_builder(
             *,
-            args: Iterable[str] | None = None,
+            args: typing.Iterable[str] | None = None,
             project_directory: str | None = None,
             container_registry_override: str | None = None,
             disable_dashboard: bool | None = None,

@@ -22,12 +22,6 @@ public sealed class ScaffoldRequest
     public string? ProjectName { get; init; }
 
     /// <summary>
-    /// Gets the resolved relative path to the folder where generated code is placed
-    /// (e.g., <c>".aspire/python"</c>). If null, the scaffold implementation uses its own default.
-    /// </summary>
-    public string? GeneratedFolderPath { get; init; }
-
-    /// <summary>
     /// Gets an optional seed for deterministic port generation (for testing).
     /// </summary>
     public int? PortSeed { get; init; }

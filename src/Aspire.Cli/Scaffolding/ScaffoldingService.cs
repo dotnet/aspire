@@ -94,13 +94,10 @@ internal sealed class ScaffoldingService : IScaffoldingService
             // Step 3: Connect to server and get scaffold templates via RPC
             await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
 
-            var generatedFolderName = LanguageInfo.ResolveGeneratedFolderName(language.GeneratedFolderName);
-
             var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
                 language.LanguageId,
                 directory.FullName,
                 context.ProjectName,
-                generatedFolderName,
                 cancellationToken);
 
             // Step 4: Write scaffold files to disk
@@ -117,7 +114,15 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
             _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
-            // Step 5: Install dependencies using GuestRuntime
+            // Step 5: Generate SDK code via RPC (must happen before dependency installation
+            // because pylock.toml/requirements.txt reference the generated code directory)
+            await GenerateCodeViaRpcAsync(
+                directory.FullName,
+                rpcClient,
+                language,
+                cancellationToken);
+
+            // Step 6: Install dependencies using GuestRuntime
             var installResult = await _interactionService.ShowStatusAsync(
                 $"Installing {language.DisplayName} dependencies...",
                 () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken),
@@ -126,13 +131,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
             {
                 return;
             }
-
-            // Step 6: Generate SDK code via RPC
-            await GenerateCodeViaRpcAsync(
-                directory.FullName,
-                rpcClient,
-                language,
-                cancellationToken);
 
             // Save channel and language to settings.json
             if (prepareResult.ChannelName is not null)
@@ -194,9 +192,11 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var generatedFolderName = LanguageInfo.ResolveGeneratedFolderName(language.GeneratedFolderName);
-        var outputPath = Path.Combine(directoryPath, generatedFolderName);
+        var outputPath = Path.Combine(directoryPath, LanguageInfo.GeneratedFolderName);
         Directory.CreateDirectory(outputPath);
+
+        // Ensure generated code directory is excluded from source control
+        await File.WriteAllTextAsync(Path.Combine(outputPath, ".gitignore"), "*\n", cancellationToken);
 
         foreach (var (fileName, content) in generatedFiles)
         {

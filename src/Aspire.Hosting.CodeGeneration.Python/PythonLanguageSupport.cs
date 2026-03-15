@@ -80,26 +80,24 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             """;
 
         // Create pylock.toml
-        var version = typeof(PythonLanguageSupport).Assembly.GetName().Version?.ToString() ?? "0.1.0";
-        var generatedPath = request.GeneratedFolderPath ?? ".aspire/python";
-        files["pylock.toml"] = $$"""
-            # Aspire Python AppHost requirements
+        files["pylock.apphost.toml"] = $$"""
+            created-by = 'Aspire'
+            lock-version = '1.0'
             requires-python = '>=3.11'
 
             [[packages]]
             name = "aspire_app"
-            version = "{{version}}"
             editable = true
 
             [packages.directory]
-            path = "{{generatedPath}}"
+            path = ".modules"
             """;
 
         // Create requirements.txt as a fallback for pip (which doesn't support pylock.toml)
-        files["requirements.txt"] = $"""
+        files["apphost_requirements.txt"] = """
             # Aspire Python AppHost requirements
             # This file is used when uv is not available and pip is used instead.
-            -e {generatedPath}
+            -e .modules
             """;
 
         // Create apphost.run.json with random ports
@@ -147,8 +145,8 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             return DetectionResult.NotFound;
         }
 
-        var hasPylock = File.Exists(Path.Combine(directoryPath, "pylock.toml"));
-        var hasRequirements = File.Exists(Path.Combine(directoryPath, "requirements.txt"));
+        var hasPylock = File.Exists(Path.Combine(directoryPath, "pylock.apphost.toml"));
+        var hasRequirements = File.Exists(Path.Combine(directoryPath, "apphost_requirements.txt"));
 
         if (!hasPylock && !hasRequirements)
         {
@@ -185,13 +183,13 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 new CommandSpec
                 {
                     Command = "uv",
-                    Args = ["venv", ".venv"]
+                    Args = ["venv", ".venv", "--allow-existing"]
                 }
             ],
             InstallDependencies = new CommandSpec
             {
                 Command = "uv",
-                Args = ["pip", "sync", "pylock.toml"]
+                Args = ["pip", "sync", "pylock.apphost.toml"]
             },
             Execute = new CommandSpec
             {
@@ -222,12 +220,17 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 {
                     Command = python,
                     Args = initializeArgs
+                },
+                new CommandSpec
+                {
+                    Command = s_venvPython,
+                    Args = ["-m", "ensurepip", "--upgrade"]
                 }
             ],
             InstallDependencies = new CommandSpec
             {
                 Command = s_venvPython,
-                Args = ["-m", "pip", "install", "-r", "requirements.txt"]
+                Args = ["-m", "pip", "install", "-r", "apphost_requirements.txt"]
             },
             Execute = new CommandSpec
             {

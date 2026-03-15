@@ -48,9 +48,9 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
 
     /// <inheritdoc />
     public Task<Dictionary<string, string>> ScaffoldAppHostAsync(
-        string languageId, string targetPath, string? projectName, string? generatedFolderPath, CancellationToken cancellationToken)
+        string languageId, string targetPath, string? projectName, CancellationToken cancellationToken)
         => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
-            "scaffoldAppHost", [languageId, targetPath, projectName, generatedFolderPath], cancellationToken);
+            "scaffoldAppHost", [languageId, targetPath, projectName], cancellationToken);
 
     /// <inheritdoc />
     public Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken)

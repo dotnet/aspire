@@ -30,10 +30,9 @@ internal sealed class LanguageService
     /// <param name="language">The target language (e.g., "TypeScript", "Python").</param>
     /// <param name="targetPath">The target directory path for the project.</param>
     /// <param name="projectName">Optional project name. If null, derived from directory name.</param>
-    /// <param name="generatedFolderPath">Optional resolved path to the generated code folder.</param>
     /// <returns>A dictionary of relative file paths to file contents.</returns>
     [JsonRpcMethod("scaffoldAppHost")]
-    public Dictionary<string, string> ScaffoldAppHost(string language, string targetPath, string? projectName = null, string? generatedFolderPath = null)
+    public Dictionary<string, string> ScaffoldAppHost(string language, string targetPath, string? projectName = null)
     {
         _logger.LogDebug(">> scaffoldAppHost({Language}, {TargetPath}, {ProjectName})", language, targetPath, projectName);
         var sw = Stopwatch.StartNew();
@@ -49,8 +48,7 @@ internal sealed class LanguageService
             var request = new ScaffoldRequest
             {
                 TargetPath = targetPath,
-                ProjectName = projectName,
-                GeneratedFolderPath = generatedFolderPath
+                ProjectName = projectName
             };
 
             var files = languageSupport.Scaffold(request);

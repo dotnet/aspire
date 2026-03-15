@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Configuration;
-
 namespace Aspire.Cli.Projects;
 
 /// <summary>
@@ -37,8 +35,6 @@ internal readonly record struct LanguageId(string Value)
 /// <param name="PackageName">The NuGet package name for language support (e.g., "Aspire.Hosting.CodeGeneration.TypeScript").</param>
 /// <param name="DetectionPatterns">File patterns used to detect this language (e.g., ["apphost.ts"]).</param>
 /// <param name="CodeGenerator">The code generator name to use for this language (e.g., "TypeScript"). Must match ICodeGenerator.Language.</param>
-/// <param name="GeneratedFolderName">The folder name where generated code is placed (e.g., ".modules").
-/// Supports the <c>{aspireConfigDir}</c> placeholder, which resolves to the Aspire configuration directory (e.g., ".aspire").</param>
 /// <param name="AppHostFileName">The default filename for the AppHost entry point (e.g., "apphost.ts").</param>
 /// <param name="IsExperimental">Whether this language is experimental and requires an additional per-language feature flag to be enabled.</param>
 internal sealed record LanguageInfo(
@@ -47,22 +43,13 @@ internal sealed record LanguageInfo(
     string PackageName,
     string[] DetectionPatterns,
     string CodeGenerator,
-    string? GeneratedFolderName = null,
     string? AppHostFileName = null,
     bool IsExperimental = false)
 {
     /// <summary>
-    /// Resolves placeholders in a <see cref="GeneratedFolderName"/> value.
+    /// The well-known folder name where generated code is placed for all guest languages.
     /// </summary>
-    internal static string ResolveGeneratedFolderName(string? generatedFolderName)
-    {
-        if (string.IsNullOrEmpty(generatedFolderName))
-        {
-            return string.Empty;
-        }
-
-        return generatedFolderName.Replace("{aspireConfigDir}", AspireJsonConfiguration.SettingsFolder, StringComparison.Ordinal);
-    }
+    internal const string GeneratedFolderName = ".modules";
 }
 
 /// <summary>

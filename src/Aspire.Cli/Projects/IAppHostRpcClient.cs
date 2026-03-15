@@ -30,7 +30,6 @@ internal interface IAppHostRpcClient : IAsyncDisposable
         string languageId,
         string targetPath,
         string? projectName,
-        string? generatedFolderPath,
         CancellationToken cancellationToken);
 
     /// <summary>
