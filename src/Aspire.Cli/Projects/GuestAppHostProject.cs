@@ -792,7 +792,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
-            return appHostServerProcess.ExitCode;
+            // The guest apphost's publish result determines command success.
+            // The helper server may be terminated by the CLI as part of normal cleanup,
+            // which can yield a non-zero process exit code on Unix-like systems.
+            return guestExitCode;
         }
         catch (OperationCanceledException)
         {
