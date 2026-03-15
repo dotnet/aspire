@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.Python;
@@ -10,8 +13,8 @@ namespace Aspire.Hosting.CodeGeneration.Python;
 /// </summary>
 /// <remarks>
 /// This implementation generates the files required for a Python-based Aspire AppHost and configures
-/// the runtime to create a virtual environment and install dependencies via <c>uv</c>,
-/// and execute the AppHost with <c>uv run python</c>.
+/// the runtime to create a virtual environment and install dependencies. When <c>uv</c> is available
+/// on PATH it is preferred; otherwise the standard <c>python -m venv</c> / <c>pip</c> toolchain is used.
 /// </remarks>
 public sealed class PythonLanguageSupport : ILanguageSupport
 {
@@ -27,6 +30,18 @@ public sealed class PythonLanguageSupport : ILanguageSupport
 
     private const string LanguageDisplayName = "Python";
     private static readonly string[] s_detectionPatterns = ["apphost.py"];
+
+    /// <summary>
+    /// Relative path from the project directory to the venv Python executable (platform-dependent).
+    /// </summary>
+    private static readonly string s_venvPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? @".venv\Scripts\python.exe"
+        : ".venv/bin/python";
+
+    /// <summary>
+    /// Lazily loaded Python script that creates a venv with a microvenv fallback.
+    /// </summary>
+    private static readonly Lazy<string> s_microvenvScript = new(LoadMicrovenvScript);
 
     /// <summary>
     /// Gets the language identifier for Python AppHosts.
@@ -80,6 +95,13 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             path = "{{generatedPath}}"
             """;
 
+        // Create requirements.txt as a fallback for pip (which doesn't support pylock.toml)
+        files["requirements.txt"] = $"""
+            # Aspire Python AppHost requirements
+            # This file is used when uv is not available and pip is used instead.
+            -e {generatedPath}
+            """;
+
         // Create apphost.run.json with random ports
         // Use PortSeed if provided (for testing), otherwise use random
         var random = request.PortSeed.HasValue
@@ -113,8 +135,9 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// </summary>
     /// <param name="directoryPath">The full path to the directory to inspect.</param>
     /// <returns>
-    /// A <see cref="DetectionResult"/> with <see cref="DetectionResult.Found"/> if both <c>apphost.py</c>
-    /// and <c>pylock.toml</c> exist in <paramref name="directoryPath"/>; otherwise <see cref="DetectionResult.NotFound"/>.
+    /// A <see cref="DetectionResult"/> with <see cref="DetectionResult.Found"/> if <c>apphost.py</c>
+    /// and either <c>pylock.toml</c> or <c>requirements.txt</c> exist in <paramref name="directoryPath"/>;
+    /// otherwise <see cref="DetectionResult.NotFound"/>.
     /// </returns>
     public DetectionResult Detect(string directoryPath)
     {
@@ -124,8 +147,10 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             return DetectionResult.NotFound;
         }
 
-        var pylockPath = Path.Combine(directoryPath, "pylock.toml");
-        if (!File.Exists(pylockPath))
+        var hasPylock = File.Exists(Path.Combine(directoryPath, "pylock.toml"));
+        var hasRequirements = File.Exists(Path.Combine(directoryPath, "requirements.txt"));
+
+        if (!hasPylock && !hasRequirements)
         {
             return DetectionResult.NotFound;
         }
@@ -137,11 +162,17 @@ public sealed class PythonLanguageSupport : ILanguageSupport
     /// Gets the runtime execution specification for Python AppHosts.
     /// </summary>
     /// <returns>
-    /// A <see cref="RuntimeSpec"/> that configures initialization via <c>uv venv</c> and <c>uv pip sync</c>,
-    /// runtime dependency installation via <c>uv pip sync</c>, and AppHost execution via
-    /// <c>uv run python {appHostFile}</c>.
+    /// A <see cref="RuntimeSpec"/> configured for <c>uv</c> when available, otherwise falling back
+    /// to the standard <c>python -m venv</c> / <c>pip install</c> toolchain.
     /// </returns>
     public RuntimeSpec GetRuntimeSpec()
+    {
+        return IsCommandAvailable("uv")
+            ? GetUvRuntimeSpec()
+            : GetVenvRuntimeSpec();
+    }
+
+    private static RuntimeSpec GetUvRuntimeSpec()
     {
         return new RuntimeSpec
         {
@@ -168,5 +199,103 @@ public sealed class PythonLanguageSupport : ILanguageSupport
                 Args = ["run", "python", "{appHostFile}"]
             }
         };
+    }
+
+    private static RuntimeSpec GetVenvRuntimeSpec()
+    {
+        var python = FindPythonCommand();
+        var hasVenv = IsCommandAvailable(python, "-m", "venv", "--help");
+
+        var initializeArgs = hasVenv
+            ? (string[])["-m", "venv", ".venv"]
+            : ["-c", s_microvenvScript.Value, ".venv"];
+
+        return new RuntimeSpec
+        {
+            Language = LanguageId,
+            DisplayName = LanguageDisplayName,
+            CodeGenLanguage = CodeGenTarget,
+            DetectionPatterns = s_detectionPatterns,
+            Initialize =
+            [
+                new CommandSpec
+                {
+                    Command = python,
+                    Args = initializeArgs
+                }
+            ],
+            InstallDependencies = new CommandSpec
+            {
+                Command = s_venvPython,
+                Args = ["-m", "pip", "install", "-r", "requirements.txt"]
+            },
+            Execute = new CommandSpec
+            {
+                Command = s_venvPython,
+                Args = ["{appHostFile}"]
+            }
+        };
+    }
+
+    /// <summary>
+    /// Returns the Python command name available on PATH (<c>python3</c> preferred, falls back to <c>python</c>).
+    /// </summary>
+    private static string FindPythonCommand()
+    {
+        return IsCommandAvailable("python3") ? "python3" : "python";
+    }
+
+    /// <summary>
+    /// Checks whether a command is available by running it with the given arguments
+    /// (defaults to <c>--version</c>) and checking for a zero exit code.
+    /// </summary>
+    private static bool IsCommandAvailable(string command, params string[] args)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = command,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            if (args.Length == 0)
+            {
+                startInfo.ArgumentList.Add("--version");
+            }
+            else
+            {
+                foreach (var arg in args)
+                {
+                    startInfo.ArgumentList.Add(arg);
+                }
+            }
+
+            using var process = Process.Start(startInfo);
+
+            if (process is null)
+            {
+                return false;
+            }
+
+            process.WaitForExit(5000);
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string LoadMicrovenvScript()
+    {
+        using var stream = Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream("Aspire.Hosting.CodeGeneration.Python.Resources.microvenv.py")
+            ?? throw new InvalidOperationException("Embedded resource 'microvenv.py' not found.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

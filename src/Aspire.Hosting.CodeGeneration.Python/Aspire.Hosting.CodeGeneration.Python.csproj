@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\pyproject.toml" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources.pyproject.toml" />
+    <EmbeddedResource Include="Resources\microvenv.py" LogicalName="Aspire.Hosting.CodeGeneration.Python.Resources.microvenv.py" />
   </ItemGroup>
 
   <ItemGroup>

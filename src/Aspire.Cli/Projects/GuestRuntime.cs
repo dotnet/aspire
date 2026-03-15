@@ -79,7 +79,7 @@ internal sealed class GuestRuntime
             return 0;
         }
 
-        var command = FindCommand(_spec.InstallDependencies.Command);
+        var command = FindCommand(_spec.InstallDependencies.Command, directory);
         if (command is null)
         {
             _logger.LogError("Command '{Command}' not found in PATH", _spec.InstallDependencies.Command);
@@ -127,7 +127,7 @@ internal sealed class GuestRuntime
     /// </summary>
     private async Task<int> RunSimpleCommandAsync(CommandSpec commandSpec, DirectoryInfo directory, CancellationToken cancellationToken)
     {
-        var command = FindCommand(commandSpec.Command);
+        var command = FindCommand(commandSpec.Command, directory);
         if (command is null)
         {
             _logger.LogError("Command '{Command}' not found in PATH", commandSpec.Command);
@@ -224,7 +224,7 @@ internal sealed class GuestRuntime
         string[]? additionalArgs,
         CancellationToken cancellationToken)
     {
-        var command = FindCommand(commandSpec.Command);
+        var command = FindCommand(commandSpec.Command, directory);
         if (command is null)
         {
             _logger.LogError("Command '{Command}' not found in PATH", commandSpec.Command);
@@ -346,10 +346,27 @@ internal sealed class GuestRuntime
     }
 
     /// <summary>
-    /// Finds the full path to a command in PATH.
+    /// Finds the full path to a command by searching PATH, then optionally resolving
+    /// relative paths against <paramref name="workingDirectory"/>.
     /// </summary>
-    private static string? FindCommand(string command)
+    private static string? FindCommand(string command, DirectoryInfo? workingDirectory = null)
     {
-        return PathLookupHelper.FindFullPathFromPath(command);
+        var found = PathLookupHelper.FindFullPathFromPath(command);
+        if (found is not null)
+        {
+            return found;
+        }
+
+        // If the command contains a path separator, try resolving it relative to the working directory.
+        if (workingDirectory is not null && (command.Contains('/') || command.Contains('\\')))
+        {
+            var relativePath = Path.GetFullPath(Path.Combine(workingDirectory.FullName, command));
+            if (File.Exists(relativePath))
+            {
+                return relativePath;
+            }
+        }
+
+        return null;
     }
 }
