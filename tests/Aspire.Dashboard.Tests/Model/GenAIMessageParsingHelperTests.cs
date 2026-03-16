@@ -313,14 +313,21 @@ public sealed class GenAIMessageParsingHelperTests
     }
 
     [Fact]
-    public void ReadMessagePart_MissingTypeProperty_ReturnsTruncated()
+    public void ReadMessagePart_MissingTypeProperty_FallsBackToUnexpectedErrorPart()
     {
         var json = """[{"content":"no type here"}]""";
 
         var (items, truncated) = GenAIMessageParsingHelper.DeserializeArrayIncrementally(json, GenAIMessageParsingHelper.ReadMessagePart);
 
-        Assert.True(truncated);
-        Assert.Empty(items);
+        Assert.False(truncated);
+        Assert.Collection(items,
+            part =>
+            {
+                var errorPart = Assert.IsType<UnexpectedErrorPart>(part);
+                Assert.NotNull(errorPart.Error);
+                Assert.NotNull(errorPart.AdditionalProperties);
+                Assert.True(errorPart.AdditionalProperties.ContainsKey("content"));
+            });
     }
 
     [Fact]
