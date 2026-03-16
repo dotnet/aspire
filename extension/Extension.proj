@@ -2,6 +2,10 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ExtensionSrcDir>$(MSBuildThisFileDirectory)</ExtensionSrcDir>
+    <!-- Set to true to package the extension as a pre-release version.
+         This embeds pre-release metadata in the VSIX, which is required
+         for publishing as pre-release to the VS Code Marketplace. -->
+    <PackExtensionAsPreRelease Condition="'$(PackExtensionAsPreRelease)' == ''">false</PackExtensionAsPreRelease>
   </PropertyGroup>
 
   <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
@@ -23,6 +27,8 @@
       <_VscodeOutputDir>$(ArtifactsPackagesDir)vscode</_VscodeOutputDir>
       <_VsixPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).vsix</_VsixPath>
       <_ManifestPath>$(_VscodeOutputDir)\aspire-vscode-$(_ExtractedVersion).manifest</_ManifestPath>
+      <_VscePackagePreReleaseArg Condition="'$(PackExtensionAsPreRelease)' == 'true'">--pre-release</_VscePackagePreReleaseArg>
+      <_VscePackagePreReleaseArg Condition="'$(PackExtensionAsPreRelease)' != 'true'"></_VscePackagePreReleaseArg>
     </PropertyGroup>
 
     <!-- Install dependencies and compile -->
@@ -33,7 +39,7 @@
     <MakeDir Directories="$(_VscodeOutputDir)" />
 
     <!-- Package extension -->
-    <Exec Command="vsce package --out $(_VsixPath)"
+    <Exec Command="vsce package $(_VscePackagePreReleaseArg) --out $(_VsixPath)"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
 
@@ -50,6 +56,7 @@
     <Message Importance="high" Text="VS Code extension artifacts created in $(_VscodeOutputDir):" />
     <Message Importance="high" Text="  VSIX: $(_VsixPath)" />
     <Message Importance="high" Text="  Manifest: $(_ManifestPath)" />
+    <Message Importance="high" Text="  Pre-release: $(PackExtensionAsPreRelease)" />
     <Message Importance="high" Text="  (Signature will be created by signing/signVsix.proj during signing phase)" />
   </Target>
 
