@@ -11,6 +11,7 @@ internal static class SecretCommandStrings
     internal static string SetDescription => s_resourceManager.GetString("SetDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "Set a secret value.";
     internal static string GetDescription => s_resourceManager.GetString("GetDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "Get a secret value.";
     internal static string ListDescription => s_resourceManager.GetString("ListDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "List all secrets.";
+    internal static string PathDescription => s_resourceManager.GetString("PathDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "Show the secrets file path.";
     internal static string DeleteDescription => s_resourceManager.GetString("DeleteDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "Delete a secret.";
     internal static string KeyArgumentDescription => s_resourceManager.GetString("KeyArgumentDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "The secret key.";
     internal static string KeyRetrieveArgumentDescription => s_resourceManager.GetString("KeyRetrieveArgumentDescription", System.Globalization.CultureInfo.CurrentUICulture) ?? "The secret key to retrieve.";
