@@ -60,6 +60,36 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void RegisterSettingsFiles_HandlesTrailingCommas()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var config = BuildConfigurationFromSettingsFile(workspace, """
+            {
+              "appHost": { "path": "MyApp.csproj", },
+              "channel": "stable",
+            }
+            """);
+
+        Assert.Equal("MyApp.csproj", config["appHost:path"]);
+    }
+
+    [Fact]
+    public void RegisterSettingsFiles_HandlesBlockComments()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var config = BuildConfigurationFromSettingsFile(workspace, """
+            {
+              /* Block comment */
+              "channel": "daily"
+            }
+            """);
+
+        Assert.Equal("daily", config["channel"]);
+    }
+
+    [Fact]
     public void RegisterSettingsFiles_HandlesCommentsAndTrailingCommas()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

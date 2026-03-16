@@ -672,7 +672,6 @@ public class Program
         try
         {
             app = await BuildApplicationAsync(args, startupContext);
-            await app.StartAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -682,6 +681,8 @@ public class Program
         }
 
         using var _ = app;
+
+        await app.StartAsync().ConfigureAwait(false);
 
         // Display first run experience if this is the first time the CLI is run on this machine
         await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, args, cts.Token);

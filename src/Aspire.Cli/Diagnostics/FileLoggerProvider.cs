@@ -175,11 +175,10 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     {
         var ts = timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         var lvl = GetLogLevelString(level);
-        var shortCategory = GetShortCategoryName(category);
 
         var logMessage = exception is not null
-            ? $"[{ts}] [{lvl}] [{shortCategory}] {message}{Environment.NewLine}{exception}"
-            : $"[{ts}] [{lvl}] [{shortCategory}] {message}";
+            ? $"[{ts}] [{lvl}] [{category}] {message}{Environment.NewLine}{exception}"
+            : $"[{ts}] [{lvl}] [{category}] {message}";
 
         WriteLog(logMessage);
     }
@@ -247,6 +246,7 @@ internal sealed class FileLogger(FileLoggerProvider provider, string categoryNam
             return;
         }
 
-        provider.WriteLog(DateTimeOffset.UtcNow, logLevel, categoryName, message, exception);
+        var shortCategory = FileLoggerProvider.GetShortCategoryName(categoryName);
+        provider.WriteLog(DateTimeOffset.UtcNow, logLevel, shortCategory, message, exception);
     }
 }
