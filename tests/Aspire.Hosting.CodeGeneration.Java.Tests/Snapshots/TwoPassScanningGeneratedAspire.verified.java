@@ -5911,6 +5911,15 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         super(handle, client);
     }
 
+    /** Adds a connection string with a reference expression */
+    public ConnectionStringResource addConnectionStringExpression(String name, ReferenceExpression connectionStringExpression) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("connectionStringExpression", AspireClient.serializeValue(connectionStringExpression));
+        return (ConnectionStringResource) getClient().invokeCapability("Aspire.Hosting/addConnectionStringExpression", reqArgs);
+    }
+
     /** Adds a connection string with a builder callback */
     public ConnectionStringResource addConnectionStringBuilder(String name, Function<Object[], Object> connectionStringBuilder) {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -5932,6 +5941,18 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
             reqArgs.put("repository", AspireClient.serializeValue(repository));
         }
         return (ContainerRegistryResource) getClient().invokeCapability("Aspire.Hosting/addContainerRegistry", reqArgs);
+    }
+
+    /** Adds a container registry with string endpoint */
+    public ContainerRegistryResource addContainerRegistryFromString(String name, String endpoint, String repository) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("endpoint", AspireClient.serializeValue(endpoint));
+        if (repository != null) {
+            reqArgs.put("repository", AspireClient.serializeValue(repository));
+        }
+        return (ContainerRegistryResource) getClient().invokeCapability("Aspire.Hosting/addContainerRegistryFromString", reqArgs);
     }
 
     /** Adds a container resource */
@@ -5987,6 +6008,24 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
         return (ExternalServiceResource) getClient().invokeCapability("Aspire.Hosting/addExternalService", reqArgs);
     }
 
+    /** Adds an external service with a URI */
+    public ExternalServiceResource addExternalServiceUri(String name, String uri) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("uri", AspireClient.serializeValue(uri));
+        return (ExternalServiceResource) getClient().invokeCapability("Aspire.Hosting/addExternalServiceUri", reqArgs);
+    }
+
+    /** Adds an external service with a parameter URL */
+    public ExternalServiceResource addExternalServiceParameter(String name, ParameterResource urlParameter) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("urlParameter", AspireClient.serializeValue(urlParameter));
+        return (ExternalServiceResource) getClient().invokeCapability("Aspire.Hosting/addExternalServiceParameter", reqArgs);
+    }
+
     /** Gets the AppHostDirectory property */
     public String appHostDirectory() {
         Map<String, Object> reqArgs = new HashMap<>();
@@ -6038,6 +6077,21 @@ class IDistributedApplicationBuilder extends HandleWrapperBase {
             reqArgs.put("secret", AspireClient.serializeValue(secret));
         }
         return (ParameterResource) getClient().invokeCapability("Aspire.Hosting/addParameter", reqArgs);
+    }
+
+    /** Adds a parameter with a default value */
+    public ParameterResource addParameterWithValue(String name, String value, Boolean publishValueAsDefault, Boolean secret) {
+        Map<String, Object> reqArgs = new HashMap<>();
+        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
+        reqArgs.put("name", AspireClient.serializeValue(name));
+        reqArgs.put("value", AspireClient.serializeValue(value));
+        if (publishValueAsDefault != null) {
+            reqArgs.put("publishValueAsDefault", AspireClient.serializeValue(publishValueAsDefault));
+        }
+        if (secret != null) {
+            reqArgs.put("secret", AspireClient.serializeValue(secret));
+        }
+        return (ParameterResource) getClient().invokeCapability("Aspire.Hosting/addParameterWithValue", reqArgs);
     }
 
     /** Adds a parameter sourced from configuration */

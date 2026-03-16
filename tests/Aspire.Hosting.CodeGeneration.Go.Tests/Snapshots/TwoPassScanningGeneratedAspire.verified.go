@@ -7937,6 +7937,20 @@ func NewIDistributedApplicationBuilder(handle *Handle, client *AspireClient) *ID
 	}
 }
 
+// AddConnectionStringExpression adds a connection string with a reference expression
+func (s *IDistributedApplicationBuilder) AddConnectionStringExpression(name string, connectionStringExpression *ReferenceExpression) (*ConnectionStringResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["connectionStringExpression"] = SerializeValue(connectionStringExpression)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addConnectionStringExpression", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConnectionStringResource), nil
+}
+
 // AddConnectionStringBuilder adds a connection string with a builder callback
 func (s *IDistributedApplicationBuilder) AddConnectionStringBuilder(name string, connectionStringBuilder func(...any) any) (*ConnectionStringResource, error) {
 	reqArgs := map[string]any{
@@ -7964,6 +7978,21 @@ func (s *IDistributedApplicationBuilder) AddContainerRegistry(name string, endpo
 		reqArgs["repository"] = SerializeValue(repository)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/addContainerRegistry", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ContainerRegistryResource), nil
+}
+
+// AddContainerRegistryFromString adds a container registry with string endpoint
+func (s *IDistributedApplicationBuilder) AddContainerRegistryFromString(name string, endpoint string, repository string) (*ContainerRegistryResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["endpoint"] = SerializeValue(endpoint)
+	reqArgs["repository"] = SerializeValue(repository)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addContainerRegistryFromString", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -8038,6 +8067,34 @@ func (s *IDistributedApplicationBuilder) AddExternalService(name string, url str
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["url"] = SerializeValue(url)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/addExternalService", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExternalServiceResource), nil
+}
+
+// AddExternalServiceUri adds an external service with a URI
+func (s *IDistributedApplicationBuilder) AddExternalServiceUri(name string, uri string) (*ExternalServiceResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["uri"] = SerializeValue(uri)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addExternalServiceUri", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ExternalServiceResource), nil
+}
+
+// AddExternalServiceParameter adds an external service with a parameter URL
+func (s *IDistributedApplicationBuilder) AddExternalServiceParameter(name string, urlParameter *ParameterResource) (*ExternalServiceResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["urlParameter"] = SerializeValue(urlParameter)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addExternalServiceParameter", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -8124,6 +8181,22 @@ func (s *IDistributedApplicationBuilder) AddParameter(name string, secret bool) 
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["secret"] = SerializeValue(secret)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/addParameter", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ParameterResource), nil
+}
+
+// AddParameterWithValue adds a parameter with a default value
+func (s *IDistributedApplicationBuilder) AddParameterWithValue(name string, value string, publishValueAsDefault bool, secret bool) (*ParameterResource, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	reqArgs["publishValueAsDefault"] = SerializeValue(publishValueAsDefault)
+	reqArgs["secret"] = SerializeValue(secret)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/addParameterWithValue", reqArgs)
 	if err != nil {
 		return nil, err
 	}
