@@ -183,14 +183,15 @@ public class FoundryExtensionsTests
     }
 
     [Fact]
-    public void AddProject_ReferencesParentFoundryForProvisioningOrdering()
+    public void AddProject_SetsParentFoundryForProvisioningOrdering()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
 
-        var project = builder.AddFoundry("myAIFoundry")
+        var foundry = builder.AddFoundry("myAIFoundry");
+        var project = foundry
             .AddProject("my-project");
 
-        Assert.Contains(project.Resource.Parent, project.Resource.References);
+        Assert.Same(foundry.Resource, project.Resource.Parent);
     }
 
     [Fact]
