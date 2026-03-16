@@ -33,10 +33,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Patterns for aspire agent --help
-        var agentMcpSubcommand = new CellPatternSearcher().Find("mcp");
-        var agentInitSubcommand = new CellPatternSearcher().Find("init");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -47,47 +43,35 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Test 1: aspire agent --help
         await auto.TypeAsync("aspire agent --help");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            var hasMcp = agentMcpSubcommand.Search(s).Count > 0;
-            var hasInit = agentInitSubcommand.Search(s).Count > 0;
-            return hasMcp && hasInit;
-        }, timeout: TimeSpan.FromSeconds(30), description: "agent help showing mcp and init subcommands");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("mcp") && s.ContainsText("init"),
+            timeout: TimeSpan.FromSeconds(30), description: "agent help showing mcp and init subcommands");
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 2: aspire agent mcp --help
-        // Using a more specific pattern that won't match later outputs
-        var mcpHelpPattern = new CellPatternSearcher().Find("aspire agent mcp [options]");
         await auto.TypeAsync("aspire agent mcp --help");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => mcpHelpPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "agent mcp help output");
+        await auto.WaitUntilTextAsync("aspire agent mcp [options]", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 3: aspire agent init --help
-        var initHelpPattern = new CellPatternSearcher().Find("aspire agent init [options]");
         await auto.TypeAsync("aspire agent init --help");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => initHelpPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "agent init help output");
+        await auto.WaitUntilTextAsync("aspire agent init [options]", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 4: aspire mcp --help (now shows tools and call subcommands)
-        var mcpToolsSubcommand = new CellPatternSearcher().Find("tools");
-        var mcpCallSubcommand = new CellPatternSearcher().Find("call");
         await auto.TypeAsync("aspire mcp --help");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            var hasTools = mcpToolsSubcommand.Search(s).Count > 0;
-            var hasCall = mcpCallSubcommand.Search(s).Count > 0;
-            return hasTools && hasCall;
-        }, timeout: TimeSpan.FromSeconds(30), description: "mcp help showing tools and call subcommands");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("tools") && s.ContainsText("call"),
+            timeout: TimeSpan.FromSeconds(30), description: "mcp help showing tools and call subcommands");
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 5: aspire mcp tools --help
-        var mcpToolsHelpPattern = new CellPatternSearcher().Find("aspire mcp tools [options]");
         await auto.TypeAsync("aspire mcp tools --help");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => mcpToolsHelpPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "mcp tools help output");
+        await auto.WaitUntilTextAsync("aspire mcp tools [options]", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("exit");
@@ -116,13 +100,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
         var containerConfigPath = CliE2ETestHelpers.ToContainerPath(configPath, workspace);
 
-        // Patterns for agent init prompts - look for the colon at the end which indicates
-        // the prompt is ready for input
-        var workspacePathPrompt = new CellPatternSearcher().Find("workspace:");
-
-        // Pattern to detect if no environments are found
-        var noEnvironmentsMessage = new CellPatternSearcher().Find("No agent environments");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -141,33 +118,21 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         Assert.Contains("\"start\"", fileContent);
 
         // Debug: Show that the file exists and where we are
-        var fileExistsPattern = new CellPatternSearcher().Find(".mcp.json");
         await auto.TypeAsync($"ls -la {containerConfigPath} && pwd");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => fileExistsPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "file exists in container");
+        await auto.WaitUntilTextAsync(".mcp.json", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 2: Run aspire agent init - should detect and auto-migrate deprecated config
         // In the new flow, deprecated config migrations are applied silently
-        var configurePrompt = new CellPatternSearcher().Find("configure");
-        var configComplete = new CellPatternSearcher().Find("omplete");
-
         await auto.TypeAsync("aspire agent init");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => workspacePathPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "workspace path prompt");
+        await auto.WaitUntilTextAsync("workspace:", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitAsync(500); // Small delay to ensure prompt is ready
         await auto.EnterAsync(); // Accept default workspace path
-        await auto.WaitUntilAsync(s =>
-        {
-            // Migration happens silently. We'll see either:
-            // - The configure prompt (if other environments were detected)
-            // - "Configuration complete" (if only deprecated configs were found)
-            // - "No agent environments" (if nothing was found)
-            var hasConfigure = configurePrompt.Search(s).Count > 0;
-            var hasNoEnv = noEnvironmentsMessage.Search(s).Count > 0;
-            var hasComplete = configComplete.Search(s).Count > 0;
-            return hasConfigure || hasNoEnv || hasComplete;
-        }, timeout: TimeSpan.FromSeconds(60), description: "configure prompt, completion, or no environments message");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("configure") || s.ContainsText("No agent environments") || s.ContainsText("omplete"),
+            timeout: TimeSpan.FromSeconds(60), description: "configure prompt, completion, or no environments message");
 
         // If we got the configure prompt, just press Enter to accept defaults
         // If we got complete/no-env, this Enter is harmless
@@ -175,10 +140,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Debug: Show the scanner log file to diagnose what the scanner found
-        var debugLogPattern = new CellPatternSearcher().Find("Scanning context");
         await auto.TypeAsync("cat /tmp/aspire-deprecated-scan.log 2>/dev/null || echo 'No debug log found'");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => debugLogPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "scanner debug log output");
+        await auto.WaitUntilTextAsync("Scanning context", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 3: Verify config was updated to new format
@@ -210,15 +174,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
 
-        // Pattern to detect deprecated config warning in doctor output
-        var deprecatedWarning = new CellPatternSearcher().Find("deprecated");
-
-        // Pattern to detect fix suggestion
-        var fixSuggestion = new CellPatternSearcher().Find("aspire agent init");
-
-        // Pattern to detect doctor completion
-        var doctorComplete = new CellPatternSearcher().Find("dev-certs");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -230,13 +185,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         File.WriteAllText(configPath, """{"mcpServers":{"aspire":{"command":"aspire","args":["mcp","start"]}}}""");
         await auto.TypeAsync("aspire doctor");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            var hasComplete = doctorComplete.Search(s).Count > 0;
-            var hasDeprecated = deprecatedWarning.Search(s).Count > 0;
-            var hasFix = fixSuggestion.Search(s).Count > 0;
-            return hasComplete && hasDeprecated && hasFix;
-        }, timeout: TimeSpan.FromSeconds(60), description: "doctor output with deprecated warning and fix suggestion");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("dev-certs") && s.ContainsText("deprecated") && s.ContainsText("aspire agent init"),
+            timeout: TimeSpan.FromSeconds(60), description: "doctor output with deprecated warning and fix suggestion");
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("exit");
@@ -264,12 +215,6 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Set up .vscode folder so VS Code scanner detects it
         var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
 
-        // Patterns
-        var workspacePathPrompt = new CellPatternSearcher().Find("workspace:");
-        var configurePrompt = new CellPatternSearcher().Find("configure");
-        var skillOption = new CellPatternSearcher().Find("skill");
-        var configComplete = new CellPatternSearcher().Find("complete");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -283,12 +228,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Run aspire agent init and accept defaults (skill is pre-selected)
         await auto.TypeAsync("aspire agent init");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => workspacePathPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "workspace path prompt");
+        await auto.WaitUntilTextAsync("workspace:", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitAsync(500);
         await auto.EnterAsync(); // Accept default workspace path
-        await auto.WaitUntilAsync(s => configurePrompt.Search(s).Count > 0 && skillOption.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "configure prompt with skill option");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("configure") && s.ContainsText("skill"),
+            timeout: TimeSpan.FromSeconds(60), description: "configure prompt with skill option");
         await auto.EnterAsync(); // Accept defaults (skill pre-selected)
-        await auto.WaitUntilAsync(s => configComplete.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "configuration complete");
+        await auto.WaitUntilTextAsync("complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify skill file was created

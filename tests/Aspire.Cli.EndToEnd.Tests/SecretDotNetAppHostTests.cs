@@ -40,50 +40,38 @@ public sealed class SecretDotNetAppHostTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Set secrets
-        var waitingForSetSuccess = new CellPatternSearcher()
-            .Find("set successfully");
-
         await auto.TypeAsync("aspire secret set Azure:Location eastus2");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForSetSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for secret set success");
+        await auto.WaitUntilTextAsync("set successfully", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire secret set Parameters:db-password s3cret");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForSetSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret set success");
+        await auto.WaitUntilTextAsync("set successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Get
-        var waitingForGetValue = new CellPatternSearcher()
-            .Find("eastus2");
-
         await auto.TypeAsync("aspire secret get Azure:Location");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForGetValue.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret get value");
+        await auto.WaitUntilTextAsync("eastus2", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // List
-        var waitingForListOutput = new CellPatternSearcher()
-            .Find("db-password");
-
         await auto.TypeAsync("aspire secret list");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForListOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret list output");
+        await auto.WaitUntilTextAsync("db-password", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Delete
-        var waitingForDeleteSuccess = new CellPatternSearcher()
-            .Find("deleted successfully");
-
         await auto.TypeAsync("aspire secret delete Azure:Location");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForDeleteSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret delete success");
+        await auto.WaitUntilTextAsync("deleted successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify deletion
         await auto.TypeAsync("aspire secret list");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForListOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret list after deletion");
+        await auto.WaitUntilTextAsync("db-password", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("exit");

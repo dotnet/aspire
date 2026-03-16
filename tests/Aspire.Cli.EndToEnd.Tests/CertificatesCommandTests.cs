@@ -25,14 +25,6 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for successful trust output
-        var trustSuccessPattern = new CellPatternSearcher()
-            .Find("trusted successfully");
-
-        // Pattern for doctor showing trusted after fix
-        var trustedPattern = new CellPatternSearcher()
-            .Find("certificate is trusted");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -52,13 +44,13 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         // Run aspire certs trust — should trust the existing cert
         await auto.TypeAsync("aspire certs trust");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => trustSuccessPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "trust success output");
+        await auto.WaitUntilTextAsync("trusted successfully", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows the certificate as trusted
         await auto.TypeAsync("aspire doctor");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => trustedPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "certificate is trusted output");
+        await auto.WaitUntilTextAsync("certificate is trusted", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -76,14 +68,6 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // Pattern for successful clean
-        var cleanedPattern = new CellPatternSearcher()
-            .Find("cleaned successfully");
-
-        // Pattern to verify doctor shows no cert after clean
-        var noCertPattern = new CellPatternSearcher()
-            .Find("No HTTPS development certificate");
 
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
@@ -103,13 +87,13 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         // Run aspire certs clean
         await auto.TypeAsync("aspire certs clean");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => cleanedPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "cleaned successfully output");
+        await auto.WaitUntilTextAsync("cleaned successfully", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows no certificate
         await auto.TypeAsync("aspire doctor");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => noCertPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "no HTTPS development certificate output");
+        await auto.WaitUntilTextAsync("No HTTPS development certificate", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -128,14 +112,6 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for successful trust
-        var trustSuccessPattern = new CellPatternSearcher()
-            .Find("trusted successfully");
-
-        // Pattern for doctor showing trusted
-        var trustedPattern = new CellPatternSearcher()
-            .Find("certificate is trusted");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -150,13 +126,13 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
         // Run aspire certs trust with NO pre-existing cert — should create and trust
         await auto.TypeAsync("aspire certs trust");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => trustSuccessPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "trust success output");
+        await auto.WaitUntilTextAsync("trusted successfully", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows the certificate as trusted
         await auto.TypeAsync("aspire doctor");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => trustedPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "certificate is trusted output");
+        await auto.WaitUntilTextAsync("certificate is trusted", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();

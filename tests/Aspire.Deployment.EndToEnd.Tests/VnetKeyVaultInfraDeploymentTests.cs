@@ -61,12 +61,6 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            var waitingForVersionSelectionPrompt = new CellPatternSearcher()
-                .Find("(based on NuGet.config)");
-
-            var waitingForPipelineSucceeded = new CellPatternSearcher()
-                .Find("PIPELINE SUCCEEDED");
-
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -91,7 +85,7 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt for AppContainers");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();
             }
 
@@ -104,7 +98,7 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt for Network");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();
             }
 
@@ -117,7 +111,7 @@ public sealed class VnetKeyVaultInfraDeploymentTests(ITestOutputHelper output)
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt for KeyVault");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();
             }
 
@@ -167,7 +161,7 @@ builder.Build().Run();
             output.WriteLine("Step 7: Starting Azure deployment...");
             await auto.TypeAsync("aspire deploy --clear-cache");
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(s => waitingForPipelineSucceeded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(25), description: "pipeline succeeded");
+            await auto.WaitUntilTextAsync("PIPELINE SUCCEEDED", timeout: TimeSpan.FromMinutes(25));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             // Step 8: Verify VNet infrastructure

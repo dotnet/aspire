@@ -25,14 +25,6 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern to detect partial trust warning in aspire doctor output
-        var partiallyTrustedPattern = new CellPatternSearcher()
-            .Find("partially trusted");
-
-        // Pattern to detect doctor command completion (shows environment check results)
-        var doctorCompletePattern = new CellPatternSearcher()
-            .Find("dev-certs");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -51,13 +43,9 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("aspire doctor");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            // Wait for doctor to complete and show partial trust warning
-            var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
-            var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
-            return hasDevCerts && hasPartiallyTrusted;
-        }, timeout: TimeSpan.FromSeconds(60), description: "doctor to complete with partial trust warning");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("dev-certs") && s.ContainsText("partially trusted"),
+            timeout: TimeSpan.FromSeconds(60), description: "doctor to complete with partial trust warning");
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -75,18 +63,6 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // Pattern to detect fully trusted certificate
-        var trustedPattern = new CellPatternSearcher()
-            .Find("certificate is trusted");
-
-        // Pattern to detect partial trust (should NOT appear)
-        var partiallyTrustedPattern = new CellPatternSearcher()
-            .Find("partially trusted");
-
-        // Pattern to detect doctor command completion
-        var doctorCompletePattern = new CellPatternSearcher()
-            .Find("dev-certs");
 
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
@@ -109,24 +85,19 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         await auto.WaitUntilAsync(s =>
         {
             // Wait for doctor to complete
-            var hasDevCerts = doctorCompletePattern.Search(s).Count > 0;
-            if (!hasDevCerts)
+            if (!s.ContainsText("dev-certs"))
             {
                 return false;
             }
 
-            // Verify we see "trusted" but NOT "partially trusted"
-            var hasTrusted = trustedPattern.Search(s).Count > 0;
-            var hasPartiallyTrusted = partiallyTrustedPattern.Search(s).Count > 0;
-
             // Fail if we see partial trust when SSL_CERT_DIR is configured
-            if (hasPartiallyTrusted)
+            if (s.ContainsText("partially trusted"))
             {
                 throw new InvalidOperationException(
                     "Unexpected 'partially trusted' message when SSL_CERT_DIR is configured!");
             }
 
-            return hasTrusted;
+            return s.ContainsText("certificate is trusted");
         }, timeout: TimeSpan.FromSeconds(60), description: "doctor to complete with trusted certificate");
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");

@@ -21,10 +21,7 @@ internal static class CliE2EAutomatorHelpers
         TemporaryWorkspace? workspace = null)
     {
         // Wait for container to be ready (root prompt)
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("# ").Search(s).Count > 0,
-            timeout: TimeSpan.FromSeconds(60),
-            description: "Docker container root prompt (# )");
+        await auto.WaitUntilTextAsync("# ", timeout: TimeSpan.FromSeconds(60));
 
         await auto.WaitAsync(500);
 
@@ -164,10 +161,9 @@ internal static class CliE2EAutomatorHelpers
 
         var shortCommitSha = commitSha[..8];
         var expectedVersionSuffix = $"g{shortCommitSha}";
-        var versionPattern = new CellPatternSearcher().Find(expectedVersionSuffix);
         await auto.TypeAsync("aspire --version");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => versionPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "CLI version contains expected commit SHA");
+        await auto.WaitUntilTextAsync(expectedVersionSuffix, timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
     }
 

@@ -26,25 +26,6 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for start/stop commands
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        // Pattern for verifying log output was written to file
-        var waitForApiserviceLogs = new CellPatternSearcher()
-            .Find("[apiservice]");
-
-        // Pattern for verifying JSON log output was written to file
-        var waitForLogsJsonOutput = new CellPatternSearcher()
-            .Find("\"resourceName\":");
-
-        // Pattern for aspire logs when no AppHosts running
-        var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHost found");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -63,7 +44,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "wait for AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Wait for resources to fully start and produce logs
@@ -84,7 +65,7 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         // Verify the log file contains expected output
         await auto.TypeAsync("cat logs.txt | grep -E '\\[apiservice\\]' | head -3");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForApiserviceLogs.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "wait for apiservice log lines");
+        await auto.WaitUntilTextAsync("[apiservice]", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test aspire logs --format json for a specific resource
@@ -95,13 +76,13 @@ public sealed class LogsCommandTests(ITestOutputHelper output)
         // Verify the JSON log file contains expected output
         await auto.TypeAsync("cat logs_json.txt | grep '\"resourceName\"' | head -3");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForLogsJsonOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "wait for JSON log output");
+        await auto.WaitUntilTextAsync("\"resourceName\":", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(1), description: "wait for AppHost stopped successfully");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell

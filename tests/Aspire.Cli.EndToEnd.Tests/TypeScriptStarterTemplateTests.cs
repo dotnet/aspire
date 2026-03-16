@@ -66,10 +66,7 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
 
         await auto.TypeAsync("curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("dashboard-http-200").Search(s).Count > 0,
-            timeout: TimeSpan.FromSeconds(15),
-            description: "dashboard curl returns HTTP 200");
+        await auto.WaitUntilTextAsync("dashboard-http-200", timeout: TimeSpan.FromSeconds(15));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire stop");

@@ -43,10 +43,6 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // In CI, aspire add shows a version selection prompt (but aspire new does not when channel is set)
-        var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
-            .Find("(based on NuGet.config)");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -137,7 +133,7 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
             // The version selection prompt always appears for 'aspire add'
             await auto.TypeAsync("aspire add Aspire.Hosting.Kubernetes");
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for version selection prompt");
+            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
             await auto.EnterAsync(); // select first version
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 

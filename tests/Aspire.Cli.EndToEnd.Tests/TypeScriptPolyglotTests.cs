@@ -26,26 +26,6 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for language selection prompt
-        var waitingForLanguageSelectionPrompt = new CellPatternSearcher()
-            .Find("Which language would you like to use?");
-
-        // Pattern for TypeScript language selected
-        var waitingForTypeScriptSelected = new CellPatternSearcher()
-            .Find("> TypeScript (Node.js)");
-
-        // Pattern for waiting for apphost.ts creation success
-        var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created apphost.ts");
-
-        // Pattern for aspire add completion
-        var waitingForPackageAdded = new CellPatternSearcher()
-            .Find("The package Aspire.Hosting.");
-
-        // Pattern for aspire run ready
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -56,12 +36,12 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // Step 1: Create TypeScript AppHost using aspire init with interactive language selection
         await auto.TypeAsync("aspire init");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForLanguageSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for language selection prompt");
+        await auto.WaitUntilTextAsync("Which language would you like to use?", timeout: TimeSpan.FromSeconds(30));
         // Navigate down to "TypeScript (Node.js)" which is the 2nd option
         await auto.DownAsync();
-        await auto.WaitUntilAsync(s => waitingForTypeScriptSelected.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for TypeScript option to be selected");
+        await auto.WaitUntilTextAsync("> TypeScript (Node.js)", timeout: TimeSpan.FromSeconds(5));
         await auto.EnterAsync(); // select TypeScript
-        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts creation");
+        await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.DeclineAgentInitPromptAsync(counter);
 
         // Step 2: Create a Vite app using npm create vite
@@ -82,7 +62,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // the version is auto-selected without prompting.
         await auto.TypeAsync("aspire add Aspire.Hosting.JavaScript");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for JavaScript package to be added");
+        await auto.WaitUntilTextAsync("The package Aspire.Hosting.", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 5: Modify apphost.ts to add the Vite app
@@ -106,7 +86,7 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         // Step 6: Run the apphost
         await auto.TypeAsync("aspire run");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForCtrlCMessage.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for Ctrl+C message from apphost");
+        await auto.WaitUntilTextAsync("Press CTRL+C to stop the apphost and exit.", timeout: TimeSpan.FromMinutes(3));
 
         // Step 7: Stop the apphost
         await auto.Ctrl().KeyAsync(Hex1bKey.C);

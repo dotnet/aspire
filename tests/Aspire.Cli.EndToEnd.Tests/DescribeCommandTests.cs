@@ -26,28 +26,6 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for start/stop/resources commands
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        // Pattern for aspire resources output - table header
-        var waitForResourcesTableHeader = new CellPatternSearcher()
-            .Find("Name");
-
-        // Pattern for resources - should show the webfrontend and apiservice
-        var waitForWebfrontendResource = new CellPatternSearcher()
-            .Find("webfrontend");
-
-        var waitForApiserviceResource = new CellPatternSearcher()
-            .Find("apiservice");
-
-        // Pattern for verifying JSON output was written to file
-        var waitForJsonFileWritten = new CellPatternSearcher()
-            .Find("webfrontend");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -66,7 +44,7 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for AppHost to start");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Wait a bit for resources to stabilize
@@ -77,9 +55,9 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Now verify aspire describe shows the running resources (human-readable table)
         await auto.TypeAsync("aspire describe");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForResourcesTableHeader.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for resources table header");
-        await auto.WaitUntilAsync(s => waitForWebfrontendResource.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for webfrontend resource");
-        await auto.WaitUntilAsync(s => waitForApiserviceResource.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for apiservice resource");
+        await auto.WaitUntilTextAsync("Name", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync("webfrontend", timeout: TimeSpan.FromSeconds(5));
+        await auto.WaitUntilTextAsync("apiservice", timeout: TimeSpan.FromSeconds(5));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test aspire describe --format json output - pipe to file to avoid terminal buffer issues
@@ -90,13 +68,13 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Verify the JSON file contains expected resources
         await auto.TypeAsync("cat resources.json | grep webfrontend");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForJsonFileWritten.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for webfrontend in JSON output");
+        await auto.WaitUntilTextAsync("webfrontend", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(1), description: "waiting for AppHost to stop");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell
@@ -117,17 +95,6 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
-
-        // Pattern searchers for start/stop commands
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        // Pattern for describe output with friendly name (non-replicated resource)
-        var waitForCacheResource = new CellPatternSearcher()
-            .Find("cache");
 
         // Pattern for describe output showing a specific replica
         var waitForApiserviceReplicaName = new CellPatternSearcher()
@@ -175,7 +142,7 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for AppHost to start");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Wait for resources to stabilize
@@ -192,7 +159,7 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Verify cache resource was found in the output
         await auto.TypeAsync("cat cache-describe.json | grep cache");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForCacheResource.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for cache resource in output");
+        await auto.WaitUntilTextAsync("cache", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 2: Get all resources to find an apiservice replica name
@@ -226,7 +193,7 @@ public sealed class DescribeCommandTests(ITestOutputHelper output)
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(1), description: "waiting for AppHost to stop");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell

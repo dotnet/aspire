@@ -29,15 +29,6 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created apphost.ts");
-
-        var waitingForPackageAdded = new CellPatternSearcher()
-            .Find("The package Aspire.Hosting.");
-
-        var waitingForRestoreSuccess = new CellPatternSearcher()
-            .Find("SDK code restored successfully");
-
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
         await auto.InstallAspireCliInDockerAsync(installMode, counter);
@@ -45,24 +36,24 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         // Step 1: Create a TypeScript AppHost
         await auto.TypeAsync("aspire init --language typescript --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts creation");
+        await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 2: Add two integrations
         await auto.TypeAsync("aspire add Aspire.Hosting.Redis");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for Redis package added");
+        await auto.WaitUntilTextAsync("The package Aspire.Hosting.", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire add Aspire.Hosting.SqlServer");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for SqlServer package added");
+        await auto.WaitUntilTextAsync("The package Aspire.Hosting.", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 3: Run aspire restore and verify success
         await auto.TypeAsync("aspire restore");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForRestoreSuccess.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for restore success");
+        await auto.WaitUntilTextAsync("SDK code restored successfully", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 4: Verify generated SDK files exist
@@ -120,21 +111,6 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created apphost.ts");
-
-        var waitingForPackageAdded = new CellPatternSearcher()
-            .Find("The package Aspire.Hosting.");
-
-        var waitingForRestoreSuccess = new CellPatternSearcher()
-            .Find("SDK code restored successfully");
-
-        var waitingForAppHostError = new CellPatternSearcher()
-            .Find("❌ AppHost Error:");
-
-        var waitingForAwaitHint = new CellPatternSearcher()
-            .Find("Did you forget 'await'");
-
         // PrepareEnvironment
         await auto.PrepareEnvironmentAsync(workspace, counter);
 
@@ -147,17 +123,17 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
 
         await auto.TypeAsync("aspire init --language typescript --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts creation");
+        await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire add Aspire.Hosting.PostgreSQL");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for PostgreSQL package added");
+        await auto.WaitUntilTextAsync("The package Aspire.Hosting.", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire restore");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForRestoreSuccess.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for restore success");
+        await auto.WaitUntilTextAsync("SDK code restored successfully", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
@@ -180,8 +156,8 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire run");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s =>
-            waitingForAppHostError.Search(s).Count > 0 &&
-            waitingForAwaitHint.Search(s).Count > 0,
+            s.ContainsText("❌ AppHost Error:") &&
+            s.ContainsText("Did you forget 'await'"),
             timeout: TimeSpan.FromMinutes(3), description: "waiting for AppHost error with await hint");
         await auto.WaitForAnyPromptAsync(counter);
         await auto.TypeAsync("exit");

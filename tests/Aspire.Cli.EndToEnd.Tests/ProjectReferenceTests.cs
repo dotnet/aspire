@@ -28,20 +28,6 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created apphost.ts");
-
-        var waitForStartSuccess = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        // Pattern to verify our custom integration was code-generated
-        var waitForAddMyServiceInCodegen = new CellPatternSearcher()
-            .Find("addMyService");
-
-        // Pattern to verify the resource appears in describe output
-        var waitForMyServiceInDescribe = new CellPatternSearcher()
-            .Find("my-svc");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -52,7 +38,7 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         // Step 1: Create a TypeScript AppHost (so we get the SDK version in aspire.config.json)
         await auto.TypeAsync("aspire init --language typescript --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts to be created");
+        await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 2: Create the integration project, update aspire.config.json, and modify apphost.ts
@@ -156,20 +142,16 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         }
 
         // Step 3: Start the AppHost (triggers project ref build + codegen)
-        // Detect either success or failure
-        var waitForStartFailure = new CellPatternSearcher()
-            .Find("AppHost failed to build");
-
         await auto.TypeAsync("aspire start --non-interactive 2>&1 | tee /tmp/aspire-start-output.txt");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s =>
         {
-            if (waitForStartFailure.Search(s).Count > 0)
+            if (s.ContainsText("AppHost failed to build"))
             {
                 // Dump child logs before failing
                 return true;
             }
-            return waitForStartSuccess.Search(s).Count > 0;
+            return s.ContainsText("AppHost started successfully.");
         }, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost start success or failure");
         await auto.WaitForSuccessPromptAsync(counter);
 
@@ -181,7 +163,7 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         // Step 4: Verify the custom integration was code-generated
         await auto.TypeAsync("grep addMyService .modules/aspire.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAddMyServiceInCodegen.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for addMyService in codegen output");
+        await auto.WaitUntilTextAsync("addMyService", timeout: TimeSpan.FromSeconds(5));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 5: Wait for the custom resource to be up
@@ -195,7 +177,7 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(15));
         await auto.TypeAsync("cat /tmp/my-svc-describe.json");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForMyServiceInDescribe.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for my-svc in describe output");
+        await auto.WaitUntilTextAsync("my-svc", timeout: TimeSpan.FromSeconds(5));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 7: Clean up

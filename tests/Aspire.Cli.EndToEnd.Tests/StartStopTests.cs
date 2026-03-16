@@ -46,19 +46,13 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(3),
-            description: "AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(1),
-            description: "AppHost stopped successfully");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell
@@ -92,10 +86,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // Run aspire stop with no running AppHost - should exit with code 0
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0,
-            timeout: TimeSpan.FromSeconds(30),
-            description: "No running AppHost found message");
+        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell
@@ -137,10 +128,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // Start the AppHost in detached mode (locks the project file)
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(3),
-            description: "AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Add a package while the AppHost is running - this should auto-stop the
@@ -148,10 +136,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // --non-interactive skips the version selection prompt.
         await auto.TypeAsync("aspire add mongodb --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("was added successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(3),
-            description: "package added successfully");
+        await auto.WaitUntilTextAsync("was added successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: stop if still running (the add command may have stopped it)
@@ -160,11 +145,8 @@ public sealed class StartStopTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s =>
-        {
-            var noRunning = new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0;
-            var stopped = new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0;
-            return noRunning || stopped;
-        }, timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
+            s.ContainsText("No running AppHost found") || s.ContainsText("AppHost stopped successfully."),
+            timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
         await auto.WaitForAnyPromptAsync(counter);
 
         // Exit the shell
@@ -206,10 +188,7 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // Start the AppHost in detached mode (locks the project file)
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(3),
-            description: "AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire add interactively (no integration argument) while AppHost is running.
@@ -217,21 +196,12 @@ public sealed class StartStopTests(ITestOutputHelper output)
         // running instance is auto-stopped before modifying the project.
         await auto.TypeAsync("aspire add");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("Select an integration to add:").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(1),
-            description: "integration selection prompt");
+        await auto.WaitUntilTextAsync("Select an integration to add:", timeout: TimeSpan.FromMinutes(1));
         await auto.TypeAsync("mongodb"); // type to filter the list
         await auto.EnterAsync(); // select the filtered result
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("Select a version of").Search(s).Count > 0,
-            timeout: TimeSpan.FromSeconds(30),
-            description: "version selection prompt");
+        await auto.WaitUntilTextAsync("Select a version of", timeout: TimeSpan.FromSeconds(30));
         await auto.EnterAsync(); // Accept the default version
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("was added successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(2),
-            description: "package added successfully");
+        await auto.WaitUntilTextAsync("was added successfully.", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: stop if still running
@@ -240,11 +210,8 @@ public sealed class StartStopTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s =>
-        {
-            var noRunning = new CellPatternSearcher().Find("No running AppHost found").Search(s).Count > 0;
-            var stopped = new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0;
-            return noRunning || stopped;
-        }, timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
+            s.ContainsText("No running AppHost found") || s.ContainsText("AppHost stopped successfully."),
+            timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped or no running AppHost");
         await auto.WaitForAnyPromptAsync(counter);
 
         // Exit the shell

@@ -39,20 +39,15 @@ public sealed class JsReactTemplateTests(ITestOutputHelper output)
         await auto.EnterAsync();
 
         // Regression test for https://github.com/dotnet/aspire/issues/13971
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
-        var unexpectedAppHostSelectionPrompt = new CellPatternSearcher()
-            .Find("Select an apphost to use:");
-
         await auto.WaitUntilAsync(s =>
         {
-            if (unexpectedAppHostSelectionPrompt.Search(s).Count > 0)
+            if (s.ContainsText("Select an apphost to use:"))
             {
                 throw new InvalidOperationException(
                     "Unexpected apphost selection prompt detected! " +
                     "This indicates multiple apphosts were incorrectly detected.");
             }
-            return waitForCtrlCMessage.Search(s).Count > 0;
+            return s.ContainsText("Press CTRL+C to stop the apphost and exit.");
         }, timeout: TimeSpan.FromMinutes(2), description: "Press CTRL+C message (aspire run started)");
 
         await auto.Ctrl().KeyAsync(Hex1bKey.C);

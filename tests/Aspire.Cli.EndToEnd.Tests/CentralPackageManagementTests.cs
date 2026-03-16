@@ -26,19 +26,6 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // aspire update prompts
-        var waitingForPerformUpdates = new CellPatternSearcher()
-            .Find("Perform updates?");
-
-        var waitingForNuGetConfigDirectory = new CellPatternSearcher()
-            .Find("Which directory for NuGet.config file?");
-
-        var waitingForApplyNuGetConfig = new CellPatternSearcher()
-            .Find("Apply these changes to NuGet.config?");
-
-        var waitingForUpdateSuccessful = new CellPatternSearcher()
-            .Find("Update successful!");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -97,15 +84,15 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
         // in CI when PR hive directories are present.
         await auto.TypeAsync($"aspire update --project \"{containerAppHostCsprojPath}\" --channel stable");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForPerformUpdates.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for 'Perform updates?' prompt");
+        await auto.WaitUntilTextAsync("Perform updates?", timeout: TimeSpan.FromSeconds(60));
         await auto.EnterAsync(); // confirm "Perform updates?" (default: Yes)
         // The updater may prompt for a NuGet.config location and ask to apply changes
         // when the project doesn't have an existing NuGet.config. Accept defaults for both.
-        await auto.WaitUntilAsync(s => waitingForNuGetConfigDirectory.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for 'Which directory for NuGet.config file?' prompt");
+        await auto.WaitUntilTextAsync("Which directory for NuGet.config file?", timeout: TimeSpan.FromSeconds(30));
         await auto.EnterAsync(); // accept default directory
-        await auto.WaitUntilAsync(s => waitingForApplyNuGetConfig.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for 'Apply these changes to NuGet.config?' prompt");
+        await auto.WaitUntilTextAsync("Apply these changes to NuGet.config?", timeout: TimeSpan.FromSeconds(30));
         await auto.EnterAsync(); // confirm "Apply these changes to NuGet.config?" (default: Yes)
-        await auto.WaitUntilAsync(s => waitingForUpdateSuccessful.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "waiting for 'Update successful!' message");
+        await auto.WaitUntilTextAsync("Update successful!", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify the PackageVersion for Aspire.Hosting.AppHost was removed

@@ -146,12 +146,10 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         AssertFileContains(legacyPath, "channel");
 
         // Verify migrated values are accessible via aspire config get.
-        var channelPattern = new CellPatternSearcher().Find("staging");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'staging'");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Cleanup.
@@ -260,12 +258,10 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
-        var stablePattern = new CellPatternSearcher().Find("stable");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => stablePattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'stable'");
+        await auto.WaitUntilTextAsync("stable", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Cleanup.
@@ -328,12 +324,10 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         AssertFileContains(newConfigPath, "staging", "polyglotSupportEnabled");
 
         // Verify value accessible via config get.
-        var channelPattern = new CellPatternSearcher().Find("staging");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'staging'");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Cleanup.
@@ -398,20 +392,16 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         AssertFileContains(newConfigPath, "features", "polyglotSupportEnabled", "preview");
 
         // Verify values are readable via aspire config get.
-        var channelPattern = new CellPatternSearcher().Find("preview");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'preview'");
+        await auto.WaitUntilTextAsync("preview", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
-
-        var truePattern = new CellPatternSearcher().Find("true");
 
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get features.polyglotSupportEnabled");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => truePattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for polyglotSupportEnabled value 'true'");
+        await auto.WaitUntilTextAsync("true", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify globalsettings.json was NOT created.
@@ -496,12 +486,10 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
             "Aspire.Hosting.Redis");
 
         // Verify individual value via config get.
-        var channelPattern = new CellPatternSearcher().Find("preview");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'preview'");
+        await auto.WaitUntilTextAsync("preview", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Cleanup.
@@ -564,12 +552,10 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify values were persisted by the legacy CLI.
-        var channelPattern = new CellPatternSearcher().Find("staging");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'staging' from legacy CLI");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Snapshot which files exist after using the legacy CLI (for debugging).
@@ -595,7 +581,7 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => channelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "waiting for channel value 'staging' from new CLI");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Cleanup.

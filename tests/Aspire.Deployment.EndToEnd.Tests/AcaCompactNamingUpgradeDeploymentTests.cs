@@ -65,23 +65,6 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            var waitingForInitComplete = new CellPatternSearcher()
-                .Find("Aspire initialization complete");
-
-            var waitingForVersionSelectionPrompt = new CellPatternSearcher()
-                .Find("(based on NuGet.config)");
-
-            var waitingForUpdateSuccessful = new CellPatternSearcher()
-                .Find("Update successful");
-
-            // aspire update prompts (used in Phase 2)
-            var waitingForPerformUpdates = new CellPatternSearcher().Find("Perform updates?");
-            var waitingForNugetConfigDir = new CellPatternSearcher().Find("NuGet.config file?");
-            var waitingForApplyNugetConfig = new CellPatternSearcher().Find("Apply these changes");
-
-            var waitingForPipelineSucceeded = new CellPatternSearcher()
-                .Find("PIPELINE SUCCEEDED");
-
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -119,20 +102,14 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             await auto.EnterAsync();
             await auto.WaitAsync(TimeSpan.FromSeconds(5));
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(
-                s => waitingForInitComplete.Search(s).Count > 0,
-                timeout: TimeSpan.FromMinutes(2),
-                description: "init complete");
+            await auto.WaitUntilTextAsync("Aspire initialization complete", timeout: TimeSpan.FromMinutes(2));
             await auto.DeclineAgentInitPromptAsync(counter);
 
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");
             await auto.TypeAsync("aspire add Aspire.Hosting.Azure.AppContainers");
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(
-                s => waitingForVersionSelectionPrompt.Search(s).Count > 0,
-                timeout: TimeSpan.FromSeconds(60),
-                description: "version selection prompt");
+            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
             await auto.EnterAsync();
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
@@ -166,10 +143,7 @@ builder.Build().Run();
             output.WriteLine("Step 9: First deployment with GA CLI...");
             await auto.TypeAsync("aspire deploy --clear-cache");
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(
-                s => waitingForPipelineSucceeded.Search(s).Count > 0,
-                timeout: TimeSpan.FromMinutes(30),
-                description: "pipeline succeeded");
+            await auto.WaitUntilTextAsync("PIPELINE SUCCEEDED", timeout: TimeSpan.FromMinutes(30));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(5));
 
             // Step 10: Record the storage account count after first deploy
@@ -208,25 +182,13 @@ builder.Build().Run();
                 output.WriteLine("Step 11b: Updating project packages to dev version...");
                 await auto.TypeAsync("aspire update --channel local");
                 await auto.EnterAsync();
-                await auto.WaitUntilAsync(
-                    s => waitingForPerformUpdates.Search(s).Count > 0,
-                    timeout: TimeSpan.FromMinutes(2),
-                    description: "perform updates prompt");
+                await auto.WaitUntilTextAsync("Perform updates?", timeout: TimeSpan.FromMinutes(2));
                 await auto.EnterAsync();
-                await auto.WaitUntilAsync(
-                    s => waitingForNugetConfigDir.Search(s).Count > 0,
-                    timeout: TimeSpan.FromMinutes(2),
-                    description: "NuGet.config directory prompt");
+                await auto.WaitUntilTextAsync("NuGet.config file?", timeout: TimeSpan.FromMinutes(2));
                 await auto.EnterAsync();
-                await auto.WaitUntilAsync(
-                    s => waitingForApplyNugetConfig.Search(s).Count > 0,
-                    timeout: TimeSpan.FromMinutes(2),
-                    description: "apply NuGet.config prompt");
+                await auto.WaitUntilTextAsync("Apply these changes", timeout: TimeSpan.FromMinutes(2));
                 await auto.EnterAsync();
-                await auto.WaitUntilAsync(
-                    s => waitingForUpdateSuccessful.Search(s).Count > 0,
-                    timeout: TimeSpan.FromMinutes(2),
-                    description: "update successful");
+                await auto.WaitUntilTextAsync("Update successful", timeout: TimeSpan.FromMinutes(2));
                 await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
             }
             else
@@ -243,25 +205,13 @@ builder.Build().Run();
                     output.WriteLine("Step 11b: Updating project packages to dev version...");
                     await auto.TypeAsync($"aspire update --channel pr-{prNumber}");
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForPerformUpdates.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "perform updates prompt");
+                    await auto.WaitUntilTextAsync("Perform updates?", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForNugetConfigDir.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "NuGet.config directory prompt");
+                    await auto.WaitUntilTextAsync("NuGet.config file?", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForApplyNugetConfig.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "apply NuGet.config prompt");
+                    await auto.WaitUntilTextAsync("Apply these changes", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForUpdateSuccessful.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "update successful");
+                    await auto.WaitUntilTextAsync("Update successful", timeout: TimeSpan.FromMinutes(2));
                     await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
                 }
                 else
@@ -270,25 +220,13 @@ builder.Build().Run();
                     // Still run aspire update to pick up whatever local packages are available
                     await auto.TypeAsync("aspire update");
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForPerformUpdates.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "perform updates prompt");
+                    await auto.WaitUntilTextAsync("Perform updates?", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForNugetConfigDir.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "NuGet.config directory prompt");
+                    await auto.WaitUntilTextAsync("NuGet.config file?", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForApplyNugetConfig.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "apply NuGet.config prompt");
+                    await auto.WaitUntilTextAsync("Apply these changes", timeout: TimeSpan.FromMinutes(2));
                     await auto.EnterAsync();
-                    await auto.WaitUntilAsync(
-                        s => waitingForUpdateSuccessful.Search(s).Count > 0,
-                        timeout: TimeSpan.FromMinutes(2),
-                        description: "update successful");
+                    await auto.WaitUntilTextAsync("Update successful", timeout: TimeSpan.FromMinutes(2));
                     await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
                 }
             }
@@ -310,10 +248,7 @@ builder.Build().Run();
             output.WriteLine("Step 13: Redeploying with dev packages (no compact naming)...");
             await auto.TypeAsync("aspire deploy --clear-cache");
             await auto.EnterAsync();
-            await auto.WaitUntilAsync(
-                s => waitingForPipelineSucceeded.Search(s).Count > 0,
-                timeout: TimeSpan.FromMinutes(30),
-                description: "pipeline succeeded");
+            await auto.WaitUntilTextAsync("PIPELINE SUCCEEDED", timeout: TimeSpan.FromMinutes(30));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(5));
 
             // Step 14: Verify no duplicate storage accounts

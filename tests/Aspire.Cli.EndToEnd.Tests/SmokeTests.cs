@@ -46,20 +46,15 @@ public sealed class SmokeTests(ITestOutputHelper output)
         // Regression test for https://github.com/dotnet/aspire/issues/13971
         // If the apphost selection prompt appears, it means multiple apphosts were
         // incorrectly detected (e.g., AppHost.cs was incorrectly treated as a single-file apphost)
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
-        var unexpectedAppHostSelectionPrompt = new CellPatternSearcher()
-            .Find("Select an apphost to use:");
-
         await auto.WaitUntilAsync(s =>
         {
-            if (unexpectedAppHostSelectionPrompt.Search(s).Count > 0)
+            if (s.ContainsText("Select an apphost to use:"))
             {
                 throw new InvalidOperationException(
                     "Unexpected apphost selection prompt detected! " +
                     "This indicates multiple apphosts were incorrectly detected.");
             }
-            return waitForCtrlCMessage.Search(s).Count > 0;
+            return s.ContainsText("Press CTRL+C to stop the apphost and exit.");
         }, timeout: TimeSpan.FromMinutes(2), description: "Press CTRL+C message (aspire run started)");
 
         // Stop the running apphost with Ctrl+C

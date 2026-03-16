@@ -37,10 +37,7 @@ public sealed class PythonReactTemplateTests(ITestOutputHelper output)
         // Run the project with aspire run
         await auto.TypeAsync("aspire run");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("Press CTRL+C to stop the apphost and exit.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(2),
-            description: "Press CTRL+C message (aspire run started)");
+        await auto.WaitUntilTextAsync("Press CTRL+C to stop the apphost and exit.", timeout: TimeSpan.FromMinutes(2));
 
         await auto.Ctrl().KeyAsync(Hex1bKey.C);
         await auto.WaitForSuccessPromptAsync(counter);

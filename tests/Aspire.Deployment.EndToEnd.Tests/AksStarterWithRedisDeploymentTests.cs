@@ -79,10 +79,6 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-            // Pattern searchers for aspire add prompts
-            var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
-                .Find("(based on NuGet.config)");
-
             var projectName = "AksRedis";
 
             // ===== PHASE 1: Provision AKS Infrastructure =====
@@ -183,7 +179,7 @@ public sealed class AksStarterWithRedisDeploymentTests(ITestOutputHelper output)
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync(); // select first version (PR build)
             }
 

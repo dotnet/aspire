@@ -27,16 +27,6 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        // Patterns for project creation
-        var waitingForLanguagePrompt = new CellPatternSearcher()
-            .Find("> C#");
-
-        var waitingForTypeScriptSelected = new CellPatternSearcher()
-            .Find("> TypeScript (Node.js)");
-
-        var waitingForAppHostCreated = new CellPatternSearcher()
-            .Find("Created apphost.ts");
-
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
         await auto.InstallAspireCliInDockerAsync(installMode, counter);
@@ -44,58 +34,46 @@ public sealed class SecretTypeScriptAppHostTests(ITestOutputHelper output)
         // Create TypeScript AppHost via aspire init
         await auto.TypeAsync("aspire init");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForLanguagePrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for language prompt");
+        await auto.WaitUntilTextAsync("> C#", timeout: TimeSpan.FromSeconds(30));
         await auto.DownAsync();
-        await auto.WaitUntilAsync(s => waitingForTypeScriptSelected.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for TypeScript selected");
+        await auto.WaitUntilTextAsync("> TypeScript (Node.js)", timeout: TimeSpan.FromSeconds(5));
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts created");
+        await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.DeclineAgentInitPromptAsync(counter);
 
         // Set secrets using --apphost
-        var waitingForSetSuccess = new CellPatternSearcher()
-            .Find("set successfully");
-
         await auto.TypeAsync("aspire secret set MyConfig:ApiKey test-key-123 --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForSetSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret set success");
+        await auto.WaitUntilTextAsync("set successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("aspire secret set ConnectionStrings:Db Server=localhost --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForSetSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for connection string set success");
+        await auto.WaitUntilTextAsync("set successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Get
-        var waitingForGetValue = new CellPatternSearcher()
-            .Find("test-key-123");
-
         await auto.TypeAsync("aspire secret get MyConfig:ApiKey --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForGetValue.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret get value");
+        await auto.WaitUntilTextAsync("test-key-123", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // List
-        var waitingForListOutput = new CellPatternSearcher()
-            .Find("ConnectionStrings:Db");
-
         await auto.TypeAsync("aspire secret list --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForListOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret list output");
+        await auto.WaitUntilTextAsync("ConnectionStrings:Db", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Delete
-        var waitingForDeleteSuccess = new CellPatternSearcher()
-            .Find("deleted successfully");
-
         await auto.TypeAsync("aspire secret delete MyConfig:ApiKey --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForDeleteSuccess.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret delete success");
+        await auto.WaitUntilTextAsync("deleted successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify deletion
         await auto.TypeAsync("aspire secret list --apphost apphost.ts");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitingForListOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for secret list after deletion");
+        await auto.WaitUntilTextAsync("ConnectionStrings:Db", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         await auto.TypeAsync("exit");

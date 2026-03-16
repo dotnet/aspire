@@ -48,29 +48,20 @@ public sealed class WaitCommandTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost started successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(3),
-            description: "AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Wait for the webfrontend resource to be up (running).
         // Use a longer timeout in Docker-in-Docker where container startup is slower.
         await auto.TypeAsync("aspire wait webfrontend --status up --timeout 300");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("is up (running).").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(6),
-            description: "webfrontend resource is up (running)");
+        await auto.WaitUntilTextAsync("is up (running).", timeout: TimeSpan.FromMinutes(6));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(
-            s => new CellPatternSearcher().Find("AppHost stopped successfully.").Search(s).Count > 0,
-            timeout: TimeSpan.FromMinutes(1),
-            description: "AppHost stopped successfully");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell

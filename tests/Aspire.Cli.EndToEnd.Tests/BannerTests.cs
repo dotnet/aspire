@@ -25,15 +25,6 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern to detect the ASPIRE banner text (the welcome message)
-        // The banner displays "Welcome to the" followed by ASCII art "ASPIRE"
-        var bannerPattern = new CellPatternSearcher()
-            .Find("Welcome to the");
-
-        // Pattern to detect the telemetry notice (shown on first run)
-        var telemetryNoticePattern = new CellPatternSearcher()
-            .Find("Telemetry");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -54,15 +45,9 @@ public sealed class BannerTests(ITestOutputHelper output)
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire cache clear");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            // Verify the banner appears
-            var hasBanner = bannerPattern.Search(s).Count > 0;
-            var hasTelemetryNotice = telemetryNoticePattern.Search(s).Count > 0;
-
-            // Both should appear on first run
-            return hasBanner && hasTelemetryNotice;
-        }, timeout: TimeSpan.FromSeconds(30), description: "waiting for banner and telemetry notice on first run");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("Welcome to the") && s.ContainsText("Telemetry"),
+            timeout: TimeSpan.FromSeconds(30), description: "waiting for banner and telemetry notice on first run");
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -81,16 +66,6 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern to detect the ASPIRE banner welcome text
-        // The banner displays "Welcome to the" followed by ASCII art "ASPIRE"
-        var bannerPattern = new CellPatternSearcher()
-            .Find("Welcome to the");
-
-        // Pattern to detect version info in the banner
-        // The format is "CLI — version X.Y.Z"
-        var versionPattern = new CellPatternSearcher()
-            .Find("CLI");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -102,14 +77,9 @@ public sealed class BannerTests(ITestOutputHelper output)
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire --banner");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s =>
-        {
-            // Verify the banner appears with version info
-            var hasBanner = bannerPattern.Search(s).Count > 0;
-            var hasVersion = versionPattern.Search(s).Count > 0;
-
-            return hasBanner && hasVersion;
-        }, timeout: TimeSpan.FromSeconds(30), description: "waiting for banner with version info");
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("Welcome to the") && s.ContainsText("CLI"),
+            timeout: TimeSpan.FromSeconds(30), description: "waiting for banner with version info");
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
@@ -129,15 +99,6 @@ public sealed class BannerTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern to detect the ASPIRE banner - should NOT appear
-        // The banner displays "Welcome to the" followed by ASCII art "ASPIRE"
-        var bannerPattern = new CellPatternSearcher()
-            .Find("Welcome to the");
-
-        // Pattern to detect the help text (confirms command completed)
-        var helpPattern = new CellPatternSearcher()
-            .Find("Commands:");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -156,15 +117,13 @@ public sealed class BannerTests(ITestOutputHelper output)
         await auto.WaitUntilAsync(s =>
         {
             // Wait for help output to confirm command completed
-            var hasHelp = helpPattern.Search(s).Count > 0;
-            if (!hasHelp)
+            if (!s.ContainsText("Commands:"))
             {
                 return false;
             }
 
             // Verify the banner does NOT appear
-            var hasBanner = bannerPattern.Search(s).Count > 0;
-            if (hasBanner)
+            if (s.ContainsText("Welcome to the"))
             {
                 throw new InvalidOperationException(
                     "Unexpected banner displayed when --nologo flag was used!");

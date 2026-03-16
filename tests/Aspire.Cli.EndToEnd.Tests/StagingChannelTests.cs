@@ -55,23 +55,17 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 2: Verify the settings were persisted in the global config file
-        var settingsFilePattern = new CellPatternSearcher()
-            .Find("stagingPinToCliVersion");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("cat ~/.aspire/aspire.config.json");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => settingsFilePattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "settings file contains stagingPinToCliVersion");
+        await auto.WaitUntilTextAsync("stagingPinToCliVersion", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 3: Verify aspire config get returns the correct values
-        var stagingChannelPattern = new CellPatternSearcher()
-            .Find("staging");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => stagingChannelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "config get channel returns staging");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 4: Verify the CLI version is available (basic smoke test that the CLI works with these settings)
@@ -86,13 +80,10 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 6: Verify channel was changed to stable
-        var stableChannelPattern = new CellPatternSearcher()
-            .Find("stable");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => stableChannelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "config get channel returns stable");
+        await auto.WaitUntilTextAsync("stable", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Step 7: Switch back to staging
@@ -104,17 +95,14 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get channel");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => stagingChannelPattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "config get channel returns staging after switch back");
+        await auto.WaitUntilTextAsync("staging", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify the staging-specific settings survived the channel switch
-        var prereleasePattern = new CellPatternSearcher()
-            .Find("Prerelease");
-
         await auto.ClearScreenAsync(counter);
         await auto.TypeAsync("aspire config get overrideStagingQuality");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => prereleasePattern.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(10), description: "config get overrideStagingQuality returns Prerelease");
+        await auto.WaitUntilTextAsync("Prerelease", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: remove staging settings to avoid polluting other tests

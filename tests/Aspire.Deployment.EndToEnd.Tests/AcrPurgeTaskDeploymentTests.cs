@@ -66,17 +66,6 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire add prompts
-            var waitingForAddVersionSelectionPrompt = new CellPatternSearcher()
-                .Find("(based on NuGet.config)");
-
-            // Pattern searchers for deployment completion
-            var waitingForPipelineSucceeded = new CellPatternSearcher()
-                .Find("PIPELINE SUCCEEDED");
-
-            var waitingForPipelineFailed = new CellPatternSearcher()
-                .Find("PIPELINE FAILED");
-
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -108,7 +97,7 @@ public sealed class AcrPurgeTaskDeploymentTests(ITestOutputHelper output)
 
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForAddVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();
             }
 
@@ -151,12 +140,12 @@ builder.Build().Run();
             await auto.EnterAsync();
             await auto.WaitUntilAsync(s =>
             {
-                if (waitingForPipelineSucceeded.Search(s).Count > 0)
+                if (s.ContainsText("PIPELINE SUCCEEDED"))
                 {
                     pipelineSucceeded = true;
                     return true;
                 }
-                return waitingForPipelineFailed.Search(s).Count > 0;
+                return s.ContainsText("PIPELINE FAILED");
             }, timeout: TimeSpan.FromMinutes(30), description: "pipeline succeeded or failed");
 
             if (!pipelineSucceeded)
@@ -194,13 +183,8 @@ builder.Build().Run();
             output.WriteLine("Modified main.py to force a new container image build");
 
             // Step 11: Second deployment to push new images
-            // Clear the terminal so the CellPatternSearcher doesn't match "PIPELINE SUCCEEDED" from the first deploy
+            // Clear the terminal so WaitUntilTextAsync doesn't match "PIPELINE SUCCEEDED" from the first deploy
             output.WriteLine("Step 11: Starting second Azure deployment...");
-            var waitingForPipelineSucceeded2 = new CellPatternSearcher()
-                .Find("PIPELINE SUCCEEDED");
-            var waitingForPipelineFailed2 = new CellPatternSearcher()
-                .Find("PIPELINE FAILED");
-
             var pipeline2Succeeded = false;
             await auto.TypeAsync("export TERM=xterm && clear");
             await auto.EnterAsync();
@@ -209,12 +193,12 @@ builder.Build().Run();
             await auto.EnterAsync();
             await auto.WaitUntilAsync(s =>
             {
-                if (waitingForPipelineSucceeded2.Search(s).Count > 0)
+                if (s.ContainsText("PIPELINE SUCCEEDED"))
                 {
                     pipeline2Succeeded = true;
                     return true;
                 }
-                return waitingForPipelineFailed2.Search(s).Count > 0;
+                return s.ContainsText("PIPELINE FAILED");
             }, timeout: TimeSpan.FromMinutes(30), description: "pipeline succeeded or failed");
 
             if (!pipeline2Succeeded)

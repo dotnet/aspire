@@ -63,19 +63,6 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
             using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
             var pendingRun = terminal.RunAsync(cancellationToken);
 
-            // Pattern searchers for aspire add prompts
-            // Integration selection prompt appears when multiple packages match the search term
-            var waitingForIntegrationSelectionPrompt = new CellPatternSearcher()
-                .Find("Select an integration to add:");
-
-            // Version selection prompt appears when selecting a package version in CI
-            var waitingForVersionSelectionPrompt = new CellPatternSearcher()
-                .Find("(based on NuGet.config)");
-
-            // Pattern searcher for deployment success
-            var waitingForPipelineSucceeded = new CellPatternSearcher()
-                .Find("PIPELINE SUCCEEDED");
-
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -105,10 +92,10 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 // First, handle integration selection prompt
-                await auto.WaitUntilAsync(s => waitingForIntegrationSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "integration selection prompt");
+                await auto.WaitUntilTextAsync("Select an integration to add:", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();  // Select first integration (azure-appcontainers)
                 // Then, handle version selection prompt
-                await auto.WaitUntilAsync(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync();  // Select first version (PR build)
             }
 
@@ -123,7 +110,7 @@ public sealed class AzureStorageDeploymentTests(ITestOutputHelper output)
             // In CI, aspire add shows version selection prompt
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                await auto.WaitUntilAsync(s => waitingForVersionSelectionPrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(60), description: "version selection prompt");
+                await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
                 await auto.EnterAsync(); // Select first version
             }
 
@@ -166,7 +153,7 @@ builder.Build().Run();
             await auto.TypeAsync("aspire deploy --clear-cache");
             await auto.EnterAsync();
             // Wait for pipeline to complete successfully
-            await auto.WaitUntilAsync(s => waitingForPipelineSucceeded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(20), description: "pipeline succeeded");
+            await auto.WaitUntilTextAsync("PIPELINE SUCCEEDED", timeout: TimeSpan.FromMinutes(20));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             // Step 8: Verify the Azure Storage account was created

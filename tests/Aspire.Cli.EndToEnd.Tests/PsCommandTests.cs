@@ -26,25 +26,6 @@ public sealed class PsCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern searchers for start/stop/ps commands
-        var waitForAppHostStartedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost started successfully.");
-
-        var waitForAppHostStoppedSuccessfully = new CellPatternSearcher()
-            .Find("AppHost stopped successfully.");
-
-        // Pattern for aspire ps output - should show the AppHost path and PID columns
-        var waitForPsOutputWithAppHost = new CellPatternSearcher()
-            .Find("AspirePsTestApp.AppHost");
-
-        // Pattern for aspire ps JSON output
-        var waitForPsJsonOutput = new CellPatternSearcher()
-            .Find("\"appHostPath\":");
-
-        // Pattern for aspire ps when no AppHosts running
-        var waitForNoRunningAppHosts = new CellPatternSearcher()
-            .Find("No running AppHost found");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -63,37 +44,37 @@ public sealed class PsCommandTests(ITestOutputHelper output)
         // First, verify aspire ps shows no running AppHosts
         await auto.TypeAsync("aspire ps");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForNoRunningAppHosts.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "no running AppHosts message");
+        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStartedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "AppHost started successfully");
+        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Now verify aspire ps shows the running AppHost
         await auto.TypeAsync("aspire ps");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForPsOutputWithAppHost.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "ps output showing AppHost");
+        await auto.WaitUntilTextAsync("AspirePsTestApp.AppHost", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test aspire ps --format json output
         await auto.TypeAsync("aspire ps --format json");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForPsJsonOutput.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "ps JSON output with appHostPath");
+        await auto.WaitUntilTextAsync("\"appHostPath\":", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Stop the AppHost using aspire stop
         await auto.TypeAsync("aspire stop");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForAppHostStoppedSuccessfully.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(1), description: "AppHost stopped successfully");
+        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify aspire ps shows no running AppHosts again after stop
         await auto.TypeAsync("aspire ps");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForNoRunningAppHosts.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "no running AppHosts after stop");
+        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell

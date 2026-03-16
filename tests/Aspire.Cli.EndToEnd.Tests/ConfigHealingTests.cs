@@ -36,12 +36,6 @@ public sealed class ConfigHealingTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        var waitForCtrlCMessage = new CellPatternSearcher()
-            .Find("Press CTRL+C to stop the apphost and exit.");
-
-        var waitForUpdatedSettingsMessage = new CellPatternSearcher()
-            .Find("Updated settings file at");
-
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
@@ -76,7 +70,7 @@ public sealed class ConfigHealingTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
         await auto.TypeAsync("aspire run");
         await auto.EnterAsync();
-        await auto.WaitUntilAsync(s => waitForCtrlCMessage.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for CTRL+C prompt from apphost");
+        await auto.WaitUntilTextAsync("Press CTRL+C to stop the apphost and exit.", timeout: TimeSpan.FromMinutes(3));
         await auto.Ctrl().KeyAsync(Hex1bKey.C);
         await auto.WaitForSuccessPromptAsync(counter);
 
