@@ -410,8 +410,6 @@ internal sealed class AzureResourcePreparer(
             ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
         };
 
-        roleAssignmentResource.Annotations.Add(new AllowCurrentPrincipalInPublishModeAnnotation());
-
         // existing resource role assignments need to be scoped to the resource's resource group
         if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
             existingAnnotation.ResourceGroup is not null)

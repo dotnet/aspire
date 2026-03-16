@@ -212,20 +212,6 @@ internal sealed class AzureProvisioner(
         }
         else
         {
-            var dependencyTasks = bicepResource.References
-                .OfType<IAzureResource>()
-                .Where(r => r != resource.AzureResource)
-                .Select(r => r.ProvisioningTaskCompletionSource?.Task)
-                .OfType<Task>()
-                .Distinct()
-                .ToArray();
-
-            if (dependencyTasks.Length > 0)
-            {
-                resourceLogger.LogInformation("Waiting for {dependencyCount} Azure dependency resource(s) before provisioning {resourceName}.", dependencyTasks.Length, resource.AzureResource.Name);
-                await Task.WhenAll(dependencyTasks).ConfigureAwait(false);
-            }
-
             if (resource.AzureResource.IsExisting())
             {
                 resourceLogger.LogInformation("Resolving {resourceName} as existing resource...", resource.AzureResource.Name);

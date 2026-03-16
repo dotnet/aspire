@@ -17,6 +17,7 @@ using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 using Azure.Provisioning.Search;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -40,6 +41,9 @@ public static class AzureCognitiveServicesProjectExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
+
+        builder.ApplicationBuilder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
+
         var project = builder.ApplicationBuilder.AddResource(new AzureCognitiveServicesProjectResource(name, ConfigureInfrastructure, builder.Resource));
         project.Resource.DefaultContainerRegistry = CreateDefaultRegistry($"{name}-acr");
         EnsureContainerRegistryIsModeled(builder.ApplicationBuilder, project.Resource.DefaultContainerRegistry);
