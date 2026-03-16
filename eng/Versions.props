@@ -27,6 +27,7 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
+    <MicrosoftDotNetHotReloadWatchAspireVersion>11.0.100-preview.3.26165.107</MicrosoftDotNetHotReloadWatchAspireVersion>
     <!-- DCP -->
     <MicrosoftDeveloperControlPlanedarwinamd64Version>0.22.9</MicrosoftDeveloperControlPlanedarwinamd64Version>
     <MicrosoftDeveloperControlPlanedarwinarm64Version>0.22.9</MicrosoftDeveloperControlPlanedarwinarm64Version>
