@@ -88,6 +88,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Empty (C# AppHost, dotnet template).
+        /// </summary>
+        public static string AspireEmptyDotNetTemplate_Description {
+            get {
+                return ResourceManager.GetString("AspireEmptyDotNetTemplate_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to MSTest.
         /// </summary>
         public static string AspireMSTest_Description {

@@ -12,8 +12,7 @@ internal class CallbackTemplate(
     Action<Command> applyOptionsCallback,
     Func<CallbackTemplate, TemplateInputs, ParseResult, CancellationToken, Task<TemplateResult>> applyTemplateCallback,
     TemplateRuntime runtime = TemplateRuntime.DotNet,
-    Func<string, bool>? supportsLanguageCallback = null,
-    IReadOnlyList<string>? selectableAppHostLanguages = null,
+    string? languageId = null,
     bool isEmpty = false) : ITemplate
 {
     public string Name => name;
@@ -26,12 +25,7 @@ internal class CallbackTemplate(
 
     public Func<string, string> PathDeriver => pathDeriverCallback;
 
-    public bool SupportsLanguage(string languageId)
-    {
-        return supportsLanguageCallback?.Invoke(languageId) ?? true;
-    }
-
-    public IReadOnlyList<string> SelectableAppHostLanguages { get; } = selectableAppHostLanguages ?? [];
+    public string? LanguageId => languageId;
 
     public void ApplyOptions(Command command)
     {

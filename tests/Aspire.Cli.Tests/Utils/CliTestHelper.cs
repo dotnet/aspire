@@ -214,6 +214,7 @@ internal static class CliTestHelper
         services.AddTransient<SecretSetCommand>();
         services.AddTransient<SecretGetCommand>();
         services.AddTransient<SecretListCommand>();
+        services.AddTransient<SecretPathCommand>();
         services.AddTransient<SecretDeleteCommand>();
         services.AddTransient<SecretStoreResolver>();
 #if DEBUG

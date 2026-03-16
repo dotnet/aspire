@@ -11,7 +11,7 @@ const app = await builder
 // Run the Vite frontend after the API and inject the API URL for local proxying.
 const frontend = await builder
     .addViteApp("frontend", "./frontend")
-    .withServiceReference(app)
+    .withReference(app)
     .waitFor(app);
 
 // Bundle the frontend build output into the API container for publish/deploy.

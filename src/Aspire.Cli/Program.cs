@@ -479,6 +479,7 @@ public class Program
         builder.Services.AddTransient<SecretSetCommand>();
         builder.Services.AddTransient<SecretGetCommand>();
         builder.Services.AddTransient<SecretListCommand>();
+        builder.Services.AddTransient<SecretPathCommand>();
         builder.Services.AddTransient<SecretDeleteCommand>();
         builder.Services.AddTransient<SecretStoreResolver>();
         builder.Services.AddTransient<SdkCommand>();
