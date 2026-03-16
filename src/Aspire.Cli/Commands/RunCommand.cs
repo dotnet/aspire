@@ -542,18 +542,7 @@ internal sealed class RunCommand : BaseCommand
                 }
 
                 // Write to the unified log file via FileLoggerProvider
-                var timestamp = entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
-                var level = entry.LogLevel switch
-                {
-                    LogLevel.Trace => "TRCE",
-                    LogLevel.Debug => "DBUG",
-                    LogLevel.Information => "INFO",
-                    LogLevel.Warning => "WARN",
-                    LogLevel.Error => "FAIL",
-                    LogLevel.Critical => "CRIT",
-                    _ => entry.LogLevel.ToString().ToUpperInvariant()
-                };
-                fileLoggerProvider.WriteLog($"[{timestamp}] [{level}] [AppHost/{entry.CategoryName}] {entry.Message}");
+                fileLoggerProvider.WriteLog(entry.Timestamp, entry.LogLevel, $"AppHost/{entry.CategoryName}", entry.Message);
             }
         }
         catch (OperationCanceledException)

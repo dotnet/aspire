@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -93,9 +92,9 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue(s_sourceOption);
 
-            // For non-.NET projects, read the channel from the local Aspire configuration if available.
-            // Unlike .NET projects which have a nuget.config, polyglot apphosts persist the channel
-            // in aspire.config.json (or the legacy settings.json during migration).
+            // For non-.NET projects, read the channel from settings.json if available.
+            // Unlike .NET projects which have a nuget.config, polyglot apphosts store
+            // the channel in .aspire/settings.json during the build process.
             string? configuredChannel = null;
             if (project.LanguageId != KnownLanguageId.CSharp)
             {
@@ -103,18 +102,8 @@ internal sealed class AddCommand : BaseCommand
                 var isProjectReferenceMode = AspireRepositoryDetector.DetectRepositoryRoot(appHostDirectory) is not null;
                 if (!isProjectReferenceMode)
                 {
-                    // TODO: Remove legacy AspireJsonConfiguration fallback once confident most users
-                    // have migrated. Tracked by https://github.com/dotnet/aspire/issues/15239
-                    try
-                    {
-                        configuredChannel = AspireConfigFile.Load(appHostDirectory)?.Channel
-                            ?? AspireJsonConfiguration.Load(appHostDirectory)?.Channel;
-                    }
-                    catch (JsonException ex)
-                    {
-                        InteractionService.DisplayError(ex.Message);
-                        return ExitCodeConstants.FailedToLoadConfiguration;
-                    }
+                    var settings = AspireJsonConfiguration.Load(appHostDirectory);
+                    configuredChannel = settings?.Channel;
                 }
             }
 

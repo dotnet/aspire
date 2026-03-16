@@ -338,7 +338,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The configuration file '{0}' contains invalid JSON. Please fix the syntax error and try again..
+        ///   Looks up a localized string similar to The configuration file '{0}' contains invalid JSON: {1}.
         /// </summary>
         public static string InvalidJsonInConfigFile {
             get {

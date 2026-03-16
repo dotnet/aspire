@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Configuration;
@@ -121,7 +122,7 @@ internal sealed class AspireConfigFile
         catch (JsonException ex)
         {
             throw new JsonException(
-                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath),
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath, ex.Message),
                 ex.Path, ex.LineNumber, ex.BytePositionInLine, ex);
         }
     }
@@ -199,11 +200,7 @@ internal sealed class AspireConfigFile
             }
 
             var json = File.ReadAllText(apphostRunPath);
-            using var doc = JsonDocument.Parse(json, new JsonDocumentOptions
-            {
-                AllowTrailingCommas = true,
-                CommentHandling = JsonCommentHandling.Skip
-            });
+            using var doc = JsonDocument.Parse(json, ConfigurationHelper.ParseOptions);
 
             if (!doc.RootElement.TryGetProperty("profiles", out var profilesElement))
             {
