@@ -4,6 +4,7 @@
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
+using Hex1b.Input;
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests;
@@ -25,7 +26,7 @@ public sealed class TypeScriptPublishTests(ITestOutputHelper output)
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
         var waitingForLanguagePrompt = new CellPatternSearcher()
             .Find("Which language would you like to use?");
@@ -42,89 +43,75 @@ public sealed class TypeScriptPublishTests(ITestOutputHelper output)
         var waitingForRestoreSuccess = new CellPatternSearcher()
             .Find("SDK code restored successfully");
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
-        sequenceBuilder.EnablePolyglotSupport(counter);
+        await auto.EnablePolyglotSupportAsync(counter);
 
-        sequenceBuilder
-            .Type("aspire init")
-            .Enter()
-            .WaitUntil(s => waitingForLanguagePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
-            .Key(Hex1b.Input.Hex1bKey.DownArrow)
-            .WaitUntil(s => waitingForTypeScriptSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
-            .Enter()
-            .WaitUntil(s => waitingForAppHostCreated.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .DeclineAgentInitPrompt(counter);
+        await auto.TypeAsync("aspire init");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForLanguagePrompt.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(30), description: "waiting for language prompt");
+        await auto.KeyAsync(Hex1bKey.DownArrow);
+        await auto.WaitUntilAsync(s => waitingForTypeScriptSelected.Search(s).Count > 0, timeout: TimeSpan.FromSeconds(5), description: "waiting for TypeScript option to be selected");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForAppHostCreated.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost.ts to be created");
+        await auto.DeclineAgentInitPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("aspire add Aspire.Hosting.Docker")
-            .Enter()
-            .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire add Aspire.Hosting.Docker");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for Aspire.Hosting.Docker package added");
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("aspire add Aspire.Hosting.PostgreSQL")
-            .Enter()
-            .WaitUntil(s => waitingForPackageAdded.Search(s).Count > 0, TimeSpan.FromMinutes(2))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire add Aspire.Hosting.PostgreSQL");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForPackageAdded.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(2), description: "waiting for Aspire.Hosting.PostgreSQL package added");
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("aspire restore")
-            .Enter()
-            .WaitUntil(s => waitingForRestoreSuccess.Search(s).Count > 0, TimeSpan.FromMinutes(3))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire restore");
+        await auto.EnterAsync();
+        await auto.WaitUntilAsync(s => waitingForRestoreSuccess.Search(s).Count > 0, timeout: TimeSpan.FromMinutes(3), description: "waiting for SDK code restore success");
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder.ExecuteCallback(() =>
-        {
-            var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
-            var newContent = """
-                import { createBuilder } from './.modules/aspire.js';
+        var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts");
+        var newContent = """
+            import { createBuilder } from './.modules/aspire.js';
 
-                const builder = await createBuilder();
+            const builder = await createBuilder();
 
-                await builder.addDockerComposeEnvironment("compose");
+            await builder.addDockerComposeEnvironment("compose");
 
-                const postgres = await builder.addPostgres("postgres")
-                    .publishAsDockerComposeService(async (_, svc) => {
-                        await svc.name.set("postgres");
-                    });
+            const postgres = await builder.addPostgres("postgres")
+                .publishAsDockerComposeService(async (_, svc) => {
+                    await svc.name.set("postgres");
+                });
 
-                await postgres.addDatabase("db");
+            await postgres.addDatabase("db");
 
-                await builder.build().run();
-                """;
+            await builder.build().run();
+            """;
 
-            File.WriteAllText(appHostPath, newContent);
-        });
+        File.WriteAllText(appHostPath, newContent);
 
-        sequenceBuilder
-            .Type("unset ASPIRE_PLAYGROUND")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("unset ASPIRE_PLAYGROUND");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("aspire publish -o artifacts --non-interactive")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(5));
+        await auto.TypeAsync("aspire publish -o artifacts --non-interactive");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromMinutes(5));
 
-        sequenceBuilder
-            .Type("ls -la artifacts/docker-compose.yaml")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("ls -la artifacts/docker-compose.yaml");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("grep -F \"postgres:\" artifacts/docker-compose.yaml")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("grep -F \"postgres:\" artifacts/docker-compose.yaml");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder
-            .Type("exit")
-            .Enter();
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
-        var sequence = sequenceBuilder.Build();
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
         await pendingRun;
     }
 }

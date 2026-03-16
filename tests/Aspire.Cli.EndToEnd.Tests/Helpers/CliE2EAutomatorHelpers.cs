@@ -209,4 +209,31 @@ internal static class CliE2EAutomatorHelpers
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
     }
+
+    /// <summary>
+    /// Ensures polyglot support is enabled for tests.
+    /// Polyglot support now defaults to enabled, so this is currently a no-op.
+    /// </summary>
+    internal static Task EnablePolyglotSupportAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        _ = auto;
+        _ = counter;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Installs a specific GA version of the Aspire CLI using the install script.
+    /// </summary>
+    internal static async Task InstallAspireCliVersionAsync(
+        this Hex1bTerminalAutomator auto,
+        string version,
+        SequenceCounter counter)
+    {
+        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\"";
+        await auto.TypeAsync(command);
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptFailFastAsync(counter, timeout: TimeSpan.FromSeconds(300));
+    }
 }
