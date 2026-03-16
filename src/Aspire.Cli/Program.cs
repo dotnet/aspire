@@ -668,21 +668,23 @@ public class Program
         logger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
         logger.LogInformation("Working directory: {WorkingDirectory}", Environment.CurrentDirectory);
 
-        IHost app;
+        IHost? app = null;
         try
         {
             app = await BuildApplicationAsync(args, startupContext);
+            await app.StartAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            app?.Dispose();
+
             logger.LogError(ex, "Failed to load configuration or start CLI.");
             errorWriter.WriteLine(ex.Message);
             return ExitCodeConstants.FailedToStartCli;
         }
 
+        // Ensure dispose of app when Main exits.
         using var _ = app;
-
-        await app.StartAsync().ConfigureAwait(false);
 
         // Display first run experience if this is the first time the CLI is run on this machine
         await DisplayFirstTimeUseNoticeIfNeededAsync(app.Services, args, cts.Token);
