@@ -1047,36 +1047,31 @@ class AspireClient:
 # ============================================================================
 
 class ReferenceExpression:
-    '''
-    Represents a reference expression that can be passed to capabilities.
-
-    Reference expressions are serialized in the protocol as:
-    ```json
-    {
-    "$expr": {
-        "format": "redis://{0}:{1}",
-        "valueProviders": [
-        { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:1" },
-        { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:2" }
-        ]
-    }
-    }
-    ```
-
-    Example:
-        ```python
-        redis = await builder.add_redis("cache")
-        endpoint = await redis.get_endpoint("tcp")
-
-        # Create a reference expression
-        expr = ref_expr(f"redis://{endpoint}:6379")
-
-        # Use it in an environment variable
-        await api.with_environment("REDIS_URL", expr)
-        ```
+    '''Represents a reference expression passed to capabilities.
+    Supports both value mode (format + valueProviders) and conditional mode (condition + whenTrue + whenFalse).
     '''
 
-    def __init__(self, ref: Handle | str, *value_providers: typing.Any) -> None:
+    def __init__(self, handle: Handle | None, **kwargs) -> None:
+        '''
+        Creates a reference expression from a format string and value providers.
+
+        Args:
+            format_str: Format string with {0}, {1}, etc. placeholders
+            *value_providers: Handles to value providers
+
+        Returns:
+            A ReferenceExpression instance
+        '''
+        self._handle = handle
+        self._format = kwargs.get("format_str")
+        self._value_providers = kwargs.get("value_providers", [])
+        self._condition = kwargs.get("condition")
+        self._when_true = kwargs.get("when_true")
+        self._when_false = kwargs.get("when_false")
+        self._match_value = kwargs.get("match")
+    
+    @classmethod
+    def format_string(cls, format_str: str, *value_providers: typing.Any) -> "ReferenceExpression":
         '''
         Creates a reference expression from a format string and value providers.
 
@@ -1088,13 +1083,23 @@ class ReferenceExpression:
             A ReferenceExpression instance
         '''
         providers = [_extract_handle_for_expr(v) for v in value_providers]
-        self._handle = None
-        self._format = None
-        if isinstance(ref, Handle):
-            self._handle = ref
-        else:
-            self._format = ref
-        self._value_providers = providers
+        return cls(None, format_str=format_str, value_providers=providers)
+
+    @classmethod
+    def conditional(cls, condition: Any, **kwargs) -> "ReferenceExpression":
+        '''
+        Creates a conditional reference expression.
+
+        Args:
+            condition: The condition to evaluate
+            match: The value to match against
+            when_true: ReferenceExpression if condition matches
+            when_false: ReferenceExpression if condition does not match
+
+        Returns:
+            A ReferenceExpression instance
+        '''
+        return cls(None, condition=condition, **kwargs)
 
     def to_json(self) -> typing.Mapping[str, typing.Any]:
         '''
@@ -1103,20 +1108,32 @@ class ReferenceExpression:
         '''
         if self._handle:
             return self._handle.to_json()
-
-        result: dict[str, typing.Any] = {
-            "$expr": {
-                "format": self._format,
+        if self._condition:
+            return {
+                "$expr": {
+                    "condition": self._condition,
+                    "whenTrue": self._when_true.to_json(),
+                    "whenFalse": self._when_false.to_json(),
+                    "matchValue": self._match_value,
+                }
             }
-        }
-        if self._value_providers:
-            result["$expr"]["valueProviders"] = self._value_providers
-        return result
+        if self._format:
+            result: dict[str, typing.Any] = {
+                "$expr": {
+                    "format": self._format,
+                }
+            }
+            if self._value_providers:
+                result["$expr"]["valueProviders"] = self._value_providers
+            return result
+        raise ValueError("Invalid ReferenceExpression: must have either handle, condition, or format")
 
     def __repr__(self) -> str:
         if self._handle:
             return f"ReferenceExpression(handle={self._handle.handle_id})"
-        return f"ReferenceExpression(format={self._format})"
+        if self._condition:
+            return "ReferenceExpression(conditional)"
+        return f"ReferenceExpression(formattedString)"
 
 
 def _extract_handle_for_expr(value: typing.Any) -> typing.Any:
@@ -1149,7 +1166,7 @@ def _extract_handle_for_expr(value: typing.Any) -> typing.Any:
     )
 
 
-def ref_expr(template: str, **kwargs: typing.Any) -> ReferenceExpression:
+def string_expr(value: str, **kwargs: typing.Any) -> ReferenceExpression:
     '''
     Helper function for creating reference expressions with named placeholders.
 
@@ -1162,7 +1179,7 @@ def ref_expr(template: str, **kwargs: typing.Any) -> ReferenceExpression:
         endpoint = await redis.get_endpoint("tcp")
 
         # Create a reference expression using named placeholders
-        expr = ref_expr("redis://{host}:{port}", host=endpoint, port=6379)
+        expr = string_expr("redis://{host}:{port}", host=endpoint, port=6379)
 
         # Use it in an environment variable
         await api.with_environment("REDIS_URL", expr)
@@ -1179,7 +1196,32 @@ def ref_expr(template: str, **kwargs: typing.Any) -> ReferenceExpression:
             format_str = format_str.replace(placeholder, f"{{{index}}}")
             value_providers.append(value)
 
-    return ReferenceExpression(format_str, *value_providers)
+    return ReferenceExpression.format_string(format_str, *value_providers)
+
+
+def conditional_expr(condition: Any, *, match: str, when_true: str | ReferenceExpression, when_false: str | ReferenceExpression) -> ReferenceExpression:
+    '''
+    Helper function for creating conditional reference expressions.
+
+    This allows you to create dynamic expressions that evaluate conditions at runtime.
+
+    Example:
+        ```python
+        # Create a conditional expression based on an environment variable
+        condition = {"$handle": "Aspire.Hosting.EnvironmentVariableReference:ENVIRONMENT"}
+        expr = conditional_expr(condition, match="production",
+            when_true="redis://prod-redis:6379",
+            when_false="redis://dev-redis:6379"
+        )
+
+        await api.with_environment("REDIS_URL", expr)
+        ```
+    '''
+    if isinstance(when_true, str):
+        when_true = ReferenceExpression.format_string(when_true)
+    if isinstance(when_false, str):
+        when_false = ReferenceExpression.format_string(when_false)
+    return ReferenceExpression.conditional(condition, match=match, when_true=when_true, when_false=when_false)
 
 
 # ============================================================================
@@ -1446,6 +1488,11 @@ TestResourceStatus = typing.Literal["Pending", "Running", "Stopped", "Failed"]
 class OptionalStringParameters(typing.TypedDict, total=False):
     value: str
     enabled: bool
+
+
+class DataVolumeParameters(typing.TypedDict, total=False):
+    name: str
+    is_read_only: bool
 
 # ============================================================================
 # DTO Classes (Data Transfer Objects)
@@ -2226,6 +2273,7 @@ class ContainerResource(_BaseResource, ResourceWithEnvironment, ResourceWithArgs
 class TestDatabaseResourceOptions(ContainerResourceOptions, total=False):
     """TestDatabaseResource options."""
 
+    data_volume: str | typing.Literal[True]
 
 class TestDatabaseResource(ContainerResource):
     """TestDatabaseResource resource."""
@@ -2233,7 +2281,29 @@ class TestDatabaseResource(ContainerResource):
     def __repr__(self) -> str:
         return "TestDatabaseResource(handle={self._handle.handle_id})"
 
+    def with_data_volume(self, *, name: str | None = None) -> typing.Self:
+        """Adds a data volume"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        if name is not None:
+            rpc_args['name'] = name
+        result = self._client.invoke_capability(
+            'Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume',
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
     def __init__(self, handle: Handle, client: AspireClient, **kwargs: typing.Unpack[TestDatabaseResourceOptions]) -> None:
+        if _data_volume := kwargs.pop("data_volume", None):
+            if _validate_type(_data_volume, str):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["name"] = _data_volume
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
+            elif _data_volume is True:
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'data_volume'. Expected: str or typing.Literal[True]")
         super().__init__(handle, client, **kwargs)
 
 
@@ -2245,6 +2315,7 @@ class TestRedisResourceOptions(ContainerResourceOptions, total=False):
     connection_string_direct: str
     redis_specific: str
     multi_param_handle_callback: typing.Callable[[TestCallbackContext, TestEnvironmentContext], None]
+    data_volume: DataVolumeParameters | typing.Literal[True]
 
 class TestRedisResource(ContainerResource, ResourceWithConnectionString):
     """TestRedisResource resource."""
@@ -2371,6 +2442,20 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
         self._handle = self._wrap_builder(result)
         return self
 
+    def with_data_volume(self, *, name: str | None = None, is_read_only: bool | None = None) -> typing.Self:
+        """Adds a data volume with persistence"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        if name is not None:
+            rpc_args['name'] = name
+        if is_read_only is not None:
+            rpc_args['isReadOnly'] = is_read_only
+        result = self._client.invoke_capability(
+            'Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume',
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
     def __init__(self, handle: Handle, client: AspireClient, **kwargs: typing.Unpack[TestRedisResourceOptions]) -> None:
         if _persistence := kwargs.pop("persistence", None):
             if _validate_type(_persistence, TestPersistenceMode):
@@ -2410,6 +2495,17 @@ class TestRedisResource(ContainerResource, ResourceWithConnectionString):
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback', rpc_args))
             else:
                 raise TypeError("Invalid type for option 'multi_param_handle_callback'. Expected: typing.Callable[[TestCallbackContext, TestEnvironmentContext], None]")
+        if _data_volume := kwargs.pop("data_volume", None):
+            if _validate_dict_types(_data_volume, DataVolumeParameters):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["name"] = typing.cast(DataVolumeParameters, _data_volume).get("name")
+                rpc_args["isReadOnly"] = typing.cast(DataVolumeParameters, _data_volume).get("is_read_only")
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
+            elif _data_volume is True:
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'data_volume'. Expected: DataVolumeParameters or typing.Literal[True]")
         super().__init__(handle, client, **kwargs)
 
 
