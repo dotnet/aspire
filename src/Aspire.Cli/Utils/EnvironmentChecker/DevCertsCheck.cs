@@ -234,10 +234,10 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
     /// </para>
     /// <para>
     /// Includes system certificate directories detected via OpenSSL or well-known fallback
-    /// locations, matching the behavior of <see cref="Certificates.CertificateService"/>.
+    /// locations, matching the behavior of <see cref="Aspire.Cli.Certificates.CertificateService"/>.
     /// </para>
     /// </remarks>
-    internal static string BuildSslCertDirFixCommand(string devCertsTrustPath)
+    private static string BuildSslCertDirFixCommand(string devCertsTrustPath)
     {
         var currentSslCertDir = Environment.GetEnvironmentVariable("SSL_CERT_DIR");
 
