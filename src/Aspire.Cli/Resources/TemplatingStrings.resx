@@ -129,6 +129,9 @@
   <data name="AspireEmpty_Description" xml:space="preserve">
     <value>AppHost and service defaults</value>
   </data>
+  <data name="AspireEmptyDotNetTemplate_Description" xml:space="preserve">
+    <value>Empty (C# AppHost, dotnet template)</value>
+  </data>
   <data name="AspireAppHost_Description" xml:space="preserve">
     <value>AppHost</value>
   </data>
