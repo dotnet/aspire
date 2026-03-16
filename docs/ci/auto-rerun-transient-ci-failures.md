@@ -4,15 +4,15 @@ This document describes the current behavior contract for `.github/workflows/aut
 
 ## Overview
 
-The workflow analyzes failed `CI` pull request runs, identifies retry-safe transient infrastructure failures, requests reruns for the matched jobs through GitHub's job-rerun API, and comments on the open pull request with the rerun details.
+The workflow analyzes failed `CI` pull request runs, identifies retry-safe transient infrastructure failures, uses those matched jobs as the eligibility signal, requests GitHub to rerun all failed jobs for the failed attempt through the run-level failed-job rerun API, and comments on the open pull request with the rerun details.
 
-GitHub's job-rerun API also reruns downstream dependent jobs, so the workflow targets only the matched jobs when issuing rerun requests, but the resulting rerun attempt can include dependents that GitHub schedules automatically.
+GitHub does not provide an API for atomically rerunning multiple arbitrary failed jobs within the same workflow run. Once the matcher finds one or more retry-safe jobs and all safety rails pass, the workflow sends a single run-level `rerun-failed-jobs` request for the source run. That rerun attempt includes all failed jobs for that attempt, not only the matched jobs.
 
 When GitHub's `workflow_run` payload omits `pull_requests` for a failed PR run, the workflow falls back to resolving the source pull request from the CI run's `head_repository.owner.login` and `head_branch`. The fallback proceeds only when that lookup yields exactly one matching pull request, so ambiguous branch reuse still results in a skip. When the `workflow_run` payload also includes a `head_sha`, the fallback further filters candidate pull requests to those whose head SHA matches that value, which can also cause the lookup to skip if the branch still matches but the pull request head has advanced since the analyzed run.
 
 It is intentionally conservative:
 
-- it does not rerun every failed job in a run
+- it does not treat every failed run as rerun-eligible; a rerun is requested only when at least one matched job satisfies the retry-safe rules and the safety rails pass
 - it treats mixed deterministic failures plus transient post-step noise as non-retryable by default
 - it keeps `workflow_dispatch` behind the same matcher and safety rails as automatic execution, with an optional dry-run mode for inspection-only runs
 
@@ -37,10 +37,11 @@ It is intentionally conservative:
 - Automatic rerun is suppressed when matched jobs exceed the configured cap (default: 5).
 - For attempts after the first (`run_attempt > 1`), a stricter cap applies: rerun is suppressed unless the matched job count is strictly less than the configured cap (for example, fewer than 5 jobs by default). Aggregator jobs such as `Final Results` and `Tests / Final Test Results` are excluded from this count.
 - Before issuing reruns, the workflow confirms that at least one associated pull request is still open.
-- The workflow targets only the matched jobs when issuing rerun requests rather than rerunning the entire source run, although GitHub's job-rerun API also reruns dependent jobs automatically.
+- When a rerun is requested, the workflow sends one run-level failed-job rerun request for the analyzed source run rather than one request per matched job.
+- The matched-job count limits remain an eligibility gate: once the run is eligible, GitHub reruns all failed jobs for that attempt.
 - The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.
 - When reruns are requested, the rerun summary also links to both the failed attempt and the rerun attempt, plus any posted pull request comments.
-- After successful rerun requests, the workflow comments on the open associated pull request with links to the failed attempt, the rerun attempt, per-job failed-attempt links, and retry reasons.
+- After successful rerun requests, the workflow comments on the open associated pull request with links to the failed attempt, the rerun attempt, and the matched failed-attempt jobs and retry reasons that made the run eligible.
 
 ## Tests
 

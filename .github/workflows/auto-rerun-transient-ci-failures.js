@@ -691,9 +691,9 @@ function buildPullRequestCommentBody({
     retryableJobs,
 }) {
     return [
-        `The transient CI rerun workflow requested reruns for the following jobs after analyzing ${formatMarkdownLink('the failed attempt', failedAttemptUrl)}.`,
-        `GitHub's job rerun API also reruns dependent jobs, so the retry is being tracked in ${formatMarkdownLink('the rerun attempt', rerunAttemptUrl)}.`,
-        'The job links below point to the failed attempt that matched the retry-safe transient failure rules.',
+        `The transient CI rerun workflow identified the following jobs as retry-safe after analyzing ${formatMarkdownLink('the failed attempt', failedAttemptUrl)}.`,
+        `It then requested GitHub to rerun all failed jobs for that attempt, so the retry is being tracked in ${formatMarkdownLink('the rerun attempt', rerunAttemptUrl)}.`,
+        'The job links below point to the failed attempt jobs that matched the retry-safe transient failure rules.',
         '',
         ...retryableJobs.map(job => {
             const jobReference = job.htmlUrl
@@ -767,13 +767,11 @@ async function rerunMatchedJobs({
         return;
     }
 
-    for (const job of retryableJobs) {
-        await github.request('POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun', {
-            owner,
-            repo,
-            job_id: job.id,
-        });
-    }
+    await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs', {
+        owner,
+        repo,
+        run_id: sourceRunId,
+    });
 
     const normalizedSourceRunAttempt = Number.isInteger(sourceRunAttempt) && sourceRunAttempt > 0
         ? sourceRunAttempt
@@ -812,7 +810,12 @@ async function rerunMatchedJobs({
 
     addSummaryReference(summaryBuilder, 'Failed attempt', failedAttemptReference);
     addSummaryReference(summaryBuilder, 'Rerun attempt', rerunAttemptReference);
-    addSummaryCommentReferences(summaryBuilder, postedComments).addBreak();
+    addSummaryCommentReferences(summaryBuilder, postedComments)
+        .addBreak()
+        .addRaw('The matched jobs below made the run eligible for rerun. GitHub was asked to rerun all failed jobs for the failed attempt.')
+        .addBreak()
+        .addBreak()
+        .addHeading('Retryable jobs', 2);
 
     summaryBuilder
         .addTable([
