@@ -102,13 +102,18 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
         yield return new("HttpUri", HttpUriExpression);
     }
 
-    static IResourceBuilder<TDestination> IResourceWithCustomWithReference<QdrantServerResource>.WithReference<TDestination>(
+    static IResourceBuilder<TDestination>? IResourceWithCustomWithReference<QdrantServerResource>.TryWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,
-        IResourceBuilder<QdrantServerResource> source,
+        IResourceBuilder<IResource> source,
         string? connectionName,
         bool optional,
         string? name)
     {
+        if (source is not IResourceBuilder<QdrantServerResource> qdrantSource)
+        {
+            return null;
+        }
+
         if (optional)
         {
             throw new InvalidOperationException("Optional references are not supported for Qdrant resources.");
@@ -119,6 +124,6 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
             throw new InvalidOperationException("Named service references are not supported for Qdrant resources.");
         }
 
-        return QdrantBuilderExtensions.WithReference(builder, source, connectionName);
+        return QdrantBuilderExtensions.WithReference(builder, qdrantSource, connectionName);
     }
 }

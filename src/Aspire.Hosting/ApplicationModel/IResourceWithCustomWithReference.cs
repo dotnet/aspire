@@ -11,7 +11,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <typeparam name="TSelf">The concrete resource type that provides the custom dispatch behavior.</typeparam>
 /// <remarks>
 /// This contract is used by the internal ATS-visible <c>withReference</c> dispatcher
-/// to route references to resource-specific logic at runtime.
+/// to route references to resource-specific logic at runtime. Implementations may
+/// customize dispatch based on either the source or destination resource type.
 /// </remarks>
 [Experimental("ASPIREATS001")]
 public interface IResourceWithCustomWithReference<TSelf> : IResource
@@ -26,10 +27,10 @@ public interface IResourceWithCustomWithReference<TSelf> : IResource
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; otherwise, <see langword="false"/>.</param>
     /// <param name="name">An optional service discovery name override used by service-based references.</param>
     /// <typeparam name="TDestination">The destination resource type.</typeparam>
-    /// <returns>The destination <see cref="IResourceBuilder{T}"/>.</returns>
-    static abstract IResourceBuilder<TDestination> WithReference<TDestination>(
+    /// <returns>The destination <see cref="IResourceBuilder{T}"/> when handled; otherwise, <see langword="null"/>.</returns>
+    static abstract IResourceBuilder<TDestination>? TryWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,
-        IResourceBuilder<TSelf> source,
+        IResourceBuilder<IResource> source,
         string? connectionName = null,
         bool optional = false,
         string? name = null)
