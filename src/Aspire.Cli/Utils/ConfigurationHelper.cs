@@ -115,10 +115,12 @@ internal static class ConfigurationHelper
                 return;
             }
         }
-        catch
+        catch (JsonException ex)
         {
-            // If pre-processing fails, fall through to direct file loading.
-            // AddJsonFile will throw a clearer error for the user.
+            throw new InvalidOperationException(
+                $"The configuration file '{filePath}' contains invalid JSON: {ex.Message}" +
+                Environment.NewLine +
+                "Please fix the JSON syntax error and try again.", ex);
         }
 
         configuration.AddJsonFile(filePath, optional: true);

@@ -609,7 +609,20 @@ public class Program
 
         Console.OutputEncoding = Encoding.UTF8;
 
-        using var app = await BuildApplicationAsync(args);
+        IHost app;
+        try
+        {
+            app = await BuildApplicationAsync(args);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(ex.Message);
+            Console.ResetColor();
+            return ExitCodeConstants.FailedToLoadConfiguration;
+        }
+
+        using var _ = app;
 
         await app.StartAsync().ConfigureAwait(false);
 
