@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Configuration;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Utils;
@@ -13,16 +16,26 @@ internal static class ConfigurationHelper
     {
         var currentDirectory = workingDirectory;
 
-        // Find the nearest local settings file
+        // Find the nearest local settings file (prefer aspire.config.json, fall back to .aspire/settings.json)
         FileInfo? localSettingsFile = null;
 
         while (currentDirectory is not null)
         {
-            var settingsFilePath = BuildPathToSettingsJsonFile(currentDirectory.FullName);
-
-            if (File.Exists(settingsFilePath))
+            // Check for aspire.config.json first (new format)
+            var newSettingsPath = Path.Combine(currentDirectory.FullName, AspireConfigFile.FileName);
+            if (File.Exists(newSettingsPath))
             {
-                localSettingsFile = new FileInfo(settingsFilePath);
+                localSettingsFile = new FileInfo(newSettingsPath);
+                break;
+            }
+
+            // TODO: Remove legacy .aspire/settings.json fallback once confident most users have migrated.
+            // Tracked by https://github.com/dotnet/aspire/issues/15239
+            // Fall back to .aspire/settings.json (legacy format)
+            var legacySettingsPath = BuildPathToSettingsJsonFile(currentDirectory.FullName);
+            if (File.Exists(legacySettingsPath))
+            {
+                localSettingsFile = new FileInfo(legacySettingsPath);
                 break;
             }
 
@@ -85,6 +98,32 @@ internal static class ConfigurationHelper
         // (e.g., both "features:key" flat entry and "features" nested object).
         TryNormalizeSettingsFile(filePath);
 
+        // Pre-process the file to handle comments and trailing commas.
+        // Microsoft.Extensions.Configuration.Json doesn't support JSON comments,
+        // so we parse with comment support and load the clean JSON via stream.
+        try
+        {
+            var content = File.ReadAllText(filePath);
+            var node = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+            if (node is not null)
+            {
+                var cleanJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                var bytes = System.Text.Encoding.UTF8.GetBytes(cleanJson);
+                configuration.AddJsonStream(new MemoryStream(bytes));
+                return;
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new JsonException(
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath),
+                ex.Path, ex.LineNumber, ex.BytePositionInLine, ex);
+        }
+
         configuration.AddJsonFile(filePath, optional: true);
     }
 
@@ -102,7 +141,11 @@ internal static class ConfigurationHelper
                 return false;
             }
 
-            var settings = JsonNode.Parse(content)?.AsObject();
+            var settings = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            })?.AsObject();
 
             if (settings is null)
             {

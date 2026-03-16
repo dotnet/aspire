@@ -6,6 +6,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.CopilotCli;
@@ -124,8 +125,28 @@ public class Program
     private static string GetGlobalSettingsPath()
     {
         var usersAspirePath = GetUsersAspirePath();
-        var globalSettingsPath = Path.Combine(usersAspirePath, "globalsettings.json");
-        return globalSettingsPath;
+        var newPath = Path.Combine(usersAspirePath, Configuration.AspireConfigFile.FileName);
+
+        // TODO: Remove globalsettings.json migration once confident most users have migrated.
+        // The old file is intentionally kept so older CLI versions continue to work during
+        // the transition period. Tracked by https://github.com/dotnet/aspire/issues/15239
+        var legacyPath = Path.Combine(usersAspirePath, "globalsettings.json");
+        if (!File.Exists(newPath) && File.Exists(legacyPath))
+        {
+            try
+            {
+                var legacyJson = File.ReadAllText(legacyPath);
+                var legacyConfig = JsonSerializer.Deserialize(legacyJson, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
+                var config = AspireConfigFile.FromLegacy(legacyConfig, profiles: null);
+                config.Save(usersAspirePath);
+            }
+            catch
+            {
+                // If migration fails, newPath will be created on first write.
+            }
+        }
+
+        return newPath;
     }
 
     internal static async Task<IHost> BuildApplicationAsync(string[] args, Dictionary<string, string?>? configurationValues = null)
@@ -487,7 +508,8 @@ public class Program
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
-        return new ConfigurationService(configuration, executionContext, globalSettingsFile);
+        var logger = serviceProvider.GetRequiredService<ILogger<ConfigurationService>>();
+        return new ConfigurationService(configuration, executionContext, globalSettingsFile, logger);
     }
 
     internal static async Task DisplayFirstTimeUseNoticeIfNeededAsync(IServiceProvider serviceProvider, string[] args, CancellationToken cancellationToken = default)
@@ -587,7 +609,20 @@ public class Program
 
         Console.OutputEncoding = Encoding.UTF8;
 
-        using var app = await BuildApplicationAsync(args);
+        IHost app;
+        try
+        {
+            app = await BuildApplicationAsync(args);
+        }
+        catch (JsonException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(ex.Message);
+            Console.ResetColor();
+            return ExitCodeConstants.FailedToLoadConfiguration;
+        }
+
+        using var _ = app;
 
         await app.StartAsync().ConfigureAwait(false);
 

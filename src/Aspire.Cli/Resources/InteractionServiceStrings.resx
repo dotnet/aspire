@@ -172,6 +172,10 @@
     <value>Created settings file at {0}.</value>
     <comment>{0} is a path</comment>
   </data>
+  <data name="UpdatedSettingsFile" xml:space="preserve">
+    <value>Updated settings file at {0}.</value>
+    <comment>{0} is a path</comment>
+  </data>
   <data name="ProjectOptionDoesntExist" xml:space="preserve">
     <value>The --apphost option specified a project that does not exist.</value>
   </data>

@@ -323,7 +323,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ConfigurationService(configuration, executionContext, GetGlobalSettingsFile(WorkingDirectory));
+        return new ConfigurationService(configuration, executionContext, GetGlobalSettingsFile(WorkingDirectory), NullLogger<ConfigurationService>.Instance);
     }
 
     private static FileInfo GetGlobalSettingsFile(DirectoryInfo workingDirectory)

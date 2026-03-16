@@ -58,13 +58,13 @@ public sealed class StagingChannelTests(ITestOutputHelper output)
             .Enter()
             .WaitForSuccessPrompt(counter);
 
-        // Step 2: Verify the settings were persisted in the global settings file
+        // Step 2: Verify the settings were persisted in the global config file
         var settingsFilePattern = new CellPatternSearcher()
             .Find("stagingPinToCliVersion");
 
         sequenceBuilder
             .ClearScreen(counter)
-            .Type("cat ~/.aspire/globalsettings.json")
+            .Type("cat ~/.aspire/aspire.config.json")
             .Enter()
             .WaitUntil(s => settingsFilePattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
