@@ -167,6 +167,11 @@
         <target state="translated">예기치 않은 오류가 발생했습니다. {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
+      <trans-unit id="UpdatedSettingsFile">
+        <source>Updated settings file at {0}.</source>
+        <target state="new">Updated settings file at {0}.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
         <source>Waiting for debugger to attach to app host process</source>
         <target state="translated">디버거가 앱 호스트 프로세스에 연결되기를 기다리는 중</target>

@@ -209,14 +209,14 @@ public sealed class ResourceViewModelNameComparer : IComparer<ResourceViewModel>
         // Use display name by itself first.
         // This is to avoid the problem of using the full name where one resource is called "database" and another is called "database-admin".
         // The full names could end up "database-xyz" and "database-admin-xyz", which would put resources out of order.
-        var displayNameResult = StringComparers.ResourceName.Compare(x.DisplayName, y.DisplayName);
+        var displayNameResult = string.Compare(x.DisplayName, y.DisplayName, StringComparisons.ResourceName);
         if (displayNameResult != 0)
         {
             return displayNameResult;
         }
 
         // Display names are the same so compare with full names.
-        return StringComparers.ResourceName.Compare(x.Name, y.Name);
+        return string.Compare(x.Name, y.Name, StringComparisons.ResourceName);
     }
 }
 

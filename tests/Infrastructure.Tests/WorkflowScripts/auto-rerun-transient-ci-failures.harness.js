@@ -51,11 +51,23 @@ async function main() {
 async function dispatch(operation, payload) {
     switch (operation) {
         case 'analyzeFailedJobs':
-            return rerunWorkflow.analyzeFailedJobs({
-                jobs: payload.jobs ?? [],
-                getAnnotationsForJob: async job => payload.annotationTextByJobId?.[String(job.id)] ?? '',
-                getJobLogTextForJob: async job => payload.jobLogTextByJobId?.[String(job.id)] ?? '',
-            });
+            {
+                const logRequestJobIds = [];
+                const result = await rerunWorkflow.analyzeFailedJobs({
+                    jobs: payload.jobs ?? [],
+                    getAnnotationsForJob: async job => payload.annotationTextByJobId?.[String(job.id)] ?? '',
+                    getJobLogTextForJob: async job => {
+                        logRequestJobIds.push(job.id);
+                        return payload.jobLogTextByJobId?.[String(job.id)] ?? '';
+                    },
+                    maxRetryableJobs: payload.maxRetryableJobs,
+                });
+
+                return { ...result, logRequestJobIds };
+            }
+
+        case 'formatMatchedPatternForMarkdown':
+            return rerunWorkflow.formatMatchedPatternForMarkdown(payload.matchedPattern);
 
         case 'getCheckRunIdForJob':
             return rerunWorkflow.getCheckRunIdForJob({
@@ -63,8 +75,24 @@ async function dispatch(operation, payload) {
                 getJobForWorkflowRun: payload.workflowJob ? async () => payload.workflowJob : undefined,
             });
 
+        case 'getAssociatedPullRequestNumbers': {
+            const requests = [];
+            const github = createGitHubRecorder(payload, requests);
+            const pullRequestNumbers = await rerunWorkflow.getAssociatedPullRequestNumbers({
+                github,
+                owner: payload.owner ?? 'dotnet',
+                repo: payload.repo ?? 'aspire',
+                workflowRun: payload.workflowRun,
+            });
+
+            return { pullRequestNumbers, requests };
+        }
+
         case 'computeRerunEligibility':
             return rerunWorkflow.computeRerunEligibility(payload);
+
+        case 'computeRerunExecutionEligibility':
+            return rerunWorkflow.computeRerunExecutionEligibility(payload);
 
         case 'writeAnalysisSummary': {
             const summary = new SummaryRecorder();
@@ -121,10 +149,28 @@ function createGitHubRecorder(payload, requests) {
                 };
             }
 
+            if (route === 'GET /repos/{owner}/{repo}/pulls') {
+                if (payload.failPullRequestLookup) {
+                    throw new Error(payload.failPullRequestLookup);
+                }
+
+                const page = Number(requestPayload.page ?? 1);
+                const pullRequestPages = payload.pullRequestsByHeadPages?.[requestPayload.head];
+                const pullRequests = pullRequestPages
+                    ? pullRequestPages[page - 1] ?? []
+                    : payload.pullRequestsByHead?.[requestPayload.head] ?? [];
+                const hasNextPage = Array.isArray(pullRequestPages) && page < pullRequestPages.length;
+
+                return {
+                    data: pullRequests,
+                    headers: {
+                        link: hasNextPage ? '<https://api.github.com/next>; rel="next"' : '',
+                    },
+                };
+            }
             if (route === 'POST /repos/{owner}/{repo}/issues/{issue_number}/comments') {
                 const issueNumber = String(requestPayload.issue_number);
-                const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber]
-                    ?? `https://github.com/${requestPayload.owner}/${requestPayload.repo}/pull/${issueNumber}#issuecomment-${issueNumber}`;
+                const htmlUrl = payload.commentHtmlUrlByNumber?.[issueNumber] ?? null;
 
                 return {
                     data: {

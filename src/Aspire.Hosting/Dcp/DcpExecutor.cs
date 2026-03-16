@@ -671,6 +671,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ignore
                     _logger.LogDebug("Log streaming for {ResourceName} was cancelled.", resource.Metadata.Name);
                 }
+                catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Resource was deleted — this is expected for short-lived resources like rebuilders.
+                    _logger.LogDebug("Log streaming for {ResourceName} ended because the resource was deleted.", resource.Metadata.Name);
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
@@ -1014,7 +1019,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 ))
                 .Where(ts =>
                     ts.Service is not null &&
-                    StringComparers.ResourceName.Equals(ts.ResourceName, appResource.ModelResource.Name) &&
+                    string.Equals(ts.ResourceName, appResource.ModelResource.Name, StringComparisons.ResourceName) &&
                     !string.IsNullOrEmpty(ts.EndpointName) &&
                     !string.IsNullOrEmpty(ts.ContainerNetworkName)
                 );
@@ -1033,9 +1038,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     }
 
                     var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
-                         StringComparers.ResourceName.Equals(swr.ModelResource.Name, ts.ResourceName) &&
-                         StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
-                     );
+                        string.Equals(swr.ModelResource.Name, ts.ResourceName, StringComparisons.ResourceName) &&
+                        string.Equals(swr.EndpointAnnotation.Name, endpoint.Name, StringComparisons.EndpointAnnotationName)
+                    );
                     if (serverSvc is null)
                     {
                         // Should never happen -- we should have created a Service for every endpoint exposed from a resource.
@@ -1225,8 +1230,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 // Address and port will be set automatically by DCP.
 
                 var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
-                    StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
-                    StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
+                    string.Equals(swr.ModelResource.Name, re.Resource.Name, StringComparisons.ResourceName) &&
+                    string.Equals(swr.EndpointAnnotation.Name, endpoint.Name, StringComparisons.EndpointAnnotationName)
                 );
                 if (serverSvc is null)
                 {
@@ -2939,7 +2944,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         endpoint = null;
         if (resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
         {
-            endpoint = endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName));
+            endpoint = endpoints.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparisons.EndpointAnnotationName));
         }
         return endpoint is not null;
     }

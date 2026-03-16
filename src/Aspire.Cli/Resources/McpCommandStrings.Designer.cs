@@ -61,7 +61,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Manage MCP (Model Context Protocol) server. (deprecated, use &apos;agent&apos;).
+        ///   Looks up a localized string similar to Interact with MCP (Model Context Protocol) tools exposed by Aspire resources..
         /// </summary>
         internal static string Description {
             get {

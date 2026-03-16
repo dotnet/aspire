@@ -24,8 +24,8 @@ var allModelsResponse = await mc.GetAllModelsAsync().ConfigureAwait(false);
 
 // Generate C# extension methods for the models
 var generatedCode = isFoundryLocal
-    ? GenerateLocalCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? [])
-    : GenerateHostedCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
+    ? GenerateLocalCode("Aspire.Hosting.Foundry", allModelsResponse.Entities ?? [])
+    : GenerateHostedCode("Aspire.Hosting.Foundry", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
 var filename = isFoundryLocal
