@@ -20,7 +20,7 @@ var connectionString = app.Configuration.GetConnectionString("gamedb");
 // Initialize database on startup
 if (connectionString is not null)
 {
-    await InitializeDatabase(connectionString);
+    await InitializeDatabaseAsync(connectionString);
 }
 
 app.MapGet("/health", () => Results.Ok("healthy"));
@@ -114,13 +114,13 @@ app.MapGet("/api/rounds", async (int? limit) =>
     return Results.Ok(rounds);
 });
 
-app.MapGet("/api/players", async () =>
+app.MapGet("/api/players", async (IConfiguration config) =>
 {
     using var httpClient = new HttpClient();
 
-    var pythonPlayerUrl = Environment.GetEnvironmentVariable("services__python-player__http__0");
-    var nodePlayerUrl = Environment.GetEnvironmentVariable("services__node-player__http__0");
-    var csharpPlayerUrl = Environment.GetEnvironmentVariable("services__csharp-player__http__0");
+    var pythonPlayerUrl = config.GetValue<string>("PYTHON_PLAYER_HTTP");
+    var nodePlayerUrl = config.GetValue<string>("NODE_PLAYER_HTTP");
+    var csharpPlayerUrl = config.GetValue<string>("CSHARP_PLAYER_HTTP");
 
     if (pythonPlayerUrl is null || nodePlayerUrl is null || csharpPlayerUrl is null)
     {
@@ -162,7 +162,7 @@ app.MapDelete("/api/rounds", async () =>
     return Results.Ok(new { message = "History cleared", deletedRounds = deleted });
 });
 
-app.MapPost("/api/rounds/play", async () =>
+app.MapPost("/api/rounds/play", async (IConfiguration config) =>
 {
     if (connectionString is null)
     {
@@ -172,9 +172,9 @@ app.MapPost("/api/rounds/play", async () =>
     using var httpClient = new HttpClient();
 
     // Get endpoints from Aspire-injected environment variables
-    var pythonPlayerUrl = Environment.GetEnvironmentVariable("services__python-player__http__0");
-    var nodePlayerUrl = Environment.GetEnvironmentVariable("services__node-player__http__0");
-    var csharpPlayerUrl = Environment.GetEnvironmentVariable("services__csharp-player__http__0");
+    var pythonPlayerUrl = config.GetValue<string>("PYTHON_PLAYER_HTTP");
+    var nodePlayerUrl = config.GetValue<string>("NODE_PLAYER_HTTP");
+    var csharpPlayerUrl = config.GetValue<string>("CSHARP_PLAYER_HTTP");
 
     if (pythonPlayerUrl is null || nodePlayerUrl is null || csharpPlayerUrl is null)
     {
@@ -264,7 +264,7 @@ static string DetermineWinner(string p1Name, string p1Move, string p2Name, strin
     return p1Wins ? p1Name : p2Name;
 }
 
-static async Task InitializeDatabase(string connectionString)
+static async Task InitializeDatabaseAsync(string connectionString)
 {
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();

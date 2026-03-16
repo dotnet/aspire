@@ -6,7 +6,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: process.env.services__gamemaster__http__0 || 'http://localhost:5100',
+                target: process.env.GAMEMASTER_HTTP || 'http://localhost:5100',
                 changeOrigin: true,
             },
         },
