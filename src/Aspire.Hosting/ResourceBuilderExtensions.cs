@@ -561,18 +561,7 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
-
-        return WithReferenceCore(builder, source, connectionName, optional, name);
-    }
-
-    private static IResourceBuilder<TDestination> WithReferenceCore<TDestination>(
-        IResourceBuilder<TDestination> builder,
-        IResourceBuilder<IResource> source,
-        string? connectionName,
-        bool optional,
-        string? name)
-        where TDestination : IResourceWithEnvironment
-    {
+        
         if (TryDispatchCustomReferenceTarget(builder, source, connectionName, optional, name, out var customReferenceTargetDispatch))
         {
             return customReferenceTargetDispatch;
