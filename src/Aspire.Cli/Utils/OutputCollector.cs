@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
 
@@ -35,7 +36,7 @@ internal sealed class OutputCollector
         lock (_lock)
         {
             _lines.Add(("stdout", line));
-            _fileLogger?.WriteLog(FormatLogLine("stdout", line));
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, LogLevel.Information, _category, line);
         }
     }
 
@@ -44,7 +45,7 @@ internal sealed class OutputCollector
         lock (_lock)
         {
             _lines.Add(("stderr", line));
-            _fileLogger?.WriteLog(FormatLogLine("stderr", line));
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, LogLevel.Error, _category, line);
         }
     }
 
@@ -54,12 +55,5 @@ internal sealed class OutputCollector
         {
             return _lines.ToArray();
         }
-    }
-
-    private string FormatLogLine(string stream, string line)
-    {
-        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-        var level = stream == "stderr" ? "FAIL" : "INFO";
-        return $"[{timestamp}] [{level}] [{_category}] {line}";
     }
 }

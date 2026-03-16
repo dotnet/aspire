@@ -1,8 +1,8 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
+import { Handle, AspireClient, MarshalledHandle, CancellationToken, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
 
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
+export { Handle, AspireClient, CapabilityError, CancellationToken, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
 export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.js';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 
@@ -158,10 +158,10 @@ export class ReferenceExpression {
      * Resolves the expression to its string value on the server.
      * Only available on server-returned ReferenceExpression instances (handle mode).
      *
-     * @param cancellationToken - Optional AbortSignal for cancellation support
+     * @param cancellationToken - Optional AbortSignal or CancellationToken for cancellation support
      * @returns The resolved string value, or null if the expression resolves to null
      */
-    async getValue(cancellationToken?: AbortSignal): Promise<string | null> {
+    async getValue(cancellationToken?: AbortSignal | CancellationToken): Promise<string | null> {
         if (!this._handle || !this._client) {
             throw new Error('getValue is only available on server-returned ReferenceExpression instances');
         }

@@ -40,24 +40,24 @@ internal sealed class ScaffoldingService : IScaffoldingService
     }
 
     /// <inheritdoc />
-    public async Task ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    public async Task<bool> ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         if (context.Language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
             throw new NotSupportedException("C# projects should be created using the template system via NewCommand.");
         }
 
-        await ScaffoldGuestLanguageAsync(context, cancellationToken);
+        return await ScaffoldGuestLanguageAsync(context, cancellationToken);
     }
 
-    private async Task ScaffoldGuestLanguageAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    private async Task<bool> ScaffoldGuestLanguageAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         var directory = context.TargetDirectory;
         var language = context.Language;
 
         // Step 1: Resolve SDK and package strategy
         var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
-        var config = AspireJsonConfiguration.LoadOrCreate(directory.FullName, sdkVersion);
+        var config = AspireConfigFile.LoadOrCreate(directory.FullName, sdkVersion);
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
@@ -82,7 +82,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 _interactionService.DisplayLines(prepareResult.Output.GetLines());
             }
             _interactionService.DisplayError("Failed to build AppHost server.");
-            return;
+            return false;
         }
 
         // Step 2: Start the server temporarily for scaffolding and code generation
@@ -121,7 +121,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 emoji: KnownEmojis.Package);
             if (installResult != 0)
             {
-                return;
+                return false;
             }
 
             // Step 6: Generate SDK code via RPC
@@ -131,14 +131,34 @@ internal sealed class ScaffoldingService : IScaffoldingService
                 language,
                 cancellationToken);
 
-            // Save channel and language to settings.json
+            // Save channel and language to aspire.config.json (new format)
+            // Read profiles from apphost.run.json (created by codegen) and merge into aspire.config.json
+            var appHostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
+            var profiles = AspireConfigFile.ReadApphostRunProfiles(appHostRunPath, _logger);
+
+            if (profiles is not null && File.Exists(appHostRunPath))
+            {
+                try
+                {
+                    // Delete apphost.run.json since profiles are now in aspire.config.json
+                    File.Delete(appHostRunPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to delete apphost.run.json after reading profiles");
+                }
+            }
+
+            config.Profiles = profiles;
             if (prepareResult.ChannelName is not null)
             {
                 config.Channel = prepareResult.ChannelName;
             }
-
-            config.Language = language.LanguageId;
+            config.AppHost ??= new AspireConfigAppHost();
+            config.AppHost.Path ??= language.AppHostFileName;
+            config.AppHost.Language = language.LanguageId;
             config.Save(directory.FullName);
+            return true;
         }
         finally
         {

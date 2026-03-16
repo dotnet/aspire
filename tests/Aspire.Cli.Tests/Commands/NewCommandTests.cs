@@ -891,7 +891,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             {
                 scaffoldedLanguageId = context.Language.LanguageId.Value;
                 File.WriteAllText(Path.Combine(context.TargetDirectory.FullName, "apphost.ts"), "// test apphost");
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1069,7 +1069,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.True(localhostPrompted);
 
-        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json");
+        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
         Assert.True(File.Exists(runProfilePath));
         var runProfile = await File.ReadAllTextAsync(runProfilePath);
         Assert.Contains("testapp.dev.localhost", runProfile);
@@ -1108,7 +1108,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = (context, cancellationToken) =>
             {
                 scaffoldingInvoked = true;
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1164,7 +1164,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = (context, cancellationToken) =>
             {
                 capturedTargetDirectory = context.TargetDirectory.FullName;
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             }
         });
 
@@ -1243,8 +1243,12 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
             ScaffoldAsyncCallback = async (context, cancellationToken) =>
             {
                 scaffoldingInvoked = true;
-                await File.WriteAllTextAsync(Path.Combine(context.TargetDirectory.FullName, "apphost.run.json"), """
+                await File.WriteAllTextAsync(Path.Combine(context.TargetDirectory.FullName, "aspire.config.json"), """
                     {
+                      "appHost": {
+                        "path": "apphost.ts",
+                        "language": "typescript/nodejs"
+                      },
                       "profiles": {
                         "https": {
                           "applicationUrl": "https://localhost:1234;http://localhost:5678",
@@ -1256,6 +1260,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                       }
                     }
                     """, cancellationToken);
+                return true;
             }
         });
 
@@ -1268,10 +1273,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.True(scaffoldingInvoked);
         Assert.True(localhostPrompted);
 
-        var runProfilePath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json");
-        var runProfile = await File.ReadAllTextAsync(runProfilePath);
-        Assert.Contains("testapp.dev.localhost", runProfile);
-        Assert.DoesNotContain("://localhost", runProfile);
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
+        var configContent = await File.ReadAllTextAsync(configPath);
+        Assert.Contains("testapp.dev.localhost", configContent);
+        Assert.DoesNotContain("://localhost", configContent);
     }
 
     [Fact]
@@ -1632,16 +1637,16 @@ internal sealed class NewCommandTestFakeNuGetPackageCache : INuGetPackageCache
 
 internal sealed class TestScaffoldingService : IScaffoldingService
 {
-    public Func<ScaffoldContext, CancellationToken, Task>? ScaffoldAsyncCallback { get; set; }
+    public Func<ScaffoldContext, CancellationToken, Task<bool>>? ScaffoldAsyncCallback { get; set; }
 
-    public Task ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
+    public Task<bool> ScaffoldAsync(ScaffoldContext context, CancellationToken cancellationToken)
     {
         if (ScaffoldAsyncCallback is not null)
         {
             return ScaffoldAsyncCallback(context, cancellationToken);
         }
 
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 }
 
