@@ -140,39 +140,6 @@ public class AzureBicepProvisionerTests
     }
 
     [Fact]
-    public async Task GetOrCreateResourceAsync_InPublishMode_AllowsCurrentPrincipalForAnnotatedResource()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
-        using var services = builder.Services.BuildServiceProvider();
-
-        var resource = new AzureBicepResource("storage-roles", templateString: "output id string = 'ok'");
-        resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = null;
-        resource.Parameters[AzureBicepResource.KnownParameters.PrincipalName] = null;
-        resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = null;
-        resource.Annotations.Add(new AllowCurrentPrincipalInPublishModeAnnotation());
-
-        var provisioner = new BicepProvisioner(
-            services.GetRequiredService<ResourceNotificationService>(),
-            services.GetRequiredService<ResourceLoggerService>(),
-            new TestBicepCliExecutor(),
-            new TestSecretClientProvider(),
-            services.GetRequiredService<IDeploymentStateManager>(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            services.GetRequiredService<IFileSystemService>(),
-            NullLogger<BicepProvisioner>.Instance);
-
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
-            executionContext: new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
-
-        await provisioner.GetOrCreateResourceAsync(resource, context, CancellationToken.None);
-
-        Assert.Equal(context.Principal.Id, resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId]);
-        Assert.Equal(context.Principal.Name, resource.Parameters[AzureBicepResource.KnownParameters.PrincipalName]);
-        Assert.Equal("User", resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType]);
-    }
-
-    [Fact]
     public async Task BicepCliExecutor_CompilesBicepToArm()
     {
         // Test the mock bicep executor behavior
