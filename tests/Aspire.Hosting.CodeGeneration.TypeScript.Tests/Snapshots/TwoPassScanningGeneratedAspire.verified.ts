@@ -181,9 +181,6 @@ type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hostin
 /** Handle to IResourceWithContainerFiles */
 type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles'>;
 
-/** Handle to IResourceWithServiceDiscovery */
-type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
-
 /** Handle to IUserSecretsManager */
 type IUserSecretsManagerHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IUserSecretsManager'>;
 
@@ -665,6 +662,7 @@ export interface WithPipelineStepFactoryOptions {
 export interface WithReferenceOptions {
     connectionName?: string;
     optional?: boolean;
+    name?: string;
 }
 
 export interface WithRequiredCommandOptions {
@@ -6886,10 +6884,11 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ContainerResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -6901,37 +6900,8 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ContainerResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new ContainerResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ContainerResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new ContainerResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<ContainerResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new ContainerResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new ContainerResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -8193,16 +8163,6 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -8842,10 +8802,11 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<CSharpAppResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -8857,37 +8818,8 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): CSharpAppResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new CSharpAppResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<CSharpAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new CSharpAppResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<CSharpAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new CSharpAppResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new CSharpAppResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -10075,16 +10007,6 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -10827,10 +10749,11 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<DotnetToolResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -10842,37 +10765,8 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): DotnetToolResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new DotnetToolResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<DotnetToolResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new DotnetToolResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<DotnetToolResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new DotnetToolResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new DotnetToolResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -12080,16 +11974,6 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -12737,10 +12621,11 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ExecutableResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -12752,37 +12637,8 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new ExecutableResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new ExecutableResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -13958,16 +13814,6 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
     }
 
     /** Adds a reference to a URI */
@@ -16366,10 +16212,11 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ProjectResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -16381,37 +16228,8 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ProjectResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new ProjectResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ProjectResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new ProjectResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<ProjectResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new ProjectResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new ProjectResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -17599,16 +17417,6 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -18459,10 +18267,11 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<TestDatabaseResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -18474,37 +18283,8 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): TestDatabaseResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new TestDatabaseResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<TestDatabaseResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new TestDatabaseResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<TestDatabaseResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new TestDatabaseResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new TestDatabaseResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -19766,16 +19546,6 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestDatabaseResourcePromise {
-        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -20656,10 +20426,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<TestRedisResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -20671,37 +20442,8 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): TestRedisResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new TestRedisResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<TestRedisResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new TestRedisResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<TestRedisResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new TestRedisResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new TestRedisResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -22162,16 +21904,6 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -23087,10 +22819,11 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<TestVaultResource> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -23102,37 +22835,8 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): TestVaultResourcePromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new TestVaultResourcePromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<TestVaultResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new TestVaultResource(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<TestVaultResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new TestVaultResource(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new TestVaultResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -24407,16 +24111,6 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     /** Adds a reference to another resource */
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): TestVaultResourcePromise {
-        return new TestVaultResourcePromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
     }
 
     /** Adds a reference to a URI */
@@ -26471,10 +26165,11 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     }
 
     /** @internal */
-    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean): Promise<ResourceWithEnvironment> {
+    private async _withReferenceInternal(source: ResourceBuilderBase, connectionName?: string, optional?: boolean, name?: string): Promise<ResourceWithEnvironment> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
         if (connectionName !== undefined) rpcArgs.connectionName = connectionName;
         if (optional !== undefined) rpcArgs.optional = optional;
+        if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
             'Aspire.Hosting/withReference',
             rpcArgs
@@ -26486,37 +26181,8 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
     withReference(source: ResourceBuilderBase, options?: WithReferenceOptions): ResourceWithEnvironmentPromise {
         const connectionName = options?.connectionName;
         const optional = options?.optional;
-        return new ResourceWithEnvironmentPromise(this._withReferenceInternal(source, connectionName, optional));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceInternal(source: ResourceBuilderBase): Promise<ResourceWithEnvironment> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source };
-        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withServiceReference',
-            rpcArgs
-        );
-        return new ResourceWithEnvironment(result, this._client);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._withServiceReferenceInternal(source));
-    }
-
-    /** @internal */
-    private async _withServiceReferenceNamedInternal(source: ResourceBuilderBase, name: string): Promise<ResourceWithEnvironment> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, source, name };
-        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withServiceReferenceNamed',
-            rpcArgs
-        );
-        return new ResourceWithEnvironment(result, this._client);
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._withServiceReferenceNamedInternal(source, name));
+        const name = options?.name;
+        return new ResourceWithEnvironmentPromise(this._withReferenceInternal(source, connectionName, optional, name));
     }
 
     /** @internal */
@@ -26728,16 +26394,6 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
-    /** Adds a service discovery reference to another resource */
-    withServiceReference(source: ResourceBuilderBase): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withServiceReference(source)));
-    }
-
-    /** Adds a named service discovery reference */
-    withServiceReferenceNamed(source: ResourceBuilderBase, name: string): ResourceWithEnvironmentPromise {
-        return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withServiceReferenceNamed(source, name)));
-    }
-
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -26781,34 +26437,6 @@ export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithE
     /** Sets environment variables */
     withEnvironmentVariables(variables: Record<string, string>): ResourceWithEnvironmentPromise {
         return new ResourceWithEnvironmentPromise(this._promise.then(obj => obj.withEnvironmentVariables(variables)));
-    }
-
-}
-
-// ============================================================================
-// ResourceWithServiceDiscovery
-// ============================================================================
-
-export class ResourceWithServiceDiscovery extends ResourceBuilderBase<IResourceWithServiceDiscoveryHandle> {
-    constructor(handle: IResourceWithServiceDiscoveryHandle, client: AspireClientRpc) {
-        super(handle, client);
-    }
-
-}
-
-/**
- * Thenable wrapper for ResourceWithServiceDiscovery that enables fluent chaining.
- * @example
- * await builder.addSomething().withX().withY();
- */
-export class ResourceWithServiceDiscoveryPromise implements PromiseLike<ResourceWithServiceDiscovery> {
-    constructor(private _promise: Promise<ResourceWithServiceDiscovery>) {}
-
-    then<TResult1 = ResourceWithServiceDiscovery, TResult2 = never>(
-        onfulfilled?: ((value: ResourceWithServiceDiscovery) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
     }
 
 }
@@ -27125,6 +26753,5 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceW
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles', (handle, client) => new ResourceWithContainerFiles(handle as IResourceWithContainerFilesHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEndpoints', (handle, client) => new ResourceWithEndpoints(handle as IResourceWithEndpointsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
-registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery', (handle, client) => new ResourceWithServiceDiscovery(handle as IResourceWithServiceDiscoveryHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport', (handle, client) => new ResourceWithWaitSupport(handle as IResourceWithWaitSupportHandle, client));
 
