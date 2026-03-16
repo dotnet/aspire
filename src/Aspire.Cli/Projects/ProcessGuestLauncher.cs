@@ -100,6 +100,7 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
 
         await process.WaitForExitAsync(cancellationToken);
         await Task.WhenAll(stdoutCompleted.Task, stderrCompleted.Task).WaitAsync(cancellationToken);
+        await outputCollector.FlushLiveOutputAsync(CancellationToken.None);
         return (process.ExitCode, outputCollector);
     }
 }
