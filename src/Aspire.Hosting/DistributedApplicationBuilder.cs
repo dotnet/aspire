@@ -798,6 +798,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Only add in Development environment, matching the behavior of the default AddUserSecrets.
         if (!string.IsNullOrWhiteSpace(configuredUserSecretsId) && isDevelopment)
         {
+            // Remove only the file-backed source for the assembly-derived user-secrets ID so the configured
+            // user-secrets store replaces that single source without affecting other configuration providers.
             RemoveUserSecretsSource(configuration, appHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId);
             configuration.AddUserSecrets(configuredUserSecretsId);
         }
