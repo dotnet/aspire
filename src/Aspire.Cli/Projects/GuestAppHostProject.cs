@@ -441,9 +441,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 environmentVariables["ASPIRE_DEBUG"] = "true";
             }
 
-            // Pass through any additional command-line arguments from the user
-            var additionalArgs = context.UnmatchedTokens.Length > 0 ? context.UnmatchedTokens : null;
-            
             // Check if the extension should launch the guest app host (for VS Code debugging).
             // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
             // The RuntimeSpec declares the required extension capability (e.g., "node" for TypeScript);
@@ -469,7 +466,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Start guest apphost - it will connect to AppHost server, define resources.
             // If launcher is an ExtensionGuestLauncher, it delegates to the VS Code extension.
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, additionalArgs, rpcClient, launcher, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, launcher, cancellationToken);
 
             if (launcher is ExtensionGuestLauncher)
             {
@@ -1248,7 +1245,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
-        string[]? additionalArgs,
         IAppHostRpcClient rpcClient,
         IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
@@ -1261,7 +1257,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, additionalArgs, launcher, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, launcher, cancellationToken);
     }
 
     /// <summary>
