@@ -23,6 +23,7 @@ public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
     private static readonly MethodInfo s_dispatchCustomWithReferenceMethod = typeof(ResourceBuilderExtensions).GetMethod(nameof(DispatchCustomWithReference), BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly MethodInfo s_dispatchCustomReferenceTargetMethod = typeof(ResourceBuilderExtensions).GetMethod(nameof(DispatchCustomReferenceTargetWithReference), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     /// <summary>
     /// Adds an environment variable to the resource.
@@ -572,6 +573,11 @@ public static class ResourceBuilderExtensions
         string? name)
         where TDestination : IResourceWithEnvironment
     {
+        if (TryDispatchCustomReferenceTarget(builder, source, connectionName, optional, name, out var customReferenceTargetDispatch))
+        {
+            return customReferenceTargetDispatch;
+        }
+
         if (TryDispatchCustomWithReference(builder, source, connectionName, optional, name, out var customDispatch))
         {
             return customDispatch;
@@ -661,6 +667,32 @@ public static class ResourceBuilderExtensions
         return true;
     }
 
+    private static bool TryDispatchCustomReferenceTarget<TDestination>(
+        IResourceBuilder<TDestination> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName,
+        bool optional,
+        string? name,
+        [NotNullWhen(true)] out IResourceBuilder<TDestination>? dispatchedBuilder)
+        where TDestination : IResourceWithEnvironment
+    {
+        var destinationType = typeof(TDestination);
+        var customReferenceTargetInterface = destinationType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType
+                && i.GetGenericTypeDefinition() == typeof(IResourceWithCustomReferenceTarget<>)
+                && i.GetGenericArguments()[0] == destinationType);
+
+        if (customReferenceTargetInterface is null)
+        {
+            dispatchedBuilder = null;
+            return false;
+        }
+
+        var dispatchMethod = s_dispatchCustomReferenceTargetMethod.MakeGenericMethod(destinationType);
+        dispatchedBuilder = (IResourceBuilder<TDestination>?)dispatchMethod.Invoke(null, [builder, source, connectionName, optional, name]);
+        return dispatchedBuilder is not null;
+    }
+
     private static IResourceBuilder<TDestination> DispatchCustomWithReference<TDestination, TSource>(
         IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
@@ -671,6 +703,17 @@ public static class ResourceBuilderExtensions
         where TSource : class, IResource, IResourceWithCustomWithReference<TSource>
     {
         return TSource.WithReference(builder, (IResourceBuilder<TSource>)source, connectionName, optional, name);
+    }
+
+    private static IResourceBuilder<TDestination>? DispatchCustomReferenceTargetWithReference<TDestination>(
+        IResourceBuilder<TDestination> builder,
+        IResourceBuilder<IResource> source,
+        string? connectionName,
+        bool optional,
+        string? name)
+        where TDestination : class, IResourceWithEnvironment, IResourceWithCustomReferenceTarget<TDestination>
+    {
+        return TDestination.TryWithReference(builder, source, connectionName, optional, name);
     }
 
     /// <summary>
