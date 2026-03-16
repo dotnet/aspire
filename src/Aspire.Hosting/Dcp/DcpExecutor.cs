@@ -223,6 +223,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(ct).ConfigureAwait(false);
             }, ct), LazyThreadSafetyMode.ExecutionAndPublication);
 
+            var createContainers = Task.Run(async () =>
+            {
+                await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
+
+                await Task.WhenAll([.. containers.Select(c => CreateSingleContainerAsync(c, createTunnel, ct))]).ConfigureAwait(false);
+            }, ct);
+            
             /*
             var createRegularContainers = Task.Run(async () =>
             {
@@ -274,13 +281,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }, ct);
             */
 
-            // Now wait for all creations to complete.
-            await Task.WhenAll(
-                createTunnel,
-                createExecutables,
-                createRegularContainers,
-                createTunnelDependentContainers
-            ).WaitAsync(ct).ConfigureAwait(false);
+            // Now wait for all "leaf" creations to complete.
+            await Task.WhenAll(createExecutables, createContainers).WaitAsync(ct).ConfigureAwait(false);
 
             await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(ct)).ConfigureAwait(false);
         }
@@ -2075,6 +2077,84 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
+    private async Task CreateSingleContainerAsync(RenderedModelResource cr, Lazy<Task> lazyCreateTunnel, CancellationToken cToken)
+    {
+        cToken.ThrowIfCancellationRequested();
+
+        var dcpContainer = (Container)cr.DcpResource;
+        AspireEventSource.Instance.DcpObjectCreationStart(dcpContainer.Kind, dcpContainer.Metadata.Name);
+
+        try
+        {
+            AspireEventSource.Instance.DcpObjectCreationStart(dcpContainer.Kind, dcpContainer.Metadata.Name);
+
+            // In previous versions of Aspire we would delay raising BeforeResourceStarted event for explicit startup resources.
+            // But we need to determine whether the container is using any host resources, 
+            // and need to call environment and argument annotation callbacks in the process, and this means 
+            // we need to raise this event now, so that "last chance dynamic setup or validation" can be performed for the resource
+            // (see docs/specs/appmodel.md#well-known-lifecycle-events)
+            await _executorEvents.PublishAsync(new OnResourceStartingContext(cToken, KnownResourceTypes.Container, cr.ModelResource, dcpContainer.Metadata.Name)).ConfigureAwait(false);
+
+            // Publish snapshot built from DCP resource. Do this now to populate more values from DCP (source) to ensure they're
+            // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+            await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container)cr.DcpResource, s))).ConfigureAwait(false);
+
+            var explicitStartup  = cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _);
+            if (explicitStartup)
+            {
+                dcpContainer.Spec.Start = false;
+            }
+
+            var logger = _loggerService.GetLogger(cr.ModelResource);
+            var hostDependencies = (await GetHostDependenciesAsync(cr.ModelResource, cToken).ConfigureAwait(false)).ToImmutableArray();
+
+            try
+            {
+                if (hostDependencies.Any())
+                {
+                    await CreateTunnelDependentContainerAsync(cr, hostDependencies, lazyCreateTunnel, cToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await CreateStandaloneContainerAsync(cr, cToken).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) when (cToken.IsCancellationRequested)
+            {
+                // Expected cancellation during shutdown - propagate clean cancellation
+                throw;
+            }
+            catch (FailedToApplyEnvironmentException)
+            {
+                // For this exception we don't want the noise of the stack trace, we've already
+                // provided more detail where we detected the issue (e.g. envvar name). To get
+                // more diagnostic information reduce logging level for DCP log category to Debug.
+                await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
+                await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName)).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpObjectCreationStop(dcpContainer.Kind, dcpContainer.Metadata.Name);
+        }
+    }
+
+    private async Task CreateStandaloneContainerAsync(RenderedModelResource cr, CancellationToken cToken)
+    {
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task CreateTunnelDependentContainerAsync(RenderedModelResource cr, ImmutableArray<HostResourceWithEndpoints> hostDependencies, Lazy<Task> lazyCreateTunnel, CancellationToken cToken)
+    {
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    // OLD CODE STARTS HERE
+
     private async Task CreateContainersAsync(IEnumerable<RenderedModelResource> containerResources, CancellationToken cancellationToken)
     {
         var containerCount = containerResources.Count();
@@ -2356,6 +2436,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             AspireEventSource.Instance.DcpObjectCreationStop(cr.DcpResource.Kind, cr.DcpResourceName);
         }
     }
+
+    // OLD CODE ENDS HERE.
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
