@@ -74,7 +74,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
 
             with create_builder() as builder:
                 # Add your resources here, for example:
-                # redis = builder.add_container("cache", "redis:latest")
+                # redis = builder.add_redis("cache")
                 # postgres = builder.add_postgres("db")
                 builder.run()
             """;
@@ -194,7 +194,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             Execute = new CommandSpec
             {
                 Command = "uv",
-                Args = ["run", "python", "{appHostFile}"]
+                Args = ["run", "python", "{appHostFile}", "{args}"]
             }
         };
     }
@@ -235,7 +235,7 @@ public sealed class PythonLanguageSupport : ILanguageSupport
             Execute = new CommandSpec
             {
                 Command = s_venvPython,
-                Args = ["{appHostFile}"]
+                Args = ["{appHostFile}", "{args}"]
             }
         };
     }

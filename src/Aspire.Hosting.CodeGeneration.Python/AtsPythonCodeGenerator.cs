@@ -184,7 +184,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         AtsConstants.TimeOnly => "datetime.time",
         AtsConstants.TimeSpan => "float",
         AtsConstants.Guid or AtsConstants.Uri => "str",
-        AtsConstants.CancellationToken => "int",
+        AtsConstants.CancellationToken => "CancellationToken",
         _ => typeId
     };
 
@@ -212,6 +212,39 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             return $"client.register_cancellation_token({paramName})";
         }
         return paramName;
+    }
+
+    /// <summary>
+    /// Filters capability parameters for Python code generation.
+    /// Removes the target parameter (e.g., "builder", "context") if specified,
+    /// and removes cancellationToken when a separate timeout parameter already exists,
+    /// since cancellationToken maps to "timeout" in Python and would cause a naming conflict.
+    /// </summary>
+    private static List<AtsParameterInfo> FilterMethodParameters(IReadOnlyList<AtsParameterInfo> parameters, string? targetParameterName = null)
+    {
+        var filtered = targetParameterName is not null
+            ? parameters.Where(p => p.Name != targetParameterName)
+            : parameters.AsEnumerable();
+
+        if (parameters.Any(p => string.Equals(p.Name, "timeout", StringComparison.Ordinal)))
+        {
+            filtered = filtered.Where(p => p.Type?.TypeId != AtsConstants.CancellationToken);
+        }
+
+        return filtered.ToList();
+    }
+
+    /// <summary>
+    /// Gets the Python parameter name for a capability parameter.
+    /// Converts camelCase to snake_case, and renames cancellationToken to timeout.
+    /// </summary>
+    private static string GetParamName(AtsParameterInfo param)
+    {
+        if (param.Type?.TypeId == AtsConstants.CancellationToken)
+        {
+            return "timeout";
+        }
+        return ToSnakeCase(param.Name);
     }
 
     /// <summary>
@@ -278,6 +311,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (param.IsCallback)
         {
             return GenerateCallbackTypeSignature(param.CallbackParameters, param.CallbackReturnType);
+        }
+
+        if (param.Type?.TypeId == AtsConstants.CancellationToken)
+        {
+            return "int";
         }
 
         var baseType = MapTypeRefToPython(param.Type);
@@ -534,11 +572,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             return name;
         }
-        if (name == "cancellationToken")
-        {
-            // We handle cancellation tokens as timeouts
-            return "timeout";
-        }
 
         var result = new System.Text.StringBuilder();
         result.Append(char.ToLowerInvariant(name[0]));
@@ -583,7 +616,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         // Combine methods
         var allMethods = contextMethods.Concat(otherMethods).ToList();
-        if (className == "DistributedApplicationBuilder")
+        if (className == "AbstractDistributedApplicationBuilder")
         {
             sb.Append(PythonModuleBuilder.DistributedApplicationBuilder);
             sb.AppendLine();
@@ -710,11 +743,11 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 {
                     return;
                 }
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        token: CancellationToken = self._client.invoke_capability(");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            '{getter.CapabilityId}',");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"            {{'context': self._handle}}");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        raise _CallbackCancelled(result)");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"        token.cancel()");
                 sb.AppendLine();
                 return;
             }
@@ -788,9 +821,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         var pythonMethodName = GetPythonMethodName(methodName);
 
-        // Filter out target parameter
         var targetParamName = capability.TargetParameterName ?? "context";
-        var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
+        var userParams = FilterMethodParameters(capability.Parameters, targetParamName);
         var requiredParams = userParams.Where(p => !p.IsOptional && !p.IsNullable).ToList();
         var optionalParams = userParams.Where(p => !requiredParams.Contains(p)).ToList();
 
@@ -805,7 +837,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.Append(CultureInfo.InvariantCulture, $"    def {pythonMethodName}(self");
         foreach (var param in requiredParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
@@ -815,16 +847,15 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         foreach (var param in optionalParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
         }
         if (isResourceBuilder)
         {
-            sb.Append(CultureInfo.InvariantCulture, $", **kwargs: typing.Unpack[\"{returnType}Options\"]");
+            sb.Append(CultureInfo.InvariantCulture, $", **kwargs: typing.Unpack[\"{returnType}Kwargs\"]");
         }
-        sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:");
-
+        sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:{(isResourceBuilder ? "  # type: ignore" : string.Empty)}");
         // Generate docstring
         if (!string.IsNullOrEmpty(capability.Description))
         {
@@ -835,7 +866,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args: dict[str, typing.Any] = {{'{targetParamName}': self._handle}}");
         foreach (var param in userParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramHandler = GetParamHandler(param, paramName);
 
             if (param.IsOptional || param.IsNullable)
@@ -944,7 +975,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         _moduleBuilder.ResourceOptions[builder.BuilderClassName] = sbOptions;
         _moduleBuilder.HandleRegistrations[builder.TypeId] = builder.BuilderClassName;
 
-        var optionsBaseClass = "_BaseResourceOptions";
+        var optionsBaseClass = "_BaseResourceKwargs";
         var baseClass = "_BaseResource";
         var isBaseResource = builder.BuilderClassName == baseClass;
         var baseBuilderClassName = baseClass;
@@ -957,10 +988,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             {
                 baseTypeInterfaces = baseType.ImplementedInterfaces.Select(i => i.TypeId).ToList();
                 var baseTypeName = DeriveClassName(baseType.TypeId);
-                if (baseTypeName != "Resource")
+                if (baseTypeName != "AbstractResource")
                 {
                     baseClass = baseTypeName;
-                    optionsBaseClass = $"{baseTypeName}Options";
+                    optionsBaseClass = $"{baseTypeName}Kwargs";
                 }
             }
             baseBuilderClassName = baseClass;
@@ -1001,15 +1032,15 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             sb.AppendLine("    def __repr__(self) -> str:");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        return \"{builder.BuilderClassName}(handle={{self._handle.handle_id}})\"");
             sb.AppendLine();
-            sbOptions.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}Options({optionsBaseClass}, total=False):");
+            sbOptions.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}Kwargs({optionsBaseClass}, total=False):");
             sbOptions.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"{builder.BuilderClassName} options.\"\"\"");
             sbOptions.AppendLine();
-            sbConstructor.AppendLine(CultureInfo.InvariantCulture, $"    def __init__(self, handle: Handle, client: AspireClient, **kwargs: typing.Unpack[{builder.BuilderClassName}Options]) -> None:");
+            sbConstructor.AppendLine(CultureInfo.InvariantCulture, $"    def __init__(self, handle: Handle, client: AspireClient, **kwargs: typing.Unpack[{builder.BuilderClassName}Kwargs]) -> None:");
 
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(Resource):");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"class {builder.BuilderClassName}(AbstractResource):");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    \"\"\"Base resource class.\"\"\"");
             sb.AppendLine();
             sb.AppendLine("    def _wrap_builder(self, builder: typing.Any) -> Handle:");
@@ -1084,18 +1115,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         System.Text.StringBuilder? options = null, System.Text.StringBuilder? constructor = null, string? builderClassName = null)
     {
         var methodName = GetPythonMethodName(capability.MethodName);
-        var parameters = capability.Parameters.ToList();
+        // Use the actual target parameter name from the capability
+        var targetParamName = capability.TargetParameterName ?? "builder";
+        var userParams = FilterMethodParameters(capability.Parameters, targetParamName);
 
         // Determine return type - use the builder's own type for fluent methods
         var returnsBuilder = capability.ReturnsBuilder && capability.ReturnType!.TypeId == capability.TargetTypeId;
         var returnsChildBuilder = capability.ReturnsBuilder && capability.ReturnType != null && IsHandleType(capability.ReturnType) && capability.ReturnType.TypeId != capability.TargetTypeId;
         var returnType = returnsBuilder ? "typing.Self" : MapTypeRefToPython(capability.ReturnType);
-
-        // Use the actual target parameter name from the capability
-        var targetParamName = capability.TargetParameterName ?? "builder";
-
-        // Filter out target parameter from user-facing params
-        var userParams = parameters.Where(p => p.Name != targetParamName).ToList();
         var requiredParams = userParams.Where(p => !p.IsOptional && !p.IsNullable).ToList();
         var optionalParams = userParams.Where(p => !requiredParams.Contains(p)).ToList();
 
@@ -1126,7 +1153,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.Append(CultureInfo.InvariantCulture, $"    def {methodName}(self");
         foreach (var param in requiredParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType}");
         }
@@ -1136,7 +1163,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         foreach (var param in optionalParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramType = MapParameterToPython(param);
             sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
         }
@@ -1149,9 +1176,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             if (returnsChildBuilder)
             {
-                sb.Append(CultureInfo.InvariantCulture, $", **kwargs: typing.Unpack[{returnType}Options]");
+                sb.Append(CultureInfo.InvariantCulture, $", **kwargs: typing.Unpack[{returnType}Kwargs]");
             }
-            sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:");
+            sb.AppendLine(CultureInfo.InvariantCulture, $") -> {returnType}:{(returnsChildBuilder ? "  # type: ignore" : string.Empty)}");
         }
 
         // Generate docstring
@@ -1169,7 +1196,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         sb.AppendLine(CultureInfo.InvariantCulture, $"        rpc_args: dict[str, typing.Any] = {{'{targetParamName}': self._handle}}");
         foreach (var param in userParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramHandler = GetParamHandler(param, paramName);
 
             if (param.IsOptional || param.IsNullable)
@@ -1236,9 +1263,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         var paramDefs = new List<string> { "client: AspireClient" };
         var paramArgs = new List<string>();
 
-        foreach (var param in capability.Parameters)
+        var userParams = FilterMethodParameters(capability.Parameters);
+        foreach (var param in userParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             var paramType = MapParameterToPython(param);
             var optional = param.IsOptional || param.IsNullable ? " | None = None" : "";
             paramDefs.Add($"{paramName}: {paramType}{optional}");
@@ -1266,9 +1294,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
 
         // Build args dict
         sb.AppendLine(CultureInfo.InvariantCulture, $"    rpc_args: dict[str, typing.Any] = {{}}");
-        foreach (var param in capability.Parameters)
+        foreach (var param in userParams)
         {
-            var paramName = ToSnakeCase(param.Name);
+            var paramName = GetParamName(param);
             if (param.IsOptional || param.IsNullable)
             {
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    if {paramName} is not None:");
@@ -1636,7 +1664,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Strip leading 'I' from interface types
         if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
         {
-            return typeName[1..];
+            return "Abstract" + typeName[1..];
         }
 
         return typeName;
@@ -1659,7 +1687,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Strip leading 'I' from interface types
         if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
         {
-            return typeName[1..];
+            return "Abstract" + typeName[1..];
         }
 
         return $"{typeName}";
@@ -1836,7 +1864,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             var singleParam = requiredParameters.Count > 0
                 ? requiredParameters[0]
                 : optionalParameters[0];
-            var paramHandler = GetConstructorParamHandler(singleParam, $"_{optionName}");
+            var paramHandler = GetConstructorParamHandler(singleParam, $"typing.cast({currentOption}, _{optionName})");
             builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{singleParam.Name}\"] = {paramHandler}");
             builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
         }

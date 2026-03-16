@@ -1102,9 +1102,6 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var outputPath = Path.Combine(appPath, LanguageInfo.GeneratedFolderName);
         Directory.CreateDirectory(outputPath);
 
-        // Ensure generated code directory is excluded from source control
-        await File.WriteAllTextAsync(Path.Combine(outputPath, ".gitignore"), "*\n", cancellationToken);
-
         foreach (var (fileName, content) in files)
         {
             var filePath = Path.Combine(outputPath, fileName);

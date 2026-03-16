@@ -192,6 +192,7 @@ internal sealed class PythonModuleBuilder
             output.AppendLine("# ============================================================================");
             output.AppendLine();
             output.AppendLine("_register_handle_wrapper(\"Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression\", lambda handle, _: ReferenceExpression(handle))");
+            output.AppendLine("_register_handle_wrapper(\"System.Private.CoreLib/System.Threading.CancellationToken\", CancellationToken)");
             foreach (var (typeId, className) in HandleRegistrations)
             {
                 output.AppendLine(
@@ -615,8 +616,8 @@ internal sealed class PythonModuleBuilder
                 return self.error.get("capability")
 
 
-        class _CallbackCancelled(Exception):
-            '''Error thrown when a callback invocation is cancelled.'''
+        class OperationCancelled(Exception):
+            '''Error thrown when a cancellation token is invoked.'''
             pass
 
         # ============================================================================
@@ -1018,13 +1019,8 @@ internal sealed class PythonModuleBuilder
                             _logger.debug("Callback result: %s", result)
                         else:
                             error = {"code": -32601, "message": f"Callback not found: {callback_id}"}
-                    except _CallbackCancelled as e:
-                        try:
-                            cancellation_token = e.args[0]
-                            _logger.debug("Callback cancelled: %s", e, cancellation_token)
-                            self._send_request("cancelToken", cancellation_token)
-                        except Exception:
-                            pass  # Ignore errors during cancellation
+                    except OperationCancelled as e:
+                        _logger.debug("Callback cancelled: %s", e)
                         return
 
                     except Exception as e:
@@ -1262,6 +1258,25 @@ internal sealed class PythonModuleBuilder
 
 
         # ============================================================================
+        # CancellationToken
+        # ============================================================================
+
+        class CancellationToken:
+            '''Represents a cancellation token that can be used to cancel a callback in progress.'''
+
+            handle: Handle
+
+            def __init__(self, handle: Handle, client: AspireClient) -> None:
+                self.handle = handle
+                self._client = client
+            
+            def cancel(self) -> None:
+                '''Cancel the token, which will signal the server to cancel the associated operation.'''
+                self._client._send_request("cancelToken", self.handle)
+                raise OperationCancelled(self.handle.handle_id)
+
+
+        # ============================================================================
         # Reference Expression
         # ============================================================================
 
@@ -1305,7 +1320,7 @@ internal sealed class PythonModuleBuilder
                 return cls(None, format_str=format_str, value_providers=providers)
 
             @classmethod
-            def conditional(cls, condition: Any, **kwargs) -> "ReferenceExpression":
+            def conditional(cls, condition: typing.Any, **kwargs) -> "ReferenceExpression":
                 '''
                 Creates a conditional reference expression.
 
@@ -1327,7 +1342,7 @@ internal sealed class PythonModuleBuilder
                 '''
                 if self._handle:
                     return self._handle.to_json()
-                if self._condition:
+                if self._condition and self._when_true and self._when_false and self._match_value is not None:
                     return {
                         "$expr": {
                             "condition": self._condition,
@@ -1406,7 +1421,7 @@ internal sealed class PythonModuleBuilder
             '''
             # Replace named placeholders with numbered ones
             value_providers = []
-            format_str = template
+            format_str = value
 
             for key, value in kwargs.items():
                 placeholder = f"{{{key}}}"
@@ -1418,7 +1433,7 @@ internal sealed class PythonModuleBuilder
             return ReferenceExpression.format_string(format_str, *value_providers)
 
 
-        def conditional_expr(condition: Any, *, match: str, when_true: str | ReferenceExpression, when_false: str | ReferenceExpression) -> ReferenceExpression:
+        def conditional_expr(condition: typing.Any, *, match: str, when_true: str | ReferenceExpression, when_false: str | ReferenceExpression) -> ReferenceExpression:
             '''
             Helper function for creating conditional reference expressions.
 

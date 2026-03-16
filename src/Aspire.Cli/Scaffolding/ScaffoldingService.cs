@@ -211,9 +211,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var outputPath = Path.Combine(directoryPath, LanguageInfo.GeneratedFolderName);
         Directory.CreateDirectory(outputPath);
 
-        // Ensure generated code directory is excluded from source control
-        await File.WriteAllTextAsync(Path.Combine(outputPath, ".gitignore"), "*\n", cancellationToken);
-
         foreach (var (fileName, content) in generatedFiles)
         {
             var filePath = Path.Combine(outputPath, fileName);
