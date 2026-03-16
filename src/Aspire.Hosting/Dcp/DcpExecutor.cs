@@ -163,7 +163,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             AspireEventSource.Instance.DcpServiceObjectPreparationStart();
             try
             {
-                await PrepareServicesAsync(ct).ConfigureAwait(false);
+                PrepareServices();
             }
             finally
             {
@@ -1173,7 +1173,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Creates DCP Service objects that represent services exposed by resources in the model via endpoints (EndpointAnnotations).
     /// </summary>
-    private async Task PrepareServicesAsync(CancellationToken cancellationToken)
+    private void PrepareServices()
     {
         _logger.LogDebug("Preparing services. Ports randomized: {RandomizePorts}", _options.Value.RandomizePorts);
 
@@ -1235,62 +1235,66 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        // For container-to-host communication we create a tunnel proxy with a Service/tunnel for each host Endpoint.
+        if (_options.Value.EnableAspireContainerTunnel)
+        {
+            // Tunnel services and tunnel configuration is set up together with containers, dynamically.
+            return;
+        }
 
         var containers = _model.Resources.Where(r => r.IsContainer());
         if (!containers.Any())
         {
-            return; // No container resources--no need to set up container-to-host tunnels.
-        }
-
-        var containerDependencies = await ResourceExtensions.GetDependenciesAsync(
-            containers, 
-            _executionContext,
-            ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults,
-            cancellationToken
-        ).ConfigureAwait(false);
-
-        // Host dependencies are host network resources with endpoints that containers depend on.
-        List<HostResourceWithEndpoints> hostDependencies = containerDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
-
-        // Aspire dashboard is special in the context of Open Telemetry ingestion.
-        // OTLP exporters do not refer to the OTLP ingestion endpoint via EndpointReference when the model is constructed
-        // by the Aspire app host; the endpoint URL is just read from configuration.
-        // If there are containers that are OTLP exporters in the model, we need to project dashboard endpoints into container space.
-        if (containers.Any(c => c.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _)))
-        {
-            var maybeDashboard = _model.Resources.Where(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard))
-                    .Select(AsHostResourceWithEndpoints).FirstOrDefault();
-            if (maybeDashboard is HostResourceWithEndpoints dashboardResource)
-            {
-                hostDependencies.Add(dashboardResource);
-            }
-        }
-
-        if (!hostDependencies.Any())
-        {
-            // There are no containers that reference host resource endpoints, so no need for container tunnel.
-            return;
-        }
-
-        // Eventually we might want to support multiple container networks, including user-defined ones,
-        // but for now we just have one container network per application, and so we need only one tunnel proxy.
-        ContainerNetworkTunnelProxy? tunnelProxy = null;
-        AppResource? tunnelAppResource = null;
-        var useTunnel = _options.Value.EnableAspireContainerTunnel;
-        if (useTunnel)
-        {
-            tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value + "-tunnelproxy");
-            tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value;
-            tunnelProxy.Spec.Aliases = [ContainerHostName];
-            tunnelProxy.Spec.Tunnels = [];
-            tunnelAppResource = new AppResource(tunnelProxy);
-            _appResources.Add(tunnelAppResource);
+            return; // No container resources--no need bother with container-to-host connections.
         }
 
         // If multiple Containers take a reference to the same host resource, we should only create one Service per each endpoint.
         HashSet<(string HostResourceName, string OriginalEndpointName)> processedEndpoints = new();
 
+        // We are going to just proxy all host endpoint into the container network.
+        var hostResources = _model.Resources.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
+
+        foreach (var re in hostResources)
+        {
+            var resourceLogger = _loggerService.GetLogger(re.Resource);
+
+            foreach (var endpoint in re.Endpoints)
+            {
+                if (!processedEndpoints.Add((re.Resource.Name, endpoint.Name)))
+                {
+                    continue; // Already processed this endpoint reference.
+                }
+
+                var hasManyEndpoints = re.Resource.Annotations.OfType<EndpointAnnotation>().Count() > 1;
+                var serviceName = _nameGenerator.GetServiceName(re.Resource, endpoint, hasManyEndpoints, serviceNames);
+                var svc = Service.Create(serviceName);
+                svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+                svc.Spec.Protocol = PortProtocol.TCP;
+                // Address and port will be set automatically by DCP.
+
+                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
+                    StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
+                    StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
+                );
+                if (serverSvc is null)
+                {
+                    // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
+                    throw new InvalidDataException($"Host endpoint '{endpoint.Name}' on resource '{re.Resource.Name}' should have an associated DCP Service resource already set up");
+                }
+
+                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
+                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
+                svc.Annotate(CustomResource.ContainerNetworkAnnotation, KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+                svc.Annotate(CustomResource.PrimaryServiceNameAnnotation, serverSvc.DcpResource.Metadata.Name);
+
+                // We use this to distinguish services based on real tunnel proxies vs "placeholders" for when tunnels are disabled.
+                svc.Annotate(CustomResource.ContainerTunnelInstanceName, "");
+
+                var svcAppResource = new ServiceAppResource(svc);
+                _appResources.Add(svcAppResource);
+            }
+        }
+
+        /*
         foreach (var re in hostDependencies)
         {
             var resourceLogger = _loggerService.GetLogger(re.Resource);
@@ -1363,6 +1367,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
         }
+        */
     }
 
     private void PrepareExecutables()
@@ -3041,6 +3046,49 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return null;
+    }
+
+    private async Task<IEnumerable<HostResourceWithEndpoints>> GetHostDependenciesAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        var allDependencies = await ResourceExtensions.GetResourceDependenciesAsync(
+            resource,
+            _executionContext,
+            ResourceDependencyDiscoveryMode.DirectOnly | ResourceDependencyDiscoveryMode.CacheAnnotationCallbackResults,
+            cancellationToken
+        ).ConfigureAwait(false);
+
+        // Host dependencies are host network resources with endpoints that containers depend on.
+        List<HostResourceWithEndpoints> hostDependencies = [.. allDependencies.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>()];
+
+        // Aspire dashboard is special in the context of Open Telemetry ingestion.
+        // OTLP exporters do not refer to the OTLP ingestion endpoint via EndpointReference when the model is constructed
+        // by the Aspire app host; the endpoint URL is just read from configuration.
+        // If there are containers that are OTLP exporters in the model, we need to project dashboard endpoints into container space.
+        if (resource.TryGetAnnotationsOfType<OtlpExporterAnnotation>(out _))
+        {
+            var maybeDashboard = _model.Resources.Where(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard))
+                    .Select(AsHostResourceWithEndpoints).FirstOrDefault();
+            if (maybeDashboard is HostResourceWithEndpoints dashboardResource)
+            {
+                hostDependencies.Add(dashboardResource);
+            }
+        }
+
+        return hostDependencies;
+    }
+
+    private AppResource CreateTunnelProxyResource()
+    {
+        Debug.Assert(_options.Value.EnableAspireContainerTunnel, "This method should only be called if the container tunnel feature is enabled.");
+        Debug.Assert(!_appResources.Any(ar => ar.DcpResource is ContainerNetworkTunnelProxy), "This method should only be called if a tunnel proxy resource hasn't already been created.");
+
+        var tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value + "-tunnelproxy");
+        tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value;
+        tunnelProxy.Spec.Aliases = [ContainerHostName];
+        tunnelProxy.Spec.Tunnels = [];
+        var tunnelAppResource = new AppResource(tunnelProxy);
+        _appResources.Add(tunnelAppResource);
+        return tunnelAppResource;
     }
 
     private record struct ContainerCreationSets
