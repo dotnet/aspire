@@ -1387,7 +1387,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
         else
         {
-            paramSignature = "argsData: unknown";
+            paramSignature = string.Join(", ", callbackParameters.Select(p => $"{p.Name}Data: unknown"));
         }
 
         // For optional callbacks, wrap the registration in a conditional
@@ -1482,30 +1482,25 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
         else
         {
-            // Multi-parameter callback - .NET sends as { p0, p1, ... }
-            var paramNames = callbackParameters.Select((p, i) => $"p{i}").ToList();
-            var destructureWithTypes = string.Join(", ", paramNames.Select(p => $"{p}: unknown"));
-
-            WriteLine($"            const args = argsData as {{ {destructureWithTypes} }};");
-
             var callArgs = new List<string>();
             for (var i = 0; i < callbackParameters.Count; i++)
             {
                 var cbParam = callbackParameters[i];
                 var tsType = MapTypeRefToTypeScript(cbParam.Type);
                 var cbTypeId = cbParam.Type.TypeId;
+                var callbackArgName = $"{cbParam.Name}Data";
 
                 if (_wrapperClassNames.TryGetValue(cbTypeId, out var wrapperClassName))
                 {
                     // For types with wrapper classes, create an instance of the wrapper
                     var handleType = GetHandleTypeName(cbTypeId);
-                    WriteLine($"            const {cbParam.Name}Handle = wrapIfHandle(args.p{i}) as {handleType};");
+                    WriteLine($"            const {cbParam.Name}Handle = wrapIfHandle({callbackArgName}) as {handleType};");
                     WriteLine($"            const {cbParam.Name} = new {wrapperClassName}({cbParam.Name}Handle, this._client);");
                 }
                 else
                 {
                     // For raw handle types, just wrap and cast
-                    WriteLine($"            const {cbParam.Name} = wrapIfHandle(args.p{i}) as {tsType};");
+                    WriteLine($"            const {cbParam.Name} = wrapIfHandle({callbackArgName}) as {tsType};");
                 }
                 callArgs.Add(cbParam.Name);
             }
