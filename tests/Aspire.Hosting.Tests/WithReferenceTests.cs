@@ -246,6 +246,28 @@ public class WithReferenceTests
     }
 
     [Fact]
+    public async Task InternalWithReferenceAddsConnectionStringAndServiceDiscoveryWhenResourceSupportsBoth()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var resource = builder.AddResource(new TestResourceWithConnectionStringAndServiceDiscovery("resource")
+        {
+            ConnectionString = "123"
+        })
+        .WithHttpEndpoint(1000, 2000, "http")
+        .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        var projectB = builder.AddProject<ProjectB>("projectb");
+
+        ResourceBuilderExtensions.WithReference(projectB, (IResourceBuilder<IResource>)resource, connectionName: "db", name: "api");
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("123", config["ConnectionStrings__db"]);
+        Assert.Equal("http://localhost:2000", config["services__api__http__0"]);
+    }
+
+    [Fact]
     public async Task ConnectionStringResourceThrowsWhenMissingConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -749,6 +771,14 @@ public class WithReferenceTests
     }
 
     private sealed class TestResource(string name) : Resource(name), IResourceWithConnectionString
+    {
+        public string? ConnectionString { get; set; }
+
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{ConnectionString}");
+    }
+
+    private sealed class TestResourceWithConnectionStringAndServiceDiscovery(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithServiceDiscovery
     {
         public string? ConnectionString { get; set; }
 

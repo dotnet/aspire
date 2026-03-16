@@ -561,71 +561,88 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        var environmentBuilder = (IResourceBuilder<IResourceWithEnvironment>)builder;
-        var dispatched = WithReferenceCore(environmentBuilder, source, connectionName, optional, name);
-        return (IResourceBuilder<TDestination>)dispatched;
+        return WithReferenceCore(builder, source, connectionName, optional, name);
     }
 
-    private static IResourceBuilder<IResourceWithEnvironment> WithReferenceCore(
-        IResourceBuilder<IResourceWithEnvironment> builder,
+    private static IResourceBuilder<TDestination> WithReferenceCore<TDestination>(
+        IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName,
         bool optional,
         string? name)
+        where TDestination : IResourceWithEnvironment
     {
         if (TryDispatchCustomWithReference(builder, source, connectionName, optional, name, out var customDispatch))
         {
             return customDispatch;
         }
 
-        if (source.Resource is IResourceWithConnectionString && source is IResourceBuilder<IResourceWithConnectionString> connectionStringSource)
-        {
-            if (name is not null)
-            {
-                throw new InvalidOperationException("Named service references are not supported for connection string resources.");
-            }
+        var connectionStringSource = source as IResourceBuilder<IResourceWithConnectionString>;
+        var serviceDiscoverySource = source as IResourceBuilder<IResourceWithServiceDiscovery>;
+        var externalServiceSource = source as IResourceBuilder<ExternalServiceResource>;
+        var hasConnectionString = source.Resource is IResourceWithConnectionString && connectionStringSource is not null;
+        var hasServiceDiscovery = source.Resource is IResourceWithServiceDiscovery && serviceDiscoverySource is not null;
+        var hasExternalService = source.Resource is ExternalServiceResource && externalServiceSource is not null;
 
-            return WithReference(builder, connectionStringSource, connectionName, optional);
+        if (hasExternalService && (connectionName is not null || name is not null))
+        {
+            throw new InvalidOperationException("Reference names are not supported for external services.");
         }
 
-        if (source.Resource is IResourceWithServiceDiscovery && source is IResourceBuilder<IResourceWithServiceDiscovery> serviceDiscoverySource)
+        if (name is not null && !hasServiceDiscovery)
         {
-            if (optional)
-            {
-                throw new InvalidOperationException("Optional references are only supported for connection string resources.");
-            }
-
-            var serviceName = GetServiceReferenceName(connectionName, name);
-            return serviceName is null
-                ? WithReference(builder, serviceDiscoverySource)
-                : WithReference(builder, serviceDiscoverySource, serviceName);
+            throw new InvalidOperationException("Named service references are only supported for resources with service discovery.");
         }
 
-        if (source.Resource is ExternalServiceResource && source is IResourceBuilder<ExternalServiceResource> externalServiceSource)
+        if (connectionName is not null && name is not null && !hasConnectionString)
         {
-            if (optional)
-            {
-                throw new InvalidOperationException("Optional references are only supported for connection string resources.");
-            }
-
-            if (connectionName is not null || name is not null)
-            {
-                throw new InvalidOperationException("Named references are not supported for external services.");
-            }
-
-            return WithReference(builder, externalServiceSource);
+            throw new InvalidOperationException("Specify either connectionName or name for service discovery references, but not both.");
         }
 
-        throw new InvalidOperationException($"The resource '{source.Resource.Name}' does not support WithReference dispatch.");
+        if (optional && !hasConnectionString)
+        {
+            throw new InvalidOperationException("Optional references are only supported for connection string resources.");
+        }
+
+        var appliedReference = false;
+
+        if (hasConnectionString)
+        {
+            builder = WithReference(builder, connectionStringSource!, connectionName, optional);
+            appliedReference = true;
+        }
+
+        if (hasServiceDiscovery)
+        {
+            var serviceName = name ?? connectionName;
+            builder = serviceName is null
+                ? WithReference(builder, serviceDiscoverySource!)
+                : WithReference(builder, serviceDiscoverySource!, serviceName);
+            appliedReference = true;
+        }
+
+        if (hasExternalService)
+        {
+            builder = WithReference(builder, externalServiceSource!);
+            appliedReference = true;
+        }
+
+        if (appliedReference)
+        {
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{source.Resource.Name}' can't be used with withReference because it doesn't provide a connection string, service discovery, or a custom withReference implementation.");
     }
 
-    private static bool TryDispatchCustomWithReference(
-        IResourceBuilder<IResourceWithEnvironment> builder,
+    private static bool TryDispatchCustomWithReference<TDestination>(
+        IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName,
         bool optional,
         string? name,
-        [NotNullWhen(true)] out IResourceBuilder<IResourceWithEnvironment>? dispatchedBuilder)
+        [NotNullWhen(true)] out IResourceBuilder<TDestination>? dispatchedBuilder)
+        where TDestination : IResourceWithEnvironment
     {
         var sourceType = source.Resource.GetType();
         var customWithReferenceInterface = sourceType.GetInterfaces()
@@ -639,30 +656,21 @@ public static class ResourceBuilderExtensions
             return false;
         }
 
-        var dispatchMethod = s_dispatchCustomWithReferenceMethod.MakeGenericMethod(sourceType);
-        dispatchedBuilder = (IResourceBuilder<IResourceWithEnvironment>)dispatchMethod.Invoke(null, [builder, source, connectionName, optional, name])!;
+        var dispatchMethod = s_dispatchCustomWithReferenceMethod.MakeGenericMethod(typeof(TDestination), sourceType);
+        dispatchedBuilder = (IResourceBuilder<TDestination>)dispatchMethod.Invoke(null, [builder, source, connectionName, optional, name])!;
         return true;
     }
 
-    private static IResourceBuilder<IResourceWithEnvironment> DispatchCustomWithReference<TSource>(
-        IResourceBuilder<IResourceWithEnvironment> builder,
+    private static IResourceBuilder<TDestination> DispatchCustomWithReference<TDestination, TSource>(
+        IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
         string? connectionName,
         bool optional,
         string? name)
+        where TDestination : IResourceWithEnvironment
         where TSource : class, IResource, IResourceWithCustomWithReference<TSource>
     {
         return TSource.WithReference(builder, (IResourceBuilder<TSource>)source, connectionName, optional, name);
-    }
-
-    private static string? GetServiceReferenceName(string? connectionName, string? name)
-    {
-        if (connectionName is not null && name is not null && !string.Equals(connectionName, name, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Specify either connectionName or name for service discovery references, but not both.");
-        }
-
-        return name ?? connectionName;
     }
 
     /// <summary>

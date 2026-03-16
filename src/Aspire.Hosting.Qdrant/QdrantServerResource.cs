@@ -102,8 +102,8 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
         yield return new("HttpUri", HttpUriExpression);
     }
 
-    static IResourceBuilder<IResourceWithEnvironment> IResourceWithCustomWithReference<QdrantServerResource>.WithReference(
-        IResourceBuilder<IResourceWithEnvironment> builder,
+    static IResourceBuilder<TDestination> IResourceWithCustomWithReference<QdrantServerResource>.WithReference<TDestination>(
+        IResourceBuilder<TDestination> builder,
         IResourceBuilder<QdrantServerResource> source,
         string? connectionName,
         bool optional,

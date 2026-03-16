@@ -25,11 +25,13 @@ public interface IResourceWithCustomWithReference<TSelf> : IResource
     /// <param name="connectionName">An optional connection string override used by connection-string-based references.</param>
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; otherwise, <see langword="false"/>.</param>
     /// <param name="name">An optional service discovery name override used by service-based references.</param>
+    /// <typeparam name="TDestination">The destination resource type.</typeparam>
     /// <returns>The destination <see cref="IResourceBuilder{T}"/>.</returns>
-    static abstract IResourceBuilder<IResourceWithEnvironment> WithReference(
-        IResourceBuilder<IResourceWithEnvironment> builder,
+    static abstract IResourceBuilder<TDestination> WithReference<TDestination>(
+        IResourceBuilder<TDestination> builder,
         IResourceBuilder<TSelf> source,
         string? connectionName = null,
         bool optional = false,
-        string? name = null);
+        string? name = null)
+        where TDestination : IResourceWithEnvironment;
 }
