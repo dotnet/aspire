@@ -150,8 +150,10 @@ internal sealed class GuestRuntime
 
     /// <summary>
     /// Creates the default process-based launcher for this runtime.
+    /// Pass a callback only for interactive run flows that should stream output live.
+    /// Install and publish flows leave this <see langword="null"/> and replay buffered output later if needed.
     /// </summary>
-    public ProcessGuestLauncher CreateDefaultLauncher(Action<string, string>? liveOutputCallback = null) => new(_spec.Language, _logger, _commandResolver, liveOutputCallback);
+    public ProcessGuestLauncher CreateDefaultLauncher(Action<OutputLineStream, string>? liveOutputCallback = null) => new(_spec.Language, _logger, _commandResolver, liveOutputCallback);
 
     /// <summary>
     /// Replaces placeholders in command arguments with actual values.

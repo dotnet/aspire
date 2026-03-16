@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Projects;
@@ -12,7 +13,7 @@ public class ProcessGuestLauncherTests
     public async Task LaunchAsync_ForwardsStdoutToLiveCallback()
     {
         // Arrange
-        var forwardedLines = new List<(string Stream, string Line)>();
+        var forwardedLines = new List<(OutputLineStream Stream, string Line)>();
         var launcher = new ProcessGuestLauncher(
             "typescript",
             NullLogger.Instance,
@@ -29,6 +30,6 @@ public class ProcessGuestLauncherTests
         // Assert
         Assert.Equal(0, exitCode);
         Assert.NotNull(output);
-        Assert.Contains(forwardedLines, line => line.Stream == "stdout" && !string.IsNullOrWhiteSpace(line.Line));
+        Assert.Contains(forwardedLines, line => line.Stream == OutputLineStream.StdOut && !string.IsNullOrWhiteSpace(line.Line));
     }
 }

@@ -15,9 +15,9 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
     private readonly string _language;
     private readonly ILogger _logger;
     private readonly Func<string, string?> _commandResolver;
-    private readonly Action<string, string>? _liveOutputCallback;
+    private readonly Action<OutputLineStream, string>? _liveOutputCallback;
 
-    public ProcessGuestLauncher(string language, ILogger logger, Func<string, string?>? commandResolver = null, Action<string, string>? liveOutputCallback = null)
+    public ProcessGuestLauncher(string language, ILogger logger, Func<string, string?>? commandResolver = null, Action<OutputLineStream, string>? liveOutputCallback = null)
     {
         _language = language;
         _logger = logger;
@@ -72,6 +72,7 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
         {
             if (e.Data is null)
             {
+                // ProcessDataReceivedEventArgs.Data is null when the redirected stdout stream closes.
                 stdoutCompleted.TrySetResult();
             }
             else
@@ -85,6 +86,7 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
         {
             if (e.Data is null)
             {
+                // ProcessDataReceivedEventArgs.Data is null when the redirected stderr stream closes.
                 stderrCompleted.TrySetResult();
             }
             else
@@ -99,6 +101,7 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
         process.BeginErrorReadLine();
 
         await process.WaitForExitAsync(cancellationToken);
+        // Wait for the redirected streams to finish draining so no trailing lines are lost.
         await Task.WhenAll(stdoutCompleted.Task, stderrCompleted.Task).WaitAsync(cancellationToken);
         return (process.ExitCode, outputCollector);
     }

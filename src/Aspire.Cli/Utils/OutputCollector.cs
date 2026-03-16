@@ -6,13 +6,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
 
+internal enum OutputLineStream
+{
+    StdOut,
+    StdErr
+}
+
 internal sealed class OutputCollector
 {
-    private readonly CircularBuffer<(string Stream, string Line)> _lines = new(10000); // 10k lines.
+    private readonly CircularBuffer<(OutputLineStream Stream, string Line)> _lines = new(10000); // 10k lines.
     private readonly object _lock = new object();
     private readonly FileLoggerProvider? _fileLogger;
     private readonly string _category;
-    private readonly Action<string, string>? _liveOutputCallback;
+    private readonly Action<OutputLineStream, string>? _liveOutputCallback;
 
     /// <summary>
     /// Creates an OutputCollector that only buffers output in memory.
@@ -26,8 +32,11 @@ internal sealed class OutputCollector
     /// </summary>
     /// <param name="fileLogger">Optional file logger for writing output to disk.</param>
     /// <param name="category">Category for log entries (e.g., "Build", "AppHost").</param>
-    /// <param name="liveOutputCallback">Optional callback invoked immediately when a line is appended.</param>
-    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost", Action<string, string>? liveOutputCallback = null)
+    /// <param name="liveOutputCallback">
+    /// Optional callback used by interactive run flows that need lines as they arrive.
+    /// Leave this <see langword="null"/> for buffer-only flows that replay output later on failure.
+    /// </param>
+    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost", Action<OutputLineStream, string>? liveOutputCallback = null)
     {
         _fileLogger = fileLogger;
         _category = category;
@@ -38,15 +47,15 @@ internal sealed class OutputCollector
 
     public void AppendOutput(string line)
     {
-        AppendLine("stdout", line);
+        AppendLine(OutputLineStream.StdOut, line);
     }
 
     public void AppendError(string line)
     {
-        AppendLine("stderr", line);
+        AppendLine(OutputLineStream.StdErr, line);
     }
 
-    public IEnumerable<(string Stream, string Line)> GetLines()
+    public IEnumerable<(OutputLineStream Stream, string Line)> GetLines()
     {
         lock (_lock)
         {
@@ -54,12 +63,12 @@ internal sealed class OutputCollector
         }
     }
 
-    private void AppendLine(string stream, string line)
+    private void AppendLine(OutputLineStream stream, string line)
     {
         lock (_lock)
         {
             _lines.Add((stream, line));
-            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, stream == "stderr" ? LogLevel.Error : LogLevel.Information, _category, line);
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, stream == OutputLineStream.StdErr ? LogLevel.Error : LogLevel.Information, _category, line);
         }
 
         _liveOutputCallback?.Invoke(stream, line);

@@ -319,7 +319,7 @@ public class GuestRuntimeTests
             output.GetLines(),
             line =>
             {
-                Assert.Equal("stderr", line.Stream);
+                Assert.Equal(OutputLineStream.StdErr, line.Stream);
                 Assert.Equal("npm is not installed or not found in PATH. Please install Node.js and try again.", line.Line);
             });
     }
@@ -354,7 +354,7 @@ public class GuestRuntimeTests
             resolvedOutput.GetLines(),
             line =>
             {
-                Assert.Equal("stderr", line.Stream);
+                Assert.Equal(OutputLineStream.StdErr, line.Stream);
                 Assert.Equal("npx is not installed or not found in PATH. Please install Node.js and try again.", line.Line);
             });
     }

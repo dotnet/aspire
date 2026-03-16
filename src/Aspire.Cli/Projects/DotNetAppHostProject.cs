@@ -308,8 +308,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             "AppHost",
             (stream, line) => _interactionService.WriteConsoleLog(
                 line,
-                type: "running",
-                isErrorMessage: stream == "stderr"));
+                type: ConsoleLogTypes.Running,
+                isErrorMessage: stream == OutputLineStream.StdErr));
         context.OutputCollector = runOutputCollector;
 
         // Signal that build/preparation is complete
