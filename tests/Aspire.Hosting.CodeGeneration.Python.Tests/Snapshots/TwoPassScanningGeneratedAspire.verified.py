@@ -429,27 +429,16 @@ class CSharpAppResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -1841,27 +1830,16 @@ class ContainerResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -2597,27 +2575,16 @@ class DotnetToolResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -3380,27 +3347,16 @@ class ExecutableResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -4694,12 +4650,6 @@ class IResourceWithParent(ResourceBuilderBase):
 
     pass
 
-class IResourceWithServiceDiscovery(ResourceBuilderBase):
-    def __init__(self, handle: Handle, client: AspireClient):
-        super().__init__(handle, client)
-
-    pass
-
 class IResourceWithWaitSupport(ResourceBuilderBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
@@ -5535,27 +5485,16 @@ class ProjectResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -6572,27 +6511,16 @@ class TestDatabaseResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -7348,27 +7276,16 @@ class TestRedisResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -8216,27 +8133,16 @@ class TestVaultResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withArgsCallbackAsync", args)
 
-    def with_reference(self, source: IResourceWithConnectionString, connection_name: str | None = None, optional: bool = False) -> IResourceWithEnvironment:
+    def with_reference(self, source: IResource, connection_name: str | None = None, optional: bool = False, name: str | None = None) -> IResourceWithEnvironment:
         """Adds a reference to another resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         if connection_name is not None:
             args["connectionName"] = serialize_value(connection_name)
         args["optional"] = serialize_value(optional)
+        if name is not None:
+            args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
-
-    def with_service_reference(self, source: IResourceWithServiceDiscovery) -> IResourceWithEnvironment:
-        """Adds a service discovery reference to another resource"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReference", args)
-
-    def with_service_reference_named(self, source: IResourceWithServiceDiscovery, name: str) -> IResourceWithEnvironment:
-        """Adds a named service discovery reference"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["source"] = serialize_value(source)
-        args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -8799,7 +8705,6 @@ register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.Containe
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.DotnetToolResource", lambda handle, client: DotnetToolResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ExternalServiceResource", lambda handle, client: ExternalServiceResource(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource", lambda handle, client: CSharpAppResource(handle, client))
-register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", lambda handle, client: IResourceWithServiceDiscovery(handle, client))
 register_handle_wrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", lambda handle, client: IResourceWithContainerFiles(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", lambda handle, client: TestCallbackContext(handle, client))
 register_handle_wrapper("Aspire.Hosting.CodeGeneration.Python.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", lambda handle, client: TestResourceContext(handle, client))
