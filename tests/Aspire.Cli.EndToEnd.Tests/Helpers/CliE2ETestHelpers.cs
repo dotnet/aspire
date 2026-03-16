@@ -187,13 +187,10 @@ internal static class CliE2ETestHelpers
         var shortCommitSha = commitSha[..8];
         var expectedVersionSuffix = $"g{shortCommitSha}";
 
-        var versionPattern = new CellPatternSearcher()
-            .Find(expectedVersionSuffix);
-
         return builder
             .Type("aspire --version")
             .Enter()
-            .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => s.ContainsText(expectedVersionSuffix), TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
     }
 
@@ -626,11 +623,8 @@ internal static class CliE2ETestHelpers
         TemporaryWorkspace? workspace = null)
     {
         // Docker containers run as root, so bash shows '# ' (not '$ ').
-        var waitingForContainerReady = new CellPatternSearcher()
-            .Find("# ");
-
         builder
-            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitUntil(s => s.ContainsText("# "), TimeSpan.FromSeconds(60))
             .Wait(500);
 
         // Set up the same prompt counting mechanism used by all E2E tests.

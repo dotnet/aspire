@@ -303,4 +303,37 @@ internal static class Hex1bAutomatorTestHelpers
         // Step 8: Decline the agent init prompt and wait for success
         await auto.DeclineAgentInitPromptAsync(counter);
     }
+
+    /// <summary>
+    /// Runs <c>aspire init --language csharp</c> and handles the NuGet.config and agent init prompts.
+    /// </summary>
+    internal static async Task AspireInitAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        var waitingForNuGetConfigPrompt = new CellPatternSearcher()
+            .Find("NuGet.config");
+
+        var waitingForInitComplete = new CellPatternSearcher()
+            .Find("Aspire initialization complete");
+
+        await auto.TypeAsync("aspire init --language csharp");
+        await auto.EnterAsync();
+
+        // NuGet.config prompt may or may not appear depending on environment.
+        // Wait for either the NuGet.config prompt or init completion.
+        await auto.WaitUntilAsync(
+            s => waitingForNuGetConfigPrompt.Search(s).Count > 0
+                || waitingForInitComplete.Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(2),
+            description: "NuGet.config prompt or init completion");
+        await auto.EnterAsync(); // Dismiss NuGet.config prompt if present
+
+        await auto.WaitUntilAsync(
+            s => waitingForInitComplete.Search(s).Count > 0,
+            timeout: TimeSpan.FromMinutes(2),
+            description: "aspire initialization complete");
+
+        await auto.DeclineAgentInitPromptAsync(counter);
+    }
 }
