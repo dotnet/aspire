@@ -1,4 +1,4 @@
-// transport.ts - ATS transport layer: RPC, Handle, errors, callbacks
+﻿// transport.ts - ATS transport layer: RPC, Handle, errors, callbacks
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
 
@@ -333,7 +333,6 @@ export class CapabilityError extends Error {
     ) {
         super(error.message);
         this.name = 'CapabilityError';
-        Object.setPrototypeOf(this, new.target.prototype);
     }
 
     /** Machine-readable error code */
@@ -354,7 +353,6 @@ export class AppHostUsageError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'AppHostUsageError';
-        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
 
