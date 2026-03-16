@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -65,7 +66,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
     private readonly AppHostLauncher _appHostLauncher;
-    private readonly Diagnostics.FileLoggerProvider _fileLoggerProvider;
+    private readonly FileLoggerProvider _fileLoggerProvider;
     private bool _isDetachMode;
 
     protected override bool UpdateNotificationsEnabled => !_isDetachMode;
@@ -94,7 +95,7 @@ internal sealed class RunCommand : BaseCommand
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         AppHostLauncher appHostLauncher,
-        Diagnostics.FileLoggerProvider fileLoggerProvider)
+        FileLoggerProvider fileLoggerProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _runner = runner;
@@ -522,7 +523,7 @@ internal sealed class RunCommand : BaseCommand
         return longestLabelLength;
     }
 
-    private static async Task CaptureAppHostLogsAsync(Diagnostics.FileLoggerProvider fileLoggerProvider, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
+    internal static async Task CaptureAppHostLogsAsync(FileLoggerProvider fileLoggerProvider, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -542,7 +543,7 @@ internal sealed class RunCommand : BaseCommand
                 }
 
                 // Write to the unified log file via FileLoggerProvider
-                var shortCategory = Diagnostics.FileLoggerProvider.GetShortCategoryName(entry.CategoryName);
+                var shortCategory = FileLoggerProvider.GetShortCategoryName(entry.CategoryName);
                 fileLoggerProvider.WriteLog(entry.Timestamp, entry.LogLevel, $"AppHost/{shortCategory}", entry.Message);
             }
         }
