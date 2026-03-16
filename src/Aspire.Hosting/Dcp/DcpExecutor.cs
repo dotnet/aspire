@@ -196,8 +196,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var createContainerNetworks = Task.Run(() => CreateAllDcpObjectsAsync<ContainerNetwork>(ct), ct);
 
             var executables = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Executable);
-            var (regular, tunnelDependent, regularContainerExes, tunnelDependentContainerExes) = await GetContainerCreationSetsAsync(ct).ConfigureAwait(false);
-            
+            var containers = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is Container);
 
             var createExecutableEndpoints = Task.Run(async () =>
             {
@@ -214,6 +213,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 await CreateExecutablesAsync(executables, ct).ConfigureAwait(false);
             }, ct);
 
+            var createTunnel = new Lazy<Task>(() => Task.Run(async () =>
+            {
+                await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
+
+                // Note: this just creates the tunnel proxy object(s) in DCP. 
+                // It does not wait for tunnel services to obtain their addresses/ports and does not update
+                // tunneled endpoints for Executables consumed by Containers. Both are done as part of creating containers.
+                await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(ct).ConfigureAwait(false);
+            }, ct), LazyThreadSafetyMode.ExecutionAndPublication);
+
+            /*
             var createRegularContainers = Task.Run(async () =>
             {
                 await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
@@ -262,6 +272,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     CreateContainerExecutablesAsync(tunnelDependentContainerExes, ct)
                 ).WaitAsync(ct).ConfigureAwait(false);
             }, ct);
+            */
 
             // Now wait for all creations to complete.
             await Task.WhenAll(
@@ -904,6 +915,29 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     AspireEventSource.Instance.DcpServiceAddressAllocationFailed(sar.Metadata.Name);
                 }
             }
+
+            if (!_options.Value.EnableAspireContainerTunnel)
+            {
+                // Tunnel endpoints will be enabled (and get their endpoints) on as-needed basis. We are done for now.
+                return;
+            }
+
+            // Container services are services that "mirror" their primary (host) service counterparts, but expose addresses usable from container network.
+            // Without the tunnel we rely on Docker Desktop host.docker.internal bridge,
+            // which means we just need to update their ports from primary services, changing the address to container host.
+            var containerServices = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (
+                Service: r.DcpResource as Service,
+                PrimaryServiceName: r.DcpResource.Metadata.Annotations?.TryGetValue(CustomResource.PrimaryServiceNameAnnotation, out var psn) == true ? psn : null)
+            )
+            .Where(cs => !string.IsNullOrEmpty(cs.PrimaryServiceName) && cs.Service?.HasCompleteAddress is not true);
+
+            foreach (var cs in containerServices)
+            {
+                var primaryService = _appResources.OfType<ServiceWithModelResource>().Select(sar => sar.Service)
+                    .First(svc => svc.Metadata.Name.Equals(cs.PrimaryServiceName));
+                cs.Service!.ApplyAddressInfoFrom(primaryService);
+                cs.Service!.Status!.EffectiveAddress = ContainerHostName;
+            }
         }
         finally
         {
@@ -911,7 +945,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    // Ensures that services used by containers have their address info.
+    /*
     private async Task EnsureContainerServiceAddressInfo(CancellationToken cancellationToken)
     {
         if (_options.Value.EnableAspireContainerTunnel)
@@ -957,6 +991,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
     }
+    */
 
     private async Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource, IKubernetesStaticMetadata
     {
@@ -1268,7 +1303,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var serviceName = _nameGenerator.GetServiceName(re.Resource, endpoint, hasManyEndpoints, serviceNames);
                 var svc = Service.Create(serviceName);
                 svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-                svc.Spec.Protocol = PortProtocol.TCP;
+                svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 // Address and port will be set automatically by DCP.
 
                 var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
@@ -3091,6 +3126,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return tunnelAppResource;
     }
 
+    /*
     private record struct ContainerCreationSets
     (
         IEnumerable<RenderedModelResource> RegularContainers,
@@ -3156,6 +3192,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 .Where(ar => ar.DcpResource is ContainerExec ce && tunnelDependent.Any(td => td.DcpResource is Container c && c.Metadata.Name == ce.Spec.ContainerName))
         );
     }
+    */
 
     private async Task PublishEndpointAllocatedEventAsync(
         HashSet<string> endpointsAdvertisedFor,
