@@ -17,7 +17,7 @@ namespace Semver;
 /// <see cref="Semver"/> namespace types do not accept and will not return such a
 /// <see cref="MetadataIdentifier"/>.</para>
 /// </remarks>
-public readonly struct MetadataIdentifier : IEquatable<MetadataIdentifier>, IComparable<MetadataIdentifier>, IComparable
+internal readonly struct MetadataIdentifier : IEquatable<MetadataIdentifier>, IComparable<MetadataIdentifier>, IComparable
 {
     /// <summary>
     /// The string value of the metadata identifier.

@@ -27,7 +27,7 @@ namespace Semver;
 /// <see cref="PrereleaseIdentifier"/>.</para>
 /// </remarks>
 [StructLayout(LayoutKind.Auto)]
-public readonly struct PrereleaseIdentifier : IEquatable<PrereleaseIdentifier>, IComparable<PrereleaseIdentifier>, IComparable
+internal readonly struct PrereleaseIdentifier : IEquatable<PrereleaseIdentifier>, IComparable<PrereleaseIdentifier>, IComparable
 {
     internal static readonly PrereleaseIdentifier Zero = CreateUnsafe("0", BigInteger.Zero);
     internal static readonly PrereleaseIdentifier Hyphen = CreateUnsafe("-", null);
