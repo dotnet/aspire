@@ -9,6 +9,7 @@ import {
     Handle,
     MarshalledHandle,
     AppHostUsageError,
+    CancellationToken,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -51,8 +52,20 @@ type TestResourceContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScrip
 /** Handle to TestVaultResource */
 type TestVaultResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestVaultResource'>;
 
+/** Handle to AfterResourcesCreatedEvent */
+type AfterResourcesCreatedEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent'>;
+
+/** Handle to BeforeResourceStartedEvent */
+type BeforeResourceStartedEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent'>;
+
+/** Handle to BeforeStartEvent */
+type BeforeStartEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeStartEvent'>;
+
 /** Handle to CommandLineArgsCallbackContext */
 type CommandLineArgsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext'>;
+
+/** Handle to ConnectionStringAvailableEvent */
+type ConnectionStringAvailableEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent'>;
 
 /** Handle to ContainerRegistryResource */
 type ContainerRegistryResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerRegistryResource'>;
@@ -62,6 +75,9 @@ type ContainerResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Application
 
 /** Handle to CSharpAppResource */
 type CSharpAppResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource'>;
+
+/** Handle to DistributedApplicationModel */
+type DistributedApplicationModelHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.DistributedApplicationModel'>;
 
 /** Handle to DotnetToolResource */
 type DotnetToolResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.DotnetToolResource'>;
@@ -86,6 +102,9 @@ type IComputeResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationM
 
 /** Handle to IContainerFilesDestinationResource */
 type IContainerFilesDestinationResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IContainerFilesDestinationResource'>;
+
+/** Handle to InitializeResourceEvent */
+type InitializeResourceEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.InitializeResourceEvent'>;
 
 /** Handle to IResource */
 type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
@@ -117,14 +136,26 @@ type ReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicati
 /** Handle to ReferenceExpressionBuilder */
 type ReferenceExpressionBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder'>;
 
+/** Handle to ResourceEndpointsAllocatedEvent */
+type ResourceEndpointsAllocatedEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceEndpointsAllocatedEvent'>;
+
 /** Handle to ResourceLoggerService */
 type ResourceLoggerServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService'>;
 
 /** Handle to ResourceNotificationService */
 type ResourceNotificationServiceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService'>;
 
+/** Handle to ResourceReadyEvent */
+type ResourceReadyEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceReadyEvent'>;
+
+/** Handle to ResourceStoppedEvent */
+type ResourceStoppedEventHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceStoppedEvent'>;
+
 /** Handle to ResourceUrlsCallbackContext */
 type ResourceUrlsCallbackContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext'>;
+
+/** Handle to UpdateCommandStateContext */
+type UpdateCommandStateContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext'>;
 
 /** Handle to ConnectionStringResource */
 type ConnectionStringResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ConnectionStringResource'>;
@@ -153,14 +184,32 @@ type IResourceWithContainerFilesHandle = Handle<'Aspire.Hosting/Aspire.Hosting.I
 /** Handle to IResourceWithServiceDiscovery */
 type IResourceWithServiceDiscoveryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery'>;
 
+/** Handle to IUserSecretsManager */
+type IUserSecretsManagerHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IUserSecretsManager'>;
+
+/** Handle to IReportingStep */
+type IReportingStepHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep'>;
+
+/** Handle to IReportingTask */
+type IReportingTaskHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask'>;
+
 /** Handle to PipelineConfigurationContext */
 type PipelineConfigurationContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext'>;
+
+/** Handle to PipelineContext */
+type PipelineContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineContext'>;
 
 /** Handle to PipelineStep */
 type PipelineStepHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep'>;
 
 /** Handle to PipelineStepContext */
 type PipelineStepContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext'>;
+
+/** Handle to PipelineStepFactoryContext */
+type PipelineStepFactoryContextHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepFactoryContext'>;
+
+/** Handle to PipelineSummary */
+type PipelineSummaryHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineSummary'>;
 
 /** Handle to ProjectResourceOptions */
 type ProjectResourceOptionsHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions'>;
@@ -174,11 +223,17 @@ type ListanyHandle = Handle<'Aspire.Hosting/List<any>'>;
 /** Handle to IConfiguration */
 type IConfigurationHandle = Handle<'Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration'>;
 
+/** Handle to IConfigurationSection */
+type IConfigurationSectionHandle = Handle<'Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfigurationSection'>;
+
 /** Handle to IHostEnvironment */
 type IHostEnvironmentHandle = Handle<'Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment'>;
 
 /** Handle to ILogger */
 type ILoggerHandle = Handle<'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger'>;
+
+/** Handle to ILoggerFactory */
+type ILoggerFactoryHandle = Handle<'Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory'>;
 
 /** Handle to string[] */
 type stringArrayHandle = Handle<'string[]'>;
@@ -421,20 +476,66 @@ export interface AppendValueProviderOptions {
     format?: string;
 }
 
+export interface CompleteStepMarkdownOptions {
+    completionState?: string;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface CompleteStepOptions {
+    completionState?: string;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface CompleteTaskMarkdownOptions {
+    completionState?: string;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface CompleteTaskOptions {
+    completionMessage?: string;
+    completionState?: string;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface CreateMarkdownTaskOptions {
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface CreateTaskOptions {
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
 export interface GetStatusAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface GetValueAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface PublishAsDockerFileOptions {
     configure?: (obj: ContainerResource) => Promise<void>;
 }
 
+export interface PublishResourceUpdateOptions {
+    state?: string;
+    stateStyle?: string;
+}
+
 export interface RunOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface SaveStateJsonOptions {
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface UpdateTaskMarkdownOptions {
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface UpdateTaskOptions {
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface WaitForCompletionOptions {
@@ -442,7 +543,11 @@ export interface WaitForCompletionOptions {
 }
 
 export interface WaitForReadyAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
+}
+
+export interface WaitForResourceStateOptions {
+    targetState?: string;
 }
 
 export interface WithBindMountOptions {
@@ -580,6 +685,117 @@ export interface WithVolumeOptions {
 }
 
 // ============================================================================
+// AfterResourcesCreatedEvent
+// ============================================================================
+
+/**
+ * Type class for AfterResourcesCreatedEvent.
+ */
+export class AfterResourcesCreatedEvent {
+    constructor(private _handle: AfterResourcesCreatedEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/AfterResourcesCreatedEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+    /** Gets the Model property */
+    model = {
+        get: async (): Promise<DistributedApplicationModel> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+                'Aspire.Hosting.ApplicationModel/AfterResourcesCreatedEvent.model',
+                { context: this._handle }
+            );
+            return new DistributedApplicationModel(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// BeforeResourceStartedEvent
+// ============================================================================
+
+/**
+ * Type class for BeforeResourceStartedEvent.
+ */
+export class BeforeResourceStartedEvent {
+    constructor(private _handle: BeforeResourceStartedEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/BeforeResourceStartedEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/BeforeResourceStartedEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// BeforeStartEvent
+// ============================================================================
+
+/**
+ * Type class for BeforeStartEvent.
+ */
+export class BeforeStartEvent {
+    constructor(private _handle: BeforeStartEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/BeforeStartEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+    /** Gets the Model property */
+    model = {
+        get: async (): Promise<DistributedApplicationModel> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+                'Aspire.Hosting.ApplicationModel/BeforeStartEvent.model',
+                { context: this._handle }
+            );
+            return new DistributedApplicationModel(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
 // CommandLineArgsCallbackContext
 // ============================================================================
 
@@ -608,11 +824,12 @@ export class CommandLineArgsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -624,6 +841,65 @@ export class CommandLineArgsCallbackContext {
                 { context: this._handle }
             );
             return new DistributedApplicationExecutionContext(handle, this._client);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
+        },
+    };
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// ConnectionStringAvailableEvent
+// ============================================================================
+
+/**
+ * Type class for ConnectionStringAvailableEvent.
+ */
+export class ConnectionStringAvailableEvent {
+    constructor(private _handle: ConnectionStringAvailableEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/ConnectionStringAvailableEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/ConnectionStringAvailableEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
         },
     };
 
@@ -644,9 +920,9 @@ export class DistributedApplication {
 
     /** Runs the distributed application */
     /** @internal */
-    async _runInternal(cancellationToken?: AbortSignal): Promise<DistributedApplication> {
+    async _runInternal(cancellationToken?: AbortSignal | CancellationToken): Promise<DistributedApplication> {
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/run',
             rpcArgs
@@ -720,6 +996,17 @@ export class DistributedApplicationExecutionContext {
         },
     };
 
+    /** Gets the ServiceProvider property */
+    serviceProvider = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting/DistributedApplicationExecutionContext.serviceProvider',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
     /** Gets the IsPublishMode property */
     isPublishMode = {
         get: async (): Promise<boolean> => {
@@ -743,6 +1030,70 @@ export class DistributedApplicationExecutionContext {
 }
 
 // ============================================================================
+// DistributedApplicationModel
+// ============================================================================
+
+/**
+ * Type class for DistributedApplicationModel.
+ */
+export class DistributedApplicationModel {
+    constructor(private _handle: DistributedApplicationModelHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets resources from the distributed application model */
+    async getResources(): Promise<Resource[]> {
+        const rpcArgs: Record<string, unknown> = { model: this._handle };
+        return await this._client.invokeCapability<Resource[]>(
+            'Aspire.Hosting/getResources',
+            rpcArgs
+        );
+    }
+
+    /** Finds a resource by name */
+    /** @internal */
+    async _findResourceByNameInternal(name: string): Promise<Resource> {
+        const rpcArgs: Record<string, unknown> = { model: this._handle, name };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/findResourceByName',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    findResourceByName(name: string): ResourcePromise {
+        return new ResourcePromise(this._findResourceByNameInternal(name));
+    }
+
+}
+
+/**
+ * Thenable wrapper for DistributedApplicationModel that enables fluent chaining.
+ */
+export class DistributedApplicationModelPromise implements PromiseLike<DistributedApplicationModel> {
+    constructor(private _promise: Promise<DistributedApplicationModel>) {}
+
+    then<TResult1 = DistributedApplicationModel, TResult2 = never>(
+        onfulfilled?: ((value: DistributedApplicationModel) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets resources from the distributed application model */
+    getResources(): Promise<Resource[]> {
+        return this._promise.then(obj => obj.getResources());
+    }
+
+    /** Finds a resource by name */
+    findResourceByName(name: string): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.findResourceByName(name)));
+    }
+
+}
+
+// ============================================================================
 // EndpointReference
 // ============================================================================
 
@@ -754,6 +1105,17 @@ export class EndpointReference {
 
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<ResourceWithEndpoints> => {
+            const handle = await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.resource',
+                { context: this._handle }
+            );
+            return new ResourceWithEndpoints(handle, this._client);
+        },
+    };
 
     /** Gets the EndpointName property */
     endpointName = {
@@ -885,7 +1247,7 @@ export class EndpointReference {
     async getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         const cancellationToken = options?.cancellationToken;
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<string>(
             'Aspire.Hosting.ApplicationModel/getValueAsync',
             rpcArgs
@@ -1003,11 +1365,34 @@ export class EnvironmentCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
+        },
+    };
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
         },
     };
 
@@ -1037,6 +1422,17 @@ export class ExecuteCommandContext {
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
+    /** Gets the ServiceProvider property */
+    serviceProvider = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.serviceProvider',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
     /** Gets the ResourceName property */
     resourceName = {
         get: async (): Promise<string> => {
@@ -1055,18 +1451,89 @@ export class ExecuteCommandContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
+    };
+
+}
+
+// ============================================================================
+// InitializeResourceEvent
+// ============================================================================
+
+/**
+ * Type class for InitializeResourceEvent.
+ */
+export class InitializeResourceEvent {
+    constructor(private _handle: InitializeResourceEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/InitializeResourceEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Eventing property */
+    eventing = {
+        get: async (): Promise<DistributedApplicationEventing> => {
+            const handle = await this._client.invokeCapability<IDistributedApplicationEventingHandle>(
+                'Aspire.Hosting.ApplicationModel/InitializeResourceEvent.eventing',
+                { context: this._handle }
+            );
+            return new DistributedApplicationEventing(handle, this._client);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.ApplicationModel/InitializeResourceEvent.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
+        },
+    };
+
+    /** Gets the Notifications property */
+    notifications = {
+        get: async (): Promise<ResourceNotificationService> => {
+            const handle = await this._client.invokeCapability<ResourceNotificationServiceHandle>(
+                'Aspire.Hosting.ApplicationModel/InitializeResourceEvent.notifications',
+                { context: this._handle }
+            );
+            return new ResourceNotificationService(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/InitializeResourceEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
     };
 
 }
@@ -1084,6 +1551,17 @@ export class PipelineConfigurationContext {
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.Pipelines/PipelineConfigurationContext.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
     /** Gets the Steps property */
     steps = {
         get: async (): Promise<PipelineStep[]> => {
@@ -1098,6 +1576,17 @@ export class PipelineConfigurationContext {
                 { context: this._handle, value }
             );
         }
+    };
+
+    /** Gets the Model property */
+    model = {
+        get: async (): Promise<DistributedApplicationModel> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+                'Aspire.Hosting.Pipelines/PipelineConfigurationContext.model',
+                { context: this._handle }
+            );
+            return new DistributedApplicationModel(handle, this._client);
+        },
     };
 
     /** Gets pipeline steps with the specified tag */
@@ -1128,6 +1617,93 @@ export class PipelineConfigurationContextPromise implements PromiseLike<Pipeline
     getStepsByTag(tag: string): Promise<PipelineStep[]> {
         return this._promise.then(obj => obj.getStepsByTag(tag));
     }
+
+}
+
+// ============================================================================
+// PipelineContext
+// ============================================================================
+
+/**
+ * Type class for PipelineContext.
+ */
+export class PipelineContext {
+    constructor(private _handle: PipelineContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Model property */
+    model = {
+        get: async (): Promise<DistributedApplicationModel> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+                'Aspire.Hosting.Pipelines/PipelineContext.model',
+                { context: this._handle }
+            );
+            return new DistributedApplicationModel(handle, this._client);
+        },
+    };
+
+    /** Gets the ExecutionContext property */
+    executionContext = {
+        get: async (): Promise<DistributedApplicationExecutionContext> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationExecutionContextHandle>(
+                'Aspire.Hosting.Pipelines/PipelineContext.executionContext',
+                { context: this._handle }
+            );
+            return new DistributedApplicationExecutionContext(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.Pipelines/PipelineContext.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.Pipelines/PipelineContext.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
+        },
+    };
+
+    /** Gets the CancellationToken property */
+    cancellationToken = {
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
+                'Aspire.Hosting.Pipelines/PipelineContext.cancellationToken',
+                { context: this._handle }
+            );
+            return CancellationToken.fromValue(result);
+        },
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.Pipelines/PipelineContext.setCancellationToken',
+                { context: this._handle, value: CancellationToken.fromValue(value) }
+            );
+        }
+    };
+
+    /** Gets the Summary property */
+    summary = {
+        get: async (): Promise<PipelineSummary> => {
+            const handle = await this._client.invokeCapability<PipelineSummaryHandle>(
+                'Aspire.Hosting.Pipelines/PipelineContext.summary',
+                { context: this._handle }
+            );
+            return new PipelineSummary(handle, this._client);
+        },
+    };
 
 }
 
@@ -1218,6 +1794,17 @@ export class PipelineStep {
         return this._tags;
     }
 
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStep.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
     /** Adds a dependency on another step by name */
     /** @internal */
     async _dependsOnInternal(stepName: string): Promise<PipelineStep> {
@@ -1288,6 +1875,39 @@ export class PipelineStepContext {
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
+    /** Gets the PipelineContext property */
+    pipelineContext = {
+        get: async (): Promise<PipelineContext> => {
+            const handle = await this._client.invokeCapability<PipelineContextHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.pipelineContext',
+                { context: this._handle }
+            );
+            return new PipelineContext(handle, this._client);
+        },
+    };
+
+    /** Gets the ReportingStep property */
+    reportingStep = {
+        get: async (): Promise<ReportingStep> => {
+            const handle = await this._client.invokeCapability<IReportingStepHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.reportingStep',
+                { context: this._handle }
+            );
+            return new ReportingStep(handle, this._client);
+        },
+    };
+
+    /** Gets the Model property */
+    model = {
+        get: async (): Promise<DistributedApplicationModel> => {
+            const handle = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.model',
+                { context: this._handle }
+            );
+            return new DistributedApplicationModel(handle, this._client);
+        },
+    };
+
     /** Gets the ExecutionContext property */
     executionContext = {
         get: async (): Promise<DistributedApplicationExecutionContext> => {
@@ -1299,15 +1919,156 @@ export class PipelineStepContext {
         },
     };
 
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
+        },
+    };
+
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
+
+    /** Gets the Summary property */
+    summary = {
+        get: async (): Promise<PipelineSummary> => {
+            const handle = await this._client.invokeCapability<PipelineSummaryHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepContext.summary',
+                { context: this._handle }
+            );
+            return new PipelineSummary(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// PipelineStepFactoryContext
+// ============================================================================
+
+/**
+ * Type class for PipelineStepFactoryContext.
+ */
+export class PipelineStepFactoryContext {
+    constructor(private _handle: PipelineStepFactoryContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the PipelineContext property */
+    pipelineContext = {
+        get: async (): Promise<PipelineContext> => {
+            const handle = await this._client.invokeCapability<PipelineContextHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepFactoryContext.pipelineContext',
+                { context: this._handle }
+            );
+            return new PipelineContext(handle, this._client);
+        },
+    };
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.Pipelines/PipelineStepFactoryContext.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// PipelineSummary
+// ============================================================================
+
+/**
+ * Type class for PipelineSummary.
+ */
+export class PipelineSummary {
+    constructor(private _handle: PipelineSummaryHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Invokes the Add method */
+    /** @internal */
+    async _addInternal(key: string, value: string): Promise<PipelineSummary> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, key, value };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.Pipelines/PipelineSummary.add',
+            rpcArgs
+        );
+        return this;
+    }
+
+    add(key: string, value: string): PipelineSummaryPromise {
+        return new PipelineSummaryPromise(this._addInternal(key, value));
+    }
+
+    /** Adds a Markdown-formatted value to the pipeline summary */
+    /** @internal */
+    async _addMarkdownInternal(key: string, markdownString: string): Promise<PipelineSummary> {
+        const rpcArgs: Record<string, unknown> = { summary: this._handle, key, markdownString };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/addMarkdown',
+            rpcArgs
+        );
+        return this;
+    }
+
+    addMarkdown(key: string, markdownString: string): PipelineSummaryPromise {
+        return new PipelineSummaryPromise(this._addMarkdownInternal(key, markdownString));
+    }
+
+}
+
+/**
+ * Thenable wrapper for PipelineSummary that enables fluent chaining.
+ */
+export class PipelineSummaryPromise implements PromiseLike<PipelineSummary> {
+    constructor(private _promise: Promise<PipelineSummary>) {}
+
+    then<TResult1 = PipelineSummary, TResult2 = never>(
+        onfulfilled?: ((value: PipelineSummary) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Invokes the Add method */
+    add(key: string, value: string): PipelineSummaryPromise {
+        return new PipelineSummaryPromise(this._promise.then(obj => obj.add(key, value)));
+    }
+
+    /** Adds a Markdown-formatted value to the pipeline summary */
+    addMarkdown(key: string, markdownString: string): PipelineSummaryPromise {
+        return new PipelineSummaryPromise(this._promise.then(obj => obj.addMarkdown(key, markdownString)));
+    }
 
 }
 
@@ -1493,6 +2254,325 @@ export class ReferenceExpressionBuilderPromise implements PromiseLike<ReferenceE
 }
 
 // ============================================================================
+// ResourceEndpointsAllocatedEvent
+// ============================================================================
+
+/**
+ * Type class for ResourceEndpointsAllocatedEvent.
+ */
+export class ResourceEndpointsAllocatedEvent {
+    constructor(private _handle: ResourceEndpointsAllocatedEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceEndpointsAllocatedEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceEndpointsAllocatedEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// ResourceLoggerService
+// ============================================================================
+
+/**
+ * Type class for ResourceLoggerService.
+ */
+export class ResourceLoggerService {
+    constructor(private _handle: ResourceLoggerServiceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Completes the log stream for a resource */
+    /** @internal */
+    async _completeLogInternal(resource: ResourceBuilderBase): Promise<ResourceLoggerService> {
+        const rpcArgs: Record<string, unknown> = { loggerService: this._handle, resource };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeLog',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeLog(resource: ResourceBuilderBase): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._completeLogInternal(resource));
+    }
+
+    /** Completes the log stream by resource name */
+    /** @internal */
+    async _completeLogByNameInternal(resourceName: string): Promise<ResourceLoggerService> {
+        const rpcArgs: Record<string, unknown> = { loggerService: this._handle, resourceName };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeLogByName',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeLogByName(resourceName: string): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._completeLogByNameInternal(resourceName));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceLoggerService that enables fluent chaining.
+ */
+export class ResourceLoggerServicePromise implements PromiseLike<ResourceLoggerService> {
+    constructor(private _promise: Promise<ResourceLoggerService>) {}
+
+    then<TResult1 = ResourceLoggerService, TResult2 = never>(
+        onfulfilled?: ((value: ResourceLoggerService) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Completes the log stream for a resource */
+    completeLog(resource: ResourceBuilderBase): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.completeLog(resource)));
+    }
+
+    /** Completes the log stream by resource name */
+    completeLogByName(resourceName: string): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.completeLogByName(resourceName)));
+    }
+
+}
+
+// ============================================================================
+// ResourceNotificationService
+// ============================================================================
+
+/**
+ * Type class for ResourceNotificationService.
+ */
+export class ResourceNotificationService {
+    constructor(private _handle: ResourceNotificationServiceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Waits for a resource to reach a specified state */
+    /** @internal */
+    async _waitForResourceStateInternal(resourceName: string, targetState?: string): Promise<ResourceNotificationService> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resourceName };
+        if (targetState !== undefined) rpcArgs.targetState = targetState;
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/waitForResourceState',
+            rpcArgs
+        );
+        return this;
+    }
+
+    waitForResourceState(resourceName: string, options?: WaitForResourceStateOptions): ResourceNotificationServicePromise {
+        const targetState = options?.targetState;
+        return new ResourceNotificationServicePromise(this._waitForResourceStateInternal(resourceName, targetState));
+    }
+
+    /** Waits for a resource to reach one of the specified states */
+    async waitForResourceStates(resourceName: string, targetStates: string[]): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resourceName, targetStates };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/waitForResourceStates',
+            rpcArgs
+        );
+    }
+
+    /** Waits for a resource to become healthy */
+    async waitForResourceHealthy(resourceName: string): Promise<ResourceEventDto> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resourceName };
+        return await this._client.invokeCapability<ResourceEventDto>(
+            'Aspire.Hosting/waitForResourceHealthy',
+            rpcArgs
+        );
+    }
+
+    /** Waits for all dependencies of a resource to be ready */
+    /** @internal */
+    async _waitForDependenciesInternal(resource: ResourceBuilderBase): Promise<ResourceNotificationService> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resource };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/waitForDependencies',
+            rpcArgs
+        );
+        return this;
+    }
+
+    waitForDependencies(resource: ResourceBuilderBase): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._waitForDependenciesInternal(resource));
+    }
+
+    /** Tries to get the current state of a resource */
+    async tryGetResourceState(resourceName: string): Promise<ResourceEventDto> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resourceName };
+        return await this._client.invokeCapability<ResourceEventDto>(
+            'Aspire.Hosting/tryGetResourceState',
+            rpcArgs
+        );
+    }
+
+    /** Publishes an update for a resource's state */
+    /** @internal */
+    async _publishResourceUpdateInternal(resource: ResourceBuilderBase, state?: string, stateStyle?: string): Promise<ResourceNotificationService> {
+        const rpcArgs: Record<string, unknown> = { notificationService: this._handle, resource };
+        if (state !== undefined) rpcArgs.state = state;
+        if (stateStyle !== undefined) rpcArgs.stateStyle = stateStyle;
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/publishResourceUpdate',
+            rpcArgs
+        );
+        return this;
+    }
+
+    publishResourceUpdate(resource: ResourceBuilderBase, options?: PublishResourceUpdateOptions): ResourceNotificationServicePromise {
+        const state = options?.state;
+        const stateStyle = options?.stateStyle;
+        return new ResourceNotificationServicePromise(this._publishResourceUpdateInternal(resource, state, stateStyle));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceNotificationService that enables fluent chaining.
+ */
+export class ResourceNotificationServicePromise implements PromiseLike<ResourceNotificationService> {
+    constructor(private _promise: Promise<ResourceNotificationService>) {}
+
+    then<TResult1 = ResourceNotificationService, TResult2 = never>(
+        onfulfilled?: ((value: ResourceNotificationService) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Waits for a resource to reach a specified state */
+    waitForResourceState(resourceName: string, options?: WaitForResourceStateOptions): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.waitForResourceState(resourceName, options)));
+    }
+
+    /** Waits for a resource to reach one of the specified states */
+    waitForResourceStates(resourceName: string, targetStates: string[]): Promise<string> {
+        return this._promise.then(obj => obj.waitForResourceStates(resourceName, targetStates));
+    }
+
+    /** Waits for a resource to become healthy */
+    waitForResourceHealthy(resourceName: string): Promise<ResourceEventDto> {
+        return this._promise.then(obj => obj.waitForResourceHealthy(resourceName));
+    }
+
+    /** Waits for all dependencies of a resource to be ready */
+    waitForDependencies(resource: ResourceBuilderBase): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.waitForDependencies(resource)));
+    }
+
+    /** Tries to get the current state of a resource */
+    tryGetResourceState(resourceName: string): Promise<ResourceEventDto> {
+        return this._promise.then(obj => obj.tryGetResourceState(resourceName));
+    }
+
+    /** Publishes an update for a resource's state */
+    publishResourceUpdate(resource: ResourceBuilderBase, options?: PublishResourceUpdateOptions): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.publishResourceUpdate(resource, options)));
+    }
+
+}
+
+// ============================================================================
+// ResourceReadyEvent
+// ============================================================================
+
+/**
+ * Type class for ResourceReadyEvent.
+ */
+export class ResourceReadyEvent {
+    constructor(private _handle: ResourceReadyEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceReadyEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceReadyEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// ResourceStoppedEvent
+// ============================================================================
+
+/**
+ * Type class for ResourceStoppedEvent.
+ */
+export class ResourceStoppedEvent {
+    constructor(private _handle: ResourceStoppedEventHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceStoppedEvent.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
+
+    /** Gets the Services property */
+    services = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceStoppedEvent.services',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
 // ResourceUrlsCallbackContext
 // ============================================================================
 
@@ -1504,6 +2584,17 @@ export class ResourceUrlsCallbackContext {
 
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<Resource> => {
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.resource',
+                { context: this._handle }
+            );
+            return new Resource(handle, this._client);
+        },
+    };
 
     /** Gets the Urls property */
     private _urls?: AspireList<ResourceUrlAnnotation>;
@@ -1521,11 +2612,23 @@ export class ResourceUrlsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
+        },
+    };
+
+    /** Gets the Logger property */
+    logger = {
+        get: async (): Promise<Logger> => {
+            const handle = await this._client.invokeCapability<ILoggerHandle>(
+                'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.logger',
+                { context: this._handle }
+            );
+            return new Logger(handle, this._client);
         },
     };
 
@@ -1589,16 +2692,17 @@ export class TestCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -1822,6 +2926,132 @@ export class TestResourceContextPromise implements PromiseLike<TestResourceConte
 }
 
 // ============================================================================
+// UpdateCommandStateContext
+// ============================================================================
+
+/**
+ * Type class for UpdateCommandStateContext.
+ */
+export class UpdateCommandStateContext {
+    constructor(private _handle: UpdateCommandStateContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the ServiceProvider property */
+    serviceProvider = {
+        get: async (): Promise<ServiceProvider> => {
+            const handle = await this._client.invokeCapability<IServiceProviderHandle>(
+                'Aspire.Hosting.ApplicationModel/UpdateCommandStateContext.serviceProvider',
+                { context: this._handle }
+            );
+            return new ServiceProvider(handle, this._client);
+        },
+    };
+
+}
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+/**
+ * Type class for Configuration.
+ */
+export class Configuration {
+    constructor(private _handle: IConfigurationHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets a configuration value by key */
+    async getConfigValue(key: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { configuration: this._handle, key };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getConfigValue',
+            rpcArgs
+        );
+    }
+
+    /** Gets a connection string by name */
+    async getConnectionString(name: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { configuration: this._handle, name };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getConnectionString',
+            rpcArgs
+        );
+    }
+
+    /** Gets a configuration section by key */
+    async getSection(key: string): Promise<IConfigurationSectionHandle> {
+        const rpcArgs: Record<string, unknown> = { configuration: this._handle, key };
+        return await this._client.invokeCapability<IConfigurationSectionHandle>(
+            'Aspire.Hosting/getSection',
+            rpcArgs
+        );
+    }
+
+    /** Gets child configuration sections */
+    async getChildren(): Promise<IConfigurationSectionHandle[]> {
+        const rpcArgs: Record<string, unknown> = { configuration: this._handle };
+        return await this._client.invokeCapability<IConfigurationSectionHandle[]>(
+            'Aspire.Hosting/getChildren',
+            rpcArgs
+        );
+    }
+
+    /** Checks whether a configuration section exists */
+    async exists(key: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { configuration: this._handle, key };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/exists',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for Configuration that enables fluent chaining.
+ */
+export class ConfigurationPromise implements PromiseLike<Configuration> {
+    constructor(private _promise: Promise<Configuration>) {}
+
+    then<TResult1 = Configuration, TResult2 = never>(
+        onfulfilled?: ((value: Configuration) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets a configuration value by key */
+    getConfigValue(key: string): Promise<string> {
+        return this._promise.then(obj => obj.getConfigValue(key));
+    }
+
+    /** Gets a connection string by name */
+    getConnectionString(name: string): Promise<string> {
+        return this._promise.then(obj => obj.getConnectionString(name));
+    }
+
+    /** Gets a configuration section by key */
+    getSection(key: string): Promise<IConfigurationSectionHandle> {
+        return this._promise.then(obj => obj.getSection(key));
+    }
+
+    /** Gets child configuration sections */
+    getChildren(): Promise<IConfigurationSectionHandle[]> {
+        return this._promise.then(obj => obj.getChildren());
+    }
+
+    /** Checks whether a configuration section exists */
+    exists(key: string): Promise<boolean> {
+        return this._promise.then(obj => obj.exists(key));
+    }
+
+}
+
+// ============================================================================
 // DistributedApplicationBuilder
 // ============================================================================
 
@@ -1844,6 +3074,17 @@ export class DistributedApplicationBuilder {
         },
     };
 
+    /** Gets the Environment property */
+    environment = {
+        get: async (): Promise<HostEnvironment> => {
+            const handle = await this._client.invokeCapability<IHostEnvironmentHandle>(
+                'Aspire.Hosting/IDistributedApplicationBuilder.environment',
+                { context: this._handle }
+            );
+            return new HostEnvironment(handle, this._client);
+        },
+    };
+
     /** Gets the Eventing property */
     eventing = {
         get: async (): Promise<DistributedApplicationEventing> => {
@@ -1863,6 +3104,17 @@ export class DistributedApplicationBuilder {
                 { context: this._handle }
             );
             return new DistributedApplicationExecutionContext(handle, this._client);
+        },
+    };
+
+    /** Gets the UserSecretsManager property */
+    userSecretsManager = {
+        get: async (): Promise<UserSecretsManager> => {
+            const handle = await this._client.invokeCapability<IUserSecretsManagerHandle>(
+                'Aspire.Hosting/IDistributedApplicationBuilder.userSecretsManager',
+                { context: this._handle }
+            );
+            return new UserSecretsManager(handle, this._client);
         },
     };
 
@@ -2118,6 +3370,49 @@ export class DistributedApplicationBuilder {
         return new CSharpAppResourcePromise(this._addCSharpAppWithOptionsInternal(name, path, configure));
     }
 
+    /** Gets the application configuration */
+    /** @internal */
+    async _getConfigurationInternal(): Promise<Configuration> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        const result = await this._client.invokeCapability<IConfigurationHandle>(
+            'Aspire.Hosting/getConfiguration',
+            rpcArgs
+        );
+        return new Configuration(result, this._client);
+    }
+
+    getConfiguration(): ConfigurationPromise {
+        return new ConfigurationPromise(this._getConfigurationInternal());
+    }
+
+    /** Subscribes to the BeforeStart event */
+    async subscribeBeforeStart(callback: (arg: BeforeStartEvent) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeStartEventHandle;
+            const arg = new BeforeStartEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        return await this._client.invokeCapability<DistributedApplicationEventSubscriptionHandle>(
+            'Aspire.Hosting/subscribeBeforeStart',
+            rpcArgs
+        );
+    }
+
+    /** Subscribes to the AfterResourcesCreated event */
+    async subscribeAfterResourcesCreated(callback: (arg: AfterResourcesCreatedEvent) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as AfterResourcesCreatedEventHandle;
+            const arg = new AfterResourcesCreatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        return await this._client.invokeCapability<DistributedApplicationEventSubscriptionHandle>(
+            'Aspire.Hosting/subscribeAfterResourcesCreated',
+            rpcArgs
+        );
+    }
+
     /** Adds a test Redis resource */
     /** @internal */
     async _addTestRedisInternal(name: string, port?: number): Promise<TestRedisResource> {
@@ -2240,6 +3535,21 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.addCSharpAppWithOptions(name, path, configure)));
     }
 
+    /** Gets the application configuration */
+    getConfiguration(): ConfigurationPromise {
+        return new ConfigurationPromise(this._promise.then(obj => obj.getConfiguration()));
+    }
+
+    /** Subscribes to the BeforeStart event */
+    subscribeBeforeStart(callback: (arg: BeforeStartEvent) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
+        return this._promise.then(obj => obj.subscribeBeforeStart(callback));
+    }
+
+    /** Subscribes to the AfterResourcesCreated event */
+    subscribeAfterResourcesCreated(callback: (arg: AfterResourcesCreatedEvent) => Promise<void>): Promise<DistributedApplicationEventSubscriptionHandle> {
+        return this._promise.then(obj => obj.subscribeAfterResourcesCreated(callback));
+    }
+
     /** Adds a test Redis resource */
     addTestRedis(name: string, options?: AddTestRedisOptions): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.addTestRedis(name, options)));
@@ -2298,6 +3608,814 @@ export class DistributedApplicationEventingPromise implements PromiseLike<Distri
     /** Invokes the Unsubscribe method */
     unsubscribe(subscription: DistributedApplicationEventSubscriptionHandle): DistributedApplicationEventingPromise {
         return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.unsubscribe(subscription)));
+    }
+
+}
+
+// ============================================================================
+// HostEnvironment
+// ============================================================================
+
+/**
+ * Type class for HostEnvironment.
+ */
+export class HostEnvironment {
+    constructor(private _handle: IHostEnvironmentHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Checks if running in Development environment */
+    async isDevelopment(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { environment: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/isDevelopment',
+            rpcArgs
+        );
+    }
+
+    /** Checks if running in Production environment */
+    async isProduction(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { environment: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/isProduction',
+            rpcArgs
+        );
+    }
+
+    /** Checks if running in Staging environment */
+    async isStaging(): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { environment: this._handle };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/isStaging',
+            rpcArgs
+        );
+    }
+
+    /** Checks if the environment matches the specified name */
+    async isEnvironment(environmentName: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { environment: this._handle, environmentName };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/isEnvironment',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for HostEnvironment that enables fluent chaining.
+ */
+export class HostEnvironmentPromise implements PromiseLike<HostEnvironment> {
+    constructor(private _promise: Promise<HostEnvironment>) {}
+
+    then<TResult1 = HostEnvironment, TResult2 = never>(
+        onfulfilled?: ((value: HostEnvironment) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Checks if running in Development environment */
+    isDevelopment(): Promise<boolean> {
+        return this._promise.then(obj => obj.isDevelopment());
+    }
+
+    /** Checks if running in Production environment */
+    isProduction(): Promise<boolean> {
+        return this._promise.then(obj => obj.isProduction());
+    }
+
+    /** Checks if running in Staging environment */
+    isStaging(): Promise<boolean> {
+        return this._promise.then(obj => obj.isStaging());
+    }
+
+    /** Checks if the environment matches the specified name */
+    isEnvironment(environmentName: string): Promise<boolean> {
+        return this._promise.then(obj => obj.isEnvironment(environmentName));
+    }
+
+}
+
+// ============================================================================
+// Logger
+// ============================================================================
+
+/**
+ * Type class for Logger.
+ */
+export class Logger {
+    constructor(private _handle: ILoggerHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Logs an information message */
+    /** @internal */
+    async _logInformationInternal(message: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { logger: this._handle, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logInformation',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logInformation(message: string): LoggerPromise {
+        return new LoggerPromise(this._logInformationInternal(message));
+    }
+
+    /** Logs a warning message */
+    /** @internal */
+    async _logWarningInternal(message: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { logger: this._handle, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logWarning',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logWarning(message: string): LoggerPromise {
+        return new LoggerPromise(this._logWarningInternal(message));
+    }
+
+    /** Logs an error message */
+    /** @internal */
+    async _logErrorInternal(message: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { logger: this._handle, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logError',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logError(message: string): LoggerPromise {
+        return new LoggerPromise(this._logErrorInternal(message));
+    }
+
+    /** Logs a debug message */
+    /** @internal */
+    async _logDebugInternal(message: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { logger: this._handle, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logDebug',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logDebug(message: string): LoggerPromise {
+        return new LoggerPromise(this._logDebugInternal(message));
+    }
+
+    /** Logs a message with specified level */
+    /** @internal */
+    async _logInternal(level: string, message: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { logger: this._handle, level, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/log',
+            rpcArgs
+        );
+        return this;
+    }
+
+    log(level: string, message: string): LoggerPromise {
+        return new LoggerPromise(this._logInternal(level, message));
+    }
+
+}
+
+/**
+ * Thenable wrapper for Logger that enables fluent chaining.
+ */
+export class LoggerPromise implements PromiseLike<Logger> {
+    constructor(private _promise: Promise<Logger>) {}
+
+    then<TResult1 = Logger, TResult2 = never>(
+        onfulfilled?: ((value: Logger) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Logs an information message */
+    logInformation(message: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.logInformation(message)));
+    }
+
+    /** Logs a warning message */
+    logWarning(message: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.logWarning(message)));
+    }
+
+    /** Logs an error message */
+    logError(message: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.logError(message)));
+    }
+
+    /** Logs a debug message */
+    logDebug(message: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.logDebug(message)));
+    }
+
+    /** Logs a message with specified level */
+    log(level: string, message: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.log(level, message)));
+    }
+
+}
+
+// ============================================================================
+// LoggerFactory
+// ============================================================================
+
+/**
+ * Type class for LoggerFactory.
+ */
+export class LoggerFactory {
+    constructor(private _handle: ILoggerFactoryHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Creates a logger for a category */
+    /** @internal */
+    async _createLoggerInternal(categoryName: string): Promise<Logger> {
+        const rpcArgs: Record<string, unknown> = { loggerFactory: this._handle, categoryName };
+        const result = await this._client.invokeCapability<ILoggerHandle>(
+            'Aspire.Hosting/createLogger',
+            rpcArgs
+        );
+        return new Logger(result, this._client);
+    }
+
+    createLogger(categoryName: string): LoggerPromise {
+        return new LoggerPromise(this._createLoggerInternal(categoryName));
+    }
+
+}
+
+/**
+ * Thenable wrapper for LoggerFactory that enables fluent chaining.
+ */
+export class LoggerFactoryPromise implements PromiseLike<LoggerFactory> {
+    constructor(private _promise: Promise<LoggerFactory>) {}
+
+    then<TResult1 = LoggerFactory, TResult2 = never>(
+        onfulfilled?: ((value: LoggerFactory) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Creates a logger for a category */
+    createLogger(categoryName: string): LoggerPromise {
+        return new LoggerPromise(this._promise.then(obj => obj.createLogger(categoryName)));
+    }
+
+}
+
+// ============================================================================
+// ReportingStep
+// ============================================================================
+
+/**
+ * Type class for ReportingStep.
+ */
+export class ReportingStep {
+    constructor(private _handle: IReportingStepHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Creates a reporting task with plain-text status text */
+    /** @internal */
+    async _createTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, statusText };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        const result = await this._client.invokeCapability<IReportingTaskHandle>(
+            'Aspire.Hosting/createTask',
+            rpcArgs
+        );
+        return new ReportingTask(result, this._client);
+    }
+
+    createTask(statusText: string, options?: CreateTaskOptions): ReportingTaskPromise {
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._createTaskInternal(statusText, cancellationToken));
+    }
+
+    /** Creates a reporting task with Markdown-formatted status text */
+    /** @internal */
+    async _createMarkdownTaskInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        const result = await this._client.invokeCapability<IReportingTaskHandle>(
+            'Aspire.Hosting/createMarkdownTask',
+            rpcArgs
+        );
+        return new ReportingTask(result, this._client);
+    }
+
+    createMarkdownTask(markdownString: string, options?: CreateMarkdownTaskOptions): ReportingTaskPromise {
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._createMarkdownTaskInternal(markdownString, cancellationToken));
+    }
+
+    /** Logs a plain-text message for the reporting step */
+    /** @internal */
+    async _logStepInternal(level: string, message: string): Promise<ReportingStep> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, level, message };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logStep',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logStep(level: string, message: string): ReportingStepPromise {
+        return new ReportingStepPromise(this._logStepInternal(level, message));
+    }
+
+    /** Logs a Markdown-formatted message for the reporting step */
+    /** @internal */
+    async _logStepMarkdownInternal(level: string, markdownString: string): Promise<ReportingStep> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, level, markdownString };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/logStepMarkdown',
+            rpcArgs
+        );
+        return this;
+    }
+
+    logStepMarkdown(level: string, markdownString: string): ReportingStepPromise {
+        return new ReportingStepPromise(this._logStepMarkdownInternal(level, markdownString));
+    }
+
+    /** Completes the reporting step with plain-text completion text */
+    /** @internal */
+    async _completeStepInternal(completionText: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, completionText };
+        if (completionState !== undefined) rpcArgs.completionState = completionState;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeStep',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeStep(completionText: string, options?: CompleteStepOptions): ReportingStepPromise {
+        const completionState = options?.completionState;
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingStepPromise(this._completeStepInternal(completionText, completionState, cancellationToken));
+    }
+
+    /** Completes the reporting step with Markdown-formatted completion text */
+    /** @internal */
+    async _completeStepMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
+        const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
+        if (completionState !== undefined) rpcArgs.completionState = completionState;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeStepMarkdown',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeStepMarkdown(markdownString: string, options?: CompleteStepMarkdownOptions): ReportingStepPromise {
+        const completionState = options?.completionState;
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingStepPromise(this._completeStepMarkdownInternal(markdownString, completionState, cancellationToken));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ReportingStep that enables fluent chaining.
+ */
+export class ReportingStepPromise implements PromiseLike<ReportingStep> {
+    constructor(private _promise: Promise<ReportingStep>) {}
+
+    then<TResult1 = ReportingStep, TResult2 = never>(
+        onfulfilled?: ((value: ReportingStep) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Creates a reporting task with plain-text status text */
+    createTask(statusText: string, options?: CreateTaskOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.createTask(statusText, options)));
+    }
+
+    /** Creates a reporting task with Markdown-formatted status text */
+    createMarkdownTask(markdownString: string, options?: CreateMarkdownTaskOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.createMarkdownTask(markdownString, options)));
+    }
+
+    /** Logs a plain-text message for the reporting step */
+    logStep(level: string, message: string): ReportingStepPromise {
+        return new ReportingStepPromise(this._promise.then(obj => obj.logStep(level, message)));
+    }
+
+    /** Logs a Markdown-formatted message for the reporting step */
+    logStepMarkdown(level: string, markdownString: string): ReportingStepPromise {
+        return new ReportingStepPromise(this._promise.then(obj => obj.logStepMarkdown(level, markdownString)));
+    }
+
+    /** Completes the reporting step with plain-text completion text */
+    completeStep(completionText: string, options?: CompleteStepOptions): ReportingStepPromise {
+        return new ReportingStepPromise(this._promise.then(obj => obj.completeStep(completionText, options)));
+    }
+
+    /** Completes the reporting step with Markdown-formatted completion text */
+    completeStepMarkdown(markdownString: string, options?: CompleteStepMarkdownOptions): ReportingStepPromise {
+        return new ReportingStepPromise(this._promise.then(obj => obj.completeStepMarkdown(markdownString, options)));
+    }
+
+}
+
+// ============================================================================
+// ReportingTask
+// ============================================================================
+
+/**
+ * Type class for ReportingTask.
+ */
+export class ReportingTask {
+    constructor(private _handle: IReportingTaskHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Updates the reporting task with plain-text status text */
+    /** @internal */
+    async _updateTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, statusText };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/updateTask',
+            rpcArgs
+        );
+        return this;
+    }
+
+    updateTask(statusText: string, options?: UpdateTaskOptions): ReportingTaskPromise {
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._updateTaskInternal(statusText, cancellationToken));
+    }
+
+    /** Updates the reporting task with Markdown-formatted status text */
+    /** @internal */
+    async _updateTaskMarkdownInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/updateTaskMarkdown',
+            rpcArgs
+        );
+        return this;
+    }
+
+    updateTaskMarkdown(markdownString: string, options?: UpdateTaskMarkdownOptions): ReportingTaskPromise {
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._updateTaskMarkdownInternal(markdownString, cancellationToken));
+    }
+
+    /** Completes the reporting task with plain-text completion text */
+    /** @internal */
+    async _completeTaskInternal(completionMessage?: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingTask: this._handle };
+        if (completionMessage !== undefined) rpcArgs.completionMessage = completionMessage;
+        if (completionState !== undefined) rpcArgs.completionState = completionState;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeTask',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeTask(options?: CompleteTaskOptions): ReportingTaskPromise {
+        const completionMessage = options?.completionMessage;
+        const completionState = options?.completionState;
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._completeTaskInternal(completionMessage, completionState, cancellationToken));
+    }
+
+    /** Completes the reporting task with Markdown-formatted completion text */
+    /** @internal */
+    async _completeTaskMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
+        const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
+        if (completionState !== undefined) rpcArgs.completionState = completionState;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/completeTaskMarkdown',
+            rpcArgs
+        );
+        return this;
+    }
+
+    completeTaskMarkdown(markdownString: string, options?: CompleteTaskMarkdownOptions): ReportingTaskPromise {
+        const completionState = options?.completionState;
+        const cancellationToken = options?.cancellationToken;
+        return new ReportingTaskPromise(this._completeTaskMarkdownInternal(markdownString, completionState, cancellationToken));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ReportingTask that enables fluent chaining.
+ */
+export class ReportingTaskPromise implements PromiseLike<ReportingTask> {
+    constructor(private _promise: Promise<ReportingTask>) {}
+
+    then<TResult1 = ReportingTask, TResult2 = never>(
+        onfulfilled?: ((value: ReportingTask) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Updates the reporting task with plain-text status text */
+    updateTask(statusText: string, options?: UpdateTaskOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.updateTask(statusText, options)));
+    }
+
+    /** Updates the reporting task with Markdown-formatted status text */
+    updateTaskMarkdown(markdownString: string, options?: UpdateTaskMarkdownOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.updateTaskMarkdown(markdownString, options)));
+    }
+
+    /** Completes the reporting task with plain-text completion text */
+    completeTask(options?: CompleteTaskOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.completeTask(options)));
+    }
+
+    /** Completes the reporting task with Markdown-formatted completion text */
+    completeTaskMarkdown(markdownString: string, options?: CompleteTaskMarkdownOptions): ReportingTaskPromise {
+        return new ReportingTaskPromise(this._promise.then(obj => obj.completeTaskMarkdown(markdownString, options)));
+    }
+
+}
+
+// ============================================================================
+// ServiceProvider
+// ============================================================================
+
+/**
+ * Type class for ServiceProvider.
+ */
+export class ServiceProvider {
+    constructor(private _handle: IServiceProviderHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the distributed application eventing service from the service provider */
+    /** @internal */
+    async _getEventingInternal(): Promise<DistributedApplicationEventing> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<IDistributedApplicationEventingHandle>(
+            'Aspire.Hosting/getEventing',
+            rpcArgs
+        );
+        return new DistributedApplicationEventing(result, this._client);
+    }
+
+    getEventing(): DistributedApplicationEventingPromise {
+        return new DistributedApplicationEventingPromise(this._getEventingInternal());
+    }
+
+    /** Gets the logger factory from the service provider */
+    /** @internal */
+    async _getLoggerFactoryInternal(): Promise<LoggerFactory> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<ILoggerFactoryHandle>(
+            'Aspire.Hosting/getLoggerFactory',
+            rpcArgs
+        );
+        return new LoggerFactory(result, this._client);
+    }
+
+    getLoggerFactory(): LoggerFactoryPromise {
+        return new LoggerFactoryPromise(this._getLoggerFactoryInternal());
+    }
+
+    /** Gets the resource logger service from the service provider */
+    /** @internal */
+    async _getResourceLoggerServiceInternal(): Promise<ResourceLoggerService> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<ResourceLoggerServiceHandle>(
+            'Aspire.Hosting/getResourceLoggerService',
+            rpcArgs
+        );
+        return new ResourceLoggerService(result, this._client);
+    }
+
+    getResourceLoggerService(): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._getResourceLoggerServiceInternal());
+    }
+
+    /** Gets the distributed application model from the service provider */
+    /** @internal */
+    async _getDistributedApplicationModelInternal(): Promise<DistributedApplicationModel> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<DistributedApplicationModelHandle>(
+            'Aspire.Hosting/getDistributedApplicationModel',
+            rpcArgs
+        );
+        return new DistributedApplicationModel(result, this._client);
+    }
+
+    getDistributedApplicationModel(): DistributedApplicationModelPromise {
+        return new DistributedApplicationModelPromise(this._getDistributedApplicationModelInternal());
+    }
+
+    /** Gets the resource notification service from the service provider */
+    /** @internal */
+    async _getResourceNotificationServiceInternal(): Promise<ResourceNotificationService> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<ResourceNotificationServiceHandle>(
+            'Aspire.Hosting/getResourceNotificationService',
+            rpcArgs
+        );
+        return new ResourceNotificationService(result, this._client);
+    }
+
+    getResourceNotificationService(): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._getResourceNotificationServiceInternal());
+    }
+
+    /** Gets the user secrets manager from the service provider */
+    /** @internal */
+    async _getUserSecretsManagerInternal(): Promise<UserSecretsManager> {
+        const rpcArgs: Record<string, unknown> = { serviceProvider: this._handle };
+        const result = await this._client.invokeCapability<IUserSecretsManagerHandle>(
+            'Aspire.Hosting/getUserSecretsManager',
+            rpcArgs
+        );
+        return new UserSecretsManager(result, this._client);
+    }
+
+    getUserSecretsManager(): UserSecretsManagerPromise {
+        return new UserSecretsManagerPromise(this._getUserSecretsManagerInternal());
+    }
+
+}
+
+/**
+ * Thenable wrapper for ServiceProvider that enables fluent chaining.
+ */
+export class ServiceProviderPromise implements PromiseLike<ServiceProvider> {
+    constructor(private _promise: Promise<ServiceProvider>) {}
+
+    then<TResult1 = ServiceProvider, TResult2 = never>(
+        onfulfilled?: ((value: ServiceProvider) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets the distributed application eventing service from the service provider */
+    getEventing(): DistributedApplicationEventingPromise {
+        return new DistributedApplicationEventingPromise(this._promise.then(obj => obj.getEventing()));
+    }
+
+    /** Gets the logger factory from the service provider */
+    getLoggerFactory(): LoggerFactoryPromise {
+        return new LoggerFactoryPromise(this._promise.then(obj => obj.getLoggerFactory()));
+    }
+
+    /** Gets the resource logger service from the service provider */
+    getResourceLoggerService(): ResourceLoggerServicePromise {
+        return new ResourceLoggerServicePromise(this._promise.then(obj => obj.getResourceLoggerService()));
+    }
+
+    /** Gets the distributed application model from the service provider */
+    getDistributedApplicationModel(): DistributedApplicationModelPromise {
+        return new DistributedApplicationModelPromise(this._promise.then(obj => obj.getDistributedApplicationModel()));
+    }
+
+    /** Gets the resource notification service from the service provider */
+    getResourceNotificationService(): ResourceNotificationServicePromise {
+        return new ResourceNotificationServicePromise(this._promise.then(obj => obj.getResourceNotificationService()));
+    }
+
+    /** Gets the user secrets manager from the service provider */
+    getUserSecretsManager(): UserSecretsManagerPromise {
+        return new UserSecretsManagerPromise(this._promise.then(obj => obj.getUserSecretsManager()));
+    }
+
+}
+
+// ============================================================================
+// UserSecretsManager
+// ============================================================================
+
+/**
+ * Type class for UserSecretsManager.
+ */
+export class UserSecretsManager {
+    constructor(private _handle: IUserSecretsManagerHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the IsAvailable property */
+    isAvailable = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting/IUserSecretsManager.isAvailable',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the FilePath property */
+    filePath = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting/IUserSecretsManager.filePath',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Attempts to set a user secret value */
+    async trySetSecret(name: string, value: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle, name, value };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/IUserSecretsManager.trySetSecret',
+            rpcArgs
+        );
+    }
+
+    /** Saves state to user secrets from a JSON string */
+    /** @internal */
+    async _saveStateJsonInternal(json: string, cancellationToken?: AbortSignal | CancellationToken): Promise<UserSecretsManager> {
+        const rpcArgs: Record<string, unknown> = { userSecretsManager: this._handle, json };
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/saveStateJson',
+            rpcArgs
+        );
+        return this;
+    }
+
+    saveStateJson(json: string, options?: SaveStateJsonOptions): UserSecretsManagerPromise {
+        const cancellationToken = options?.cancellationToken;
+        return new UserSecretsManagerPromise(this._saveStateJsonInternal(json, cancellationToken));
+    }
+
+    /** Gets a secret value if it exists, or sets it to the provided value if it does not */
+    /** @internal */
+    async _getOrSetSecretInternal(resourceBuilder: ResourceBuilderBase, name: string, value: string): Promise<UserSecretsManager> {
+        const rpcArgs: Record<string, unknown> = { userSecretsManager: this._handle, resourceBuilder, name, value };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting/getOrSetSecret',
+            rpcArgs
+        );
+        return this;
+    }
+
+    getOrSetSecret(resourceBuilder: ResourceBuilderBase, name: string, value: string): UserSecretsManagerPromise {
+        return new UserSecretsManagerPromise(this._getOrSetSecretInternal(resourceBuilder, name, value));
+    }
+
+}
+
+/**
+ * Thenable wrapper for UserSecretsManager that enables fluent chaining.
+ */
+export class UserSecretsManagerPromise implements PromiseLike<UserSecretsManager> {
+    constructor(private _promise: Promise<UserSecretsManager>) {}
+
+    then<TResult1 = UserSecretsManager, TResult2 = never>(
+        onfulfilled?: ((value: UserSecretsManager) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Attempts to set a user secret value */
+    trySetSecret(name: string, value: string): Promise<boolean> {
+        return this._promise.then(obj => obj.trySetSecret(name, value));
+    }
+
+    /** Saves state to user secrets from a JSON string */
+    saveStateJson(json: string, options?: SaveStateJsonOptions): UserSecretsManagerPromise {
+        return new UserSecretsManagerPromise(this._promise.then(obj => obj.saveStateJson(json, options)));
+    }
+
+    /** Gets a secret value if it exists, or sets it to the provided value if it does not */
+    getOrSetSecret(resourceBuilder: ResourceBuilderBase, name: string, value: string): UserSecretsManagerPromise {
+        return new UserSecretsManagerPromise(this._promise.then(obj => obj.getOrSetSecret(resourceBuilder, name, value)));
     }
 
 }
@@ -2769,6 +4887,106 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onConnectionStringAvailableInternal(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ConnectionStringAvailableEventHandle;
+            const arg = new ConnectionStringAvailableEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/onConnectionStringAvailable',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._onConnectionStringAvailableInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ConnectionStringResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ConnectionStringResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ConnectionStringResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -2995,9 +5213,9 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ConnectionStringResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ConnectionStringResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -3009,7 +5227,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ConnectionStringResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -3165,6 +5383,31 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.onConnectionStringAvailable(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ConnectionStringResourcePromise {
+        return new ConnectionStringResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -3236,7 +5479,7 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ConnectionStringResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -3602,6 +5845,86 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ContainerRegistryResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ContainerRegistryResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -3798,9 +6121,9 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ContainerRegistryResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ContainerRegistryResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -3812,7 +6135,7 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerRegistryResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -3933,6 +6256,26 @@ export class ContainerRegistryResourcePromise implements PromiseLike<ContainerRe
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ContainerRegistryResourcePromise {
+        return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -3994,7 +6337,7 @@ export class ContainerRegistryResourcePromise implements PromiseLike<ContainerRe
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerRegistryResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -5314,6 +7657,106 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ContainerResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -5545,9 +7988,9 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ContainerResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ContainerResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -5559,7 +8002,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -5965,6 +8408,31 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -6036,7 +8504,7 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -7141,6 +9609,106 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<CSharpAppResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -7372,9 +9940,9 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<CSharpAppResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<CSharpAppResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -7386,7 +9954,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): CSharpAppResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -7722,6 +10290,31 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -7793,7 +10386,7 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): CSharpAppResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -8986,6 +11579,106 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<DotnetToolResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -9217,9 +11910,9 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<DotnetToolResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<DotnetToolResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -9231,7 +11924,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): DotnetToolResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -9597,6 +12290,31 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -9668,7 +12386,7 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): DotnetToolResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -10771,6 +13489,106 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ExecutableResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -11002,9 +13820,9 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ExecutableResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ExecutableResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -11016,7 +13834,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExecutableResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -11352,6 +14170,31 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -11423,7 +14266,7 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExecutableResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -11808,6 +14651,86 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ExternalServiceResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ExternalServiceResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ExternalServiceResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -12004,9 +14927,9 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ExternalServiceResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ExternalServiceResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -12018,7 +14941,7 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExternalServiceResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -12144,6 +15067,26 @@ export class ExternalServiceResourcePromise implements PromiseLike<ExternalServi
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ExternalServiceResourcePromise {
+        return new ExternalServiceResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -12205,7 +15148,7 @@ export class ExternalServiceResourcePromise implements PromiseLike<ExternalServi
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExternalServiceResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -12588,6 +15531,86 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ParameterResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ParameterResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -12784,9 +15807,9 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ParameterResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ParameterResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -12798,7 +15821,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ParameterResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ParameterResourcePromise {
         return new ParameterResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -12924,6 +15947,26 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ParameterResourcePromise {
+        return new ParameterResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -12985,7 +16028,7 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ParameterResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -14090,6 +17133,106 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<ProjectResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -14321,9 +17464,9 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ProjectResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ProjectResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -14335,7 +17478,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ProjectResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -14671,6 +17814,31 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -14742,7 +17910,7 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ProjectResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -16062,6 +19230,106 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<TestDatabaseResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new TestDatabaseResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -16293,9 +19561,9 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestDatabaseResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestDatabaseResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -16307,7 +19575,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -16713,6 +19981,31 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -16784,7 +20077,7 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -18134,6 +21427,126 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onConnectionStringAvailableInternal(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ConnectionStringAvailableEventHandle;
+            const arg = new ConnectionStringAvailableEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onConnectionStringAvailable',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onConnectionStringAvailableInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<TestRedisResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _addTestChildDatabaseInternal(name: string, databaseName?: string): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (databaseName !== undefined) rpcArgs.databaseName = databaseName;
@@ -18473,9 +21886,8 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Gets the status of the resource asynchronously */
     async getStatusAsync(options?: GetStatusAsyncOptions): Promise<string> {
         const cancellationToken = options?.cancellationToken;
-        const cancellationTokenId = cancellationToken ? registerCancellation(cancellationToken) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<string>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getStatusAsync',
             rpcArgs
@@ -18483,9 +21895,9 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestRedisResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestRedisResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -18497,16 +21909,15 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestRedisResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
     /** Waits for the resource to be ready */
     async waitForReadyAsync(timeout: number, options?: WaitForReadyAsyncOptions): Promise<boolean> {
         const cancellationToken = options?.cancellationToken;
-        const cancellationTokenId = cancellationToken ? registerCancellation(cancellationToken) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, timeout };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<boolean>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/waitForReadyAsync',
             rpcArgs
@@ -18515,11 +21926,10 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** @internal */
     private async _withMultiParamHandleCallbackInternal(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
-        const callbackId = registerCallback(async (argsData: unknown) => {
-            const args = argsData as { p0: unknown, p1: unknown };
-            const arg1Handle = wrapIfHandle(args.p0) as TestCallbackContextHandle;
+        const callbackId = registerCallback(async (arg1Data: unknown, arg2Data: unknown) => {
+            const arg1Handle = wrapIfHandle(arg1Data) as TestCallbackContextHandle;
             const arg1 = new TestCallbackContext(arg1Handle, this._client);
-            const arg2Handle = wrapIfHandle(args.p1) as TestEnvironmentContextHandle;
+            const arg2Handle = wrapIfHandle(arg2Data) as TestEnvironmentContextHandle;
             const arg2 = new TestEnvironmentContext(arg2Handle, this._client);
             await callback(arg1, arg2);
         });
@@ -18967,6 +22377,36 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onConnectionStringAvailable(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds a child database to a test Redis resource */
     addTestChildDatabase(name: string, options?: AddTestChildDatabaseOptions): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.addTestChildDatabase(name, options)));
@@ -19083,7 +22523,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestRedisResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -20418,6 +23858,106 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<TestVaultResource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new TestVaultResource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -20649,9 +24189,9 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestVaultResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestVaultResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -20663,7 +24203,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -21084,6 +24624,31 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): TestVaultResourcePromise {
+        return new TestVaultResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -21155,7 +24720,7 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -21642,6 +25207,86 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
+    private async _onBeforeResourceStartedInternal(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as BeforeResourceStartedEventHandle;
+            const arg = new BeforeResourceStartedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/onBeforeResourceStarted',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._onBeforeResourceStartedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceStoppedInternal(callback: (arg: ResourceStoppedEvent) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceStoppedEventHandle;
+            const arg = new ResourceStoppedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/onResourceStopped',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._onResourceStoppedInternal(callback));
+    }
+
+    /** @internal */
+    private async _onInitializeResourceInternal(callback: (arg: InitializeResourceEvent) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as InitializeResourceEventHandle;
+            const arg = new InitializeResourceEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/onInitializeResource',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._onInitializeResourceInternal(callback));
+    }
+
+    /** @internal */
+    private async _onResourceReadyInternal(callback: (arg: ResourceReadyEvent) => Promise<void>): Promise<Resource> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceReadyEventHandle;
+            const arg = new ResourceReadyEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting/onResourceReady',
+            rpcArgs
+        );
+        return new Resource(result, this._client);
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._onResourceReadyInternal(callback));
+    }
+
+    /** @internal */
     private async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (value !== undefined) rpcArgs.value = value;
@@ -21838,9 +25483,9 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<Resource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<Resource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -21852,7 +25497,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ResourcePromise {
         return new ResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -21973,6 +25618,26 @@ export class ResourcePromise implements PromiseLike<Resource> {
         return this._promise.then(obj => obj.getResourceName());
     }
 
+    /** Subscribes to the BeforeResourceStarted event */
+    onBeforeResourceStarted(callback: (arg: BeforeResourceStartedEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.onBeforeResourceStarted(callback)));
+    }
+
+    /** Subscribes to the ResourceStopped event */
+    onResourceStopped(callback: (arg: ResourceStoppedEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.onResourceStopped(callback)));
+    }
+
+    /** Subscribes to the InitializeResource event */
+    onInitializeResource(callback: (arg: InitializeResourceEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.onInitializeResource(callback)));
+    }
+
+    /** Subscribes to the ResourceReady event */
+    onResourceReady(callback: (arg: ResourceReadyEvent) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._promise.then(obj => obj.onResourceReady(callback)));
+    }
+
     /** Adds an optional string parameter */
     withOptionalString(options?: WithOptionalStringOptions): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withOptionalString(options)));
@@ -22034,7 +25699,7 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -22178,6 +25843,26 @@ export class ResourceWithConnectionString extends ResourceBuilderBase<IResourceW
     }
 
     /** @internal */
+    private async _onConnectionStringAvailableInternal(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): Promise<ResourceWithConnectionString> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ConnectionStringAvailableEventHandle;
+            const arg = new ConnectionStringAvailableEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
+            'Aspire.Hosting/onConnectionStringAvailable',
+            rpcArgs
+        );
+        return new ResourceWithConnectionString(result, this._client);
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(this._onConnectionStringAvailableInternal(callback));
+    }
+
+    /** @internal */
     private async _withConnectionStringInternal(connectionString: ReferenceExpression): Promise<ResourceWithConnectionString> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, connectionString };
         const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
@@ -22232,6 +25917,11 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
     /** Adds a connection property with a string value */
     withConnectionPropertyValue(name: string, value: string): ResourceWithConnectionStringPromise {
         return new ResourceWithConnectionStringPromise(this._promise.then(obj => obj.withConnectionPropertyValue(name, value)));
+    }
+
+    /** Subscribes to the ConnectionStringAvailable event */
+    onConnectionStringAvailable(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(this._promise.then(obj => obj.onConnectionStringAvailable(callback)));
     }
 
     /** Sets the connection string using a reference expression */
@@ -22532,6 +26222,26 @@ export class ResourceWithEndpoints extends ResourceBuilderBase<IResourceWithEndp
         return new ResourceWithEndpointsPromise(this._withHttpProbeInternal(probeType, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold, endpointName));
     }
 
+    /** @internal */
+    private async _onResourceEndpointsAllocatedInternal(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): Promise<ResourceWithEndpoints> {
+        const callbackId = registerCallback(async (argData: unknown) => {
+            const argHandle = wrapIfHandle(argData) as ResourceEndpointsAllocatedEventHandle;
+            const arg = new ResourceEndpointsAllocatedEvent(argHandle, this._client);
+            await callback(arg);
+        });
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, callback: callbackId };
+        const result = await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+            'Aspire.Hosting/onResourceEndpointsAllocated',
+            rpcArgs
+        );
+        return new ResourceWithEndpoints(result, this._client);
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._onResourceEndpointsAllocatedInternal(callback));
+    }
+
 }
 
 /**
@@ -22597,6 +26307,11 @@ export class ResourceWithEndpointsPromise implements PromiseLike<ResourceWithEnd
     /** Adds an HTTP health probe to the resource */
     withHttpProbe(probeType: ProbeType, options?: WithHttpProbeOptions): ResourceWithEndpointsPromise {
         return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.withHttpProbe(probeType, options)));
+    }
+
+    /** Subscribes to the ResourceEndpointsAllocated event */
+    onResourceEndpointsAllocated(callback: (arg: ResourceEndpointsAllocatedEvent) => Promise<void>): ResourceWithEndpointsPromise {
+        return new ResourceWithEndpointsPromise(this._promise.then(obj => obj.onResourceEndpointsAllocated(callback)));
     }
 
 }
@@ -23291,7 +27006,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CancellationToken, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
@@ -23340,25 +27055,48 @@ process.on('uncaughtException', (error: Error) => {
 // ============================================================================
 
 // Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent', (handle, client) => new AfterResourcesCreatedEvent(handle as AfterResourcesCreatedEventHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent', (handle, client) => new BeforeResourceStartedEvent(handle as BeforeResourceStartedEventHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.BeforeStartEvent', (handle, client) => new BeforeStartEvent(handle as BeforeStartEventHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.CommandLineArgsCallbackContext', (handle, client) => new CommandLineArgsCallbackContext(handle as CommandLineArgsCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent', (handle, client) => new ConnectionStringAvailableEvent(handle as ConnectionStringAvailableEventHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplication', (handle, client) => new DistributedApplication(handle as DistributedApplicationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext', (handle, client) => new DistributedApplicationExecutionContext(handle as DistributedApplicationExecutionContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.DistributedApplicationModel', (handle, client) => new DistributedApplicationModel(handle as DistributedApplicationModelHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference', (handle, client) => new EndpointReference(handle as EndpointReferenceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReferenceExpression', (handle, client) => new EndpointReferenceExpression(handle as EndpointReferenceExpressionHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecuteCommandContext', (handle, client) => new ExecuteCommandContext(handle as ExecuteCommandContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.InitializeResourceEvent', (handle, client) => new InitializeResourceEvent(handle as InitializeResourceEventHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineConfigurationContext', (handle, client) => new PipelineConfigurationContext(handle as PipelineConfigurationContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineContext', (handle, client) => new PipelineContext(handle as PipelineContextHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStep', (handle, client) => new PipelineStep(handle as PipelineStepHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepContext', (handle, client) => new PipelineStepContext(handle as PipelineStepContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineStepFactoryContext', (handle, client) => new PipelineStepFactoryContext(handle as PipelineStepFactoryContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.PipelineSummary', (handle, client) => new PipelineSummary(handle as PipelineSummaryHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ProjectResourceOptions', (handle, client) => new ProjectResourceOptions(handle as ProjectResourceOptionsHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder', (handle, client) => new ReferenceExpressionBuilder(handle as ReferenceExpressionBuilderHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceEndpointsAllocatedEvent', (handle, client) => new ResourceEndpointsAllocatedEvent(handle as ResourceEndpointsAllocatedEventHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService', (handle, client) => new ResourceLoggerService(handle as ResourceLoggerServiceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService', (handle, client) => new ResourceNotificationService(handle as ResourceNotificationServiceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceReadyEvent', (handle, client) => new ResourceReadyEvent(handle as ResourceReadyEventHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceStoppedEvent', (handle, client) => new ResourceStoppedEvent(handle as ResourceStoppedEventHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceUrlsCallbackContext', (handle, client) => new ResourceUrlsCallbackContext(handle as ResourceUrlsCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCollectionContext', (handle, client) => new TestCollectionContext(handle as TestCollectionContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.UpdateCommandStateContext', (handle, client) => new UpdateCommandStateContext(handle as UpdateCommandStateContextHandle, client));
+registerHandleWrapper('Microsoft.Extensions.Configuration.Abstractions/Microsoft.Extensions.Configuration.IConfiguration', (handle, client) => new Configuration(handle as IConfigurationHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Eventing.IDistributedApplicationEventing', (handle, client) => new DistributedApplicationEventing(handle as IDistributedApplicationEventingHandle, client));
+registerHandleWrapper('Microsoft.Extensions.Hosting.Abstractions/Microsoft.Extensions.Hosting.IHostEnvironment', (handle, client) => new HostEnvironment(handle as IHostEnvironmentHandle, client));
+registerHandleWrapper('Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILogger', (handle, client) => new Logger(handle as ILoggerHandle, client));
+registerHandleWrapper('Microsoft.Extensions.Logging.Abstractions/Microsoft.Extensions.Logging.ILoggerFactory', (handle, client) => new LoggerFactory(handle as ILoggerFactoryHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingStep', (handle, client) => new ReportingStep(handle as IReportingStepHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.Pipelines.IReportingTask', (handle, client) => new ReportingTask(handle as IReportingTaskHandle, client));
+registerHandleWrapper('System.ComponentModel/System.IServiceProvider', (handle, client) => new ServiceProvider(handle as IServiceProviderHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IUserSecretsManager', (handle, client) => new UserSecretsManager(handle as IUserSecretsManagerHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ConnectionStringResource', (handle, client) => new ConnectionStringResource(handle as ConnectionStringResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerRegistryResource', (handle, client) => new ContainerRegistryResource(handle as ContainerRegistryResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));

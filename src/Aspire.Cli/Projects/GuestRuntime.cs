@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Utils;
-using Aspire.Hosting.Ats;
+using Aspire.TypeSystem;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;

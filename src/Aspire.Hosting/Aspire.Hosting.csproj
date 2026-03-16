@@ -126,20 +126,13 @@
     <InternalsVisibleTo Include="Aspire.Hosting.DotnetTool.Tests" />
     <InternalsVisibleTo Include="Aspire.TestUtilities" />
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
-    <InternalsVisibleTo Include="aspire-server" />
     <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes" />
-    <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Python.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Go.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Java.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust" />
-    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.Rust.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference the analyzer to ensure it's built but don't reference its output -->
+    <ProjectReference Include="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" ReferenceOutputAssembly="false" Private="true" />
   </ItemGroup>
 
   <!-- Include the integration analyzer in the package -->
@@ -147,13 +140,7 @@
     <BeforePack>$(BeforePack);IncludeIntegrationAnalyzerInPackage</BeforePack>
   </PropertyGroup>
   <Target Name="IncludeIntegrationAnalyzerInPackage">
-    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
-             Targets="Build"
-             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
-
-    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
-             Targets="GetTargetPath"
-             Properties="Configuration=$(Configuration);Platform=$(Platform)">
+    <MSBuild Projects="..\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj" Targets="GetTargetPath">
       <Output TaskParameter="TargetOutputs" PropertyName="AspireIntegrationAnalyzerFile" />
     </MSBuild>
 

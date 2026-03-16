@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.TypeSystem;
 
 /// <summary>
 /// Categories of ATS types for serialization and handling.
 /// </summary>
-[Experimental("ASPIREATS001")]
 public enum AtsTypeCategory
 {
     /// <summary>
@@ -74,7 +72,6 @@ public enum AtsTypeCategory
 /// <summary>
 /// Kinds of ATS capabilities for code generation.
 /// </summary>
-[Experimental("ASPIREATS001")]
 public enum AtsCapabilityKind
 {
     /// <summary>
@@ -101,7 +98,7 @@ public enum AtsCapabilityKind
 /// <summary>
 /// Constants for ATS (Aspire Type System) type IDs and capability IDs.
 /// </summary>
-internal static class AtsConstants
+public static class AtsConstants
 {
     /// <summary>
     /// The Aspire.Hosting assembly name.
@@ -482,13 +479,13 @@ internal static class AtsConstants
         }
 
         // Check for [AspireDto] attribute
-        if (type.GetCustomAttributes(typeof(AspireDtoAttribute), inherit: false).Length > 0)
+        if (AttributeDataReader.HasAspireDtoData(type))
         {
             return AtsTypeCategory.Dto;
         }
 
         // Check for [AspireExport] attribute - these are handle types
-        if (type.GetCustomAttributes(typeof(AspireExportAttribute), inherit: false).Length > 0)
+        if (AttributeDataReader.GetAspireExportData(type) != null)
         {
             return AtsTypeCategory.Handle;
         }

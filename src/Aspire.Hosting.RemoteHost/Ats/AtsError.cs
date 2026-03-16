@@ -4,7 +4,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Aspire.Hosting.Ats;
+namespace Aspire.Hosting.RemoteHost.Ats;
 
 /// <summary>
 /// Represents an error that occurred during ATS capability invocation.
@@ -48,12 +48,12 @@ internal sealed class AtsError
             ["message"] = Message
         };
 
-        if (Capability != null)
+        if (Capability is not null)
         {
             obj["capability"] = Capability;
         }
 
-        if (Details != null)
+        if (Details is not null)
         {
             obj["details"] = Details.ToJsonObject();
         }
@@ -95,17 +95,17 @@ internal sealed class AtsErrorDetails
     {
         var obj = new JsonObject();
 
-        if (Parameter != null)
+        if (Parameter is not null)
         {
             obj["parameter"] = Parameter;
         }
 
-        if (Expected != null)
+        if (Expected is not null)
         {
             obj["expected"] = Expected;
         }
 
-        if (Actual != null)
+        if (Actual is not null)
         {
             obj["actual"] = Actual;
         }

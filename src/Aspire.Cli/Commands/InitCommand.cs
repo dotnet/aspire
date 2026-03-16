@@ -585,7 +585,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // Create the apphost project using the scaffolding service
         var context = new ScaffoldContext(language, workingDirectory, ProjectName: null);
-        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+        var scaffolded = await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+        if (!scaffolded)
+        {
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
         InteractionService.DisplayMessage(KnownEmojis.Information, $"Run 'aspire run' to start your AppHost.");

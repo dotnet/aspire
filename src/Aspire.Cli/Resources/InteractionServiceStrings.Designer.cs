@@ -133,6 +133,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updated settings file at {0}..
+        /// </summary>
+        public static string UpdatedSettingsFile {
+            get {
+                return ResourceManager.GetString("UpdatedSettingsFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Other (specify next).
         /// </summary>
         public static string CustomChoiceLabel {

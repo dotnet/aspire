@@ -167,6 +167,11 @@
         <target state="translated">Ein unerwarteter Fehler ist aufgetreten: {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
+      <trans-unit id="UpdatedSettingsFile">
+        <source>Updated settings file at {0}.</source>
+        <target state="new">Updated settings file at {0}.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
         <source>Waiting for debugger to attach to app host process</source>
         <target state="translated">Es wird darauf gewartet, dass der Debugger an den App-Hostprozess angefügt wird.</target>

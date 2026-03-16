@@ -25,28 +25,17 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // The purpose of this is to keep track of the number of actual shell commands we have
-        // executed. This is important because we customize the shell prompt to show either
-        // "[n OK] $ " or "[n ERR:exitcode] $ ". This allows us to deterministically wait for a
-        // command to complete and for the shell to be ready for more input rather than relying
-        // on arbitrary timeouts of mid-command strings.
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
-
-        sequenceBuilder.AspireNew("AspireEmptyApp", counter, template: AspireTemplate.EmptyAppHost);
+        await auto.AspireNewAsync("AspireEmptyApp", counter, template: AspireTemplate.EmptyAppHost);
 
         // Note: We don't run 'aspire run' for Empty AppHost since there's nothing to run
-        sequenceBuilder
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
