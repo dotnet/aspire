@@ -620,7 +620,7 @@ public static class ResourceBuilderExtensions
 
         if (hasServiceDiscovery)
         {
-            var serviceName = name ?? connectionName;
+            var serviceName = hasConnectionString ? name : name ?? connectionName;
             builder = serviceName is null
                 ? WithReference(builder, serviceDiscoverySource!)
                 : WithReference(builder, serviceDiscoverySource!, serviceName);
