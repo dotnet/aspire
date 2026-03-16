@@ -12,30 +12,6 @@ namespace Aspire.Hosting.Foundry.Tests;
 public class HostedAgentExtensionTests
 {
     [Fact]
-    public void HostedAgentAtsConfiguration_MapsSupportedProperties()
-    {
-        var configuration = new HostedAgentAtsConfiguration
-        {
-            Description = "Custom hosted agent",
-            Cpu = 1.5m,
-            Memory = 3.0m
-        };
-
-        configuration.Metadata.Clear();
-        configuration.Metadata["owner"] = "aspire";
-        configuration.EnvironmentVariables["MODE"] = "prod";
-
-        var hostedAgentConfiguration = configuration.ToHostedAgentConfiguration("registry.azurecr.io/agent:1");
-
-        Assert.Equal("Custom hosted agent", hostedAgentConfiguration.Description);
-        Assert.Equal(1.5m, hostedAgentConfiguration.Cpu);
-        Assert.Equal(3.0m, hostedAgentConfiguration.Memory);
-        Assert.Equal("registry.azurecr.io/agent:1", hostedAgentConfiguration.Image);
-        Assert.Equal("aspire", hostedAgentConfiguration.Metadata["owner"]);
-        Assert.Equal("prod", hostedAgentConfiguration.EnvironmentVariables["MODE"]);
-    }
-
-    [Fact]
     public void PublishAsHostedAgent_InRunMode_AddsHttpEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);

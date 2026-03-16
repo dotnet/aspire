@@ -31,7 +31,7 @@ public class ProjectResourceTests
 
         var registry = project.Resource.ContainerRegistry;
         Assert.NotNull(registry);
-        Assert.Contains(registry, project.Resource.References);
+        Assert.Same(project.Resource.DefaultContainerRegistry, registry);
     }
 
     [Fact]
@@ -42,9 +42,8 @@ public class ProjectResourceTests
         var project = builder.AddFoundry("account")
             .AddProject("my-project");
 
-        var registry = Assert.Single(builder.Resources.OfType<AzureContainerRegistryResource>());
-        Assert.Same(registry, project.Resource.ContainerRegistry);
-        Assert.Contains(registry, project.Resource.References);
+        Assert.Empty(builder.Resources.OfType<AzureContainerRegistryResource>());
+        Assert.Same(project.Resource.DefaultContainerRegistry, project.Resource.ContainerRegistry);
     }
 
     [Fact]
@@ -57,7 +56,9 @@ public class ProjectResourceTests
             .AddProject("my-project")
             .WithContainerRegistry(registry);
 
-        Assert.Contains(registry.Resource, project.Resource.References);
+        Assert.Same(registry.Resource, project.Resource.ContainerRegistry);
+        Assert.True(project.Resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation));
+        Assert.Same(registry.Resource, annotation.Registry);
     }
 
     [Fact]
