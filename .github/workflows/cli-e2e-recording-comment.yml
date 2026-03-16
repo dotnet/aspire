@@ -176,51 +176,78 @@ jobs:
             # Unique marker to identify CLI E2E recording comments
             COMMENT_MARKER="<!-- cli-e2e-recordings -->"
             
-            # Build comment body
-            COMMENT_BODY="${COMMENT_MARKER}
-          ## 🎬 CLI E2E Test Recordings
-          
-          The following terminal recordings are available for commit \`${SHORT_SHA}\`:
-          
-          | Test | Recording |
-          |------|-----------|"
+            # Retry configuration for asciinema uploads
+            MAX_UPLOAD_RETRIES=5
+            RETRY_BASE_DELAY_SECONDS=30
             
             UPLOAD_COUNT=0
             FAIL_COUNT=0
+            TOTAL_COUNT=0
+            
+            TABLE_BODY=""
             
             for castfile in "$RECORDINGS_DIR"/*.cast; do
               if [ -f "$castfile" ]; then
                 filename=$(basename "$castfile" .cast)
                 echo "Uploading $castfile..."
+                TOTAL_COUNT=$((TOTAL_COUNT + 1))
                 
-                # Upload to asciinema and capture URL
-                UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
-                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
+                # Upload to asciinema with retry logic for transient failures
+                ASCIINEMA_URL=""
+                for attempt in $(seq 1 "$MAX_UPLOAD_RETRIES"); do
+                  UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
+                  ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
+                  if [ -n "$ASCIINEMA_URL" ]; then
+                    break
+                  fi
+                  if [ "$attempt" -lt "$MAX_UPLOAD_RETRIES" ]; then
+                    DELAY=$((attempt * RETRY_BASE_DELAY_SECONDS))
+                    echo "Upload attempt $attempt failed, retrying in ${DELAY}s..."
+                    sleep "$DELAY"
+                  fi
+                done
                 
                 if [ -n "$ASCIINEMA_URL" ]; then
-                  COMMENT_BODY="${COMMENT_BODY}
+                  TABLE_BODY="${TABLE_BODY}
           | ${filename} | [▶️ View Recording](${ASCIINEMA_URL}) |"
                   echo "Uploaded: $ASCIINEMA_URL"
                   UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
                 else
-                  COMMENT_BODY="${COMMENT_BODY}
+                  TABLE_BODY="${TABLE_BODY}
           | ${filename} | ❌ Upload failed |"
-                  echo "Failed to upload $castfile"
+                  echo "Failed to upload $castfile after $MAX_UPLOAD_RETRIES attempts"
                   FAIL_COUNT=$((FAIL_COUNT + 1))
                 fi
               fi
             done
             
-            COMMENT_BODY="${COMMENT_BODY}
-          
-          ---
-          <sub>📹 Recordings uploaded automatically from [CI run #${RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID})</sub>"
-            
             echo "Uploaded $UPLOAD_COUNT recordings, $FAIL_COUNT failures"
             
-            # Check for existing recording comment using GraphQL (more efficient than fetching all comments)
-            # Filter by github-actions author to only match our own comments
-            EXISTING_COMMENT_ID=$(gh api graphql -f query='
+            # Build comment with summary outside collapsible and table inside
+            if [ "$FAIL_COUNT" -gt 0 ]; then
+              SUMMARY_EMOJI="⚠️"
+              SUMMARY_TEXT="${UPLOAD_COUNT}/${TOTAL_COUNT} recordings uploaded, ${FAIL_COUNT} failed"
+            else
+              SUMMARY_EMOJI="🎬"
+              SUMMARY_TEXT="${UPLOAD_COUNT} recordings uploaded"
+            fi
+            
+            COMMENT_BODY="${COMMENT_MARKER}
+          ${SUMMARY_EMOJI} **CLI E2E Test Recordings** — ${SUMMARY_TEXT} (commit \`${SHORT_SHA}\`)
+          
+          <details>
+          <summary>View recordings</summary>
+          
+          | Test | Recording |
+          |------|-----------|${TABLE_BODY}
+          
+          ---
+          <sub>📹 Recordings uploaded automatically from [CI run #${RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID})</sub>
+          
+          </details>"
+            
+            # Delete any existing recording comments, then post the new one
+            EXISTING_COMMENT_IDS=$(gh api graphql -f query='
               query($owner: String!, $repo: String!, $pr: Int!) {
                 repository(owner: $owner, name: $repo) {
                   pullRequest(number: $pr) {
@@ -234,22 +261,21 @@ jobs:
                   }
                 }
               }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="$GITHUB_EVENT_REPO_NAME" -F pr="$PR_NUMBER" \
-              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId' \
-              | head -1) || true
+              --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId') || true
             
-            if [ -n "$EXISTING_COMMENT_ID" ]; then
-              echo "Updating existing comment $EXISTING_COMMENT_ID"
+            for COMMENT_ID in $EXISTING_COMMENT_IDS; do
+              echo "Deleting old comment $COMMENT_ID"
               gh api \
-                --method PATCH \
+                --method DELETE \
                 -H "Accept: application/vnd.github+json" \
-                "/repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
-                -f body="$COMMENT_BODY"
-            else
-              echo "Creating new comment on PR #${PR_NUMBER}"
-              gh pr comment "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" --body "$COMMENT_BODY"
-            fi
+                "/repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" || true
+            done
+            
+            echo "Creating new comment on PR #${PR_NUMBER}"
+            gh pr comment "${PR_NUMBER}" --repo "$GITHUB_REPOSITORY" --body "$COMMENT_BODY"
             
             echo "Posted comment to PR #${PR_NUMBER}"
           else
             echo "No recordings found in $RECORDINGS_DIR"
           fi
+

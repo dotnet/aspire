@@ -187,13 +187,10 @@ internal static class CliE2ETestHelpers
         var shortCommitSha = commitSha[..8];
         var expectedVersionSuffix = $"g{shortCommitSha}";
 
-        var versionPattern = new CellPatternSearcher()
-            .Find(expectedVersionSuffix);
-
         return builder
             .Type("aspire --version")
             .Enter()
-            .WaitUntil(s => versionPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .WaitUntil(s => s.ContainsText(expectedVersionSuffix), TimeSpan.FromSeconds(10))
             .WaitForSuccessPrompt(counter);
     }
 
@@ -524,6 +521,7 @@ internal static class CliE2ETestHelpers
         DockerfileVariant variant = DockerfileVariant.DotNet,
         bool mountDockerSocket = false,
         TemporaryWorkspace? workspace = null,
+        IEnumerable<string>? additionalVolumes = null,
         int width = 160,
         int height = 48,
         [CallerMemberName] string testName = "")
@@ -567,6 +565,14 @@ internal static class CliE2ETestHelpers
                     // workspace.WorkspaceRoot.Name matches inside the container
                     // (e.g., aspire CLI uses the dir name as the default project name).
                     c.Volumes.Add($"{workspace.WorkspaceRoot.FullName}:/workspace/{workspace.WorkspaceRoot.Name}");
+                }
+
+                if (additionalVolumes is not null)
+                {
+                    foreach (var volume in additionalVolumes)
+                    {
+                        c.Volumes.Add(volume);
+                    }
                 }
 
                 // Always skip the expensive source build inside Docker.
@@ -617,11 +623,8 @@ internal static class CliE2ETestHelpers
         TemporaryWorkspace? workspace = null)
     {
         // Docker containers run as root, so bash shows '# ' (not '$ ').
-        var waitingForContainerReady = new CellPatternSearcher()
-            .Find("# ");
-
         builder
-            .WaitUntil(s => waitingForContainerReady.Search(s).Count > 0, TimeSpan.FromSeconds(60))
+            .WaitUntil(s => s.ContainsText("# "), TimeSpan.FromSeconds(60))
             .Wait(500);
 
         // Set up the same prompt counting mechanism used by all E2E tests.
@@ -679,7 +682,10 @@ internal static class CliE2ETestHelpers
                     .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30))
                     .Type("export PATH=~/.aspire/bin:$PATH")
                     .Enter()
-                    .WaitForSuccessPrompt(counter);
+                    .WaitForSuccessPrompt(counter)
+                    .Type("aspire config set channel daily --global")
+                    .Enter()
+                    .WaitForSuccessPrompt(counter, TimeSpan.FromSeconds(30));
 
             case DockerInstallMode.GaRelease:
                 // Install the latest GA release using the script baked into the container image.

@@ -93,6 +93,16 @@ export function isMarshalledHandle(value: unknown): value is MarshalledHandle {
     );
 }
 
+function isAbortSignal(value: unknown): value is AbortSignal {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        'aborted' in value &&
+        'addEventListener' in value &&
+        'removeEventListener' in value
+    );
+}
+
 // ============================================================================
 // Handle
 // ============================================================================
@@ -133,6 +143,92 @@ export class Handle<T extends string = string> {
     /** String representation for debugging */
     toString(): string {
         return `Handle<${this._typeId}>(${this._handleId})`;
+    }
+}
+
+// ============================================================================
+// CancellationToken
+// ============================================================================
+
+/**
+ * Represents a transport-safe cancellation token value for the generated SDK.
+ *
+ * Use a plain {@link AbortSignal} when you create cancellation in user code.
+ * Generated APIs accept either an {@link AbortSignal} or a {@link CancellationToken}.
+ *
+ * Values returned from generated callbacks and context/property getters are
+ * {@link CancellationToken} instances because they may reference remote
+ * cancellation token handles received from the AppHost.
+ *
+ * @example
+ * ```typescript
+ * const controller = new AbortController();
+ * await connectionStringExpression.getValue(controller.signal);
+ * ```
+ *
+ * @example
+ * ```typescript
+ * const cancellationToken = await context.cancellationToken.get();
+ * const connectionStringExpression = await db.uriExpression.get();
+ * const connectionString = await connectionStringExpression.getValue(cancellationToken);
+ * ```
+ */
+export class CancellationToken {
+    private readonly _signal?: AbortSignal;
+    private readonly _remoteTokenId?: string;
+    private _registeredTokenId?: string;
+
+    constructor(signal?: AbortSignal);
+    constructor(tokenId?: string);
+    constructor(value?: AbortSignal | string | null) {
+        if (typeof value === 'string') {
+            this._remoteTokenId = value;
+        } else if (isAbortSignal(value)) {
+            this._signal = value;
+        }
+    }
+
+    /**
+     * Creates a cancellation token from a local {@link AbortSignal}.
+     */
+    static from(signal?: AbortSignal): CancellationToken {
+        return new CancellationToken(signal);
+    }
+
+    /**
+     * Creates a cancellation token from a transport value.
+     * Generated code uses this to materialize values that come from the AppHost.
+     */
+    static fromValue(value: unknown): CancellationToken {
+        if (value instanceof CancellationToken) {
+            return value;
+        }
+
+        if (typeof value === 'string') {
+            return new CancellationToken(value);
+        }
+
+        if (isAbortSignal(value)) {
+            return new CancellationToken(value);
+        }
+
+        return new CancellationToken();
+    }
+
+    /**
+     * Serializes the token for JSON-RPC transport.
+     */
+    toJSON(): string | undefined {
+        if (this._remoteTokenId) {
+            return this._remoteTokenId;
+        }
+
+        if (this._registeredTokenId !== undefined) {
+            return this._registeredTokenId;
+        }
+
+        this._registeredTokenId = registerCancellation(this._signal);
+        return this._registeredTokenId;
     }
 }
 
@@ -401,13 +497,17 @@ let cancellationIdCounter = 0;
 let currentClient: AspireClient | null = null;
 
 /**
- * Register an AbortSignal for cancellation support.
- * Returns a cancellation ID that should be passed to methods accepting CancellationToken.
+ * Registers cancellation support for a local signal or SDK cancellation token.
+ * Returns a cancellation ID that should be passed to methods accepting cancellation input.
  *
  * When the AbortSignal is aborted, sends a cancelToken request to the host.
  *
- * @param signal - The AbortSignal to register (optional)
- * @returns The cancellation ID, or undefined if no signal provided
+ * @param signalOrToken - The signal or token to register (optional)
+ * @returns The cancellation ID, or undefined if no value was provided or the token maps to CancellationToken.None
+ *
+ * @example
+ * const controller = new AbortController();
+ * await expression.getValue(controller.signal);
  *
  * @example
  * const controller = new AbortController();
@@ -415,10 +515,16 @@ let currentClient: AspireClient | null = null;
  * // Pass id to capability invocation
  * // Later: controller.abort() will cancel the operation
  */
-export function registerCancellation(signal?: AbortSignal): string | undefined {
-    if (!signal) {
+export function registerCancellation(signalOrToken?: AbortSignal | CancellationToken): string | undefined {
+    if (!signalOrToken) {
         return undefined;
     }
+
+    if (signalOrToken instanceof CancellationToken) {
+        return signalOrToken.toJSON();
+    }
+
+    const signal = signalOrToken;
 
     // Already aborted? Don't register
     if (signal.aborted) {

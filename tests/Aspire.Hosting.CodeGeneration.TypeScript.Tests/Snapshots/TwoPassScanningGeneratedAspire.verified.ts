@@ -9,6 +9,7 @@ import {
     Handle,
     MarshalledHandle,
     AppHostUsageError,
+    CancellationToken,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -477,39 +478,39 @@ export interface AppendValueProviderOptions {
 
 export interface CompleteStepMarkdownOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteStepOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteTaskMarkdownOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteTaskOptions {
     completionMessage?: string;
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CreateMarkdownTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CreateTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface GetStatusAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface GetValueAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface PublishAsDockerFileOptions {
@@ -522,19 +523,19 @@ export interface PublishResourceUpdateOptions {
 }
 
 export interface RunOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface SaveStateJsonOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface UpdateTaskMarkdownOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface UpdateTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface WaitForCompletionOptions {
@@ -542,7 +543,7 @@ export interface WaitForCompletionOptions {
 }
 
 export interface WaitForReadyAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface WaitForResourceStateOptions {
@@ -823,11 +824,12 @@ export class CommandLineArgsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -918,9 +920,9 @@ export class DistributedApplication {
 
     /** Runs the distributed application */
     /** @internal */
-    async _runInternal(cancellationToken?: AbortSignal): Promise<DistributedApplication> {
+    async _runInternal(cancellationToken?: AbortSignal | CancellationToken): Promise<DistributedApplication> {
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/run',
             rpcArgs
@@ -1245,7 +1247,7 @@ export class EndpointReference {
     async getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         const cancellationToken = options?.cancellationToken;
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<string>(
             'Aspire.Hosting.ApplicationModel/getValueAsync',
             rpcArgs
@@ -1363,11 +1365,12 @@ export class EnvironmentCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -1448,16 +1451,17 @@ export class ExecuteCommandContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -1675,16 +1679,17 @@ export class PipelineContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.Pipelines/PipelineContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.Pipelines/PipelineContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -1938,11 +1943,12 @@ export class PipelineStepContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -2606,11 +2612,12 @@ export class ResourceUrlsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -2685,16 +2692,17 @@ export class TestCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -3885,9 +3893,9 @@ export class ReportingStep {
 
     /** Creates a reporting task with plain-text status text */
     /** @internal */
-    async _createTaskInternal(statusText: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _createTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, statusText };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         const result = await this._client.invokeCapability<IReportingTaskHandle>(
             'Aspire.Hosting/createTask',
             rpcArgs
@@ -3902,9 +3910,9 @@ export class ReportingStep {
 
     /** Creates a reporting task with Markdown-formatted status text */
     /** @internal */
-    async _createMarkdownTaskInternal(markdownString: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _createMarkdownTaskInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         const result = await this._client.invokeCapability<IReportingTaskHandle>(
             'Aspire.Hosting/createMarkdownTask',
             rpcArgs
@@ -3949,10 +3957,10 @@ export class ReportingStep {
 
     /** Completes the reporting step with plain-text completion text */
     /** @internal */
-    async _completeStepInternal(completionText: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingStep> {
+    async _completeStepInternal(completionText: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, completionText };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeStep',
             rpcArgs
@@ -3968,10 +3976,10 @@ export class ReportingStep {
 
     /** Completes the reporting step with Markdown-formatted completion text */
     /** @internal */
-    async _completeStepMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingStep> {
+    async _completeStepMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeStepMarkdown',
             rpcArgs
@@ -4047,9 +4055,9 @@ export class ReportingTask {
 
     /** Updates the reporting task with plain-text status text */
     /** @internal */
-    async _updateTaskInternal(statusText: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _updateTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, statusText };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/updateTask',
             rpcArgs
@@ -4064,9 +4072,9 @@ export class ReportingTask {
 
     /** Updates the reporting task with Markdown-formatted status text */
     /** @internal */
-    async _updateTaskMarkdownInternal(markdownString: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _updateTaskMarkdownInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/updateTaskMarkdown',
             rpcArgs
@@ -4081,11 +4089,11 @@ export class ReportingTask {
 
     /** Completes the reporting task with plain-text completion text */
     /** @internal */
-    async _completeTaskInternal(completionMessage?: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _completeTaskInternal(completionMessage?: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle };
         if (completionMessage !== undefined) rpcArgs.completionMessage = completionMessage;
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeTask',
             rpcArgs
@@ -4102,10 +4110,10 @@ export class ReportingTask {
 
     /** Completes the reporting task with Markdown-formatted completion text */
     /** @internal */
-    async _completeTaskMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _completeTaskMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeTaskMarkdown',
             rpcArgs
@@ -4350,9 +4358,9 @@ export class UserSecretsManager {
 
     /** Saves state to user secrets from a JSON string */
     /** @internal */
-    async _saveStateJsonInternal(json: string, cancellationToken?: AbortSignal): Promise<UserSecretsManager> {
+    async _saveStateJsonInternal(json: string, cancellationToken?: AbortSignal | CancellationToken): Promise<UserSecretsManager> {
         const rpcArgs: Record<string, unknown> = { userSecretsManager: this._handle, json };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/saveStateJson',
             rpcArgs
@@ -5205,9 +5213,9 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ConnectionStringResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ConnectionStringResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -5219,7 +5227,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ConnectionStringResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -5471,7 +5479,7 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ConnectionStringResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -6113,9 +6121,9 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ContainerRegistryResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ContainerRegistryResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -6127,7 +6135,7 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerRegistryResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -6329,7 +6337,7 @@ export class ContainerRegistryResourcePromise implements PromiseLike<ContainerRe
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerRegistryResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -7980,9 +7988,9 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ContainerResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ContainerResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -7994,7 +8002,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -8496,7 +8504,7 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ContainerResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -9932,9 +9940,9 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<CSharpAppResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<CSharpAppResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -9946,7 +9954,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): CSharpAppResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -10378,7 +10386,7 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): CSharpAppResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -11902,9 +11910,9 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<DotnetToolResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<DotnetToolResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -11916,7 +11924,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): DotnetToolResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -12378,7 +12386,7 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): DotnetToolResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -13812,9 +13820,9 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ExecutableResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ExecutableResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -13826,7 +13834,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExecutableResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -14258,7 +14266,7 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExecutableResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -14919,9 +14927,9 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ExternalServiceResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ExternalServiceResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -14933,7 +14941,7 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExternalServiceResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -15140,7 +15148,7 @@ export class ExternalServiceResourcePromise implements PromiseLike<ExternalServi
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ExternalServiceResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -15799,9 +15807,9 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ParameterResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ParameterResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -15813,7 +15821,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ParameterResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ParameterResourcePromise {
         return new ParameterResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -16020,7 +16028,7 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ParameterResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ParameterResourcePromise {
         return new ParameterResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -17456,9 +17464,9 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<ProjectResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<ProjectResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -17470,7 +17478,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ProjectResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -17902,7 +17910,7 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ProjectResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -19553,9 +19561,9 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestDatabaseResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestDatabaseResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -19567,7 +19575,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -20069,7 +20077,7 @@ export class TestDatabaseResourcePromise implements PromiseLike<TestDatabaseReso
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestDatabaseResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -21878,9 +21886,8 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     /** Gets the status of the resource asynchronously */
     async getStatusAsync(options?: GetStatusAsyncOptions): Promise<string> {
         const cancellationToken = options?.cancellationToken;
-        const cancellationTokenId = cancellationToken ? registerCancellation(cancellationToken) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<string>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getStatusAsync',
             rpcArgs
@@ -21888,9 +21895,9 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestRedisResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestRedisResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -21902,16 +21909,15 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestRedisResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
     /** Waits for the resource to be ready */
     async waitForReadyAsync(timeout: number, options?: WaitForReadyAsyncOptions): Promise<boolean> {
         const cancellationToken = options?.cancellationToken;
-        const cancellationTokenId = cancellationToken ? registerCancellation(cancellationToken) : undefined;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, timeout };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<boolean>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/waitForReadyAsync',
             rpcArgs
@@ -21920,11 +21926,10 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** @internal */
     private async _withMultiParamHandleCallbackInternal(callback: (arg1: TestCallbackContext, arg2: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
-        const callbackId = registerCallback(async (argsData: unknown) => {
-            const args = argsData as { p0: unknown, p1: unknown };
-            const arg1Handle = wrapIfHandle(args.p0) as TestCallbackContextHandle;
+        const callbackId = registerCallback(async (arg1Data: unknown, arg2Data: unknown) => {
+            const arg1Handle = wrapIfHandle(arg1Data) as TestCallbackContextHandle;
             const arg1 = new TestCallbackContext(arg1Handle, this._client);
-            const arg2Handle = wrapIfHandle(args.p1) as TestEnvironmentContextHandle;
+            const arg2Handle = wrapIfHandle(arg2Data) as TestEnvironmentContextHandle;
             const arg2 = new TestEnvironmentContext(arg2Handle, this._client);
             await callback(arg1, arg2);
         });
@@ -22518,7 +22523,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestRedisResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -24184,9 +24189,9 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<TestVaultResource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<TestVaultResource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -24198,7 +24203,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -24715,7 +24720,7 @@ export class TestVaultResourcePromise implements PromiseLike<TestVaultResource> 
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): TestVaultResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): TestVaultResourcePromise {
         return new TestVaultResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -25478,9 +25483,9 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    private async _withCancellableOperationInternal(operation: (arg: AbortSignal) => Promise<void>): Promise<Resource> {
+    private async _withCancellableOperationInternal(operation: (arg: CancellationToken) => Promise<void>): Promise<Resource> {
         const operationId = registerCallback(async (argData: unknown) => {
-            const arg = wrapIfHandle(argData) as AbortSignal;
+            const arg = CancellationToken.fromValue(argData);
             await operation(arg);
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, operation: operationId };
@@ -25492,7 +25497,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ResourcePromise {
         return new ResourcePromise(this._withCancellableOperationInternal(operation));
     }
 
@@ -25694,7 +25699,7 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Performs a cancellable operation */
-    withCancellableOperation(operation: (arg: AbortSignal) => Promise<void>): ResourcePromise {
+    withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withCancellableOperation(operation)));
     }
 
@@ -27001,7 +27006,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CancellationToken, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================

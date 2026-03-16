@@ -9,6 +9,7 @@ import {
     Handle,
     MarshalledHandle,
     AppHostUsageError,
+    CancellationToken,
     CapabilityError,
     registerCallback,
     wrapIfHandle,
@@ -611,31 +612,31 @@ export interface AppendValueProviderOptions {
 
 export interface CompleteStepMarkdownOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteStepOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteTaskMarkdownOptions {
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CompleteTaskOptions {
     completionMessage?: string;
     completionState?: string;
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CreateMarkdownTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface CreateTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface GetEndpointForNetworkOptions {
@@ -648,7 +649,7 @@ export interface GetEndpointOptions {
 }
 
 export interface GetValueAsyncOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface PublishAsDockerFileOptions {
@@ -661,19 +662,19 @@ export interface PublishResourceUpdateOptions {
 }
 
 export interface RunOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface SaveStateJsonOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface UpdateTaskMarkdownOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface UpdateTaskOptions {
-    cancellationToken?: AbortSignal;
+    cancellationToken?: AbortSignal | CancellationToken;
 }
 
 export interface WaitForCompletionOptions {
@@ -1043,11 +1044,12 @@ export class CommandLineArgsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/CommandLineArgsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -1138,9 +1140,9 @@ export class DistributedApplication {
 
     /** Runs the distributed application */
     /** @internal */
-    async _runInternal(cancellationToken?: AbortSignal): Promise<DistributedApplication> {
+    async _runInternal(cancellationToken?: AbortSignal | CancellationToken): Promise<DistributedApplication> {
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/run',
             rpcArgs
@@ -1513,7 +1515,7 @@ export class EndpointReference {
     async getValueAsync(options?: GetValueAsyncOptions): Promise<string> {
         const cancellationToken = options?.cancellationToken;
         const rpcArgs: Record<string, unknown> = { context: this._handle };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         return await this._client.invokeCapability<string>(
             'Aspire.Hosting.ApplicationModel/getValueAsync',
             rpcArgs
@@ -1631,11 +1633,12 @@ export class EnvironmentCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -1716,16 +1719,17 @@ export class ExecuteCommandContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.ApplicationModel/ExecuteCommandContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -1943,16 +1947,17 @@ export class PipelineContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.Pipelines/PipelineContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
-        set: async (value: AbortSignal): Promise<void> => {
+        set: async (value: AbortSignal | CancellationToken): Promise<void> => {
             await this._client.invokeCapability<void>(
                 'Aspire.Hosting.Pipelines/PipelineContext.setCancellationToken',
-                { context: this._handle, value }
+                { context: this._handle, value: CancellationToken.fromValue(value) }
             );
         }
     };
@@ -2206,11 +2211,12 @@ export class PipelineStepContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.Pipelines/PipelineStepContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -2874,11 +2880,12 @@ export class ResourceUrlsCallbackContext {
 
     /** Gets the CancellationToken property */
     cancellationToken = {
-        get: async (): Promise<AbortSignal> => {
-            return await this._client.invokeCapability<AbortSignal>(
+        get: async (): Promise<CancellationToken> => {
+            const result = await this._client.invokeCapability<string | null>(
                 'Aspire.Hosting.ApplicationModel/ResourceUrlsCallbackContext.cancellationToken',
                 { context: this._handle }
             );
+            return CancellationToken.fromValue(result);
         },
     };
 
@@ -4850,9 +4857,9 @@ export class ReportingStep {
 
     /** Creates a reporting task with plain-text status text */
     /** @internal */
-    async _createTaskInternal(statusText: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _createTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, statusText };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         const result = await this._client.invokeCapability<IReportingTaskHandle>(
             'Aspire.Hosting/createTask',
             rpcArgs
@@ -4867,9 +4874,9 @@ export class ReportingStep {
 
     /** Creates a reporting task with Markdown-formatted status text */
     /** @internal */
-    async _createMarkdownTaskInternal(markdownString: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _createMarkdownTaskInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         const result = await this._client.invokeCapability<IReportingTaskHandle>(
             'Aspire.Hosting/createMarkdownTask',
             rpcArgs
@@ -4914,10 +4921,10 @@ export class ReportingStep {
 
     /** Completes the reporting step with plain-text completion text */
     /** @internal */
-    async _completeStepInternal(completionText: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingStep> {
+    async _completeStepInternal(completionText: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, completionText };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeStep',
             rpcArgs
@@ -4933,10 +4940,10 @@ export class ReportingStep {
 
     /** Completes the reporting step with Markdown-formatted completion text */
     /** @internal */
-    async _completeStepMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingStep> {
+    async _completeStepMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingStep> {
         const rpcArgs: Record<string, unknown> = { reportingStep: this._handle, markdownString };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeStepMarkdown',
             rpcArgs
@@ -5012,9 +5019,9 @@ export class ReportingTask {
 
     /** Updates the reporting task with plain-text status text */
     /** @internal */
-    async _updateTaskInternal(statusText: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _updateTaskInternal(statusText: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, statusText };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/updateTask',
             rpcArgs
@@ -5029,9 +5036,9 @@ export class ReportingTask {
 
     /** Updates the reporting task with Markdown-formatted status text */
     /** @internal */
-    async _updateTaskMarkdownInternal(markdownString: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _updateTaskMarkdownInternal(markdownString: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/updateTaskMarkdown',
             rpcArgs
@@ -5046,11 +5053,11 @@ export class ReportingTask {
 
     /** Completes the reporting task with plain-text completion text */
     /** @internal */
-    async _completeTaskInternal(completionMessage?: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _completeTaskInternal(completionMessage?: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle };
         if (completionMessage !== undefined) rpcArgs.completionMessage = completionMessage;
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeTask',
             rpcArgs
@@ -5067,10 +5074,10 @@ export class ReportingTask {
 
     /** Completes the reporting task with Markdown-formatted completion text */
     /** @internal */
-    async _completeTaskMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal): Promise<ReportingTask> {
+    async _completeTaskMarkdownInternal(markdownString: string, completionState?: string, cancellationToken?: AbortSignal | CancellationToken): Promise<ReportingTask> {
         const rpcArgs: Record<string, unknown> = { reportingTask: this._handle, markdownString };
         if (completionState !== undefined) rpcArgs.completionState = completionState;
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/completeTaskMarkdown',
             rpcArgs
@@ -5315,9 +5322,9 @@ export class UserSecretsManager {
 
     /** Saves state to user secrets from a JSON string */
     /** @internal */
-    async _saveStateJsonInternal(json: string, cancellationToken?: AbortSignal): Promise<UserSecretsManager> {
+    async _saveStateJsonInternal(json: string, cancellationToken?: AbortSignal | CancellationToken): Promise<UserSecretsManager> {
         const rpcArgs: Record<string, unknown> = { userSecretsManager: this._handle, json };
-        if (cancellationToken !== undefined) rpcArgs.cancellationToken = cancellationToken;
+        if (cancellationToken !== undefined) rpcArgs.cancellationToken = CancellationToken.fromValue(cancellationToken);
         await this._client.invokeCapability<void>(
             'Aspire.Hosting/saveStateJson',
             rpcArgs
@@ -26222,7 +26229,7 @@ export async function createBuilder(options?: CreateBuilderOptions): Promise<Dis
 }
 
 // Re-export commonly used types
-export { Handle, AppHostUsageError, CapabilityError, registerCallback } from './transport.js';
+export { Handle, AppHostUsageError, CancellationToken, CapabilityError, registerCallback } from './transport.js';
 export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================

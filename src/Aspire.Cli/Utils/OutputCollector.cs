@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
 
@@ -52,21 +53,13 @@ internal sealed class OutputCollector
             return _lines.ToArray();
         }
     }
-
     private void AppendLine(string stream, string line)
     {
         lock (_lock)
         {
             _lines.Add((stream, line));
-            _fileLogger?.WriteLog(FormatLogLine(stream, line));
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, stream == "stderr" ? LogLevel.Error : LogLevel.Information, _category, line);
             _liveOutputCallback?.Invoke(stream, line);
         }
-    }
-
-    private string FormatLogLine(string stream, string line)
-    {
-        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-        var level = stream == "stderr" ? "FAIL" : "INFO";
-        return $"[{timestamp}] [{level}] [{_category}] {line}";
     }
 }

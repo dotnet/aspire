@@ -27,6 +27,9 @@ const project = await builder.addProject("myproject", "./src/MyProject", "https"
 // addCSharpApp
 const csharpApp = await builder.addCSharpApp("csharpapp", "./src/CSharpApp");
 
+// addRedis
+const cache = await builder.addRedis("cache");
+
 // addDotnetTool
 const tool = await builder.addDotnetTool("mytool", "dotnet-ef");
 
@@ -194,7 +197,9 @@ await container.withPipelineStepFactory("custom-build-step", async (stepContext)
     const stepLoggerFactory = await stepServices.getLoggerFactory();
     const stepFactoryLogger = await stepLoggerFactory.createLogger("ValidationAppHost.PipelineStepContext");
     await stepFactoryLogger.logDebug("Pipeline step factory logger");
-    const _cancellationToken = await stepContext.cancellationToken.get();
+    const cancellationToken = await stepContext.cancellationToken.get();
+    const cacheUriExpression = await cache.uriExpression.get();
+    const _cacheUri = await cacheUriExpression.getValue(cancellationToken);
 }, {
     dependsOn: ["build"],
     requiredBy: ["deploy"],
