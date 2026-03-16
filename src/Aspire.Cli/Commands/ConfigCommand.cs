@@ -467,10 +467,11 @@ internal sealed class ConfigCommand : BaseCommand
                 .ToList();
             var localSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: false);
             var globalSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: true);
+            var configFileSchema = SettingsSchemaBuilder.BuildConfigFileSchema(excludeLocalOnly: false);
 
             if (useJson)
             {
-                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema, KnownCapabilities.GetAdvertisedCapabilities());
+                var info = new ConfigInfo(localPath, globalPath, availableFeatures, localSchema, globalSchema, configFileSchema, KnownCapabilities.GetAdvertisedCapabilities());
                 var json = System.Text.Json.JsonSerializer.Serialize(info, JsonSourceGenerationContext.Default.ConfigInfo);
                 // Use DisplayRawText to avoid Spectre.Console word wrapping which breaks JSON strings
                 if (InteractionService is ConsoleInteractionService consoleService)

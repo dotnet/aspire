@@ -1,12 +1,27 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://json.schemastore.org/aspire-global-settings.json",
+  "$id": "https://json.schemastore.org/aspire-config.json",
   "type": "object",
-  "title": "Aspire Global Settings",
-  "description": "Aspire CLI global configuration file (~/.aspire/settings.json)",
+  "title": "Aspire Configuration",
+  "description": "Aspire CLI unified configuration file (aspire.config.json). Replaces .aspire/settings.json and apphost.run.json.",
   "properties": {
+    "appHost": {
+      "description": "AppHost entry point configuration.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Relative path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing aspire.config.json.",
+          "type": "string"
+        },
+        "language": {
+          "description": "Language identifier (e.g., \"typescript/nodejs\", \"python\"). Used to determine which runtime to use for execution.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "channel": {
-      "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\"). Used by aspire add to determine which NuGet feed to use.",
+      "description": "The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\", \"daily\"). Used by aspire add to determine which NuGet feed to use.",
       "type": "string"
     },
     "features": {
@@ -176,21 +191,44 @@
       },
       "additionalProperties": false
     },
-    "language": {
-      "description": "The language identifier for this AppHost (e.g., \"typescript\", \"python\"). Used to determine which runtime to use for execution.",
-      "type": "string"
-    },
     "packages": {
-      "description": "Package references as an object literal (like npm's package.json). Key is package name, value is version.",
+      "description": "Package references for non-first-class languages. Key is package name, value is version. A value ending in \".csproj\" is treated as a project reference.",
       "type": "object",
       "additionalProperties": {
-        "type": "string",
-        "description": "Package version"
+        "type": "string"
       }
     },
-    "sdkVersion": {
-      "description": "The Aspire SDK version used for this polyglot AppHost project. Determines the version of Aspire.Hosting packages to use.",
-      "type": "string"
+    "profiles": {
+      "description": "Launch profiles (ports, environment variables). Replaces apphost.run.json.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "applicationUrl": {
+            "description": "Application URLs (e.g., \"https://localhost:17000;http://localhost:15000\").",
+            "type": "string"
+          },
+          "environmentVariables": {
+            "description": "Environment variables for this profile.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sdk": {
+      "description": "Aspire SDK version configuration.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "The Aspire SDK version. Determines the version of Aspire.Hosting packages to use.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
     "$schema": {
       "type": "string",
