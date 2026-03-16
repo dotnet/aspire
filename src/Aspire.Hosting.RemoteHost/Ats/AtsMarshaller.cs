@@ -135,6 +135,11 @@ internal sealed class AtsMarshaller
             return null;
         }
 
+        if (typeRef.TypeId == AtsConstants.CancellationToken && value is CancellationToken cancellationToken)
+        {
+            return SerializeCancellationToken(cancellationToken);
+        }
+
         // Handle 'any' type - fall back to runtime type inspection
         if (typeRef.TypeId == TypeSystem.AtsConstants.Any)
         {
@@ -216,6 +221,11 @@ internal sealed class AtsMarshaller
         }
 
         var type = value.GetType();
+        if (type == typeof(CancellationToken))
+        {
+            return SerializeCancellationToken((CancellationToken)value);
+        }
+
         var category = _context.GetCategory(type);
 
         return category switch
@@ -239,6 +249,17 @@ internal sealed class AtsMarshaller
             jsonArray.Add(MarshalToJson(item));
         }
         return jsonArray;
+    }
+
+    private JsonNode? SerializeCancellationToken(CancellationToken cancellationToken)
+    {
+        if (cancellationToken == CancellationToken.None)
+        {
+            return null;
+        }
+
+        var (tokenId, _) = _cancellationTokenRegistry.CreateLinked(cancellationToken);
+        return JsonValue.Create(tokenId);
     }
 
     private JsonNode? MarshalListHandle(object value, Type type)
@@ -283,6 +304,11 @@ internal sealed class AtsMarshaller
     {
         if (node == null)
         {
+            if (targetType == typeof(CancellationToken))
+            {
+                return CancellationToken.None;
+            }
+
             return null;
         }
 

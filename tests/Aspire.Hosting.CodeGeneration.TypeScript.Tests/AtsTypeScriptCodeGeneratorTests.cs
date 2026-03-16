@@ -1110,13 +1110,15 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void Generate_MethodWithCancellationToken_GeneratesAbortSignalParameter()
+    public void Generate_MethodWithCancellationToken_GeneratesCancellationTokenParameter()
     {
-        // Verify generated TypeScript has AbortSignal parameter
+        // Generated input parameters should accept AbortSignal for user-authored cancellation,
+        // while callbacks and returned values continue to use the SDK CancellationToken wrapper.
         var code = GenerateTwoPassCode();
 
-        // getStatusAsync should have an AbortSignal parameter in the generated code
-        Assert.Contains("AbortSignal", code);
+        Assert.Contains("cancellationToken?: AbortSignal | CancellationToken;", code);
+        Assert.Contains("set: async (value: AbortSignal | CancellationToken): Promise<void> => {", code);
+        Assert.Contains("withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>)", code);
     }
 
     [Fact]
