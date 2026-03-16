@@ -58,7 +58,7 @@ internal sealed class StartupErrorWriter : IStartupErrorWriter
 
     public void Dispose()
     {
-        if (!_hasOutput)
+        if (!_hasOutput || !File.Exists(_logFilePath))
         {
             return;
         }

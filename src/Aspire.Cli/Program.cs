@@ -69,13 +69,22 @@ public class Program
 
     /// <summary>
     /// Holds the objects created during early CLI startup, before DI is available.
+    /// Disposes the logger factory, file logger provider, and error writer.
     /// </summary>
-    internal record CliStartupContext(
+    internal sealed record CliStartupContext(
         CliLoggingOptions LoggingOptions,
         IStartupErrorWriter ErrorWriter,
         ILoggerFactory LoggerFactory,
         FileLoggerProvider FileLoggerProvider,
-        ILogger Logger);
+        ILogger Logger) : IDisposable
+    {
+        public void Dispose()
+        {
+            FileLoggerProvider.Dispose();
+            LoggerFactory.Dispose();
+            ErrorWriter.Dispose();
+        }
+    }
 
     /// <summary>
     /// Parses logging options from command-line arguments.
@@ -650,10 +659,10 @@ public class Program
         Console.OutputEncoding = Encoding.UTF8;
 
         var loggingOptions = ParseLoggingOptions(args);
-        using var errorWriter = new StartupErrorWriter(loggingOptions.LogFilePath);
+        var errorWriter = new StartupErrorWriter(loggingOptions.LogFilePath);
         var (loggerFactory, fileLoggerProvider) = CreateLoggerFactory(args, loggingOptions, errorWriter);
         var logger = loggerFactory.CreateLogger<Program>();
-        var startupContext = new CliStartupContext(loggingOptions, errorWriter, loggerFactory, fileLoggerProvider, logger);
+        using var startupContext = new CliStartupContext(loggingOptions, errorWriter, loggerFactory, fileLoggerProvider, logger);
 
         logger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
         logger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
