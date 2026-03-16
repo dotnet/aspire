@@ -198,7 +198,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             _logger.LogInformation("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
             return config;
         }
-        catch (InvalidOperationException ex)
+        catch (JsonException ex)
         {
             _logger.LogError(ex, "Failed to load configuration from {Directory}", configDir.FullName);
             throw;
@@ -612,7 +612,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 return ReadProfileFromAspireConfig(aspireConfig);
             }
         }
-        catch (InvalidOperationException ex)
+        catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Failed to load config for launch profiles from {Directory}", configDir.FullName);
         }

@@ -182,7 +182,7 @@ internal sealed class ProjectLocator(
             {
                 aspireConfig = AspireConfigFile.Load(searchDirectory.FullName);
             }
-            catch (InvalidOperationException ex)
+            catch (JsonException ex)
             {
                 interactionService.DisplayError(ex.Message);
                 return null;

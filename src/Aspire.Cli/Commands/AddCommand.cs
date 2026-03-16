@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -109,7 +110,7 @@ internal sealed class AddCommand : BaseCommand
                         configuredChannel = AspireConfigFile.Load(appHostDirectory)?.Channel
                             ?? AspireJsonConfiguration.Load(appHostDirectory)?.Channel;
                     }
-                    catch (InvalidOperationException ex)
+                    catch (JsonException ex)
                     {
                         InteractionService.DisplayError(ex.Message);
                         return ExitCodeConstants.FailedToLoadConfiguration;

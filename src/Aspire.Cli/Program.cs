@@ -614,7 +614,7 @@ public class Program
         {
             app = await BuildApplicationAsync(args);
         }
-        catch (InvalidOperationException ex)
+        catch (JsonException ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine(ex.Message);

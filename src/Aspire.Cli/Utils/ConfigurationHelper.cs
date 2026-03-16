@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Resources;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Utils;
@@ -117,10 +119,9 @@ internal static class ConfigurationHelper
         }
         catch (JsonException ex)
         {
-            throw new InvalidOperationException(
-                $"The configuration file '{filePath}' contains invalid JSON: {ex.Message}" +
-                Environment.NewLine +
-                "Please fix the JSON syntax error and try again.", ex);
+            throw new JsonException(
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath),
+                ex.Path, ex.LineNumber, ex.BytePositionInLine, ex);
         }
 
         configuration.AddJsonFile(filePath, optional: true);
