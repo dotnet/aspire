@@ -45,9 +45,7 @@ public static class AzureCognitiveServicesProjectExtensions
         builder.ApplicationBuilder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
 
         var project = builder.ApplicationBuilder.AddResource(new AzureCognitiveServicesProjectResource(name, ConfigureInfrastructure, builder.Resource));
-        project.Resource.DefaultContainerRegistry = CreateDefaultRegistry($"{name}-acr");
-        EnsureContainerRegistryIsModeled(builder.ApplicationBuilder, project.Resource.DefaultContainerRegistry);
-        project.Resource.References.Add(project.Resource.DefaultContainerRegistry);
+        project.Resource.DefaultContainerRegistry = CreateDefaultRegistry(builder.ApplicationBuilder, $"{name}-acr");
         return project;
     }
 
@@ -63,8 +61,6 @@ public static class AzureCognitiveServicesProjectExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(registryBuilder);
 
-        EnsureContainerRegistryIsModeled(builder.ApplicationBuilder, registryBuilder.Resource);
-        builder.Resource.References.Add(registryBuilder.Resource);
         return builder.WithContainerRegistry(registryBuilder.Resource);
     }
 
@@ -80,12 +76,6 @@ public static class AzureCognitiveServicesProjectExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(registry);
-
-        if (registry is AzureContainerRegistryResource azureRegistry)
-        {
-            EnsureContainerRegistryIsModeled(builder.ApplicationBuilder, azureRegistry);
-            builder.Resource.References.Add(azureRegistry);
-        }
 
         // This will be queried during the "publish" phase
         builder.Resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(registry));
@@ -585,7 +575,7 @@ public static class AzureCognitiveServicesProjectExtensions
         infra.Add(capHost);
     }
 
-    private static AzureContainerRegistryResource CreateDefaultRegistry(string name)
+    private static AzureContainerRegistryResource CreateDefaultRegistry(IDistributedApplicationBuilder builder, string name)
     {
         static void configureInfrastructure(AzureResourceInfrastructure infrastructure)
         {
@@ -608,14 +598,10 @@ public static class AzureCognitiveServicesProjectExtensions
         }
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        return resource;
-    }
-
-    private static void EnsureContainerRegistryIsModeled(IDistributedApplicationBuilder builder, AzureContainerRegistryResource registry)
-    {
-        if (!builder.Resources.Contains(registry))
+        if (builder.ExecutionContext.IsPublishMode)
         {
-            builder.AddResource(registry);
+            builder.AddResource(resource);
         }
+        return resource;
     }
 }

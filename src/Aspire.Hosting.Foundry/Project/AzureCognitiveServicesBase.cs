@@ -83,10 +83,6 @@ public abstract class AzureProvisionableAspireResourceWithParent<T, P> :
         : base(name, configureInfrastructure)
     {
         Parent = parent ?? throw new ArgumentNullException(nameof(parent));
-
-        // Azure child resources are provisioned independently. Keep an explicit resource
-        // reference to the parent so publish and run flows can enforce parent-first ordering.
-        References.Add(Parent);
     }
 
     /// <summary>
