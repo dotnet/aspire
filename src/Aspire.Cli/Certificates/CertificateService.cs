@@ -34,21 +34,6 @@ internal sealed class CertificateService(
     AspireCliTelemetry telemetry) : ICertificateService
 {
     private const string SslCertDirEnvVar = "SSL_CERT_DIR";
-    private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
-    private static readonly string s_defaultDevCertsTrustPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".aspnet",
-        "dev-certs",
-        "trust");
-
-    /// <summary>
-    /// Gets the dev-certs trust path, respecting the DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override.
-    /// </summary>
-    private static string GetDevCertsTrustPath()
-    {
-        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
-        return !string.IsNullOrEmpty(overridePath) ? overridePath : s_defaultDevCertsTrustPath;
-    }
 
     public async Task<EnsureCertificatesTrustedResult> EnsureCertificatesTrustedAsync(CancellationToken cancellationToken)
     {
@@ -117,7 +102,7 @@ internal sealed class CertificateService(
     private static void ConfigureSslCertDir(Dictionary<string, string> environmentVariables)
     {
         // Get the dev-certs trust path (respects DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override)
-        var devCertsTrustPath = GetDevCertsTrustPath();
+        var devCertsTrustPath = CertificateHelpers.GetDevCertsTrustPath();
 
         // Get the current SSL_CERT_DIR value (if any)
         var currentSslCertDir = Environment.GetEnvironmentVariable(SslCertDirEnvVar);
@@ -138,31 +123,7 @@ internal sealed class CertificateService(
         else
         {
             // Set the dev-certs trust path combined with the system certificate directory.
-            // Query OpenSSL to get its configured certificate directory.
-            var systemCertDirs = new List<string>();
-
-            if (CertificateHelpers.TryGetOpenSslDirectory(out var openSslDir))
-            {
-                var openSslCertsDir = Path.Combine(openSslDir, "certs");
-                if (Directory.Exists(openSslCertsDir))
-                {
-                    systemCertDirs.Add(openSslCertsDir);
-                }
-            }
-            else
-            {
-                // Fallback to common locations if OpenSSL is not available or fails
-                if (Directory.Exists("/etc/ssl/certs"))
-                {
-                    systemCertDirs.Add("/etc/ssl/certs");
-                }
-
-                if (Directory.Exists("/etc/pki/tls/certs"))
-                {
-                    systemCertDirs.Add("/etc/pki/tls/certs");
-                }
-            }
-
+            var systemCertDirs = CertificateHelpers.GetSystemCertificateDirectories();
             systemCertDirs.Add(devCertsTrustPath);
 
             environmentVariables[SslCertDirEnvVar] = string.Join(Path.PathSeparator, systemCertDirs);
