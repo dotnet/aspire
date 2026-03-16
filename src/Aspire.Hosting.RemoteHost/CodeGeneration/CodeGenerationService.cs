@@ -46,7 +46,7 @@ internal sealed class CodeGenerationService
             var context = _atsContextFactory.GetContext();
             if (assemblyNames is { Length: > 0 })
             {
-                context = AtsContextFilter.FilterByExportingAssembliesWithReferences(context, assemblyNames);
+                context = AtsContextFilter.FilterByExportingAssemblies(context, assemblyNames);
             }
 
             var response = new CapabilitiesResponse
