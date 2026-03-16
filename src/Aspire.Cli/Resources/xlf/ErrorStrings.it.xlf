@@ -107,6 +107,11 @@
         <target state="translated">Non è possibile cercare i pacchetti. Codice di uscita: {0}.</target>
         <note>{0} is a number</note>
       </trans-unit>
+      <trans-unit id="InvalidJsonInConfigFile">
+        <source>The configuration file '{0}' contains invalid JSON: {1}</source>
+        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <note>{0} is the file path, {1} is the exception message</note>
+      </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
         <source>Invalid locale {0} provided will not be used.</source>
         <target state="translated">Le impostazioni locali {0} specificate non valide non verranno utilizzate.</target>

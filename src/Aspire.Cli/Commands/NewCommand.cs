@@ -8,7 +8,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
-using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
@@ -53,7 +52,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     };
 
     private readonly Option<string?> _channelOption;
-    private readonly Option<AppHostLanguage?> _languageOption;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -103,13 +101,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_channelOption);
 
-        _languageOption = new Option<AppHostLanguage?>("--language")
-        {
-            Description = NewCommandStrings.LanguageOptionDescription,
-            Recursive = true
-        };
-        Options.Add(_languageOption);
-
         // Register template definitions as subcommands synchronously.
         // This uses GetTemplates() which returns template definitions without
         // performing any async I/O (e.g. SDK availability checks). Runtime
@@ -123,105 +114,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private string? ParseExplicitLanguageId(ParseResult parseResult)
+    private static ITemplate[] GetTemplatesForPrompt(ITemplate[] availableTemplates)
     {
-        return parseResult.GetValue(_languageOption) switch
-        {
-            AppHostLanguage.CSharp => KnownLanguageId.CSharp,
-            AppHostLanguage.TypeScript => KnownLanguageId.TypeScript,
-            null => null,
-            _ => null
-        };
-    }
-
-    private static string NormalizeLanguageId(string languageId)
-    {
-        return languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)
-            ? KnownLanguageId.TypeScript
-            : languageId;
-    }
-
-    private static string GetLanguageDisplayName(string languageId)
-    {
-        return NormalizeLanguageId(languageId) switch
-        {
-            KnownLanguageId.CSharp => KnownLanguageId.CSharpDisplayName,
-            KnownLanguageId.TypeScript => "TypeScript (Node.js)",
-            _ => languageId
-        };
-    }
-
-    private async Task<string> PromptForAppHostLanguageAsync(IReadOnlyList<string> selectableLanguages, CancellationToken cancellationToken)
-    {
-        var choices = selectableLanguages
-            .Select(NormalizeLanguageId)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(static languageId => (LanguageId: languageId, DisplayName: GetLanguageDisplayName(languageId)))
-            .ToArray();
-
-        var selected = await InteractionService.PromptForSelectionAsync(
-            "Which language would you like to use?",
-            choices,
-            choice => choice.DisplayName.EscapeMarkup(),
-            cancellationToken);
-
-        return selected.LanguageId;
-    }
-
-    private async Task<(bool Success, string? LanguageId)> ResolveSelectedLanguageAsync(ITemplate template, ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        var explicitLanguageId = ParseExplicitLanguageId(parseResult);
-
-        if (template.SelectableAppHostLanguages.Count == 0)
-        {
-            if (!string.IsNullOrWhiteSpace(explicitLanguageId) && !template.SupportsLanguage(explicitLanguageId))
-            {
-                InteractionService.DisplayError($"Template '{template.Name}' does not support language '{explicitLanguageId}'.");
-                return (false, null);
-            }
-
-            return (true, explicitLanguageId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(explicitLanguageId))
-        {
-            var normalizedExplicitLanguageId = NormalizeLanguageId(explicitLanguageId);
-            if (!template.SelectableAppHostLanguages.Any(l => l.Equals(normalizedExplicitLanguageId, StringComparison.OrdinalIgnoreCase)))
-            {
-                InteractionService.DisplayError($"Template '{template.Name}' does not support language '{explicitLanguageId}'.");
-                return (false, null);
-            }
-
-            await _configurationService.SetConfigurationAsync("language", normalizedExplicitLanguageId, isGlobal: false, cancellationToken);
-            return (true, normalizedExplicitLanguageId);
-        }
-
-        var configuredLanguageId = await _configurationService.GetConfigurationAsync("language", cancellationToken);
-        if (!string.IsNullOrWhiteSpace(configuredLanguageId))
-        {
-            var normalizedConfiguredLanguageId = NormalizeLanguageId(configuredLanguageId);
-            if (template.SelectableAppHostLanguages.Any(l => l.Equals(normalizedConfiguredLanguageId, StringComparison.OrdinalIgnoreCase)))
-            {
-                return (true, normalizedConfiguredLanguageId);
-            }
-        }
-
-        var selectedLanguageId = await PromptForAppHostLanguageAsync(template.SelectableAppHostLanguages, cancellationToken);
-        await _configurationService.SetConfigurationAsync("language", selectedLanguageId, isGlobal: false, cancellationToken);
-        return (true, selectedLanguageId);
-    }
-
-    private ITemplate[] GetTemplatesForPrompt(ITemplate[] availableTemplates, ParseResult parseResult)
-    {
-        var explicitLanguageId = ParseExplicitLanguageId(parseResult);
         var templatesForPrompt = availableTemplates.ToList();
-
-        if (!string.IsNullOrWhiteSpace(explicitLanguageId))
-        {
-            templatesForPrompt = templatesForPrompt
-                .Where(t => t.SupportsLanguage(explicitLanguageId))
-                .ToList();
-        }
 
         // Sort templates alphabetically by description, keeping empty templates at the end
         templatesForPrompt.Sort((a, b) =>
@@ -257,7 +152,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return null;
         }
 
-        var templatesForPrompt = GetTemplatesForPrompt(availableTemplates, parseResult);
+        var templatesForPrompt = GetTemplatesForPrompt(availableTemplates);
         if (templatesForPrompt.Length == 0)
         {
             InteractionService.DisplayError("No templates are available for the current environment.");
@@ -349,12 +244,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
-        var (languageResolutionSuccess, selectedLanguageId) = await ResolveSelectedLanguageAsync(template, parseResult, cancellationToken);
-        if (!languageResolutionSuccess)
-        {
-            return ExitCodeConstants.InvalidCommand;
-        }
-
         var version = parseResult.GetValue(s_versionOption);
         string? resolvedChannelName = null;
         if (ShouldResolveCliTemplateVersion(template) &&
@@ -378,7 +267,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Source = parseResult.GetValue(s_sourceOption),
             Version = version,
             Channel = parseResult.GetValue(_channelOption) ?? resolvedChannelName,
-            Language = selectedLanguageId
+            Language = template.LanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
@@ -393,12 +282,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)
     {
         return template.Runtime is TemplateRuntime.Cli;
-    }
-
-    private enum AppHostLanguage
-    {
-        CSharp,
-        TypeScript
     }
 }
 

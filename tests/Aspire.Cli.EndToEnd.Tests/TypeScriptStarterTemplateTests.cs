@@ -26,62 +26,55 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        var waitForDashboardCurlSuccess = new CellPatternSearcher()
-            .Find("dashboard-http-200");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
-
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Step 1: Create project using aspire new, selecting the Express/React template
-        sequenceBuilder.AspireNew("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
+        await auto.AspireNewAsync("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
 
         // Step 1.5: Verify starter creation also restored the generated TypeScript SDK.
-        sequenceBuilder.ExecuteCallback(() =>
+        var projectRoot = Path.Combine(workspace.WorkspaceRoot.FullName, "TsStarterApp");
+        var modulesDir = Path.Combine(projectRoot, ".modules");
+
+        if (!Directory.Exists(modulesDir))
         {
-            var projectRoot = Path.Combine(workspace.WorkspaceRoot.FullName, "TsStarterApp");
-            var modulesDir = Path.Combine(projectRoot, ".modules");
+            throw new InvalidOperationException($".modules directory was not created at {modulesDir}");
+        }
 
-            if (!Directory.Exists(modulesDir))
-            {
-                throw new InvalidOperationException($".modules directory was not created at {modulesDir}");
-            }
-
-            var aspireModulePath = Path.Combine(modulesDir, "aspire.ts");
-            if (!File.Exists(aspireModulePath))
-            {
-                throw new InvalidOperationException($"Expected generated file not found: {aspireModulePath}");
-            }
-        });
+        var aspireModulePath = Path.Combine(modulesDir, "aspire.ts");
+        if (!File.Exists(aspireModulePath))
+        {
+            throw new InvalidOperationException($"Expected generated file not found: {aspireModulePath}");
+        }
 
         // Step 2: Navigate into the project and start it in background with JSON output
-        sequenceBuilder
-            .Type("cd TsStarterApp")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("aspire start --format json | tee /tmp/aspire-start.json")
-            .Enter()
-            .WaitForSuccessPrompt(counter, TimeSpan.FromMinutes(3))
-            // Extract dashboard URL from JSON and curl it to verify it's reachable
-            .Type("DASHBOARD_URL=$(sed -n 's/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' /tmp/aspire-start.json | head -1)")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'")
-            .Enter()
-            .WaitUntil(s => waitForDashboardCurlSuccess.Search(s).Count > 0, TimeSpan.FromSeconds(15))
-            .WaitForSuccessPrompt(counter)
-            .Type("aspire stop")
-            .Enter()
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
+        await auto.TypeAsync("cd TsStarterApp");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        var sequence = sequenceBuilder.Build();
+        await auto.TypeAsync("aspire start --format json | tee /tmp/aspire-start.json");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(3));
 
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        // Extract dashboard URL from JSON and curl it to verify it's reachable
+        await auto.TypeAsync("DASHBOARD_URL=$(sed -n 's/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' /tmp/aspire-start.json | head -1)");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.TypeAsync("curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" || echo 'dashboard-http-failed'");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("dashboard-http-200", timeout: TimeSpan.FromSeconds(15));
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }

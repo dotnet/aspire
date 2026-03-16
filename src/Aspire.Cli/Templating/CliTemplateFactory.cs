@@ -32,7 +32,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         ".otf"
     ];
 
-    private static readonly Option<bool?> s_localhostTldOption = new("--localhost-tld")
+    private readonly Option<bool?> _localhostTldOption = new("--localhost-tld")
     {
         Description = TemplatingStrings.UseLocalhostTld_Description
     };
@@ -92,25 +92,29 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                 KnownTemplateId.TypeScriptStarter,
                 "Starter App (Express/React)",
                 projectName => $"./{projectName}",
-                static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
+                cmd => AddOptionIfMissing(cmd, _localhostTldOption),
                 ApplyTypeScriptStarterTemplateAsync,
                 runtime: TemplateRuntime.Cli,
-                supportsLanguageCallback: static languageId =>
-                    languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
-                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase)),
+                languageId: KnownLanguageId.TypeScript),
 
             new CallbackTemplate(
-                KnownTemplateId.EmptyAppHost,
-                "Empty AppHost",
+                KnownTemplateId.CSharpEmptyAppHost,
+                "Empty (C# AppHost)",
                 projectName => $"./{projectName}",
-                static cmd => AddOptionIfMissing(cmd, s_localhostTldOption),
+                cmd => AddOptionIfMissing(cmd, _localhostTldOption),
                 ApplyEmptyAppHostTemplateAsync,
                 runtime: TemplateRuntime.Cli,
-                supportsLanguageCallback: static languageId =>
-                    languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
-                    languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
-                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript],
+                languageId: KnownLanguageId.CSharp,
+                isEmpty: true),
+
+            new CallbackTemplate(
+                KnownTemplateId.TypeScriptEmptyAppHost,
+                "Empty (TypeScript AppHost)",
+                projectName => $"./{projectName}",
+                cmd => AddOptionIfMissing(cmd, _localhostTldOption),
+                ApplyEmptyAppHostTemplateAsync,
+                runtime: TemplateRuntime.Cli,
+                languageId: KnownLanguageId.TypeScript,
                 isEmpty: true)
         ];
     }

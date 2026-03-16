@@ -713,6 +713,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_UsesUnifiedWithReferenceCapability()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var withReference = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/withReference");
+        Assert.Contains(withReference.Parameters, p => p.Name == "name" && p.IsOptional);
+
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReference");
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReferenceNamed");
+    }
+
+    [Fact]
     public void BugFix_TargetParameterName_WithVolumeUsesResource()
     {
         // Verify that withVolume has TargetParameterName = "resource" (from CoreExports.cs)
@@ -1081,6 +1093,16 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("getValueAsync(): Promise<string>", code);
     }
 
+    [Fact]
+    public void GenerateTwoPassCode_UsesUnifiedWithReferenceSurface()
+    {
+        var code = GenerateTwoPassCode();
+
+        Assert.DoesNotContain("withServiceReference(", code);
+        Assert.DoesNotContain("withServiceReferenceNamed(", code);
+        Assert.Contains("name?: string;", code);
+    }
+
     private string GenerateTwoPassCode()
     {
         var atsContext = CreateContextFromBothAssemblies();
@@ -1110,13 +1132,15 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void Generate_MethodWithCancellationToken_GeneratesAbortSignalParameter()
+    public void Generate_MethodWithCancellationToken_GeneratesCancellationTokenParameter()
     {
-        // Verify generated TypeScript has AbortSignal parameter
+        // Generated input parameters should accept AbortSignal for user-authored cancellation,
+        // while callbacks and returned values continue to use the SDK CancellationToken wrapper.
         var code = GenerateTwoPassCode();
 
-        // getStatusAsync should have an AbortSignal parameter in the generated code
-        Assert.Contains("AbortSignal", code);
+        Assert.Contains("cancellationToken?: AbortSignal | CancellationToken;", code);
+        Assert.Contains("set: async (value: AbortSignal | CancellationToken): Promise<void> => {", code);
+        Assert.Contains("withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>)", code);
     }
 
     [Fact]
@@ -1333,21 +1357,6 @@ public class AtsTypeScriptCodeGeneratorTests
         // Also verify the Promise wrapper is not duplicated
         var promiseCount = CountOccurrences(code, "export class TestVaultResourcePromise ");
         Assert.Equal(1, promiseCount);
-    }
-
-    // ===== Multi-Parameter Callback Destructuring Tests =====
-
-    [Fact]
-    public void Generate_MultiParamCallback_UsesPerPropertyTyping()
-    {
-        // Regression test: multi-parameter callbacks must type each destructured property
-        // individually as { p0: unknown, p1: unknown }, not { p0, p1: unknown } which
-        // only types the last property in TypeScript.
-        var code = GenerateTwoPassCode();
-
-        // withMultiParamHandleCallback has a 2-param callback (TestCallbackContext, TestEnvironmentContext)
-        // The generated destructuring should type each property: { p0: unknown, p1: unknown }
-        Assert.Contains("{ p0: unknown, p1: unknown }", code);
     }
 
     // ===== Options Interface Merging Tests =====

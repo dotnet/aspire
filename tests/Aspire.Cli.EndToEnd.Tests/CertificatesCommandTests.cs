@@ -25,48 +25,35 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for successful trust output
-        var trustSuccessPattern = new CellPatternSearcher()
-            .Find("trusted successfully");
-
-        // Pattern for doctor showing trusted after fix
-        var trustedPattern = new CellPatternSearcher()
-            .Find("certificate is trusted");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Generate dev certs WITHOUT trust (creates untrusted cert)
-        sequenceBuilder
-            .Type("dotnet dev-certs https 2>/dev/null || true")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("dotnet dev-certs https 2>/dev/null || true");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Configure SSL_CERT_DIR so trust detection works properly on Linux
-        sequenceBuilder.ConfigureSslCertDir(counter);
+        await auto.TypeAsync("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire certs trust — should trust the existing cert
-        sequenceBuilder
-            .Type("aspire certs trust")
-            .Enter()
-            .WaitUntil(s => trustSuccessPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire certs trust");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("trusted successfully", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows the certificate as trusted
-        sequenceBuilder
-            .Type("aspire doctor")
-            .Enter()
-            .WaitUntil(s => trustedPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("aspire doctor");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("certificate is trusted", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -82,47 +69,34 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for successful clean
-        var cleanedPattern = new CellPatternSearcher()
-            .Find("cleaned successfully");
-
-        // Pattern to verify doctor shows no cert after clean
-        var noCertPattern = new CellPatternSearcher()
-            .Find("No HTTPS development certificate");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Generate dev certs first
-        sequenceBuilder
-            .Type("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https")
-            .Enter()
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("dotnet dev-certs https --trust 2>/dev/null || dotnet dev-certs https");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
-        sequenceBuilder.ConfigureSslCertDir(counter);
+        await auto.TypeAsync("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire certs clean
-        sequenceBuilder
-            .Type("aspire certs clean")
-            .Enter()
-            .WaitUntil(s => cleanedPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire certs clean");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("cleaned successfully", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows no certificate
-        sequenceBuilder
-            .Type("aspire doctor")
-            .Enter()
-            .WaitUntil(s => noCertPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("aspire doctor");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("No HTTPS development certificate", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }
@@ -138,42 +112,30 @@ public sealed class CertificatesCommandTests(ITestOutputHelper output)
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
-        // Pattern for successful trust
-        var trustSuccessPattern = new CellPatternSearcher()
-            .Find("trusted successfully");
-
-        // Pattern for doctor showing trusted
-        var trustedPattern = new CellPatternSearcher()
-            .Find("certificate is trusted");
-
         var counter = new SequenceCounter();
-        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
-        sequenceBuilder.PrepareDockerEnvironment(counter, workspace);
-        sequenceBuilder.InstallAspireCliInDocker(installMode, counter);
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
         // Configure SSL_CERT_DIR so trust detection works properly
-        sequenceBuilder.ConfigureSslCertDir(counter);
+        await auto.TypeAsync("export SSL_CERT_DIR=\"/etc/ssl/certs:$HOME/.aspnet/dev-certs/trust\"");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire certs trust with NO pre-existing cert — should create and trust
-        sequenceBuilder
-            .Type("aspire certs trust")
-            .Enter()
-            .WaitUntil(s => trustSuccessPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter);
+        await auto.TypeAsync("aspire certs trust");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("trusted successfully", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
 
         // Verify doctor now shows the certificate as trusted
-        sequenceBuilder
-            .Type("aspire doctor")
-            .Enter()
-            .WaitUntil(s => trustedPattern.Search(s).Count > 0, TimeSpan.FromSeconds(60))
-            .WaitForSuccessPrompt(counter)
-            .Type("exit")
-            .Enter();
-
-        var sequence = sequenceBuilder.Build();
-
-        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await auto.TypeAsync("aspire doctor");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("certificate is trusted", timeout: TimeSpan.FromSeconds(60));
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
 
         await pendingRun;
     }

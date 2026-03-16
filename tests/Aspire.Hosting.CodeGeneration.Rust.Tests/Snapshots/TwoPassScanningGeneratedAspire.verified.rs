@@ -968,7 +968,7 @@ impl CSharpAppResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -978,28 +978,10 @@ impl CSharpAppResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -3268,7 +3250,7 @@ impl ContainerResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -3278,28 +3260,10 @@ impl ContainerResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -4594,7 +4558,7 @@ impl DotnetToolResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -4604,28 +4568,10 @@ impl DotnetToolResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -5900,7 +5846,7 @@ impl ExecutableResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -5910,28 +5856,10 @@ impl ExecutableResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -8322,32 +8250,6 @@ impl IResourceWithParent {
     }
 }
 
-/// Wrapper for Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery
-pub struct IResourceWithServiceDiscovery {
-    handle: Handle,
-    client: Arc<AspireClient>,
-}
-
-impl HasHandle for IResourceWithServiceDiscovery {
-    fn handle(&self) -> &Handle {
-        &self.handle
-    }
-}
-
-impl IResourceWithServiceDiscovery {
-    pub fn new(handle: Handle, client: Arc<AspireClient>) -> Self {
-        Self { handle, client }
-    }
-
-    pub fn handle(&self) -> &Handle {
-        &self.handle
-    }
-
-    pub fn client(&self) -> &Arc<AspireClient> {
-        &self.client
-    }
-}
-
 /// Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport
 pub struct IResourceWithWaitSupport {
     handle: Handle,
@@ -9882,7 +9784,7 @@ impl ProjectResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -9892,28 +9794,10 @@ impl ProjectResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -11669,7 +11553,7 @@ impl TestDatabaseResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -11679,28 +11563,10 @@ impl TestDatabaseResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -12945,7 +12811,7 @@ impl TestRedisResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -12955,28 +12821,10 @@ impl TestRedisResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -14341,7 +14189,7 @@ impl TestVaultResource {
     }
 
     /// Adds a reference to another resource
-    pub fn with_reference(&self, source: &IResourceWithConnectionString, connection_name: Option<&str>, optional: Option<bool>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
+    pub fn with_reference(&self, source: &IResource, connection_name: Option<&str>, optional: Option<bool>, name: Option<&str>) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
         args.insert("source".to_string(), source.handle().to_json());
@@ -14351,28 +14199,10 @@ impl TestVaultResource {
         if let Some(ref v) = optional {
             args.insert("optional".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
+        if let Some(ref v) = name {
+            args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
         let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a service discovery reference to another resource
-    pub fn with_service_reference(&self, source: &IResourceWithServiceDiscovery) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReference", args)?;
-        let handle: Handle = serde_json::from_value(result)?;
-        Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
-    }
-
-    /// Adds a named service discovery reference
-    pub fn with_service_reference_named(&self, source: &IResourceWithServiceDiscovery, name: &str) -> Result<IResourceWithEnvironment, Box<dyn std::error::Error>> {
-        let mut args: HashMap<String, Value> = HashMap::new();
-        args.insert("builder".to_string(), self.handle.to_json());
-        args.insert("source".to_string(), source.handle().to_json());
-        args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
-        let result = self.client.invoke_capability("Aspire.Hosting/withServiceReferenceNamed", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }

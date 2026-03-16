@@ -519,14 +519,30 @@ jobs:
           if [ -d "$RECORDINGS_DIR" ] && compgen -G "$RECORDINGS_DIR"/*.cast > /dev/null; then
             pip install --quiet asciinema
 
+            # Retry configuration for asciinema uploads
+            MAX_UPLOAD_RETRIES=5
+            RETRY_BASE_DELAY_SECONDS=30
+
             UPLOAD_COUNT=0
             for castfile in "$RECORDINGS_DIR"/*.cast; do
               if [ -f "$castfile" ]; then
                 filename=$(basename "$castfile" .cast)
                 echo "Uploading $castfile..."
 
-                UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
-                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
+                # Upload to asciinema with retry logic for transient failures
+                ASCIINEMA_URL=""
+                for attempt in $(seq 1 "$MAX_UPLOAD_RETRIES"); do
+                  UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
+                  ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
+                  if [ -n "$ASCIINEMA_URL" ]; then
+                    break
+                  fi
+                  if [ "$attempt" -lt "$MAX_UPLOAD_RETRIES" ]; then
+                    DELAY=$((attempt * RETRY_BASE_DELAY_SECONDS))
+                    echo "Upload attempt $attempt failed, retrying in ${DELAY}s..."
+                    sleep "$DELAY"
+                  fi
+                done
 
                 if [ -n "$ASCIINEMA_URL" ]; then
                   RECORDING_URLS["$filename"]="$ASCIINEMA_URL"
@@ -534,7 +550,7 @@ jobs:
                   UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
                 else
                   RECORDING_URLS["$filename"]="FAILED"
-                  echo "Failed to upload $castfile"
+                  echo "Failed to upload $castfile after $MAX_UPLOAD_RETRIES attempts"
                 fi
               fi
             done
@@ -543,10 +559,14 @@ jobs:
             echo "No recordings found in $RECORDINGS_DIR"
           fi
 
-          # Build the comment with a single unified table
-          COMMENT_BODY="${EMOJI} **Deployment E2E Tests ${STATUS}**
+          # Build the comment with summary outside collapsible and details inside
+          COMMENT_MARKER="<!-- deployment-e2e-tests -->"
 
-          **Summary:** ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
+          COMMENT_BODY="${COMMENT_MARKER}
+          ${EMOJI} **Deployment E2E Tests ${STATUS}** — ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
+
+          <details>
+          <summary>View test results and recordings</summary>
 
           [View workflow run](${RUN_URL})
 
@@ -595,6 +615,35 @@ jobs:
           | ${test} | ⚠️ Cancelled | ${RECORDING_LINK} |"
           done < <(echo "$CANCELLED_TESTS" | jq -r '.[]')
 
-          # Post the comment
+          COMMENT_BODY="${COMMENT_BODY}
+
+          </details>"
+
+          # Delete any existing deployment test comments, then post the new one
+          EXISTING_COMMENT_IDS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(first: 100) {
+                    nodes {
+                      databaseId
+                      author { login }
+                      body
+                    }
+                  }
+                }
+              }
+            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId') || true
+
+          for COMMENT_ID in $EXISTING_COMMENT_IDS; do
+            echo "Deleting old comment $COMMENT_ID"
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" || true
+          done
+
+          echo "Creating new comment on PR #${PR_NUMBER}"
           gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
           echo "Posted comment to PR #${PR_NUMBER}"
