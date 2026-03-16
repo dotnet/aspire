@@ -941,7 +941,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                 Assert.Equal("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", request.Route);
                 Assert.Equal(15110, request.Payload.GetProperty("issue_number").GetInt32());
                 Assert.Equal(
-                    "The transient CI rerun workflow identified the following jobs as retry-safe after analyzing [the failed attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/1).\nIt then requested GitHub to rerun all failed jobs for that attempt, so the retry is being tracked in [the rerun attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/2).\nThe job links below point to the failed attempt jobs that matched the retry-safe transient failure rules.\n\n- [Tests / One](https://github.com/dotnet/aspire/actions/runs/123/job/11) - Reason one\n- [Tests / Two](https://github.com/dotnet/aspire/actions/runs/123/job/22) - Reason two",
+                    "Re-running the CI workflow for this pull request because 2 jobs were identified as retry-safe transient failures in [the CI run attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/1).\nGitHub was asked to rerun all failed jobs for that attempt, and the rerun is being tracked in [the rerun attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/2).\nThe job links below point to the failed attempt jobs that matched the retry-safe transient failure rules.\n\n- [Tests / One](https://github.com/dotnet/aspire/actions/runs/123/job/11) - Reason one\n- [Tests / Two](https://github.com/dotnet/aspire/actions/runs/123/job/22) - Reason two",
                     request.Payload.GetProperty("body").GetString());
             });
 

@@ -691,8 +691,8 @@ function buildPullRequestCommentBody({
     retryableJobs,
 }) {
     return [
-        `The transient CI rerun workflow identified the following jobs as retry-safe after analyzing ${formatMarkdownLink('the failed attempt', failedAttemptUrl)}.`,
-        `It then requested GitHub to rerun all failed jobs for that attempt, so the retry is being tracked in ${formatMarkdownLink('the rerun attempt', rerunAttemptUrl)}.`,
+        `Re-running the CI workflow for this pull request because ${retryableJobs.length} job${retryableJobs.length === 1 ? ' was' : 's were'} identified as retry-safe transient failures in ${formatMarkdownLink('the CI run attempt', failedAttemptUrl)}.`,
+        `GitHub was asked to rerun all failed jobs for that attempt, and the rerun is being tracked in ${formatMarkdownLink('the rerun attempt', rerunAttemptUrl)}.`,
         'The job links below point to the failed attempt jobs that matched the retry-safe transient failure rules.',
         '',
         ...retryableJobs.map(job => {
