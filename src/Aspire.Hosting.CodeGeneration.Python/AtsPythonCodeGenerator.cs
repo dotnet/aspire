@@ -66,6 +66,14 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         List<AtsParameterInfo> OptionalParameters,
         string? Experimental);
 
+    /// <summary>
+    /// Tracks the alternate capability ID for merged capabilities.
+    /// Key: the merged capability ID (the "short" one without the extra param).
+    /// Value: (alternateCapabilityId, discriminatingParamName) - the capability to invoke when the extra param is provided.
+    /// </summary>
+    private sealed record MergedCapabilityDispatch(string AlternateCapabilityId, string DiscriminatingParamName);
+    private readonly Dictionary<string, MergedCapabilityDispatch> _mergedCapabilityDispatches = new(StringComparer.Ordinal);
+
     private PythonModuleBuilder _moduleBuilder = null!;
 
     // Mapping of typeId -> wrapper class name for all generated wrapper types
@@ -215,6 +223,126 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Merges capabilities that share the same <see cref="AtsCapabilityInfo.SourceLocation"/> and differ
+    /// by exactly one required parameter. The merged capability uses the shortest method name and makes
+    /// the differing parameter optional.
+    /// </summary>
+    private List<AtsCapabilityInfo> MergeCapabilitiesBySourceLocation(List<AtsCapabilityInfo> capabilities)
+    {
+        var result = new List<AtsCapabilityInfo>();
+        var groups = capabilities.GroupBy(c => c.SourceLocation ?? string.Empty);
+
+        foreach (var group in groups)
+        {
+            if (string.IsNullOrEmpty(group.Key) || group.Count() <= 1)
+            {
+                result.AddRange(group);
+                continue;
+            }
+
+            var items = group.ToList();
+
+            // Find parameter names common to all capabilities in this group
+            var commonParamNames = new HashSet<string>(
+                items[0].Parameters.Select(p => p.Name), StringComparer.Ordinal);
+            foreach (var item in items.Skip(1))
+            {
+                commonParamNames.IntersectWith(item.Parameters.Select(p => p.Name));
+            }
+
+            // Find the union of all parameter names
+            var allParamNames = items
+                .SelectMany(c => c.Parameters.Select(p => p.Name))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var extraParamNames = allParamNames.Except(commonParamNames).ToHashSet(StringComparer.Ordinal);
+
+            // Only merge when exactly one parameter differs
+            if (extraParamNames.Count != 1)
+            {
+                result.AddRange(items);
+                continue;
+            }
+
+            var extraParamName = extraParamNames.Single();
+
+            // Get the extra parameter info from whichever capability has it
+            var capWithExtra = items.First(c => c.Parameters.Any(p => string.Equals(p.Name, extraParamName, StringComparison.Ordinal)));
+            var extraParam = capWithExtra.Parameters.First(p => string.Equals(p.Name, extraParamName, StringComparison.Ordinal));
+
+            // Only merge if the extra param is required (not already optional)
+            if (extraParam.IsOptional || extraParam.IsNullable)
+            {
+                result.AddRange(items);
+                continue;
+            }
+
+            // Use the capability with the shortest MethodName as the base
+            var shortest = items.OrderBy(c => c.MethodName.Length).ThenBy(c => c.MethodName, StringComparer.Ordinal).First();
+
+            // Build merged params from the capability with the most parameters
+            var fullCap = items.OrderByDescending(c => c.Parameters.Count).First();
+            var mergedParams = new List<AtsParameterInfo>();
+            foreach (var p in fullCap.Parameters)
+            {
+                if (string.Equals(p.Name, extraParamName, StringComparison.Ordinal))
+                {
+                    mergedParams.Add(new AtsParameterInfo
+                    {
+                        Name = p.Name,
+                        Type = p.Type,
+                        IsOptional = true,
+                        IsNullable = true,
+                        IsCallback = p.IsCallback,
+                        CallbackParameters = p.CallbackParameters,
+                        CallbackReturnType = p.CallbackReturnType,
+                        DefaultValue = p.DefaultValue
+                    });
+                }
+                else
+                {
+                    mergedParams.Add(p);
+                }
+            }
+
+            // Determine which capability ID to use when the extra param IS vs IS NOT provided.
+            // The "short" capability (without the extra param) is the default.
+            // The "long" capability (with the extra param) is the alternate.
+            var capWithoutExtra = items.FirstOrDefault(c => !c.Parameters.Any(p => string.Equals(p.Name, extraParamName, StringComparison.Ordinal)));
+            var alternateCapabilityId = capWithExtra.CapabilityId;
+            var baseCapabilityId = capWithoutExtra?.CapabilityId ?? shortest.CapabilityId;
+
+            var merged = new AtsCapabilityInfo
+            {
+                CapabilityId = baseCapabilityId,
+                MethodName = shortest.MethodName,
+                OwningTypeName = shortest.OwningTypeName,
+                Description = shortest.Description ?? items.FirstOrDefault(c => c.Description is not null)?.Description,
+                Parameters = mergedParams,
+                ReturnType = shortest.ReturnType,
+                TargetTypeId = shortest.TargetTypeId,
+                TargetType = shortest.TargetType,
+                TargetParameterName = shortest.TargetParameterName,
+                ReturnsBuilder = shortest.ReturnsBuilder,
+                CapabilityKind = shortest.CapabilityKind,
+                SourceLocation = shortest.SourceLocation,
+                RunSyncOnBackgroundThread = shortest.RunSyncOnBackgroundThread,
+                ExpandedTargetTypes = shortest.ExpandedTargetTypes
+            };
+
+            // Track the alternate dispatch so GenerateBuilderMethod can emit conditional logic
+            if (!string.Equals(baseCapabilityId, alternateCapabilityId, StringComparison.Ordinal))
+            {
+                _mergedCapabilityDispatches[baseCapabilityId] = new MergedCapabilityDispatch(alternateCapabilityId, extraParamName);
+            }
+
+            result.Add(merged);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Filters capability parameters for Python code generation.
     /// Removes the target parameter (e.g., "builder", "context") if specified,
     /// and removes cancellationToken when a separate timeout parameter already exists,
@@ -351,7 +479,6 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         // Generate the capability-based aspire.py SDK
         files["aspire_app.py"] = GenerateAspireSdk(context);
         files["pyproject.toml"] = GetEmbeddedResource("pyproject.toml");
-        files[".gitignore"] = "*";
 
         return files;
     }
@@ -959,6 +1086,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
             c.CapabilityKind != AtsCapabilityKind.PropertySetter).ToList();
 
+        methods = MergeCapabilitiesBySourceLocation(methods);
+
         foreach (var capability in methods)
         {
             GenerateBuilderMethod(sb, capability, builder.TargetType!.IsResourceBuilder);
@@ -1091,6 +1220,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             c.CapabilityKind != AtsCapabilityKind.PropertySetter &&
             !IsTargetTypeCoveredByBaseHierarchy(c.TargetType, builder.TargetType)).ToList();
 
+        methods = MergeCapabilitiesBySourceLocation(methods);
+
         foreach (var capability in methods)
         {
             GenerateBuilderMethod(sb, capability, false, sbOptions, sbConstructor, builder.BuilderClassName);
@@ -1140,7 +1271,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 formattedOtions = $"Annotated[{options}, Warnings(experimental=\"{optionTypeVariations[0].Experimental}\")]";
             }
             options.AppendLine(CultureInfo.InvariantCulture, $"    {optionName}: {formattedOtions}");
-            BuildOptionConstructor(constructor, capability, optionName, optionTypeVariations);
+            _mergedCapabilityDispatches.TryGetValue(capability.CapabilityId, out var optionMergedDispatch);
+            BuildOptionConstructor(constructor, capability, optionName, optionTypeVariations, optionMergedDispatch);
 
             // Track option name for conflict detection
             if (builderClassName != null && _moduleBuilder.ResourceOptionNames.TryGetValue(builderClassName, out var optionNamesList))
@@ -1210,17 +1342,29 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             }
         }
 
+        // Check if this is a merged capability that needs conditional dispatch
+        _mergedCapabilityDispatches.TryGetValue(capability.CapabilityId, out var mergedDispatch);
+        var discriminatingPythonParam = mergedDispatch is not null ? GetParamName(
+            userParams.First(p => string.Equals(p.Name, mergedDispatch.DiscriminatingParamName, StringComparison.Ordinal))) : null;
+
+        if (mergedDispatch is not null)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        capability_id = '{mergedDispatch.AlternateCapabilityId}' if {discriminatingPythonParam} is not None else '{capability.CapabilityId}'");
+        }
+
+        var capabilityIdExpr = mergedDispatch is not null ? "capability_id" : $"'{capability.CapabilityId}'";
+
         if (returnType == "None")
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"        self._client.invoke_capability(");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            {capabilityIdExpr},");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        )");
         }
         else
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"        result = self._client.invoke_capability(");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"            '{capability.CapabilityId}',");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"            {capabilityIdExpr},");
             sb.AppendLine(CultureInfo.InvariantCulture, $"            rpc_args,");
             if (returnsChildBuilder)
             {
@@ -1796,12 +1940,67 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         _moduleBuilder.MethodParameters[methodName] = parameters;
     }
-    
+
+    /// <summary>
+    /// Determines whether a specific option variation format will actually include
+    /// the named parameter in the generated rpc_args dictionary.
+    /// </summary>
+    /// <remarks>
+    /// All variations share the same requiredParameters/optionalParameters lists,
+    /// but each format only populates a subset into rpc_args:
+    /// <list type="bullet">
+    ///   <item><c>typing.Literal[True]</c> — no params sent</item>
+    ///   <item>Single type — only 1 param (first required, or first optional if none required)</item>
+    ///   <item>Tuple — required params + optional if tuple has an extra slot</item>
+    ///   <item>Parameters dict — all required and optional params</item>
+    /// </list>
+    /// </remarks>
+    private static bool VariationIncludesParam(
+        string optionType,
+        List<AtsParameterInfo> requiredParams,
+        List<AtsParameterInfo> optionalParams,
+        string paramName)
+    {
+        if (optionType == "typing.Literal[True]")
+        {
+            return false;
+        }
+
+        // Required params are always included regardless of variation format
+        if (requiredParams.Any(p => string.Equals(p.Name, paramName, StringComparison.Ordinal)))
+        {
+            return true;
+        }
+
+        // Dict/Parameters format includes all params (required + optional)
+        if (optionType.EndsWith("Parameters"))
+        {
+            return optionalParams.Any(p => string.Equals(p.Name, paramName, StringComparison.Ordinal));
+        }
+
+        // Tuple format includes optional params only when there's exactly 1 optional
+        // and the tuple has an extra slot for it
+        if (optionType.StartsWith("("))
+        {
+            var tupleSlots = SplitTupleTypes(optionType.Trim('(', ')'));
+            if (tupleSlots.Count == requiredParams.Count + 1 && optionalParams.Count == 1)
+            {
+                return optionalParams.Any(p => string.Equals(p.Name, paramName, StringComparison.Ordinal));
+            }
+            return false;
+        }
+
+        // Single param format: only 1 param is sent
+        var singleParam = requiredParams.Count > 0 ? requiredParams[0] : optionalParams[0];
+        return string.Equals(singleParam.Name, paramName, StringComparison.Ordinal);
+    }
+
     private static void BuildOptionConstructor(
         System.Text.StringBuilder builder,
         AtsCapabilityInfo capability,
         string optionName,
         List<OptionVariation> variations,
+        MergedCapabilityDispatch? mergedDispatch,
         int optionIndex = 0)
     {
         var variation = variations[optionIndex];
@@ -1817,11 +2016,25 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
             clause = "if";
             builder.AppendLine(CultureInfo.InvariantCulture, $"        if _{optionName} := kwargs.pop(\"{optionName}\", None):");
         }
+
+        // Resolve the correct capability ID for this variation.
+        // We must check whether this specific variation format will actually include the
+        // discriminating parameter in rpc_args. Since the discriminating param is always
+        // optional (made so by merging), we need to check whether the variation format
+        // carries optional parameters.
+        var variationCapabilityId = capability.CapabilityId;
+        if (mergedDispatch is not null)
+        {
+            variationCapabilityId = VariationIncludesParam(currentOption, requiredParameters, optionalParameters, mergedDispatch.DiscriminatingParamName)
+                ? mergedDispatch.AlternateCapabilityId
+                : capability.CapabilityId;
+        }
+
         if (currentOption == "typing.Literal[True]")
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            {clause} _{optionName} is True:");
             builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args: dict[str, typing.Any] = {{\"{targetParamName}\": handle}}");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{variationCapabilityId}', rpc_args))");
         }
         else if (currentOption.EndsWith("Parameters"))
         {
@@ -1837,7 +2050,18 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 var paramHandler = GetConstructorParamHandler(param, $"typing.cast({currentOption}, _{optionName}).get(\"{ToSnakeCase(param.Name!)}\")");
                 builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
+            // For dict variations with merged dispatch, emit a runtime check for the
+            // discriminating parameter since the dict may or may not contain it.
+            if (mergedDispatch is not null)
+            {
+                var snakeDiscrimParam = ToSnakeCase(mergedDispatch.DiscriminatingParamName);
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                capability_id = '{mergedDispatch.AlternateCapabilityId}' if \"{snakeDiscrimParam}\" in _{optionName} else '{capability.CapabilityId}'");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability(capability_id, rpc_args))");
+            }
+            else
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{variationCapabilityId}', rpc_args))");
+            }
         }
         else if (currentOption.StartsWith("(")) // Tuple of parameters
         {
@@ -1855,7 +2079,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 var paramHandler = GetConstructorParamHandler(param, $"typing.cast(tuple[{currentOption.Trim('(', ')')}], _{optionName})[{paramTypes.Count - 1}]");
                 builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{param.Name}\"] = {paramHandler}");
             }
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{variationCapabilityId}', rpc_args))");
         }
         else // Single parameter
         {
@@ -1866,7 +2090,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
                 : optionalParameters[0];
             var paramHandler = GetConstructorParamHandler(singleParam, $"typing.cast({currentOption}, _{optionName})");
             builder.AppendLine(CultureInfo.InvariantCulture, $"                rpc_args[\"{singleParam.Name}\"] = {paramHandler}");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{capability.CapabilityId}', rpc_args))");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                handle = self._wrap_builder(client.invoke_capability('{variationCapabilityId}', rpc_args))");
         }
         if (last)
         {
@@ -1875,7 +2099,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
         else
         {
-            BuildOptionConstructor(builder, capability, optionName, variations, optionIndex + 1);
+            BuildOptionConstructor(builder, capability, optionName, variations, mergedDispatch, optionIndex + 1);
         }
 
     }

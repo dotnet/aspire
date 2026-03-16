@@ -1504,6 +1504,27 @@ class OptionalStringParameters(typing.TypedDict, total=False):
     enabled: bool
 
 
+class MergeEndpointParameters(typing.TypedDict, total=False):
+    endpoint_name: typing.Required[str]
+    port: typing.Required[int]
+    scheme: str
+
+
+class MergeLoggingParameters(typing.TypedDict, total=False):
+    log_level: typing.Required[str]
+    log_path: str
+    enable_console: bool
+    max_files: int
+
+
+class MergeRouteParameters(typing.TypedDict, total=False):
+    path: typing.Required[str]
+    method: typing.Required[str]
+    handler: typing.Required[str]
+    priority: typing.Required[int]
+    middleware: str
+
+
 class DataVolumeParameters(typing.TypedDict, total=False):
     name: str
     is_read_only: bool
@@ -1893,6 +1914,22 @@ class AbstractResource(abc.ABC):
     def with_cancellable_operation(self, operation: typing.Callable[[CancellationToken], None]) -> typing.Self:
         """Performs a cancellable operation"""
 
+    @abc.abstractmethod
+    def with_merge_label(self, label: str, *, category: str | None = None) -> typing.Self:
+        """Adds a label to the resource"""
+
+    @abc.abstractmethod
+    def with_merge_endpoint(self, endpoint_name: str, port: int, *, scheme: str | None = None) -> typing.Self:
+        """Configures a named endpoint"""
+
+    @abc.abstractmethod
+    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool | None = None, max_files: int | None = None) -> typing.Self:
+        """Configures resource logging"""
+
+    @abc.abstractmethod
+    def with_merge_route(self, path: str, method: str, handler: str, priority: int, *, middleware: str | None = None) -> typing.Self:
+        """Configures a route"""
+
 
 class AbstractComputeResource(AbstractResource):
     """Abstract base class for AbstractComputeResource interface."""
@@ -1966,6 +2003,10 @@ class _BaseResourceKwargs(typing.TypedDict, total=False):
     dependency: AbstractResourceWithConnectionString
     endpoints: typing.Iterable[str]
     cancellable_operation: typing.Callable[[CancellationToken], None]
+    merge_label: str | tuple[str, str]
+    merge_endpoint: tuple[str, int] | MergeEndpointParameters
+    merge_logging: str | MergeLoggingParameters
+    merge_route: MergeRouteParameters
 
 class _BaseResource(AbstractResource):
     """Base resource class."""
@@ -2127,6 +2168,70 @@ class _BaseResource(AbstractResource):
         self._handle = self._wrap_builder(result)
         return self
 
+    def with_merge_label(self, label: str, *, category: str | None = None) -> typing.Self:
+        """Adds a label to the resource"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        rpc_args['label'] = label
+        if category is not None:
+            rpc_args['category'] = category
+        capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLabelCategorized' if category is not None else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLabel'
+        result = self._client.invoke_capability(
+            capability_id,
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
+    def with_merge_endpoint(self, endpoint_name: str, port: int, *, scheme: str | None = None) -> typing.Self:
+        """Configures a named endpoint"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        rpc_args['endpointName'] = endpoint_name
+        rpc_args['port'] = port
+        if scheme is not None:
+            rpc_args['scheme'] = scheme
+        capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeEndpointScheme' if scheme is not None else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeEndpoint'
+        result = self._client.invoke_capability(
+            capability_id,
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
+    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool | None = None, max_files: int | None = None) -> typing.Self:
+        """Configures resource logging"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        rpc_args['logLevel'] = log_level
+        if log_path is not None:
+            rpc_args['logPath'] = log_path
+        if enable_console is not None:
+            rpc_args['enableConsole'] = enable_console
+        if max_files is not None:
+            rpc_args['maxFiles'] = max_files
+        capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLoggingPath' if log_path is not None else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLogging'
+        result = self._client.invoke_capability(
+            capability_id,
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
+    def with_merge_route(self, path: str, method: str, handler: str, priority: int, *, middleware: str | None = None) -> typing.Self:
+        """Configures a route"""
+        rpc_args: dict[str, typing.Any] = {'builder': self._handle}
+        rpc_args['path'] = path
+        rpc_args['method'] = method
+        rpc_args['handler'] = handler
+        rpc_args['priority'] = priority
+        if middleware is not None:
+            rpc_args['middleware'] = middleware
+        capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeRouteMiddleware' if middleware is not None else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeRoute'
+        result = self._client.invoke_capability(
+            capability_id,
+            rpc_args,
+        )
+        self._handle = self._wrap_builder(result)
+        return self
+
     def __init__(self, handle: Handle, client: AspireClient, **kwargs: typing.Unpack[_BaseResourceKwargs]) -> None:
         if _optional_string := kwargs.pop("optional_string", None):
             if _validate_dict_types(_optional_string, OptionalStringParameters):
@@ -2226,6 +2331,60 @@ class _BaseResource(AbstractResource):
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation', rpc_args))
             else:
                 raise TypeError("Invalid type for option 'cancellable_operation'. Expected: typing.Callable[[CancellationToken], None]")
+        if _merge_label := kwargs.pop("merge_label", None):
+            if _validate_type(_merge_label, str):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["label"] = typing.cast(str, _merge_label)
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLabel', rpc_args))
+            elif _validate_tuple_types(_merge_label, (str, str)):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["label"] = typing.cast(tuple[str, str], _merge_label)[0]
+                rpc_args["category"] = typing.cast(tuple[str, str], _merge_label)[1]
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLabelCategorized', rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'merge_label'. Expected: str or (str, str)")
+        if _merge_endpoint := kwargs.pop("merge_endpoint", None):
+            if _validate_tuple_types(_merge_endpoint, (str, int)):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["endpointName"] = typing.cast(tuple[str, int], _merge_endpoint)[0]
+                rpc_args["port"] = typing.cast(tuple[str, int], _merge_endpoint)[1]
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMergeEndpoint', rpc_args))
+            elif _validate_dict_types(_merge_endpoint, MergeEndpointParameters):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["endpointName"] = typing.cast(MergeEndpointParameters, _merge_endpoint)["endpoint_name"]
+                rpc_args["port"] = typing.cast(MergeEndpointParameters, _merge_endpoint)["port"]
+                rpc_args["scheme"] = typing.cast(MergeEndpointParameters, _merge_endpoint).get("scheme")
+                capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeEndpointScheme' if "scheme" in _merge_endpoint else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeEndpoint'
+                handle = self._wrap_builder(client.invoke_capability(capability_id, rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'merge_endpoint'. Expected: (str, int) or MergeEndpointParameters")
+        if _merge_logging := kwargs.pop("merge_logging", None):
+            if _validate_type(_merge_logging, str):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["logLevel"] = typing.cast(str, _merge_logging)
+                handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLogging', rpc_args))
+            elif _validate_dict_types(_merge_logging, MergeLoggingParameters):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["logLevel"] = typing.cast(MergeLoggingParameters, _merge_logging)["log_level"]
+                rpc_args["logPath"] = typing.cast(MergeLoggingParameters, _merge_logging).get("log_path")
+                rpc_args["enableConsole"] = typing.cast(MergeLoggingParameters, _merge_logging).get("enable_console")
+                rpc_args["maxFiles"] = typing.cast(MergeLoggingParameters, _merge_logging).get("max_files")
+                capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLoggingPath' if "log_path" in _merge_logging else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeLogging'
+                handle = self._wrap_builder(client.invoke_capability(capability_id, rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'merge_logging'. Expected: str or MergeLoggingParameters")
+        if _merge_route := kwargs.pop("merge_route", None):
+            if _validate_dict_types(_merge_route, MergeRouteParameters):
+                rpc_args: dict[str, typing.Any] = {"builder": handle}
+                rpc_args["path"] = typing.cast(MergeRouteParameters, _merge_route)["path"]
+                rpc_args["method"] = typing.cast(MergeRouteParameters, _merge_route)["method"]
+                rpc_args["handler"] = typing.cast(MergeRouteParameters, _merge_route)["handler"]
+                rpc_args["priority"] = typing.cast(MergeRouteParameters, _merge_route)["priority"]
+                rpc_args["middleware"] = typing.cast(MergeRouteParameters, _merge_route).get("middleware")
+                capability_id = 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeRouteMiddleware' if "middleware" in _merge_route else 'Aspire.Hosting.CodeGeneration.Python.Tests/withMergeRoute'
+                handle = self._wrap_builder(client.invoke_capability(capability_id, rpc_args))
+            else:
+                raise TypeError("Invalid type for option 'merge_route'. Expected: MergeRouteParameters")
         self._handle = handle
         self._client = client
         if kwargs:
