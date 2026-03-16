@@ -15,12 +15,14 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
     private readonly string _language;
     private readonly ILogger _logger;
     private readonly Func<string, string?> _commandResolver;
+    private readonly Action<string, string>? _liveOutputCallback;
 
-    public ProcessGuestLauncher(string language, ILogger logger, Func<string, string?>? commandResolver = null)
+    public ProcessGuestLauncher(string language, ILogger logger, Func<string, string?>? commandResolver = null, Action<string, string>? liveOutputCallback = null)
     {
         _language = language;
         _logger = logger;
         _commandResolver = commandResolver ?? PathLookupHelper.FindFullPathFromPath;
+        _liveOutputCallback = liveOutputCallback;
     }
 
     public async Task<(int ExitCode, OutputCollector? Output)> LaunchAsync(
@@ -62,11 +64,17 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
 
         using var process = new Process { StartInfo = startInfo };
 
-        var outputCollector = new OutputCollector();
+        var outputCollector = new OutputCollector(fileLogger: null, liveOutputCallback: _liveOutputCallback);
+        var stdoutCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stderrCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         process.OutputDataReceived += (sender, e) =>
         {
-            if (e.Data is not null)
+            if (e.Data is null)
+            {
+                stdoutCompleted.TrySetResult();
+            }
+            else
             {
                 _logger.LogDebug("{Language}({ProcessId}) stdout: {Line}", _language, process.Id, e.Data);
                 outputCollector.AppendOutput(e.Data);
@@ -75,7 +83,11 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
 
         process.ErrorDataReceived += (sender, e) =>
         {
-            if (e.Data is not null)
+            if (e.Data is null)
+            {
+                stderrCompleted.TrySetResult();
+            }
+            else
             {
                 _logger.LogDebug("{Language}({ProcessId}) stderr: {Line}", _language, process.Id, e.Data);
                 outputCollector.AppendError(e.Data);
@@ -87,6 +99,7 @@ internal sealed class ProcessGuestLauncher : IGuestProcessLauncher
         process.BeginErrorReadLine();
 
         await process.WaitForExitAsync(cancellationToken);
+        await Task.WhenAll(stdoutCompleted.Task, stderrCompleted.Task).WaitAsync(cancellationToken);
         return (process.ExitCode, outputCollector);
     }
 }
