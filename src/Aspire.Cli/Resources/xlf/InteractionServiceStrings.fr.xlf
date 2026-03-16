@@ -167,6 +167,11 @@
         <target state="translated">Une erreur inattendue est survenue : {0}</target>
         <note>{0} is the exception message</note>
       </trans-unit>
+      <trans-unit id="UpdatedSettingsFile">
+        <source>Updated settings file at {0}.</source>
+        <target state="new">Updated settings file at {0}.</target>
+        <note>{0} is a path</note>
+      </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">
         <source>Waiting for debugger to attach to app host process</source>
         <target state="translated">En attente de l’attachement du débogueur au processus de l’hôte d’application</target>

@@ -402,6 +402,7 @@ internal sealed class ProjectLocator(
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         var settingsFile = GetOrCreateLocalAspireConfigFile();
+        var fileExisted = settingsFile.Exists;
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
@@ -427,7 +428,8 @@ internal sealed class ProjectLocator(
         }
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
+        var message = fileExisted ? InteractionServiceStrings.UpdatedSettingsFile : InteractionServiceStrings.CreatedSettingsFile;
+        interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, message, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
     }
 
     private FileInfo GetOrCreateLocalAspireConfigFile()
