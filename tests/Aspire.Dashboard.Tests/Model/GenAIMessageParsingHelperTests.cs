@@ -325,6 +325,7 @@ public sealed class GenAIMessageParsingHelperTests
             {
                 var errorPart = Assert.IsType<UnexpectedErrorPart>(part);
                 Assert.NotNull(errorPart.Error);
+                Assert.Contains("Missing 'type' property", errorPart.Error.Message);
                 Assert.NotNull(errorPart.AdditionalProperties);
                 Assert.True(errorPart.AdditionalProperties.ContainsKey("content"));
             });
