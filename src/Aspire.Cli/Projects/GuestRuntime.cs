@@ -151,7 +151,7 @@ internal sealed class GuestRuntime
     /// <summary>
     /// Creates the default process-based launcher for this runtime.
     /// </summary>
-    public ProcessGuestLauncher CreateDefaultLauncher() => new(_spec.Language, _logger, _commandResolver);
+    public ProcessGuestLauncher CreateDefaultLauncher(Action<string, string>? liveOutputCallback = null) => new(_spec.Language, _logger, _commandResolver, liveOutputCallback);
 
     /// <summary>
     /// Replaces placeholders in command arguments with actual values.

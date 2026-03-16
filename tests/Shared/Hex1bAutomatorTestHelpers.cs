@@ -244,11 +244,36 @@ internal static class Hex1bAutomatorTestHelpers
                 await auto.DownAsync();
                 await auto.DownAsync();
                 await auto.WaitUntilAsync(
-                    s => new CellPatternSearcher().Find("> Empty AppHost").Search(s).Count > 0,
+                    s => new CellPatternSearcher().Find("> Empty (C# AppHost)").Search(s).Count > 0
+                        || new CellPatternSearcher().Find("> Empty AppHost").Search(s).Count > 0,
                     timeout: TimeSpan.FromSeconds(5),
-                    description: "Empty AppHost template selected");
+                    description: "Empty C# AppHost template selected");
                 await auto.EnterAsync();
-                await auto.EnterAsync(); // Select C# language
+
+                var waitingForProjectNamePrompt = new CellPatternSearcher()
+                    .Find("Enter the project name");
+                var waitingForLanguagePrompt = new CellPatternSearcher()
+                    .Find("Which language would you like to use?");
+                var languagePromptFound = false;
+
+                await auto.WaitUntilAsync(
+                    s =>
+                    {
+                        if (waitingForLanguagePrompt.Search(s).Count > 0)
+                        {
+                            languagePromptFound = true;
+                            return true;
+                        }
+
+                        return waitingForProjectNamePrompt.Search(s).Count > 0;
+                    },
+                    timeout: TimeSpan.FromSeconds(10),
+                    description: "project name or language prompt for empty apphost");
+
+                if (languagePromptFound)
+                {
+                    await auto.EnterAsync(); // Select C# language on older CLI flows.
+                }
                 break;
         }
 
