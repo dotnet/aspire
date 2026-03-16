@@ -351,8 +351,6 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         }
         finally
         {
-            await runOutputCollector.FlushLiveOutputAsync(CancellationToken.None);
-
             // Clean up isolated user secrets when the run completes
             if (!string.IsNullOrEmpty(isolatedUserSecretsId))
             {

@@ -104,7 +104,7 @@ public class OutputCollectorTests
     }
 
     [Fact]
-    public async Task OutputCollector_LiveCallback_ReceivesStdoutAndStderr()
+    public void OutputCollector_LiveCallback_ReceivesStdoutAndStderr()
     {
         // Arrange
         var forwardedLines = new List<(string Stream, string Line)>();
@@ -113,39 +113,11 @@ public class OutputCollectorTests
         // Act
         collector.AppendOutput("hello");
         collector.AppendError("oops");
-        await collector.FlushLiveOutputAsync().DefaultTimeout();
 
         // Assert
         Assert.True(collector.HasLiveOutputCallback);
         Assert.Equal(
             [("stdout", "hello"), ("stderr", "oops")],
-            forwardedLines);
-    }
-
-    [Fact]
-    public async Task OutputCollector_LiveCallback_DoesNotBlockAdditionalAppends()
-    {
-        // Arrange
-        var callbackStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseCallback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var forwardedLines = new List<(string Stream, string Line)>();
-        var collector = new OutputCollector(fileLogger: null, liveOutputCallback: (stream, line) =>
-        {
-            forwardedLines.Add((stream, line));
-            callbackStarted.TrySetResult();
-            releaseCallback.Task.GetAwaiter().GetResult();
-        });
-
-        // Act
-        collector.AppendOutput("first");
-        await callbackStarted.Task.DefaultTimeout();
-        collector.AppendError("second");
-        releaseCallback.TrySetResult();
-        await collector.FlushLiveOutputAsync().DefaultTimeout();
-
-        // Assert
-        Assert.Equal(
-            [("stdout", "first"), ("stderr", "second")],
             forwardedLines);
     }
 }

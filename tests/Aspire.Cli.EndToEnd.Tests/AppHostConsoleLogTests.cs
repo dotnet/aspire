@@ -30,17 +30,12 @@ public sealed class AppHostConsoleLogTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
-        await auto.AspireNewAsync("ConsoleLogCSharpApp", counter, useRedisCache: false);
+        await auto.AspireInitAsync(counter);
 
-        var projectRoot = Path.Combine(workspace.WorkspaceRoot.FullName, "ConsoleLogCSharpApp");
-        var programPath = Path.Combine(projectRoot, "ConsoleLogCSharpApp.AppHost", "Program.cs");
-        InsertAfter(programPath, "var builder = DistributedApplication.CreateBuilder(args);", """Console.WriteLine("Hello from dotnet apphost");""");
+        var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs");
+        InsertAfter(appHostPath, "var builder = DistributedApplication.CreateBuilder(args);", """Console.WriteLine("Hello from dotnet apphost");""");
 
-        await auto.TypeAsync("cd ConsoleLogCSharpApp/ConsoleLogCSharpApp.AppHost");
-        await auto.EnterAsync();
-        await auto.WaitForSuccessPromptAsync(counter);
-
-        await auto.TypeAsync("aspire run");
+        await auto.TypeAsync("aspire run --apphost apphost.cs");
         await auto.EnterAsync();
         await WaitForVisibleAppHostOutputAsync(auto, "Hello from dotnet apphost", TimeSpan.FromMinutes(3));
 
