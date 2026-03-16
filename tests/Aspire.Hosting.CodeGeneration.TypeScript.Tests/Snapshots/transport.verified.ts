@@ -250,7 +250,9 @@ export class CancellationToken {
             return this._remoteTokenId;
         }
 
-        return registerCancellation(client, this._signal);
+        return client
+            ? registerCancellation(client, this._signal)
+            : registerCancellation(this._signal);
     }
 }
 
