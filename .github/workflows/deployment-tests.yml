@@ -559,10 +559,14 @@ jobs:
             echo "No recordings found in $RECORDINGS_DIR"
           fi
 
-          # Build the comment with a single unified table
-          COMMENT_BODY="${EMOJI} **Deployment E2E Tests ${STATUS}**
+          # Build the comment with summary outside collapsible and details inside
+          COMMENT_MARKER="<!-- deployment-e2e-tests -->"
 
-          **Summary:** ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
+          COMMENT_BODY="${COMMENT_MARKER}
+          ${EMOJI} **Deployment E2E Tests ${STATUS}** — ${PASSED_COUNT} passed, ${FAILED_COUNT} failed, ${CANCELLED_COUNT} cancelled
+
+          <details>
+          <summary>View test results and recordings</summary>
 
           [View workflow run](${RUN_URL})
 
@@ -611,6 +615,35 @@ jobs:
           | ${test} | ⚠️ Cancelled | ${RECORDING_LINK} |"
           done < <(echo "$CANCELLED_TESTS" | jq -r '.[]')
 
-          # Post the comment
+          COMMENT_BODY="${COMMENT_BODY}
+
+          </details>"
+
+          # Delete any existing deployment test comments, then post the new one
+          EXISTING_COMMENT_IDS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(first: 100) {
+                    nodes {
+                      databaseId
+                      author { login }
+                      body
+                    }
+                  }
+                }
+              }
+            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.comments.nodes[] | select(.author.login == "github-actions" and (.body | contains("'"${COMMENT_MARKER}"'"))) | .databaseId') || true
+
+          for COMMENT_ID in $EXISTING_COMMENT_IDS; do
+            echo "Deleting old comment $COMMENT_ID"
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" || true
+          done
+
+          echo "Creating new comment on PR #${PR_NUMBER}"
           gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body "$COMMENT_BODY"
           echo "Posted comment to PR #${PR_NUMBER}"
