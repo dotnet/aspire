@@ -161,10 +161,13 @@ internal sealed class BundleNuGetPackageCache : INuGetPackageCache
         _logger.LogDebug("NuGet search args: {Args}", string.Join(" ", args));
         _logger.LogDebug("Working directory: {WorkingDir}", workingDirectory.FullName);
 
+        var signatureVerificationEnv = NuGetSignatureVerificationEnabler.GetEnvironmentVariables();
+
         var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
             managedPath,
             args,
             workingDirectory: workingDirectory.FullName,
+            environmentVariables: signatureVerificationEnv,
             ct: cancellationToken).ConfigureAwait(false);
 
         // Log stderr output (verbose info from NuGetHelper)

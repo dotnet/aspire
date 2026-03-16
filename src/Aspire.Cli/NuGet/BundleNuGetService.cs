@@ -130,9 +130,12 @@ public sealed class BundleNuGetService : INuGetService
         _logger.LogDebug("aspire-managed path: {ManagedPath}", managedPath);
         _logger.LogDebug("NuGet restore args: {Args}", string.Join(" ", restoreArgs));
 
+        var signatureVerificationEnv = NuGetSignatureVerificationEnabler.GetEnvironmentVariables();
+
         var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
             managedPath,
             restoreArgs,
+            environmentVariables: signatureVerificationEnv,
             ct: ct);
 
         // Log stderr output (verbose info from NuGetHelper)
@@ -172,6 +175,7 @@ public sealed class BundleNuGetService : INuGetService
         (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
             managedPath,
             layoutArgs,
+            environmentVariables: signatureVerificationEnv,
             ct: ct);
 
         // Log stderr output (verbose info from NuGetHelper)
