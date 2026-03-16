@@ -542,7 +542,8 @@ internal sealed class RunCommand : BaseCommand
                 }
 
                 // Write to the unified log file via FileLoggerProvider
-                fileLoggerProvider.WriteLog(entry.Timestamp, entry.LogLevel, $"AppHost/{entry.CategoryName}", entry.Message);
+                var shortCategory = Diagnostics.FileLoggerProvider.GetShortCategoryName(entry.CategoryName);
+                fileLoggerProvider.WriteLog(entry.Timestamp, entry.LogLevel, $"AppHost/{shortCategory}", entry.Message);
             }
         }
         catch (OperationCanceledException)
