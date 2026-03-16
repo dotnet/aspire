@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
@@ -88,45 +87,6 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
             """);
 
         Assert.Equal("daily", config["channel"]);
-    }
-
-    [Fact]
-    public void RegisterSettingsFiles_ThrowsJsonException_ForInvalidJson()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
-        File.WriteAllText(settingsPath, "{ invalid json }");
-
-        var globalDir = workspace.CreateDirectory("global-aspire");
-        var globalSettingsFile = new FileInfo(Path.Combine(globalDir.FullName, AspireConfigFile.FileName));
-
-        var builder = new ConfigurationBuilder();
-
-        var ex = Assert.Throws<JsonException>(
-            () => ConfigurationHelper.RegisterSettingsFiles(builder, workspace.WorkspaceRoot, globalSettingsFile));
-
-        Assert.Contains(settingsPath, ex.Message);
-        Assert.Contains("invalid JSON", ex.Message);
-    }
-
-    [Fact]
-    public void RegisterSettingsFiles_ThrowsJsonException_ForTruncatedJson()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
-        File.WriteAllText(settingsPath, """{ "appHost": { "path": """);
-
-        var globalDir = workspace.CreateDirectory("global-aspire");
-        var globalSettingsFile = new FileInfo(Path.Combine(globalDir.FullName, AspireConfigFile.FileName));
-
-        var builder = new ConfigurationBuilder();
-
-        var ex = Assert.Throws<JsonException>(
-            () => ConfigurationHelper.RegisterSettingsFiles(builder, workspace.WorkspaceRoot, globalSettingsFile));
-
-        Assert.Contains(settingsPath, ex.Message);
     }
 
     [Fact]

@@ -12,6 +12,15 @@ namespace Aspire.Cli.Utils;
 
 internal static class ConfigurationHelper
 {
+    /// <summary>
+    /// Standard options for parsing JSON that may contain non-spec features like comments and trailing commas.
+    /// </summary>
+    public static readonly JsonDocumentOptions ParseOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    };
+
     internal static void RegisterSettingsFiles(IConfigurationBuilder configuration, DirectoryInfo workingDirectory, FileInfo globalSettingsFile)
     {
         var currentDirectory = workingDirectory;
@@ -104,11 +113,7 @@ internal static class ConfigurationHelper
         try
         {
             var content = File.ReadAllText(filePath);
-            var node = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
-            {
-                CommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
+            var node = JsonNode.Parse(content, documentOptions: ParseOptions);
             if (node is not null)
             {
                 var cleanJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
@@ -119,9 +124,9 @@ internal static class ConfigurationHelper
         }
         catch (JsonException ex)
         {
-            throw new JsonException(
-                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath),
-                ex.Path, ex.LineNumber, ex.BytePositionInLine, ex);
+            throw new InvalidOperationException(
+                string.Format(CultureInfo.CurrentCulture, ErrorStrings.InvalidJsonInConfigFile, filePath, ex.Message),
+                ex);
         }
 
         configuration.AddJsonFile(filePath, optional: true);
@@ -141,11 +146,7 @@ internal static class ConfigurationHelper
                 return false;
             }
 
-            var settings = JsonNode.Parse(content, documentOptions: new JsonDocumentOptions
-            {
-                CommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            })?.AsObject();
+            var settings = JsonNode.Parse(content, documentOptions: ParseOptions)?.AsObject();
 
             if (settings is null)
             {

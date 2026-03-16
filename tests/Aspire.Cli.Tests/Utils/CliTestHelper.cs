@@ -78,10 +78,10 @@ internal static class CliTestHelper
 
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
 
-        // Register a FileLoggerProvider that writes to a test-specific temp directory
+        // Register logging options for test
         var testLogsDirectory = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "logs");
-        var fileLoggerProvider = new FileLoggerProvider(testLogsDirectory, TimeProvider.System);
-        services.AddSingleton(fileLoggerProvider);
+        var testLogFilePath = FileLoggerProvider.GenerateLogFilePath(testLogsDirectory, TimeProvider.System);
+        services.AddSingleton(new FileLoggerProvider(testLogFilePath, new TestStartupErrorWriter()));
 
         services.AddMemoryCache();
 

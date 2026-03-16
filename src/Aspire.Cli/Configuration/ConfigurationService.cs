@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
@@ -11,11 +10,6 @@ namespace Aspire.Cli.Configuration;
 
 internal sealed class ConfigurationService(IConfiguration configuration, CliExecutionContext executionContext, FileInfo globalSettingsFile, ILogger<ConfigurationService> logger) : IConfigurationService
 {
-    private static readonly JsonDocumentOptions s_jsonDocumentOptions = new()
-    {
-        CommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
-    };
     public async Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
         var settingsFilePath = GetSettingsFilePath(isGlobal);
@@ -29,7 +23,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             // Handle empty files or whitespace-only content
             settings = string.IsNullOrWhiteSpace(existingContent)
                 ? new JsonObject()
-                : JsonNode.Parse(existingContent, nodeOptions: null, s_jsonDocumentOptions)?.AsObject() ?? new JsonObject();
+                : JsonNode.Parse(existingContent, nodeOptions: null, ConfigurationHelper.ParseOptions)?.AsObject() ?? new JsonObject();
         }
         else
         {
@@ -61,7 +55,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
                 return false;
             }
 
-            var settings = JsonNode.Parse(existingContent, nodeOptions: null, s_jsonDocumentOptions)?.AsObject();
+            var settings = JsonNode.Parse(existingContent, nodeOptions: null, ConfigurationHelper.ParseOptions)?.AsObject();
 
             if (settings is null)
             {
@@ -168,7 +162,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
                 return;
             }
 
-            var settings = JsonNode.Parse(content, nodeOptions: null, s_jsonDocumentOptions)?.AsObject();
+            var settings = JsonNode.Parse(content, nodeOptions: null, ConfigurationHelper.ParseOptions)?.AsObject();
 
             if (settings is not null)
             {
