@@ -195,7 +195,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         try
         {
             var config = AspireConfigFile.LoadOrCreate(configDir.FullName, GetEffectiveSdkVersion());
-            _logger.LogDebug("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
+            _logger.LogInformation("Loaded config from {Directory} (file exists: {Exists})", configDir.FullName, AspireConfigFile.Exists(configDir.FullName));
             return config;
         }
         catch (InvalidOperationException ex)

@@ -101,7 +101,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             var newSettingsPath = Path.Combine(searchDirectory.FullName, AspireConfigFile.FileName);
             if (File.Exists(newSettingsPath))
             {
-                logger.LogDebug("Found settings file at {Path}", newSettingsPath);
+                logger.LogInformation("Found settings file at {Path}", newSettingsPath);
                 return newSettingsPath;
             }
 
@@ -111,7 +111,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             var legacySettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);
             if (File.Exists(legacySettingsPath))
             {
-                logger.LogDebug("Found legacy settings file at {Path}", legacySettingsPath);
+                logger.LogInformation("Found legacy settings file at {Path}", legacySettingsPath);
                 return legacySettingsPath;
             }
 

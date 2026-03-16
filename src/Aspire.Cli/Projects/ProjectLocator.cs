@@ -197,7 +197,7 @@ internal sealed class ProjectLocator(
 
                 if (appHostFile.Exists)
                 {
-                    logger.LogDebug("Found AppHost path '{AppHostPath}' from config file in {Directory}", configAppHostPath, searchDirectory.FullName);
+                    logger.LogInformation("Found AppHost path '{AppHostPath}' from config file in {Directory}", configAppHostPath, searchDirectory.FullName);
                     return appHostFile;
                 }
                 else
@@ -453,7 +453,7 @@ internal sealed class ProjectLocator(
         var aspireConfigFile = new FileInfo(Path.Combine(legacySettingsRootDirectory.FullName, AspireConfigFile.FileName));
         if (!aspireConfigFile.Exists)
         {
-            logger.LogDebug("Migrating legacy settings from {LegacyDir} to {ConfigFile}", legacySettingsRootDirectory.FullName, aspireConfigFile.FullName);
+            logger.LogInformation("Migrating legacy settings from {LegacyDir} to {ConfigFile}", legacySettingsRootDirectory.FullName, aspireConfigFile.FullName);
             MigrateLegacySettings(legacySettingsRootDirectory);
         }
 
@@ -463,7 +463,7 @@ internal sealed class ProjectLocator(
     private void MigrateLegacySettings(DirectoryInfo settingsRootDirectory)
     {
         var configFilePath = Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName);
-        logger.LogDebug("Migrating legacy settings to {SettingsFilePath}", configFilePath);
+        logger.LogInformation("Migrating legacy settings to {SettingsFilePath}", configFilePath);
 
         // LoadOrCreate handles the legacy fallback and migration internally,
         // including saving the migrated config to disk.
