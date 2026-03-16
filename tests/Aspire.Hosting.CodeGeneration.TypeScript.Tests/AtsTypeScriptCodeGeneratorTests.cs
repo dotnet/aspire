@@ -52,6 +52,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         await Verify(files["base.ts"], extension: "ts")
             .UseFileName("base");
+
+        await Verify(files["transport.ts"], extension: "ts")
+            .UseFileName("transport");
     }
 
     [Fact]
@@ -65,6 +68,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
         Assert.Contains("condition: extractHandleForExpr(this._condition),", files["base.ts"]);
         Assert.Contains("('$handle' in json || '$expr' in json)", files["base.ts"]);
+        Assert.Contains("registerCancellation(this._client, cancellationToken)", files["base.ts"]);
     }
 
     [Fact]
