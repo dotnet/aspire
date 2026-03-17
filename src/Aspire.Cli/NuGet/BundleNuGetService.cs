@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
@@ -161,10 +160,6 @@ internal sealed class BundleNuGetService : INuGetService
             throw new InvalidOperationException($"Package restore failed: {error}");
         }
 
-        // Surface any warnings or errors from the restore (e.g. signature verification)
-        // by reading the logs section from project.assets.json.
-        LogAssetsFileMessages(assetsPath);
-
         // Step 2: Create flat layout
         // Prepend "nuget" subcommand for aspire-managed dispatch
         var layoutArgs = new List<string>
@@ -207,48 +202,6 @@ internal sealed class BundleNuGetService : INuGetService
 
         _logger.LogDebug("Packages restored to {Path}", libsDir);
         return libsDir;
-    }
-
-    private void LogAssetsFileMessages(string assetsPath)
-    {
-        if (!File.Exists(assetsPath))
-        {
-            return;
-        }
-
-        try
-        {
-            using var stream = File.OpenRead(assetsPath);
-            using var doc = JsonDocument.Parse(stream);
-
-            if (!doc.RootElement.TryGetProperty("logs", out var logs))
-            {
-                return;
-            }
-
-            foreach (var log in logs.EnumerateArray())
-            {
-                var message = log.TryGetProperty("message", out var messageProp) ? messageProp.GetString() : null;
-                if (string.IsNullOrEmpty(message))
-                {
-                    continue;
-                }
-
-                var level = log.TryGetProperty("level", out var levelProp) ? levelProp.GetString() : null;
-                if (string.Equals(level, "Error", StringComparison.OrdinalIgnoreCase))
-                {
-                    _interactionService.DisplayError(message);
-                }
-                else if (string.Equals(level, "Warning", StringComparison.OrdinalIgnoreCase))
-                {
-                    _interactionService.DisplayMarkupLine($"[yellow]{message}[/]");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to read logs from {AssetsPath}", assetsPath);
-        }
     }
 
     private static string ComputePackageHash(List<(string Id, string Version)> packages, string tfm)
