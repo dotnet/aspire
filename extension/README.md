@@ -156,8 +156,8 @@ All commands live in the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) under 
 | **Execute pipeline step** | Run a pipeline step and its dependencies (`aspire do`) |
 | **Configure launch.json file** | Add the Aspire debug config to your workspace |
 | **Extension settings** | Open Aspire settings |
-| **Open local Aspire settings** | Open `.aspire/settings.json` for this workspace |
-| **Open global Aspire settings** | Open `~/.aspire/globalsettings.json` |
+| **Open local Aspire settings** | Open the local Aspire settings file for this workspace |
+| **Open global Aspire settings** | Open the global Aspire settings file |
 | **Open Aspire terminal** | Open a terminal with the Aspire CLI ready |
 | **Install Aspire CLI (stable)** | Install the latest stable CLI |
 | **Install Aspire CLI (daily)** | Install the daily preview build |
@@ -195,7 +195,7 @@ You can configure the extension under **Settings → Aspire**, or jump there wit
 
 There are more settings for things like verbose logging, startup prompts, and polling intervals — run **Aspire: Extension settings** from the Command Palette to see them all.
 
-The extension also gives you IntelliSense and validation when editing `.aspire/settings.json` (workspace-level config) and `~/.aspire/globalsettings.json` (user-level config). Use the **Open local/global Aspire settings** commands to open them.
+The extension also gives you IntelliSense and validation when editing Aspire configuration files, including the new `aspire.config.json` format as well as the legacy `.aspire/settings.json` (workspace-level) and `~/.aspire/globalsettings.json` (user-level) files. Use the **Open local/global Aspire settings** commands to open them.
 
 ---
 
