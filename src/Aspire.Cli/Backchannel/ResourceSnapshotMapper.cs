@@ -116,12 +116,14 @@ internal static class ResourceSnapshotMapper
         // Get source information using the shared ResourceSourceViewModel
         var sourceViewModel = ResourceSource.GetSourceModel(snapshot.ResourceType, snapshot.Properties);
 
-        // Generate dashboard URL for this resource if a base URL is provided
+        // Generate dashboard URL for this resource if a base URL is provided.
+        // The dashboardBaseUrl is a login URL with a token (e.g., https://host/login?t=TOKEN).
+        // Add the resource path as a returnUrl so the user is redirected after login.
         string? dashboardUrl = null;
         if (!string.IsNullOrEmpty(dashboardBaseUrl))
         {
             var resourcePath = DashboardUrls.ResourcesUrl(snapshot.Name);
-            dashboardUrl = DashboardUrls.CombineUrl(dashboardBaseUrl, resourcePath);
+            dashboardUrl = DashboardUrls.AddReturnUrl(dashboardBaseUrl, resourcePath);
         }
 
         return new ResourceJson

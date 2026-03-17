@@ -36,7 +36,7 @@ public class ResourceSnapshotMapperTests
         var allSnapshots = new List<ResourceSnapshot> { snapshot };
 
         // Act
-        var result = ResourceSnapshotMapper.MapToResourceJson(snapshot, allSnapshots, dashboardBaseUrl: "http://localhost:18080");
+        var result = ResourceSnapshotMapper.MapToResourceJson(snapshot, allSnapshots, dashboardBaseUrl: "http://localhost:18080/login?t=abc123");
 
         // Assert
         Assert.Equal("frontend", result.Name);
@@ -51,9 +51,11 @@ public class ResourceSnapshotMapperTests
         Assert.Single(result.Environment!);
         Assert.Equal("Development", result.Environment!["ASPNETCORE_ENVIRONMENT"]);
 
-        // Dashboard URL should be generated
+        // Dashboard URL should be the login URL with a returnUrl pointing to the resource
         Assert.NotNull(result.DashboardUrl);
         Assert.Contains("localhost:18080", result.DashboardUrl);
+        Assert.Contains("login?t=abc123", result.DashboardUrl);
+        Assert.Contains("returnUrl=", result.DashboardUrl);
     }
 
     [Fact]

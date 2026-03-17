@@ -188,6 +188,19 @@ internal static class DashboardUrls
         return $"{trimmedBase}/{trimmedPath}";
     }
 
+    /// <summary>
+    /// Adds a path as a <c>returnUrl</c> query parameter to an existing URL.
+    /// Use this when the base URL already contains query parameters (e.g., a login URL with a token)
+    /// and the path should be visited after login.
+    /// </summary>
+    /// <param name="loginUrl">The login URL (e.g., "https://localhost:5000/login?t=TOKEN").</param>
+    /// <param name="returnPath">The path to redirect to after login (e.g., "/?resource=myapp").</param>
+    /// <returns>The URL with the returnUrl query parameter appended.</returns>
+    public static string AddReturnUrl(string loginUrl, string returnPath)
+    {
+        return AddQueryString(loginUrl, "returnUrl", returnPath);
+    }
+
     #region Telemetry API URLs
 
     private const string TelemetryApiBasePath = "api/telemetry";
