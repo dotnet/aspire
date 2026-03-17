@@ -5,7 +5,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>health healthcheck healthchecks</PackageTags>
     <Description>A collection of HealthCheck related utilities for Aspire.</Description>
-    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 

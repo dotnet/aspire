@@ -218,6 +218,8 @@
   </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
+    <Project Path="playground/HealthChecks/HealthChecksSandbox.ExpandedHealthService/HealthChecksSandbox.ExpandedHealthService.csproj" />
+    <Project Path="playground/HealthChecks/HealthChecksSandbox.PlainHealthService/HealthChecksSandbox.PlainHealthService.csproj" />
   </Folder>
   <Folder Name="/playground/kafka/">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />
