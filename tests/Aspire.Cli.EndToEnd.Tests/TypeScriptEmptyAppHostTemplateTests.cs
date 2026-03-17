@@ -9,14 +9,14 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for the TypeScript Express/React starter template (aspire-ts-starter).
-/// Validates that aspire new creates a working Express API + React frontend project
-/// and that aspire run starts it successfully.
+/// End-to-end tests for the TypeScript Empty AppHost template (aspire-ts-empty).
+/// Validates that aspire new creates a working TypeScript AppHost project
+/// and that aspire start runs it successfully.
 /// </summary>
-public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
+public sealed class TypeScriptEmptyAppHostTemplateTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task CreateAndRunTypeScriptStarterProject()
+    public async Task CreateAndRunTypeScriptEmptyAppHostProject()
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
@@ -32,26 +32,10 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
-        // Step 1: Create project using aspire new, selecting the Express/React template
-        await auto.AspireNewAsync("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
+        await auto.AspireNewAsync("TsEmptyApp", counter, template: AspireTemplate.TypeScriptEmptyAppHost);
 
-        // Step 1.5: Verify starter creation also restored the generated TypeScript SDK.
-        var projectRoot = Path.Combine(workspace.WorkspaceRoot.FullName, "TsStarterApp");
-        var modulesDir = Path.Combine(projectRoot, ".modules");
-
-        if (!Directory.Exists(modulesDir))
-        {
-            throw new InvalidOperationException($".modules directory was not created at {modulesDir}");
-        }
-
-        var aspireModulePath = Path.Combine(modulesDir, "aspire.ts");
-        if (!File.Exists(aspireModulePath))
-        {
-            throw new InvalidOperationException($"Expected generated file not found: {aspireModulePath}");
-        }
-
-        // Step 2: Navigate into the project and start it
-        await auto.TypeAsync("cd TsStarterApp");
+        // Start the empty TypeScript AppHost to verify the scaffolded project works
+        await auto.TypeAsync("cd TsEmptyApp");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 

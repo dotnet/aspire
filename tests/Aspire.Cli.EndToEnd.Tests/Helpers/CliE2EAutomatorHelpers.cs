@@ -232,4 +232,87 @@ internal static class CliE2EAutomatorHelpers
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptFailFastAsync(counter, timeout: TimeSpan.FromSeconds(300));
     }
+
+    /// <summary>
+    /// Starts an Aspire AppHost with <c>aspire start --format json</c>, extracts the dashboard URL,
+    /// and verifies the dashboard is reachable. Caller is responsible for calling
+    /// <see cref="AspireStopAsync"/> when done.
+    /// On failure, dumps the latest CLI log file to the terminal output for debugging.
+    /// </summary>
+    internal static async Task AspireStartAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        TimeSpan? startTimeout = null)
+    {
+        var effectiveTimeout = startTimeout ?? TimeSpan.FromMinutes(3);
+        var jsonFile = "/tmp/aspire-start.json";
+        var expectedCounter = counter.Value;
+
+        // Start with JSON output
+        await auto.TypeAsync($"aspire start --format json | tee {jsonFile}");
+        await auto.EnterAsync();
+
+        // Wait for the command to finish — check for success or error exit
+        var succeeded = false;
+        await auto.WaitUntilAsync(snapshot =>
+        {
+            var successSearcher = new CellPatternSearcher()
+                .FindPattern(expectedCounter.ToString())
+                .RightText(" OK] $ ");
+            if (successSearcher.Search(snapshot).Count > 0)
+            {
+                succeeded = true;
+                return true;
+            }
+
+            var errorSearcher = new CellPatternSearcher()
+                .FindPattern(expectedCounter.ToString())
+                .RightText(" ERR:");
+            return errorSearcher.Search(snapshot).Count > 0;
+        }, timeout: effectiveTimeout, description: $"aspire start to complete [{expectedCounter} OK/ERR]");
+
+        counter.Increment();
+
+        if (!succeeded)
+        {
+            // Dump logs for debugging then fail
+            await auto.TypeAsync(
+                "LOG=$(ls -t ~/.aspire/logs/cli_*.log 2>/dev/null | head -1); " +
+                "echo '=== ASPIRE LOG ==='; " +
+                "[ -n \"$LOG\" ] && tail -100 \"$LOG\"; " +
+                "echo '=== END LOG ==='; " +
+                $"cat {jsonFile}");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter);
+
+            throw new InvalidOperationException("aspire start failed. Check terminal output for CLI logs.");
+        }
+
+        // Extract dashboard URL and verify it's reachable
+        await auto.TypeAsync(
+            $"DASHBOARD_URL=$(sed -n " +
+            "'s/.*\"dashboardUrl\"[[:space:]]*:[[:space:]]*\"\\(https:\\/\\/localhost:[0-9]*\\).*/\\1/p' " +
+            $"{jsonFile} | head -1)");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.TypeAsync(
+            "curl -ksSL -o /dev/null -w 'dashboard-http-%{http_code}' \"$DASHBOARD_URL\" " +
+            "|| echo 'dashboard-http-failed'");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("dashboard-http-200", timeout: TimeSpan.FromSeconds(15));
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
+
+    /// <summary>
+    /// Stops a running Aspire AppHost with <c>aspire stop</c>.
+    /// </summary>
+    internal static async Task AspireStopAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync("aspire stop");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
 }
