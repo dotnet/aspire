@@ -31,7 +31,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="13.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
