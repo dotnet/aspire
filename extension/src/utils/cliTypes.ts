@@ -1,3 +1,16 @@
+import * as vscode from 'vscode';
+import { stripComments } from 'jsonc-parser';
+
+/**
+ * Reads a JSON file from disk, strips comments, and parses it.
+ * Handles both standard JSON and JSONC (JSON with comments) formats.
+ */
+export async function readJsonFile(uri: vscode.Uri): Promise<any> {
+    const buffer = await vscode.workspace.fs.readFile(uri);
+    const raw = buffer.toString();
+    return JSON.parse(stripComments(raw));
+}
+
 /**
  * Represents the new aspire.config.json format.
  */

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { noAppHostInWorkspace } from '../loc/strings';
 import { getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
 import { AspireCommandType } from '../dcp/types';
-import { aspireConfigFileName, getAppHostPathFromConfig } from '../utils/cliTypes';
+import { aspireConfigFileName, getAppHostPathFromConfig, readJsonFile } from '../utils/cliTypes';
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
     private _workspaceAppHostPath: string | null = null;
@@ -175,7 +175,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
 
         async function readConfigFileAndInvokeCallback(uri: vscode.Uri) {
             try {
-                const json = JSON.parse(await vscode.workspace.fs.readFile(uri).then(buffer => buffer.toString()));
+                const json = await readJsonFile(uri);
                 const appHostRelativePath = getAppHostPathFromConfig(json);
                 if (!appHostRelativePath) {
                     onChangeAppHostPath(null);

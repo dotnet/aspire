@@ -4,7 +4,7 @@ import path from 'path';
 import { spawnCliProcess } from '../debugger/languages/cli';
 import { AspireTerminalProvider } from './AspireTerminalProvider';
 import { ChildProcessWithoutNullStreams } from 'child_process';
-import { AspireConfigFile, aspireConfigFileName, getAppHostPathFromConfig } from './cliTypes';
+import { AspireConfigFile, aspireConfigFileName, getAppHostPathFromConfig, readJsonFile } from './cliTypes';
 import { extensionLogOutputChannel } from './logging';
 import { EnvironmentVariables } from './environment';
 import { resolveCliPath } from './cliPath';
@@ -151,8 +151,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     if (settingsFileExists) {
         extensionLogOutputChannel.info(`Found existing Aspire settings file at: ${settingsFiles.map(f => f.fsPath).join(', ')}`);
         for (const file of settingsFiles) {
-            const settingsFileContent = await vscode.workspace.fs.readFile(file);
-            const settings = JSON.parse(settingsFileContent.toString());
+            const settings = await readJsonFile(file);
             const appHostPath = getAppHostPathFromConfig(settings);
             if (appHostPath) {
                 extensionLogOutputChannel.info(`AppHost path already configured in file ${file.fsPath}: ${appHostPath}`);
@@ -277,8 +276,7 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
         let configFile: AspireConfigFile = {};
         if (settingsFileExists) {
             extensionLogOutputChannel.info('Updating existing aspire.config.json');
-            const settingsFileContent = await vscode.workspace.fs.readFile(settingsFileLocation);
-            configFile = JSON.parse(settingsFileContent.toString());
+            configFile = await readJsonFile(settingsFileLocation);
         } else {
             extensionLogOutputChannel.info('Creating new aspire.config.json');
         }
@@ -292,8 +290,7 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
         let legacySettings: any = {};
         if (settingsFileExists) {
             extensionLogOutputChannel.info('Updating existing Aspire settings file');
-            const settingsFileContent = await vscode.workspace.fs.readFile(settingsFileLocation);
-            legacySettings = JSON.parse(settingsFileContent.toString());
+            legacySettings = await readJsonFile(settingsFileLocation);
         } else {
             extensionLogOutputChannel.info('Creating new Aspire settings file');
         }
