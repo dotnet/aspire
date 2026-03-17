@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
 using Microsoft.Extensions.Logging;
 
@@ -32,17 +33,20 @@ public interface INuGetService
 /// <summary>
 /// NuGet service implementation that uses the bundle's NuGetHelper tool.
 /// </summary>
-public sealed class BundleNuGetService : INuGetService
+internal sealed class BundleNuGetService : INuGetService
 {
     private readonly ILayoutDiscovery _layoutDiscovery;
+    private readonly IInteractionService _interactionService;
     private readonly ILogger<BundleNuGetService> _logger;
     private readonly string _cacheDirectory;
 
     public BundleNuGetService(
         ILayoutDiscovery layoutDiscovery,
+        IInteractionService interactionService,
         ILogger<BundleNuGetService> logger)
     {
         _layoutDiscovery = layoutDiscovery;
+        _interactionService = interactionService;
         _logger = logger;
         _cacheDirectory = GetCacheDirectory();
     }
@@ -203,10 +207,12 @@ public sealed class BundleNuGetService : INuGetService
 
             if (trimmed.StartsWith("ERROR: ", StringComparison.Ordinal))
             {
-                _logger.LogError("{Message}", trimmed["ERROR: ".Length..]);
+                _interactionService.DisplayError(trimmed["ERROR: ".Length..]);
             }
             else if (trimmed.StartsWith("WARNING: ", StringComparison.Ordinal))
             {
+                _interactionService.DisplayMarkupLine($"[yellow]{trimmed["WARNING: ".Length..]}[/]");
+
                 _logger.LogWarning("{Message}", trimmed["WARNING: ".Length..]);
             }
             else
