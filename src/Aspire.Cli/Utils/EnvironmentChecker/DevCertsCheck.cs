@@ -15,7 +15,6 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// </summary>
 internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateToolRunner certificateToolRunner) : IEnvironmentCheck
 {
-
     public int Order => 35; // After SDK check (30), before container checks (40+)
 
     private static readonly string s_trustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsTrustFixFormat, "aspire certs trust");
