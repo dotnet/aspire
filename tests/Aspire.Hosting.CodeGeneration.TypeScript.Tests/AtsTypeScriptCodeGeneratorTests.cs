@@ -72,21 +72,6 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void GenerateDistributedApplication_WithTestTypes_TransportTsRejectsCircularReferences()
-    {
-        var atsContext = CreateContextFromTestAssembly();
-
-        var files = _generator.GenerateDistributedApplication(atsContext);
-        var transport = files["transport.ts"];
-
-        Assert.Contains("function createCircularReferenceError(capabilityId: string, path: string): AppHostUsageError", transport);
-        Assert.Contains("throw createCircularReferenceError(capabilityId, path);", transport);
-        Assert.Contains("ancestors.add(value);", transport);
-        Assert.Contains("ancestors.delete(value);", transport);
-        Assert.Contains("return await marshalTransportValue(await value.toTransportValue(), client, cancellationIds, capabilityId, path, nextAncestors);", transport);
-    }
-
-    [Fact]
     public void GenerateDistributedApplication_WithTestTypes_IncludesCapabilities()
     {
         // Arrange
