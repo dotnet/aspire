@@ -46,6 +46,7 @@
       "tests\\Aspire.Components.Common.TestUtilities\\Aspire.Components.Common.TestUtilities.csproj",
       "tests\\Aspire.Dashboard.Components.Tests\\Aspire.Dashboard.Components.Tests.csproj",
       "tests\\Aspire.Dashboard.Tests\\Aspire.Dashboard.Tests.csproj",
+      "tests\\Aspire.Deployment.EndToEnd.Tests\\Aspire.Deployment.EndToEnd.Tests.csproj",
       "tests\\Aspire.Hosting.Analyzers.Tests\\Aspire.Hosting.Analyzers.Tests.csproj",
       "tests\\Aspire.Hosting.Containers.Tests\\Aspire.Hosting.Containers.Tests.csproj",
       "tests\\Aspire.Hosting.Testing.Tests\\Aspire.Hosting.Testing.Tests.csproj",
