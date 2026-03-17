@@ -5,27 +5,11 @@
 name: TypeScript SDK Unit Tests
 
 on:
-  pull_request:
-    branches:
-      - main
-      - 'release/**'
-    paths:
-      - 'src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/**'
-      - 'tests/Aspire.Hosting.CodeGeneration.TypeScript.JsTests/**'
-      - '.github/workflows/typescript-sdk-tests.yml'
-
-  push:
-    branches:
-      - main
-      - 'release/**'
-    paths:
-      - 'src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/**'
-      - 'tests/Aspire.Hosting.CodeGeneration.TypeScript.JsTests/**'
-      - '.github/workflows/typescript-sdk-tests.yml'
+  workflow_call:
 
 jobs:
   typescript_unit_tests:
-    name: TypeScript SDK Unit Tests
+    name: TypeScript SDK Tests Job
     runs-on: ubuntu-latest
     timeout-minutes: 5
     defaults:
