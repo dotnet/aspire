@@ -50,24 +50,27 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
             """;
 
         // Create package.json
+        // NOTE: The engines.node constraint must match ESLint 10's own requirement
+        // (^20.19.0 || ^22.13.0 || >=24) to avoid install/runtime failures on unsupported Node versions.
         var packageName = request.ProjectName?.ToLowerInvariant() ?? "aspire-apphost";
         files["package.json"] = $$"""
             {
               "name": "{{packageName}}",
-              "version": "1.0.0",
+              "private": true,
               "type": "module",
               "scripts": {
                 "lint": "eslint apphost.ts",
                 "predev": "npm run lint",
                 "dev": "aspire run",
                 "prebuild": "npm run lint",
-                "build": "tsc"
+                "build": "tsc",
+                "watch": "tsc --watch"
               },
               "dependencies": {
                 "vscode-jsonrpc": "^8.2.0"
               },
               "engines": {
-                "node": ">=20.19.0"
+                "node": "^20.19.0 || ^22.13.0 || >=24"
               },
               "devDependencies": {
                 "@types/node": "^22.0.0",
