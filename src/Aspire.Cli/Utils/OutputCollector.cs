@@ -12,7 +12,6 @@ internal sealed class OutputCollector
     private readonly object _lock = new object();
     private readonly FileLoggerProvider? _fileLogger;
     private readonly string _category;
-    private readonly Action<string, string>? _liveOutputCallback;
 
     /// <summary>
     /// Creates an OutputCollector that only buffers output in memory.
@@ -26,24 +25,28 @@ internal sealed class OutputCollector
     /// </summary>
     /// <param name="fileLogger">Optional file logger for writing output to disk.</param>
     /// <param name="category">Category for log entries (e.g., "Build", "AppHost").</param>
-    /// <param name="liveOutputCallback">Optional callback invoked immediately when a line is appended.</param>
-    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost", Action<string, string>? liveOutputCallback = null)
+    public OutputCollector(FileLoggerProvider? fileLogger, string category = "AppHost")
     {
         _fileLogger = fileLogger;
         _category = category;
-        _liveOutputCallback = liveOutputCallback;
     }
-
-    public bool HasLiveOutputCallback => _liveOutputCallback is not null;
 
     public void AppendOutput(string line)
     {
-        AppendLine("stdout", line);
+        lock (_lock)
+        {
+            _lines.Add(("stdout", line));
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, LogLevel.Information, _category, line);
+        }
     }
 
     public void AppendError(string line)
     {
-        AppendLine("stderr", line);
+        lock (_lock)
+        {
+            _lines.Add(("stderr", line));
+            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, LogLevel.Error, _category, line);
+        }
     }
 
     public IEnumerable<(string Stream, string Line)> GetLines()
@@ -52,16 +55,5 @@ internal sealed class OutputCollector
         {
             return _lines.ToArray();
         }
-    }
-
-    private void AppendLine(string stream, string line)
-    {
-        lock (_lock)
-        {
-            _lines.Add((stream, line));
-            _fileLogger?.WriteLog(DateTimeOffset.UtcNow, stream == "stderr" ? LogLevel.Error : LogLevel.Information, _category, line);
-        }
-
-        _liveOutputCallback?.Invoke(stream, line);
     }
 }

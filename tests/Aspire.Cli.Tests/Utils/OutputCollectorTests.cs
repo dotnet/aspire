@@ -102,22 +102,4 @@ public class OutputCollectorTests
         var finalLines = collector.GetLines().ToList();
         Assert.Equal(100, finalLines.Count);
     }
-
-    [Fact]
-    public void OutputCollector_LiveCallback_ReceivesStdoutAndStderr()
-    {
-        // Arrange
-        var forwardedLines = new List<(string Stream, string Line)>();
-        var collector = new OutputCollector(fileLogger: null, liveOutputCallback: (stream, line) => forwardedLines.Add((stream, line)));
-
-        // Act
-        collector.AppendOutput("hello");
-        collector.AppendError("oops");
-
-        // Assert
-        Assert.True(collector.HasLiveOutputCallback);
-        Assert.Equal(
-            [("stdout", "hello"), ("stderr", "oops")],
-            forwardedLines);
-    }
 }
