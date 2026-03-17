@@ -50,8 +50,7 @@ public class IntegrationAssemblyNameResolverTests
     {
         public TemporaryDirectory()
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"aspire-cli-tests-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(Path);
+            Path = Directory.CreateTempSubdirectory().FullName;
         }
 
         public string Path { get; }
