@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -56,12 +57,15 @@ internal sealed class AspireConfigFile
     /// AppHost entry point configuration.
     /// </summary>
     [JsonPropertyName("appHost")]
+    [Description("AppHost entry point configuration.")]
+    [LocalAspireJsonConfigurationProperty]
     public AspireConfigAppHost? AppHost { get; set; }
 
     /// <summary>
     /// Aspire SDK version configuration.
     /// </summary>
     [JsonPropertyName("sdk")]
+    [Description("Aspire SDK version configuration.")]
     public AspireConfigSdk? Sdk { get; set; }
 
     /// <summary>
@@ -80,24 +84,28 @@ internal sealed class AspireConfigFile
     /// Aspire channel for package resolution.
     /// </summary>
     [JsonPropertyName("channel")]
+    [Description("The Aspire channel to use for package resolution (e.g., \"stable\", \"preview\", \"staging\", \"daily\"). Used by aspire add to determine which NuGet feed to use.")]
     public string? Channel { get; set; }
 
     /// <summary>
     /// Feature flags.
     /// </summary>
     [JsonPropertyName("features")]
+    [Description("Feature flags for enabling/disabling experimental or optional features. Key is feature name, value is enabled (true) or disabled (false).")]
     public Dictionary<string, bool>? Features { get; set; }
 
     /// <summary>
     /// Launch profiles (ports, env vars). Replaces apphost.run.json.
     /// </summary>
     [JsonPropertyName("profiles")]
+    [Description("Launch profiles (ports, environment variables). Replaces apphost.run.json.")]
     public Dictionary<string, AspireConfigProfile>? Profiles { get; set; }
 
     /// <summary>
     /// Package references for non-first-class languages.
     /// </summary>
     [JsonPropertyName("packages")]
+    [Description("Package references for non-first-class languages. Key is package name, value is version. A value ending in \".csproj\" is treated as a project reference.")]
     public Dictionary<string, string>? Packages { get; set; }
 
     /// <summary>
@@ -397,12 +405,14 @@ internal sealed class AspireConfigAppHost
     /// Relative path to the AppHost entry point file.
     /// </summary>
     [JsonPropertyName("path")]
+    [Description("Relative path to the AppHost entry point file (e.g., \"Program.cs\", \"app.ts\"). Relative to the directory containing aspire.config.json.")]
     public string? Path { get; set; }
 
     /// <summary>
     /// Language identifier (e.g., "typescript/nodejs", "python").
     /// </summary>
     [JsonPropertyName("language")]
+    [Description("Language identifier (e.g., \"typescript/nodejs\", \"python\"). Used to determine which runtime to use for execution.")]
     public string? Language { get; set; }
 }
 
@@ -415,6 +425,7 @@ internal sealed class AspireConfigSdk
     /// The Aspire SDK version.
     /// </summary>
     [JsonPropertyName("version")]
+    [Description("The Aspire SDK version. Determines the version of Aspire.Hosting packages to use.")]
     public string? Version { get; set; }
 }
 
@@ -427,11 +438,13 @@ internal sealed class AspireConfigProfile
     /// Application URLs (e.g., "https://localhost:17000;http://localhost:15000").
     /// </summary>
     [JsonPropertyName("applicationUrl")]
+    [Description("Application URLs (e.g., \"https://localhost:17000;http://localhost:15000\").")]
     public string? ApplicationUrl { get; set; }
 
     /// <summary>
     /// Environment variables for this profile.
     /// </summary>
     [JsonPropertyName("environmentVariables")]
+    [Description("Environment variables for this profile.")]
     public Dictionary<string, string>? EnvironmentVariables { get; set; }
 }
