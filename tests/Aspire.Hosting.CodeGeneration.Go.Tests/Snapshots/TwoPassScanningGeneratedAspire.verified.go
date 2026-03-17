@@ -493,21 +493,6 @@ func (s *CSharpAppResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *CSharpAppResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *CSharpAppResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -572,21 +557,6 @@ func (s *CSharpAppResource) WithArgsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *CSharpAppResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -775,21 +745,6 @@ func (s *CSharpAppResource) WithUrlsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *CSharpAppResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1581,21 +1536,6 @@ func (s *ConnectionStringResource) WithUrlsCallback(callback func(...any) any) (
 	return result.(*IResource), nil
 }
 
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ConnectionStringResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
 // WithUrl adds or modifies displayed URLs
 func (s *ConnectionStringResource) WithUrl(url string, displayText string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -2149,21 +2089,6 @@ func (s *ContainerRegistryResource) WithUrlsCallback(callback func(...any) any) 
 	return result.(*IResource), nil
 }
 
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ContainerRegistryResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
 // WithUrl adds or modifies displayed URLs
 func (s *ContainerRegistryResource) WithUrl(url string, displayText string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -2690,21 +2615,6 @@ func (s *ContainerResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ContainerResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ContainerResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -2769,21 +2679,6 @@ func (s *ContainerResource) WithArgsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *ContainerResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -2972,21 +2867,6 @@ func (s *ContainerResource) WithUrlsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ContainerResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -4006,21 +3886,6 @@ func (s *DotnetToolResource) WithEnvironmentCallback(callback func(...any) any) 
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *DotnetToolResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *DotnetToolResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -4085,21 +3950,6 @@ func (s *DotnetToolResource) WithArgsCallback(callback func(...any) any) (*IReso
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *DotnetToolResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -4288,21 +4138,6 @@ func (s *DotnetToolResource) WithUrlsCallback(callback func(...any) any) (*IReso
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *DotnetToolResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -5352,21 +5187,6 @@ func (s *ExecutableResource) WithEnvironmentCallback(callback func(...any) any) 
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ExecutableResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ExecutableResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -5431,21 +5251,6 @@ func (s *ExecutableResource) WithArgsCallback(callback func(...any) any) (*IReso
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *ExecutableResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -5634,21 +5439,6 @@ func (s *ExecutableResource) WithUrlsCallback(callback func(...any) any) (*IReso
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ExecutableResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -6412,21 +6202,6 @@ func (s *ExternalServiceResource) WithUrlsCallback(callback func(...any) any) (*
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ExternalServiceResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -7533,21 +7308,6 @@ func (s *ParameterResource) WithUrlsCallback(callback func(...any) any) (*IResou
 	return result.(*IResource), nil
 }
 
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ParameterResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
 // WithUrl adds or modifies displayed URLs
 func (s *ParameterResource) WithUrl(url string, displayText string) (*IResource, error) {
 	reqArgs := map[string]any{
@@ -8308,21 +8068,6 @@ func (s *ProjectResource) WithEnvironmentCallback(callback func(...any) any) (*I
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ProjectResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ProjectResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -8387,21 +8132,6 @@ func (s *ProjectResource) WithArgsCallback(callback func(...any) any) (*IResourc
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *ProjectResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -8590,21 +8320,6 @@ func (s *ProjectResource) WithUrlsCallback(callback func(...any) any) (*IResourc
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *ProjectResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -10039,21 +9754,6 @@ func (s *TestDatabaseResource) WithEnvironmentCallback(callback func(...any) any
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestDatabaseResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestDatabaseResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -10118,21 +9818,6 @@ func (s *TestDatabaseResource) WithArgsCallback(callback func(...any) any) (*IRe
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *TestDatabaseResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -10321,21 +10006,6 @@ func (s *TestDatabaseResource) WithUrlsCallback(callback func(...any) any) (*IRe
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *TestDatabaseResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -11424,21 +11094,6 @@ func (s *TestRedisResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestRedisResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestRedisResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -11531,21 +11186,6 @@ func (s *TestRedisResource) WithArgsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *TestRedisResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -11734,21 +11374,6 @@ func (s *TestRedisResource) WithUrlsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *TestRedisResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -12998,21 +12623,6 @@ func (s *TestVaultResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestVaultResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestVaultResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -13077,21 +12687,6 @@ func (s *TestVaultResource) WithArgsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithArgs), nil
-}
-
-// WithArgsCallbackAsync sets command-line arguments via async callback
-func (s *TestVaultResource) WithArgsCallbackAsync(callback func(...any) any) (*IResourceWithArgs, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withArgsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -13280,21 +12875,6 @@ func (s *TestVaultResource) WithUrlsCallback(callback func(...any) any) (*IResou
 		reqArgs["callback"] = RegisterCallback(callback)
 	}
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallback", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResource), nil
-}
-
-// WithUrlsCallbackAsync customizes displayed URLs via async callback
-func (s *TestVaultResource) WithUrlsCallbackAsync(callback func(...any) any) (*IResource, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withUrlsCallbackAsync", reqArgs)
 	if err != nil {
 		return nil, err
 	}

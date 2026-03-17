@@ -114,7 +114,15 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
             _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
-            // Step 5: Install dependencies using GuestRuntime
+            // Step 5: Generate SDK code via RPC (must happen before dependency installation
+            // because pylock.toml/requirements.txt reference the generated code directory)
+            await GenerateCodeViaRpcAsync(
+                directory.FullName,
+                rpcClient,
+                language,
+                cancellationToken);
+
+            // Step 6: Install dependencies using GuestRuntime
             var installResult = await _interactionService.ShowStatusAsync(
                 $"Installing {language.DisplayName} dependencies...",
                 () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken),
@@ -123,13 +131,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
             {
                 return;
             }
-
-            // Step 6: Generate SDK code via RPC
-            await GenerateCodeViaRpcAsync(
-                directory.FullName,
-                rpcClient,
-                language,
-                cancellationToken);
 
             // Save channel and language to settings.json
             if (prepareResult.ChannelName is not null)
@@ -166,6 +167,21 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(language.LanguageId.Value, cancellationToken);
         var runtime = new GuestRuntime(runtimeSpec, _logger);
 
+        var (initResult, initOutput) = await runtime.InitializeAsync(directory, cancellationToken);
+        if (initResult != 0)
+        {
+            var lines = initOutput.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to initialize {language.DisplayName} environment.");
+            }
+            return initResult;
+        }
+
         var (result, output) = await runtime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
@@ -183,8 +199,6 @@ internal sealed class ScaffoldingService : IScaffoldingService
         return result;
     }
 
-    private const string GeneratedFolderName = ".modules";
-
     private async Task GenerateCodeViaRpcAsync(
         string directoryPath,
         IAppHostRpcClient rpcClient,
@@ -194,7 +208,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken);
 
         // Write generated files to the output directory
-        var outputPath = Path.Combine(directoryPath, GeneratedFolderName);
+        var outputPath = Path.Combine(directoryPath, LanguageInfo.GeneratedFolderName);
         Directory.CreateDirectory(outputPath);
 
         foreach (var (fileName, content) in generatedFiles)

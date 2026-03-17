@@ -129,6 +129,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             AppHostLanguage.CSharp => KnownLanguageId.CSharp,
             AppHostLanguage.TypeScript => KnownLanguageId.TypeScript,
+            AppHostLanguage.Python => KnownLanguageId.Python,
             null => null,
             _ => null
         };
@@ -147,6 +148,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             KnownLanguageId.CSharp => KnownLanguageId.CSharpDisplayName,
             KnownLanguageId.TypeScript => "TypeScript (Node.js)",
+            KnownLanguageId.Python => KnownLanguageId.PythonDisplayName,
             _ => languageId
         };
     }
@@ -398,7 +400,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private enum AppHostLanguage
     {
         CSharp,
-        TypeScript
+        TypeScript,
+        Python
     }
 }
 

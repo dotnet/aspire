@@ -107,8 +107,9 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                 supportsLanguageCallback: static languageId =>
                     languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
-                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript],
+                    languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase) ||
+                    languageId.Equals(KnownLanguageId.Python, StringComparison.OrdinalIgnoreCase),
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript, KnownLanguageId.Python],
                 isEmpty: true)
         ];
     }
