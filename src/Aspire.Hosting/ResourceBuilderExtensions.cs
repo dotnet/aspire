@@ -32,7 +32,6 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withEnvironment", Description = "Sets an environment variable")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -90,7 +89,6 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">A ReferenceExpression that will be evaluated at runtime.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withEnvironmentExpression", Description = "Adds an environment variable with a reference expression")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : IResourceWithEnvironment
     {
@@ -179,6 +177,57 @@ public static class ResourceBuilderExtensions
         {
             context.EnvironmentVariables[name] = endpointReference;
         });
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource. The value can be a plain string, a
+    /// <see cref="ReferenceExpression"/> built from <c>refExpr</c> template literals, or an
+    /// <see cref="EndpointReference"/> obtained from <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This overload enables polyglot app hosts (TypeScript, Go, etc.) to set environment
+    /// variables using a single <c>withEnvironment</c> method with a union-typed value
+    /// parameter, instead of requiring separate methods for each value type.
+    /// </para>
+    /// <para>
+    /// <strong>Usage from TypeScript:</strong>
+    /// <code>
+    /// // Plain string value
+    /// await api.withEnvironment("MY_VAR", "hello");
+    ///
+    /// // Reference expression with endpoint interpolation
+    /// const endpoint = await redis.getEndpoint("tcp");
+    /// await api.withEnvironment("REDIS_URL", refExpr`redis://${endpoint}:6379`);
+    ///
+    /// // Direct endpoint reference
+    /// await api.withEnvironment("SERVICE_URL", endpoint);
+    /// </code>
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="value">The value of the environment variable. Can be a <see cref="string"/>,
+    /// <see cref="ReferenceExpression"/>, or <see cref="EndpointReference"/>.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a supported type.</exception>
+    [AspireExport("withEnvironment", Description = "Sets an environment variable on the resource")]
+    public static IResourceBuilder<T> WithEnvironment<T>(
+        this IResourceBuilder<T> builder,
+        string name,
+        [AspireUnion(typeof(string), typeof(ReferenceExpression), typeof(EndpointReference))] object value)
+        where T : IResourceWithEnvironment
+    {
+        return value switch
+        {
+            string s => builder.WithEnvironment(name, s),
+            ReferenceExpression expr => builder.WithEnvironment(name, expr),
+            EndpointReference endpoint => builder.WithEnvironment(name, endpoint),
+            _ => throw new ArgumentException(
+                $"Unsupported value type '{value.GetType().Name}'. Expected string, ReferenceExpression, or EndpointReference.",
+                nameof(value))
+        };
     }
 
     /// <summary>
