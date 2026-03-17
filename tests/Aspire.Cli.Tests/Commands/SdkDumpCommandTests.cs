@@ -186,21 +186,22 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public void SdkDumpCi_ForHostingProject_DoesNotEmitWarnings()
     {
+        // Assertions and skips inside the callback are surfaced back to the parent test process.
         using var result = RemoteExecutor.Invoke(async (baseDirectory) =>
         {
-            var repoRoot = FindRepoRoot(baseDirectory);
+            var repoRoot = TryFindRepoRoot(baseDirectory);
+            if (repoRoot is null)
+            {
+                Assert.Skip($"Could not find Aspire.slnx starting from '{baseDirectory}'.");
+                return;
+            }
+
             var projectPath = Path.Combine(repoRoot, "src", "Aspire.Hosting", "Aspire.Hosting.csproj");
             Assert.True(File.Exists(projectPath), $"Could not find Aspire.Hosting project at '{projectPath}'.");
 
-            var outputPath = Path.Combine(Path.GetTempPath(), "aspire-sdk-dump-tests", $"{Guid.NewGuid():N}.txt");
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-
-            var previousCurrentDirectory = Environment.CurrentDirectory;
-            var previousRepoRoot = Environment.GetEnvironmentVariable("ASPIRE_REPO_ROOT");
-            var previousNoLogo = Environment.GetEnvironmentVariable(CliConfigNames.NoLogo);
-            var previousDotNetTelemetry = Environment.GetEnvironmentVariable("DOTNET_CLI_TELEMETRY_OPTOUT");
-            var previousDotNetFirstTime = Environment.GetEnvironmentVariable("DOTNET_SKIP_FIRST_TIME_EXPERIENCE");
-            var previousDotNetCertificate = Environment.GetEnvironmentVariable("DOTNET_GENERATE_ASPNET_CERTIFICATE");
+            var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire-sdk-dump-tests", $"{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDirectory);
+            var outputPath = Path.Combine(tempDirectory, "capabilities.txt");
 
             try
             {
@@ -211,7 +212,7 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
                 Environment.SetEnvironmentVariable("DOTNET_SKIP_FIRST_TIME_EXPERIENCE", "true");
                 Environment.SetEnvironmentVariable("DOTNET_GENERATE_ASPNET_CERTIFICATE", "false");
 
-                var exitCode = await Program.Main(["sdk", "dump", "--format", "ci", "--output", outputPath, projectPath]);
+                var exitCode = await Program.Main(["sdk", "dump", "--format", "ci", "--output", outputPath, projectPath]).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
                 Assert.Equal(ExitCodeConstants.Success, exitCode);
 
                 var output = await File.ReadAllTextAsync(outputPath);
@@ -230,16 +231,9 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
             }
             finally
             {
-                Environment.CurrentDirectory = previousCurrentDirectory;
-                Environment.SetEnvironmentVariable("ASPIRE_REPO_ROOT", previousRepoRoot);
-                Environment.SetEnvironmentVariable(CliConfigNames.NoLogo, previousNoLogo);
-                Environment.SetEnvironmentVariable("DOTNET_CLI_TELEMETRY_OPTOUT", previousDotNetTelemetry);
-                Environment.SetEnvironmentVariable("DOTNET_SKIP_FIRST_TIME_EXPERIENCE", previousDotNetFirstTime);
-                Environment.SetEnvironmentVariable("DOTNET_GENERATE_ASPNET_CERTIFICATE", previousDotNetCertificate);
-
-                if (File.Exists(outputPath))
+                if (Directory.Exists(tempDirectory))
                 {
-                    File.Delete(outputPath);
+                    Directory.Delete(tempDirectory, recursive: true);
                 }
             }
         }, AppContext.BaseDirectory, options: s_remoteInvokeOptions);
@@ -247,7 +241,7 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
         outputHelper.WriteLine(result.Process.StandardOutput.ReadToEnd());
     }
 
-    private static string FindRepoRoot(string startPath)
+    private static string? TryFindRepoRoot(string startPath)
     {
         var currentDirectory = new DirectoryInfo(startPath);
 
@@ -261,6 +255,6 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
             currentDirectory = currentDirectory.Parent;
         }
 
-        throw new InvalidOperationException($"Could not find Aspire.slnx starting from '{startPath}'.");
+        return null;
     }
 }
