@@ -1574,7 +1574,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
     public void DisplaySuccess(string message, bool allowMarkup = false) { }
-    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayLines(IEnumerable<(OutputLineStream Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
     public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)

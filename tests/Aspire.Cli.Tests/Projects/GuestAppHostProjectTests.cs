@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -362,6 +363,7 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
             configurationService: configService,
             features: new Features(configuration, NullLogger<Features>.Instance),
             languageDiscovery: new TestLanguageDiscovery(),
-            logger: NullLogger<GuestAppHostProject>.Instance);
+            logger: NullLogger<GuestAppHostProject>.Instance,
+            fileLoggerProvider: new FileLoggerProvider(Path.Combine(Path.GetTempPath(), $"test-guest-{Guid.NewGuid()}.log"), new TestStartupErrorWriter()));
     }
 }

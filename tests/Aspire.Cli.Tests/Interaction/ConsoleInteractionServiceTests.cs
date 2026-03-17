@@ -112,8 +112,8 @@ public class ConsoleInteractionServiceTests
         var interactionService = CreateInteractionService(console, executionContext);
         var lines = new[]
         {
-            ("stdout", "Command output with <angle> brackets"),
-            ("stderr", "Error output with [square] brackets")
+            (OutputLineStream.StdOut, "Command output with <angle> brackets"),
+            (OutputLineStream.StdErr, "Error output with [square] brackets")
         };
 
         // Act - this should not throw an exception due to markup parsing

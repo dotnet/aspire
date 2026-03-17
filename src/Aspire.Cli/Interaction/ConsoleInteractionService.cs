@@ -286,10 +286,10 @@ internal class ConsoleInteractionService : IInteractionService
         var style = isErrorMessage ? s_errorMessageStyle
             : type switch
             {
-                "waiting" => s_waitingMessageStyle,
-                "running" => s_infoMessageStyle,
-                "exitCode" => s_exitCodeMessageStyle,
-                "failedToStart" => s_errorMessageStyle,
+                ConsoleLogTypes.Waiting => s_waitingMessageStyle,
+                ConsoleLogTypes.Running => s_infoMessageStyle,
+                ConsoleLogTypes.ExitCode => s_exitCodeMessageStyle,
+                ConsoleLogTypes.FailedToStart => s_errorMessageStyle,
                 _ => s_infoMessageStyle
             };
 
@@ -302,11 +302,11 @@ internal class ConsoleInteractionService : IInteractionService
         DisplayMessage(KnownEmojis.CheckMark, message, allowMarkup);
     }
 
-    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
+    public void DisplayLines(IEnumerable<(OutputLineStream Stream, string Line)> lines)
     {
         foreach (var (stream, line) in lines)
         {
-            if (stream == "stdout")
+            if (stream == OutputLineStream.StdOut)
             {
                 MessageConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
             }
