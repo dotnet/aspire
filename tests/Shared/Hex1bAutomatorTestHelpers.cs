@@ -60,29 +60,6 @@ internal static class Hex1bAutomatorTestHelpers
     }
 
     /// <summary>
-    /// Waits for an error prompt matching the current sequence counter and expected exit code.
-    /// </summary>
-    internal static async Task WaitForErrorPromptAsync(
-        this Hex1bTerminalAutomator auto,
-        SequenceCounter counter,
-        int exitCode = 1,
-        TimeSpan? timeout = null)
-    {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(500);
-
-        await auto.WaitUntilAsync(snapshot =>
-        {
-            var errorPromptSearcher = new CellPatternSearcher()
-                .FindPattern(counter.Value.ToString())
-                .RightText($" ERR:{exitCode}] $ ");
-
-            return errorPromptSearcher.Search(snapshot).Count > 0;
-        }, timeout: effectiveTimeout, description: $"error prompt [{counter.Value} ERR:{exitCode}] $");
-
-        counter.Increment();
-    }
-
-    /// <summary>
     /// Waits for a successful command prompt, but fails fast if an error prompt is detected.
     /// </summary>
     internal static async Task WaitForSuccessPromptFailFastAsync(
