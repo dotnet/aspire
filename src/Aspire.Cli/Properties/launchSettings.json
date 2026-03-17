@@ -87,14 +87,6 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
-    "run-typescriptapphost": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "commandLineArgs": "run --isolated -d --project ../../../../../playground/TypeScriptAppHost/apphost.ts",
-      "environmentVariables": {
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
-      }
-    },
     "get-resources": {
       "commandName": "Project",
       "dotnetRunMessages": true,

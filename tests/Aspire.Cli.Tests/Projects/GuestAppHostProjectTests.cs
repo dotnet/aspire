@@ -351,6 +351,8 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
 
         var configuration = new ConfigurationBuilder().Build();
 
+        var logFilePath = Path.Combine(Path.GetTempPath(), $"test-guest-{Guid.NewGuid()}.log");
+
         return new GuestAppHostProject(
             language: language,
             interactionService: new TestInteractionService(),
@@ -364,6 +366,6 @@ public class GuestAppHostProjectTests(ITestOutputHelper outputHelper) : IDisposa
             features: new Features(configuration, NullLogger<Features>.Instance),
             languageDiscovery: new TestLanguageDiscovery(),
             logger: NullLogger<GuestAppHostProject>.Instance,
-            fileLoggerProvider: new FileLoggerProvider(Path.Combine(Path.GetTempPath(), $"test-guest-{Guid.NewGuid()}.log"), new TestStartupErrorWriter()));
+            fileLoggerProvider: new FileLoggerProvider(logFilePath, new TestStartupErrorWriter()));
     }
 }
