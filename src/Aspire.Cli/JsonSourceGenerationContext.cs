@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Mcp.Docs;
@@ -13,7 +14,11 @@ using Aspire.Cli.Utils.EnvironmentChecker;
 
 namespace Aspire.Cli;
 
-[JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    AllowTrailingCommas = true,
+    ReadCommentHandling = JsonCommentHandling.Skip)]
 [JsonSerializable(typeof(CliSettings))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(ListIntegrationsResponse))]
@@ -23,6 +28,8 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(DoctorCheckSummary))]
 [JsonSerializable(typeof(ContainerVersionJson))]
 [JsonSerializable(typeof(AspireJsonConfiguration))]
+[JsonSerializable(typeof(AspireConfigFile))]
+[JsonSerializable(typeof(List<DevCertInfo>))]
 [JsonSerializable(typeof(ConfigInfo))]
 [JsonSerializable(typeof(FeatureInfo))]
 [JsonSerializable(typeof(SettingsSchema))]
@@ -45,6 +52,8 @@ internal partial class JsonSourceGenerationContext : JsonSerializerContext
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     });

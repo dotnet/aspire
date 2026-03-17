@@ -242,9 +242,9 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Only check methods extending IDistributedApplicationBuilder or IResourceBuilder<T>
+        // Only check methods extending exported handle types that participate in ATS.
         var firstParamType = method.Parameters[0].Type;
-        if (!IsBuilderType(firstParamType, wellKnownTypes))
+        if (!RequiresExplicitExportCoverage(firstParamType, wellKnownTypes, aspireExportAttribute))
         {
             return;
         }
@@ -543,6 +543,16 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    private static bool RequiresExplicitExportCoverage(
+        ITypeSymbol type,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
+    {
+        return IsBuilderType(type, wellKnownTypes) ||
+               IsResourceType(type, wellKnownTypes) ||
+               HasAspireExportAttribute(type, aspireExportAttribute);
     }
 
     private static string? GetIncompatibilityReason(
@@ -1105,6 +1115,50 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
             {
+                return true;
+            }
+        }
+
+        var containingAssembly = type.ContainingAssembly;
+        if (containingAssembly is null)
+        {
+            return false;
+        }
+
+        foreach (var attr in containingAssembly.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                continue;
+            }
+
+            if (TryGetAssemblyExportedType(attr, out var exportedType) &&
+                SymbolEqualityComparer.Default.Equals(type, exportedType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetAssemblyExportedType(AttributeData attribute, out ITypeSymbol? exportedType)
+    {
+        exportedType = null;
+
+        if (attribute.ConstructorArguments.Length > 0 &&
+            attribute.ConstructorArguments[0].Value is ITypeSymbol constructorType)
+        {
+            exportedType = constructorType;
+            return true;
+        }
+
+        foreach (var namedArgument in attribute.NamedArguments)
+        {
+            if (namedArgument.Key == "Type" &&
+                namedArgument.Value.Value is ITypeSymbol namedType)
+            {
+                exportedType = namedType;
                 return true;
             }
         }

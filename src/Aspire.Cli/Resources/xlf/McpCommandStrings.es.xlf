@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage MCP (Model Context Protocol) server. (deprecated, use 'agent')</source>
-        <target state="translated">Administrar el servidor MCP (protocolo de contexto de modelo). (en desuso, use ''agent'')</target>
+        <source>Interact with MCP (Model Context Protocol) tools exposed by Aspire resources.</source>
+        <target state="needs-review-translation">Administrar el servidor MCP (protocolo de contexto de modelo). (en desuso, use ''agent'')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">

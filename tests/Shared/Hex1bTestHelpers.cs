@@ -52,10 +52,16 @@ internal enum AspireTemplate
     PythonReact,
 
     /// <summary>
-    /// Empty AppHost — 5th option.
-    /// Prompts: template, language (C#), project name, output path, URLs. No Redis or test project prompt.
+    /// Empty (C# AppHost) — 5th option.
+    /// Prompts: template, project name, output path, URLs. No language, Redis, or test project prompt.
     /// </summary>
     EmptyAppHost,
+
+    /// <summary>
+    /// Empty (TypeScript AppHost) — 6th option.
+    /// Prompts: template, project name, output path, URLs. No language, Redis, or test project prompt.
+    /// </summary>
+    TypeScriptEmptyAppHost,
 }
 
 /// <summary>
@@ -115,6 +121,28 @@ internal static class Hex1bTestHelpers
 
         Directory.CreateDirectory(recordingsDir);
         return Path.Combine(recordingsDir, $"{testName}.cast");
+    }
+
+    /// <summary>
+    /// Prepares a non-Docker terminal environment with prompt counting and workspace navigation.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string workspacePath,
+        SequenceCounter counter)
+    {
+        var waitingForInputPattern = new CellPatternSearcher()
+            .Find("b").RightUntil("$").Right(' ').Right(' ');
+
+        return builder
+            .WaitUntil(s => waitingForInputPattern.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+            .Wait(500)
+            .Type("CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type($"cd {workspacePath}")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 
     /// <summary>
@@ -564,6 +592,19 @@ internal static class Hex1bTestHelpers
             .Type(command)
             .Enter()
             .WaitForSuccessPromptFailFast(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Sources the Aspire CLI environment after installation.
+    /// </summary>
+    internal static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        SequenceCounter counter)
+    {
+        return builder
+            .Type("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
+            .Enter()
+            .WaitForSuccessPrompt(counter);
     }
 
     /// <summary>

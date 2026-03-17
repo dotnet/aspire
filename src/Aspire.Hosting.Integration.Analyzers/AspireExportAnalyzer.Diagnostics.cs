@@ -84,8 +84,8 @@ public partial class AspireExportAnalyzer
         private const string MissingExportAttributeId = "ASPIREEXPORT008";
         internal static readonly DiagnosticDescriptor s_missingExportAttribute = new(
             id: MissingExportAttributeId,
-            title: "Extension method missing AspireExport or AspireExportIgnore attribute",
-            messageFormat: "Extension method '{0}' on builder type is missing [AspireExport] or [AspireExportIgnore]: {1}",
+            title: "Extension method on exported type missing AspireExport or AspireExportIgnore attribute",
+            messageFormat: "Extension method '{0}' on exported type is missing [AspireExport] or [AspireExportIgnore]: {1}",
             category: "Design",
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,

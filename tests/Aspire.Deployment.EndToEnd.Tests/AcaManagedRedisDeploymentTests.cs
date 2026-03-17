@@ -102,7 +102,7 @@ public sealed class AcaManagedRedisDeploymentTests(ITestOutputHelper output)
 
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
-            sequenceBuilder.PrepareEnvironment(workspace, counter);
+            sequenceBuilder.PrepareEnvironment(workspace.WorkspaceRoot.FullName, counter);
 
             // Step 1b: Register Microsoft.Cache provider (required for Azure Managed Redis zone support)
             output.WriteLine("Step 1b: Registering Microsoft.Cache resource provider...");
