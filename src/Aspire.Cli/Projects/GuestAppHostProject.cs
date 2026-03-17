@@ -7,6 +7,7 @@ using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
@@ -40,6 +41,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private readonly IFeatures _features;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly ILogger<GuestAppHostProject> _logger;
+    private readonly FileLoggerProvider _fileLoggerProvider;
     private readonly TimeProvider _timeProvider;
     private readonly RunningInstanceManager _runningInstanceManager;
 
@@ -60,6 +62,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         IFeatures features,
         ILanguageDiscovery languageDiscovery,
         ILogger<GuestAppHostProject> logger,
+        FileLoggerProvider fileLoggerProvider,
         TimeProvider? timeProvider = null)
     {
         _resolvedLanguage = language;
@@ -74,6 +77,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         _features = features;
         _languageDiscovery = languageDiscovery;
         _logger = logger;
+        _fileLoggerProvider = fileLoggerProvider;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
@@ -504,10 +508,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
             else
             {
-                launcher = _guestRuntime.CreateDefaultLauncher((stream, line) => _interactionService.WriteConsoleLog(
-                    line,
-                    type: "running",
-                    isErrorMessage: stream == "stderr"));
+                launcher = _guestRuntime.CreateDefaultLauncher();
             }
 
             // Start guest apphost - it will connect to AppHost server, define resources.
@@ -528,7 +529,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                if (guestOutput is { HasLiveOutputCallback: false })
+                if (guestOutput is not null)
                 {
                     _interactionService.DisplayLines(guestOutput.GetLines());
                 }
@@ -1278,7 +1279,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         if (_guestRuntime is null)
         {
             var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(_resolvedLanguage.LanguageId, cancellationToken);
-            _guestRuntime = new GuestRuntime(runtimeSpec, _logger);
+            _guestRuntime = new GuestRuntime(runtimeSpec, _logger, _fileLoggerProvider);
 
             _logger.LogDebug("Created GuestRuntime for {Language}: Execute={Command} {Args}",
                 _resolvedLanguage.LanguageId,
