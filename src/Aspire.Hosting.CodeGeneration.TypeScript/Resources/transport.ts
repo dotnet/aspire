@@ -127,6 +127,13 @@ function createAbortError(message: string): Error {
     return error;
 }
 
+function createCircularReferenceError(capabilityId: string, path: string): AppHostUsageError {
+    return new AppHostUsageError(
+        `Argument '${path}' passed to capability '${capabilityId}' contains a circular reference. ` +
+        'Circular references are not supported by the AppHost transport.'
+    );
+}
+
 // ============================================================================
 // Handle
 // ============================================================================
@@ -375,9 +382,7 @@ function validateCapabilityArgs(
         return;
     }
 
-    const seen = new Set<object>();
-
-    const validateValue = (value: unknown, path: string): void => {
+    const validateValue = (value: unknown, path: string, ancestors: Set<object>): void => {
         if (value === null || value === undefined) {
             return;
         }
@@ -394,26 +399,29 @@ function validateCapabilityArgs(
             return;
         }
 
-        if (seen.has(value)) {
-            return;
+        if (ancestors.has(value)) {
+            throw createCircularReferenceError(capabilityId, path);
         }
 
-        seen.add(value);
-
-        if (Array.isArray(value)) {
-            for (let i = 0; i < value.length; i++) {
-                validateValue(value[i], `${path}[${i}]`);
+        ancestors.add(value);
+        try {
+            if (Array.isArray(value)) {
+                for (let i = 0; i < value.length; i++) {
+                    validateValue(value[i], `${path}[${i}]`, ancestors);
+                }
+                return;
             }
-            return;
-        }
 
-        for (const [key, nestedValue] of Object.entries(value)) {
-            validateValue(nestedValue, `${path}.${key}`);
+            for (const [key, nestedValue] of Object.entries(value)) {
+                validateValue(nestedValue, `${path}.${key}`, ancestors);
+            }
+        } finally {
+            ancestors.delete(value);
         }
     };
 
     for (const [key, value] of Object.entries(args)) {
-        validateValue(value, key);
+        validateValue(value, key, new Set<object>());
     }
 }
 
@@ -632,7 +640,10 @@ export function registerCancellation(
 async function marshalTransportValue(
     value: unknown,
     client: AspireClient,
-    cancellationIds: string[]
+    cancellationIds: string[],
+    capabilityId: string,
+    path: string = 'args',
+    ancestors: Set<object> = new Set<object>()
 ): Promise<unknown> {
     if (value === null || value === undefined || typeof value !== 'object') {
         return value;
@@ -647,18 +658,27 @@ async function marshalTransportValue(
         return cancellationId;
     }
 
+    if (ancestors.has(value)) {
+        throw createCircularReferenceError(capabilityId, path);
+    }
+
+    const nextAncestors = new Set(ancestors);
+    nextAncestors.add(value);
+
     if (hasTransportValue(value)) {
-        return await marshalTransportValue(await value.toTransportValue(), client, cancellationIds);
+        return await marshalTransportValue(await value.toTransportValue(), client, cancellationIds, capabilityId, path, nextAncestors);
     }
 
     if (Array.isArray(value)) {
-        return await Promise.all(value.map(item => marshalTransportValue(item, client, cancellationIds)));
+        return await Promise.all(
+            value.map((item, index) => marshalTransportValue(item, client, cancellationIds, capabilityId, `${path}[${index}]`, nextAncestors))
+        );
     }
 
     if (isPlainObject(value)) {
         const entries = await Promise.all(
             Object.entries(value).map(async ([key, nestedValue]) =>
-                [key, await marshalTransportValue(nestedValue, client, cancellationIds)] as const)
+                [key, await marshalTransportValue(nestedValue, client, cancellationIds, capabilityId, `${path}.${key}`, nextAncestors)] as const)
         );
 
         return Object.fromEntries(entries);
@@ -911,7 +931,7 @@ export class AspireClient {
         const cancellationIds: string[] = [];
 
         try {
-            const rpcArgs = await marshalTransportValue(args ?? null, this, cancellationIds);
+            const rpcArgs = await marshalTransportValue(args ?? null, this, cancellationIds, capabilityId);
 
             // Ref counting: The vscode-jsonrpc socket keeps Node's event loop alive.
             // We ref() during RPC calls so the process doesn't exit mid-call, and
