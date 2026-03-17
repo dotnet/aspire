@@ -41,7 +41,7 @@ It is intentionally conservative:
 - The matched-job count limits remain an eligibility gate: once the run is eligible, GitHub reruns all failed jobs for that attempt.
 - The workflow summary clearly states whether reruns were skipped, are eligible, or were requested, and links to the analyzed workflow run.
 - When reruns are requested, the rerun summary also links to both the failed attempt and the rerun attempt, plus any posted pull request comments.
-- After successful rerun requests, the workflow comments on the open associated pull request with links to the failed attempt, the rerun attempt, and the matched failed-attempt jobs and retry reasons that made the run eligible.
+- After successful rerun requests, the workflow comments on the open associated pull request that the failed jobs in the CI workflow are being rerun, with links to the failed attempt, the rerun attempt, and the matched failed-attempt jobs and retry reasons that made the run eligible.
 
 ## Tests
 
