@@ -11,12 +11,10 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
-/// Checks if the dotnet dev-certs HTTPS certificate is trusted and detects multiple certificates.
+/// Checks if the HTTPS development certificate is trusted and detects multiple certificates.
 /// </summary>
 internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateToolRunner certificateToolRunner) : IEnvironmentCheck
 {
-    private const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
-
     public int Order => 35; // After SDK check (30), before container checks (40+)
 
     private static readonly string s_trustFixCommand = string.Format(CultureInfo.InvariantCulture, DoctorCommandStrings.DevCertsTrustFixFormat, "aspire certs trust");
@@ -154,7 +152,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
         else if (partiallyTrustedCount > 0 && fullyTrustedCount == 0)
         {
             // Certificate is partially trusted (Linux with SSL_CERT_DIR not configured)
-            var devCertsTrustPath = GetDevCertsTrustPath();
+            var devCertsTrustPath = CertificateHelpers.GetDevCertsTrustPath();
             results.Add(new EnvironmentCheckResult
             {
                 Category = "environment",
@@ -225,40 +223,35 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger, ICertificateT
     }
 
     /// <summary>
-    /// Gets the dev-certs trust path, respecting the DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY override.
-    /// </summary>
-    private static string GetDevCertsTrustPath()
-    {
-        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
-        return !string.IsNullOrEmpty(overridePath)
-            ? overridePath
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspnet", "dev-certs", "trust");
-    }
-
-    /// <summary>
     /// Builds the appropriate shell command for fixing SSL_CERT_DIR configuration.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Always includes <c>$SSL_CERT_DIR</c> to preserve any existing value. If the variable
-    /// is unset, the empty expansion produces a harmless leading colon which OpenSSL treats
-    /// as the default certificate directory.
+    /// When <c>SSL_CERT_DIR</c> is already set, only the dev-certs trust path is appended
+    /// (preserving the existing value via <c>$SSL_CERT_DIR</c> shell expansion). When it is
+    /// not set, the command includes system certificate directories so they are not lost.
     /// </para>
     /// <para>
-    /// When possible, also includes the system OpenSSL certificate directory detected via
-    /// 'openssl version -d' (mirrors UnixCertificateManager.TryGetOpenSslDirectory).
+    /// Includes system certificate directories detected via OpenSSL or well-known fallback
+    /// locations, matching the behavior of <see cref="Aspire.Cli.Certificates.CertificateService"/>.
     /// </para>
     /// </remarks>
     private static string BuildSslCertDirFixCommand(string devCertsTrustPath)
     {
-        // Always prepend $SSL_CERT_DIR to preserve any existing value.
-        // If unset, the empty expansion is harmless.
-        if (CertificateHelpers.TryGetOpenSslDirectory(out var openSslDir))
+        var currentSslCertDir = Environment.GetEnvironmentVariable("SSL_CERT_DIR");
+
+        if (!string.IsNullOrEmpty(currentSslCertDir))
         {
-            var systemCertsPath = Path.Combine(openSslDir, "certs");
-            return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{systemCertsPath}:{devCertsTrustPath}\"";
+            // SSL_CERT_DIR is already set — just append the dev-certs trust path.
+            // Preserve the existing value via $SSL_CERT_DIR shell expansion.
+            return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{devCertsTrustPath}\"";
         }
 
-        return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{devCertsTrustPath}\"";
+        // SSL_CERT_DIR is not set — include system cert directories so they aren't lost.
+        var systemCertDirs = CertificateHelpers.GetSystemCertificateDirectories();
+        systemCertDirs.Add(devCertsTrustPath);
+
+        // We still prepend $SSL_CERT_DIR to be safe in case the user makes later modifications to their environment
+        return $"export SSL_CERT_DIR=\"$SSL_CERT_DIR:{string.Join(':', systemCertDirs)}\"";
     }
 }
