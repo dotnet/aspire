@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Aspire.Cli.Configuration;
 
 namespace Aspire.Cli.NuGet;
 
@@ -16,11 +17,15 @@ internal static class NuGetSignatureVerificationEnabler
     /// <summary>
     /// Gets the environment variables needed for NuGet signature verification.
     /// On Linux, sets DOTNET_NUGET_SIGNATURE_VERIFICATION to "true" unless the user
-    /// has explicitly set it to "false".
+    /// has explicitly set it to "false". The behavior can be disabled via the
+    /// <see cref="KnownFeatures.NuGetSignatureVerificationEnabled"/> feature flag.
     /// </summary>
-    public static Dictionary<string, string>? GetEnvironmentVariables()
+    public static Dictionary<string, string>? GetEnvironmentVariables(IFeatures features)
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+            !features.IsFeatureEnabled(
+                KnownFeatures.NuGetSignatureVerificationEnabled,
+                KnownFeatures.GetFeatureMetadata(KnownFeatures.NuGetSignatureVerificationEnabled)!.DefaultValue))
         {
             return null;
         }
