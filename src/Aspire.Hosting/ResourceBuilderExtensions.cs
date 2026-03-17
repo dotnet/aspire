@@ -130,7 +130,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withEnvironmentCallback", Description = "Sets environment variables via callback")]
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the async callback overload.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -146,7 +146,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("withEnvironmentCallbackAsync", Description = "Sets environment variables via async callback")]
+    [AspireExport("withEnvironmentCallback", Description = "Sets environment variables via callback")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -181,8 +181,10 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Adds an environment variable to the resource. The value can be a plain string, a
-    /// <see cref="ReferenceExpression"/> built from <c>refExpr</c> template literals, or an
-    /// <see cref="EndpointReference"/> obtained from <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// <see cref="ReferenceExpression"/> built from <c>refExpr</c> template literals, an
+    /// <see cref="EndpointReference"/> obtained from <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>,
+    /// a <see cref="ParameterResource"/>, a connection string resource, or any object
+    /// implementing <see cref="IValueProvider"/> (such as <c>BicepOutputReference</c>).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -202,6 +204,15 @@ public static class ResourceBuilderExtensions
     ///
     /// // Direct endpoint reference
     /// await api.withEnvironment("SERVICE_URL", endpoint);
+    ///
+    /// // Parameter resource
+    /// await api.withEnvironment("API_KEY", apiKeyParam);
+    ///
+    /// // Connection string resource
+    /// await api.withEnvironment("DB_CONN", postgres);
+    ///
+    /// // Bicep output or other IValueProvider
+    /// await api.withEnvironment("IDENTITY_ID", identity.clientId);
     /// </code>
     /// </para>
     /// </remarks>
@@ -209,14 +220,16 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable. Can be a <see cref="string"/>,
-    /// <see cref="ReferenceExpression"/>, or <see cref="EndpointReference"/>.</param>
+    /// <see cref="ReferenceExpression"/>, <see cref="EndpointReference"/>,
+    /// <see cref="IResourceBuilder{ParameterResource}"/>, <see cref="IResourceBuilder{IResourceWithConnectionString}"/>,
+    /// or any <see cref="IValueProvider"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a supported type.</exception>
     [AspireExport("withEnvironment", Description = "Sets an environment variable on the resource")]
     public static IResourceBuilder<T> WithEnvironment<T>(
         this IResourceBuilder<T> builder,
         string name,
-        [AspireUnion(typeof(string), typeof(ReferenceExpression), typeof(EndpointReference))] object value)
+        [AspireUnion(typeof(string), typeof(ReferenceExpression), typeof(EndpointReference), typeof(IResourceBuilder<ParameterResource>), typeof(IResourceBuilder<IResourceWithConnectionString>))] object value)
         where T : IResourceWithEnvironment
     {
         return value switch
@@ -224,10 +237,27 @@ public static class ResourceBuilderExtensions
             string s => builder.WithEnvironment(name, s),
             ReferenceExpression expr => builder.WithEnvironment(name, expr),
             EndpointReference endpoint => builder.WithEnvironment(name, endpoint),
+            IResourceBuilder<ParameterResource> param => builder.WithEnvironment(name, param),
+            IResourceBuilder<IResourceWithConnectionString> connStr => builder.WithEnvironment(name, connStr),
+            IValueProvider and IManifestExpressionProvider => WithEnvironmentValueProvider(builder, name, value),
             _ => throw new ArgumentException(
-                $"Unsupported value type '{value.GetType().Name}'. Expected string, ReferenceExpression, or EndpointReference.",
+                $"Unsupported value type '{value.GetType().Name}'. Expected string, ReferenceExpression, EndpointReference, ParameterResource, connection string resource, or an IValueProvider.",
                 nameof(value))
         };
+    }
+
+    private static IResourceBuilder<T> WithEnvironmentValueProvider<T>(IResourceBuilder<T> builder, string name, object value)
+        where T : IResourceWithEnvironment
+    {
+        if (value is IValueWithReferences valueWithReferences)
+        {
+            WalkAndLinkResourceReferences(builder, valueWithReferences.References);
+        }
+
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[name] = value;
+        });
     }
 
     /// <summary>
