@@ -44,9 +44,9 @@ const csharpPlayer = await builder
 const gamemaster = await builder
     .addCSharpApp("gamemaster", "./gamemaster/gamemaster.cs")
     .withReference(gameDb)
-    .withServiceReference(pythonPlayer)
-    .withServiceReference(nodePlayer)
-    .withServiceReference(csharpPlayer)
+    .withReference(pythonPlayer)
+    .withReference(nodePlayer)
+    .withReference(csharpPlayer)
     .waitFor(gameDb)
     .waitFor(pythonPlayer)
     .waitFor(nodePlayer)
@@ -74,7 +74,7 @@ const gamemaster = await builder
 // Proxies /api requests to the Game Master via Vite dev server.
 await builder
     .addViteApp("arena", "./arena-frontend")
-    .withServiceReference(gamemaster)
+    .withReference(gamemaster)
     .waitFor(gamemaster)
     .withExternalHttpEndpoints()
     .withBrowserDebugger();
