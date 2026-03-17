@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CA1852 // DispatchProxy classes can't be sealed
+
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using NuGet.Packaging.Signing;
@@ -129,7 +131,7 @@ internal static class TrustedRootsHelper
 /// DispatchProxy that implements NuGet's internal IX509ChainFactory interface.
 /// Creates X509Chain instances configured with custom root trust using embedded certificates.
 /// </summary>
-internal sealed class ChainFactoryDispatchProxy : DispatchProxy
+internal class ChainFactoryDispatchProxy : DispatchProxy
 {
     private X509Certificate2Collection _certificates = [];
     private Type _chainInterfaceType = null!;
@@ -139,11 +141,7 @@ internal sealed class ChainFactoryDispatchProxy : DispatchProxy
         Type chainInterfaceType,
         X509Certificate2Collection certificates)
     {
-        // DispatchProxy.Create<TInterface, TProxy>() via reflection since IX509ChainFactory is internal
-        var proxy = (ChainFactoryDispatchProxy)typeof(DispatchProxy)
-            .GetMethod(nameof(DispatchProxy.Create))!
-            .MakeGenericMethod(chainFactoryInterfaceType, typeof(ChainFactoryDispatchProxy))
-            .Invoke(null, null)!;
+        var proxy = (ChainFactoryDispatchProxy)Create(chainFactoryInterfaceType, typeof(ChainFactoryDispatchProxy));
 
         proxy._certificates = certificates;
         proxy._chainInterfaceType = chainInterfaceType;
@@ -172,7 +170,7 @@ internal sealed class ChainFactoryDispatchProxy : DispatchProxy
 /// DispatchProxy that implements NuGet's internal IX509Chain interface.
 /// Wraps an X509Chain configured with CustomRootTrust mode.
 /// </summary>
-internal sealed class ChainDispatchProxy : DispatchProxy, IDisposable
+internal class ChainDispatchProxy : DispatchProxy
 {
     private readonly X509Chain _chain = new();
 
@@ -180,10 +178,7 @@ internal sealed class ChainDispatchProxy : DispatchProxy, IDisposable
         Type chainInterfaceType,
         X509Certificate2Collection certificates)
     {
-        var proxy = (ChainDispatchProxy)typeof(DispatchProxy)
-            .GetMethod(nameof(DispatchProxy.Create))!
-            .MakeGenericMethod(chainInterfaceType, typeof(ChainDispatchProxy))
-            .Invoke(null, null)!;
+        var proxy = (ChainDispatchProxy)Create(chainInterfaceType, typeof(ChainDispatchProxy));
 
         proxy._chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
         proxy._chain.ChainPolicy.CustomTrustStore.AddRange(certificates);
@@ -195,7 +190,7 @@ internal sealed class ChainDispatchProxy : DispatchProxy, IDisposable
         return targetMethod?.Name switch
         {
             "Build" => Build((X509Certificate2)args![0]!),
-            "Dispose" => DoDispose(),
+            "Dispose" => Dispose(),
             "get_ChainElements" => _chain.ChainElements,
             "get_ChainPolicy" => _chain.ChainPolicy,
             "get_ChainStatus" => _chain.ChainStatus,
@@ -210,14 +205,9 @@ internal sealed class ChainDispatchProxy : DispatchProxy, IDisposable
         return _chain.Build(certificate);
     }
 
-    private object? DoDispose()
+    private object? Dispose()
     {
         _chain.Dispose();
         return null;
-    }
-
-    public void Dispose()
-    {
-        _chain.Dispose();
     }
 }
