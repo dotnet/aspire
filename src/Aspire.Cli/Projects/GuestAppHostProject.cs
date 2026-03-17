@@ -690,12 +690,12 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 return null;
             }
 
-            _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
+            _logger.LogDebug("Read {Count} environment variables from {ConfigPath}", result.Count, configPath);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to read launchSettings.json");
+            _logger.LogWarning(ex, "Failed to read {ConfigPath}", configPath);
             return null;
         }
     }
