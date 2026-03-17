@@ -881,18 +881,14 @@ public class ConsoleInteractionServiceTests
 
         // Verify the bracket-containing subscriptions render with brackets replaced
         var prodOutput = safeFormatter(subscriptions[0]);
-        Assert.Contains("MSFT-Provisioning-01(Prod)", prodOutput);
-        Assert.Contains("0832b3b6", prodOutput);
-        // Must NOT contain raw square brackets
-        Assert.DoesNotContain("[", prodOutput);
-        Assert.DoesNotContain("]", prodOutput);
+        Assert.Equal("MSFT-Provisioning-01(Prod) (0832b3b6-22b3-4c47-8d8b-572054b97257)", prodOutput);
 
         var devOutput = safeFormatter(subscriptions[2]);
-        Assert.Contains("(Dev) Test Environment", devOutput);
+        Assert.Equal("(Dev) Test Environment (00000000-0000-0000-0000-000000000003)", devOutput);
 
         // Normal subscription without brackets should be unchanged
         var normalOutput = safeFormatter(subscriptions[1]);
-        Assert.Contains("Normal Subscription", normalOutput);
+        Assert.Equal("Normal Subscription (00000000-0000-0000-0000-000000000002)", normalOutput);
     }
 
     [Fact]
@@ -910,10 +906,7 @@ public class ConsoleInteractionServiceTests
         var result = safeFormatter("PostgreSQL");
 
         // Assert - the [bold] markup is stripped, brackets replaced with parens
-        Assert.Contains("PostgreSQL", result);
-        Assert.Contains("(description)", result);
-        Assert.DoesNotContain("[bold]", result);
-        Assert.DoesNotContain("[", result);
+        Assert.Equal("PostgreSQL (description)", result);
     }
 
     [Fact]
@@ -1006,10 +999,7 @@ public class ConsoleInteractionServiceTests
 
         // Assert - inner [[v2]] has double brackets which after EscapeMarkup become [[[[v2]]]]
         // Markup.Remove strips the escaping, then brackets are replaced
-        Assert.DoesNotContain("[", result);
-        Assert.DoesNotContain("]", result);
-        Assert.Contains("v2", result);
-        Assert.Contains("Beta", result);
+        Assert.Equal("Service ((v2)) (Beta)", result);
     }
 
     [Fact]
@@ -1022,14 +1012,13 @@ public class ConsoleInteractionServiceTests
 
         // Act & Assert - should not throw, brackets replaced via fallback
         var result1 = safeFormatter("[unclosed bracket");
-        Assert.DoesNotContain("[", result1);
+        Assert.Equal("(unclosed bracket", result1);
 
         var result2 = safeFormatter("extra closing]");
-        Assert.DoesNotContain("]", result2);
+        Assert.Equal("extra closing)", result2);
 
         var result3 = safeFormatter("][backwards][");
-        Assert.DoesNotContain("[", result3);
-        Assert.DoesNotContain("]", result3);
+        Assert.Equal(")(backwards)(", result3);
     }
 
     [Fact]
@@ -1046,9 +1035,6 @@ public class ConsoleInteractionServiceTests
         var result = safeFormatter("Service [Prod]");
 
         // Assert - markup is stripped, brackets in data are replaced
-        Assert.Contains("Service (Prod)", result);
-        Assert.DoesNotContain("[bold]", result);
-        Assert.DoesNotContain("[", result);
-        Assert.DoesNotContain("]", result);
+        Assert.Equal("Service (Prod)", result);
     }
 }

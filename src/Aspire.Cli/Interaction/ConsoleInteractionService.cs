@@ -247,6 +247,11 @@ internal class ConsoleInteractionService : IInteractionService
     /// text and then replaces square brackets with parentheses so that Spectre never
     /// encounters bracket characters in the display text.
     /// </summary>
+    /// <remarks>
+    /// This is a workaround for https://github.com/spectreconsole/spectre.console/issues/2054.
+    /// Once the upstream fix is available, this method should be removed and callers should
+    /// use EscapeMarkup() directly. See https://github.com/dotnet/aspire/issues/15309.
+    /// </remarks>
     internal static Func<T, string> MakeSafeFormatter<T>(Func<T, string> choiceFormatter)
     {
         return item =>
