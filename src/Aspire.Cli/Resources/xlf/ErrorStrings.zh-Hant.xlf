@@ -107,6 +107,11 @@
         <target state="translated">無法搜尋套件。結束代碼: {0}。</target>
         <note>{0} is a number</note>
       </trans-unit>
+      <trans-unit id="InvalidJsonInConfigFile">
+        <source>The configuration file '{0}' contains invalid JSON: {1}</source>
+        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <note>{0} is the file path, {1} is the exception message</note>
+      </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
         <source>Invalid locale {0} provided will not be used.</source>
         <target state="translated">提供的無效地區設定 {0} 將不會被使用。</target>

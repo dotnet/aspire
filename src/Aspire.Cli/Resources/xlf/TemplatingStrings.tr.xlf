@@ -7,6 +7,11 @@
         <target state="translated">AppHost</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireEmptyDotNetTemplate_Description">
+        <source>Empty (C# AppHost, dotnet template)</source>
+        <target state="new">Empty (C# AppHost, dotnet template)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireEmpty_Description">
         <source>AppHost and service defaults</source>
         <target state="translated">AppHost ve hizmet varsayılanları</target>

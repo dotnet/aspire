@@ -68,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DevCertsOldVersionDetailsFormat">
-        <source>Older certificate versions (&lt; v{0}) may not support container trust scenarios.</source>
-        <target state="new">Older certificate versions (&lt; v{0}) may not support container trust scenarios.</target>
+        <source>Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</source>
+        <target state="new">Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsOldVersionMessageFormat">
