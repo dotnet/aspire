@@ -12,6 +12,34 @@ namespace Aspire.Tests.Shared;
 internal static class Hex1bAutomatorTestHelpers
 {
     /// <summary>
+    /// Handles the optional language-selection prompt that may appear after choosing
+    /// certain templates (e.g., legacy "Empty AppHost" flows). If the prompt
+    /// "Which language would you like to use?" appears within a short timeout, this
+    /// method accepts the default selection by sending Enter. If no such prompt
+    /// appears, this method is a no-op.
+    /// </summary>
+    private static async Task HandleOptionalLanguagePromptAsync(Hex1bTerminalAutomator auto)
+    {
+        const string languagePromptText = "Which language would you like to use?";
+
+        try
+        {
+            await auto.WaitUntilAsync(
+                s => new CellPatternSearcher().Find(languagePromptText).Search(s).Count > 0,
+                timeout: TimeSpan.FromSeconds(2),
+                description: "optional language selection prompt");
+
+            // If we reach this point without a timeout, the prompt is present; accept
+            // the default language (e.g., C#) by pressing Enter.
+            await auto.EnterAsync();
+        }
+        catch (TimeoutException)
+        {
+            // No language prompt appeared within the timeout; proceed without action.
+        }
+    }
+
+    /// <summary>
     /// Waits for a shell success prompt matching the current sequence counter value,
     /// then increments the counter. Looks for the pattern: [N OK] $
     /// </summary>
@@ -244,10 +272,28 @@ internal static class Hex1bAutomatorTestHelpers
                 await auto.DownAsync();
                 await auto.DownAsync();
                 await auto.WaitUntilAsync(
-                    s => new CellPatternSearcher().Find("> Empty (C# AppHost)").Search(s).Count > 0,
+                    s =>
+                    {
+                        // Support both the new label and the legacy "Empty AppHost" label.
+                        var newLabelMatch = new CellPatternSearcher()
+                            .Find("> Empty (C# AppHost)")
+                            .Search(s).Count > 0;
+
+                        if (newLabelMatch)
+                        {
+                            return true;
+                        }
+
+                        var legacyLabelMatch = new CellPatternSearcher()
+                            .Find("> Empty AppHost")
+                            .Search(s).Count > 0;
+
+                        return legacyLabelMatch;
+                    },
                     timeout: TimeSpan.FromSeconds(5),
                     description: "Empty AppHost template selected");
                 await auto.EnterAsync();
+                await HandleOptionalLanguagePromptAsync(auto);
                 break;
 
             case AspireTemplate.EmptyTypeScriptAppHost:
