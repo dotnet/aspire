@@ -15,13 +15,13 @@ namespace Aspire.Cli.EndToEnd.Tests;
 public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task CreateEmptyAppHostProject()
+    public async Task CreateAndRunEmptyAppHostProject()
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
         var workspace = TemporaryWorkspace.Create(output);
 
-        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, workspace: workspace);
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, installMode, output, mountDockerSocket: true, workspace: workspace);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -33,7 +33,14 @@ public sealed class EmptyAppHostTemplateTests(ITestOutputHelper output)
 
         await auto.AspireNewAsync("AspireEmptyApp", counter, template: AspireTemplate.EmptyAppHost);
 
-        // Note: We don't run 'aspire run' for Empty AppHost since there's nothing to run
+        // Start the empty AppHost to verify the scaffolded project works
+        await auto.TypeAsync("cd AspireEmptyApp");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.AspireStartAsync(counter);
+        await auto.AspireStopAsync(counter);
+
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
 

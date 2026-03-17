@@ -3,10 +3,9 @@
 
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
-using Semver;
 
 namespace Aspire.Cli.Scaffolding;
 
@@ -19,23 +18,17 @@ internal sealed class ScaffoldingService : IScaffoldingService
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly IInteractionService _interactionService;
-    private readonly IPackagingService _packagingService;
-    private readonly IConfigurationService _configurationService;
     private readonly ILogger<ScaffoldingService> _logger;
 
     public ScaffoldingService(
         IAppHostServerProjectFactory appHostServerProjectFactory,
         ILanguageDiscovery languageDiscovery,
         IInteractionService interactionService,
-        IPackagingService packagingService,
-        IConfigurationService configurationService,
         ILogger<ScaffoldingService> logger)
     {
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _languageDiscovery = languageDiscovery;
         _interactionService = interactionService;
-        _packagingService = packagingService;
-        _configurationService = configurationService;
         _logger = logger;
     }
 
@@ -56,7 +49,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var language = context.Language;
 
         // Step 1: Resolve SDK and package strategy
-        var sdkVersion = await ResolveSdkVersionAsync(cancellationToken);
+        var sdkVersion = VersionHelper.GetDefaultSdkVersion();
         var config = AspireConfigFile.LoadOrCreate(directory.FullName, sdkVersion);
 
         // Include the code generation package for scaffolding and code gen
@@ -229,44 +222,5 @@ internal sealed class ScaffoldingService : IScaffoldingService
         }
 
         _logger.LogDebug("Generated {Count} code files in {Path}", generatedFiles.Count, outputPath);
-    }
-
-    /// <summary>
-    /// Resolves the SDK version to use for scaffolding.
-    /// If a channel is configured globally, queries that channel for available versions.
-    /// Otherwise, falls back to the default SDK version.
-    /// </summary>
-    private async Task<string> ResolveSdkVersionAsync(CancellationToken cancellationToken)
-    {
-        // Check for global channel setting
-        var channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
-        if (string.IsNullOrEmpty(channelName))
-        {
-            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
-        }
-
-        // Find the matching channel
-        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
-        var channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
-        if (channel is null)
-        {
-            _logger.LogWarning("Configured channel '{Channel}' not found, using default SDK version", channelName);
-            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
-        }
-
-        // Get template packages from the channel to determine SDK version
-        var templatePackages = await channel.GetTemplatePackagesAsync(new DirectoryInfo(Environment.CurrentDirectory), cancellationToken);
-        var latestPackage = templatePackages
-            .OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer)
-            .FirstOrDefault();
-
-        if (latestPackage is null)
-        {
-            _logger.LogWarning("No packages found in channel '{Channel}', using default SDK version", channelName);
-            return DotNetBasedAppHostServerProject.DefaultSdkVersion;
-        }
-
-        _logger.LogDebug("Resolved SDK version {Version} from channel {Channel}", latestPackage.Version, channelName);
-        return latestPackage.Version;
     }
 }
