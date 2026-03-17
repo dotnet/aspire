@@ -15,6 +15,11 @@ on:
         description: 'CI workflow run ID to inspect'
         required: true
         type: number
+      dry_run:
+        description: 'Inspect and summarize without requesting reruns'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.run_id || github.event.workflow_run.id }}
@@ -57,6 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           MANUAL_RUN_ID: ${{ inputs.run_id }}
+          MANUAL_DRY_RUN: ${{ inputs.dry_run }}
         with:
           script: |
             const rerunWorkflow = require('./.github/workflows/auto-rerun-transient-ci-failures.js');
@@ -101,6 +107,14 @@ jobs:
               });
 
               return response.data;
+            }
+
+            function parseManualDryRun() {
+              if (!isWorkflowDispatch) {
+                return false;
+              }
+
+              return String(process.env.MANUAL_DRY_RUN).toLowerCase() === 'true';
             }
 
             async function listJobsForAttempt(runId, attemptNumber) {
@@ -173,7 +187,7 @@ jobs:
             }
 
             const workflowRun = await getWorkflowRun();
-            const dryRun = isWorkflowDispatch;
+            const dryRun = parseManualDryRun();
             const sourceRunUrl = workflowRun.html_url || `https://github.com/${owner}/${repo}/actions/runs/${workflowRun.id}`;
 
             core.setOutput('source_run_id', String(workflowRun.id));
@@ -236,15 +250,11 @@ jobs:
               dryRun,
               rerunEligible,
               sourceRunUrl,
+              sourceRunAttempt: runAttempt,
             });
 
             if (retryableJobs.length === 0) {
               console.log('No retryable failed jobs were detected.');
-              return;
-            }
-
-            if (dryRun) {
-              console.log('workflow_dispatch runs in dry-run mode. No jobs will be rerun.');
               return;
             }
 

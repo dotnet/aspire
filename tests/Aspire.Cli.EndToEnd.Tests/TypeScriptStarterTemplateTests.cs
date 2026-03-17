@@ -39,6 +39,24 @@ public sealed class TypeScriptStarterTemplateTests(ITestOutputHelper output)
         // Step 1: Create project using aspire new, selecting the Express/React template
         sequenceBuilder.AspireNew("TsStarterApp", counter, template: AspireTemplate.ExpressReact);
 
+        // Step 1.5: Verify starter creation also restored the generated TypeScript SDK.
+        sequenceBuilder.ExecuteCallback(() =>
+        {
+            var projectRoot = Path.Combine(workspace.WorkspaceRoot.FullName, "TsStarterApp");
+            var modulesDir = Path.Combine(projectRoot, ".modules");
+
+            if (!Directory.Exists(modulesDir))
+            {
+                throw new InvalidOperationException($".modules directory was not created at {modulesDir}");
+            }
+
+            var aspireModulePath = Path.Combine(modulesDir, "aspire.ts");
+            if (!File.Exists(aspireModulePath))
+            {
+                throw new InvalidOperationException($"Expected generated file not found: {aspireModulePath}");
+            }
+        });
+
         // Step 2: Navigate into the project and start it in background with JSON output
         sequenceBuilder
             .Type("cd TsStarterApp")

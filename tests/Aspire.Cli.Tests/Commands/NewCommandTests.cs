@@ -4,6 +4,7 @@
 using Aspire.Cli.Utils;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -1274,6 +1275,143 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandWithTypeScriptStarterGeneratesSdkArtifacts()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var buildAndGenerateCalled = false;
+        string? channelSeenByProject = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, runnerOptions, cancellationToken) =>
+                {
+                    var package = new NuGetPackage
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new NewCommandTestPackagingService
+            {
+                GetChannelsAsyncCallback = cancellationToken =>
+                {
+                    var dailyCache = new NewCommandTestFakeNuGetPackageCache
+                    {
+                        GetTemplatePackagesAsyncCallback = (dir, prerelease, nugetConfig, ct) =>
+                        {
+                            var package = new NuGetPackage
+                            {
+                                Id = "Aspire.ProjectTemplates",
+                                Source = "nuget",
+                                Version = "9.2.0"
+                            };
+
+                            return Task.FromResult<IEnumerable<NuGetPackage>>([package]);
+                        }
+                    };
+
+                    var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Both, [], dailyCache);
+                    return Task.FromResult<IEnumerable<PackageChannel>>([dailyChannel]);
+                }
+            };
+        });
+
+        services.AddSingleton<IAppHostProjectFactory>(new TestTypeScriptStarterProjectFactory((directory, cancellationToken) =>
+        {
+            buildAndGenerateCalled = true;
+            var config = AspireJsonConfiguration.Load(directory.FullName);
+            channelSeenByProject = config?.Channel;
+
+            var modulesDir = Directory.CreateDirectory(Path.Combine(directory.FullName, ".modules"));
+            File.WriteAllText(Path.Combine(modulesDir.FullName, "aspire.ts"), "// generated sdk");
+
+            return Task.FromResult(true);
+        }));
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-ts-starter --name TestApp --output . --channel daily --localhost-tld false");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(0, exitCode);
+        Assert.True(buildAndGenerateCalled);
+        Assert.Equal("daily", channelSeenByProject);
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".modules", "aspire.ts")));
+    }
+
+    [Fact]
+    public async Task NewCommandWithTypeScriptStarterReturnsFailedToBuildArtifactsWhenSdkGenerationFails()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var interactionService = new TestInteractionService();
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, runnerOptions, cancellationToken) =>
+                {
+                    var package = new NuGetPackage
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { package });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new NewCommandTestPackagingService
+            {
+                GetChannelsAsyncCallback = cancellationToken =>
+                {
+                    var dailyCache = new NewCommandTestFakeNuGetPackageCache
+                    {
+                        GetTemplatePackagesAsyncCallback = (dir, prerelease, nugetConfig, ct) =>
+                        {
+                            var package = new NuGetPackage
+                            {
+                                Id = "Aspire.ProjectTemplates",
+                                Source = "nuget",
+                                Version = "9.2.0"
+                            };
+
+                            return Task.FromResult<IEnumerable<NuGetPackage>>([package]);
+                        }
+                    };
+
+                    var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Both, [], dailyCache);
+                    return Task.FromResult<IEnumerable<PackageChannel>>([dailyChannel]);
+                }
+            };
+        });
+
+        services.AddSingleton<IInteractionService>(interactionService);
+        services.AddSingleton<IAppHostProjectFactory>(new TestTypeScriptStarterProjectFactory((directory, cancellationToken) => Task.FromResult(false)));
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new aspire-ts-starter --name TestApp --output . --channel daily --localhost-tld false");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode);
+        Assert.Single(interactionService.DisplayedErrors);
+        Assert.Equal("Automatic 'aspire restore' failed for the new TypeScript starter project. Run 'aspire restore' in the project directory for more details.", interactionService.DisplayedErrors[0]);
+    }
+
+    [Fact]
     public async Task NewCommandNonInteractiveDoesNotPrompt()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -1504,5 +1642,103 @@ internal sealed class TestScaffoldingService : IScaffoldingService
         }
 
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class TestTypeScriptStarterProjectFactory(Func<DirectoryInfo, CancellationToken, Task<bool>> buildAndGenerateSdkAsync) : IAppHostProjectFactory
+{
+    private readonly TestTypeScriptStarterProject _project = new(buildAndGenerateSdkAsync);
+
+    public IAppHostProject GetProject(LanguageInfo language)
+    {
+        ArgumentNullException.ThrowIfNull(language);
+
+        if (!string.Equals(language.LanguageId, KnownLanguageId.TypeScript, StringComparison.Ordinal))
+        {
+            throw new NotSupportedException($"No handler available for language '{language.LanguageId}'.");
+        }
+
+        return _project;
+    }
+
+    public IAppHostProject? TryGetProject(FileInfo appHostFile)
+    {
+        return appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase) ? _project : null;
+    }
+
+    public IAppHostProject GetProject(FileInfo appHostFile)
+    {
+        return TryGetProject(appHostFile) ?? throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
+    }
+}
+
+internal sealed class TestTypeScriptStarterProject(Func<DirectoryInfo, CancellationToken, Task<bool>> buildAndGenerateSdkAsync) : IAppHostProject, IGuestAppHostSdkGenerator
+{
+    public bool IsUnsupported { get; set; }
+
+    public string LanguageId => KnownLanguageId.TypeScript;
+
+    public string DisplayName => "TypeScript (Node.js)";
+
+    public string? AppHostFileName => "apphost.ts";
+
+    public Task<string[]> GetDetectionPatternsAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<string[]>(["apphost.ts"]);
+    }
+
+    public bool CanHandle(FileInfo appHostFile)
+    {
+        return appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool IsUsingProjectReferences(FileInfo appHostFile)
+    {
+        return false;
+    }
+
+    public Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new AppHostValidationResult(IsValid: CanHandle(appHostFile)));
+    }
+
+    public Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<RunningInstanceResult> FindAndStopRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(RunningInstanceResult.NoRunningInstance);
+    }
+
+    public Task<string?> GetUserSecretsIdAsync(FileInfo appHostFile, bool autoInit, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
+    public Task<IReadOnlyList<(string PackageId, string Version)>> GetPackageReferencesAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        return buildAndGenerateSdkAsync(directory, cancellationToken);
     }
 }

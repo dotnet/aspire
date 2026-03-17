@@ -2490,6 +2490,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
+            // ReferenceExpression is implemented manually in base.ts, including its handle wrapper
+            // registration, so it must not also generate a duplicate wrapper class in aspire.ts.
+            if (targetTypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                continue;
+            }
+
             // Use expanded types if available, otherwise fall back to the original target
             var expandedTypes = cap.ExpandedTargetTypes;
             if (expandedTypes is { Count: > 0 })
