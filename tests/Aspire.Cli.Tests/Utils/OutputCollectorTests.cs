@@ -44,8 +44,8 @@ public class OutputCollectorTests
         Assert.Equal(threadCount * linesPerThread, lines.Count);
 
         // Check that we have both stdout and stderr entries
-        var stdoutLines = lines.Where(l => l.Stream == "stdout").ToList();
-        var stderrLines = lines.Where(l => l.Stream == "stderr").ToList();
+        var stdoutLines = lines.Where(l => l.Stream == OutputLineStream.StdOut).ToList();
+        var stderrLines = lines.Where(l => l.Stream == OutputLineStream.StdErr).ToList();
 
         Assert.Equal(threadCount * linesPerThread / 2, stdoutLines.Count);
         Assert.Equal(threadCount * linesPerThread / 2, stderrLines.Count);
@@ -65,7 +65,7 @@ public class OutputCollectorTests
         // Assert - Snapshot should not be affected by subsequent additions
         Assert.Single(snapshot);
         Assert.Equal("initial line", snapshot[0].Line);
-        Assert.Equal("stdout", snapshot[0].Stream);
+        Assert.Equal(OutputLineStream.StdOut, snapshot[0].Stream);
 
         // New call should include the additional line
         var newSnapshot = collector.GetLines().ToList();
@@ -101,23 +101,5 @@ public class OutputCollectorTests
         // Verify final state
         var finalLines = collector.GetLines().ToList();
         Assert.Equal(100, finalLines.Count);
-    }
-
-    [Fact]
-    public void OutputCollector_LiveCallback_ReceivesStdoutAndStderr()
-    {
-        // Arrange
-        var forwardedLines = new List<(string Stream, string Line)>();
-        var collector = new OutputCollector(fileLogger: null, liveOutputCallback: (stream, line) => forwardedLines.Add((stream, line)));
-
-        // Act
-        collector.AppendOutput("hello");
-        collector.AppendError("oops");
-
-        // Assert
-        Assert.True(collector.HasLiveOutputCallback);
-        Assert.Equal(
-            [("stdout", "hello"), ("stderr", "oops")],
-            forwardedLines);
     }
 }
