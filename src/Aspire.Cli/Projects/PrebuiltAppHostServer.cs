@@ -79,7 +79,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
     }
 
     /// <inheritdoc />
-    public string AppPath => _appDirectoryPath;
+    public string AppDirectoryPath => _appDirectoryPath;
 
     /// <summary>
     /// Gets the path to the aspire-managed executable (used as the server).

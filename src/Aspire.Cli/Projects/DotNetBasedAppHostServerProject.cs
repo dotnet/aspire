@@ -97,7 +97,7 @@ internal sealed class DotNetBasedAppHostServerProject : IAppHostServerProject
     }
 
     /// <inheritdoc />
-    public string AppPath => _appPath;
+    public string AppDirectoryPath => _appPath;
 
     public string ProjectModelPath => _projectModelPath;
     public string UserSecretsId => _userSecretsId;
