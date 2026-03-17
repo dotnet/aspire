@@ -1863,7 +1863,7 @@ class AbstractResource(abc.ABC):
     """Abstract base class for AbstractResource interface."""
 
     @abc.abstractmethod
-    def with_optional_string(self, *, value: str | None = None, enabled: bool | None = None) -> typing.Self:
+    def with_optional_string(self, *, value: str | None = None, enabled: bool = True) -> typing.Self:
         """Adds an optional string parameter"""
 
     @abc.abstractmethod
@@ -1923,7 +1923,7 @@ class AbstractResource(abc.ABC):
         """Configures a named endpoint"""
 
     @abc.abstractmethod
-    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool | None = None, max_files: int | None = None) -> typing.Self:
+    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool = True, max_files: int | None = None) -> typing.Self:
         """Configures resource logging"""
 
     @abc.abstractmethod
@@ -2021,7 +2021,7 @@ class _BaseResource(AbstractResource):
         """The underlying object reference handle."""
         return self._handle
 
-    def with_optional_string(self, *, value: str | None = None, enabled: bool | None = None) -> typing.Self:
+    def with_optional_string(self, *, value: str | None = None, enabled: bool = True) -> typing.Self:
         """Adds an optional string parameter"""
         rpc_args: dict[str, typing.Any] = {'builder': self._handle}
         if value is not None:
@@ -2197,7 +2197,7 @@ class _BaseResource(AbstractResource):
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool | None = None, max_files: int | None = None) -> typing.Self:
+    def with_merge_logging(self, log_level: str, *, log_path: str | None = None, enable_console: bool = True, max_files: int | None = None) -> typing.Self:
         """Configures resource logging"""
         rpc_args: dict[str, typing.Any] = {'builder': self._handle}
         rpc_args['logLevel'] = log_level
@@ -2243,7 +2243,7 @@ class _BaseResource(AbstractResource):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalString', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'optional_string'. Expected: OptionalStringParameters or typing.Literal[True]")
+                raise TypeError("Invalid type for option 'optional_string'. Expected: OptionalStringParameters or Literal[True]")
         if _config := kwargs.pop("config", None):
             if _validate_type(_config, TestConfigDto):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2281,7 +2281,7 @@ class _BaseResource(AbstractResource):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withOptionalCallback', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'optional_callback'. Expected: typing.Callable[[TestCallbackContext], None] or typing.Literal[True]")
+                raise TypeError("Invalid type for option 'optional_callback'. Expected: Callable[[TestCallbackContext], None] or Literal[True]")
         if _status := kwargs.pop("status", None):
             if _validate_type(_status, TestResourceStatus):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2302,7 +2302,7 @@ class _BaseResource(AbstractResource):
                 rpc_args["validator"] = client.register_callback(typing.cast(typing.Callable[[TestResourceContext], bool], _validator))
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withValidator', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'validator'. Expected: typing.Callable[[TestResourceContext], bool]")
+                raise TypeError("Invalid type for option 'validator'. Expected: Callable[[TestResourceContext], bool]")
         if _test_wait_for := kwargs.pop("test_wait_for", None):
             if _validate_type(_test_wait_for, AbstractResource):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2323,14 +2323,14 @@ class _BaseResource(AbstractResource):
                 rpc_args["endpoints"] = typing.cast(typing.Iterable[str], _endpoints)
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withEndpoints', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'endpoints'. Expected: typing.Iterable[str]")
+                raise TypeError("Invalid type for option 'endpoints'. Expected: Iterable[str]")
         if _cancellable_operation := kwargs.pop("cancellable_operation", None):
             if _validate_type(_cancellable_operation, typing.Callable[[CancellationToken], None]):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 rpc_args["operation"] = client.register_callback(typing.cast(typing.Callable[[CancellationToken], None], _cancellable_operation))
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withCancellableOperation', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'cancellable_operation'. Expected: typing.Callable[[CancellationToken], None]")
+                raise TypeError("Invalid type for option 'cancellable_operation'. Expected: Callable[[CancellationToken], None]")
         if _merge_label := kwargs.pop("merge_label", None):
             if _validate_type(_merge_label, str):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2432,14 +2432,14 @@ class ContainerResource(_BaseResource, AbstractResourceWithEnvironment, Abstract
                 rpc_args["callback"] = client.register_callback(typing.cast(typing.Callable[[TestEnvironmentContext], None], _test_with_env_callback))
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/testWithEnvironmentCallback', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'test_with_env_callback'. Expected: typing.Callable[[TestEnvironmentContext], None]")
+                raise TypeError("Invalid type for option 'test_with_env_callback'. Expected: Callable[[TestEnvironmentContext], None]")
         if _env_vars := kwargs.pop("env_vars", None):
             if _validate_type(_env_vars, typing.Mapping[str, str]):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 rpc_args["variables"] = typing.cast(typing.Mapping[str, str], _env_vars)
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withEnvironmentVariables', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'env_vars'. Expected: typing.Mapping[str, str]")
+                raise TypeError("Invalid type for option 'env_vars'. Expected: Mapping[str, str]")
         super().__init__(handle, client, **kwargs)
 
 
@@ -2476,7 +2476,7 @@ class TestDatabaseResource(ContainerResource):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'data_volume'. Expected: str or typing.Literal[True]")
+                raise TypeError("Invalid type for option 'data_volume'. Expected: str or Literal[True]")
         super().__init__(handle, client, **kwargs)
 
 
@@ -2509,7 +2509,7 @@ class TestRedisResource(ContainerResource, AbstractResourceWithConnectionString)
         )
         return typing.cast(TestDatabaseResource, result)
 
-    def with_persistence(self, *, mode: TestPersistenceMode | None = None) -> typing.Self:
+    def with_persistence(self, *, mode: TestPersistenceMode = "Volume") -> typing.Self:
         """Configures the Redis resource with persistence"""
         rpc_args: dict[str, typing.Any] = {'builder': self._handle}
         if mode is not None:
@@ -2613,7 +2613,7 @@ class TestRedisResource(ContainerResource, AbstractResourceWithConnectionString)
         self._handle = self._wrap_builder(result)
         return self
 
-    def with_data_volume(self, *, name: str | None = None, is_read_only: bool | None = None) -> typing.Self:
+    def with_data_volume(self, *, name: str | None = None, is_read_only: bool = False) -> typing.Self:
         """Adds a data volume with persistence"""
         rpc_args: dict[str, typing.Any] = {'builder': self._handle}
         if name is not None:
@@ -2637,7 +2637,7 @@ class TestRedisResource(ContainerResource, AbstractResourceWithConnectionString)
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withPersistence', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'persistence'. Expected: TestPersistenceMode or typing.Literal[True]")
+                raise TypeError("Invalid type for option 'persistence'. Expected: TestPersistenceMode or Literal[True]")
         if _connection_string := kwargs.pop("connection_string", None):
             if _validate_type(_connection_string, ReferenceExpression):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2665,7 +2665,7 @@ class TestRedisResource(ContainerResource, AbstractResourceWithConnectionString)
                 rpc_args["callback"] = client.register_callback(typing.cast(typing.Callable[[TestCallbackContext, TestEnvironmentContext], None], _multi_param_handle_callback))
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withMultiParamHandleCallback', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'multi_param_handle_callback'. Expected: typing.Callable[[TestCallbackContext, TestEnvironmentContext], None]")
+                raise TypeError("Invalid type for option 'multi_param_handle_callback'. Expected: Callable[[TestCallbackContext, TestEnvironmentContext], None]")
         if _data_volume := kwargs.pop("data_volume", None):
             if _validate_dict_types(_data_volume, DataVolumeParameters):
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
@@ -2676,7 +2676,7 @@ class TestRedisResource(ContainerResource, AbstractResourceWithConnectionString)
                 rpc_args: dict[str, typing.Any] = {"builder": handle}
                 handle = self._wrap_builder(client.invoke_capability('Aspire.Hosting.CodeGeneration.Python.Tests/withDataVolume', rpc_args))
             else:
-                raise TypeError("Invalid type for option 'data_volume'. Expected: DataVolumeParameters or typing.Literal[True]")
+                raise TypeError("Invalid type for option 'data_volume'. Expected: DataVolumeParameters or Literal[True]")
         super().__init__(handle, client, **kwargs)
 
 

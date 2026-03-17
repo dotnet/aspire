@@ -376,6 +376,55 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Gets the Python representation of a parameter's default value.
+    /// Returns "None" if the default value is null or not set.
+    /// </summary>
+    private static string GetPythonDefaultValue(AtsParameterInfo param)
+    {
+        var defaultValue = param.DefaultValue;
+
+        if (defaultValue is null)
+        {
+            return "None";
+        }
+
+        return defaultValue switch
+        {
+            bool b => b ? "True" : "False",
+            string s => $"\"{s.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"",
+            char c => $"\"{c}\"",
+            int i => i.ToString(CultureInfo.InvariantCulture),
+            long l => l.ToString(CultureInfo.InvariantCulture),
+            float f => float.IsPositiveInfinity(f) ? "float('inf')" : float.IsNegativeInfinity(f) ? "float('-inf')" : f.ToString(CultureInfo.InvariantCulture),
+            double d => double.IsPositiveInfinity(d) ? "float('inf')" : double.IsNegativeInfinity(d) ? "float('-inf')" : d.ToString(CultureInfo.InvariantCulture),
+            Enum e => $"\"{e}\"",
+            _ => "None"
+        };
+    }
+
+    /// <summary>
+    /// Gets the Python type annotation suffix and default value for an optional parameter.
+    /// Uses the actual default value when available instead of always defaulting to None.
+    /// </summary>
+    private string GetOptionalParamSuffix(AtsParameterInfo param)
+    {
+        var pythonDefault = GetPythonDefaultValue(param);
+        if (pythonDefault == "None")
+        {
+            var paramType = MapParameterToPython(param);
+            return $"{paramType} | None = None";
+        }
+
+        var type = MapParameterToPython(param);
+        // When we have a real default, the type doesn't need "| None" unless the param is also nullable
+        if (param.IsNullable)
+        {
+            return $"{type} | None = {pythonDefault}";
+        }
+        return $"{type} = {pythonDefault}";
+    }
+
+    /// <summary>
     /// Maps an enum type ID to the generated Python enum name.
     /// Throws if the enum type wasn't collected during scanning.
     /// </summary>
@@ -975,8 +1024,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var param in optionalParams)
         {
             var paramName = GetParamName(param);
-            var paramType = MapParameterToPython(param);
-            sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
+            var suffix = GetOptionalParamSuffix(param);
+            sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {suffix}");
         }
         if (isResourceBuilder)
         {
@@ -1296,8 +1345,8 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var param in optionalParams)
         {
             var paramName = GetParamName(param);
-            var paramType = MapParameterToPython(param);
-            sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {paramType} | None = None");
+            var suffix = GetOptionalParamSuffix(param);
+            sb.Append(CultureInfo.InvariantCulture, $", {paramName}: {suffix}");
         }
 
         if (returnType == "None")
@@ -1411,9 +1460,15 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var param in userParams)
         {
             var paramName = GetParamName(param);
-            var paramType = MapParameterToPython(param);
-            var optional = param.IsOptional || param.IsNullable ? " | None = None" : "";
-            paramDefs.Add($"{paramName}: {paramType}{optional}");
+            if (param.IsOptional || param.IsNullable)
+            {
+                paramDefs.Add($"{paramName}: {GetOptionalParamSuffix(param)}");
+            }
+            else
+            {
+                var paramType = MapParameterToPython(param);
+                paramDefs.Add($"{paramName}: {paramType}");
+            }
             paramArgs.Add(param.Name);
         }
 
@@ -2095,7 +2150,7 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         if (last)
         {
             builder.AppendLine(CultureInfo.InvariantCulture, $"            else:");
-            builder.AppendLine(CultureInfo.InvariantCulture, $"                raise TypeError(\"Invalid type for option '{optionName}'. Expected: {String.Join(" or ", variations.Select(v => v.OptionType))}\")");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"                raise TypeError(\"Invalid type for option '{optionName}'. Expected: {String.Join(" or ", variations.Select(v => v.OptionType.Replace("typing.", "")))}\")");
         }
         else
         {
