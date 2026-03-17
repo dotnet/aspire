@@ -4204,6 +4204,13 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
     def __init__(self, handle: Handle, client: AspireClient):
         super().__init__(handle, client)
 
+    def add_connection_string_expression(self, name: str, connection_string_expression: ReferenceExpression) -> ConnectionStringResource:
+        """Adds a connection string with a reference expression"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["connectionStringExpression"] = serialize_value(connection_string_expression)
+        return self._client.invoke_capability("Aspire.Hosting/addConnectionStringExpression", args)
+
     def add_connection_string_builder(self, name: str, connection_string_builder: Callable[[ReferenceExpressionBuilder], None]) -> ConnectionStringResource:
         """Adds a connection string with a builder callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -4221,6 +4228,15 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         if repository is not None:
             args["repository"] = serialize_value(repository)
         return self._client.invoke_capability("Aspire.Hosting/addContainerRegistry", args)
+
+    def add_container_registry_from_string(self, name: str, endpoint: str, repository: str | None = None) -> ContainerRegistryResource:
+        """Adds a container registry with string endpoint"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["endpoint"] = serialize_value(endpoint)
+        if repository is not None:
+            args["repository"] = serialize_value(repository)
+        return self._client.invoke_capability("Aspire.Hosting/addContainerRegistryFromString", args)
 
     def add_container(self, name: str, image: str) -> ContainerResource:
         """Adds a container resource"""
@@ -4263,6 +4279,20 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args["url"] = serialize_value(url)
         return self._client.invoke_capability("Aspire.Hosting/addExternalService", args)
 
+    def add_external_service_uri(self, name: str, uri: str) -> ExternalServiceResource:
+        """Adds an external service with a URI"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["uri"] = serialize_value(uri)
+        return self._client.invoke_capability("Aspire.Hosting/addExternalServiceUri", args)
+
+    def add_external_service_parameter(self, name: str, url_parameter: ParameterResource) -> ExternalServiceResource:
+        """Adds an external service with a parameter URL"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["urlParameter"] = serialize_value(url_parameter)
+        return self._client.invoke_capability("Aspire.Hosting/addExternalServiceParameter", args)
+
     def app_host_directory(self) -> str:
         """Gets the AppHostDirectory property"""
         args: Dict[str, Any] = { "context": serialize_value(self._handle) }
@@ -4299,6 +4329,15 @@ class IDistributedApplicationBuilder(HandleWrapperBase):
         args["name"] = serialize_value(name)
         args["secret"] = serialize_value(secret)
         return self._client.invoke_capability("Aspire.Hosting/addParameter", args)
+
+    def add_parameter_with_value(self, name: str, value: str, publish_value_as_default: bool = False, secret: bool = False) -> ParameterResource:
+        """Adds a parameter with a default value"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        args["publishValueAsDefault"] = serialize_value(publish_value_as_default)
+        args["secret"] = serialize_value(secret)
+        return self._client.invoke_capability("Aspire.Hosting/addParameterWithValue", args)
 
     def add_parameter_from_configuration(self, name: str, configuration_key: str, secret: bool = False) -> ParameterResource:
         """Adds a parameter sourced from configuration"""
