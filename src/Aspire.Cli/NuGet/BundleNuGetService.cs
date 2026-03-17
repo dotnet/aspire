@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
 using Microsoft.Extensions.Logging;
@@ -142,6 +143,12 @@ internal sealed class BundleNuGetService : INuGetService
             environmentVariables: signatureVerificationEnv,
             ct: ct);
 
+        // Log stderr at debug level for diagnostics
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            _logger.LogDebug("NuGetHelper restore stderr: {Error}", error);
+        }
+
         if (exitCode != 0)
         {
             _logger.LogError("Package restore failed with exit code {ExitCode}", exitCode);
@@ -150,8 +157,9 @@ internal sealed class BundleNuGetService : INuGetService
             throw new InvalidOperationException($"Package restore failed: {error}");
         }
 
-        // Log stderr output from NuGetHelper at appropriate levels
-        LogNuGetOutput(error);
+        // Surface any warnings or errors from the restore (e.g. signature verification)
+        // by reading the logs section from project.assets.json.
+        LogAssetsFileMessages(assetsPath);
 
         // Step 2: Create flat layout
         // Prepend "nuget" subcommand for aspire-managed dispatch
@@ -179,6 +187,12 @@ internal sealed class BundleNuGetService : INuGetService
             environmentVariables: signatureVerificationEnv,
             ct: ct);
 
+        // Log stderr at debug level for diagnostics
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            _logger.LogDebug("NuGetHelper layout stderr: {Error}", error);
+        }
+
         if (exitCode != 0)
         {
             _logger.LogError("Layout creation failed with exit code {ExitCode}", exitCode);
@@ -187,38 +201,49 @@ internal sealed class BundleNuGetService : INuGetService
             throw new InvalidOperationException($"Layout creation failed: {error}");
         }
 
-        // Log stderr output from NuGetHelper at appropriate levels
-        LogNuGetOutput(error);
-
         _logger.LogDebug("Packages restored to {Path}", libsDir);
         return libsDir;
     }
 
-    private void LogNuGetOutput(string? stderr)
+    private void LogAssetsFileMessages(string assetsPath)
     {
-        if (string.IsNullOrWhiteSpace(stderr))
+        if (!File.Exists(assetsPath))
         {
             return;
         }
 
-        foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        try
         {
-            var trimmed = line.TrimEnd('\r');
+            using var stream = File.OpenRead(assetsPath);
+            using var doc = JsonDocument.Parse(stream);
 
-            if (trimmed.StartsWith("ERROR: ", StringComparison.Ordinal))
+            if (!doc.RootElement.TryGetProperty("logs", out var logs))
             {
-                _interactionService.DisplayError(trimmed["ERROR: ".Length..]);
+                return;
             }
-            else if (trimmed.StartsWith("WARNING: ", StringComparison.Ordinal))
-            {
-                _interactionService.DisplayMarkupLine($"[yellow]{trimmed["WARNING: ".Length..]}[/]");
 
-                _logger.LogWarning("{Message}", trimmed["WARNING: ".Length..]);
-            }
-            else
+            foreach (var log in logs.EnumerateArray())
             {
-                _logger.LogDebug("{Message}", trimmed);
+                var message = log.TryGetProperty("message", out var messageProp) ? messageProp.GetString() : null;
+                if (string.IsNullOrEmpty(message))
+                {
+                    continue;
+                }
+
+                var level = log.TryGetProperty("level", out var levelProp) ? levelProp.GetString() : null;
+                if (string.Equals(level, "Error", StringComparison.OrdinalIgnoreCase))
+                {
+                    _interactionService.DisplayError(message);
+                }
+                else if (string.Equals(level, "Warning", StringComparison.OrdinalIgnoreCase))
+                {
+                    _interactionService.DisplayMarkupLine($"[yellow]{message}[/]");
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read logs from {AssetsPath}", assetsPath);
         }
     }
 
