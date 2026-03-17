@@ -77,22 +77,6 @@ internal static class TrustedRootsHelper
             logger);
     }
 
-    private static X509Certificate2Collection? LoadCertificatesFromResource(string resourceName)
-    {
-        using var stream = typeof(TrustedRootsHelper).Assembly.GetManifestResourceStream(resourceName);
-        if (stream is null)
-        {
-            return null;
-        }
-
-        using var reader = new StreamReader(stream);
-        var pemContents = reader.ReadToEnd();
-
-        var certificates = new X509Certificate2Collection();
-        certificates.ImportFromPem(pemContents);
-        return certificates;
-    }
-
     private static void SetTrustStoreFactory(
         string setterMethodName,
         string resourceName,
@@ -124,6 +108,22 @@ internal static class TrustedRootsHelper
 
         setter.Invoke(null, [factory]);
         logger.LogInformation($"Initialized NuGet trust store from embedded resource: {resourceName} ({certificates.Count} certificates)");
+    }
+
+    private static X509Certificate2Collection? LoadCertificatesFromResource(string resourceName)
+    {
+        using var stream = typeof(TrustedRootsHelper).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            return null;
+        }
+
+        using var reader = new StreamReader(stream);
+        var pemContents = reader.ReadToEnd();
+
+        var certificates = new X509Certificate2Collection();
+        certificates.ImportFromPem(pemContents);
+        return certificates;
     }
 }
 
