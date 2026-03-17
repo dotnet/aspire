@@ -138,12 +138,6 @@ public sealed class BundleNuGetService : INuGetService
             environmentVariables: signatureVerificationEnv,
             ct: ct);
 
-        // Log stderr output (verbose info from NuGetHelper)
-        if (!string.IsNullOrWhiteSpace(error))
-        {
-            _logger.LogDebug("NuGetHelper restore stderr: {Error}", error);
-        }
-
         if (exitCode != 0)
         {
             _logger.LogError("Package restore failed with exit code {ExitCode}", exitCode);
@@ -151,6 +145,9 @@ public sealed class BundleNuGetService : INuGetService
             _logger.LogError("Package restore stdout: {Output}", output);
             throw new InvalidOperationException($"Package restore failed: {error}");
         }
+
+        // Log stderr output from NuGetHelper at appropriate levels
+        LogNuGetOutput(error);
 
         // Step 2: Create flat layout
         // Prepend "nuget" subcommand for aspire-managed dispatch
@@ -178,12 +175,6 @@ public sealed class BundleNuGetService : INuGetService
             environmentVariables: signatureVerificationEnv,
             ct: ct);
 
-        // Log stderr output (verbose info from NuGetHelper)
-        if (!string.IsNullOrWhiteSpace(error))
-        {
-            _logger.LogDebug("NuGetHelper layout stderr: {Error}", error);
-        }
-
         if (exitCode != 0)
         {
             _logger.LogError("Layout creation failed with exit code {ExitCode}", exitCode);
@@ -192,8 +183,37 @@ public sealed class BundleNuGetService : INuGetService
             throw new InvalidOperationException($"Layout creation failed: {error}");
         }
 
+        // Log stderr output from NuGetHelper at appropriate levels
+        LogNuGetOutput(error);
+
         _logger.LogDebug("Packages restored to {Path}", libsDir);
         return libsDir;
+    }
+
+    private void LogNuGetOutput(string? stderr)
+    {
+        if (string.IsNullOrWhiteSpace(stderr))
+        {
+            return;
+        }
+
+        foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.TrimEnd('\r');
+
+            if (trimmed.StartsWith("ERROR: ", StringComparison.Ordinal))
+            {
+                _logger.LogError("{Message}", trimmed["ERROR: ".Length..]);
+            }
+            else if (trimmed.StartsWith("WARNING: ", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("{Message}", trimmed["WARNING: ".Length..]);
+            }
+            else
+            {
+                _logger.LogDebug("{Message}", trimmed);
+            }
+        }
     }
 
     private static string ComputePackageHash(List<(string Id, string Version)> packages, string tfm)
