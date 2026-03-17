@@ -917,7 +917,7 @@ public class ConsoleInteractionServiceTests
     }
 
     [Fact]
-    public void MakeSafeFormatter_WithPlainText_ReturnsEscapedPlainText()
+    public void MakeSafeFormatter_WithPlainText_ReturnsPlainText()
     {
         // Arrange
         Func<string, string> callerFormatter = item => item;
@@ -929,5 +929,126 @@ public class ConsoleInteractionServiceTests
 
         // Assert
         Assert.Equal("Normal text without brackets", result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithUnescapedBrackets_DoesNotThrow()
+    {
+        // Arrange - the caller's formatter returns raw brackets without EscapeMarkup().
+        // Markup.Remove() may silently strip bracket content as if it were a tag, or
+        // may throw on malformed input. Either way, MakeSafeFormatter must not throw.
+        Func<string, string> callerFormatter = item => item;
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act - should not throw regardless of how Markup.Remove handles the input
+        var exception = Record.Exception(() => safeFormatter("MSFT-Provisioning-01[Prod] (guid)"));
+
+        // Assert
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithEmptyString_ReturnsEmptyString()
+    {
+        // Arrange
+        Func<string, string> callerFormatter = item => string.Empty;
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("anything");
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithMultipleBracketPairs_ReplacesAll()
+    {
+        // Arrange
+        Func<string, string> callerFormatter = item => item.EscapeMarkup();
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("[A] and [B] and [C]");
+
+        // Assert
+        Assert.Equal("(A) and (B) and (C)", result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithBracketsAtBoundaries_ReplacesAll()
+    {
+        // Arrange
+        Func<string, string> callerFormatter = item => item.EscapeMarkup();
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("[start]middle[end]");
+
+        // Assert
+        Assert.Equal("(start)middle(end)", result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithNestedBrackets_ReplacesAll()
+    {
+        // Arrange
+        Func<string, string> callerFormatter = item => item.EscapeMarkup();
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("Service [[v2]] [Beta]");
+
+        // Assert - inner [[v2]] has double brackets which after EscapeMarkup become [[[[v2]]]]
+        // Markup.Remove strips the escaping, then brackets are replaced
+        Assert.DoesNotContain("[", result);
+        Assert.DoesNotContain("]", result);
+        Assert.Contains("v2", result);
+        Assert.Contains("Beta", result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithMismatchedBrackets_DoesNotThrow()
+    {
+        // Arrange - malformed bracket patterns that could confuse Markup.Remove()
+        Func<string, string> callerFormatter = item => item;
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act & Assert - should not throw, brackets replaced via fallback
+        var result1 = safeFormatter("[unclosed bracket");
+        Assert.DoesNotContain("[", result1);
+
+        var result2 = safeFormatter("extra closing]");
+        Assert.DoesNotContain("]", result2);
+
+        var result3 = safeFormatter("][backwards][");
+        Assert.DoesNotContain("[", result3);
+        Assert.DoesNotContain("]", result3);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithEscapedMarkupAndBracketsInData_HandlesCorrectly()
+    {
+        // Arrange - formatter returns escaped markup that also contains bracket data.
+        // This simulates: the data has "[Prod]" and the formatter also adds markup styling.
+        Func<string, string> callerFormatter = item =>
+            $"[bold]{item.EscapeMarkup()}[/]";
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("Service [Prod]");
+
+        // Assert - markup is stripped, brackets in data are replaced
+        Assert.Contains("Service (Prod)", result);
+        Assert.DoesNotContain("[bold]", result);
+        Assert.DoesNotContain("[", result);
+        Assert.DoesNotContain("]", result);
     }
 }

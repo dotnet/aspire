@@ -252,8 +252,20 @@ internal class ConsoleInteractionService : IInteractionService
         return item =>
         {
             var formatted = choiceFormatter(item);
-            // Strip any Spectre markup to get the intended display text.
-            var plainText = Markup.Remove(formatted);
+
+            // Try to strip Spectre markup to get the intended display text.
+            // Markup.Remove() can throw if the formatted text contains unescaped
+            // brackets (e.g. raw "[Prod]"), so fall back to using the text as-is.
+            string plainText;
+            try
+            {
+                plainText = Markup.Remove(formatted);
+            }
+            catch (Exception)
+            {
+                plainText = formatted;
+            }
+
             // Replace square brackets with parentheses. EscapeMarkup() alone is not
             // sufficient because Spectre's search highlighting splits the escaped
             // sequences [[...]] when inserting highlight tags, producing invalid markup.
