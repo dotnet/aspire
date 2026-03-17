@@ -59,6 +59,45 @@ public class ResourceSnapshotMapperTests
     }
 
     [Fact]
+    public void MapToResourceJson_DashboardUrl_UsesReturnUrlNotPathConcat()
+    {
+        var snapshot = new ResourceSnapshot
+        {
+            Name = "my-resource",
+            DisplayName = "my-resource",
+            ResourceType = "Project",
+            State = "Running",
+        };
+
+        var result = ResourceSnapshotMapper.MapToResourceJson(
+            snapshot,
+            [snapshot],
+            dashboardBaseUrl: "https://host:16323/login?t=e3dad6d7140e583d");
+
+        // Must NOT produce the old malformed URL: .../login?t=TOKEN/?resource=name
+        Assert.DoesNotContain("?t=e3dad6d7140e583d/", result.DashboardUrl);
+
+        // Must use &returnUrl= with the resource path URL-encoded
+        Assert.StartsWith("https://host:16323/login?t=e3dad6d7140e583d&returnUrl=", result.DashboardUrl);
+    }
+
+    [Fact]
+    public void MapToResourceJson_NullDashboardBaseUrl_DashboardUrlIsNull()
+    {
+        var snapshot = new ResourceSnapshot
+        {
+            Name = "test",
+            DisplayName = "test",
+            ResourceType = "Project",
+            State = "Running",
+        };
+
+        var result = ResourceSnapshotMapper.MapToResourceJson(snapshot, [snapshot], dashboardBaseUrl: null);
+
+        Assert.Null(result.DashboardUrl);
+    }
+
+    [Fact]
     public void ResolveResources_ByExactName_ReturnsMatch()
     {
         var snapshots = new List<ResourceSnapshot>
