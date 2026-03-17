@@ -2099,11 +2099,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
             await _executorEvents.PublishAsync(new OnResourceChangedContext(_shutdownCancellation.Token, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResourceName, new ResourceStatus(null, null, null), s => _snapshotBuilder.ToSnapshot((Container)cr.DcpResource, s))).ConfigureAwait(false);
 
-            var explicitStartup  = cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _);
-            if (explicitStartup)
-            {
-                dcpContainer.Spec.Start = false;
-            }
+            
 
             var logger = _loggerService.GetLogger(cr.ModelResource);
             var hostDependencies = (await GetHostDependenciesAsync(cr.ModelResource, cToken).ConfigureAwait(false)).ToImmutableArray();
@@ -2143,14 +2139,224 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateStandaloneContainerAsync(RenderedModelResource cr, CancellationToken cToken)
+    private async Task CreateStandaloneContainerAsync(RenderedModelResource cr, ILogger logger, CancellationToken cToken)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
+         cToken.ThrowIfCancellationRequested();
+         var dcpContainer = (Container)cr.DcpResource;
+         var modelContainer = (ContainerResource)cr.ModelResource;
+
+         var explicitStartup  = cr.ModelResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _);
+        if (explicitStartup)
+        {
+            dcpContainer.Spec.Start = false;
+        }
+        else
+        {
+            await _executorEvents.PublishAsync(new OnConnectionStringAvailableContext(cToken, cr.ModelResource)).ConfigureAwait(false);
+            // BeforeResourceStarted already published by the caller.
+        }
+
+        await ApplyBuildArgumentsAsync(dcpContainer, cr.ModelResource, _executionContext.ServiceProvider, cToken).ConfigureAwait(false);
+
+        var spec = dcpContainer.Spec;
+
+        if (cr.ServicesProduced.Count > 0)
+        {
+            spec.Ports = BuildContainerPorts(cr);
+        }
+
+        spec.VolumeMounts = BuildContainerMounts(cr.ModelResource);
+
+        var (runArgs, failedToApplyRunArgs) = await BuildRunArgsAsync(logger, cr.ModelResource, cToken).ConfigureAwait(false);
+        if (failedToApplyRunArgs)
+        {
+            throw new FailedToApplyEnvironmentException();
+        }
+        spec.RunArgs = runArgs;
+
+        var (configuration, pemCertificates, createFiles) = await BuildContainerConfiguration(cr, logger, cToken).ConfigureAwait(false);
+        if (configuration.Exception is not null)
+        {
+            throw new FailedToApplyEnvironmentException($"Failed to apply configuration to container {cr.ModelResource.Name}", configuration.Exception);
+        }
+
+        spec.PemCertificates = pemCertificates;
+
+        var args = configuration.Arguments.Select(a => a.Value);
+        // Set the final args, env vars, and create files on the container spec
+        if (modelContainer.ShellExecution is true)
+        {
+            spec.Args = ["-c", $"{string.Join(' ', args)}"];
+        }
+        else
+        {
+            spec.Args = args.ToList();
+        }
+        dcpContainer.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, configuration.Arguments.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+            
+        spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
+        spec.CreateFiles = createFiles;
+        spec.Command = modelContainer.Entrypoint;
+
+        if (_dcpInfo is not null)
+        {
+            DcpDependencyCheck.CheckDcpInfoAndLogErrors(logger, _options.Value, _dcpInfo);
+        }
+
+        await _kubernetesService.CreateAsync(dcpContainer, cToken).ConfigureAwait(false);
     }
 
     private async Task CreateTunnelDependentContainerAsync(RenderedModelResource cr, ImmutableArray<HostResourceWithEndpoints> hostDependencies, Lazy<Task> lazyCreateTunnel, CancellationToken cToken)
     {
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task<(IExecutionConfigurationResult, ContainerPemCertificates?, List<ContainerCreateFileSystem>?)>
+    BuildContainerConfiguration(RenderedModelResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
+    {
+        var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
+        var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
+        var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();
+
+        if (cr.ModelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
+        {
+            certificatesDestination = pathsAnnotation.CustomCertificatesDestination ?? certificatesDestination;
+            bundlePaths = pathsAnnotation.DefaultCertificateBundles ?? bundlePaths;
+            certificateDirsPaths = pathsAnnotation.DefaultCertificateDirectories ?? certificateDirsPaths;
+        }
+
+        var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
+
+        var configuration = await ExecutionConfigurationBuilder.Create(cr.ModelResource)
+            .WithArgumentsConfig()
+            .WithEnvironmentVariablesConfig()
+            .WithCertificateTrustConfig(scope =>
+            {
+                var dirs = new List<string> { certificatesDestination + "/certs" };
+                if (scope == CertificateTrustScope.Append)
+                {
+                    // When appending to the default trust store, include the default certificate directories
+                    dirs.AddRange(certificateDirsPaths!);
+                }
+
+                return new()
+                {
+                    CertificateBundlePath = ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
+                    // Build Linux PATH style colon-separated list of directories
+                    CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
+                };
+            })
+            .WithHttpsCertificateConfig(cert => new()
+            {
+                CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.crt"),
+                KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
+                PfxPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.pfx"),
+            })
+            .AddExecutionConfigurationGatherer(new OtlpEndpointReferenceGatherer())
+            .BuildAsync(_executionContext, resourceLogger, cancellationToken)
+            .ConfigureAwait(false);
+
+        // Add the certificates to the executable spec so they'll be placed in the DCP config
+        ContainerPemCertificates? pemCertificates = null;
+        if (configuration.TryGetAdditionalData<CertificateTrustExecutionConfigurationData>(out var certificateTrustConfiguration)
+            && certificateTrustConfiguration.Scope != CertificateTrustScope.None
+            && certificateTrustConfiguration.Certificates.Count > 0)
+        {
+            pemCertificates = new ContainerPemCertificates
+            {
+                Certificates = certificateTrustConfiguration.Certificates.Select(c =>
+                {
+                    return new PemCertificate
+                    {
+                        Thumbprint = c.Thumbprint,
+                        Contents = c.ExportCertificatePem(),
+                    };
+                }).DistinctBy(cert => cert.Thumbprint).ToList(),
+                Destination = certificatesDestination,
+                ContinueOnError = true,
+            };
+
+            if (certificateTrustConfiguration.Scope != CertificateTrustScope.Append)
+            {
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
+                // used by common Linux distributions to make it easier to ensure applications pick it up.
+                // Group by common directory to avoid creating multiple file system entries for the same root directory.
+                pemCertificates.OverwriteBundlePaths = bundlePaths;
+            }
+        }
+
+        var buildCreateFilesContext = new BuildCreateFilesContext
+        {
+            Resource = cr.ModelResource,
+            CertificateTrustScope = certificateTrustConfiguration?.Scope ?? CertificateTrustScope.None,
+            CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
+        };
+
+        if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
+        {
+            var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+            buildCreateFilesContext.HttpsCertificateContext = new ContainerFileSystemCallbackHttpsCertificateContext
+            {
+                CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{thumbprint}.crt"),
+                KeyPath = tlsCertificateConfiguration.KeyPathReference,
+                PfxPath = tlsCertificateConfiguration.PfxPathReference,
+                Password = tlsCertificateConfiguration.Password,
+            };
+        }
+
+        // Build files that need to be created inside the container
+        var createFiles = await BuildCreateFilesAsync(
+            buildCreateFilesContext,
+            cancellationToken).ConfigureAwait(false);
+
+        if (tlsCertificateConfiguration is not null)
+        {
+            var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+            var publicCertificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
+            (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
+            var certificateFiles = new List<ContainerFileSystemEntry>()
+            {
+                new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".crt",
+                    Type = ContainerFileSystemEntryType.File,
+                    Contents = new string(publicCertificatePem),
+                }
+            };
+
+            if (keyPem is not null)
+            {
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".key",
+                    Type = ContainerFileSystemEntryType.File,
+                    Contents = new string(keyPem),
+                });
+
+                Array.Clear(keyPem, 0, keyPem.Length);
+            }
+
+            if (pfxBytes is not null)
+            {
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = thumbprint + ".pfx",
+                    Type = ContainerFileSystemEntryType.File,
+                    RawContents = Convert.ToBase64String(pfxBytes),
+                });
+
+                Array.Clear(pfxBytes, 0, pfxBytes.Length);
+            }
+
+            // Write the certificate and key to the container filesystem
+            createFiles.Add(new ContainerCreateFileSystem
+            {
+                Destination = serverAuthCertificatesBasePath,
+                Entries = certificateFiles,
+            });
+        }
+
+        return (configuration, pemCertificates, createFiles);
     }
 
     // OLD CODE STARTS HERE
@@ -2426,8 +2632,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 DcpDependencyCheck.CheckDcpInfoAndLogErrors(resourceLogger, _options.Value, _dcpInfo);
             }
-
-            
 
             await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
         }
