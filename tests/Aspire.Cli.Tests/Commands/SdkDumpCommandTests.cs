@@ -216,6 +216,8 @@ public class SdkDumpCommandTests(ITestOutputHelper outputHelper)
                 Assert.Equal(ExitCodeConstants.Success, exitCode);
 
                 var output = await File.ReadAllTextAsync(outputPath);
+                Assert.NotEmpty(output);
+
                 var warningLines = output
                     .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                     .Where(line => line.Contains("warning:", StringComparison.OrdinalIgnoreCase))
