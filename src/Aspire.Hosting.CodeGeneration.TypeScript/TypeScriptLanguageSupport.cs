@@ -66,8 +66,10 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
               "dependencies": {
                 "vscode-jsonrpc": "^8.2.0"
               },
+              "engines": {
+                "node": ">=20.19.0"
+              },
               "devDependencies": {
-                "@eslint/js": "^10.0.1",
                 "@types/node": "^22.0.0",
                 "eslint": "^10.0.3",
                 "nodemon": "^3.1.14",
