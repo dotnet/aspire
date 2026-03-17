@@ -11,8 +11,8 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $scriptDir = $PSScriptRoot
 $repoRoot = Split-Path -Parent $scriptDir
-$playgroundRoot = Join-Path -Path $repoRoot -ChildPath 'playground' -AdditionalChildPath 'polyglot', 'TypeScript'
-$cliProject = Join-Path -Path $repoRoot -ChildPath 'src' -AdditionalChildPath 'Aspire.Cli', 'Aspire.Cli.csproj'
+$playgroundRoot = Join-Path -Path $repoRoot -ChildPath 'playground/polyglot/TypeScript'
+$cliProject = Join-Path -Path $repoRoot -ChildPath 'src/Aspire.Cli/Aspire.Cli.csproj'
 $requiredGeneratedFiles = @('aspire.ts', 'base.ts', 'transport.ts')
 
 function Invoke-RepoRestore {
@@ -49,12 +49,18 @@ function Get-ValidationAppHosts {
 }
 
 function Install-NodeDependencies([string]$appDir) {
-    $packageLockPath = Join-Path $appDir 'package-lock.json'
-    if (Test-Path $packageLockPath) {
-        & npm ci --ignore-scripts --no-audit --no-fund
+    Push-Location $appDir
+    try {
+        $packageLockPath = Join-Path $appDir 'package-lock.json'
+        if (Test-Path $packageLockPath) {
+            & npm ci --ignore-scripts --no-audit --no-fund
+        }
+        else {
+            & npm install --ignore-scripts --no-audit --no-fund
+        }
     }
-    else {
-        & npm install --ignore-scripts --no-audit --no-fund
+    finally {
+        Pop-Location
     }
 }
 
@@ -120,7 +126,7 @@ foreach ($appHost in $appHosts) {
     }
     catch {
         Write-Host "  ERROR failed to refresh $appName"
-        Write-Host $_.Exception.Message
+        Write-Host ($_ | Out-String)
         $failures.Add($appName)
     }
     finally {
