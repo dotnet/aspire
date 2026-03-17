@@ -57,20 +57,47 @@ public sealed class TypeScriptLanguageSupport : ILanguageSupport
               "version": "1.0.0",
               "type": "module",
               "scripts": {
-                "start": "aspire run",
-                "build": "tsc",
-                "dev": "tsc --watch"
+                "lint": "eslint apphost.ts",
+                "predev": "npm run lint",
+                "dev": "aspire run",
+                "prebuild": "npm run lint",
+                "build": "tsc"
               },
               "dependencies": {
                 "vscode-jsonrpc": "^8.2.0"
               },
               "devDependencies": {
-                "@types/node": "^20.0.0",
-                "nodemon": "^3.1.11",
-                "tsx": "^4.19.0",
-                "typescript": "^5.3.0"
+                "@eslint/js": "^10.0.1",
+                "@types/node": "^22.0.0",
+                "eslint": "^10.0.3",
+                "nodemon": "^3.1.14",
+                "tsx": "^4.21.0",
+                "typescript": "^5.9.3",
+                "typescript-eslint": "^8.57.1"
               }
             }
+            """;
+
+        // Create eslint.config.mjs for catching unawaited promises in apphost.ts
+        files["eslint.config.mjs"] = """
+            // @ts-check
+
+            import { defineConfig } from 'eslint/config';
+            import tseslint from 'typescript-eslint';
+
+            export default defineConfig({
+              files: ['apphost.ts'],
+              extends: [tseslint.configs.base],
+              languageOptions: {
+                parserOptions: {
+                  projectService: true,
+                  tsconfigRootDir: import.meta.dirname,
+                },
+              },
+              rules: {
+                '@typescript-eslint/no-floating-promises': ['error', { checkThenables: true }],
+              },
+            });
             """;
 
         // Create tsconfig.json for TypeScript configuration
