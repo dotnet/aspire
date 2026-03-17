@@ -837,4 +837,97 @@ public class ConsoleInteractionServiceTests
         Assert.Contains("Azure Storage [Preview]", outputString);
         Assert.Contains("Aspire.Hosting.Azure.Storage", outputString);
     }
+
+    [Fact]
+    public void MakeSafeFormatter_WithBracketsInData_ProducesSafeOutput()
+    {
+        // Arrange - verifies that MakeSafeFormatter produces output that is safe
+        // for Spectre.Console's SelectionPrompt with EnableSearch(). The search
+        // highlighting feature in Spectre manipulates the markup string directly,
+        // which breaks escaped bracket sequences like [[Prod]]. MakeSafeFormatter
+        // strips markup and re-escapes to ensure the text is always safe.
+        // Regression test for https://github.com/dotnet/aspire/issues/13955
+        var output = new StringBuilder();
+        var console = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.No,
+            ColorSystem = ColorSystemSupport.NoColors,
+            Out = new AnsiConsoleOutput(new StringWriter(output))
+        });
+
+        // Simulate subscription names with brackets (from Azure API)
+        var subscriptions = new[]
+        {
+            KeyValuePair.Create("id1", "MSFT-Provisioning-01[Prod] (0832b3b6-22b3-4c47-8d8b-572054b97257)"),
+            KeyValuePair.Create("id2", "Normal Subscription (00000000-0000-0000-0000-000000000002)"),
+            KeyValuePair.Create("id3", "[Dev] Test Environment (00000000-0000-0000-0000-000000000003)"),
+        };
+
+        // The caller's formatter escapes markup (same as PipelineCommandBase.cs)
+        Func<KeyValuePair<string, string>, string> callerFormatter = choice => choice.Value.EscapeMarkup();
+
+        // MakeSafeFormatter wraps the caller's formatter
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act & Assert - verify each subscription produces valid, safe output
+        foreach (var sub in subscriptions)
+        {
+            var safeOutput = safeFormatter(sub);
+
+            // The safe output should be renderable as Spectre markup without throwing
+            var exception = Record.Exception(() => console.MarkupLine(safeOutput));
+            Assert.Null(exception);
+        }
+
+        // Verify the bracket-containing subscriptions render with brackets replaced
+        var prodOutput = safeFormatter(subscriptions[0]);
+        Assert.Contains("MSFT-Provisioning-01(Prod)", prodOutput);
+        Assert.Contains("0832b3b6", prodOutput);
+        // Must NOT contain raw square brackets
+        Assert.DoesNotContain("[", prodOutput);
+        Assert.DoesNotContain("]", prodOutput);
+
+        var devOutput = safeFormatter(subscriptions[2]);
+        Assert.Contains("(Dev) Test Environment", devOutput);
+
+        // Normal subscription without brackets should be unchanged
+        var normalOutput = safeFormatter(subscriptions[1]);
+        Assert.Contains("Normal Subscription", normalOutput);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithIntentionalMarkup_StripsMarkupButPreservesText()
+    {
+        // Arrange - verifies that MakeSafeFormatter strips intentional markup tags
+        // (like [bold]) but preserves the underlying text content. This is the expected
+        // trade-off: selection prompts show plain text to avoid the Spectre search
+        // highlighting bug with escaped brackets.
+        Func<string, string> callerFormatter = item => $"[bold]{item}[/] (description)";
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("PostgreSQL");
+
+        // Assert - the [bold] markup is stripped, brackets replaced with parens
+        Assert.Contains("PostgreSQL", result);
+        Assert.Contains("(description)", result);
+        Assert.DoesNotContain("[bold]", result);
+        Assert.DoesNotContain("[", result);
+    }
+
+    [Fact]
+    public void MakeSafeFormatter_WithPlainText_ReturnsEscapedPlainText()
+    {
+        // Arrange
+        Func<string, string> callerFormatter = item => item;
+
+        var safeFormatter = ConsoleInteractionService.MakeSafeFormatter(callerFormatter);
+
+        // Act
+        var result = safeFormatter("Normal text without brackets");
+
+        // Assert
+        Assert.Equal("Normal text without brackets", result);
+    }
 }
