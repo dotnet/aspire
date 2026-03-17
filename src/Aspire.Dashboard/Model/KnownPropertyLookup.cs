@@ -71,6 +71,7 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         {
             KnownResourceTypes.Project => _projectProperties,
             KnownResourceTypes.Executable => _executableProperties,
+            KnownResourceTypes.PackageExecutable => _executableProperties,
             KnownResourceTypes.Container => _containerProperties,
             KnownResourceTypes.Parameter => _parameterProperties,
             _ => _resourceProperties

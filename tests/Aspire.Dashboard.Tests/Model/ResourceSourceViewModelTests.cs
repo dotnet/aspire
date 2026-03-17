@@ -143,6 +143,22 @@ public sealed class ResourceSourceViewModelTests
                 ValueToVisualize: "path/to/executable arg1 arg2",
                 Tooltip: "path/to/executable arg1 arg2"));
 
+        // Package executable prefers the package source over the resolved path.
+        data.Add(new TestData(
+            ResourceType: "PackageExecutable",
+            ExecutablePath: "path/to/package/tools/net10.0/any/sample.dll",
+            ExecutableArguments: ["sample.dll", "--mode", "worker"],
+            AppArgs: null,
+            AppArgsSensitivity: null,
+            ProjectPath: null,
+            ContainerImage: null,
+            SourceProperty: "Contoso.PackageExecutables.SampleApp"),
+            new ExpectedData(
+            Value: "Contoso.PackageExecutables.SampleApp",
+            ContentAfterValue: [new ExpectedLaunchArgument("sample.dll", true), new ExpectedLaunchArgument("--mode", true), new ExpectedLaunchArgument("worker", true)],
+            ValueToVisualize: "Contoso.PackageExecutables.SampleApp sample.dll --mode worker",
+            Tooltip: "Contoso.PackageExecutables.SampleApp sample.dll --mode worker"));
+
         // Container image
         data.Add(new TestData(
                 ResourceType: "Container",

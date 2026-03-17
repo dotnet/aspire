@@ -62,6 +62,7 @@
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="NuGet.Commands" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="JsonPatch.Net" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />

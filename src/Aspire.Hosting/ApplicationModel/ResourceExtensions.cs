@@ -1504,6 +1504,7 @@ public static class ResourceExtensions
         ContainerResource => KnownResourceTypes.Container,
         ContainerExecutableResource => KnownResourceTypes.ContainerExec,
         DotnetToolResource => KnownResourceTypes.Tool,
+        PackageExecutableResource => KnownResourceTypes.PackageExecutable,
         ExecutableResource => KnownResourceTypes.Executable,
         ParameterResource => KnownResourceTypes.Parameter,
         ConnectionStringResource => KnownResourceTypes.ConnectionString,

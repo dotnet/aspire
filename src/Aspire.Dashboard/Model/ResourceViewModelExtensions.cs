@@ -44,6 +44,11 @@ internal static class ResourceViewModelExtensions
         return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Tool);
     }
 
+    public static bool IsPackageExecutable(this ResourceViewModel resource)
+    {
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.PackageExecutable);
+    }
+
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
     {
         if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Executable))
@@ -53,7 +58,8 @@ internal static class ResourceViewModelExtensions
 
         if (allowSubtypes)
         {
-            return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
+            return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project) ||
+                StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.PackageExecutable);
         }
 
         return false;

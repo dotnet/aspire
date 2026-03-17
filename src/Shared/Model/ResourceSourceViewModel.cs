@@ -24,6 +24,13 @@ internal record ResourceSource(string Value, string OriginalValue)
             return new ResourceSource(toolPackage, toolPackage);
         }
 
+        if (StringComparers.ResourceType.Equals(resourceType, KnownResourceTypes.PackageExecutable) &&
+            properties.TryGetValue(KnownProperties.Resource.Source, out var packageSource) &&
+            !string.IsNullOrEmpty(packageSource))
+        {
+            return new ResourceSource(packageSource, packageSource);
+        }
+
         if (properties.TryGetValue(KnownProperties.Executable.Path, out var executablePath) &&
             !string.IsNullOrEmpty(executablePath))
         {

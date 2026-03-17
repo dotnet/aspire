@@ -168,6 +168,7 @@ internal sealed class ApplicationOrchestrator
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:
+            case KnownResourceTypes.PackageExecutable:
             case KnownResourceTypes.Executable:
                 await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
