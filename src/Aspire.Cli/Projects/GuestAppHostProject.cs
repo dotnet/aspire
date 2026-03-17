@@ -588,7 +588,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
     }
 
-    private Dictionary<string, string> GetServerEnvironmentVariables(DirectoryInfo directory)
+    internal Dictionary<string, string> GetServerEnvironmentVariables(DirectoryInfo directory)
     {
         var envVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
 
@@ -634,8 +634,9 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
         try
         {
+            _logger.LogDebug("Reading launch settings from {ConfigPath}", configPath);
             var json = File.ReadAllText(configPath);
-            using var doc = JsonDocument.Parse(json);
+            using var doc = JsonDocument.Parse(json, ConfigurationHelper.ParseOptions);
 
             if (!doc.RootElement.TryGetProperty("profiles", out var profiles))
             {
@@ -689,12 +690,12 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 return null;
             }
 
-            _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
+            _logger.LogDebug("Read {Count} environment variables from {ConfigPath}", result.Count, configPath);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to read launchSettings.json");
+            _logger.LogWarning(ex, "Failed to read {ConfigPath}", configPath);
             return null;
         }
     }
