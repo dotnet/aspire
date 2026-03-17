@@ -249,6 +249,19 @@ internal static class Hex1bAutomatorTestHelpers
                     description: "Empty AppHost template selected");
                 await auto.EnterAsync();
                 break;
+
+            case AspireTemplate.EmptyTypeScriptAppHost:
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.WaitUntilAsync(
+                    s => new CellPatternSearcher().Find("> Empty (TypeScript AppHost)").Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(5),
+                    description: "Empty TypeScript AppHost template selected");
+                await auto.EnterAsync();
+                break;
         }
 
         // Step 3: Enter project name

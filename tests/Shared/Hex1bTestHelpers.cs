@@ -53,9 +53,15 @@ internal enum AspireTemplate
 
     /// <summary>
     /// Empty (C# AppHost) — 5th option.
-    /// Prompts: template, project name, output path, URLs. No language, Redis, or test project prompt.
+    /// Prompts: template, project name, output path, URLs. No Redis or test project prompt.
     /// </summary>
     EmptyAppHost,
+
+    /// <summary>
+    /// Empty (TypeScript AppHost) — 6th option.
+    /// Prompts: template, project name, output path, URLs. No Redis or test project prompt.
+    /// </summary>
+    EmptyTypeScriptAppHost,
 }
 
 /// <summary>
@@ -451,6 +457,18 @@ internal static class Hex1bTestHelpers
                     .Key(Hex1bKey.DownArrow)
                     .Key(Hex1bKey.DownArrow)
                     .WaitUntil(s => emptyAppHostSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
+                    .Enter();
+                break;
+
+            case AspireTemplate.EmptyTypeScriptAppHost:
+                var emptyTsAppHostSelected = new CellPatternSearcher()
+                    .Find("> Empty (TypeScript AppHost)");
+                builder.Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .Key(Hex1bKey.DownArrow)
+                    .WaitUntil(s => emptyTsAppHostSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
                     .Enter();
                 break;
         }
