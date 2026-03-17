@@ -76,6 +76,9 @@ await builtConnectionString.withConnectionPropertyValue("Mode", "Development");
 // withEnvironment — with EndpointReference
 await container.withEnvironment("MY_ENDPOINT", endpoint);
 
+// withEnvironment — with ReferenceExpression
+await container.withEnvironment("MY_EXPR", expr);
+
 // withEnvironment — with ParameterResource
 await container.withEnvironment("MY_PARAM", configParam);
 
