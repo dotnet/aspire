@@ -401,18 +401,20 @@ function validateCapabilityArgs(
             throw createCircularReferenceError(capabilityId, path);
         }
 
-        const nextAncestors = new Set(ancestors);
-        nextAncestors.add(value);
-
-        if (Array.isArray(value)) {
-            for (let i = 0; i < value.length; i++) {
-                validateValue(value[i], `${path}[${i}]`, nextAncestors);
+        ancestors.add(value);
+        try {
+            if (Array.isArray(value)) {
+                for (let i = 0; i < value.length; i++) {
+                    validateValue(value[i], `${path}[${i}]`, ancestors);
+                }
+                return;
             }
-            return;
-        }
 
-        for (const [key, nestedValue] of Object.entries(value)) {
-            validateValue(nestedValue, `${path}.${key}`, nextAncestors);
+            for (const [key, nestedValue] of Object.entries(value)) {
+                validateValue(nestedValue, `${path}.${key}`, ancestors);
+            }
+        } finally {
+            ancestors.delete(value);
         }
     };
 
