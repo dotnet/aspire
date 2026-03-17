@@ -52,6 +52,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         await Verify(files["base.ts"], extension: "ts")
             .UseFileName("base");
+
+        await Verify(files["transport.ts"], extension: "ts")
+            .UseFileName("transport");
     }
 
     [Fact]
@@ -65,6 +68,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
         Assert.Contains("condition: extractHandleForExpr(this._condition),", files["base.ts"]);
         Assert.Contains("('$handle' in json || '$expr' in json)", files["base.ts"]);
+        Assert.Contains("registerCancellation(this._client, cancellationToken)", files["base.ts"]);
     }
 
     [Fact]
@@ -713,6 +717,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_UsesUnifiedWithReferenceCapability()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var withReference = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/withReference");
+        Assert.Contains(withReference.Parameters, p => p.Name == "name" && p.IsOptional);
+
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReference");
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReferenceNamed");
+    }
+
+    [Fact]
     public void BugFix_TargetParameterName_WithVolumeUsesResource()
     {
         // Verify that withVolume has TargetParameterName = "resource" (from CoreExports.cs)
@@ -1079,6 +1095,16 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // getValueAsync returns string - plain Promise, not a wrapper
         Assert.Contains("getValueAsync(): Promise<string>", code);
+    }
+
+    [Fact]
+    public void GenerateTwoPassCode_UsesUnifiedWithReferenceSurface()
+    {
+        var code = GenerateTwoPassCode();
+
+        Assert.DoesNotContain("withServiceReference(", code);
+        Assert.DoesNotContain("withServiceReferenceNamed(", code);
+        Assert.Contains("name?: string;", code);
     }
 
     private string GenerateTwoPassCode()

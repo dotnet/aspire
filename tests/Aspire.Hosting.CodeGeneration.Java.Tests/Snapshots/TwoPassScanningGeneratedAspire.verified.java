@@ -812,7 +812,7 @@ class CSharpAppResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -822,24 +822,10 @@ class CSharpAppResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -2701,7 +2687,7 @@ class ContainerResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -2711,24 +2697,10 @@ class ContainerResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -3730,7 +3702,7 @@ class DotnetToolResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -3740,24 +3712,10 @@ class DotnetToolResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -4792,7 +4750,7 @@ class ExecutableResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -4802,24 +4760,10 @@ class ExecutableResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -6551,14 +6495,6 @@ class IResourceWithParent extends ResourceBuilderBase {
 
 }
 
-/** Wrapper for Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery. */
-class IResourceWithServiceDiscovery extends ResourceBuilderBase {
-    IResourceWithServiceDiscovery(Handle handle, AspireClient client) {
-        super(handle, client);
-    }
-
-}
-
 /** Wrapper for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport. */
 class IResourceWithWaitSupport extends ResourceBuilderBase {
     IResourceWithWaitSupport(Handle handle, AspireClient client) {
@@ -7670,7 +7606,7 @@ class ProjectResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -7680,24 +7616,10 @@ class ProjectResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -9044,7 +8966,7 @@ class TestDatabaseResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -9054,24 +8976,10 @@ class TestDatabaseResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -10099,7 +10007,7 @@ class TestRedisResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -10109,24 +10017,10 @@ class TestRedisResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -11267,7 +11161,7 @@ class TestVaultResource extends ResourceBuilderBase {
     }
 
     /** Adds a reference to another resource */
-    public IResourceWithEnvironment withReference(IResourceWithConnectionString source, String connectionName, Boolean optional) {
+    public IResourceWithEnvironment withReference(IResource source, String connectionName, Boolean optional, String name) {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("source", AspireClient.serializeValue(source));
@@ -11277,24 +11171,10 @@ class TestVaultResource extends ResourceBuilderBase {
         if (optional != null) {
             reqArgs.put("optional", AspireClient.serializeValue(optional));
         }
+        if (name != null) {
+            reqArgs.put("name", AspireClient.serializeValue(name));
+        }
         return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
-    }
-
-    /** Adds a service discovery reference to another resource */
-    public IResourceWithEnvironment withServiceReference(IResourceWithServiceDiscovery source) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReference", reqArgs);
-    }
-
-    /** Adds a named service discovery reference */
-    public IResourceWithEnvironment withServiceReferenceNamed(IResourceWithServiceDiscovery source, String name) {
-        Map<String, Object> reqArgs = new HashMap<>();
-        reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
-        reqArgs.put("source", AspireClient.serializeValue(source));
-        reqArgs.put("name", AspireClient.serializeValue(name));
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -12040,7 +11920,6 @@ class AspireRegistrations {
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.DotnetToolResource", (h, c) -> new DotnetToolResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ExternalServiceResource", (h, c) -> new ExternalServiceResource(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource", (h, c) -> new CSharpAppResource(h, c));
-        AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", (h, c) -> new IResourceWithServiceDiscovery(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", (h, c) -> new IResourceWithContainerFiles(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", (h, c) -> new TestCallbackContext(h, c));
         AspireClient.registerHandleWrapper("Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext", (h, c) -> new TestResourceContext(h, c));

@@ -8,7 +8,7 @@ namespace Aspire.Cli.Tests.TestServices;
 /// <summary>
 /// Test implementation of IConfigurationService that tracks SetConfigurationAsync, DeleteConfigurationAsync, and GetConfigurationAsync calls.
 /// </summary>
-public sealed class TrackingConfigurationService : IConfigurationService
+public sealed class TestConfigurationService : IConfigurationService
 {
     public Action<string, string, bool>? OnSetConfiguration { get; set; }
     public Action<string, bool>? OnDeleteConfiguration { get; set; }
@@ -47,8 +47,10 @@ public sealed class TrackingConfigurationService : IConfigurationService
         return Task.FromResult(result);
     }
 
+    public string SettingsFilePath { get; set; } = string.Empty;
+
     public string GetSettingsFilePath(bool isGlobal)
     {
-        return string.Empty;
+        return SettingsFilePath;
     }
 }

@@ -702,41 +702,15 @@ func (s *CSharpAppResource) WithArgsCallbackAsync(callback func(...any) any) (*I
 }
 
 // WithReference adds a reference to another resource
-func (s *CSharpAppResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *CSharpAppResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *CSharpAppResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *CSharpAppResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -3408,41 +3382,15 @@ func (s *ContainerResource) WithArgsCallbackAsync(callback func(...any) any) (*I
 }
 
 // WithReference adds a reference to another resource
-func (s *ContainerResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *ContainerResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *ContainerResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *ContainerResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -4863,41 +4811,15 @@ func (s *DotnetToolResource) WithArgsCallbackAsync(callback func(...any) any) (*
 }
 
 // WithReference adds a reference to another resource
-func (s *DotnetToolResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *DotnetToolResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *DotnetToolResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *DotnetToolResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -6386,41 +6308,15 @@ func (s *ExecutableResource) WithArgsCallbackAsync(callback func(...any) any) (*
 }
 
 // WithReference adds a reference to another resource
-func (s *ExecutableResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *ExecutableResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *ExecutableResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *ExecutableResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -8859,18 +8755,6 @@ func NewIResourceWithParent(handle *Handle, client *AspireClient) *IResourceWith
 	}
 }
 
-// IResourceWithServiceDiscovery wraps a handle for Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery.
-type IResourceWithServiceDiscovery struct {
-	ResourceBuilderBase
-}
-
-// NewIResourceWithServiceDiscovery creates a new IResourceWithServiceDiscovery.
-func NewIResourceWithServiceDiscovery(handle *Handle, client *AspireClient) *IResourceWithServiceDiscovery {
-	return &IResourceWithServiceDiscovery{
-		ResourceBuilderBase: NewResourceBuilderBase(handle, client),
-	}
-}
-
 // IResourceWithWaitSupport wraps a handle for Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport.
 type IResourceWithWaitSupport struct {
 	ResourceBuilderBase
@@ -10552,41 +10436,15 @@ func (s *ProjectResource) WithArgsCallbackAsync(callback func(...any) any) (*IRe
 }
 
 // WithReference adds a reference to another resource
-func (s *ProjectResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *ProjectResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *ProjectResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *ProjectResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -12503,41 +12361,15 @@ func (s *TestDatabaseResource) WithArgsCallbackAsync(callback func(...any) any) 
 }
 
 // WithReference adds a reference to another resource
-func (s *TestDatabaseResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *TestDatabaseResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *TestDatabaseResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *TestDatabaseResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -13991,41 +13823,15 @@ func (s *TestRedisResource) WithArgsCallbackAsync(callback func(...any) any) (*I
 }
 
 // WithReference adds a reference to another resource
-func (s *TestRedisResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *TestRedisResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *TestRedisResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *TestRedisResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -15627,41 +15433,15 @@ func (s *TestVaultResource) WithArgsCallbackAsync(callback func(...any) any) (*I
 }
 
 // WithReference adds a reference to another resource
-func (s *TestVaultResource) WithReference(source *IResourceWithConnectionString, connectionName string, optional bool) (*IResourceWithEnvironment, error) {
+func (s *TestVaultResource) WithReference(source *IResource, connectionName string, optional bool, name string) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
 		"builder": SerializeValue(s.Handle()),
 	}
 	reqArgs["source"] = SerializeValue(source)
 	reqArgs["connectionName"] = SerializeValue(connectionName)
 	reqArgs["optional"] = SerializeValue(optional)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReference adds a service discovery reference to another resource
-func (s *TestVaultResource) WithServiceReference(source *IResourceWithServiceDiscovery) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReference", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithServiceReferenceNamed adds a named service discovery reference
-func (s *TestVaultResource) WithServiceReferenceNamed(source *IResourceWithServiceDiscovery, name string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["source"] = SerializeValue(source)
 	reqArgs["name"] = SerializeValue(name)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withServiceReferenceNamed", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -16770,9 +16550,6 @@ func init() {
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.ApplicationModel.CSharpAppResource", func(h *Handle, c *AspireClient) any {
 		return NewCSharpAppResource(h, c)
-	})
-	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithServiceDiscovery", func(h *Handle, c *AspireClient) any {
-		return NewIResourceWithServiceDiscovery(h, c)
 	})
 	RegisterHandleWrapper("Aspire.Hosting/Aspire.Hosting.IResourceWithContainerFiles", func(h *Handle, c *AspireClient) any {
 		return NewIResourceWithContainerFiles(h, c)

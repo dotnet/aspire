@@ -50,6 +50,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<NewCommand>();
         Assert.NotEmpty(command.Subcommands);
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == KnownTemplateId.CSharpEmptyAppHost && subcommand.Description == "Empty (C# AppHost)");
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == KnownTemplateId.TypeScriptEmptyAppHost && subcommand.Description == "Empty (TypeScript AppHost)");
     }
 
     [Fact]
@@ -61,6 +63,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<NewCommand>();
         Assert.NotEmpty(command.Subcommands);
+        Assert.DoesNotContain(command.Options, option => option.Aliases.Contains("--language", StringComparer.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -842,11 +845,11 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task NewCommandWithLanguageOptionAndNoTemplateCanCreateCliEmptyTemplate()
+    public async Task NewCommandWithoutTemplateCanCreateTypeScriptEmptyTemplate()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var scaffoldedLanguageId = string.Empty;
-        string[]? promptedTemplateNames = null;
+        (string Name, string Description)[]? promptedTemplates = null;
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -877,8 +880,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 var prompter = new TestNewCommandPrompter(interactionService);
                 prompter.PromptForTemplateCallback = templates =>
                 {
-                    promptedTemplateNames = templates.Select(t => t.Name).ToArray();
-                    return templates.Single(t => t.Name.Equals("aspire-empty", StringComparison.OrdinalIgnoreCase));
+                    promptedTemplates = templates.Select(t => (t.Name, t.Description)).ToArray();
+                    return templates.Single(t => t.Name.Equals(KnownTemplateId.TypeScriptEmptyAppHost, StringComparison.OrdinalIgnoreCase));
                 };
 
                 return prompter;
@@ -897,36 +900,55 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --language typescript --name TestApp --output .");
+        var result = command.Parse("new --name TestApp --output .");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
         Assert.Equal(KnownLanguageId.TypeScript, scaffoldedLanguageId);
-        Assert.NotNull(promptedTemplateNames);
-        Assert.Contains("aspire-empty", promptedTemplateNames);
+        Assert.NotNull(promptedTemplates);
+        Assert.Contains((KnownTemplateId.CSharpEmptyAppHost, "Empty (C# AppHost)"), promptedTemplates);
+        Assert.Contains((KnownTemplateId.TypeScriptEmptyAppHost, "Empty (TypeScript AppHost)"), promptedTemplates);
+        Assert.Contains((KnownTemplateId.TypeScriptStarter, "Starter App (Express/React)"), promptedTemplates);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.ts")));
     }
 
     [Fact]
-    public async Task NewCommandWithLanguageOptionFiltersOutTypeScriptStarterForCSharp()
+    public void NewCommandTemplateSubcommandsListTechnicalNamesForNonInteractiveFlows()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        string[]? promptedTemplateNames = null;
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.FeatureFlagsFactory = _ => new NewCommandTestFeatures(showAllTemplates: true);
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<NewCommand>();
+
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == "aspire-test");
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == KnownTemplateId.DotNetEmptyAppHost && subcommand.Description == "Empty (C# AppHost, dotnet template)");
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == KnownTemplateId.CSharpEmptyAppHost && subcommand.Description == "Empty (C# AppHost)");
+        Assert.Contains(command.Subcommands, subcommand => subcommand.Name == KnownTemplateId.TypeScriptEmptyAppHost && subcommand.Description == "Empty (TypeScript AppHost)");
+    }
+
+    [Fact]
+    public async Task NewCommandWithoutTemplatePromptsWithDistinctLanguageSpecificEmptyDescriptions()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        string[]? promptedTemplateDescriptions = null;
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.InteractionServiceFactory = _ => new TestInteractionService
-            {
-                PromptForSelectionCallback = (promptText, choices, choiceFormatter, cancellationToken) => choices.Cast<object>().First()
-            };
             options.NewCommandPrompterFactory = (sp) =>
             {
                 var interactionService = sp.GetRequiredService<IInteractionService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
                 prompter.PromptForTemplateCallback = templates =>
                 {
-                    promptedTemplateNames = templates.Select(t => t.Name).ToArray();
-                    return templates.Single(t => t.Name.Equals("aspire-empty", StringComparison.OrdinalIgnoreCase));
+                    promptedTemplateDescriptions = templates
+                        .Where(t => t.Name is KnownTemplateId.CSharpEmptyAppHost or KnownTemplateId.TypeScriptEmptyAppHost)
+                        .Select(t => t.Description)
+                        .ToArray();
+                    return templates.Single(t => t.Name.Equals(KnownTemplateId.CSharpEmptyAppHost, StringComparison.OrdinalIgnoreCase));
                 };
 
                 return prompter;
@@ -952,34 +974,22 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --language csharp --name TestApp --output .");
+        var result = command.Parse("new --name TestApp --output .");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
-        Assert.NotNull(promptedTemplateNames);
-        Assert.DoesNotContain("aspire-ts-starter", promptedTemplateNames);
+        Assert.NotNull(promptedTemplateDescriptions);
+        Assert.Contains("Empty (C# AppHost)", promptedTemplateDescriptions);
+        Assert.Contains("Empty (TypeScript AppHost)", promptedTemplateDescriptions);
     }
 
     [Fact]
-    public async Task NewCommandWithExplicitTemplateAndPolyglotEnabledDoesNotPromptForLanguageSelection()
+    public async Task NewCommandWithExplicitCSharpEmptyTemplateCreatesCSharpAppHost()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var languageSelectionRequested = false;
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.LanguageServiceFactory = (sp) =>
-            {
-                return new TestLanguageService
-                {
-                    GetOrPromptForProjectAsyncCallback = (explicitLanguageId, saveSelection, cancellationToken) =>
-                    {
-                        languageSelectionRequested = true;
-                        throw new InvalidOperationException("Language selection should not be requested for template subcommands without --language.");
-                    }
-                };
-            };
-
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
@@ -1001,11 +1011,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new aspire-empty --language csharp --name TestApp --output . --localhost-tld false");
+        var result = command.Parse("new aspire-empty --name TestApp --output . --localhost-tld false");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
-        Assert.False(languageSelectionRequested);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
     }
 
@@ -1063,7 +1072,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --language csharp --name TestApp --output .");
+        var result = command.Parse("new aspire-empty --name TestApp --output .");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
@@ -1077,7 +1086,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task NewCommandWithEmptyTemplateAndExplicitTypeScriptLanguageUsesScaffolding()
+    public async Task NewCommandWithTypeScriptEmptyTemplateUsesScaffolding()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var scaffoldingInvoked = false;
@@ -1114,7 +1123,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("new --language typescript aspire-empty --name TestApp --output . --localhost-tld false");
+        var result = command.Parse("new aspire-ts-empty --name TestApp --output . --localhost-tld false");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
@@ -1171,7 +1180,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
         // Do not pass --output so the default "./TestApp" path is used via the prompter
-        var result = command.Parse("new --language typescript aspire-empty --name TestApp --localhost-tld false");
+        var result = command.Parse("new aspire-ts-empty --name TestApp --localhost-tld false");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
@@ -1215,7 +1224,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 var interactionService = sp.GetRequiredService<IInteractionService>();
                 var prompter = new TestNewCommandPrompter(interactionService);
                 prompter.PromptForTemplateCallback = templates =>
-                    templates.Single(t => t.Name.Equals("aspire-empty", StringComparison.OrdinalIgnoreCase));
+                    templates.Single(t => t.Name.Equals("aspire-ts-empty", StringComparison.OrdinalIgnoreCase));
 
                 return prompter;
             };
@@ -1266,7 +1275,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new --language typescript --name TestApp --output .");
+        var result = command.Parse("new aspire-ts-empty --name TestApp --output .");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
@@ -1453,7 +1462,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse("new aspire-empty --language csharp --name TestApp --output .");
+        var result = command.Parse("new aspire-empty --name TestApp --output .");
 
         // Before the fix, this would throw InvalidOperationException with
         // "Interactive input is not supported in this environment" because
@@ -1565,7 +1574,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(KnownEmoji emoji, string message, bool allowMarkup = false) { }
     public void DisplaySuccess(string message, bool allowMarkup = false) { }
-    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayLines(IEnumerable<(OutputLineStream Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
     public Task<string> PromptForFilePathAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool directory = false, bool required = false, CancellationToken cancellationToken = default)
@@ -1647,6 +1656,18 @@ internal sealed class TestScaffoldingService : IScaffoldingService
         }
 
         return Task.FromResult(true);
+    }
+}
+
+internal sealed class NewCommandTestFeatures(bool showAllTemplates = false) : IFeatures
+{
+    public bool IsFeatureEnabled(string featureFlag, bool defaultValue)
+    {
+        return featureFlag switch
+        {
+            "showAllTemplates" => showAllTemplates,
+            _ => defaultValue
+        };
     }
 }
 

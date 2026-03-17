@@ -244,11 +244,10 @@ internal static class Hex1bAutomatorTestHelpers
                 await auto.DownAsync();
                 await auto.DownAsync();
                 await auto.WaitUntilAsync(
-                    s => new CellPatternSearcher().Find("> Empty AppHost").Search(s).Count > 0,
+                    s => new CellPatternSearcher().Find("> Empty (C# AppHost)").Search(s).Count > 0,
                     timeout: TimeSpan.FromSeconds(5),
                     description: "Empty AppHost template selected");
                 await auto.EnterAsync();
-                await auto.EnterAsync(); // Select C# language
                 break;
         }
 
