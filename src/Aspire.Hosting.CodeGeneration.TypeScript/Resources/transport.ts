@@ -77,7 +77,8 @@ export function isAtsError(value: unknown): value is { $error: AtsError } {
         value !== null &&
         typeof value === 'object' &&
         '$error' in value &&
-        typeof (value as { $error: unknown }).$error === 'object'
+        typeof (value as { $error: unknown }).$error === 'object' &&
+        (value as { $error: unknown }).$error !== null
     );
 }
 
