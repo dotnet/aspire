@@ -356,20 +356,6 @@ class CSharpAppResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -378,20 +364,19 @@ class CSharpAppResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -1757,20 +1742,6 @@ class ContainerResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -1779,20 +1750,19 @@ class ContainerResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -2502,20 +2472,6 @@ class DotnetToolResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -2524,20 +2480,19 @@ class DotnetToolResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -3274,20 +3229,6 @@ class ExecutableResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -3296,20 +3237,19 @@ class ExecutableResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -5451,20 +5391,6 @@ class ProjectResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -5473,20 +5399,19 @@ class ProjectResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -6477,20 +6402,6 @@ class TestDatabaseResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -6499,20 +6410,19 @@ class TestDatabaseResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -7228,20 +7138,6 @@ class TestRedisResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -7250,20 +7146,19 @@ class TestRedisResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
@@ -8099,20 +7994,6 @@ class TestVaultResource(ResourceBuilderBase):
             args["helpLink"] = serialize_value(help_link)
         return self._client.invoke_capability("Aspire.Hosting/withRequiredCommand", args)
 
-    def with_environment(self, name: str, value: str) -> IResourceWithEnvironment:
-        """Sets an environment variable"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
-
-    def with_environment_expression(self, name: str, value: ReferenceExpression) -> IResourceWithEnvironment:
-        """Adds an environment variable with a reference expression"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        args["name"] = serialize_value(name)
-        args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentExpression", args)
-
     def with_environment_callback(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
         """Sets environment variables via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -8121,20 +8002,19 @@ class TestVaultResource(ResourceBuilderBase):
             args["callback"] = callback_id
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallback", args)
 
-    def with_environment_callback_async(self, callback: Callable[[EnvironmentCallbackContext], None]) -> IResourceWithEnvironment:
-        """Sets environment variables via async callback"""
-        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
-        callback_id = register_callback(callback) if callback is not None else None
-        if callback_id is not None:
-            args["callback"] = callback_id
-        return self._client.invoke_capability("Aspire.Hosting/withEnvironmentCallbackAsync", args)
-
     def with_environment_endpoint(self, name: str, endpoint_reference: EndpointReference) -> IResourceWithEnvironment:
         """Sets an environment variable from an endpoint reference"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["endpointReference"] = serialize_value(endpoint_reference)
         return self._client.invoke_capability("Aspire.Hosting/withEnvironmentEndpoint", args)
+
+    def with_environment(self, name: str, value: str | ReferenceExpression | EndpointReference | ParameterResource | IResourceWithConnectionString) -> IResourceWithEnvironment:
+        """Sets an environment variable on the resource"""
+        args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
+        args["name"] = serialize_value(name)
+        args["value"] = serialize_value(value)
+        return self._client.invoke_capability("Aspire.Hosting/withEnvironment", args)
 
     def with_environment_parameter(self, name: str, parameter: ParameterResource) -> IResourceWithEnvironment:
         """Sets an environment variable from a parameter resource"""
