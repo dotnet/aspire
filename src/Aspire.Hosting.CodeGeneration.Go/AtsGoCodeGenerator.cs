@@ -12,7 +12,7 @@ namespace Aspire.Hosting.CodeGeneration.Go;
 /// Generates a Go SDK using the ATS (Aspire Type System) capability-based API.
 /// Produces wrapper structs that proxy capabilities via JSON-RPC.
 /// </summary>
-public sealed class AtsGoCodeGenerator : ICodeGenerator
+internal sealed class AtsGoCodeGenerator : ICodeGenerator
 {
     private static readonly HashSet<string> s_goKeywords = new(StringComparer.Ordinal)
     {
