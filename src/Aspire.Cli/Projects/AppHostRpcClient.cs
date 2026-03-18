@@ -52,6 +52,10 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
         => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
             "scaffoldAppHost", [languageId, targetPath, projectName], cancellationToken);
 
+    // The generateCode and getCapabilities RPC methods each have a single server-side handler
+    // that accepts optional filtering parameters. The typed methods below provide distinct
+    // C# signatures that call the same underlying RPC endpoint with different arguments.
+
     /// <inheritdoc />
     public Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken)
         => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
