@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Security.Cryptography;
-using System.Text;
 using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -284,25 +282,6 @@ public class AppHostHelperTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, sockets.Length);
         Assert.Contains(oldFormatSocket, sockets);
         Assert.Contains(newFormatSocket, sockets);
-    }
-
-    [Fact]
-    public void FindMatchingSockets_FallsBackToLegacySha256Hash()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var backchannelsDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cli", "backchannels");
-        Directory.CreateDirectory(backchannelsDir);
-
-        var appHostPath = "/path/to/MyApp.AppHost.csproj";
-        var legacyHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath)))[..16].ToLowerInvariant();
-
-        var legacySocket = Path.Combine(backchannelsDir, $"auxi.sock.{legacyHash}.12345");
-        File.WriteAllText(legacySocket, "");
-
-        var sockets = AppHostHelper.FindMatchingSockets(appHostPath, workspace.WorkspaceRoot.FullName);
-
-        Assert.Single(sockets);
-        Assert.Contains(legacySocket, sockets);
     }
 
     [Fact]

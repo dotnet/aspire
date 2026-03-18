@@ -63,11 +63,8 @@ namespace Aspire.Hosting.Backchannel;
 /// Old CLI versions use glob pattern <c>aux*.sock.*</c> which matches the new format.
 /// Old CLIs will work with new AppHosts, they just won't benefit from PID-based orphan detection.
 /// </para>
-/// <para>
-/// New CLIs also fall back to the legacy SHA-256 AppHost hash during discovery so they can
-/// still connect to older AppHosts that have not yet been updated to the xxHash-based prefix.
-/// </para>
 /// </remarks>
+internal static class BackchannelConstants
 {
     /// <summary>
     /// Prefix for auxiliary backchannel sockets.
@@ -177,25 +174,7 @@ namespace Aspire.Hosting.Backchannel;
     /// <returns>An array of socket file paths, or empty if none found.</returns>
     public static string[] FindMatchingSockets(string appHostPath, string homeDirectory)
     {
-        var currentHash = ComputeHash(appHostPath);
-        var matches = FindMatchingSocketsForHash(currentHash, homeDirectory);
-
-        if (matches.Length > 0)
-        {
-            return matches;
-        }
-
-        // Keep discovery compatible with AppHosts that still use the previous SHA-256-based
-        // prefix while the CLI and AppHost roll out independently.
-        var legacyHash = ComputeLegacyHash(appHostPath);
-        return legacyHash != currentHash
-            ? FindMatchingSocketsForHash(legacyHash, homeDirectory)
-            : [];
-    }
-
-    private static string[] FindMatchingSocketsForHash(string hash, string homeDirectory)
-    {
-        var prefix = Path.Combine(GetBackchannelsDirectory(homeDirectory), $"{SocketPrefix}.{hash}");
+        var prefix = ComputeSocketPrefix(appHostPath, homeDirectory);
         var dir = Path.GetDirectoryName(prefix);
         var prefixFileName = Path.GetFileName(prefix);
 
@@ -413,11 +392,6 @@ namespace Aspire.Hosting.Backchannel;
 
     private static bool IsHex(string value)
         => !string.IsNullOrEmpty(value) && value.All(static c => char.IsAsciiHexDigit(c));
-
-    private static string ComputeLegacyHash(string value)
-    {
-        return ToLowerHexIdentifier(SHA256.HashData(Encoding.UTF8.GetBytes(value)), HashLength);
-    }
 
     private static string ToLowerHexIdentifier(ReadOnlySpan<byte> bytes, int length)
     {
