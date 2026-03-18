@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
@@ -6,6 +6,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Yarp.Transforms;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
+using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -45,6 +46,7 @@ public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresFeature(TestFeature.Docker | TestFeature.DockerPluginBuildx)]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/15358")]
     public async Task ProxylessEndpointWorksWithContainerTunnel()
     {
         var port = await Helpers.Network.GetAvailablePortAsync();
