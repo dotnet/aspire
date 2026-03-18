@@ -185,8 +185,8 @@ internal sealed class AspireConfigFile
                 var legacySettingsDir = Path.Combine(directory, AspireJsonConfiguration.SettingsFolder);
                 var absolutePath = PathNormalizer.NormalizePathForCurrentPlatform(
                     Path.Combine(legacySettingsDir, migratedPath));
-                config.AppHost.Path = Path.GetRelativePath(directory, absolutePath)
-                    .Replace('\\', '/');
+                config.AppHost.Path = PathNormalizer.NormalizePathForStorage(
+                    Path.GetRelativePath(directory, absolutePath));
             }
 
             // Persist the migrated config (legacy files are kept for older CLI versions)

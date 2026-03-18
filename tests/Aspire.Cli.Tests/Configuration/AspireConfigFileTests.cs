@@ -527,4 +527,81 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
         // No appHostPath means no migration needed; path stays null
         Assert.Null(config.AppHost?.Path);
     }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_DotSlashRelativePath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // "./path/apphost.ts" is relative to .aspire/ dir, resolves to .aspire/path/apphost.ts
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "./path/apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        Assert.Equal(".aspire/path/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_BareRelativePath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // "path/apphost.ts" without ../ is relative to .aspire/, resolves to .aspire/path/apphost.ts
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "path/apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        Assert.Equal(".aspire/path/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_LeavesUnixRootedPathUnchanged()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "/path/apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        Assert.Equal("/path/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_LeavesWindowsRootedPathUnchanged()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows-rooted paths are only recognized on Windows.");
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, $$"""
+            {
+                "appHostPath": "c:\\path\\apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // On Windows, c:\ is rooted and should be left unchanged
+        Assert.Equal("c:\\path\\apphost.ts", config.AppHost?.Path);
+    }
 }
