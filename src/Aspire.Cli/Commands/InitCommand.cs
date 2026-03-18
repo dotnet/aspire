@@ -119,7 +119,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<string?>("--language")
         {
-            Description = "The programming language for the AppHost (csharp, typescript)"
+            Description = InitCommandStrings.LanguageOptionDescription
         };
         Options.Add(_languageOption);
     }

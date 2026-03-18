@@ -61,16 +61,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Manage HTTPS development certificates.</value>
+    <value>Manage HTTPS development certificates</value>
   </data>
   <data name="CleanDescription" xml:space="preserve">
-    <value>Remove all HTTPS development certificates.</value>
+    <value>Remove all HTTPS development certificates</value>
   </data>
   <data name="CleanCancelled" xml:space="preserve">
     <value>Certificate clean operation was cancelled by the user.</value>
   </data>
   <data name="TrustDescription" xml:space="preserve">
-    <value>Trust the HTTPS development certificate, creating one if necessary.</value>
+    <value>Trust the HTTPS development certificate, creating one if necessary</value>
   </data>
   <data name="CleanProgress" xml:space="preserve">
     <value>Cleaning development certificates (may require elevated permissions)...</value>

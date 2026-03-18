@@ -185,5 +185,41 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
+        
+        internal static string CallCommand_Description {
+            get {
+                return ResourceManager.GetString("CallCommand_Description", resourceCulture);
+            }
+        }
+        
+        internal static string CallCommand_ResourceArgumentDescription {
+            get {
+                return ResourceManager.GetString("CallCommand_ResourceArgumentDescription", resourceCulture);
+            }
+        }
+        
+        internal static string CallCommand_ToolArgumentDescription {
+            get {
+                return ResourceManager.GetString("CallCommand_ToolArgumentDescription", resourceCulture);
+            }
+        }
+        
+        internal static string CallCommand_InputOptionDescription {
+            get {
+                return ResourceManager.GetString("CallCommand_InputOptionDescription", resourceCulture);
+            }
+        }
+        
+        internal static string ToolsCommand_Description {
+            get {
+                return ResourceManager.GetString("ToolsCommand_Description", resourceCulture);
+            }
+        }
+        
+        internal static string ToolsCommand_FormatOptionDescription {
+            get {
+                return ResourceManager.GetString("ToolsCommand_FormatOptionDescription", resourceCulture);
+            }
+        }
     }
 }

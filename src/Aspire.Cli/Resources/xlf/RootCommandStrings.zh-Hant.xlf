@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../RootCommandStrings.resx">
     <body>
       <trans-unit id="BannerArgumentDescription">
-        <source>Display the animated Aspire CLI welcome banner.</source>
-        <target state="translated">顯示動畫 Aspire CLI 的歡迎使用橫幅。</target>
+        <source>Display the animated Aspire CLI welcome banner</source>
+        <target state="needs-review-translation">顯示動畫 Aspire CLI 的歡迎使用橫幅。</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
@@ -18,23 +18,23 @@
         <note />
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">請等候偵錯工具連結後再執行命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
-        <source>Enable debug logging to the console.</source>
-        <target state="translated">啟用控制台的偵錯記錄。</target>
+        <source>Enable debug logging to the console</source>
+        <target state="needs-review-translation">啟用控制台的偵錯記錄。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
-        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</source>
-        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical).</target>
+        <source>Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical)</source>
+        <target state="new">Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical)</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications.</source>
-        <target state="translated">Aspire CLI 可用來建立、執行及發佈以 Aspire 為基礎的應用程式。</target>
+        <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications</source>
+        <target state="needs-review-translation">Aspire CLI 可用來建立、執行及發佈以 Aspire 為基礎的應用程式。</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseTelemetryNotice">
@@ -58,18 +58,18 @@ Aspire CLI 會收集使用方式資料。它由 Microsoft 收集，用於協助�
         <note />
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
-        <source>Suppress the startup banner and telemetry notice.</source>
-        <target state="translated">抑制啟動橫幅與遙測通知。</target>
+        <source>Suppress the startup banner and telemetry notice</source>
+        <target state="needs-review-translation">抑制啟動橫幅與遙測通知。</target>
         <note />
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
-        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners.</source>
-        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners.</target>
+        <source>Run the command in non-interactive mode, disabling all interactive prompts and spinners</source>
+        <target state="new">Run the command in non-interactive mode, disabling all interactive prompts and spinners</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
-        <source>Wait for a debugger to attach before executing the command.</source>
-        <target state="translated">請等候偵錯工具連結後再執行命令。</target>
+        <source>Wait for a debugger to attach before executing the command</source>
+        <target state="needs-review-translation">請等候偵錯工具連結後再執行命令。</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">
