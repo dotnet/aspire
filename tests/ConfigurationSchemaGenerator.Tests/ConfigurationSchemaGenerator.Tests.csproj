@@ -4,6 +4,7 @@
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
+    <RunOnGithubActionsMacOS>true</RunOnGithubActionsMacOS>
   </PropertyGroup>
 
   <ItemGroup>
