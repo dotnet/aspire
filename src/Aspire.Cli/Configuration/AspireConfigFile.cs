@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Configuration;
@@ -181,9 +182,9 @@ internal sealed class AspireConfigFile
             // to the OS separator for Path operations and back to '/' for storage.
             if (config.AppHost?.Path is { Length: > 0 } migratedPath && !Path.IsPathRooted(migratedPath))
             {
-                var normalized = migratedPath.Replace('\\', '/').Replace('/', Path.DirectorySeparatorChar);
                 var legacySettingsDir = Path.Combine(directory, AspireJsonConfiguration.SettingsFolder);
-                var absolutePath = Path.GetFullPath(Path.Combine(legacySettingsDir, normalized));
+                var absolutePath = PathNormalizer.NormalizePathForCurrentPlatform(
+                    Path.Combine(legacySettingsDir, migratedPath));
                 config.AppHost.Path = Path.GetRelativePath(directory, absolutePath)
                     .Replace('\\', '/');
             }
