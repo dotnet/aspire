@@ -80,7 +80,7 @@ public static class ResourceBuilderExtensions
     /// const redis = await builder.addRedis("cache");
     /// const endpoint = await redis.getEndpoint("tcp");
     /// const expr = refExpr`redis://${endpoint}:6379`;
-    /// await api.withEnvironmentExpression("REDIS_URL", expr);
+    /// await api.withEnvironment("REDIS_URL", expr);
     /// </code>
     /// </para>
     /// </remarks>
