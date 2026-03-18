@@ -224,6 +224,7 @@ public static class ResourceBuilderExtensions
     /// <see cref="IResourceBuilder{ParameterResource}"/>, <see cref="IResourceBuilder{IResourceWithConnectionString}"/>,
     /// or any <see cref="IValueProvider"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/>, <paramref name="name"/>, or <paramref name="value"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a supported type.</exception>
     [AspireExport("withEnvironment", Description = "Sets an environment variable on the resource")]
     public static IResourceBuilder<T> WithEnvironment<T>(
@@ -232,6 +233,10 @@ public static class ResourceBuilderExtensions
         [AspireUnion(typeof(string), typeof(ReferenceExpression), typeof(EndpointReference), typeof(IResourceBuilder<ParameterResource>), typeof(IResourceBuilder<IResourceWithConnectionString>))] object value)
         where T : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         return value switch
         {
             string s => builder.WithEnvironment(name, s),
