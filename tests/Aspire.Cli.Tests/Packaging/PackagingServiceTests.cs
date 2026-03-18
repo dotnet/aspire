@@ -6,6 +6,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Hosting.Backchannel;
 using Microsoft.Extensions.Configuration;
 using System.Xml.Linq;
 
@@ -364,7 +365,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var stagingChannel = channels.First(c => c.Name == "staging");
 
         // Act
-        await NuGetConfigMerger.CreateOrUpdateAsync(tempDir, stagingChannel).DefaultTimeout();
+        await NuGetConfigMerger.CreateOrUpdateAsync(tempDir, stagingChannel, homeDirectory: tempDir.FullName).DefaultTimeout();
 
         // Assert
         var nugetConfigPath = Path.Combine(tempDir.FullName, "nuget.config");
@@ -372,7 +373,12 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         
         var configContent = await File.ReadAllTextAsync(nugetConfigPath);
         Assert.Contains("globalPackagesFolder", configContent);
-        var expectedGlobalPackagesFolder = NuGetConfigMerger.GetGlobalPackagesFolderPath(stagingChannel);
+        var expectedGlobalPackagesRoot = Path.Combine(tempDir.FullName, ".aspire", "cli", "nuget", "packages");
+        var expectedFingerprint = string.Join("|", stagingChannel.Mappings!
+            .OrderBy(m => m.PackageFilter, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(m => m.Source, StringComparer.OrdinalIgnoreCase)
+            .Select(m => $"{m.PackageFilter}={m.Source}"));
+        var expectedGlobalPackagesFolder = Path.Combine(expectedGlobalPackagesRoot, BackchannelConstants.ComputeStableIdentifier(expectedFingerprint));
         Assert.Contains(expectedGlobalPackagesFolder, configContent);
 
         // Verify the XML structure
@@ -383,7 +389,9 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var globalPackagesFolderAdd = configSection.Elements("add")
             .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(globalPackagesFolderAdd);
-        Assert.Equal(expectedGlobalPackagesFolder, (string?)globalPackagesFolderAdd.Attribute("value"));
+        var actualGlobalPackagesFolder = (string?)globalPackagesFolderAdd.Attribute("value");
+        Assert.Equal(expectedGlobalPackagesFolder, actualGlobalPackagesFolder);
+        Assert.Equal(expectedGlobalPackagesRoot, Path.GetDirectoryName(actualGlobalPackagesFolder));
     }
 
     [Fact]

@@ -39,7 +39,7 @@ namespace Aspire.Hosting.Backchannel;
 /// <list type="bullet">
 /// <item><c>auxi.sock</c> - Prefix (not "aux" because that's reserved on Windows)</item>
 /// <item><c>{appHostHash}</c> - xxHash(AppHost project path)[0:16] - identifies the AppHost project</item>
-/// <item><c>{instanceHash}</c> - xxHash(random number)[0:12] - makes each socket name non-deterministic</item>
+/// <item><c>{instanceHash}</c> - random hex identifier[0:12] - makes each socket name non-deterministic</item>
 /// <item><c>{pid}</c> - Process ID of the AppHost - identifies the specific instance</item>
 /// </list>
 /// <para>
@@ -88,9 +88,18 @@ internal static class BackchannelConstants
     public const int HashLength = 16;
 
     /// <summary>
-    /// Number of hex characters to use from the randomized xxHash instance identifier.
+    /// Number of hex characters to use for compact local identifiers.
     /// </summary>
-    public const int InstanceHashLength = 12;
+    /// <remarks>
+    /// Using 12 chars (48 bits) keeps socket and package cache paths short while still providing
+    /// enough variation for local file names that are not part of a security boundary.
+    /// </remarks>
+    public const int CompactIdentifierLength = 12;
+
+    /// <summary>
+    /// Number of hex characters to use from the randomized instance identifier.
+    /// </summary>
+    public const int InstanceHashLength = CompactIdentifierLength;
 
     /// <summary>
     /// Gets the backchannels directory path for the given home directory.
@@ -113,9 +122,7 @@ internal static class BackchannelConstants
     /// <returns>A 16-character lowercase hex string.</returns>
     public static string ComputeHash(string appHostPath)
     {
-        var xxHash = new XxHash3();
-        xxHash.Append(Encoding.UTF8.GetBytes(appHostPath));
-        return Convert.ToHexString(xxHash.GetCurrentHash())[..HashLength].ToLowerInvariant();
+        return ComputeStableIdentifier(appHostPath, HashLength);
     }
 
     /// <summary>
@@ -133,7 +140,7 @@ internal static class BackchannelConstants
     {
         var dir = GetBackchannelsDirectory(homeDirectory);
         var hash = ComputeHash(appHostPath);
-        var instanceHash = CreateRandomInstanceHash();
+        var instanceHash = CreateRandomIdentifier(InstanceHashLength);
         return Path.Combine(dir, $"{SocketPrefix}.{hash}.{instanceHash}.{processId}");
     }
 
@@ -348,17 +355,47 @@ internal static class BackchannelConstants
         return deleted;
     }
 
-    private static string CreateRandomInstanceHash()
+    /// <summary>
+    /// Computes a compact stable identifier from a string value.
+    /// </summary>
+    /// <remarks>
+    /// Uses XxHash3 because these identifiers are only used for local naming and lookup. They do not
+    /// protect secrets or cross a trust boundary, so a fast non-cryptographic hash is preferable to SHA-2.
+    /// </remarks>
+    /// <param name="value">The string value to hash.</param>
+    /// <param name="length">The number of lowercase hex characters to return.</param>
+    /// <returns>A lowercase hex identifier truncated to <paramref name="length"/> characters.</returns>
+    public static string ComputeStableIdentifier(string value, int length = CompactIdentifierLength)
     {
-        Span<byte> randomNumberBytes = stackalloc byte[sizeof(long)];
-        RandomNumberGenerator.Fill(randomNumberBytes);
-
+        ArgumentException.ThrowIfNullOrEmpty(value);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
         var xxHash = new XxHash3();
-        xxHash.Append(randomNumberBytes);
+        xxHash.Append(Encoding.UTF8.GetBytes(value));
 
-        return Convert.ToHexString(xxHash.GetCurrentHash())[..InstanceHashLength].ToLowerInvariant();
+        return ToLowerHexIdentifier(xxHash.GetCurrentHash(), length);
+    }
+
+    /// <summary>
+    /// Creates a compact randomized identifier.
+    /// </summary>
+    /// <param name="length">The number of lowercase hex characters to return.</param>
+    /// <returns>A lowercase hex identifier truncated to <paramref name="length"/> characters.</returns>
+    public static string CreateRandomIdentifier(int length = CompactIdentifierLength)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
+
+        Span<byte> randomBytes = stackalloc byte[(length + 1) / 2];
+        RandomNumberGenerator.Fill(randomBytes);
+
+        return ToLowerHexIdentifier(randomBytes, length);
     }
 
     private static bool IsHex(string value)
         => !string.IsNullOrEmpty(value) && value.All(static c => char.IsAsciiHexDigit(c));
+
+    private static string ToLowerHexIdentifier(ReadOnlySpan<byte> bytes, int length)
+    {
+        var hex = Convert.ToHexString(bytes).ToLowerInvariant();
+        return hex[..Math.Min(length, hex.Length)];
+    }
 }
