@@ -32,6 +32,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal withEnvironment dispatcher export.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -69,26 +70,12 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Adds an environment variable to the resource with a reference expression value.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This overload enables polyglot hosts to set environment variables using dynamic
-    /// expressions that reference endpoints, parameters, and other value providers.
-    /// </para>
-    /// <para>
-    /// <strong>Usage from TypeScript:</strong>
-    /// <code>
-    /// const redis = await builder.addRedis("cache");
-    /// const endpoint = await redis.getEndpoint("tcp");
-    /// const expr = refExpr`redis://${endpoint}:6379`;
-    /// await api.withEnvironment("REDIS_URL", expr);
-    /// </code>
-    /// </para>
-    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">A ReferenceExpression that will be evaluated at runtime.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal withEnvironment dispatcher export.")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : IResourceWithEnvironment
     {
@@ -180,49 +167,12 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an environment variable to the resource. The value can be a plain string, a
-    /// <see cref="ReferenceExpression"/> built from <c>refExpr</c> template literals, an
-    /// <see cref="EndpointReference"/> obtained from <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>,
-    /// a <see cref="ParameterResource"/>, a connection string resource, or any object
-    /// implementing <see cref="IValueProvider"/> (such as <c>BicepOutputReference</c>).
+    /// Adds an environment variable to the resource.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This overload enables polyglot app hosts (TypeScript, Go, etc.) to set environment
-    /// variables using a single <c>withEnvironment</c> method with a union-typed value
-    /// parameter, instead of requiring separate methods for each value type.
-    /// </para>
-    /// <para>
-    /// <strong>Usage from TypeScript:</strong>
-    /// <code>
-    /// // Plain string value
-    /// await api.withEnvironment("MY_VAR", "hello");
-    ///
-    /// // Reference expression with endpoint interpolation
-    /// const endpoint = await redis.getEndpoint("tcp");
-    /// await api.withEnvironment("REDIS_URL", refExpr`redis://${endpoint}:6379`);
-    ///
-    /// // Direct endpoint reference
-    /// await api.withEnvironment("SERVICE_URL", endpoint);
-    ///
-    /// // Parameter resource
-    /// await api.withEnvironment("API_KEY", apiKeyParam);
-    ///
-    /// // Connection string resource
-    /// await api.withEnvironment("DB_CONN", postgres);
-    ///
-    /// // Bicep output or other IValueProvider
-    /// await api.withEnvironment("IDENTITY_ID", identity.clientId);
-    /// </code>
-    /// </para>
-    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
-    /// <param name="value">The value of the environment variable. Can be a <see cref="string"/>,
-    /// <see cref="ReferenceExpression"/>, <see cref="EndpointReference"/>,
-    /// <see cref="IResourceBuilder{ParameterResource}"/>, <see cref="IResourceBuilder{IResourceWithConnectionString}"/>,
-    /// or any <see cref="IValueProvider"/>.</param>
+    /// <param name="value">The value of the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/>, <paramref name="name"/>, or <paramref name="value"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a supported type.</exception>
