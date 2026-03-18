@@ -89,6 +89,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private readonly string _normalizedApplicationName;
 
+    // When creating tunnel-dependent container, the tunnel is dynamically update. Since container creation is bursty,
+    // and tunnel configuration updates are additive, we want to debounce them to batch multiple updates together.
+    private readonly DebounceLast<ContainerNetworkTunnelProxy> _tunnelPatchDebounce;
+
     // Internal for testing.
     internal ResiliencePipeline<bool> DeleteResourceRetryPipeline { get; set; }
     internal ResiliencePipeline WatchResourceRetryPipeline { get; set; }
@@ -137,6 +141,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _tunnelPatchDebounce = new DebounceLast<ContainerNetworkTunnelProxy>(PatchContainerNetworkTunnelProxyAsync, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500));
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
@@ -1381,7 +1386,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             _appResources.AddRange(services);
             tunnelAppResource?.ServicesProduced.AddRange(services);
-            tunnelProxy?.Spec.Tunnels?.AddRange(tunnelConfigs);
+            tunnelProxy?.UpdatedTunnels.AddRange(tunnelConfigs);
         }
 
         return services;
@@ -2184,7 +2189,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         await _kubernetesService.CreateAsync(dcpContainer, cToken).ConfigureAwait(false);
 
-        // TODO: create associated ContainerExec objects.
+        ImmutableArray<RenderedModelResource> containerExes;
+        lock(_appResourcesLock)
+        {
+            containerExes = [.. _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is ContainerExec ce && ce.Spec.ContainerName == dcpContainer.Metadata.Name)];
+        }
+        if (containerExes.Length > 0)
+        {
+            await CreateContainerExecutablesAsync(containerExes, cToken).ConfigureAwait(false);
+        }
     }
 
     private async Task CreateTunnelDependentContainerAsync(RenderedModelResource cr, ImmutableArray<HostResourceWithEndpoints> hostDependencies, Lazy<Task> lazyCreateTunnel, CancellationToken cToken)
@@ -3419,11 +3432,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private (AppResource?, ContainerNetworkTunnelProxy?) GetTunnelAppResource()
     {
         AppResource? tunnelAppResource = null;
+        ContainerNetworkTunnelProxy? tunnelProxy = null;
         lock (_appResourcesLock)
         {
             tunnelAppResource = _options.Value.EnableAspireContainerTunnel ? _appResources.FirstOrDefault(ar => ar.DcpResource is ContainerNetworkTunnelProxy) : null;
+            tunnelProxy = tunnelAppResource?.DcpResource as ContainerNetworkTunnelProxy;
         }
-        return (tunnelAppResource, tunnelAppResource?.DcpResource as ContainerNetworkTunnelProxy);
+        return (tunnelAppResource, tunnelProxy);
+    }
+
+    private async Task<ContainerNetworkTunnelProxy> PatchContainerNetworkTunnelProxyAsync()
+    {
+        lock (_appResourcesLock)
+        {
+            var tunnelAppResource = _options.Value.EnableAspireContainerTunnel ? _appResources.FirstOrDefault(ar => ar.DcpResource is ContainerNetworkTunnelProxy) : null;
+            var tunnelProxy = tunnelAppResource?.DcpResource as ContainerNetworkTunnelProxy;
+            if (tunnelProxy is null)
+            {
+                throw new InvalidOperationException("Tunnel proxy resource not found during patch attempt."); // Should never happen.
+            }
+
+            // TODO: continue
+        }
     }
 
     /*
