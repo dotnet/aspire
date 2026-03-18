@@ -11,14 +11,6 @@ internal static class CliPathHelper
         => GetAspireHomeDirectoryCore();
 
     /// <summary>
-    /// Gets the CLI-managed NuGet packages directory used when the CLI writes a channel-specific
-    /// <c>globalPackagesFolder</c> override.
-    /// </summary>
-    /// <param name="homeDirectory">An optional home directory override used by tests.</param>
-    internal static string GetCliNuGetPackagesDirectory(string? homeDirectory = null)
-        => Path.Combine(GetCliHomeDirectoryCore(homeDirectory), "nuget", "packages");
-
-    /// <summary>
     /// Creates a randomized CLI-managed socket path.
     /// </summary>
     /// <param name="socketPrefix">The socket file prefix.</param>

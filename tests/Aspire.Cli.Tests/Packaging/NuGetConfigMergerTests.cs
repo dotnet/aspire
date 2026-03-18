@@ -7,7 +7,6 @@ using System.Xml;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Hosting.Backchannel;
 
 namespace Aspire.Cli.Tests.Packaging;
 
@@ -48,60 +47,6 @@ public class NuGetConfigMergerTests
     }
 
     private static PackageChannel CreateChannel(PackageMapping[] mappings) => PackageChannel.CreateExplicitChannel("test", PackageChannelQuality.Both, mappings, new FakeNuGetPackageCache());
-
-    [Fact]
-    public void GetGlobalPackagesFolderPath_UsesChannelNameForImplicitChannel()
-    {
-        var homeDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var channel = PackageChannel.CreateImplicitChannel(new FakeNuGetPackageCache());
-
-        var path = NuGetConfigMerger.GetGlobalPackagesFolderPath(channel, homeDirectory);
-
-        var expectedRoot = Path.Combine(homeDirectory, ".aspire", "cli", "nuget", "packages");
-        var expectedPath = Path.Combine(expectedRoot, BackchannelConstants.ComputeStableIdentifier(channel.Name));
-
-        Assert.Equal(expectedPath, path);
-    }
-
-    [Fact]
-    public void GetGlobalPackagesFolderPath_IsStableForEquivalentMappingsInDifferentOrder()
-    {
-        var homeDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var cache = new FakeNuGetPackageCache();
-        var firstChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, [
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping("*", "https://feed2.example")
-        ], cache, configureGlobalPackagesFolder: true);
-        var secondChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, [
-            new PackageMapping("*", "https://feed2.example"),
-            new PackageMapping("Aspire.*", "https://feed1.example")
-        ], cache, configureGlobalPackagesFolder: true);
-
-        var firstPath = NuGetConfigMerger.GetGlobalPackagesFolderPath(firstChannel, homeDirectory);
-        var secondPath = NuGetConfigMerger.GetGlobalPackagesFolderPath(secondChannel, homeDirectory);
-
-        Assert.Equal(firstPath, secondPath);
-    }
-
-    [Fact]
-    public void GetGlobalPackagesFolderPath_DiffersForDifferentMappings()
-    {
-        var homeDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var cache = new FakeNuGetPackageCache();
-        var firstChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, [
-            new PackageMapping("Aspire.*", "https://feed1.example"),
-            new PackageMapping("*", "https://feed2.example")
-        ], cache, configureGlobalPackagesFolder: true);
-        var secondChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, [
-            new PackageMapping("Aspire.*", "https://feed3.example"),
-            new PackageMapping("*", "https://feed2.example")
-        ], cache, configureGlobalPackagesFolder: true);
-
-        var firstPath = NuGetConfigMerger.GetGlobalPackagesFolderPath(firstChannel, homeDirectory);
-        var secondPath = NuGetConfigMerger.GetGlobalPackagesFolderPath(secondChannel, homeDirectory);
-
-        Assert.NotEqual(firstPath, secondPath);
-    }
 
     [Fact]
     public async Task CreateOrUpdateAsync_CreatesConfigFromMappings_WhenNoExistingConfig()
@@ -269,47 +214,6 @@ public class NuGetConfigMergerTests
         var psm = xml.Root!.Element("packageSourceMapping");
         Assert.NotNull(psm);
         Assert.Equal(2, psm!.Elements("packageSource").Count());
-    }
-
-    [Fact]
-    public async Task CreateOrUpdateAsync_UpdatesLegacyCliManagedGlobalPackagesFolder()
-    {
-        using var workspace = TemporaryWorkspace.Create(_outputHelper);
-        var root = workspace.WorkspaceRoot;
-
-        await WriteConfigAsync(root,
-            """
-            <?xml version="1.0"?>
-            <configuration>
-                <config>
-                    <add key="globalPackagesFolder" value=".nugetpackages" />
-                </config>
-                <packageSources>
-                    <add key="https://feed1.example" value="https://feed1.example" />
-                </packageSources>
-                <packageSourceMapping>
-                    <packageSource key="https://feed1.example">
-                        <package pattern="Aspire.*" />
-                    </packageSource>
-                </packageSourceMapping>
-            </configuration>
-            """);
-
-        var channel = PackageChannel.CreateExplicitChannel(
-            "staging",
-            PackageChannelQuality.Stable,
-            [new PackageMapping("Aspire.*", "https://feed1.example")],
-            new FakeNuGetPackageCache(),
-            configureGlobalPackagesFolder: true);
-
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, homeDirectory: root.FullName).DefaultTimeout();
-
-        var xml = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
-        var actualValue = xml.Root!.Element("config")!.Elements("add")
-            .Single(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase))
-            .Attribute("value")!.Value;
-
-        Assert.Equal(NuGetConfigMerger.GetGlobalPackagesFolderPath(channel, root.FullName), actualValue);
     }
 
     [Fact]

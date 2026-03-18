@@ -8,18 +8,6 @@ namespace Aspire.Cli.Tests.Utils;
 public class CliPathHelperTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public void GetCliNuGetPackagesDirectory_UsesCliFolderUnderUserHome()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        var path = CliPathHelper.GetCliNuGetPackagesDirectory(workspace.WorkspaceRoot.FullName);
-
-        Assert.Equal(
-            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cli", "nuget", "packages"),
-            path);
-    }
-
-    [Fact]
     public void CreateSocketPath_UsesRandomizedIdentifier()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
