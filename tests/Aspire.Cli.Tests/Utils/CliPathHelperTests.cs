@@ -20,7 +20,7 @@ public class CliPathHelperTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void CreateSocketPath_UsesRandomizedXxHashName()
+    public void CreateSocketPath_UsesRandomizedIdentifier()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 

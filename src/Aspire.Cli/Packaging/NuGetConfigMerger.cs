@@ -31,9 +31,9 @@ internal class NuGetConfigMerger
     /// <param name="confirmationCallback">Optional callback invoked before creating or updating the NuGet.config file. 
     /// The callback receives the target file info, original content (null for new files), proposed new content, and a cancellation token.
     /// Return true to proceed with the update, false to skip it.</param>
-    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
     /// <param name="homeDirectory">An optional home directory override used when computing CLI-local package cache paths.</param>
-    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback = null, CancellationToken cancellationToken = default, string? homeDirectory = null)
+    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback = null, string? homeDirectory = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
         ArgumentNullException.ThrowIfNull(channel);
@@ -52,15 +52,15 @@ internal class NuGetConfigMerger
 
         if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            await CreateNewNuGetConfigAsync(targetDirectory, channel, confirmationCallback, cancellationToken, homeDirectory);
+            await CreateNewNuGetConfigAsync(targetDirectory, channel, confirmationCallback, homeDirectory, cancellationToken);
         }
         else
         {
-            await UpdateExistingNuGetConfigAsync(nugetConfigFile, channel, confirmationCallback, cancellationToken, homeDirectory);
+            await UpdateExistingNuGetConfigAsync(nugetConfigFile, channel, confirmationCallback, homeDirectory, cancellationToken);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken, string? homeDirectory)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, string? homeDirectory, CancellationToken cancellationToken)
     {
         var mappings = channel.Mappings;
         if (mappings is null || mappings.Length == 0)
@@ -95,7 +95,7 @@ internal class NuGetConfigMerger
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
-    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken, string? homeDirectory)
+    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, string? homeDirectory, CancellationToken cancellationToken)
     {
         var mappings = channel.Mappings;
         if (mappings is null || mappings.Length == 0)
@@ -977,13 +977,19 @@ internal class NuGetConfigMerger
         var existingGlobalPackagesFolder = config.Elements("add")
             .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
 
+        var expectedGlobalPackagesFolder = GetGlobalPackagesFolderPath(channel, homeDirectory);
+
         if (existingGlobalPackagesFolder is null)
         {
             // Add globalPackagesFolder configuration
             var globalPackagesFolderAdd = new XElement("add");
             globalPackagesFolderAdd.SetAttributeValue("key", "globalPackagesFolder");
-            globalPackagesFolderAdd.SetAttributeValue("value", GetGlobalPackagesFolderPath(channel, homeDirectory));
+            globalPackagesFolderAdd.SetAttributeValue("value", expectedGlobalPackagesFolder);
             config.Add(globalPackagesFolderAdd);
+        }
+        else if (ShouldUpdateCliManagedGlobalPackagesFolder((string?)existingGlobalPackagesFolder.Attribute("value")))
+        {
+            existingGlobalPackagesFolder.SetAttributeValue("value", expectedGlobalPackagesFolder);
         }
     }
 
@@ -1001,4 +1007,7 @@ internal class NuGetConfigMerger
         var hash = BackchannelConstants.ComputeStableIdentifier(fingerprint);
         return Path.Combine(CliPathHelper.GetCliNuGetPackagesDirectory(homeDirectory), hash);
     }
+
+    private static bool ShouldUpdateCliManagedGlobalPackagesFolder(string? existingValue)
+        => string.Equals(existingValue, ".nugetpackages", StringComparison.Ordinal);
 }

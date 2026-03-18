@@ -272,6 +272,47 @@ public class NuGetConfigMergerTests
     }
 
     [Fact]
+    public async Task CreateOrUpdateAsync_UpdatesLegacyCliManagedGlobalPackagesFolder()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        await WriteConfigAsync(root,
+            """
+            <?xml version="1.0"?>
+            <configuration>
+                <config>
+                    <add key="globalPackagesFolder" value=".nugetpackages" />
+                </config>
+                <packageSources>
+                    <add key="https://feed1.example" value="https://feed1.example" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="https://feed1.example">
+                        <package pattern="Aspire.*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """);
+
+        var channel = PackageChannel.CreateExplicitChannel(
+            "staging",
+            PackageChannelQuality.Stable,
+            [new PackageMapping("Aspire.*", "https://feed1.example")],
+            new FakeNuGetPackageCache(),
+            configureGlobalPackagesFolder: true);
+
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, homeDirectory: root.FullName).DefaultTimeout();
+
+        var xml = XDocument.Load(Path.Combine(root.FullName, "nuget.config"));
+        var actualValue = xml.Root!.Element("config")!.Elements("add")
+            .Single(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase))
+            .Attribute("value")!.Value;
+
+        Assert.Equal(NuGetConfigMerger.GetGlobalPackagesFolderPath(channel, root.FullName), actualValue);
+    }
+
+    [Fact]
     public void HasMissingSources_ReturnsTrue_WhenConfigAbsent()
     {
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
