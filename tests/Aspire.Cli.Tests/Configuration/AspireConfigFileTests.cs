@@ -380,12 +380,13 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void LoadOrCreate_MigratesLegacy_PreservesAlreadyCorrectPath()
+    public void LoadOrCreate_MigratesLegacy_RebasesPathRelativeToAspireDir()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
-        // A path that's already relative to root (e.g., if .aspire/apphost.ts existed)
+        // "apphost.ts" in legacy settings means .aspire/apphost.ts (relative to .aspire/ dir),
+        // which should become ".aspire/apphost.ts" relative to the repo root after migration.
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
         File.WriteAllText(settingsPath, """
             {
@@ -395,7 +396,6 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
 
         var config = AspireConfigFile.LoadOrCreate(root);
 
-        // Re-basing from .aspire/ to root: .aspire/apphost.ts relative to root = .aspire/apphost.ts
         Assert.Equal(".aspire/apphost.ts", config.AppHost?.Path);
     }
 
@@ -443,5 +443,86 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
 
         // Absolute paths should not be modified
         Assert.Equal(absolutePath, config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_NormalizesBackslashSeparators()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // Simulate a settings file created on Windows with backslash separators.
+        // Even though we always store '/', handle '\' gracefully in case of manual edits.
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "..\\src\\apphost.ts",
+                "language": "typescript/nodejs"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Should be re-based and normalized to forward slashes
+        Assert.Equal("src/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_OutputAlwaysUsesForwardSlashes()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "../deeply/nested/path/apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Verify output uses forward slashes regardless of platform
+        Assert.Equal("deeply/nested/path/apphost.ts", config.AppHost?.Path);
+        Assert.DoesNotContain("\\", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_SkipsEmptyPath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "",
+                "language": "typescript/nodejs"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Empty path should not be transformed to "."
+        Assert.Equal("", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_SkipsNullPath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "language": "typescript/nodejs"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // No appHostPath means no migration needed; path stays null
+        Assert.Null(config.AppHost?.Path);
     }
 }

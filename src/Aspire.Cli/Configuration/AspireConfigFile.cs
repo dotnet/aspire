@@ -177,12 +177,15 @@ internal sealed class AspireConfigFile
             // Legacy .aspire/settings.json stores appHostPath relative to the .aspire/ directory,
             // but aspire.config.json stores it relative to the config file's own directory (the parent
             // of .aspire/). Re-base the path so it resolves correctly from the new location.
-            if (config.AppHost?.Path is { } migratedPath && !Path.IsPathRooted(migratedPath))
+            // Paths are always stored with '/' separators regardless of platform, but we normalize
+            // to the OS separator for Path operations and back to '/' for storage.
+            if (config.AppHost?.Path is { Length: > 0 } migratedPath && !Path.IsPathRooted(migratedPath))
             {
+                var normalized = migratedPath.Replace('\\', '/').Replace('/', Path.DirectorySeparatorChar);
                 var legacySettingsDir = Path.Combine(directory, AspireJsonConfiguration.SettingsFolder);
-                var absolutePath = Path.GetFullPath(Path.Combine(legacySettingsDir, migratedPath));
+                var absolutePath = Path.GetFullPath(Path.Combine(legacySettingsDir, normalized));
                 config.AppHost.Path = Path.GetRelativePath(directory, absolutePath)
-                    .Replace(Path.DirectorySeparatorChar, '/');
+                    .Replace('\\', '/');
             }
 
             // Persist the migrated config (legacy files are kept for older CLI versions)
