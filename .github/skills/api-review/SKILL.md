@@ -221,38 +221,62 @@ Severity: **Info**
 
 ---
 
-### Step 4: Git Attribution
+### Step 4: Git Attribution (REQUIRED before posting)
 
-For each finding, identify who introduced the API change. This helps the team route feedback to the right person.
+**Every finding MUST include author attribution before posting to the PR.** This is critical — it routes feedback to the right person and ensures accountability.
 
-**Finding the author of a specific API addition:**
+For each finding, identify who introduced the API change using `git blame` on the **source file** (not the auto-generated `api/*.cs` file).
 
-```bash
-# Search for the commit that added a specific API line on main branch
-git log main --all -S "<search-string>" --pretty=format:"%H|%an|%ae|%s" -- "src/*/api/" | head -5
-```
+#### 4a: Find the source file
 
-Where `<search-string>` is a distinctive part of the API signature (e.g., the method name or class name).
-
-**Important**: The API files are auto-generated, so the commit that modified the api file may be the nightly automation. Instead, search for when the actual *source* code was added:
+The API files at `src/*/api/*.cs` are auto-generated. To find the actual source, search for the class/method name in the non-API source files:
 
 ```bash
-# Search the source code (not api files) for when the API was introduced
-git log main -S "<method-or-type-name>" --pretty=format:"%H|%an|%ae|%s" -- "src/**/*.cs" ":!src/*/api/*.cs" | head -5
+# Find the source file for a given API (e.g., WithRemoteImageName)
+git grep -rn "WithRemoteImageName" -- "src/**/*.cs" ":!src/*/api/*.cs" | head -5
 ```
 
-This gives you the commit that added the actual implementation. From the commit, extract:
-- **Author name and GitHub username** (from the commit or PR)
-- **Commit SHA** (for linking)
-- **PR number** (extract from commit message if available, or use `gh pr list --search "<SHA>"`)
+#### 4b: Blame the source file
 
-To find the GitHub username from an email, you can look at the commit on GitHub:
+Once you have the source file and line number, use `git blame` to find the author:
+
+```bash
+# Get the author of a specific line
+git blame -L <line>,<line> --porcelain <source-file> | grep -E "^author |^author-mail "
+```
+
+Run blame in batch for efficiency — collect all source file locations first, then blame them all at once.
+
+#### 4c: Map email to GitHub username
+
+Common Aspire contributors and their GitHub usernames:
+- `mitch@mitchdeny.com` → `@mitchdenny`
+- `eric.erhardt@microsoft.com` → `@eerhardt`
+- `davidfowl@gmail.com` → `@davidfowl`
+- `james@newtonking.com` → `@JamesNK`
+- `sebastienros@gmail.com` → `@sebastienros`
+
+For unknown emails, look up the commit on GitHub:
 
 ```bash
 GH_PAGER=cat gh api "/repos/dotnet/aspire/commits/<SHA>" --jq '.author.login // .commit.author.name'
 ```
 
-**Format attribution as**: `@username (commit abc1234)` or `Author: Name` if username unavailable.
+#### 4d: Format attribution
+
+Prepend each review comment body with `cc @username` on its own line, followed by a blank line before the finding text. Example:
+
+```
+cc @username
+
+❌ **[Breaking Change]** Description of the issue...
+```
+
+**Do not skip this step.** If you cannot determine the author, use the git log pickaxe search as a fallback:
+
+```bash
+git log main -S "<method-or-type-name>" --pretty=format:"%H|%an|%ae|%s" -- "src/**/*.cs" ":!src/*/api/*.cs" | head -5
+```
 
 ### Step 5: Generate Review Report
 
@@ -301,7 +325,9 @@ For each added API line (starting with `+`), count its position within the diff 
 
 #### Post each finding as a separate inline review comment
 
-Each violation gets its own comment so it can be discussed independently. Use the GitHub API to post individual review comments on the specific lines:
+Each violation gets its own comment so it can be discussed independently. **Every comment MUST include the `cc @username` attribution from Step 4.** Do not post comments without attribution.
+
+Use the GitHub API to post individual review comments on the specific lines:
 
 ```bash
 # Get the PR head SHA
@@ -318,12 +344,14 @@ GH_PAGER=cat gh api \
     {
       \"path\": \"src/Aspire.Hosting/api/Aspire.Hosting.cs\",
       \"line\": 42,
-      \"body\": \"⚠️ **[Parameter Design]** \`AllowInbound\` has 6 optional parameters — consider introducing an options class for better versionability.\\n\\nIntroduced by: @username (abc1234)\\n\\nRef: [Parameter Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/parameter-design)\"
+      \"side\": \"RIGHT\",
+      \"body\": \"cc @username\\n\\n⚠️ **[Parameter Design]** \`AllowInbound\` has 6 optional parameters — consider introducing an options class for better versionability.\\n\\nRef: [Parameter Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/parameter-design)\"
     },
     {
       \"path\": \"src/Aspire.Hosting.Azure.Network/api/Aspire.Hosting.Azure.Network.cs\",
       \"line\": 15,
-      \"body\": \"ℹ️ **[Preview Package]** Entirely new package — verify it is shipping as preview (SuppressFinalPackageVersion=true).\\n\\nIntroduced by: @username (def5678)\"
+      \"side\": \"RIGHT\",
+      \"body\": \"cc @username\\n\\nℹ️ **[Preview Package]** Entirely new package — verify it is shipping as preview (SuppressFinalPackageVersion=true).\"
     }
   ]"
 ```
@@ -333,26 +361,33 @@ Each comment in the `comments` array becomes a **separate review thread** on the
 **Comment format for each finding:**
 
 ```
-[severity emoji] **[Rule Name]** Description of the issue.
+cc @username
 
-Introduced by: @username (commit SHA)
+[severity emoji] **[Rule Name]** Description of the issue.
 
 Ref: [Guideline link](url)
 ```
 
+The `cc @username` line MUST be the first line of every comment. This tags the original author of the API so they get notified.
+
 Severity emojis: ❌ Error, ⚠️ Warning, ℹ️ Info
+
+**Note on `side` field**: Always include `"side": "RIGHT"` for comments on added lines (the new file version).
 
 #### Fallback: file-level comments
 
-If a finding applies to an entire new file (e.g., "new package — verify preview status") or the exact line cannot be determined, post a file-level comment by setting `"subject_type": "file"` and omitting the `line` field:
+If a finding applies to an entire new file (e.g., "new package — verify preview status") or the exact line cannot be determined, post an inline comment on line 1 of the file:
 
 ```bash
 {
   "path": "src/Aspire.Hosting.NewPkg/api/Aspire.Hosting.NewPkg.cs",
-  "body": "ℹ️ **[Preview Package]** ...",
-  "subject_type": "file"
+  "line": 1,
+  "side": "RIGHT",
+  "body": "cc @username\n\nℹ️ **[Preview Package]** ..."
 }
 ```
+
+**Note**: Do NOT use `"subject_type": "file"` — the GitHub PR reviews API does not support this field. Always use `"line": 1` with `"side": "RIGHT"` instead.
 
 #### Post a summary comment at the end
 
@@ -371,7 +406,7 @@ Each finding is posted as a separate inline comment for discussion."
 
 #### Ask before posting
 
-Before posting, show the user the list of comments that will be posted and ask for confirmation. Do not post without approval.
+Before posting, show the user the list of comments that will be posted (including author attributions) and ask for confirmation. Do not post without approval.
 
 ## Important Constraints
 
@@ -381,7 +416,9 @@ Before posting, show the user the list of comments that will be posted and ask f
 4. **Be pragmatic** — APIs in preview packages (`SuppressFinalPackageVersion`) get lighter scrutiny
 5. **Don't flag auto-generated formatting** — the API tool controls formatting; only review API design
 6. **Cross-reference related files** — when questioning visibility, check if the type is used in other Aspire assemblies (which would require it to be public)
-7. **Attribute to the right person** — search source code history, not API file history (API files are auto-generated)
+7. **Attribute to the right person** — search source code history, not API file history (API files are auto-generated). Use `git blame` on the actual source `.cs` files. Every comment MUST tag the original author with `cc @username` as the first line.
+8. **Include `side: "RIGHT"` in all review comments** — the GitHub API requires this for inline comments on added lines
+9. **Use Python (not PowerShell) for building JSON payloads** — PowerShell's `ConvertTo-Json | Out-File` mangles multi-byte Unicode characters (emojis like ❌ ⚠️ ℹ️ and em-dashes — become mojibake). Always use Python's `json.dumps(ensure_ascii=False)` with `open(file, 'w', encoding='utf-8')` when constructing JSON for the GitHub API.
 
 ## Reference: .NET Framework Design Guidelines
 
