@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../DescribeCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Describe resources in a running apphost.</source>
-        <target state="translated">Popište prostředky v běžícím hostiteli aplikace.</target>
+        <source>Describe resources in a running apphost</source>
+        <target state="new">Describe resources in a running apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
-        <source>Continuously stream resource state changes.</source>
-        <target state="translated">Průběžné streamování změn stavu prostředků</target>
+        <source>Continuously stream resource state changes</source>
+        <target state="new">Continuously stream resource state changes</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
@@ -38,13 +38,13 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output format (Table or Json).</source>
-        <target state="translated">Výstupní formát (tabulka nebo JSON)</target>
+        <source>Output format (Table or Json)</source>
+        <target state="new">Output format (Table or Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
-        <source>No AppHost project found.</source>
-        <target state="translated">Nenašel se žádný projekt hostitele aplikací.</target>
+        <source>No apphost project found.</source>
+        <target state="new">No apphost project found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
