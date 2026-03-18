@@ -4623,6 +4623,15 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
         return new ConnectionStringResourcePromise(this._withConnectionPropertyValueInternal(name, value));
     }
 
+    /** Gets a connection property by key */
+    async getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, key };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting/getConnectionProperty',
+            rpcArgs
+        );
+    }
+
     /** @internal */
     private async _withUrlsCallbackInternal(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): Promise<ConnectionStringResource> {
         const callbackId = registerCallback(async (objData: unknown) => {
@@ -4735,7 +4744,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ConnectionStringResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new ConnectionStringResource(result, this._client);
@@ -4765,7 +4774,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<ConnectionStringResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new ConnectionStringResource(result, this._client);
@@ -4811,7 +4820,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new ConnectionStringResource(result, this._client);
@@ -4864,7 +4873,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ConnectionStringResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ConnectionStringResource(result, this._client);
@@ -4879,7 +4888,7 @@ export class ConnectionStringResource extends ResourceBuilderBase<ConnectionStri
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ConnectionStringResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ConnectionStringResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ConnectionStringResource(result, this._client);
@@ -5386,6 +5395,11 @@ export class ConnectionStringResourcePromise implements PromiseLike<ConnectionSt
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withConnectionPropertyValue(name, value)));
     }
 
+    /** Gets a connection property by key */
+    getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.getConnectionProperty(key));
+    }
+
     /** Customizes displayed URLs via callback */
     withUrlsCallback(callback: (obj: ResourceUrlsCallbackContext) => Promise<void>): ConnectionStringResourcePromise {
         return new ConnectionStringResourcePromise(this._promise.then(obj => obj.withUrlsCallback(callback)));
@@ -5822,7 +5836,7 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ContainerRegistryResource(result, this._client);
@@ -5837,7 +5851,7 @@ export class ContainerRegistryResource extends ResourceBuilderBase<ContainerRegi
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ContainerRegistryResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ContainerRegistryResource(result, this._client);
@@ -6672,7 +6686,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _withBuildArgInternal(name: string, value: ParameterResource): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withBuildArg',
+            'Aspire.Hosting/withParameterBuildArg',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -6687,7 +6701,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _withBuildSecretInternal(name: string, value: ParameterResource): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withBuildSecret',
+            'Aspire.Hosting/withParameterBuildSecret',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7005,7 +7019,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7316,7 +7330,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7346,7 +7360,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7392,7 +7406,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7497,7 +7511,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7528,7 +7542,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -7543,7 +7557,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -8923,7 +8937,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9219,7 +9233,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/publishWithContainerFiles',
+            'Aspire.Hosting/publishWithContainerFilesFromResource',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9249,7 +9263,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9279,7 +9293,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9325,7 +9339,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9430,7 +9444,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9461,7 +9475,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -9476,7 +9490,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -10870,7 +10884,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11181,7 +11195,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11211,7 +11225,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11257,7 +11271,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11362,7 +11376,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11393,7 +11407,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -11408,7 +11422,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -12742,7 +12756,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13053,7 +13067,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13083,7 +13097,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13129,7 +13143,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13234,7 +13248,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13265,7 +13279,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -13280,7 +13294,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -14476,7 +14490,7 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ExternalServiceResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ExternalServiceResource(result, this._client);
@@ -14491,7 +14505,7 @@ export class ExternalServiceResource extends ResourceBuilderBase<ExternalService
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ExternalServiceResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ExternalServiceResource(result, this._client);
@@ -15356,7 +15370,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
@@ -15371,7 +15385,7 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ParameterResource(result, this._client);
@@ -16333,7 +16347,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16629,7 +16643,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/publishWithContainerFiles',
+            'Aspire.Hosting/publishWithContainerFilesFromResource',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16659,7 +16673,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16689,7 +16703,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16735,7 +16749,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16840,7 +16854,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16871,7 +16885,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -16886,7 +16900,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -18055,7 +18069,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _withBuildArgInternal(name: string, value: ParameterResource): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withBuildArg',
+            'Aspire.Hosting/withParameterBuildArg',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18070,7 +18084,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _withBuildSecretInternal(name: string, value: ParameterResource): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withBuildSecret',
+            'Aspire.Hosting/withParameterBuildSecret',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18388,7 +18402,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18699,7 +18713,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18729,7 +18743,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18775,7 +18789,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18880,7 +18894,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18911,7 +18925,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -18926,7 +18940,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -20184,7 +20198,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _withBuildArgInternal(name: string, value: ParameterResource): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withBuildArg',
+            'Aspire.Hosting/withParameterBuildArg',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -20199,7 +20213,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _withBuildSecretInternal(name: string, value: ParameterResource): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withBuildSecret',
+            'Aspire.Hosting/withParameterBuildSecret',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -20547,7 +20561,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -20559,6 +20573,15 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         const optional = options?.optional;
         const name = options?.name;
         return new TestRedisResourcePromise(this._withReferenceInternal(source, connectionName, optional, name));
+    }
+
+    /** Gets a connection property by key */
+    async getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, key };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting/getConnectionProperty',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -20858,7 +20881,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -20888,7 +20911,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -20934,7 +20957,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -21039,7 +21062,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -21070,7 +21093,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -21085,7 +21108,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -22019,6 +22042,11 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withReference(source, options)));
     }
 
+    /** Gets a connection property by key */
+    getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.getConnectionProperty(key));
+    }
+
     /** Adds a reference to a URI */
     withReferenceUri(name: string, uri: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withReferenceUri(name, uri)));
@@ -22607,7 +22635,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _withBuildArgInternal(name: string, value: ParameterResource): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withBuildArg',
+            'Aspire.Hosting/withParameterBuildArg',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -22622,7 +22650,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _withBuildSecretInternal(name: string, value: ParameterResource): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withBuildSecret',
+            'Aspire.Hosting/withParameterBuildSecret',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -22940,7 +22968,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23251,7 +23279,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23281,7 +23309,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23327,7 +23355,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23432,7 +23460,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23463,7 +23491,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -23478,7 +23506,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -24621,7 +24649,7 @@ export class ContainerFilesDestinationResource extends ResourceBuilderBase<ICont
     private async _publishWithContainerFilesInternal(source: ResourceBuilderBase, destinationPath: string): Promise<ContainerFilesDestinationResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, source, destinationPath };
         const result = await this._client.invokeCapability<IContainerFilesDestinationResourceHandle>(
-            'Aspire.Hosting/publishWithContainerFiles',
+            'Aspire.Hosting/publishWithContainerFilesFromResource',
             rpcArgs
         );
         return new ContainerFilesDestinationResource(result, this._client);
@@ -24880,7 +24908,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     private async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting/withParentRelationship',
+            'Aspire.Hosting/withBuilderParentRelationship',
             rpcArgs
         );
         return new Resource(result, this._client);
@@ -24895,7 +24923,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     private async _withChildRelationshipInternal(child: ResourceBuilderBase): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, child };
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'Aspire.Hosting/withChildRelationship',
+            'Aspire.Hosting/withBuilderChildRelationship',
             rpcArgs
         );
         return new Resource(result, this._client);
@@ -25651,6 +25679,15 @@ export class ResourceWithConnectionString extends ResourceBuilderBase<IResourceW
         return new ResourceWithConnectionStringPromise(this._withConnectionPropertyValueInternal(name, value));
     }
 
+    /** Gets a connection property by key */
+    async getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, key };
+        return await this._client.invokeCapability<ReferenceExpression>(
+            'Aspire.Hosting/getConnectionProperty',
+            rpcArgs
+        );
+    }
+
     /** @internal */
     private async _onConnectionStringAvailableInternal(callback: (arg: ConnectionStringAvailableEvent) => Promise<void>): Promise<ResourceWithConnectionString> {
         const callbackId = registerCallback(async (argData: unknown) => {
@@ -25726,6 +25763,11 @@ export class ResourceWithConnectionStringPromise implements PromiseLike<Resource
     /** Adds a connection property with a string value */
     withConnectionPropertyValue(name: string, value: string): ResourceWithConnectionStringPromise {
         return new ResourceWithConnectionStringPromise(this._promise.then(obj => obj.withConnectionPropertyValue(name, value)));
+    }
+
+    /** Gets a connection property by key */
+    getConnectionProperty(key: string): Promise<ReferenceExpression> {
+        return this._promise.then(obj => obj.getConnectionProperty(key));
     }
 
     /** Subscribes to the ConnectionStringAvailable event */
@@ -26286,7 +26328,7 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withReference',
+            'Aspire.Hosting/withGenericResourceReference',
             rpcArgs
         );
         return new ResourceWithEnvironment(result, this._client);
@@ -26380,7 +26422,7 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (password !== undefined) rpcArgs.password = password;
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withHttpsDeveloperCertificate',
+            'Aspire.Hosting/withParameterHttpsDeveloperCertificate',
             rpcArgs
         );
         return new ResourceWithEnvironment(result, this._client);
@@ -26569,7 +26611,7 @@ export class ResourceWithWaitSupport extends ResourceBuilderBase<IResourceWithWa
     private async _waitForInternal(dependency: ResourceBuilderBase): Promise<ResourceWithWaitSupport> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<IResourceWithWaitSupportHandle>(
-            'Aspire.Hosting/waitFor',
+            'Aspire.Hosting/waitForResource',
             rpcArgs
         );
         return new ResourceWithWaitSupport(result, this._client);
@@ -26599,7 +26641,7 @@ export class ResourceWithWaitSupport extends ResourceBuilderBase<IResourceWithWa
     private async _waitForStartInternal(dependency: ResourceBuilderBase): Promise<ResourceWithWaitSupport> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         const result = await this._client.invokeCapability<IResourceWithWaitSupportHandle>(
-            'Aspire.Hosting/waitForStart',
+            'Aspire.Hosting/waitForResourceStart',
             rpcArgs
         );
         return new ResourceWithWaitSupport(result, this._client);
@@ -26630,7 +26672,7 @@ export class ResourceWithWaitSupport extends ResourceBuilderBase<IResourceWithWa
         const rpcArgs: Record<string, unknown> = { builder: this._handle, dependency };
         if (exitCode !== undefined) rpcArgs.exitCode = exitCode;
         const result = await this._client.invokeCapability<IResourceWithWaitSupportHandle>(
-            'Aspire.Hosting/waitForCompletion',
+            'Aspire.Hosting/waitForResourceCompletion',
             rpcArgs
         );
         return new ResourceWithWaitSupport(result, this._client);
