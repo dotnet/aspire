@@ -14,19 +14,19 @@ internal static class NuGetSignatureVerificationEnabler
     internal const string DotNetNuGetSignatureVerification = "DOTNET_NUGET_SIGNATURE_VERIFICATION";
 
     /// <summary>
-    /// Gets the environment variables needed for NuGet signature verification.
+    /// Applies NuGet signature verification environment variables to the given dictionary.
     /// On Linux, sets DOTNET_NUGET_SIGNATURE_VERIFICATION to "true" unless the user
     /// has explicitly set it to "false". The behavior can be disabled via the
     /// <see cref="KnownFeatures.NuGetSignatureVerificationEnabled"/> feature flag.
     /// </summary>
-    public static Dictionary<string, string>? GetEnvironmentVariables(IFeatures features)
+    public static void Apply(Dictionary<string, string> environmentVariables, IFeatures features)
     {
         if (!OperatingSystem.IsLinux() ||
             !features.IsFeatureEnabled(
                 KnownFeatures.NuGetSignatureVerificationEnabled,
                 KnownFeatures.GetFeatureMetadata(KnownFeatures.NuGetSignatureVerificationEnabled)!.DefaultValue))
         {
-            return null;
+            return;
         }
 
         var value = Environment.GetEnvironmentVariable(DotNetNuGetSignatureVerification);
@@ -36,9 +36,6 @@ internal static class NuGetSignatureVerificationEnabler
             ? bool.FalseString
             : bool.TrueString;
 
-        return new Dictionary<string, string>
-        {
-            [DotNetNuGetSignatureVerification] = effectiveValue
-        };
+        environmentVariables[DotNetNuGetSignatureVerification] = effectiveValue;
     }
 }

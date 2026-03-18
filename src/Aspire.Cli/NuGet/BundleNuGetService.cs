@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Layout;
 using Microsoft.Extensions.Logging;
 
@@ -37,19 +36,16 @@ public interface INuGetService
 internal sealed class BundleNuGetService : INuGetService
 {
     private readonly ILayoutDiscovery _layoutDiscovery;
-    private readonly IInteractionService _interactionService;
     private readonly IFeatures _features;
     private readonly ILogger<BundleNuGetService> _logger;
     private readonly string _cacheDirectory;
 
     public BundleNuGetService(
         ILayoutDiscovery layoutDiscovery,
-        IInteractionService interactionService,
         IFeatures features,
         ILogger<BundleNuGetService> logger)
     {
         _layoutDiscovery = layoutDiscovery;
-        _interactionService = interactionService;
         _features = features;
         _logger = logger;
         _cacheDirectory = GetCacheDirectory();
@@ -138,12 +134,13 @@ internal sealed class BundleNuGetService : INuGetService
         _logger.LogDebug("aspire-managed path: {ManagedPath}", managedPath);
         _logger.LogDebug("NuGet restore args: {Args}", string.Join(" ", restoreArgs));
 
-        var signatureVerificationEnv = NuGetSignatureVerificationEnabler.GetEnvironmentVariables(_features);
+        var environmentVariables = new Dictionary<string, string>();
+        NuGetSignatureVerificationEnabler.Apply(environmentVariables, _features);
 
         var (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
             managedPath,
             restoreArgs,
-            environmentVariables: signatureVerificationEnv,
+            environmentVariables: environmentVariables,
             ct: ct);
 
         // Log stderr at debug level for diagnostics
@@ -183,7 +180,7 @@ internal sealed class BundleNuGetService : INuGetService
         (exitCode, output, error) = await LayoutProcessRunner.RunAsync(
             managedPath,
             layoutArgs,
-            environmentVariables: signatureVerificationEnv,
+            environmentVariables: environmentVariables,
             ct: ct);
 
         // Log stderr at debug level for diagnostics

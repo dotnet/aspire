@@ -18,20 +18,32 @@ internal static class TrustedRootsHelper
 {
     /// <summary>
     /// Initializes the NuGet trust store with embedded trusted root certificates.
-    /// On Linux, when DOTNET_NUGET_SIGNATURE_VERIFICATION is set, NuGet requires certificate
-    /// bundles for signature verification. The .NET SDK ships these as PEM files in its
-    /// trustedroots directory, but aspire-managed is a single-file app without access to the
-    /// SDK's directory structure. This method loads embedded PEM resources in memory and uses
-    /// DispatchProxy to create IX509ChainFactory implementations that NuGet's trust store can use.
+    /// On Linux, when DOTNET_NUGET_SIGNATURE_VERIFICATION is set to "true", NuGet requires
+    /// certificate bundles for signature verification. The .NET SDK ships these as PEM files
+    /// in its trustedroots directory, but aspire-managed is a single-file app without access
+    /// to the SDK's directory structure. This method loads embedded PEM resources in memory
+    /// and uses DispatchProxy to create IX509ChainFactory implementations that NuGet's trust
+    /// store can use.
     /// </summary>
+    /// <remarks>
+    /// TODO: Remove this once NuGet supports a public API for configuring the trust store,
+    /// or when it supports single-file apps. See https://github.com/dotnet/aspire/issues/15282.
+    /// </remarks>
     public static void InitializeTrustStore(INuGetLogger logger)
     {
-        if (!OperatingSystem.IsLinux() || Environment.GetEnvironmentVariable("DOTNET_NUGET_SIGNATURE_VERIFICATION") is null)
+        if (!OperatingSystem.IsLinux())
         {
             // On Windows, NuGet uses the system certificate store directly.
             // On macOS, matching .NET SDK behavior which only enables this on Linux.
-            // If DOTNET_NUGET_SIGNATURE_VERIFICATION is not set, NuGet won't perform
-            // signature verification on Linux, so there's no need to initialize the trust store.
+            return;
+        }
+
+        var envValue = Environment.GetEnvironmentVariable("DOTNET_NUGET_SIGNATURE_VERIFICATION");
+        if (!string.Equals(bool.TrueString, envValue, StringComparison.OrdinalIgnoreCase))
+        {
+            // If DOTNET_NUGET_SIGNATURE_VERIFICATION is not set to "true", NuGet won't
+            // perform signature verification on Linux, so there's no need to initialize
+            // the trust store.
             return;
         }
 
