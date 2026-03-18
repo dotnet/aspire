@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generate deployment artifacts for an apphost. (Preview)</source>
-        <target state="translated">Générer les artefacts de déploiement pour un hôte d'application. (Aperçu)</target>
+        <source>Generate deployment artifacts for an apphost (Preview)</source>
+        <target state="new">Generate deployment artifacts for an apphost (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
-        <source>Do not build or restore the project before running.</source>
-        <target state="translated">Ne générer ni ne restaurer le projet avant l’exécution.</target>
+        <source>Do not build or restore the project before running</source>
+        <target state="new">Do not build or restore the project before running</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire AppHost project file.</source>
-        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
+        <source>The path to the Aspire apphost project file</source>
+        <target state="new">The path to the Aspire apphost project file</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">
