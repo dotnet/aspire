@@ -336,4 +336,112 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
         Assert.True(loaded.Profiles.ContainsKey("default"));
         Assert.Equal("https://localhost:5001", loaded.Profiles["default"].ApplicationUrl);
     }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_AdjustsRelativePathFromAspireDir()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // Legacy .aspire/settings.json stores paths relative to the .aspire/ directory
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "../src/apphost.ts",
+                "language": "typescript/nodejs",
+                "sdkVersion": "13.2.0"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Path should be re-based from .aspire/-relative to root-relative
+        Assert.Equal("src/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_AdjustsPathForApphostAtRoot()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // Legacy path "../apphost.ts" means apphost is at the repo root
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "../apphost.ts",
+                "language": "typescript/nodejs"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        Assert.Equal("apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_PreservesAlreadyCorrectPath()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        // A path that's already relative to root (e.g., if .aspire/apphost.ts existed)
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "apphost.ts"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Re-basing from .aspire/ to root: .aspire/apphost.ts relative to root = .aspire/apphost.ts
+        Assert.Equal(".aspire/apphost.ts", config.AppHost?.Path);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_SavesConfigFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, """
+            {
+                "appHostPath": "../src/apphost.ts",
+                "sdkVersion": "13.2.0"
+            }
+            """);
+
+        AspireConfigFile.LoadOrCreate(root);
+
+        // Verify aspire.config.json was created with correct content
+        var configPath = Path.Combine(root, AspireConfigFile.FileName);
+        Assert.True(File.Exists(configPath));
+
+        var saved = AspireConfigFile.Load(root);
+        Assert.NotNull(saved);
+        Assert.Equal("src/apphost.ts", saved.AppHost?.Path);
+        Assert.Equal("13.2.0", saved.SdkVersion);
+    }
+
+    [Fact]
+    public void LoadOrCreate_MigratesLegacy_LeavesAbsolutePathUnchanged()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+
+        var absolutePath = Path.Combine(root, "src", "apphost.ts").Replace(Path.DirectorySeparatorChar, '/');
+        var settingsPath = Path.Combine(root, ".aspire", "settings.json");
+        File.WriteAllText(settingsPath, $$"""
+            {
+                "appHostPath": "{{absolutePath}}"
+            }
+            """);
+
+        var config = AspireConfigFile.LoadOrCreate(root);
+
+        // Absolute paths should not be modified
+        Assert.Equal(absolutePath, config.AppHost?.Path);
+    }
 }

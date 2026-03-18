@@ -174,6 +174,17 @@ internal sealed class AspireConfigFile
             var profiles = ReadApphostRunProfiles(Path.Combine(directory, "apphost.run.json"));
             config = FromLegacy(legacyConfig, profiles);
 
+            // Legacy .aspire/settings.json stores appHostPath relative to the .aspire/ directory,
+            // but aspire.config.json stores it relative to the config file's own directory (the parent
+            // of .aspire/). Re-base the path so it resolves correctly from the new location.
+            if (config.AppHost?.Path is { } migratedPath && !Path.IsPathRooted(migratedPath))
+            {
+                var legacySettingsDir = Path.Combine(directory, AspireJsonConfiguration.SettingsFolder);
+                var absolutePath = Path.GetFullPath(Path.Combine(legacySettingsDir, migratedPath));
+                config.AppHost.Path = Path.GetRelativePath(directory, absolutePath)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+            }
+
             // Persist the migrated config (legacy files are kept for older CLI versions)
             config.Save(directory);
         }
