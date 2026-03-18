@@ -110,6 +110,14 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
 
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
+            // Step 5b: Regenerate TypeScript SDK modules after adding new package.
+            // aspire add installs the NuGet package, but the TypeScript SDK (.modules/aspire.ts)
+            // needs to be regenerated to include the new addAzureContainerAppEnvironment method.
+            output.WriteLine("Step 5b: Regenerating TypeScript SDK modules...");
+            await auto.TypeAsync("aspire restore");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
+
             // Step 6: Modify apphost.ts to add Azure Container App Environment for deployment
             {
                 var projectDir = Path.Combine(workspace.WorkspaceRoot.FullName, projectName);
