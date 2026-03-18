@@ -46,7 +46,12 @@ internal sealed class AppHostServerSession : IAppHostServerSession
     public OutputCollector Output => _output;
 
     /// <summary>
-    /// Starts an AppHost server process with an authentication token injected into its environment.
+    /// Gets the authentication token for the server session.
+    /// </summary>
+    public string AuthenticationToken => _authenticationToken;
+
+    /// <summary>
+    /// Starts an AppHost server process with an authentication token injected into the server environment.
     /// </summary>
     /// <param name="appHostServerProject">The server project to run.</param>
     /// <param name="environmentVariables">The environment variables to pass to the server.</param>
@@ -60,14 +65,16 @@ internal sealed class AppHostServerSession : IAppHostServerSession
         ILogger logger)
     {
         var currentPid = Environment.ProcessId;
-        environmentVariables ??= [];
+        var serverEnvironmentVariables = environmentVariables is null
+            ? new Dictionary<string, string>()
+            : new Dictionary<string, string>(environmentVariables);
 
         var authenticationToken = TokenGenerator.GenerateToken();
-        environmentVariables[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
+        serverEnvironmentVariables[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
         var (socketPath, serverProcess, serverOutput) = appHostServerProject.Run(
             currentPid,
-            environmentVariables,
+            serverEnvironmentVariables,
             debug: debug);
 
         return new AppHostServerSession(

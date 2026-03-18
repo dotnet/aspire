@@ -416,7 +416,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             var socketPath = serverSession.SocketPath;
             var appHostServerProcess = serverSession.ServerProcess;
             var appHostServerOutputCollector = serverSession.Output;
-            var authenticationToken = launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken];
+            var authenticationToken = serverSession.AuthenticationToken;
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -789,7 +789,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             var jsonRpcSocketPath = serverSession.SocketPath;
             var appHostServerProcess = serverSession.ServerProcess;
             var appHostServerOutputCollector = serverSession.Output;
-            var authenticationToken = launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken];
+            var authenticationToken = serverSession.AuthenticationToken;
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)

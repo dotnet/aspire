@@ -88,70 +88,70 @@ internal sealed class ScaffoldingService : IScaffoldingService
         // Step 3: Connect to server and get scaffold templates via RPC
         var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
 
-            var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
-                language.LanguageId,
-                directory.FullName,
-                context.ProjectName,
-                cancellationToken);
+        var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
+            language.LanguageId,
+            directory.FullName,
+            context.ProjectName,
+            cancellationToken);
 
-            // Step 4: Write scaffold files to disk
-            foreach (var (fileName, content) in scaffoldFiles)
+        // Step 4: Write scaffold files to disk
+        foreach (var (fileName, content) in scaffoldFiles)
+        {
+            var filePath = Path.Combine(directory.FullName, fileName);
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(fileDirectory))
             {
-                var filePath = Path.Combine(directory.FullName, fileName);
-                var fileDirectory = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrEmpty(fileDirectory))
-                {
-                    Directory.CreateDirectory(fileDirectory);
-                }
-                await File.WriteAllTextAsync(filePath, content, cancellationToken);
+                Directory.CreateDirectory(fileDirectory);
             }
+            await File.WriteAllTextAsync(filePath, content, cancellationToken);
+        }
 
-            _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
+        _logger.LogDebug("Wrote {Count} scaffold files", scaffoldFiles.Count);
 
-            // Step 5: Install dependencies using GuestRuntime
-            var installResult = await _interactionService.ShowStatusAsync(
-                $"Installing {language.DisplayName} dependencies...",
-                () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken),
-                emoji: KnownEmojis.Package);
-            if (installResult != 0)
+        // Step 5: Install dependencies using GuestRuntime
+        var installResult = await _interactionService.ShowStatusAsync(
+            $"Installing {language.DisplayName} dependencies...",
+            () => InstallDependenciesAsync(directory, language, rpcClient, cancellationToken),
+            emoji: KnownEmojis.Package);
+        if (installResult != 0)
+        {
+            return false;
+        }
+
+        // Step 6: Generate SDK code via RPC
+        await GenerateCodeViaRpcAsync(
+            directory.FullName,
+            rpcClient,
+            language,
+            cancellationToken);
+
+        // Save channel and language to aspire.config.json (new format)
+        // Read profiles from apphost.run.json (created by codegen) and merge into aspire.config.json
+        var appHostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
+        var profiles = AspireConfigFile.ReadApphostRunProfiles(appHostRunPath, _logger);
+
+        if (profiles is not null && File.Exists(appHostRunPath))
+        {
+            try
             {
-                return false;
+                // Delete apphost.run.json since profiles are now in aspire.config.json
+                File.Delete(appHostRunPath);
             }
-
-            // Step 6: Generate SDK code via RPC
-            await GenerateCodeViaRpcAsync(
-                directory.FullName,
-                rpcClient,
-                language,
-                cancellationToken);
-
-            // Save channel and language to aspire.config.json (new format)
-            // Read profiles from apphost.run.json (created by codegen) and merge into aspire.config.json
-            var appHostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
-            var profiles = AspireConfigFile.ReadApphostRunProfiles(appHostRunPath, _logger);
-
-            if (profiles is not null && File.Exists(appHostRunPath))
+            catch (Exception ex)
             {
-                try
-                {
-                    // Delete apphost.run.json since profiles are now in aspire.config.json
-                    File.Delete(appHostRunPath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Failed to delete apphost.run.json after reading profiles");
-                }
+                _logger.LogDebug(ex, "Failed to delete apphost.run.json after reading profiles");
             }
+        }
 
-            config.Profiles = profiles;
-            if (prepareResult.ChannelName is not null)
-            {
-                config.Channel = prepareResult.ChannelName;
-            }
-            config.AppHost ??= new AspireConfigAppHost();
-            config.AppHost.Path ??= language.AppHostFileName;
-            config.AppHost.Language = language.LanguageId;
-            config.Save(directory.FullName);
+        config.Profiles = profiles;
+        if (prepareResult.ChannelName is not null)
+        {
+            config.Channel = prepareResult.ChannelName;
+        }
+        config.AppHost ??= new AspireConfigAppHost();
+        config.AppHost.Path ??= language.AppHostFileName;
+        config.AppHost.Language = language.LanguageId;
+        config.Save(directory.FullName);
         return true;
     }
 

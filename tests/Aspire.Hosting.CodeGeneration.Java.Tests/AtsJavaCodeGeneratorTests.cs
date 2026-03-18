@@ -35,6 +35,7 @@ public class AtsJavaCodeGeneratorTests
         Assert.Contains("Aspire.java", files.Keys);
         Assert.Contains("Transport.java", files.Keys);
         Assert.Contains("Base.java", files.Keys);
+        Assert.Contains("List<Object> params = List.of(token);", files["Transport.java"]);
 
         await Verify(files["Aspire.java"], extension: "java")
             .UseFileName("AtsGeneratedAspire");

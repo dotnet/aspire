@@ -184,8 +184,7 @@ class AspireClient {
     public void authenticate(String token) {
         int id = requestId.incrementAndGet();
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("token", token);
+        List<Object> params = List.of(token);
 
         Map<String, Object> request = new HashMap<>();
         request.put("jsonrpc", "2.0");
