@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.Dcp;
+namespace Aspire.Hosting.Utils;
 
 /// <summary>
 /// Calls a runner function after a specified delay, coalescing multiple concurrent calls into one.
@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Dcp;
 /// while the runner is executing will trigger a subsequent run.
 /// </summary>
 internal sealed class DebounceLast<TResult>(
-    Func<CancellationToken, Task<TResult>> runner,
+    Func<Task<TResult>> runner,
     TimeSpan delay,
     TimeSpan maxDelay,
     TimeProvider? clock = null)
@@ -19,7 +19,6 @@ internal sealed class DebounceLast<TResult>(
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly object _lock = new();
     private TaskCompletionSource<TResult>? _completion;
-    private List<CancellationToken>? _callerTokens;
     private DateTimeOffset _fireAt;
     private DateTimeOffset _threshold;
 
@@ -28,10 +27,8 @@ internal sealed class DebounceLast<TResult>(
     /// <summary>
     /// Submits a call for debounced execution. The actual runner is invoked after the debounce
     /// delay elapses without new calls, or once the maximum delay is reached.
-    /// The runner receives a cancellation token that is cancelled when any caller's
-    /// <paramref name="cancellationToken"/> within the debounce cycle is cancelled.
     /// </summary>
-    public Task<TResult> RunAsync(CancellationToken cancellationToken = default)
+    public Task<TResult> RunAsync()
     {
         TaskCompletionSource<TResult> completion;
 
@@ -42,12 +39,9 @@ internal sealed class DebounceLast<TResult>(
                 // Start a new debounce cycle.
                 var now = _clock.GetUtcNow();
                 _completion = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-                _callerTokens = [];
                 _fireAt = now + delay;
                 _threshold = now + maxDelay;
                 completion = _completion;
-
-                AddCallerToken(cancellationToken);
 
                 _ = WaitAndExecuteAsync(completion);
             }
@@ -60,35 +54,15 @@ internal sealed class DebounceLast<TResult>(
                 {
                     _fireAt = proposed;
                 }
-
-                AddCallerToken(cancellationToken);
             }
         }
 
         return completion.Task;
     }
 
-    private void AddCallerToken(CancellationToken cancellationToken)
-    {
-        if (cancellationToken.CanBeCanceled)
-        {
-            _callerTokens!.Add(cancellationToken);
-        }
-    }
-
     private async Task WaitAndExecuteAsync(
         TaskCompletionSource<TResult> completion)
     {
-        CancellationTokenSource? linkedCts = null;
-        var refreshLinkedCts = () =>
-        {
-            linkedCts?.Dispose();
-            linkedCts = _callerTokens is { Count: > 0 }
-                ? CancellationTokenSource.CreateLinkedTokenSource([.. _callerTokens])
-                : null;
-        };
-        var effectiveToken = () => linkedCts?.Token ?? CancellationToken.None;
-
         try
         {
             // Wait for the debounce delay, re-checking in case it was extended by additional callers.
@@ -98,7 +72,6 @@ internal sealed class DebounceLast<TResult>(
                 lock (_lock)
                 {
                     fireAt = _fireAt;
-                    refreshLinkedCts();
                 }
 
                 var remaining = fireAt - _clock.GetUtcNow();
@@ -109,34 +82,23 @@ internal sealed class DebounceLast<TResult>(
                     break;
                 }
 
-                await Task.Delay(remaining, _clock, effectiveToken()).ConfigureAwait(false);
+                await Task.Delay(remaining, _clock).ConfigureAwait(false);
             }
 
             // Clear the current cycle BEFORE invoking the runner so that any RunAsync() calls arriving while the runner is executing 
             // will start a new debounce cycle instead of waiting on this one.
             lock (_lock)
             {
-                refreshLinkedCts();
                 _completion = null;
-                _callerTokens = null;
             }
 
-            var result = await runner(effectiveToken()).ConfigureAwait(false);
+            var result = await runner().ConfigureAwait(false);
             completion.SetResult(result);
-        }
-        catch (OperationCanceledException ex) when (linkedCts is not null && linkedCts.IsCancellationRequested)
-        {
-            ClearCompletionIfCurrent(completion);
-            completion.TrySetCanceled(ex.CancellationToken);
         }
         catch (Exception ex)
         {
             ClearCompletionIfCurrent(completion);
             completion.TrySetException(ex);
-        }
-        finally
-        {
-            linkedCts?.Dispose();
         }
     }
 
@@ -147,7 +109,6 @@ internal sealed class DebounceLast<TResult>(
             if (ReferenceEquals(_completion, completion))
             {
                 _completion = null;
-                _callerTokens = null;
             }
         }
     }

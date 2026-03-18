@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Time.Testing;
 
-namespace Aspire.Hosting.Tests.Dcp;
+namespace Aspire.Hosting.Tests.Utils;
 
 public class DebounceLastTests
 {
@@ -19,7 +19,7 @@ public class DebounceLastTests
         var runnerCalled = new TaskCompletionSource<bool>();
 
         var debounce = new DebounceLast<int>(
-            ct =>
+            () =>
             {
                 runnerCalled.SetResult(true);
                 return Task.FromResult(42);
@@ -46,7 +46,7 @@ public class DebounceLastTests
         var clock = new FakeTimeProvider();
 
         var debounce = new DebounceLast<int>(
-            ct => throw new InvalidOperationException("boom"),
+            () => throw new InvalidOperationException("boom"),
             s_delay,
             s_maxDelay,
             clock);
@@ -64,63 +64,13 @@ public class DebounceLastTests
     }
 
     [Fact]
-    public async Task CancellationDuringWaitIsPropagated()
-    {
-        var clock = new FakeTimeProvider();
-
-        var debounce = new DebounceLast<int>(
-            ct => Task.FromResult(1),
-            s_delay,
-            s_maxDelay,
-            clock);
-
-        using var cts = new CancellationTokenSource();
-        var resultTask = debounce.RunAsync(cts.Token);
-
-        // Cancel before the delay elapses.
-        cts.Cancel();
-
-        await Assert.ThrowsAsync<TaskCanceledException>(() => resultTask.WaitAsync(s_testTimeout));
-    }
-
-    [Fact]
-    public async Task CancellationDuringRunnerIsPropagated()
-    {
-        var clock = new FakeTimeProvider();
-        var runnerStarted = new TaskCompletionSource();
-
-        using var cts = new CancellationTokenSource();
-
-        var debounce = new DebounceLast<int>(
-            async ct =>
-            {
-                runnerStarted.SetResult();
-                // Simulate a long-running call that honours cancellation.
-                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
-                return 0;
-            },
-            s_delay,
-            s_maxDelay,
-            clock);
-
-        var resultTask = debounce.RunAsync(cts.Token);
-
-        clock.Advance(s_delay);
-        await runnerStarted.Task.WaitAsync(s_testTimeout);
-
-        cts.Cancel();
-
-        await Assert.ThrowsAsync<TaskCanceledException>(() => resultTask.WaitAsync(s_testTimeout));
-    }
-
-    [Fact]
     public async Task RapidCallsAreDebounced()
     {
         var clock = new FakeTimeProvider();
         var callCount = 0;
 
         var debounce = new DebounceLast<int>(
-            ct =>
+            () =>
             {
                 Interlocked.Increment(ref callCount);
                 return Task.FromResult(99);
@@ -158,7 +108,7 @@ public class DebounceLastTests
         var runnerInvoked = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var debounce = new DebounceLast<int>(
-            ct =>
+            () =>
             {
                 runnerInvoked.TrySetResult(42);
                 return Task.FromResult(42);
@@ -194,7 +144,7 @@ public class DebounceLastTests
         var callCount = 0;
 
         var debounce = new DebounceLast<int>(
-            ct =>
+            () =>
             {
                 var count = Interlocked.Increment(ref callCount);
                 return Task.FromResult(count * 10);
@@ -236,7 +186,7 @@ public class DebounceLastTests
         var releaseRunner = new TaskCompletionSource();
 
         var debounce = new DebounceLast<int>(
-            async ct =>
+            async () =>
             {
                 var n = Interlocked.Increment(ref invocationCount);
                 if (n == 1)
@@ -272,86 +222,6 @@ public class DebounceLastTests
 
         // Runner was called twice, once per cycle.
         Assert.Equal(2, invocationCount);
-    }
-
-    [Fact]
-    public async Task DebounceIsReusableAfterCancellation()
-    {
-        var clock = new FakeTimeProvider();
-        var callCount = 0;
-        var runnerStarted = new TaskCompletionSource();
-
-        var debounce = new DebounceLast<int>(
-            async ct =>
-            {
-                var n = Interlocked.Increment(ref callCount);
-                if (n == 1)
-                {
-                    runnerStarted.SetResult();
-                    await Task.Delay(Timeout.InfiniteTimeSpan, ct);
-                }
-                return 77;
-            },
-            s_delay,
-            s_maxDelay,
-            clock);
-
-        // First call, which we cancel once the runner starts.
-        using var cts = new CancellationTokenSource();
-        var t1 = debounce.RunAsync(cts.Token);
-        clock.Advance(s_delay);
-        await runnerStarted.Task.WaitAsync(s_testTimeout);
-        cts.Cancel();
-        await Assert.ThrowsAsync<TaskCanceledException>(() => t1.WaitAsync(s_testTimeout));
-
-        Assert.Equal(1, callCount);
-
-        // A subsequent call should still work.
-        var t2 = debounce.RunAsync();
-        clock.Advance(s_delay);
-        var r2 = await t2.WaitAsync(s_testTimeout);
-
-        Assert.Equal(77, r2);
-        Assert.Equal(2, callCount);
-    }
-
-    [Fact]
-    public async Task CancellingAnyCallerTokenCancelsTheEntireCycle()
-    {
-        var clock = new FakeTimeProvider();
-        var runnerStarted = new TaskCompletionSource();
-
-        var debounce = new DebounceLast<int>(
-            async ct =>
-            {
-                runnerStarted.SetResult();
-                // Block until the linked token is cancelled.
-                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
-                return 1;
-            },
-            s_delay,
-            s_maxDelay,
-            clock);
-
-        // Three callers join the same debounce cycle with different tokens.
-        using var cts1 = new CancellationTokenSource();
-        using var cts2 = new CancellationTokenSource();
-        using var cts3 = new CancellationTokenSource();
-
-        var t1 = debounce.RunAsync(cts1.Token);
-        var t2 = debounce.RunAsync(cts2.Token);
-        var t3 = debounce.RunAsync(cts3.Token);
-
-        // Advance time so the runner actually starts.
-        clock.Advance(s_delay);
-        await runnerStarted.Task.WaitAsync(s_testTimeout);
-
-        // Cancelling the SECOND caller's token should cancel the entire cycle.
-        cts2.Cancel();
-
-        await Assert.ThrowsAsync<TaskCanceledException>(() => t1.WaitAsync(s_testTimeout));
-        await Assert.ThrowsAsync<TaskCanceledException>(() => t2.WaitAsync(s_testTimeout));
-        await Assert.ThrowsAsync<TaskCanceledException>(() => t3.WaitAsync(s_testTimeout));
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)

@@ -24,6 +24,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _targetPortSetToNull;
     private bool? _tlsEnabled;
     private readonly NetworkIdentifier _networkID;
+    private readonly int _endpointID;
+    private static int s_endpointIDSource;
 
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
@@ -83,6 +85,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         bool isProxied = true
     )
     {
+         _endpointID = Interlocked.Increment(ref s_endpointIDSource);
+
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
         // is because we eventually always need these values to be populated so lets do
@@ -264,6 +268,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// Gets the list of all AllocatedEndpoints associated with this Endpoint.
     /// </summary>
     public NetworkEndpointSnapshotList AllAllocatedEndpoints { get; } = new();
+
+    /// <summary>
+    /// Unique (system-wide) identifier for the EndpointAnnotation.
+    /// </summary>
+    internal int EndpointID => _endpointID;
 }
 
 /// <summary>

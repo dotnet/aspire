@@ -74,6 +74,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly IOptions<DcpOptions> _options;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly List<AppResource> _appResources = [];
+
+    // Portion of the application startup is using _appResources list concurrently (from multiple tasks).
+    // This lock protects it from concurrent modifications.
+    private readonly object _appResourcesLock = new();
+    
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
     private readonly Locations _locations;
@@ -218,9 +223,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 await Task.WhenAll([getProxyAddresses, createContainerNetworks]).ConfigureAwait(false);
 
                 // Note: this just creates the tunnel proxy object(s) in DCP. 
-                // It does not wait for tunnel services to obtain their addresses/ports and does not update
-                // tunneled endpoints for Executables consumed by Containers. Both are done as part of creating containers.
+                // It does not wait for tunnel services to obtain their addresses/ports and does not update tunneled endpoints 
+                // for Executables consumed by Containers. Both are done as part of container creation tasks.
                 await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(ct).ConfigureAwait(false);
+
+                // Technically it is not necessary to wait for createExecutableEndpoints() to ge the tunnel going,
+                // but configuring containers that use the tunnel require these host network-side endpoints to be ready,
+                // so instead of having container creation tasks wait on two separate tasks (current one + createExecutableEndpoints), 
+                // we just wait for createExecutableEndpoints here, and container creation tasks can then wait on this one.
+                await createExecutableEndpoints.ConfigureAwait(false);
             }, ct), LazyThreadSafetyMode.ExecutionAndPublication);
 
             var createContainers = Task.Run(async () =>
@@ -995,9 +1006,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
     */
 
-    private async Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource, IKubernetesStaticMetadata
+    private Task CreateAllDcpObjectsAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource, IKubernetesStaticMetadata
     {
-        var toCreate = _appResources.Select(r => r.DcpResource).OfType<RT>().ToImmutableArray();
+        var objects = _appResources.Select(r => r.DcpResource).OfType<RT>();
+        return CreateDcpObjectsAsync(objects, cancellationToken);
+    }
+
+    private async Task CreateDcpObjectsAsync<RT>(IEnumerable<RT> objects, CancellationToken cancellationToken) where RT : CustomResource, IKubernetesStaticMetadata
+    {
+        var toCreate = objects.ToImmutableArray();
         if (toCreate.Length == 0)
         {
             return;
@@ -1218,17 +1235,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>().ToArray()))
             .Where(sp => sp.Endpoints.Any());
 
-        // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
-        // services produced by different resources).
-        var serviceNames = new HashSet<string>();
-
         foreach (var sp in serviceProducers)
         {
             var endpoints = sp.Endpoints;
 
             foreach (var endpoint in endpoints)
             {
-                var serviceName = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoints.Length > 1, serviceNames);
+                var (serviceName, exists) = _nameGenerator.GetServiceName(sp.ModelResource, endpoint, endpoint.DefaultNetworkID);
+                if (exists)
+                {
+                    _logger.LogWarning("Encountered the same service-endpoint combination more than once for {EndpointName} on resource {ResourceName} when creating default endpoint services. This should never happen.", endpoint.Name, sp.ModelResource.Name);
+                    continue;
+                }
+
                 var svc = Service.Create(serviceName);
 
                 if (!sp.ModelResource.SupportsProxy())
@@ -1272,139 +1291,100 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        if (_options.Value.EnableAspireContainerTunnel)
-        {
-            // Tunnel services and tunnel configuration is set up together with containers, dynamically.
-            return;
-        }
-
         var containers = _model.Resources.Where(r => r.IsContainer());
         if (!containers.Any())
         {
             return; // No container resources--no need bother with container-to-host connections.
         }
 
-        // If multiple Containers take a reference to the same host resource, we should only create one Service per each endpoint.
-        HashSet<(string HostResourceName, string OriginalEndpointName)> processedEndpoints = new();
+        if (_options.Value.EnableAspireContainerTunnel)
+        {
+            // Tunnel services and tunnel configuration is set up together with containers, dynamically.
+            return;
+        }
 
         // We are going to just proxy all host endpoint into the container network.
         var hostResources = _model.Resources.Select(AsHostResourceWithEndpoints).OfType<HostResourceWithEndpoints>().ToList();
 
         foreach (var re in hostResources)
         {
-            var resourceLogger = _loggerService.GetLogger(re.Resource);
-
-            foreach (var endpoint in re.Endpoints)
-            {
-                if (!processedEndpoints.Add((re.Resource.Name, endpoint.Name)))
-                {
-                    continue; // Already processed this endpoint reference.
-                }
-
-                var hasManyEndpoints = re.Resource.Annotations.OfType<EndpointAnnotation>().Count() > 1;
-                var serviceName = _nameGenerator.GetServiceName(re.Resource, endpoint, hasManyEndpoints, serviceNames);
-                var svc = Service.Create(serviceName);
-                svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-                svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
-                // Address and port will be set automatically by DCP.
-
-                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
-                    StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
-                    StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
-                );
-                if (serverSvc is null)
-                {
-                    // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
-                    throw new InvalidDataException($"Host endpoint '{endpoint.Name}' on resource '{re.Resource.Name}' should have an associated DCP Service resource already set up");
-                }
-
-                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
-                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
-                svc.Annotate(CustomResource.ContainerNetworkAnnotation, KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
-                svc.Annotate(CustomResource.PrimaryServiceNameAnnotation, serverSvc.DcpResource.Metadata.Name);
-
-                // We use this to distinguish services based on real tunnel proxies vs "placeholders" for when tunnels are disabled.
-                svc.Annotate(CustomResource.ContainerTunnelInstanceName, "");
-
-                var svcAppResource = new ServiceAppResource(svc);
-                _appResources.Add(svcAppResource);
-            }
+            _ = CreateContainerNetworkServicesForHostResource(re);
         }
+    }
 
-        /*
-        foreach (var re in hostDependencies)
+    private IEnumerable<ServiceAppResource> CreateContainerNetworkServicesForHostResource(HostResourceWithEndpoints re)
+    {
+        var resourceLogger = _loggerService.GetLogger(re.Resource);
+        var services = new List<ServiceAppResource>();
+        var tunnelConfigs = new List<TunnelConfiguration>();
+        
+        var (tunnelAppResource, tunnelProxy) = GetTunnelAppResource();
+
+        foreach (var endpoint in re.Endpoints)
         {
-            var resourceLogger = _loggerService.GetLogger(re.Resource);
-
-            foreach (var endpoint in re.Endpoints)
+            var (serviceName, exists) = _nameGenerator.GetServiceName(re.Resource, endpoint, KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+            if (exists)
             {
-                if (!processedEndpoints.Add((re.Resource.Name, endpoint.Name)))
-                {
-                    continue; // Already processed this endpoint reference.
-                }
-
-                if (useTunnel)
-                {
-                    if (endpoint.Protocol != ProtocolType.Tcp)
-                    {
-                        resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' is referenced by a container resource, but the endpoint is using a network protocol '{Protocol}' other than TCP. Only TCP is supported for container-to-host references.",
-                            endpoint.Name,
-                            re.Resource.Name,
-                            endpoint.Protocol);
-                        continue;
-                    }
-                }
-
-                var hasManyEndpoints = re.Resource.Annotations.OfType<EndpointAnnotation>().Count() > 1;
-                var serviceName = _nameGenerator.GetServiceName(re.Resource, endpoint, hasManyEndpoints, serviceNames);
-                var svc = Service.Create(serviceName);
-                svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-                svc.Spec.Protocol = PortProtocol.TCP;
-                // Address and port will be set automatically by DCP.
-
-                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
-                    StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
-                    StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
-                );
-                if (serverSvc is null)
-                {
-                    // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
-                    throw new InvalidDataException($"Host endpoint '{endpoint.Name}' on resource '{re.Resource.Name}' should have an associated DCP Service resource already set up");
-                }
-
-                if (useTunnel)
-                {
-                    var tunnelConfig = new TunnelConfiguration
-                    {
-                        Name = serviceName,
-                        ServerServiceName = serverSvc.DcpResource.Metadata.Name,
-                        ServerServiceNamespace = string.Empty,
-                        ClientServiceName = svc.Metadata.Name,
-                        ClientServiceNamespace = string.Empty
-                    };
-
-                    // The tunnelProxy is guaranteed to be non-null here but the compiler is not smart enough to realize it.
-                    tunnelProxy?.Spec?.Tunnels?.Add(tunnelConfig);
-                }
-
-                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
-                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
-                svc.Annotate(CustomResource.ContainerNetworkAnnotation, tunnelProxy?.Spec?.ContainerNetworkName ?? KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
-                svc.Annotate(CustomResource.PrimaryServiceNameAnnotation, serverSvc.DcpResource.Metadata.Name);
-
-                // We use this to distinguish services based on real tunnel proxies vs "placeholders" for when tunnels are disabled.
-                svc.Annotate(CustomResource.ContainerTunnelInstanceName, tunnelProxy?.Metadata?.Name ?? "");
-
-                var svcAppResource = new ServiceAppResource(svc);
-                _appResources.Add(svcAppResource);
-
-                if (useTunnel)
-                {
-                    tunnelAppResource!.ServicesProduced.Add(svcAppResource);
-                }
+                // Entirely possible that multiple container resources reference the same host resource and endpoint. 
+                // We let the first container creation task (exists == false) create the service and other tasks just leverages it.
+                continue;
             }
+
+            if (tunnelAppResource is not null && endpoint.Protocol != ProtocolType.Tcp)
+            {
+                resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' is referenced by a container resource, but the endpoint is using a network protocol '{Protocol}' other than TCP. Only TCP is supported for container-to-host references.", endpoint.Name, re.Resource.Name, endpoint.Protocol);
+                continue;
+            }
+
+            var svc = Service.Create(serviceName);
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+            svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
+            // Address and port will be set automatically by DCP.
+
+            var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
+                StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
+                StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
+            );
+            if (serverSvc is null)
+            {
+                // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
+                throw new InvalidDataException($"Host endpoint '{endpoint.Name}' on resource '{re.Resource.Name}' should have an associated DCP Service resource already set up");
+            }
+
+            TunnelConfiguration? tunnelConfig;
+            if (tunnelProxy is not null)
+            {
+                tunnelConfig = new TunnelConfiguration
+                {
+                    Name = serviceName,
+                    ServerServiceName = serverSvc.DcpResource.Metadata.Name,
+                    ServerServiceNamespace = string.Empty,
+                    ClientServiceName = svc.Metadata.Name,
+                    ClientServiceNamespace = string.Empty
+                };
+                tunnelConfigs.Add(tunnelConfig);
+            }
+
+            svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
+            svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
+            svc.Annotate(CustomResource.ContainerNetworkAnnotation, KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+            svc.Annotate(CustomResource.PrimaryServiceNameAnnotation, serverSvc.DcpResource.Metadata.Name);
+
+            // We use this to distinguish services based on real tunnel proxies vs "placeholders" for when tunnels are disabled.
+            svc.Annotate(CustomResource.ContainerTunnelInstanceName, tunnelProxy?.Metadata?.Name ?? "");
+
+            var svcAppResource = new ServiceAppResource(svc);
+            services.Add(svcAppResource);
         }
-        */
+
+        lock (_appResourcesLock)
+        {
+            _appResources.AddRange(services);
+            tunnelAppResource?.ServicesProduced.AddRange(services);
+            tunnelProxy?.Spec.Tunnels?.AddRange(tunnelConfigs);
+        }
+
+        return services;
     }
 
     private void PrepareExecutables()
@@ -2112,7 +2092,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
                 else
                 {
-                    await CreateStandaloneContainerAsync(cr, cToken).ConfigureAwait(false);
+                    await CreateDcpContainerAsync(cr, logger, cToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) when (cToken.IsCancellationRequested)
@@ -2139,7 +2119,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateStandaloneContainerAsync(RenderedModelResource cr, ILogger logger, CancellationToken cToken)
+    private async Task CreateDcpContainerAsync(RenderedModelResource cr, ILogger logger, CancellationToken cToken)
     {
          cToken.ThrowIfCancellationRequested();
          var dcpContainer = (Container)cr.DcpResource;
@@ -2180,8 +2160,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException($"Failed to apply configuration to container {cr.ModelResource.Name}", configuration.Exception);
         }
 
-        spec.PemCertificates = pemCertificates;
-
         var args = configuration.Arguments.Select(a => a.Value);
         // Set the final args, env vars, and create files on the container spec
         if (modelContainer.ShellExecution is true)
@@ -2197,6 +2175,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
         spec.CreateFiles = createFiles;
         spec.Command = modelContainer.Entrypoint;
+        spec.PemCertificates = pemCertificates;
 
         if (_dcpInfo is not null)
         {
@@ -2204,11 +2183,34 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         await _kubernetesService.CreateAsync(dcpContainer, cToken).ConfigureAwait(false);
+
+        // TODO: create associated ContainerExec objects.
     }
 
     private async Task CreateTunnelDependentContainerAsync(RenderedModelResource cr, ImmutableArray<HostResourceWithEndpoints> hostDependencies, Lazy<Task> lazyCreateTunnel, CancellationToken cToken)
     {
-        await Task.CompletedTask.ConfigureAwait(false);
+        await lazyCreateTunnel.Value.ConfigureAwait(false);
+        cToken.ThrowIfCancellationRequested();
+
+
+        // Ensure that we have services and tunnel definitions for all host dependencies of this container.
+        List<ServiceAppResource> newServices = [];
+        foreach (var dep in hostDependencies)
+        {
+            newServices.AddRange(CreateContainerNetworkServicesForHostResource(dep));
+        }
+        if (newServices.Count > 0)
+        {
+            await CreateDcpObjectsAsync(newServices.Select(ns => ns.Service), cToken).ConfigureAwait(false);
+
+            // TODO: update tunnel definitions (with debounce).
+        }
+
+        // Create tunnel definitions that enable tunneling from container network to host network.
+
+        // Wait for ALL tunnel services consumed by the container to get their addresses and ports and create corresponding AllocatedEndpoints.
+
+        await CreateDcpContainerAsync(cr, _loggerService.GetLogger(cr.ModelResource), cToken).ConfigureAwait(false);
     }
 
     private async Task<(IExecutionConfigurationResult, ContainerPemCertificates?, List<ContainerCreateFileSystem>?)>
@@ -2361,6 +2363,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     // OLD CODE STARTS HERE
 
+    /*
     private async Task CreateContainersAsync(IEnumerable<RenderedModelResource> containerResources, CancellationToken cancellationToken)
     {
         var containerCount = containerResources.Count();
@@ -2640,6 +2643,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             AspireEventSource.Instance.DcpObjectCreationStop(cr.DcpResource.Kind, cr.DcpResourceName);
         }
     }
+    */
 
     // OLD CODE ENDS HERE.
 
@@ -3410,6 +3414,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var tunnelAppResource = new AppResource(tunnelProxy);
         _appResources.Add(tunnelAppResource);
         return tunnelAppResource;
+    }
+
+    private (AppResource?, ContainerNetworkTunnelProxy?) GetTunnelAppResource()
+    {
+        AppResource? tunnelAppResource = null;
+        lock (_appResourcesLock)
+        {
+            tunnelAppResource = _options.Value.EnableAspireContainerTunnel ? _appResources.FirstOrDefault(ar => ar.DcpResource is ContainerNetworkTunnelProxy) : null;
+        }
+        return (tunnelAppResource, tunnelAppResource?.DcpResource as ContainerNetworkTunnelProxy);
     }
 
     /*
