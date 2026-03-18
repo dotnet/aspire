@@ -695,10 +695,10 @@ public class AtsTypeScriptCodeGeneratorTests
         // so the code generator uses the correct parameter name when invoking capabilities.
         var capabilities = ScanCapabilitiesFromHostingAssembly();
 
-        // Find withReference - now on the original ResourceBuilderExtensions.WithReference
-        // which uses "builder" as the first parameter name
+        // Find the public withReference capability by its generated method name.
+        // The underlying capability ID is intentionally distinct to avoid export collisions.
         var withReference = capabilities
-            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withReference");
+            .FirstOrDefault(c => c.MethodName == "withReference");
 
         Assert.NotNull(withReference);
         Assert.Equal("builder", withReference.TargetParameterName);
@@ -721,7 +721,7 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         var capabilities = ScanCapabilitiesFromHostingAssembly();
 
-        var withReference = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/withReference");
+        var withReference = Assert.Single(capabilities, c => c.MethodName == "withReference");
         Assert.Contains(withReference.Parameters, p => p.Name == "name" && p.IsOptional);
 
         Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReference");
