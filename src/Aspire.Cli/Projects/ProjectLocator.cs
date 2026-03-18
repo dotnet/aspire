@@ -176,6 +176,41 @@ internal sealed class ProjectLocator(
 
         while (true)
         {
+            // Check aspire.config.json first
+            AspireConfigFile? aspireConfig;
+            try
+            {
+                aspireConfig = AspireConfigFile.Load(searchDirectory.FullName);
+            }
+            catch (JsonException ex)
+            {
+                interactionService.DisplayError(ex.Message);
+                return null;
+            }
+            if (aspireConfig?.AppHost?.Path is { } configAppHostPath)
+            {
+                var qualifiedPath = Path.IsPathRooted(configAppHostPath)
+                    ? configAppHostPath
+                    : Path.Combine(searchDirectory.FullName, configAppHostPath);
+                qualifiedPath = PathNormalizer.NormalizePathForCurrentPlatform(qualifiedPath);
+                var appHostFile = new FileInfo(qualifiedPath);
+
+                if (appHostFile.Exists)
+                {
+                    logger.LogInformation("Found AppHost path '{AppHostPath}' from config file in {Directory}", configAppHostPath, searchDirectory.FullName);
+                    return appHostFile;
+                }
+                else
+                {
+                    var configFilePath = Path.Combine(searchDirectory.FullName, AspireConfigFile.FileName);
+                    interactionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture, ErrorStrings.AppHostWasSpecifiedButDoesntExist, configFilePath, qualifiedPath));
+                    return null;
+                }
+            }
+
+            // TODO: Remove legacy .aspire/settings.json fallback once confident most users have migrated.
+            // Tracked by https://github.com/dotnet/aspire/issues/15239
+            // Fall back to .aspire/settings.json
             var settingsFile = new FileInfo(ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName));
 
             if (settingsFile.Exists)
@@ -366,33 +401,89 @@ internal sealed class ProjectLocator(
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        var settingsFilePath = ConfigurationHelper.BuildPathToSettingsJsonFile(executionContext.WorkingDirectory.FullName);
-        var settingsFile = new FileInfo(settingsFilePath);
+        var settingsFile = GetOrCreateLocalAspireConfigFile();
+        var fileExisted = settingsFile.Exists;
 
         logger.LogDebug("Creating settings file at {SettingsFilePath}", settingsFile.FullName);
 
         var relativePathToProjectFile = Path.GetRelativePath(settingsFile.Directory!.FullName, projectFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
 
-        // Use the configuration writer to set the appHostPath, which will merge with any existing settings
-        await configurationService.SetConfigurationAsync("appHostPath", relativePathToProjectFile, isGlobal: false, cancellationToken);
+        // Use the configuration writer to set the AppHost path, which will merge with any existing settings.
+        await configurationService.SetConfigurationAsync("appHost.path", relativePathToProjectFile, isGlobal: false, cancellationToken);
 
-        // For polyglot projects, also set language and inherit SDK version from parent/global config
+        // For polyglot projects, also set language and inherit SDK version from parent/global config.
         var language = languageDiscovery.GetLanguageByFile(projectFile);
         if (language is not null && !language.LanguageId.Value.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase))
         {
-            await configurationService.SetConfigurationAsync("language", language.LanguageId.Value, isGlobal: false, cancellationToken);
+            await configurationService.SetConfigurationAsync("appHost.language", language.LanguageId.Value, isGlobal: false, cancellationToken);
 
-            // Inherit SDK version from parent/global config if available
-            var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
+            // Inherit SDK version from parent/global config if available.
+            var inheritedSdkVersion = await configurationService.GetConfigurationAsync("sdk.version", cancellationToken)
+                ?? await configurationService.GetConfigurationAsync("sdkVersion", cancellationToken);
             if (!string.IsNullOrEmpty(inheritedSdkVersion))
             {
-                await configurationService.SetConfigurationAsync("sdkVersion", inheritedSdkVersion, isGlobal: false, cancellationToken);
+                await configurationService.SetConfigurationAsync("sdk.version", inheritedSdkVersion, isGlobal: false, cancellationToken);
                 logger.LogDebug("Set SDK version {Version} in settings file (inherited from parent config)", inheritedSdkVersion);
             }
         }
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
-        interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
+        var message = fileExisted ? InteractionServiceStrings.UpdatedSettingsFile : InteractionServiceStrings.CreatedSettingsFile;
+        interactionService.DisplayMessage(KnownEmojis.FileCabinet, string.Format(CultureInfo.CurrentCulture, message, $"[bold]'{relativeSettingsFilePath.EscapeMarkup()}'[/]"), allowMarkup: true);
+    }
+
+    private FileInfo GetOrCreateLocalAspireConfigFile()
+    {
+        var settingsFile = new FileInfo(configurationService.GetSettingsFilePath(isGlobal: false));
+
+        if (string.Equals(settingsFile.Name, AspireConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogDebug("Using existing config file at {Path}", settingsFile.FullName);
+            return settingsFile;
+        }
+
+        var legacySettingsRootDirectory = GetLegacySettingsRootDirectory(settingsFile);
+        if (legacySettingsRootDirectory is null)
+        {
+            var newConfigPath = Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
+            logger.LogDebug("No existing config found, will create new config at {Path}", newConfigPath);
+            return new FileInfo(newConfigPath);
+        }
+
+        var aspireConfigFile = new FileInfo(Path.Combine(legacySettingsRootDirectory.FullName, AspireConfigFile.FileName));
+        if (!aspireConfigFile.Exists)
+        {
+            logger.LogInformation("Migrating legacy settings from {LegacyDir} to {ConfigFile}", legacySettingsRootDirectory.FullName, aspireConfigFile.FullName);
+            MigrateLegacySettings(legacySettingsRootDirectory);
+        }
+
+        return aspireConfigFile;
+    }
+
+    private void MigrateLegacySettings(DirectoryInfo settingsRootDirectory)
+    {
+        var configFilePath = Path.Combine(settingsRootDirectory.FullName, AspireConfigFile.FileName);
+        logger.LogInformation("Migrating legacy settings to {SettingsFilePath}", configFilePath);
+
+        // LoadOrCreate handles the legacy fallback and migration internally,
+        // including saving the migrated config to disk.
+        _ = AspireConfigFile.LoadOrCreate(settingsRootDirectory.FullName);
+    }
+
+    private static DirectoryInfo? GetLegacySettingsRootDirectory(FileInfo settingsFile)
+    {
+        if (!string.Equals(settingsFile.Name, AspireJsonConfiguration.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var settingsDirectory = settingsFile.Directory;
+        if (settingsDirectory is null || !string.Equals(settingsDirectory.Name, AspireJsonConfiguration.SettingsFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return settingsDirectory.Parent;
     }
 
 }

@@ -119,7 +119,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         _languageOption = new Option<string?>("--language")
         {
-            Description = "The programming language for the AppHost (csharp, typescript)"
+            Description = InitCommandStrings.LanguageOptionDescription
         };
         Options.Add(_languageOption);
     }
@@ -585,7 +585,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // Create the apphost project using the scaffolding service
         var context = new ScaffoldContext(language, workingDirectory, ProjectName: null);
-        await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+        var scaffolded = await _scaffoldingService.ScaffoldAsync(context, cancellationToken);
+        if (!scaffolded)
+        {
+            return ExitCodeConstants.FailedToCreateNewProject;
+        }
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
         InteractionService.DisplayMessage(KnownEmojis.Information, $"Run 'aspire run' to start your AppHost.");

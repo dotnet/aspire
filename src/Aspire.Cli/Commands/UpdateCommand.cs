@@ -34,7 +34,7 @@ internal sealed class UpdateCommand : BaseCommand
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", UpdateCommandStrings.ProjectArgumentDescription);
     private static readonly Option<bool> s_selfOption = new("--self")
     {
-        Description = "Update the Aspire CLI itself to the latest version"
+        Description = UpdateCommandStrings.SelfOptionDescription
     };
     private readonly Option<string?> _channelOption;
     private readonly Option<string?> _qualityOption;

@@ -52,10 +52,16 @@ internal enum AspireTemplate
     PythonReact,
 
     /// <summary>
-    /// Empty AppHost — 5th option.
-    /// Prompts: template, language (C#), project name, output path, URLs. No Redis or test project prompt.
+    /// Empty (C# AppHost) — 5th option.
+    /// Prompts: template, project name, output path, URLs. No language, Redis, or test project prompt.
     /// </summary>
     EmptyAppHost,
+
+    /// <summary>
+    /// Empty (TypeScript AppHost) — 6th option.
+    /// Prompts: template, project name, output path, URLs. No language, Redis, or test project prompt.
+    /// </summary>
+    TypeScriptEmptyAppHost,
 }
 
 /// <summary>
