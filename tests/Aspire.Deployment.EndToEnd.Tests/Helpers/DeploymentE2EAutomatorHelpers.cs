@@ -81,4 +81,34 @@ internal static class DeploymentE2EAutomatorHelpers
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
     }
+
+    /// <summary>
+    /// Installs the Aspire CLI Bundle from a specific pull request's artifacts.
+    /// The bundle includes the native AOT CLI, .NET runtime, Dashboard, DCP, and AppHost Server.
+    /// </summary>
+    internal static async Task InstallAspireBundleFromPullRequestAsync(
+        this Hex1bTerminalAutomator auto,
+        int prNumber,
+        SequenceCounter counter)
+    {
+        var command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && " +
+                      $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+
+        await auto.TypeAsync(command);
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Sources the Aspire Bundle environment after installation.
+    /// Adds both the bundle's bin/ and root directories to PATH.
+    /// </summary>
+    internal static async Task SourceAspireBundleEnvironmentAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
 }

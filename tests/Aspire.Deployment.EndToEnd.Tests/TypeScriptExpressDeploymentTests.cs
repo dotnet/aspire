@@ -68,6 +68,8 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             var counter = new SequenceCounter();
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
+            var prNumber = DeploymentE2ETestHelpers.GetPrNumber();
+
             // Step 1: Prepare environment
             output.WriteLine("Step 1: Preparing environment...");
             await auto.PrepareEnvironmentAsync(workspace, counter);
@@ -77,8 +79,12 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             // the prebuilt AppHost server is required for aspire add to regenerate SDK code.
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
-                output.WriteLine("Step 2: Using pre-installed Aspire CLI from local build...");
-                await auto.SourceAspireCliEnvironmentAsync(counter);
+                if (prNumber > 0)
+                {
+                    output.WriteLine($"Step 2: Installing Aspire bundle from PR #{prNumber}...");
+                    await auto.InstallAspireBundleFromPullRequestAsync(prNumber, counter);
+                }
+                await auto.SourceAspireBundleEnvironmentAsync(counter);
             }
 
             // Step 3: Create TypeScript Express/React project using aspire new
@@ -100,7 +106,13 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
             if (DeploymentE2ETestHelpers.IsRunningInCI)
             {
                 await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
-                await auto.EnterAsync(); // select first version (PR build)
+                if (prNumber > 0)
+                {
+                    await auto.DownAsync();
+                    await auto.DownAsync(); // select third version (PR build)
+                    await auto.WaitUntilTextAsync($"pr-{prNumber}", timeout: TimeSpan.FromSeconds(5));
+                }
+                await auto.EnterAsync();
             }
 
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
