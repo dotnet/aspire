@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 
 namespace Aspire.Cli.NuGet;
@@ -22,7 +21,7 @@ internal static class NuGetSignatureVerificationEnabler
     /// </summary>
     public static Dictionary<string, string>? GetEnvironmentVariables(IFeatures features)
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+        if (!OperatingSystem.IsLinux() ||
             !features.IsFeatureEnabled(
                 KnownFeatures.NuGetSignatureVerificationEnabled,
                 KnownFeatures.GetFeatureMetadata(KnownFeatures.NuGetSignatureVerificationEnabled)!.DefaultValue))
