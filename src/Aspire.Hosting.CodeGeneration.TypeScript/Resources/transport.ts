@@ -870,7 +870,7 @@ export class AspireClient {
                     this.connection.listen();
                     const authToken = process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
                     if (authToken) {
-                        const authenticated = await this.connection.sendRequest<boolean>('authenticate', [authToken]);
+                        const authenticated = await this.connection.sendRequest<boolean>('authenticate', authToken);
                         if (!authenticated) {
                             throw new Error('Failed to authenticate to the AppHost server.');
                         }
