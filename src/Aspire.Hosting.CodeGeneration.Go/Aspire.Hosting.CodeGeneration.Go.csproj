@@ -7,7 +7,6 @@
     <RootNamespace>Aspire.Hosting.CodeGeneration.Go</RootNamespace>
     <!-- Required for Go AppHost support -->
     <IsPackable>true</IsPackable>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <!-- No baseline exists since this package was previously not published -->
     <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
     <IsAotCompatible>true</IsAotCompatible>
