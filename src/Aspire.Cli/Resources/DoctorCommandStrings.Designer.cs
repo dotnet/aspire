@@ -276,7 +276,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Older certificate versions (&lt; v{0}) may not support container trust scenarios..
+        ///   Looks up a localized string similar to Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios..
         /// </summary>
         public static string DevCertsOldVersionDetailsFormat {
             get {

@@ -249,7 +249,7 @@ public static class RedisBuilderExtensions
                     var endpoint = redisInstance.PrimaryEndpoint;
                     if (redisInstance.TryGetEndpoints(out var endpoints))
                     {
-                        var secondaryEndpoint = endpoints.FirstOrDefault(ep => StringComparer.OrdinalIgnoreCase.Equals(ep.Name, RedisResource.SecondaryEndpointName));
+                        var secondaryEndpoint = endpoints.FirstOrDefault(ep => string.Equals(ep.Name, RedisResource.SecondaryEndpointName, StringComparisons.EndpointAnnotationName));
                         if (secondaryEndpoint is not null)
                         {
                             endpoint = new EndpointReference(redisInstance, secondaryEndpoint);

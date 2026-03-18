@@ -3,7 +3,8 @@
 
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Ats;
+using Aspire.Hosting.RemoteHost;
+using Aspire.TypeSystem;
 using Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests;
@@ -48,6 +49,12 @@ public class AtsTypeScriptCodeGeneratorTests
 
         await Verify(files["aspire.ts"], extension: "ts")
             .UseFileName("AtsGeneratedAspire");
+
+        await Verify(files["base.ts"], extension: "ts")
+            .UseFileName("base");
+
+        await Verify(files["transport.ts"], extension: "ts")
+            .UseFileName("transport");
     }
 
     [Fact]
@@ -59,6 +66,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.DoesNotContain("export class ReferenceExpression {", files["aspire.ts"]);
         Assert.Contains("registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'", files["base.ts"]);
+        Assert.Contains("condition: extractHandleForExpr(this._condition),", files["base.ts"]);
+        Assert.Contains("('$handle' in json || '$expr' in json)", files["base.ts"]);
+        Assert.Contains("registerCancellation(this._client, cancellationToken)", files["base.ts"]);
     }
 
     [Fact]
@@ -707,6 +717,18 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_UsesUnifiedWithReferenceCapability()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var withReference = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/withReference");
+        Assert.Contains(withReference.Parameters, p => p.Name == "name" && p.IsOptional);
+
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReference");
+        Assert.DoesNotContain(capabilities, c => c.CapabilityId == "Aspire.Hosting/withServiceReferenceNamed");
+    }
+
+    [Fact]
     public void BugFix_TargetParameterName_WithVolumeUsesResource()
     {
         // Verify that withVolume has TargetParameterName = "resource" (from CoreExports.cs)
@@ -834,6 +856,13 @@ public class AtsTypeScriptCodeGeneratorTests
         return result.Capabilities;
     }
 
+    private static AtsContext CreateContextFromHostingAssembly()
+    {
+        var hostingAssembly = typeof(DistributedApplication).Assembly;
+        var result = AtsCapabilityScanner.ScanAssembly(hostingAssembly);
+        return result.ToAtsContext();
+    }
+
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromBothAssemblies()
     {
         var (testAssembly, hostingAssembly) = LoadBothAssemblies();
@@ -908,6 +937,34 @@ public class AtsTypeScriptCodeGeneratorTests
             var capability = capabilities.FirstOrDefault(c => c.CapabilityId == expectedId);
             Assert.NotNull(capability);
         }
+    }
+
+    [Fact]
+    public void Generate_HostingAssembly_IncludesCoreFrameworkPolyglotHelpers()
+    {
+        var atsContext = CreateContextFromHostingAssembly();
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireTs = files["aspire.ts"];
+
+        Assert.Contains("getSection", aspireTs);
+        Assert.Contains("getChildren", aspireTs);
+        Assert.Contains("exists", aspireTs);
+        Assert.Contains("getLoggerFactory", aspireTs);
+        Assert.Contains("createLogger", aspireTs);
+        Assert.Contains("getResourceLoggerService", aspireTs);
+        Assert.Contains("getResourceNotificationService", aspireTs);
+        Assert.Contains("getDistributedApplicationModel", aspireTs);
+        Assert.Contains("subscribeBeforeStart", aspireTs);
+        Assert.Contains("subscribeAfterResourcesCreated", aspireTs);
+        Assert.Contains("onBeforeResourceStarted", aspireTs);
+        Assert.Contains("onResourceStopped", aspireTs);
+        Assert.Contains("onConnectionStringAvailable", aspireTs);
+        Assert.Contains("onInitializeResource", aspireTs);
+        Assert.Contains("onResourceEndpointsAllocated", aspireTs);
+        Assert.Contains("onResourceReady", aspireTs);
+        Assert.Contains("getUserSecretsManager", aspireTs);
+        Assert.Contains("getEventing", aspireTs);
+        Assert.Contains("saveStateJson", aspireTs);
     }
 
     [Fact]
@@ -1040,6 +1097,16 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains("getValueAsync(): Promise<string>", code);
     }
 
+    [Fact]
+    public void GenerateTwoPassCode_UsesUnifiedWithReferenceSurface()
+    {
+        var code = GenerateTwoPassCode();
+
+        Assert.DoesNotContain("withServiceReference(", code);
+        Assert.DoesNotContain("withServiceReferenceNamed(", code);
+        Assert.Contains("name?: string;", code);
+    }
+
     private string GenerateTwoPassCode()
     {
         var atsContext = CreateContextFromBothAssemblies();
@@ -1069,13 +1136,15 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public void Generate_MethodWithCancellationToken_GeneratesAbortSignalParameter()
+    public void Generate_MethodWithCancellationToken_GeneratesCancellationTokenParameter()
     {
-        // Verify generated TypeScript has AbortSignal parameter
+        // Generated input parameters should accept AbortSignal for user-authored cancellation,
+        // while callbacks and returned values continue to use the SDK CancellationToken wrapper.
         var code = GenerateTwoPassCode();
 
-        // getStatusAsync should have an AbortSignal parameter in the generated code
-        Assert.Contains("AbortSignal", code);
+        Assert.Contains("cancellationToken?: AbortSignal | CancellationToken;", code);
+        Assert.Contains("set: async (value: AbortSignal | CancellationToken): Promise<void> => {", code);
+        Assert.Contains("withCancellableOperation(operation: (arg: CancellationToken) => Promise<void>)", code);
     }
 
     [Fact]
@@ -1292,21 +1361,6 @@ public class AtsTypeScriptCodeGeneratorTests
         // Also verify the Promise wrapper is not duplicated
         var promiseCount = CountOccurrences(code, "export class TestVaultResourcePromise ");
         Assert.Equal(1, promiseCount);
-    }
-
-    // ===== Multi-Parameter Callback Destructuring Tests =====
-
-    [Fact]
-    public void Generate_MultiParamCallback_UsesPerPropertyTyping()
-    {
-        // Regression test: multi-parameter callbacks must type each destructured property
-        // individually as { p0: unknown, p1: unknown }, not { p0, p1: unknown } which
-        // only types the last property in TypeScript.
-        var code = GenerateTwoPassCode();
-
-        // withMultiParamHandleCallback has a 2-param callback (TestCallbackContext, TestEnvironmentContext)
-        // The generated destructuring should type each property: { p0: unknown, p1: unknown }
-        Assert.Contains("{ p0: unknown, p1: unknown }", code);
     }
 
     // ===== Options Interface Merging Tests =====

@@ -14,6 +14,59 @@ namespace Aspire.Cli.Certificates;
 internal static partial class CertificateHelpers
 {
     /// <summary>
+    /// The environment variable name for overriding the dev-certs OpenSSL certificate directory.
+    /// </summary>
+    internal const string DevCertsOpenSslCertDirEnvVar = "DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY";
+
+    private static readonly string s_defaultDevCertsTrustPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".aspnet",
+        "dev-certs",
+        "trust");
+
+    /// <summary>
+    /// Gets the dev-certs trust path, respecting the <c>DOTNET_DEV_CERTS_OPENSSL_CERTIFICATE_DIRECTORY</c> override.
+    /// </summary>
+    internal static string GetDevCertsTrustPath()
+    {
+        var overridePath = Environment.GetEnvironmentVariable(DevCertsOpenSslCertDirEnvVar);
+        return !string.IsNullOrEmpty(overridePath) ? overridePath : s_defaultDevCertsTrustPath;
+    }
+
+    /// <summary>
+    /// Gets the system certificate directories by querying OpenSSL. Falls back to well-known
+    /// locations (<c>/etc/ssl/certs</c> and <c>/etc/pki/tls/certs</c>) when OpenSSL is unavailable.
+    /// </summary>
+    internal static List<string> GetSystemCertificateDirectories()
+    {
+        var systemCertDirs = new List<string>();
+
+        if (TryGetOpenSslDirectory(out var openSslDir))
+        {
+            var openSslCertsDir = Path.Combine(openSslDir, "certs");
+            if (Directory.Exists(openSslCertsDir))
+            {
+                systemCertDirs.Add(openSslCertsDir);
+            }
+        }
+        else
+        {
+            // Fallback to common locations if OpenSSL is not available or fails
+            if (Directory.Exists("/etc/ssl/certs"))
+            {
+                systemCertDirs.Add("/etc/ssl/certs");
+            }
+
+            if (Directory.Exists("/etc/pki/tls/certs"))
+            {
+                systemCertDirs.Add("/etc/pki/tls/certs");
+            }
+        }
+
+        return systemCertDirs;
+    }
+
+    /// <summary>
     /// Determines whether the specified <see cref="EnsureCertificateResult"/> represents a successful trust operation.
     /// </summary>
     /// <param name="result">The result to evaluate.</param>
