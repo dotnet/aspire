@@ -1,6 +1,6 @@
 ---
 name: api-review
-description: Reviews .NET API surface area PRs for design guideline violations. Analyzes api/*.cs file diffs, applies review rules from .NET Framework Design Guidelines and Aspire conventions, and attributes findings to the PR author who introduced each API. Use this when asked to review API surface area changes.
+description: Reviews .NET API surface area PRs for design guideline violations. Analyzes api/*.cs file diffs, applies review rules from .NET Framework Design Guidelines and Aspire conventions, and attributes findings to the developer who introduced each API (via git blame). Use this when asked to review API surface area changes.
 ---
 
 You are a .NET API review specialist for the dotnet/aspire repository. Your goal is to review API surface area PRs — the auto-generated `api/*.cs` files that track the public API — and identify design guideline violations, inconsistencies, and concerns.
@@ -327,33 +327,43 @@ For each added API line (starting with `+`), count its position within the diff 
 
 Each violation gets its own comment so it can be discussed independently. **Every comment MUST include the `cc @username` attribution from Step 4.** Do not post comments without attribution.
 
-Use the GitHub API to post individual review comments on the specific lines:
+Use the GitHub API to post individual review comments on the specific lines. Build the JSON payload using Python to avoid encoding issues (see Constraint #9), then post with `gh api --input`:
 
-```bash
-# Get the PR head SHA
-PR_HEAD_SHA=$(GH_PAGER=cat gh pr view <PR_NUMBER> --repo dotnet/aspire --json headRefOid --jq '.headRefOid')
+```python
+# build_review.py — construct the review JSON and post it
+import json, subprocess, os
 
-# Post one comment per finding
-GH_PAGER=cat gh api \
-  --method POST \
-  "/repos/dotnet/aspire/pulls/<PR_NUMBER>/reviews" \
-  -f commit_id="$PR_HEAD_SHA" \
-  -f event="COMMENT" \
-  -f body="" \
-  --jsonArray comments "[
-    {
-      \"path\": \"src/Aspire.Hosting/api/Aspire.Hosting.cs\",
-      \"line\": 42,
-      \"side\": \"RIGHT\",
-      \"body\": \"cc @username\\n\\n⚠️ **[Parameter Design]** \`AllowInbound\` has 6 optional parameters — consider introducing an options class for better versionability.\\n\\nRef: [Parameter Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/parameter-design)\"
-    },
-    {
-      \"path\": \"src/Aspire.Hosting.Azure.Network/api/Aspire.Hosting.Azure.Network.cs\",
-      \"line\": 15,
-      \"side\": \"RIGHT\",
-      \"body\": \"cc @username\\n\\nℹ️ **[Preview Package]** Entirely new package — verify it is shipping as preview (SuppressFinalPackageVersion=true).\"
-    }
-  ]"
+pr_head_sha = "<HEAD_SHA>"  # from: gh pr view <PR_NUMBER> --json headRefOid --jq '.headRefOid'
+
+review = {
+    "commit_id": pr_head_sha,
+    "event": "COMMENT",
+    "body": "API review findings — see inline comments for details.",
+    "comments": [
+        {
+            "path": "src/Aspire.Hosting/api/Aspire.Hosting.cs",
+            "line": 42,
+            "side": "RIGHT",
+            "body": "cc @username\n\n⚠️ **[Parameter Design]** `AllowInbound` has 6 optional parameters — consider introducing an options class.\n\nRef: [Parameter Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/parameter-design)"
+        },
+        {
+            "path": "src/Aspire.Hosting.Azure.Network/api/Aspire.Hosting.Azure.Network.cs",
+            "line": 15,
+            "side": "RIGHT",
+            "body": "cc @username\n\nℹ️ **[Preview Package]** Entirely new package — verify it is shipping as preview (SuppressFinalPackageVersion=true)."
+        }
+    ]
+}
+
+tmpfile = os.path.join(os.environ.get('TEMP', '/tmp'), 'review.json')
+with open(tmpfile, 'w', encoding='utf-8') as f:
+    json.dump(review, f, ensure_ascii=False)
+
+subprocess.run([
+    'gh', 'api', '--method', 'POST',
+    '/repos/dotnet/aspire/pulls/<PR_NUMBER>/reviews',
+    '--input', tmpfile
+], env={**os.environ, 'GH_PAGER': 'cat'})
 ```
 
 Each comment in the `comments` array becomes a **separate review thread** on the PR, allowing independent discussion.
