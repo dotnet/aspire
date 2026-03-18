@@ -33,7 +33,7 @@
     `AspireProjectOrPackageReference` - maps to projects in `src/` or `src/Components/`
   -->
 
-  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="$(AspireAppHostSdkVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
   <PropertyGroup>
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
@@ -107,8 +107,32 @@
 
   <!-- Generate before the build so the projects can use this in a <None ..> item -->
   <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true' and '$(IsTestUtilityProject)' != 'true'">
-    <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->
+    <!--
+      Collect per-project actual package versions from src/, respecting SuppressFinalPackageVersion and VersionSuffix.
+      This ensures packages that suppress the final stable version (e.g. during StabilizePackageVersion=true) get their
+      correct prerelease version in the generated props file, rather than the global stable PackageVersion.
+    -->
     <ItemGroup>
+      <_SrcPackageProjects Include="$(RepoRoot)src\**\*.csproj"
+                           Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(_SrcPackageProjects)"
+             Targets="GetPackageName"
+             BuildInParallel="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_AspirePackageName" />
+    </MSBuild>
+
+    <!-- Duplicate all the @(PackageVersion) items (non-Aspire packages) with the evaluated versions -->
+    <ItemGroup>
+      <!-- Per-project Aspire package versions, correctly respecting SuppressFinalPackageVersion -->
+      <_AspirePackageVersionEvaluated Include="@(_AspirePackageName -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(WithPackageVersion)&quot; /&gt;')"
+                                      Condition="'%(Identity)' != ''" />
+
+      <!-- Extract the Aspire.AppHost.Sdk-specific version for the SDK import -->
+      <_AspireAppHostSdkVersionItem Include="@(_AspirePackageName)" Condition="'%(Identity)' == 'Aspire.AppHost.Sdk'" />
+
+      <!-- Non-Aspire packages from centralized package management -->
       <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
 
       <!-- Emit all properties named in @(PropertyForHelixRun).
@@ -121,16 +145,25 @@
     </ItemGroup>
 
     <PropertyGroup>
+      <!-- The Aspire.AppHost.Sdk package version for SDK imports (may differ from global PackageVersion during stabilization) -->
+      <_AspireAppHostSdkPackageVersion>@(_AspireAppHostSdkVersionItem->'%(WithPackageVersion)')</_AspireAppHostSdkPackageVersion>
+      <_AspireAppHostSdkPackageVersion Condition="'$(_AspireAppHostSdkPackageVersion)' == ''">$(PackageVersion)</_AspireAppHostSdkPackageVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
       <_HelixPropsContent>
         <![CDATA[
       <Project>
         <PropertyGroup>
           <PackageVersion>$(PackageVersion)</PackageVersion>
+          <AspireAppHostSdkVersion>$(_AspireAppHostSdkPackageVersion)</AspireAppHostSdkVersion>
 
           <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         </PropertyGroup>
 
         <ItemGroup>
+            @(_AspirePackageVersionEvaluated, '
+            ')
             @(_PackageVersionEvaluated, '
             ')
         </ItemGroup>
@@ -165,6 +198,6 @@
     <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
   </PropertyGroup>
 
-  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="$(AspireAppHostSdkVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
 </Project>
