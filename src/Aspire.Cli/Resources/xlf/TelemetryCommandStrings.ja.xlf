@@ -34,27 +34,27 @@
       </trans-unit>
       <trans-unit id="HeaderDuration">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">期間</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderName">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">名前</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderSpans">
         <source>Spans</source>
-        <target state="new">Spans</target>
+        <target state="translated">スパン</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderStatus">
         <source>Status</source>
-        <target state="new">Status</target>
+        <target state="translated">状態</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderTimestamp">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">タイムスタンプ</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitMustBePositive">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
-        <target state="new">view telemetry for</target>
+        <target state="translated">次のテレメトリを表示する:</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

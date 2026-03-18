@@ -388,4 +388,22 @@ internal sealed class AspireEventSource : EventSource
             WriteEvent(44);
         }
     }
+
+    [Event(45, Level = EventLevel.Informational, Message = "DCP Service object preparation starting...")]
+    public void DcpServiceObjectPreparationStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(45);
+        }
+    }
+
+    [Event(46, Level = EventLevel.Informational, Message = "DCP Service object preparation completed")]
+    public void DcpServiceObjectPreparationStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(46);
+        }
+    }
 }

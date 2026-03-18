@@ -51,7 +51,7 @@
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
-        <target state="needs-review-translation">Eliminare il valore del parametro '{0}'? 
+        <target state="needs-review-translation">Eliminare il valore del parametro '{0}'?
 
 Il valore è attualmente salvato nei [segreti utente](https://learn.microsoft.com/aspnet/core/security/app-secrets). È possibile scegliere di eliminarlo anche da lì.</target>
         <note>Contains markdown. {0} is the parameter name.</note>

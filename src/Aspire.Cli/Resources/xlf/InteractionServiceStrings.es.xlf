@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../InteractionServiceStrings.resx">
     <body>
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of Aspire is available: {0}[/]</source>
-        <target state="needs-review-translation">[yellow]Hay una nueva versión disponible de la CLI de Aspire: {0}[/]</target>
+        <target state="new">[yellow]A new version of Aspire is available: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeBuilt">
         <source>The project could not be built. See logs at {0}</source>
-        <target state="new">The project could not be built. See logs at {0}</target>
+        <target state="translated">No se pudo compilar el proyecto. Consulte los registros en {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionDoesntExist">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedMultipleAppHostsFound">
         <source>The --apphost option was not specified and multiple app host project files were detected.</source>
-        <target state="translated">No se especificó la opción --apphost y se detectaron varios archivos de proyecto de host de aplicaciones.</target>
+        <target state="translated">No se especificó la opción --apphost y se detectaron varios archivos de proyecto de host de aplicación.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="SeeLogsAt">
         <source>See logs at {0}</source>
-        <target state="new">See logs at {0}</target>
+        <target state="translated">Consulte los registros en {0}</target>
         <note>{0} is the log file path</note>
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">

@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
         <source>Install Playwright CLI for browser automation?</source>
-        <target state="needs-review-translation">Preconfigurare il server MCP di Playwright?</target>
+        <target state="translated">Installare l'interfaccia della riga di comando Playwright per l'automazione del browser?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">

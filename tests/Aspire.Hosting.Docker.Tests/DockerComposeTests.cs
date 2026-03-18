@@ -349,6 +349,7 @@ public class DockerComposeTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/15078", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployWithDashboard_PrintsDashboardAndServiceEndpoints()
     {
         using var tempDir = new TestTempDirectory();
@@ -645,14 +646,12 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.False(fakeRuntime.WasPushImageCalled, "PushImageAsync should NOT have been called for local registry");
 
         // Verify the tag was applied correctly
-        Assert.Single(fakeRuntime.TagImageCalls);
-        var (localName, targetName) = fakeRuntime.TagImageCalls[0];
+        var (localName, targetName) = Assert.Single(fakeRuntime.TagImageCalls);
         Assert.StartsWith("servicea:", localName); // Local name includes a hash suffix
         Assert.StartsWith("servicea:", targetName); // Target name includes the deploy tag
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13878")]
     public async Task PushImageToRegistry_WithRemoteRegistry_PushesImage()
     {
         using var tempDir = new TestTempDirectory();

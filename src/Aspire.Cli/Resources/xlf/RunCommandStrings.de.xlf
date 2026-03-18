@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
         <source>The --no-build option cannot be used when watch mode is enabled.</source>
-        <target state="new">The --no-build option cannot be used when watch mode is enabled.</target>
+        <target state="translated">Die Option „--no-build“ kann nicht verwendet werden, wenn der Überwachungsmodus aktiviert ist.</target>
         <note />
       </trans-unit>
       <trans-unit id="PressCtrlCToStopAppHost">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
         <source>The project could not be run. See logs at {0}</source>
-        <target state="new">The project could not be run. See logs at {0}</target>
+        <target state="translated">Das Projekt konnte nicht ausgeführt werden. Protokolle unter {0} anzeigen.</target>
         <note />
       </trans-unit>
       <trans-unit id="Resource">

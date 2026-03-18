@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../TemplatingStrings.resx">
     <body>
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="ProjectCreationFailed">
         <source>Project creation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">Project creation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">專案建立失敗，結束代碼為 {0}。請參閱 {1} 中的記錄</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="PromptForTFMOptions_Description">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="TemplateInstallationFailed">
         <source>The template installation failed with exit code {0}. See logs at {1}</source>
-        <target state="new">The template installation failed with exit code {0}. See logs at {1}</target>
+        <target state="translated">範本安裝失敗，結束代碼為 {0}。請參閱 {1} 中的記錄</target>
         <note>{0} is a number, {1} is the log file path</note>
       </trans-unit>
       <trans-unit id="Unknown">

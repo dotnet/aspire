@@ -9,22 +9,22 @@
       </trans-unit>
       <trans-unit id="HeaderCliPid">
         <source>CLI PID</source>
-        <target state="needs-review-translation">CLI_PID</target>
+        <target state="translated">PID CLI</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDashboard">
         <source>Dashboard</source>
-        <target state="needs-review-translation">ПАНЕЛЬ МОНИТОРИНГА</target>
+        <target state="translated">Панель мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPath">
         <source>Path</source>
-        <target state="needs-review-translation">PATH</target>
+        <target state="translated">Путь</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderPid">
         <source>PID</source>
-        <target state="needs-review-translation">PID</target>
+        <target state="translated">PID</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">

@@ -594,7 +594,7 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
-        
+
         if (TryDispatchCustomWithReference(builder, source, connectionName, optional, name, out var customDispatch))
         {
             return customDispatch;

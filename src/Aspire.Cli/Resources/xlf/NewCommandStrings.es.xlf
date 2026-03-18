@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../NewCommandStrings.resx">
     <body>
@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="needs-review-translation">Escriba la ruta de acceso de salida</target>
+        <target state="new">Enter the output path</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
         <source>Enter the project name</source>
-        <target state="needs-review-translation">Escriba el nombre del proyecto</target>
+        <target state="translated">Escriba el nombre del proyecto</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidProjectName">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
         <source>Resolving template version...</source>
-        <target state="new">Resolving template version...</target>
+        <target state="translated">Resolviendo versión de plantilla...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">

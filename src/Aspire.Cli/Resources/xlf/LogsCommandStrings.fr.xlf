@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' was not found.</source>
-        <target state="new">Resource '{0}' was not found.</target>
+        <target state="translated">Ressource i» {0} »ntrouvable.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceRequiredWithoutFollow">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>stream logs from</source>
-        <target state="new">stream logs from</target>
+        <target state="translated">transmettre les journaux de</target>
         <note />
       </trans-unit>
       <trans-unit id="TailMustBePositive">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="GettingLogs">
         <source>Getting logs...</source>
-        <target state="new">Getting logs...</target>
+        <target state="translated">Récupération des journaux...</target>
         <note />
       </trans-unit>
     </body>

@@ -34,27 +34,27 @@
       </trans-unit>
       <trans-unit id="HeaderDuration">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Durata</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderName">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">Nome</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderSpans">
         <source>Spans</source>
-        <target state="new">Spans</target>
+        <target state="translated">Intervalli</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderStatus">
         <source>Status</source>
-        <target state="new">Status</target>
+        <target state="translated">Stato</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderTimestamp">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Timestamp</target>
         <note />
       </trans-unit>
       <trans-unit id="LimitMustBePositive">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
         <source>view telemetry for</source>
-        <target state="new">view telemetry for</target>
+        <target state="translated">visualizzare dati di telemetria per</target>
         <note />
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">

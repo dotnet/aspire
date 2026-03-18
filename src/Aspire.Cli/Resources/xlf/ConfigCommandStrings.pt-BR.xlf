@@ -84,12 +84,12 @@
       </trans-unit>
       <trans-unit id="HeaderKey">
         <source>Key</source>
-        <target state="new">Key</target>
+        <target state="translated">Chave</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valor</target>
         <note />
       </trans-unit>
       <trans-unit id="InfoCommand_AvailableFeatures">
@@ -204,7 +204,7 @@
       </trans-unit>
       <trans-unit id="SetFeatureHint">
         <source>Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</source>
-        <target state="new">Use 'aspire config set features.&lt;name&gt; true|false' to enable or disable a feature.</target>
+        <target state="translated">Use ''config set features.&lt;name&gt; true|false'' para habilitar ou desabilitar um recurso.</target>
         <note />
       </trans-unit>
     </body>

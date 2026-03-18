@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ApplyingUpdates">
         <source>Applying updates...</source>
-        <target state="new">Applying updates...</target>
+        <target state="translated">Применение обновлений...</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="CheckingForUpdates">
         <source>Checking for updates...</source>
-        <target state="new">Checking for updates...</target>
+        <target state="translated">Проверка наличия обновлений...</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
@@ -89,12 +89,12 @@
       </trans-unit>
       <trans-unit id="ExtractedNewCli">
         <source>Extracted new CLI</source>
-        <target state="new">Extracted new CLI</target>
+        <target state="translated">Извлечен новый CLI</target>
         <note />
       </trans-unit>
       <trans-unit id="ExtractingNewCli">
         <source>Extracting new CLI...</source>
-        <target state="new">Extracting new CLI...</target>
+        <target state="translated">Извлечение нового CLI...</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedDiscoverNuGetConfig">
@@ -199,12 +199,12 @@
       </trans-unit>
       <trans-unit id="RegeneratedSdkCode">
         <source>Regenerated SDK code with updated packages.</source>
-        <target state="new">Regenerated SDK code with updated packages.</target>
+        <target state="translated">Код SDK с обновленными пакетами повторно создан.</target>
         <note />
       </trans-unit>
       <trans-unit id="RegeneratingSdkCode">
         <source>Regenerating SDK code with updated packages...</source>
-        <target state="new">Regenerating SDK code with updated packages...</target>
+        <target state="translated">Повторно создается код SDK с обновленными пакетами...</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">

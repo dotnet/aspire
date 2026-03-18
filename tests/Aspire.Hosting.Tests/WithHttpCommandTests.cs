@@ -4,7 +4,6 @@
 using System.Net;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
@@ -402,7 +401,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/8101")]
     public async Task WithHttpCommand_EnablesCommandOnceResourceIsRunning()
     {
         // Arrange

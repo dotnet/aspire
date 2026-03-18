@@ -595,11 +595,6 @@ internal sealed class CapabilityDispatcher
 /// </summary>
 internal static class CapabilityJsonExtensions
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
 
     /// <summary>
     /// Gets a required string argument.
@@ -677,7 +672,7 @@ internal static class CapabilityJsonExtensions
     {
         if (args.TryGetPropertyValue(name, out var node) && node is JsonObject obj)
         {
-            return JsonSerializer.Deserialize<T>(obj.ToJsonString(), s_jsonOptions);
+            return JsonSerializer.Deserialize<T>(obj.ToJsonString(), AtsMarshaller.JsonOptions);
         }
         return null;
     }

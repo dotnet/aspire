@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
         <source>Resolving template version...</source>
-        <target state="new">Resolving template version...</target>
+        <target state="translated">Resolvendo a versão do modelo...</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionDetected">
