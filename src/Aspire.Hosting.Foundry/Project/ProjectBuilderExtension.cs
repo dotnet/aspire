@@ -598,10 +598,7 @@ public static class AzureCognitiveServicesProjectExtensions
         }
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            builder.AddResource(resource);
-        }
+        builder.AddResource(resource);
         return resource;
     }
 }
