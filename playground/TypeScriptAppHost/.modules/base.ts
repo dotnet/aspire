@@ -1,5 +1,5 @@
 // aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle } from './transport.js';
+import { Handle, AspireClient, MarshalledHandle, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
 
 // Re-export transport types for convenience
 export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
@@ -39,12 +39,48 @@ export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './t
  * ```
  */
 export class ReferenceExpression {
-    private readonly _format: string;
-    private readonly _valueProviders: unknown[];
+    // Expression mode fields
+    private readonly _format?: string;
+    private readonly _valueProviders?: unknown[];
 
-    private constructor(format: string, valueProviders: unknown[]) {
-        this._format = format;
-        this._valueProviders = valueProviders;
+    // Conditional mode fields
+    private readonly _condition?: unknown;
+    private readonly _whenTrue?: ReferenceExpression;
+    private readonly _whenFalse?: ReferenceExpression;
+    private readonly _matchValue?: string;
+
+    // Handle mode fields (when wrapping a server-returned handle)
+    private readonly _handle?: Handle;
+    private readonly _client?: AspireClient;
+
+    constructor(format: string, valueProviders: unknown[]);
+    constructor(handle: Handle, client: AspireClient);
+    constructor(condition: unknown, matchValue: string, whenTrue: ReferenceExpression, whenFalse: ReferenceExpression);
+    constructor(
+        handleOrFormatOrCondition: Handle | string | unknown,
+        clientOrValueProvidersOrMatchValue: AspireClient | unknown[] | string,
+        whenTrueOrWhenFalse?: ReferenceExpression,
+        whenFalse?: ReferenceExpression
+    ) {
+        if (typeof handleOrFormatOrCondition === 'string') {
+            this._format = handleOrFormatOrCondition;
+            this._valueProviders = clientOrValueProvidersOrMatchValue as unknown[];
+        } else if (handleOrFormatOrCondition instanceof Handle) {
+            this._handle = handleOrFormatOrCondition;
+            this._client = clientOrValueProvidersOrMatchValue as AspireClient;
+        } else {
+            this._condition = handleOrFormatOrCondition;
+            this._matchValue = (clientOrValueProvidersOrMatchValue as string) ?? 'True';
+            this._whenTrue = whenTrueOrWhenFalse;
+            this._whenFalse = whenFalse;
+        }
+    }
+
+    /**
+     * Gets whether this reference expression is conditional.
+     */
+    get isConditional(): boolean {
+        return this._condition !== undefined;
     }
 
     /**
@@ -71,25 +107,94 @@ export class ReferenceExpression {
     }
 
     /**
-     * Serializes the reference expression for JSON-RPC transport.
-     * Uses the $expr format recognized by the server.
+     * Creates a conditional reference expression from its constituent parts.
+     *
+     * @param condition - A value provider whose result is compared to matchValue
+     * @param whenTrue - The expression to use when the condition matches
+     * @param whenFalse - The expression to use when the condition does not match
+     * @param matchValue - The value to compare the condition against (defaults to "True")
+     * @returns A ReferenceExpression instance in conditional mode
      */
-    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } } {
+    static createConditional(
+        condition: unknown,
+        matchValue: string,
+        whenTrue: ReferenceExpression,
+        whenFalse: ReferenceExpression
+    ): ReferenceExpression {
+        return new ReferenceExpression(condition, matchValue, whenTrue, whenFalse);
+    }
+
+    /**
+     * Serializes the reference expression for JSON-RPC transport.
+     * In expression mode, uses the $expr format with format + valueProviders.
+     * In conditional mode, uses the $expr format with condition + whenTrue + whenFalse.
+     * In handle mode, delegates to the handle's serialization.
+     */
+    toJSON(): { $expr: { format: string; valueProviders?: unknown[] } | { condition: unknown; whenTrue: unknown; whenFalse: unknown; matchValue: string } } | MarshalledHandle {
+        if (this._handle) {
+            return this._handle.toJSON();
+        }
+
+        if (this.isConditional) {
+            return {
+                $expr: {
+                    condition: this._condition instanceof Handle ? this._condition.toJSON() : this._condition,
+                    whenTrue: this._whenTrue!.toJSON(),
+                    whenFalse: this._whenFalse!.toJSON(),
+                    matchValue: this._matchValue!
+                }
+            };
+        }
+
         return {
             $expr: {
-                format: this._format,
-                valueProviders: this._valueProviders.length > 0 ? this._valueProviders : undefined
+                format: this._format!,
+                valueProviders: this._valueProviders && this._valueProviders.length > 0 ? this._valueProviders : undefined
             }
         };
+    }
+
+    /**
+     * Resolves the expression to its string value on the server.
+     * Only available on server-returned ReferenceExpression instances (handle mode).
+     *
+     * @param cancellationToken - Optional AbortSignal for cancellation support
+     * @returns The resolved string value, or null if the expression resolves to null
+     */
+    async getValue(cancellationToken?: AbortSignal): Promise<string | null> {
+        if (!this._handle || !this._client) {
+            throw new Error('getValue is only available on server-returned ReferenceExpression instances');
+        }
+        const cancellationTokenId = registerCancellation(cancellationToken);
+        try {
+            const rpcArgs: Record<string, unknown> = { context: this._handle };
+            if (cancellationTokenId !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
+            return await this._client.invokeCapability<string | null>(
+                'Aspire.Hosting.ApplicationModel/getValue',
+                rpcArgs
+            );
+        } finally {
+            unregisterCancellation(cancellationTokenId);
+        }
     }
 
     /**
      * String representation for debugging.
      */
     toString(): string {
+        if (this._handle) {
+            return `ReferenceExpression(handle)`;
+        }
+        if (this.isConditional) {
+            return `ReferenceExpression(conditional)`;
+        }
         return `ReferenceExpression(${this._format})`;
     }
 }
+
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression', (handle, client) =>
+    new ReferenceExpression(handle, client)
+);
 
 /**
  * Extracts a value for use in reference expressions.

@@ -240,6 +240,8 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
+
+        public Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default) => Task.FromResult<FileInfo?>(null);
     }
 
     private sealed class MultipleProjectsProjectLocator : IProjectLocator
@@ -293,6 +295,8 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
+
+        public Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default) => Task.FromResult<FileInfo?>(null);
     }
 
     private sealed class NoProjectFileProjectLocator : IProjectLocator
@@ -303,7 +307,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
             bool createSettingsFile, 
             CancellationToken cancellationToken)
         {
-            throw new ProjectLocatorException("No AppHost project found.");
+            throw new ProjectLocatorException("No AppHost project found.", ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(
@@ -311,7 +315,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
             bool createSettingsFile, 
             CancellationToken cancellationToken)
         {
-            throw new ProjectLocatorException("No AppHost project found.");
+            throw new ProjectLocatorException("No AppHost project found.", ProjectLocatorFailureReason.NoProjectFileFound);
         }
 
         public Task<AppHostProjectSearchResult> UseOrFindServiceProjectFileAsync(
@@ -338,6 +342,8 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
+
+        public Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default) => Task.FromResult<FileInfo?>(null);
     }
 
     private sealed class ThrowingProjectLocator : IProjectLocator
@@ -383,5 +389,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
+
+        public Task<FileInfo?> GetAppHostFromSettingsAsync(CancellationToken cancellationToken = default) => Task.FromResult<FileInfo?>(null);
     }
 }

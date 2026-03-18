@@ -29,11 +29,22 @@
     "onDebugDynamicConfigurations:aspire",
     "workspaceContains:**/*.csproj",
     "onView:workbench.view.debug",
-    "workspaceContains:**/apphost.cs"
+    "workspaceContains:**/apphost.cs",
+    "workspaceContains:**/apphost.ts",
+    "workspaceContains:**/apphost.js",
+    "onCommand:aspire-vscode.installCliStable",
+    "onCommand:aspire-vscode.installCliDaily",
+    "onCommand:aspire-vscode.verifyCliInstalled"
   ],
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "aspire-mcp-server",
+        "label": "Aspire"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -82,6 +93,16 @@
                 "type": "object",
                 "description": "%extension.debug.debuggers%",
                 "default": {}
+              },
+              "command": {
+                "type": "string",
+                "description": "%extension.debug.command%",
+                "enum": ["run", "deploy", "publish", "do"],
+                "default": "run"
+              },
+              "step": {
+                "type": "string",
+                "description": "%extension.debug.step%"
               }
             }
           }
@@ -151,6 +172,12 @@
         "command": "aspire-vscode.deploy",
         "enablement": "workspaceFolderCount > 0",
         "title": "%command.deploy%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.do",
+        "enablement": "workspaceFolderCount > 0",
+        "title": "%command.do%",
         "category": "Aspire"
       },
       {
@@ -234,6 +261,33 @@
         "title": "%command.executeResourceCommand%",
         "category": "Aspire",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "aspire-vscode.switchToGlobalView",
+        "title": "%command.switchToGlobalView%",
+        "category": "Aspire",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "aspire-vscode.switchToWorkspaceView",
+        "title": "%command.switchToWorkspaceView%",
+        "category": "Aspire",
+        "icon": "$(home)"
+      },
+      {
+        "command": "aspire-vscode.installCliStable",
+        "title": "%command.installCliStable%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.installCliDaily",
+        "title": "%command.installCliDaily%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.verifyCliInstalled",
+        "title": "%command.verifyCliInstalled%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [
@@ -250,24 +304,24 @@
       "explorer/context": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@1"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "when": "resourceFilename =~ /apphost\\.(cs|ts|js)$/i",
           "group": "aspire_actions@2"
         }
       ],
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "(aspire.fileIsAppHostCs || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
+          "when": "(aspire.fileIsAppHost || aspire.workspaceHasAppHost) && aspire.editorSupportsRunDebug",
           "group": "navigation@-3"
         }
       ],
@@ -311,9 +365,27 @@
         {
           "command": "aspire-vscode.executeResourceCommand",
           "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "false"
         }
       ],
       "view/title": [
+        {
+          "command": "aspire-vscode.switchToGlobalView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode != global",
+          "group": "navigation"
+        },
+        {
+          "command": "aspire-vscode.switchToWorkspaceView",
+          "when": "view == aspire-vscode.runningAppHosts && aspire.viewMode == global",
+          "group": "navigation"
+        },
         {
           "command": "aspire-vscode.refreshRunningAppHosts",
           "when": "view == aspire-vscode.runningAppHosts",
@@ -323,7 +395,7 @@
       "view/item/context": [
         {
           "command": "aspire-vscode.openDashboard",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem == appHost",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^(appHost|workspaceResources)$/",
           "group": "inline"
         },
         {
@@ -398,9 +470,34 @@
           "scope": "window"
         },
         "aspire.enableAspireDashboardAutoLaunch": {
+          "type": "string",
+          "enum": ["launch", "notification", "off"],
+          "default": "launch",
+          "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "enumDescriptions": [
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.launch%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.notification%",
+            "%configuration.aspire.enableAspireDashboardAutoLaunch.off%"
+          ],
+          "scope": "window"
+        },
+        "aspire.dashboardBrowser": {
+          "type": "string",
+          "enum": ["openExternalBrowser", "debugChrome", "debugEdge", "debugFirefox"],
+          "default": "openExternalBrowser",
+          "description": "%configuration.aspire.dashboardBrowser%",
+          "enumDescriptions": [
+            "%configuration.aspire.dashboardBrowser.openExternalBrowser%",
+            "%configuration.aspire.dashboardBrowser.debugChrome%",
+            "%configuration.aspire.dashboardBrowser.debugEdge%",
+            "%configuration.aspire.dashboardBrowser.debugFirefox%"
+          ],
+          "scope": "window"
+        },
+        "aspire.closeDashboardOnDebugEnd": {
           "type": "boolean",
           "default": true,
-          "description": "%configuration.aspire.enableAspireDashboardAutoLaunch%",
+          "description": "%configuration.aspire.closeDashboardOnDebugEnd%",
           "scope": "window"
         },
         "aspire.enableDebugConfigEnvironmentLogging": {
@@ -408,9 +505,92 @@
           "default": true,
           "description": "%configuration.aspire.enableDebugConfigEnvironmentLogging%",
           "scope": "window"
+        },
+        "aspire.registerMcpServerInWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.registerMcpServerInWorkspace%",
+          "scope": "window"
+        },
+        "aspire.globalAppHostsPollingInterval": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "description": "%configuration.aspire.globalAppHostsPollingInterval%",
+          "scope": "window"
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "aspire-vscode.getStarted",
+        "title": "%walkthrough.getStarted.title%",
+        "description": "%walkthrough.getStarted.description%",
+        "steps": [
+          {
+            "id": "aspire-vscode.getStarted.welcome",
+            "title": "%walkthrough.getStarted.welcome.title%",
+            "description": "%walkthrough.getStarted.welcome.description%",
+            "media": {
+              "markdown": "walkthrough/welcome.md"
+            }
+          },
+          {
+            "id": "aspire-vscode.getStarted.installCli",
+            "title": "%walkthrough.getStarted.installCli.title%",
+            "description": "%walkthrough.getStarted.installCli.description%",
+            "media": {
+              "markdown": "walkthrough/installCli.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.verifyCliInstalled"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.createProject",
+            "title": "%walkthrough.getStarted.createProject.title%",
+            "description": "%walkthrough.getStarted.createProject.description%",
+            "media": {
+              "markdown": "walkthrough/createProject.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.new"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.runApp",
+            "title": "%walkthrough.getStarted.runApp.title%",
+            "description": "%walkthrough.getStarted.runApp.description%",
+            "media": {
+              "markdown": "walkthrough/runApp.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.runAppHost",
+              "onCommand:aspire-vscode.debugAppHost"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.dashboard",
+            "title": "%walkthrough.getStarted.dashboard.title%",
+            "description": "%walkthrough.getStarted.dashboard.description%",
+            "media": {
+              "markdown": "walkthrough/dashboard.md"
+            },
+            "completionEvents": [
+              "onCommand:aspire-vscode.openDashboard"
+            ]
+          },
+          {
+            "id": "aspire-vscode.getStarted.nextSteps",
+            "title": "%walkthrough.getStarted.nextSteps.title%",
+            "description": "%walkthrough.getStarted.nextSteps.description%",
+            "media": {
+              "markdown": "walkthrough/nextSteps.md"
+            }
+          }
+        ]
+      }
+    ]
   },
   "repository": {
     "type": "git",

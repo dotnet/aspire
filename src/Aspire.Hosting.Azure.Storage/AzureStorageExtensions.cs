@@ -6,7 +6,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
@@ -175,7 +174,7 @@ public static class AzureStorageExtensions
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("runAsEmulator", Description = "Configures the Azure Storage resource to be emulated using Azurite")]
+    [AspireExport("runAsEmulator", Description = "Configures the Azure Storage resource to be emulated using Azurite", RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -644,7 +643,7 @@ public static class AzureStorageExtensions
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            return new BlobServiceClient(uri, new DefaultAzureCredential());
+            return new BlobServiceClient(uri, AzureCredentialHelper.CreateDefaultAzureCredential());
         }
         else
         {
@@ -656,7 +655,7 @@ public static class AzureStorageExtensions
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            return new QueueServiceClient(uri, new DefaultAzureCredential());
+            return new QueueServiceClient(uri, AzureCredentialHelper.CreateDefaultAzureCredential());
         }
         else
         {
@@ -711,7 +710,7 @@ public static class AzureStorageExtensions
     /// <param name="roles">The storage roles to be assigned.</param>
     /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
     /// <exception cref="ArgumentException">Thrown when a role value is not a valid <see cref="AzureStorageRole"/> value.</exception>
-    [AspireExport("withRoleAssignments", Description = "Assigns Azure Storage roles to a resource")]
+    [AspireExport("withStorageRoleAssignments", Description = "Assigns Azure Storage roles to a resource")]
     internal static IResourceBuilder<T> WithRoleAssignments<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<AzureStorageResource> target,

@@ -112,7 +112,7 @@ internal interface IAppHostAuxiliaryBackchannel : IDisposable
     /// Executes a command on a resource.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="commandName">The name of the command (e.g., "resource-start", "resource-stop", "resource-restart").</param>
+    /// <param name="commandName">The name of the command (e.g., "start", "stop", "restart").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The result of the command execution.</returns>
     Task<ExecuteResourceCommandResponse> ExecuteResourceCommandAsync(

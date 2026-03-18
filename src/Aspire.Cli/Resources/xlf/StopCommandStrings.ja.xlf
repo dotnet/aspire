@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">実行中の AppHost または指定したリソースを停止します。</target>
+        <source>Stop a running apphost.</source>
+        <target state="translated">実行中の AppHost を停止します。</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -50,11 +50,6 @@
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
         <target state="translated">{0} オプションと {1} オプションは同時に使用できません。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AllAndResourceMutuallyExclusive">
-        <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="translated">{0} オプションは、リソース引数と一緒に使用できません。</target>
         <note />
       </trans-unit>
     </body>

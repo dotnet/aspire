@@ -61,11 +61,11 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Include the code generation package for scaffolding and code gen
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(language.LanguageId, cancellationToken);
-        var packages = config.GetAllPackages(sdkVersion).ToList();
+        var integrations = config.GetIntegrationReferences(sdkVersion, directory.FullName).ToList();
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(sdkVersion);
-            packages.Add((codeGenPackage, codeGenVersion));
+            integrations.Add(IntegrationReference.FromPackage(codeGenPackage, codeGenVersion));
         }
 
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
@@ -73,7 +73,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         var prepareResult = await _interactionService.ShowStatusAsync(
             "Preparing Aspire server...",
-            () => appHostServerProject.PrepareAsync(prepareSdkVersion, packages, cancellationToken),
+            () => appHostServerProject.PrepareAsync(prepareSdkVersion, integrations, cancellationToken),
             emoji: KnownEmojis.Gear);
         if (!prepareResult.Success)
         {
@@ -166,10 +166,18 @@ internal sealed class ScaffoldingService : IScaffoldingService
         var runtimeSpec = await rpcClient.GetRuntimeSpecAsync(language.LanguageId.Value, cancellationToken);
         var runtime = new GuestRuntime(runtimeSpec, _logger);
 
-        var result = await runtime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await runtime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {language.DisplayName} dependencies.");
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to install {language.DisplayName} dependencies.");
+            }
         }
 
         return result;

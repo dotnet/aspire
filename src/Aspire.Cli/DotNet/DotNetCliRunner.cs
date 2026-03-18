@@ -31,8 +31,9 @@ internal interface IDotNetCliRunner
     Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, bool noRestore, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -486,94 +487,6 @@ internal sealed class DotNetCliRunner(
             cancellationToken: cancellationToken);
     }
 
-    public async Task<(int ExitCode, Certificates.CertificateTrustResult? Result)> CheckHttpCertificateMachineReadableAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.StartDiagnosticActivity();
-
-        string[] cliArgs = ["dev-certs", "https", "--check-trust-machine-readable"];
-        var outputBuilder = new StringBuilder();
-
-        // Wrap the callback to capture JSON output
-        var originalCallback = options.StandardOutputCallback;
-        options.StandardOutputCallback = line =>
-        {
-            outputBuilder.AppendLine(line);
-            originalCallback?.Invoke(line);
-        };
-
-        var exitCode = await ExecuteAsync(
-            args: cliArgs,
-            env: null,
-            projectFile: null,
-            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-
-        // Parse the JSON output
-        try
-        {
-            var jsonOutput = outputBuilder.ToString().Trim();
-            if (string.IsNullOrEmpty(jsonOutput))
-            {
-                return (exitCode, new Certificates.CertificateTrustResult
-                {
-                    HasCertificates = false,
-                    TrustLevel = null,
-                    Certificates = []
-                });
-            }
-
-            var certificates = JsonSerializer.Deserialize(jsonOutput, JsonSourceGenerationContext.Default.ListDevCertInfo);
-            if (certificates is null || certificates.Count == 0)
-            {
-                return (exitCode, new Certificates.CertificateTrustResult
-                {
-                    HasCertificates = false,
-                    TrustLevel = null,
-                    Certificates = []
-                });
-            }
-
-            // Find the highest versioned valid certificate
-            var now = DateTimeOffset.Now;
-            var validCertificates = certificates
-                .Where(c => c.IsHttpsDevelopmentCertificate && c.ValidityNotBefore <= now && now <= c.ValidityNotAfter)
-                .OrderByDescending(c => c.Version)
-                .ToList();
-
-            var highestVersionedCert = validCertificates.FirstOrDefault();
-            var trustLevel = highestVersionedCert?.TrustLevel;
-
-            return (exitCode, new Certificates.CertificateTrustResult
-            {
-                HasCertificates = validCertificates.Count > 0,
-                TrustLevel = trustLevel,
-                Certificates = certificates
-            });
-        }
-        catch (JsonException ex)
-        {
-            logger.LogDebug(ex, "Failed to parse dev-certs machine-readable output");
-            return (exitCode, null);
-        }
-    }
-
-    public async Task<int> TrustHttpCertificateAsync(DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.StartDiagnosticActivity();
-
-        string[] cliArgs = ["dev-certs", "https", "--trust"];
-        return await ExecuteAsync(
-            args: cliArgs,
-            env: null,
-            projectFile: null,
-            workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
-            backchannelCompletionSource: null,
-            options: options,
-            cancellationToken: cancellationToken);
-    }
-
     public async Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity(kind: ActivityKind.Client);
@@ -718,6 +631,22 @@ internal sealed class DotNetCliRunner(
             cancellationToken: cancellationToken);
     }
 
+    public async Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.StartDiagnosticActivity();
+
+        string[] cliArgs = ["restore", projectFilePath.FullName];
+
+        return await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: projectFilePath,
+            workingDirectory: projectFilePath.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+    }
+
     public async Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
@@ -741,37 +670,40 @@ internal sealed class DotNetCliRunner(
             options: options,
             cancellationToken: cancellationToken);
     }
-    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
         var cliArgsList = new List<string>
         {
-            "add"
+            "package"
         };
 
         // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
         var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
         if (isSingleFileAppHost)
         {
-            cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
+            cliArgsList.Add("add");
+            cliArgsList.AddRange(["--file", projectFilePath.FullName]);
             // For single-file AppHost, use packageName@version format
             cliArgsList.Add($"{packageName}@{packageVersion}");
         }
         else
         {
-            cliArgsList.AddRange([projectFilePath.FullName, "package"]);
+            cliArgsList.Add("add");
             // For non single-file scenarios, use separate --version flag
             cliArgsList.Add(packageName);
             cliArgsList.Add("--version");
             cliArgsList.Add(packageVersion);
+            cliArgsList.Add("--project");
+            cliArgsList.Add(projectFilePath.FullName);
         }
 
-        if (string.IsNullOrEmpty(nugetSource))
+        if (noRestore)
         {
             cliArgsList.Add("--no-restore");
         }
-        else
+        if (!string.IsNullOrEmpty(nugetSource))
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -899,8 +831,8 @@ internal sealed class DotNetCliRunner(
         using var activity = telemetry.StartDiagnosticActivity();
 
         string? rawKey = null;
-        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
-        if (cacheEnabled)
+        var cacheEnabled = useCache;
+        if (useCache)
         {
             try
             {

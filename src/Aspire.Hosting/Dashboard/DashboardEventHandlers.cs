@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -440,10 +441,43 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         if (mcpEndpointUrl != null)
         {
             var address = BindingAddress.Parse(mcpEndpointUrl);
+
             dashboardResource.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: McpEndpointName, uriScheme: address.Scheme, port: address.Port, isProxied: true)
             {
                 TargetHost = address.Host
             });
+        }
+
+        // Determine whether any HTTPS endpoints are configured
+        var hasHttpsEndpoint = dashboardResource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints) && endpoints.Any(e => e.UriScheme is "https");
+
+        if (hasHttpsEndpoint &&
+            !dashboardResource.HasAnnotationOfType<HttpsCertificateConfigurationCallbackAnnotation>())
+        {
+            // If the dashboard has an HTTPS endpoint and we haven't already applied an HTTPS certificate configuration (no HttpsCertificateConfigurationCallbackAnnotation),
+            // apply a default configuration with a valid trusted dev cert instance.
+            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+            var trustDeveloperCertificate = developerCertificateService.TrustCertificate;
+            if (dashboardResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certificateAuthorityAnnotation))
+            {
+                trustDeveloperCertificate = certificateAuthorityAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDeveloperCertificate);
+            }
+
+            if (trustDeveloperCertificate)
+            {
+                dashboardResource.Annotations.Add(new HttpsCertificateConfigurationCallbackAnnotation(ctx =>
+                {
+                    // Ensure we use a trusted developer certificate (Kestrel selects the latest certificate, which may not be trusted after an SDK update).
+                    // There can be issues referencing an exported PEM key pair on MacOS, so we the PFX version of the certificate here.
+                    ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.PfxPath;
+                    if (ctx.Password is not null)
+                    {
+                        ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                    }
+
+                    return Task.CompletedTask;
+                }));
+            }
         }
 
         dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
@@ -600,6 +634,9 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         {
             context.EnvironmentVariables[DashboardConfigNames.DashboardApiAuthModeName.EnvVarName] = "Unsecured";
         }
+
+        // Enable dashboard API
+        context.EnvironmentVariables[DashboardConfigNames.DashboardAspireApiEnabledName.EnvVarName] = "true";
 
         // Configure dashboard to show CLI MCP instructions when running with an AppHost (not in standalone mode)
         context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUseCliMcpName.EnvVarName] = "true";

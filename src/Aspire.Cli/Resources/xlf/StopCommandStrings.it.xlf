@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Stop a running apphost or the specified resource.</source>
-        <target state="translated">Interrompere un apphost in esecuzione o la risorsa specificata.</target>
+        <source>Stop a running apphost.</source>
+        <target state="translated">Arrestare un apphost in esecuzione.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
@@ -50,11 +50,6 @@
       <trans-unit id="AllAndProjectMutuallyExclusive">
         <source>The {0} and {1} options cannot be used together.</source>
         <target state="translated">Le opzioni {0} e {1} non possono essere usate insieme.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AllAndResourceMutuallyExclusive">
-        <source>The {0} option cannot be used with a resource argument.</source>
-        <target state="translated">L'opzione {0} non può essere usata con un argomento di risorsa.</target>
         <note />
       </trans-unit>
     </body>

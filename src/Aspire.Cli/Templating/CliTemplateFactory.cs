@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Cli.Commands;
@@ -39,6 +38,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
     };
 
     private readonly ILanguageDiscovery _languageDiscovery;
+    private readonly IAppHostProjectFactory _projectFactory;
     private readonly IScaffoldingService _scaffoldingService;
     private readonly INewCommandPrompter _prompter;
     private readonly CliExecutionContext _executionContext;
@@ -49,6 +49,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
 
     public CliTemplateFactory(
         ILanguageDiscovery languageDiscovery,
+        IAppHostProjectFactory projectFactory,
         IScaffoldingService scaffoldingService,
         INewCommandPrompter prompter,
         CliExecutionContext executionContext,
@@ -58,6 +59,7 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         ILogger<CliTemplateFactory> logger)
     {
         _languageDiscovery = languageDiscovery;
+        _projectFactory = projectFactory;
         _scaffoldingService = scaffoldingService;
         _prompter = prompter;
         _executionContext = executionContext;
@@ -67,9 +69,24 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         _logger = logger;
     }
 
+    public IEnumerable<ITemplate> GetTemplates()
+    {
+        return GetTemplateDefinitions();
+    }
+
     public Task<IEnumerable<ITemplate>> GetTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        IEnumerable<ITemplate> templates =
+        return Task.FromResult(GetTemplateDefinitions());
+    }
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IEnumerable<ITemplate>>([]);
+    }
+
+    private IEnumerable<ITemplate> GetTemplateDefinitions()
+    {
+        return
         [
             new CallbackTemplate(
                 KnownTemplateId.TypeScriptStarter,
@@ -93,15 +110,9 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
                     languageId.Equals(KnownLanguageId.CSharp, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScript, StringComparison.OrdinalIgnoreCase) ||
                     languageId.Equals(KnownLanguageId.TypeScriptAlias, StringComparison.OrdinalIgnoreCase),
-                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript])
+                selectableAppHostLanguages: [KnownLanguageId.CSharp, KnownLanguageId.TypeScript],
+                isEmpty: true)
         ];
-
-        return Task.FromResult(templates);
-    }
-
-    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<ITemplate>>([]);
     }
 
     private static string ApplyTokens(string content, string projectName, string projectNameLower, string aspireVersion, TemplatePorts ports, string hostName = "localhost")
@@ -200,73 +211,22 @@ internal sealed partial class CliTemplateFactory : ITemplateFactory
         }
     }
 
-    private void DisplayProcessOutput(ProcessExecutionResult result, bool treatStandardErrorAsError)
+    private void DisplayPostCreationInstructions(string outputPath)
     {
-        if (!string.IsNullOrWhiteSpace(result.StandardOutput))
-        {
-            _interactionService.DisplaySubtleMessage(result.StandardOutput.TrimEnd());
-        }
+        var currentDir = _executionContext.WorkingDirectory.FullName;
+        var relativePath = Path.GetRelativePath(currentDir, outputPath);
 
-        if (!string.IsNullOrWhiteSpace(result.StandardError))
+        var pathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!string.Equals(Path.GetFullPath(currentDir), Path.GetFullPath(outputPath), pathComparison))
         {
-            var message = result.StandardError.TrimEnd();
-            if (treatStandardErrorAsError)
-            {
-                _interactionService.DisplayError(message);
-            }
-            else
-            {
-                _interactionService.DisplaySubtleMessage(message);
-            }
+            _interactionService.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, TemplatingStrings.RunCdThenAspireRun, relativePath));
+        }
+        else
+        {
+            _interactionService.DisplayMessage(KnownEmojis.Information, TemplatingStrings.RunAspireRun);
         }
     }
-
-    private static async Task<ProcessExecutionResult> RunProcessAsync(string fileName, string arguments, string workingDirectory, CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo(fileName, arguments)
-        {
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = workingDirectory
-        };
-
-        using var process = new Process { StartInfo = startInfo };
-        process.Start();
-        process.StandardInput.Close(); // Prevent hanging on prompts
-
-        // Drain output streams to prevent deadlocks
-        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                if (!process.HasExited)
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            throw;
-        }
-
-        return new ProcessExecutionResult(
-            process.ExitCode,
-            await outputTask.ConfigureAwait(false),
-            await errorTask.ConfigureAwait(false));
-    }
-
-    private sealed record ProcessExecutionResult(int ExitCode, string StandardOutput, string StandardError);
 }

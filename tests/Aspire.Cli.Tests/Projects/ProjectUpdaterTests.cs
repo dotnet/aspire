@@ -100,7 +100,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     throw new InvalidOperationException("Should not prompt when no work required.");
@@ -153,7 +153,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource, bool NoRestore)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -207,9 +207,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         return (0, document);
                     },
                     // FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int
-                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, noRestore, _, _) =>
                     {
-                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!, noRestore));
                         return 0;
                     }
                 };
@@ -217,7 +217,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -284,7 +284,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource, bool NoRestore)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -346,9 +346,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         return (0, document);
                     },
                     // FileInfo, string, string, string?, DotNetCliRunnerInvocationOptions, CancellationToken, int
-                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, noRestore, _, _) =>
                     {
-                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!, noRestore));
                         return 0;
                     }
                 };
@@ -356,7 +356,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -437,7 +437,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource, bool NoRestore)>();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
             config.DotNetCliRunnerFactory = (sp) =>
@@ -499,9 +499,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         return (0, document);
                     },
 
-                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, noRestore, _, _) =>
                     {
-                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!, noRestore));
                         return 0;
                     }
                 };
@@ -509,7 +509,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (s) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -647,7 +647,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -752,7 +752,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -854,7 +854,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     // Should not be called since no updates are needed
@@ -998,7 +998,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1121,7 +1121,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1235,7 +1235,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1345,7 +1345,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1433,7 +1433,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         }
                     },
 
-                    AddPackageAsyncCallback = (projectFile, packageName, version, source, options, cancellationToken) =>
+                    AddPackageAsyncCallback = (projectFile, packageName, version, source, noRestore, options, cancellationToken) =>
                     {
                         // Simulate successful package addition
                         return 0;
@@ -1443,7 +1443,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1545,7 +1545,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1629,7 +1629,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -1711,7 +1711,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 return interactionService;
             };
         });
@@ -1785,7 +1785,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1868,7 +1868,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -1946,7 +1946,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         var document = JsonDocument.Parse(json);
                         return (0, document);
                     },
-                    AddPackageAsyncCallback = (projectFile, packageName, version, source, options, cancellationToken) =>
+                    AddPackageAsyncCallback = (projectFile, packageName, version, source, noRestore, options, cancellationToken) =>
                     {
                         // Simulate successful package addition
                         return 0;
@@ -1956,7 +1956,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2038,7 +2038,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2117,7 +2117,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2196,7 +2196,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         var document = JsonDocument.Parse(json);
                         return (0, document);
                     },
-                    AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                    AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken) =>
                     {
                         // Track which packages are updated
                         packagesUpdated.Add(packageName);
@@ -2208,7 +2208,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;
@@ -2289,7 +2289,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             </Project>
             """);
 
-        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource)>();
+        var packagesAddsExecuted = new List<(FileInfo ProjectFile, string PackageId, string PackageVersion, string? PackageSource, bool NoRestore)>();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
         {
@@ -2325,9 +2325,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         var document = JsonDocument.Parse(json);
                         return (0, document);
                     },
-                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, _, _) =>
+                    AddPackageAsyncCallback = (projectFile, packageId, packageVersion, source, noRestore, _, _) =>
                     {
-                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!));
+                        packagesAddsExecuted.Add((projectFile, packageId, packageVersion, source!, noRestore));
                         return 0;
                     }
                 };
@@ -2335,7 +2335,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
             config.InteractionServiceFactory = (sp) =>
             {
-                var interactionService = new TestConsoleInteractionService();
+                var interactionService = new TestInteractionService();
                 interactionService.ConfirmCallback = (promptText, defaultValue) =>
                 {
                     return true;

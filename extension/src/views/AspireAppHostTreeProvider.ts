@@ -1,50 +1,42 @@
 import * as vscode from 'vscode';
-import { spawnCliProcess } from '../debugger/languages/cli';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
-import { extensionLogOutputChannel } from '../utils/logging';
 import {
     pidDescription,
     dashboardLabel,
     cliPidLabel,
     appHostPidLabel,
-    errorFetchingAppHosts,
     resourcesGroupLabel,
     resourceStateLabel,
     noCommandsAvailable,
     selectCommandPlaceholder,
+    workspaceAppHostLabel,
+    resourceCountDescription,
+    tooltipType,
+    tooltipState,
+    tooltipHealth,
+    tooltipEndpoints,
 } from '../loc/strings';
+import {
+    AppHostDataRepository,
+    AppHostDisplayInfo,
+    ResourceJson,
+    shortenPath,
+} from './AppHostDataRepository';
 
-export interface ResourceUrlJson {
-    name: string | null;
-    displayName: string | null;
-    url: string;
-    isInternal: boolean;
+type TreeElement = AppHostItem | DetailItem | ResourcesGroupItem | ResourceItem | WorkspaceResourcesItem;
+
+function sortResources(resources: ResourceJson[]): ResourceJson[] {
+    return [...resources].sort((a, b) => {
+        const nameA = (a.displayName ?? a.name).toLowerCase();
+        const nameB = (b.displayName ?? b.name).toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
 }
 
-export interface ResourceCommandJson {
-    description: string | null;
+function appHostIcon(path?: string): vscode.ThemeIcon {
+    const icon = path?.endsWith('.csproj') ? 'server-process' : 'file-code';
+    return new vscode.ThemeIcon(icon, new vscode.ThemeColor('aspire.brandPurple'));
 }
-
-export interface ResourceJson {
-    name: string;
-    displayName: string | null;
-    resourceType: string;
-    state: string | null;
-    stateStyle: string | null;
-    healthStatus: string | null;
-    urls: ResourceUrlJson[] | null;
-    commands: Record<string, ResourceCommandJson> | null;
-}
-
-export interface AppHostDisplayInfo {
-    appHostPath: string;
-    appHostPid: number;
-    cliPid: number | null;
-    dashboardUrl: string | null;
-    resources: ResourceJson[] | null | undefined;
-}
-
-type TreeElement = AppHostItem | DetailItem | ResourcesGroupItem | ResourceItem;
 
 class AppHostItem extends vscode.TreeItem {
     constructor(public readonly appHost: AppHostDisplayInfo) {
@@ -52,9 +44,19 @@ class AppHostItem extends vscode.TreeItem {
         super(name, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `apphost:${appHost.appHostPid}`;
         this.description = pidDescription(appHost.appHostPid);
-        this.iconPath = new vscode.ThemeIcon('server-process', new vscode.ThemeColor('aspire.brandPurple'));
+        this.iconPath = appHostIcon(appHost.appHostPath);
         this.contextValue = 'appHost';
         this.tooltip = appHost.appHostPath;
+    }
+}
+
+class WorkspaceResourcesItem extends vscode.TreeItem {
+    constructor(public readonly resources: ResourceJson[], public readonly dashboardUrl: string | null, appHostPath?: string, appHostName?: string) {
+        super(appHostName ?? workspaceAppHostLabel, vscode.TreeItemCollapsibleState.Expanded);
+        this.id = 'workspace-resources';
+        this.iconPath = appHostIcon(appHostPath);
+        this.contextValue = 'workspaceResources';
+        this.description = resourceCountDescription(resources.length);
     }
 }
 
@@ -69,7 +71,7 @@ class DetailItem extends vscode.TreeItem {
 
 class ResourcesGroupItem extends vscode.TreeItem {
     constructor(public readonly resources: ResourceJson[], public readonly appHostPid: number) {
-        super(resourcesGroupLabel, vscode.TreeItemCollapsibleState.Collapsed);
+        super(resourcesGroupLabel, vscode.TreeItemCollapsibleState.Expanded);
         this.id = `resources:${appHostPid}`;
         this.iconPath = new vscode.ThemeIcon('layers', new vscode.ThemeColor('aspire.brandPurple'));
         this.contextValue = 'resourcesGroup';
@@ -77,44 +79,53 @@ class ResourcesGroupItem extends vscode.TreeItem {
     }
 }
 
+function getParentResourceName(resource: ResourceJson): string | null {
+    return resource.properties?.['resource.parentName'] ?? null;
+}
+
 class ResourceItem extends vscode.TreeItem {
-    constructor(public readonly resource: ResourceJson, public readonly appHostPid: number) {
+    constructor(public readonly resource: ResourceJson, public readonly appHostPid: number | null, hasChildren: boolean) {
         const state = resource.state ?? '';
         const label = state ? resourceStateLabel(resource.displayName ?? resource.name, state) : (resource.displayName ?? resource.name);
         const hasUrls = resource.urls && resource.urls.filter(u => !u.isInternal).length > 0;
-        super(label, hasUrls ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
-        this.id = `resource:${appHostPid}:${resource.name}`;
+        const collapsible = hasChildren
+            ? vscode.TreeItemCollapsibleState.Expanded
+            : hasUrls ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+        super(label, collapsible);
+        this.id = appHostPid !== null ? `resource:${appHostPid}:${resource.name}` : `resource:workspace:${resource.name}`;
         this.iconPath = getResourceIcon(resource);
-        this.tooltip = `${resource.resourceType}: ${resource.name}`;
+        this.description = resource.resourceType;
+        this.tooltip = buildResourceTooltip(resource);
         this.contextValue = getResourceContextValue(resource);
     }
 }
 
-function getResourceContextValue(resource: ResourceJson): string {
+export function getResourceContextValue(resource: ResourceJson): string {
     const commands = resource.commands ? Object.keys(resource.commands) : [];
     const parts = ['resource'];
-    if (commands.includes('resource-start')) {
+    if (commands.includes('start') || commands.includes('resource-start')) {
         parts.push('canStart');
     }
-    if (commands.includes('resource-stop')) {
+    if (commands.includes('stop') || commands.includes('resource-stop')) {
         parts.push('canStop');
     }
-    if (commands.includes('resource-restart')) {
+    if (commands.includes('restart') || commands.includes('resource-restart')) {
         parts.push('canRestart');
     }
     return parts.join(':');
 }
 
-function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
+export function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
     const state = resource.state;
+    const health = resource.healthStatus;
     switch (state) {
         case 'Running':
         case 'Active':
-            if (resource.stateStyle === 'warning') {
-                return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
-            }
-            if (resource.stateStyle === 'error') {
+            if (health === 'Unhealthy' || resource.stateStyle === 'error') {
                 return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
+            }
+            if (health === 'Degraded' || resource.stateStyle === 'warning') {
+                return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
             }
             return new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
         case 'Finished':
@@ -140,52 +151,48 @@ function getResourceIcon(resource: ResourceJson): vscode.ThemeIcon {
     }
 }
 
+function buildResourceTooltip(resource: ResourceJson): vscode.MarkdownString {
+    const md = new vscode.MarkdownString();
+    md.appendMarkdown(`**${resource.displayName ?? resource.name}**\n\n`);
+    md.appendMarkdown(`${tooltipType(resource.resourceType)}\n\n`);
+    if (resource.state) {
+        md.appendMarkdown(`${tooltipState(resource.state)}\n\n`);
+    }
+    if (resource.healthStatus) {
+        md.appendMarkdown(`${tooltipHealth(resource.healthStatus)}\n\n`);
+    }
+    const urls = resource.urls?.filter(u => !u.isInternal && typeof u.url === 'string' && (u.url.startsWith('http://') || u.url.startsWith('https://'))) ?? [];
+    if (urls.length > 0) {
+        md.appendMarkdown(`**${tooltipEndpoints}**\n\n`);
+        for (const url of urls) {
+            md.appendMarkdown(`- [${url.displayName ?? url.url}](${url.url})\n`);
+        }
+    }
+    md.isTrusted = { enabledCommands: [] };
+    return md;
+}
+
+/**
+ * Pure tree-view renderer.  All data comes from the AppHostDataRepository;
+ * this class handles only tree rendering and resource command execution.
+ */
 export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeElement> {
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeElement | undefined | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private _appHosts: AppHostDisplayInfo[] = [];
-    private _pollingInterval: ReturnType<typeof setInterval> | undefined;
-    private _disposed = false;
-    private _supportsResources = true;
-    private _fetchInProgress = false;
-    private _errorMessage: string | undefined;
+    private readonly _dataSubscription: vscode.Disposable;
 
-    constructor(private readonly _terminalProvider: AspireTerminalProvider) {}
-
-    get appHosts(): readonly AppHostDisplayInfo[] {
-        return this._appHosts;
-    }
-
-    get hasError(): boolean {
-        return this._errorMessage !== undefined;
-    }
-
-    refresh(): void {
-        this._fetchAppHosts();
-    }
-
-    startPolling(intervalMs: number = 3000): void {
-        this.stopPolling();
-        // Fetch immediately, then poll
-        this._fetchAppHosts();
-        this._pollingInterval = setInterval(() => {
-            if (!this._disposed) {
-                this._fetchAppHosts();
-            }
-        }, intervalMs);
-    }
-
-    stopPolling(): void {
-        if (this._pollingInterval) {
-            clearInterval(this._pollingInterval);
-            this._pollingInterval = undefined;
-        }
+    constructor(
+        private readonly _repository: AppHostDataRepository,
+        private readonly _terminalProvider: AspireTerminalProvider,
+    ) {
+        this._dataSubscription = this._repository.onDidChangeData(() => {
+            this._onDidChangeTreeData.fire();
+        });
     }
 
     dispose(): void {
-        this._disposed = true;
-        this.stopPolling();
+        this._dataSubscription.dispose();
         this._onDidChangeTreeData.dispose();
     }
 
@@ -194,8 +201,61 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     getChildren(element?: TreeElement): TreeElement[] {
+        if (this._repository.viewMode === 'workspace') {
+            return this._getWorkspaceChildren(element);
+        }
+        return this._getGlobalChildren(element);
+    }
+
+    // ── Workspace mode tree ──
+
+    private _getWorkspaceChildren(element?: TreeElement): TreeElement[] {
         if (!element) {
-            return this._appHosts.map(appHost => new AppHostItem(appHost));
+            const resources = [...this._repository.workspaceResources];
+            if (resources.length === 0) {
+                return [];
+            }
+            const dashboardUrl = resources.find(r => r.dashboardUrl)?.dashboardUrl ?? null;
+            return [new WorkspaceResourcesItem(resources, dashboardUrl, this._repository.workspaceAppHostPath, this._repository.workspaceAppHostName)];
+        }
+
+        if (element instanceof WorkspaceResourcesItem) {
+            const items: TreeElement[] = [];
+
+            if (element.dashboardUrl) {
+                items.push(new DetailItem(
+                    dashboardLabel,
+                    'link-external',
+                    element.dashboardUrl,
+                    {
+                        command: 'vscode.open',
+                        title: dashboardLabel,
+                        arguments: [vscode.Uri.parse(element.dashboardUrl)]
+                    }
+                ));
+            }
+
+            // Show only top-level resources (those without a parent)
+            const topLevel = element.resources.filter(r => !getParentResourceName(r));
+            for (const resource of sortResources(topLevel)) {
+                const hasChildren = element.resources.some(r => getParentResourceName(r) === resource.name);
+                items.push(new ResourceItem(resource, null, hasChildren));
+            }
+            return items;
+        }
+
+        if (element instanceof ResourceItem) {
+            return this._getResourceChildren(element, [...this._repository.workspaceResources]);
+        }
+
+        return [];
+    }
+
+    // ── Global mode tree ──
+
+    private _getGlobalChildren(element?: TreeElement): TreeElement[] {
+        if (!element) {
+            return this._repository.appHosts.map(appHost => new AppHostItem(appHost));
         }
 
         if (element instanceof AppHostItem) {
@@ -227,7 +287,6 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 ));
             }
 
-            // Show resources group if available (backward-compatible: older CLIs won't have this field)
             if (appHost.resources && appHost.resources.length > 0) {
                 items.push(new ResourcesGroupItem(appHost.resources, appHost.appHostPid));
             }
@@ -236,25 +295,54 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
 
         if (element instanceof ResourcesGroupItem) {
-            return element.resources.map(r => new ResourceItem(r, element.appHostPid));
+            const topLevel = element.resources.filter(r => !getParentResourceName(r));
+            return sortResources(topLevel).map(r => {
+                const hasChildren = element.resources.some(c => getParentResourceName(c) === r.name);
+                return new ResourceItem(r, element.appHostPid, hasChildren);
+            });
         }
 
         if (element instanceof ResourceItem) {
-            const urls = element.resource.urls?.filter(u => !u.isInternal) ?? [];
-            return urls.map(url => new DetailItem(
-                url.displayName ?? url.url,
-                'link-external',
-                url.url,
-                {
-                    command: 'vscode.open',
-                    title: url.url,
-                    arguments: [vscode.Uri.parse(url.url)]
-                }
-            ));
+            const allResources = this._repository.viewMode === 'workspace'
+                ? [...this._repository.workspaceResources]
+                : this._repository.appHosts.find(a => a.appHostPid === element.appHostPid)?.resources ?? [];
+            return this._getResourceChildren(element, allResources);
         }
 
         return [];
     }
+
+    private _getResourceChildren(element: ResourceItem, allResources: readonly ResourceJson[]): TreeElement[] {
+        const items: TreeElement[] = [];
+
+        // Add child resources
+        const children = allResources.filter(r => getParentResourceName(r) === element.resource.name);
+        for (const child of sortResources(children)) {
+            const hasChildren = allResources.some(r => getParentResourceName(r) === child.name);
+            items.push(new ResourceItem(child, element.appHostPid, hasChildren));
+        }
+
+        // Add URL children
+        items.push(...this._getUrlChildren(element));
+
+        return items;
+    }
+
+    private _getUrlChildren(element: ResourceItem): TreeElement[] {
+        const urls = element.resource.urls?.filter(u => !u.isInternal) ?? [];
+        return urls.map(url => new DetailItem(
+            url.displayName ?? url.url,
+            'link-external',
+            url.url,
+            {
+                command: 'vscode.open',
+                title: url.url,
+                arguments: [vscode.Uri.parse(url.url)]
+            }
+        ));
+    }
+
+    // ── Commands ──
 
     openDashboard(element?: TreeElement): void {
         let url: string | null = null;
@@ -263,8 +351,20 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
             url = element.appHost.dashboardUrl;
         }
 
-        if (!url && this._appHosts.length > 0) {
-            url = this._appHosts[0].dashboardUrl;
+        if (element instanceof WorkspaceResourcesItem) {
+            url = element.dashboardUrl;
+        }
+
+        if (!url) {
+            if (this._repository.viewMode === 'workspace') {
+                const resources = [...this._repository.workspaceResources];
+                url = resources.find(r => r.dashboardUrl)?.dashboardUrl ?? null;
+            } else {
+                const appHosts = this._repository.appHosts;
+                if (appHosts.length > 0) {
+                    url = appHosts[0].dashboardUrl;
+                }
+            }
         }
 
         if (url) {
@@ -289,15 +389,21 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     }
 
     viewResourceLogs(element: ResourceItem): void {
-        this._runResourceCommand(element, 'logs', '--follow');
-    }
-
-    async executeResourceCommand(element: ResourceItem): Promise<void> {
+        // aspire logs accepts the resource display name, not the internal name
+        const resourceName = element.resource.displayName ?? element.resource.name;
+        if (this._repository.viewMode === 'workspace') {
+            const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}"${appHostFlag}`);
+            return;
+        }
         const appHost = this._findAppHostForResource(element);
         if (!appHost) {
             return;
         }
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --apphost "${appHost.appHostPath}"`);
+    }
 
+    async executeResourceCommand(element: ResourceItem): Promise<void> {
         const commands = element.resource.commands;
         if (!commands || Object.keys(commands).length === 0) {
             vscode.window.showInformationMessage(noCommandsAvailable);
@@ -313,127 +419,39 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
             placeHolder: selectCommandPlaceholder,
         });
 
-        if (selected) {
-            this._terminalProvider.sendAspireCommandToAspireTerminal(`command "${element.resource.name}" "${selected.label}" --apphost "${appHost.appHostPath}"`);
+        if (!selected) {
+            return;
+        }
+
+        if (this._repository.viewMode === 'workspace') {
+            const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" "${selected.label}"${appHostFlag}`);
+            return;
+        }
+
+        const appHost = this._findAppHostForResource(element);
+        if (appHost) {
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" "${selected.label}" --apphost "${appHost.appHostPath}"`);
         }
     }
 
     private _runResourceCommand(element: ResourceItem, command: string, ...extraArgs: string[]): void {
+        const suffix = extraArgs.length > 0 ? ` ${extraArgs.join(' ')}` : '';
+
+        if (this._repository.viewMode === 'workspace') {
+            const appHostFlag = this._repository.workspaceAppHostPath ? ` --apphost "${this._repository.workspaceAppHostPath}"` : '';
+            this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" ${command}${suffix}${appHostFlag}`);
+            return;
+        }
+
         const appHost = this._findAppHostForResource(element);
         if (!appHost) {
             return;
         }
-        const suffix = extraArgs.length > 0 ? ` ${extraArgs.join(' ')}` : '';
-        this._terminalProvider.sendAspireCommandToAspireTerminal(`${command} "${element.resource.name}" --apphost "${appHost.appHostPath}"${suffix}`);
+        this._terminalProvider.sendAspireCommandToAspireTerminal(`resource "${element.resource.name}" ${command} --apphost "${appHost.appHostPath}"${suffix}`);
     }
 
     private _findAppHostForResource(element: ResourceItem): AppHostDisplayInfo | undefined {
-        return this._appHosts.find(a => a.appHostPid === element.appHostPid);
+        return this._repository.appHosts.find(a => a.appHostPid === element.appHostPid);
     }
-
-    private _fetchAppHosts(): void {
-        if (this._fetchInProgress) {
-            return;
-        }
-        this._fetchInProgress = true;
-
-        const args = ['ps', '--format', 'json'];
-        if (this._supportsResources) {
-            args.push('--resources');
-        }
-        this._runPsCommand(args, (code, stdout, stderr) => {
-            if (code === 0) {
-                this._setError(undefined);
-                this._handlePsOutput(stdout);
-                this._fetchInProgress = false;
-            } else if (this._supportsResources) {
-                // The --resources flag may not be supported by this CLI version; retry without it
-                this._supportsResources = false;
-                extensionLogOutputChannel.info('aspire ps --resources failed, falling back to aspire ps without --resources');
-                this._runPsCommand(['ps', '--format', 'json'], (retryCode, retryStdout, retryStderr) => {
-                    if (retryCode === 0) {
-                        this._setError(undefined);
-                        this._handlePsOutput(retryStdout);
-                    } else {
-                        this._setError(errorFetchingAppHosts(retryStderr || `exit code ${retryCode}`));
-                    }
-                    this._fetchInProgress = false;
-                });
-            } else {
-                this._setError(errorFetchingAppHosts(stderr || `exit code ${code}`));
-                this._fetchInProgress = false;
-            }
-        });
-    }
-
-    private _setError(message: string | undefined): void {
-        const hasError = message !== undefined;
-        if (this._errorMessage !== message) {
-            this._errorMessage = message;
-            if (message) {
-                extensionLogOutputChannel.warn(message);
-            }
-            vscode.commands.executeCommand('setContext', 'aspire.fetchAppHostsError', hasError);
-            this._onDidChangeTreeData.fire();
-        }
-    }
-
-    private _handlePsOutput(stdout: string): void {
-        try {
-            const parsed: AppHostDisplayInfo[] = JSON.parse(stdout);
-            const changed = JSON.stringify(parsed) !== JSON.stringify(this._appHosts);
-            this._appHosts = parsed;
-
-            if (changed) {
-                vscode.commands.executeCommand('setContext', 'aspire.noRunningAppHosts', parsed.length === 0);
-                this._onDidChangeTreeData.fire();
-            }
-        } catch (e) {
-            extensionLogOutputChannel.warn(`Failed to parse aspire ps output: ${e}`);
-        }
-    }
-
-    private async _runPsCommand(args: string[], callback: (code: number, stdout: string, stderr: string) => void): Promise<void> {
-        const cliPath = await this._terminalProvider.getAspireCliExecutablePath();
-
-        let stdout = '';
-        let stderr = '';
-        let callbackInvoked = false;
-
-        spawnCliProcess(this._terminalProvider, cliPath, args, {
-            noExtensionVariables: true,
-            stdoutCallback: (data) => { stdout += data; },
-            stderrCallback: (data) => { stderr += data; },
-            exitCallback: (code) => {
-                if (!callbackInvoked) {
-                    callbackInvoked = true;
-                    callback(code ?? 1, stdout, stderr);
-                }
-            },
-            errorCallback: (error) => {
-                extensionLogOutputChannel.warn(errorFetchingAppHosts(error.message));
-                // Spawn errors (e.g. CLI not installed) may not fire 'close', so invoke callback to unblock polling
-                if (!callbackInvoked) {
-                    callbackInvoked = true;
-                    callback(1, stdout, stderr || error.message);
-                }
-            }
-        });
-    }
-}
-
-function shortenPath(filePath: string): string {
-    const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
-
-    if (fileName.endsWith('.csproj')) {
-        return fileName;
-    }
-
-    // For single-file AppHosts (.cs), show parent/filename
-    const parts = filePath.split(/[/\\]/);
-    if (parts.length >= 2) {
-        return `${parts[parts.length - 2]}/${fileName}`;
-    }
-
-    return fileName;
 }

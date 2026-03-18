@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
@@ -33,16 +32,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         // Set the configuration value using dot notation support
         SetNestedValue(settings, key, value);
 
-        // Ensure directory exists
-        var directory = Path.GetDirectoryName(settingsFilePath);
-        if (directory is not null && !Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        // Write the updated settings
-        var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
-        await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
+        await ConfigurationHelper.WriteSettingsFileAsync(settingsFilePath, settings, cancellationToken);
     }
 
     public async Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
@@ -76,9 +66,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
 
             if (deleted)
             {
-                // Write the updated settings
-                var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
-                await File.WriteAllTextAsync(settingsFilePath, jsonContent, cancellationToken);
+                await ConfigurationHelper.WriteSettingsFileAsync(settingsFilePath, settings, cancellationToken);
             }
 
             return deleted;
@@ -180,6 +168,11 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     /// </summary>
     private static void SetNestedValue(JsonObject settings, string key, string value)
     {
+        // Normalize colon-separated keys to dot notation since both represent
+        // the same configuration hierarchy (e.g., "features:polyglotSupportEnabled"
+        // is equivalent to "features.polyglotSupportEnabled")
+        key = key.Replace(':', '.');
+
         var keyParts = key.Split('.');
 
         // Remove any conflicting flattened keys (e.g., "features:showAllTemplates" when setting "features.showAllTemplates")
@@ -238,7 +231,15 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     /// </summary>
     private static bool DeleteNestedValue(JsonObject settings, string key)
     {
+        // Normalize colon-separated keys to dot notation
+        key = key.Replace(':', '.');
+
         var keyParts = key.Split('.');
+
+        // Remove any flat colon-separated key at root level (legacy format)
+        var flattenedKey = string.Join(":", keyParts);
+        var removedFlat = settings.Remove(flattenedKey);
+
         var currentObject = settings;
         var objectPath = new List<(JsonObject obj, string key)>();
 
@@ -250,7 +251,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
 
             if (!currentObject.ContainsKey(part) || currentObject[part] is not JsonObject)
             {
-                return false; // Path doesn't exist
+                return removedFlat; // Path doesn't exist, but may have removed flat key
             }
 
             currentObject = currentObject[part]!.AsObject();
@@ -261,7 +262,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         // Check if the final key exists
         if (!currentObject.ContainsKey(finalKey))
         {
-            return false;
+            return removedFlat;
         }
 
         // Remove the final key
@@ -294,7 +295,9 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     {
         foreach (var kvp in obj)
         {
-            var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}.{kvp.Key}";
+            // Normalize colon-separated keys to dot notation for consistent display
+            var normalizedKey = kvp.Key.Replace(':', '.');
+            var key = string.IsNullOrEmpty(prefix) ? normalizedKey : $"{prefix}.{normalizedKey}";
 
             if (kvp.Value is JsonObject nestedObj)
             {

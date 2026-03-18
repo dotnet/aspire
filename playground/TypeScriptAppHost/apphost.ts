@@ -55,7 +55,7 @@ await builder
         // Custom environment callback logic
         var ep = await api.getEndpoint("http");
 
-        ctx.environmentVariables.set("API_ENDPOINT", refExpr`${ep}`);
+        await ctx.environmentVariables.set("API_ENDPOINT", refExpr`${ep}`);
     });
 
 console.log("Added Vite frontend with reference to API");

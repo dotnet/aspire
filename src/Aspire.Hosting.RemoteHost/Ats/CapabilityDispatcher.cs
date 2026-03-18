@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 using Microsoft.Extensions.Logging;
 
@@ -169,7 +170,12 @@ internal sealed class CapabilityDispatcher
                     throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
                 }
 
-                var value = prop.GetValue(contextObj);
+                // Bridge builder -> resource: if the handle contains an IResourceBuilder<T>
+                // but the property is declared on the resource type T, unwrap to the
+                // correct target object. See AtsCapabilityScanner.MapToAtsTypeId.
+                var target = ResolveContextTarget(contextObj!, prop.DeclaringType!);
+
+                var value = prop.GetValue(target);
                 return Task.FromResult(_marshaller.MarshalToJson(value, capability.ReturnType));
             };
 
@@ -212,7 +218,10 @@ internal sealed class CapabilityDispatcher
                     ParameterName = "value"
                 };
                 var value = _marshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
-                prop.SetValue(contextObj, value);
+
+                // Bridge builder -> resource for setter as well.
+                var setTarget = ResolveContextTarget(contextObj!, prop.DeclaringType!);
+                prop.SetValue(setTarget, value);
 
                 // Return the context handle for fluent chaining
                 return Task.FromResult<JsonNode?>(new JsonObject
@@ -292,40 +301,15 @@ internal sealed class CapabilityDispatcher
                 methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
             }
 
+            // Bridge builder -> resource: if the handle contains an IResourceBuilder<T>
+            // but the method is declared on the resource type T, unwrap to the
+            // correct target object. See AtsCapabilityScanner.MapToAtsTypeId.
+            var invokeTarget = ResolveContextTarget(contextObj!, methodToInvoke.DeclaringType!);
+
             object? result;
-            try
-            {
-                // Invoke instance method on the context object
-                result = methodToInvoke.Invoke(contextObj, methodArgs);
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException is not null)
-            {
-                throw tie.InnerException;
-            }
+            result = await InvokeMethodAsync(methodToInvoke, invokeTarget, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
 
-            // Handle async methods - await instead of blocking
-            if (result is Task task)
-            {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
-
-                var taskType = task.GetType();
-                if (taskType.IsGenericType)
-                {
-                    var resultProperty = taskType.GetProperty("Result");
-                    result = resultProperty?.GetValue(task);
-                }
-                else
-                {
-                    result = null;
-                }
-            }
+            result = await UnwrapAsyncResultAsync(result, methodToInvoke.ReturnType).ConfigureAwait(false);
 
             return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
@@ -385,41 +369,9 @@ internal sealed class CapabilityDispatcher
             }
 
             object? result;
-            try
-            {
-                result = methodToInvoke.Invoke(null, methodArgs);
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException is not null)
-            {
-                // Unwrap the TargetInvocationException to get the actual exception
-                throw tie.InnerException;
-            }
+            result = await InvokeMethodAsync(methodToInvoke, target: null, methodArgs, capability.RunSyncOnBackgroundThread).ConfigureAwait(false);
 
-            // Handle async methods - await instead of blocking
-            if (result is Task task)
-            {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    // Rethrow the exception - it will be caught by the outer handler
-                    // and converted to a CapabilityException
-                    throw new InvalidOperationException(ex.Message, ex);
-                }
-
-                var taskType = task.GetType();
-                if (taskType.IsGenericType)
-                {
-                    var resultProperty = taskType.GetProperty("Result");
-                    result = resultProperty?.GetValue(task);
-                }
-                else
-                {
-                    result = null;
-                }
-            }
+            result = await UnwrapAsyncResultAsync(result, methodToInvoke.ReturnType).ConfigureAwait(false);
 
             return _marshaller.MarshalToJson(result, capability.ReturnType);
         };
@@ -505,6 +457,85 @@ internal sealed class CapabilityDispatcher
         return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
     }
 
+    private static async Task<object?> InvokeMethodAsync(MethodInfo method, object? target, object?[] methodArgs, bool runSyncOnBackgroundThread)
+    {
+        if (runSyncOnBackgroundThread && !IsAsyncReturnType(method.ReturnType))
+        {
+            return await Task.Run(() => InvokeMethodCore(method, target, methodArgs)).ConfigureAwait(false);
+        }
+
+        return InvokeMethodCore(method, target, methodArgs);
+    }
+
+    private static bool IsAsyncReturnType(Type returnType)
+    {
+        if (typeof(Task).IsAssignableFrom(returnType) || returnType == typeof(ValueTask))
+        {
+            return true;
+        }
+
+        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>);
+    }
+
+    private static async Task<object?> UnwrapAsyncResultAsync(object? result, Type returnType)
+    {
+        try
+        {
+            if (result is Task task)
+            {
+                await task.ConfigureAwait(false);
+                return GetAsyncResultValue(task);
+            }
+
+            if (returnType == typeof(ValueTask) && result is ValueTask valueTask)
+            {
+                await valueTask.ConfigureAwait(false);
+                return null;
+            }
+
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                var asTask = returnType.GetMethod(nameof(ValueTask<int>.AsTask), BindingFlags.Instance | BindingFlags.Public)
+                    ?? throw new InvalidOperationException($"Unable to await ValueTask result for return type '{returnType}'.");
+                var boxedTask = asTask.Invoke(result, null) as Task
+                    ?? throw new InvalidOperationException($"Unable to convert ValueTask result for return type '{returnType}' to Task.");
+
+                await boxedTask.ConfigureAwait(false);
+                return GetAsyncResultValue(boxedTask);
+            }
+
+            return result;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(ex.Message, ex);
+        }
+    }
+
+    private static object? GetAsyncResultValue(Task task)
+    {
+        var taskType = task.GetType();
+        if (!taskType.IsGenericType)
+        {
+            return null;
+        }
+
+        var resultProperty = taskType.GetProperty("Result");
+        return resultProperty?.GetValue(task);
+    }
+
+    private static object? InvokeMethodCore(MethodInfo method, object? target, object?[] methodArgs)
+    {
+        try
+        {
+            return method.Invoke(target, methodArgs);
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw tie.InnerException;
+        }
+    }
+
     /// <summary>
     /// Checks if an exception indicates a type mismatch.
     /// </summary>
@@ -515,6 +546,31 @@ internal sealed class CapabilityDispatcher
         return message.Contains("cannot be converted") ||
                message.Contains("is not assignable") ||
                message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Resolves the correct target object for a member invocation.
+    /// Handles the case where the handle contains an <see cref="IResourceBuilder{T}"/> but the
+    /// member is declared on the resource type <c>T</c>, since
+    /// <c>AtsCapabilityScanner.MapToAtsTypeId</c> maps both to the same type ID.
+    /// </summary>
+    private static object ResolveContextTarget(object contextObj, Type declaringType)
+    {
+        if (declaringType.IsInstanceOfType(contextObj))
+        {
+            return contextObj;
+        }
+
+        // Handle is a builder, but the member is on the resource type - extract .Resource
+        if (contextObj is IResourceBuilder<IResource> builder &&
+            declaringType.IsInstanceOfType(builder.Resource))
+        {
+            return builder.Resource;
+        }
+
+        // No bridge matched — return as-is; the CLR will throw TargetException if the
+        // object truly doesn't match the declaring type.
+        return contextObj;
     }
 
     /// <summary>

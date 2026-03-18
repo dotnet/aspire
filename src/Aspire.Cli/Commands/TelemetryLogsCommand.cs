@@ -7,7 +7,6 @@ using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Otlp;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -224,7 +223,7 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
     private void DisplayLogsSnapshot(string json, IReadOnlyList<IOtlpResource> allResources)
     {
-        var response = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.TelemetryApiResponse);
+        var response = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         var resourceLogs = response?.Data?.ResourceLogs;
 
         if (resourceLogs is null or { Length: 0 })
@@ -238,7 +237,7 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
     private void DisplayLogsStreamLine(string json, IReadOnlyList<IOtlpResource> allResources)
     {
-        var request = JsonSerializer.Deserialize(json, OtlpCliJsonSerializerContext.Default.OtlpExportLogsServiceRequestJson);
+        var request = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpExportLogsServiceRequestJson);
         DisplayResourceLogs(request?.ResourceLogs ?? [], allResources);
     }
 

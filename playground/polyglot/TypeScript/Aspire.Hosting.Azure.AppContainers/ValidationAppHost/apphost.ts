@@ -36,11 +36,9 @@ await web.publishAsAzureContainerApp(async (infrastructure, app) => {
     // Configure container app via callback
 });
 
-// Test publishAsAzureContainerApp on an executable resource
+// Test publishAsAzureContainerAppJob on an executable resource
 const api = builder.addExecutable("api", "dotnet", ".", ["run"]);
-await api.publishAsAzureContainerApp(async (infrastructure, app) => {
-    // Configure container app for executable
-});
+await api.publishAsAzureContainerAppJob();
 
 // === PublishAsAzureContainerAppJob ===
 // Test publishAsAzureContainerAppJob (parameterless - manual trigger)

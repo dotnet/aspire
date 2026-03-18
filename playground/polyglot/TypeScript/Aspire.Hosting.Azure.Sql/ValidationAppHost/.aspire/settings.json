@@ -2,6 +2,7 @@
   "appHostPath": "../apphost.ts",
   "language": "typescript/nodejs",
   "packages": {
-    "Aspire.Hosting.Azure.Sql": ""
+    "Aspire.Hosting.Azure.Sql": "",
+    "Aspire.Hosting.Azure.Storage": ""
   }
 }

@@ -371,7 +371,6 @@ public class Program
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<StopCommand>();
         builder.Services.AddTransient<StartCommand>();
-        builder.Services.AddTransient<RestartCommand>();
         builder.Services.AddTransient<WaitCommand>();
         builder.Services.AddTransient<ResourceCommand>();
         builder.Services.AddTransient<PsCommand>();
@@ -381,6 +380,9 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<CertificatesCommand>();
+        builder.Services.AddTransient<CertificatesCleanCommand>();
+        builder.Services.AddTransient<CertificatesTrustCommand>();
         builder.Services.AddTransient<DoctorCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
@@ -389,6 +391,8 @@ public class Program
         builder.Services.AddTransient<McpCommand>();
         builder.Services.AddTransient<McpStartCommand>();
         builder.Services.AddTransient<McpInitCommand>();
+        builder.Services.AddTransient<McpToolsCommand>();
+        builder.Services.AddTransient<McpCallCommand>();
         builder.Services.AddTransient<AgentCommand>();
         builder.Services.AddTransient<AgentMcpCommand>();
         builder.Services.AddTransient<AgentInitCommand>();
@@ -396,6 +400,7 @@ public class Program
         builder.Services.AddTransient<TelemetryLogsCommand>();
         builder.Services.AddTransient<TelemetrySpansCommand>();
         builder.Services.AddTransient<TelemetryTracesCommand>();
+        builder.Services.AddTransient<ExportCommand>();
         builder.Services.AddTransient<DocsCommand>();
         builder.Services.AddTransient<DocsListCommand>();
         builder.Services.AddTransient<DocsSearchCommand>();
@@ -409,6 +414,7 @@ public class Program
         builder.Services.AddTransient<SdkCommand>();
         builder.Services.AddTransient<SdkGenerateCommand>();
         builder.Services.AddTransient<SdkDumpCommand>();
+        builder.Services.AddTransient<RestoreCommand>();
         builder.Services.AddTransient<SetupCommand>();
 #if DEBUG
         builder.Services.AddTransient<RenderCommand>();
@@ -614,6 +620,9 @@ public class Program
 
         try
         {
+            cliLogger.LogInformation("Version: {Version}", AspireCliTelemetry.GetCliVersion());
+            cliLogger.LogInformation("Build ID: {BuildId}", AspireCliTelemetry.GetCliBuildId());
+
             // Log command invocation details for debugging
             var commandLine = args.Length > 0 ? $"aspire {string.Join(" ", args)}" : "aspire";
             var workingDir = Environment.CurrentDirectory;

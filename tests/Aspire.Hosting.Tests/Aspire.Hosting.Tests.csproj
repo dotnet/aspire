@@ -14,6 +14,8 @@
     <!-- Split tests into partitions for CI parallelization -->
     <SplitTestsOnCI>true</SplitTestsOnCI>
     <TestClassNamePrefixForCI>Aspire.Hosting.Tests</TestClassNamePrefixForCI>
+
+    <GithubActionsRunnerLinux>8-core-ubuntu-latest</GithubActionsRunnerLinux>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,6 +38,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 

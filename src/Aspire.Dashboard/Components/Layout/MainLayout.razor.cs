@@ -112,7 +112,14 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         var result = await JS.InvokeAsync<BrowserInfo>("window.getBrowserInfo");
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
+        TimeProvider.SetBrowserTimeFormat(result.Is24HourTime ? TimeFormat.TwentyFourHour : TimeFormat.TwelveHour);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
+
+        var timeFormatResult = await LocalStorage.GetAsync<TimeFormat>(BrowserStorageKeys.TimeFormat);
+        if (timeFormatResult.Success)
+        {
+            TimeProvider.SetConfiguredTimeFormat(timeFormatResult.Value);
+        }
 
         await DisplayUnsecuredEndpointsMessageAsync();
 
@@ -193,7 +200,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private bool ShouldShowUnsecuredApiMessage()
     {
         // Only show warning if API is enabled and unsecured
-        return Options.CurrentValue.Api.Enabled == true &&
+        return Options.CurrentValue.Api.Enabled.GetValueOrDefault() &&
                Options.CurrentValue.Api.AuthMode == ApiAuthMode.Unsecured;
     }
 

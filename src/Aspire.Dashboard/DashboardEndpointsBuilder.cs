@@ -5,8 +5,8 @@ using Aspire.Dashboard.Api;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Utils;
+using Aspire.Otlp.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Localization;
@@ -108,8 +108,8 @@ public static class DashboardEndpointsBuilder
 
     public static void MapTelemetryApi(this IEndpointRouteBuilder endpoints, DashboardOptions dashboardOptions)
     {
-        // Check if API is disabled (defaults to enabled if not specified)
-        if (dashboardOptions.Api.Enabled == false)
+        // Check if API is enabled (defaults to disabled if not specified)
+        if (!dashboardOptions.Api.Enabled.GetValueOrDefault())
         {
             return;
         }
@@ -122,7 +122,7 @@ public static class DashboardEndpointsBuilder
         group.MapGet("/resources", (TelemetryApiService service) =>
         {
             var resources = service.GetResources();
-            return Results.Json(resources, OtlpJsonSerializerContext.Default.ResourceInfoArray);
+            return Results.Json(resources, OtlpJsonSerializerContext.Default.ResourceInfoJsonArray);
         });
 
         // GET /api/telemetry/spans - List spans in OTLP JSON format (with optional streaming via ?follow=true)
@@ -153,7 +153,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/logs - List logs in OTLP JSON format (with optional streaming via ?follow=true)
@@ -184,7 +184,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/traces - List traces in OTLP JSON format (snapshot only, no streaming)
@@ -205,7 +205,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
 
         // GET /api/telemetry/traces/{traceId} - Get a specific trace with all spans in OTLP format
@@ -223,7 +223,7 @@ public static class DashboardEndpointsBuilder
                     Status = StatusCodes.Status404NotFound
                 });
             }
-            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponseOtlpTelemetryDataJson);
+            return Results.Json(response, OtlpJsonSerializerContext.Default.TelemetryApiResponse);
         });
     }
 

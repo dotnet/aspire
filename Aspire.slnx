@@ -48,6 +48,7 @@
     <Project Path="src/Aspire.Cli/Aspire.Cli.csproj" />
     <Project Path="src/Aspire.Dashboard/Aspire.Dashboard.csproj" />
     <Project Path="src/Aspire.Hosting.Analyzers/Aspire.Hosting.Analyzers.csproj" />
+    <Project Path="src/Aspire.Hosting.Integration.Analyzers/Aspire.Hosting.Integration.Analyzers.csproj" />
     <Project Path="src/Aspire.Hosting.AppHost/Aspire.Hosting.AppHost.csproj" />
     <Project Path="src/Aspire.Hosting.DevTunnels/Aspire.Hosting.DevTunnels.csproj" />
     <Project Path="src/Aspire.Hosting.Docker/Aspire.Hosting.Docker.csproj" />
@@ -79,7 +80,7 @@
     <Project Path="src/Aspire.ProjectTemplates/Aspire.ProjectTemplates.csproj" />
   </Folder>
   <Folder Name="/Hosting/Azure/">
-    <Project Path="src/Aspire.Hosting.Azure.AIFoundry/Aspire.Hosting.Azure.AIFoundry.csproj" />
+    <Project Path="src/Aspire.Hosting.Foundry/Aspire.Hosting.Foundry.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppConfiguration/Aspire.Hosting.Azure.AppConfiguration.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.AppContainers/Aspire.Hosting.Azure.AppContainers.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.ApplicationInsights/Aspire.Hosting.Azure.ApplicationInsights.csproj" />
@@ -115,9 +116,9 @@
     <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
     <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/playground/AzureAIFoundryEndToEnd/">
-    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
-    <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
+  <Folder Name="/playground/FoundryEndToEnd/">
+    <Project Path="playground/FoundryEndToEnd/FoundryEndToEnd.AppHost/FoundryEndToEnd.AppHost.csproj" />
+    <Project Path="playground/FoundryEndToEnd/FoundryEndToEnd.WebStory/FoundryEndToEnd.WebStory.csproj" />
   </Folder>
   <Folder Name="/playground/AzureAppConfiguration/">
     <Project Path="playground/AzureAppConfiguration/AzureAppConfiguration.AppHost/AzureAppConfiguration.AppHost.csproj" Id="e404ee0a-0d56-4db9-9119-c0d5989f3c85" />
@@ -208,6 +209,12 @@
     <Project Path="playground/AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
     <Project Path="playground/AspireEventHub/EventHubsConsumer/EventHubsConsumer.csproj" />
   </Folder>
+  <Folder Name="/playground/FoundryAgentBasic/">
+    <Project Path="playground/FoundryAgentBasic/FoundryAgentBasic.AppHost/FoundryAgentBasic.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/FoundryAgentEnterprise/">
+    <Project Path="playground/FoundryAgentEnterprise/FoundryAgentEnterprise.AppHost/FoundryAgentEnterprise.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/GitHubModelsEndToEnd/">
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.AppHost/GitHubModelsEndToEnd.AppHost.csproj" />
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj" />
@@ -276,6 +283,9 @@
   <Folder Name="/playground/pipelines/">
     <Project Path="playground/pipelines/Pipelines.AppHost/Pipelines.AppHost.csproj" />
     <Project Path="playground/pipelines/Pipelines.Library/Pipelines.Library.csproj" />
+  </Folder>
+  <Folder Name="/playground/SimplePipelines/">
+    <Project Path="playground/SimplePipelines/SimplePipelines.AppHost/SimplePipelines.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/PostgresEndToEnd/">
     <Project Path="playground/PostgresEndToEnd/PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj" />
@@ -377,6 +387,7 @@
     <Project Path="src/Aspire.Hosting.CodeGeneration.Rust/Aspire.Hosting.CodeGeneration.Rust.csproj" />
     <Project Path="src/Aspire.Hosting.RemoteHost/Aspire.Hosting.RemoteHost.csproj" />
     <Project Path="src/Aspire.HealthChecks/Aspire.HealthChecks.csproj" />
+    <Project Path="src/Aspire.Managed/Aspire.Managed.csproj" />
   </Folder>
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
@@ -444,6 +455,7 @@
   </Folder>
   <Folder Name="/tests/Hosting/">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Foundry.Tests/Aspire.Hosting.Foundry.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />

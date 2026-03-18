@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Utils;
 using Spectre.Console;
 
@@ -31,12 +32,12 @@ public class ConsoleActivityLoggerTests
         var output = new StringBuilder();
         var logger = CreateLogger(output, interactive: true, color: true);
 
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("☁️ Target", "Azure"),
-            new("📦 Resource Group", "VNetTest5 [link](https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview)"),
-            new("🔑 Subscription", "sub-id"),
-            new("🌐 Location", "eastus"),
+            new() { Key = "☁️ Target", Value = "Azure", EnableMarkdown = false },
+            new() { Key = "📦 Resource Group", Value = "VNetTest5 [link](https://portal.azure.com/#/resource/subscriptions/sub-id/resourceGroups/VNetTest5/overview)", EnableMarkdown = true },
+            new() { Key = "🔑 Subscription", Value = "sub-id", EnableMarkdown = false },
+            new() { Key = "🌐 Location", Value = "eastus", EnableMarkdown = false },
         };
 
         logger.SetFinalResult(true, summary);
@@ -61,9 +62,9 @@ public class ConsoleActivityLoggerTests
         var logger = CreateLogger(output, interactive: false, color: false);
 
         var portalUrl = "https://portal.azure.com/";
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("📦 Resource Group", $"VNetTest5 [link]({portalUrl})"),
+            new() { Key = "📦 Resource Group", Value = $"VNetTest5 [link]({portalUrl})", EnableMarkdown = true },
         };
 
         logger.SetFinalResult(true, summary);
@@ -82,9 +83,9 @@ public class ConsoleActivityLoggerTests
         var logger = CreateLogger(output, interactive: false, color: true);
 
         var portalUrl = "https://portal.azure.com/";
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("📦 Resource Group", $"VNetTest5 [link]({portalUrl})"),
+            new() { Key = "📦 Resource Group", Value = $"VNetTest5 [link]({portalUrl})", EnableMarkdown = true },
         };
 
         logger.SetFinalResult(true, summary);
@@ -107,10 +108,10 @@ public class ConsoleActivityLoggerTests
         var output = new StringBuilder();
         var logger = CreateLogger(output, interactive: true, color: true);
 
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("☁️ Target", "Azure"),
-            new("🌐 Location", "eastus"),
+            new() { Key = "☁️ Target", Value = "Azure", EnableMarkdown = false },
+            new() { Key = "🌐 Location", Value = "eastus", EnableMarkdown = false },
         };
 
         logger.SetFinalResult(true, summary);
@@ -129,11 +130,9 @@ public class ConsoleActivityLoggerTests
         var logger = CreateLogger(output, interactive: true, color: true);
 
         // Pipeline summary with markup characters in key
-        // Note: values go through MarkdownToSpectreConverter.ConvertToSpectre which may interpret
-        // bracket patterns, so we test key escaping here (key always uses EscapeMarkup)
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("Key [with] brackets", "plain value"),
+            new() { Key = "Key [with] brackets", Value = "plain value", EnableMarkdown = false },
         };
 
         logger.SetFinalResult(true, summary);
@@ -153,9 +152,9 @@ public class ConsoleActivityLoggerTests
         var output = new StringBuilder();
         var logger = CreateLogger(output, interactive: false, color: false);
 
-        var summary = new List<KeyValuePair<string, string>>
+        var summary = new List<BackchannelPipelineSummaryItem>
         {
-            new("Key [with] brackets", "Value [bold]not bold[/]"),
+            new() { Key = "Key [with] brackets", Value = "Value [bold]not bold[/]", EnableMarkdown = false },
         };
 
         logger.SetFinalResult(true, summary);

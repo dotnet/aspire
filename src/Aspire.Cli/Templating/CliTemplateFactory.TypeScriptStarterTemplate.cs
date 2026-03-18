@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -59,20 +61,30 @@ internal sealed partial class CliTemplateFactory
                     _logger.LogDebug("Copying embedded TypeScript starter template files to '{OutputPath}'.", outputPath);
                     await CopyTemplateTreeToDiskAsync("ts-starter", outputPath, ApplyAllTokens, cancellationToken);
 
-                    var npmPath = PathLookupHelper.FindFullPathFromPath("npm") ?? PathLookupHelper.FindFullPathFromPath("npm.cmd");
-                    if (npmPath is null)
+                    // Write channel to settings.json before restore so package resolution uses the selected channel.
+                    if (!string.IsNullOrEmpty(inputs.Channel))
                     {
-                        _interactionService.DisplayError("npm is not installed or not found in PATH. Please install Node.js and try again.");
-                        return new TemplateResult(ExitCodeConstants.InvalidCommand);
+                        var config = AspireJsonConfiguration.Load(outputPath);
+                        if (config is not null)
+                        {
+                            config.Channel = inputs.Channel;
+                            config.Save(outputPath);
+                        }
                     }
 
-                    // Run npm install in the output directory (non-fatal — package may not be published yet)
-                    _logger.LogDebug("Running npm install for TypeScript starter in '{OutputPath}'.", outputPath);
-                    var npmInstallResult = await RunProcessAsync(npmPath, "install", outputPath, cancellationToken);
-                    if (npmInstallResult.ExitCode != 0)
+                    var appHostProject = _projectFactory.TryGetProject(new FileInfo(Path.Combine(outputPath, "apphost.ts")));
+                    if (appHostProject is not IGuestAppHostSdkGenerator guestProject)
                     {
-                        _interactionService.DisplaySubtleMessage("npm install had warnings or errors. You may need to run 'npm install' manually after dependencies are available.");
-                        DisplayProcessOutput(npmInstallResult, treatStandardErrorAsError: false);
+                        _interactionService.DisplayError("Automatic 'aspire restore' is unavailable for the new TypeScript starter project because no TypeScript AppHost SDK generator was found.");
+                        return new TemplateResult(ExitCodeConstants.FailedToBuildArtifacts, outputPath);
+                    }
+
+                    _logger.LogDebug("Generating SDK code for TypeScript starter in '{OutputPath}'.", outputPath);
+                    var restoreSucceeded = await guestProject.BuildAndGenerateSdkAsync(new DirectoryInfo(outputPath), cancellationToken);
+                    if (!restoreSucceeded)
+                    {
+                        _interactionService.DisplayError("Automatic 'aspire restore' failed for the new TypeScript starter project. Run 'aspire restore' in the project directory for more details.");
+                        return new TemplateResult(ExitCodeConstants.FailedToBuildArtifacts, outputPath);
                     }
 
                     return new TemplateResult(ExitCodeConstants.Success, outputPath);
@@ -90,7 +102,7 @@ internal sealed partial class CliTemplateFactory
         }
 
         _interactionService.DisplaySuccess($"Created TypeScript starter project at {outputPath.EscapeMarkup()}");
-        _interactionService.DisplayMessage(KnownEmojis.Information, "Run 'aspire run' to start your AppHost.");
+        DisplayPostCreationInstructions(outputPath);
 
         return templateResult;
     }

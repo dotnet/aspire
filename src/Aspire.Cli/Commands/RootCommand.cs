@@ -112,7 +112,6 @@ internal sealed class RootCommand : BaseRootCommand
         RunCommand runCommand,
         StopCommand stopCommand,
         StartCommand startCommand,
-        RestartCommand restartCommand,
         WaitCommand waitCommand,
         ResourceCommand commandCommand,
         PsCommand psCommand,
@@ -124,15 +123,18 @@ internal sealed class RootCommand : BaseRootCommand
         DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
+        CertificatesCommand certificatesCommand,
         DoctorCommand doctorCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
         AgentCommand agentCommand,
         TelemetryCommand telemetryCommand,
+        ExportCommand exportCommand,
         DocsCommand docsCommand,
         SecretCommand secretCommand,
         SdkCommand sdkCommand,
+        RestoreCommand restoreCommand,
         SetupCommand setupCommand,
 #if DEBUG
         RenderCommand renderCommand,
@@ -200,7 +202,6 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(runCommand);
         Subcommands.Add(stopCommand);
         Subcommands.Add(startCommand);
-        Subcommands.Add(restartCommand);
         Subcommands.Add(waitCommand);
         Subcommands.Add(commandCommand);
         Subcommands.Add(psCommand);
@@ -210,6 +211,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
+        Subcommands.Add(certificatesCommand);
         Subcommands.Add(doctorCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
@@ -218,6 +220,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(mcpCommand);
         Subcommands.Add(agentCommand);
         Subcommands.Add(telemetryCommand);
+        Subcommands.Add(exportCommand);
         Subcommands.Add(docsCommand);
         Subcommands.Add(secretCommand);
 
@@ -236,6 +239,7 @@ internal sealed class RootCommand : BaseRootCommand
         }
 
         Subcommands.Add(sdkCommand);
+        Subcommands.Add(restoreCommand);
 
         // Replace the default --help action with grouped help output.
         // Add -v as a short alias for --version.

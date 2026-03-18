@@ -23,10 +23,13 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     private readonly INewCommandPrompter _prompter;
+    private readonly ITemplateProvider _templateProvider;
     private readonly ITemplate[] _templates;
     private readonly IFeatures _features;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly AgentInitCommand _agentInitCommand;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     private static readonly Option<string> s_nameOption = new("--name", "-n")
     {
@@ -71,13 +74,18 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         IPackagingService packagingService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        AgentInitCommand agentInitCommand,
+        ICliHostEnvironment hostEnvironment)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
     {
         _prompter = prompter;
+        _templateProvider = templateProvider;
         _features = features;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _agentInitCommand = agentInitCommand;
+        _hostEnvironment = hostEnvironment;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
@@ -102,7 +110,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(_languageOption);
 
-        _templates = templateProvider.GetTemplatesAsync(CancellationToken.None).GetAwaiter().GetResult().ToArray();
+        // Register template definitions as subcommands synchronously.
+        // This uses GetTemplates() which returns template definitions without
+        // performing any async I/O (e.g. SDK availability checks). Runtime
+        // availability is checked in ExecuteAsync via GetTemplatesAsync().
+        _templates = templateProvider.GetTemplates().ToArray();
 
         foreach (var template in _templates)
         {
@@ -199,10 +211,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return (true, selectedLanguageId);
     }
 
-    private ITemplate[] GetTemplatesForPrompt(ParseResult parseResult)
+    private ITemplate[] GetTemplatesForPrompt(ITemplate[] availableTemplates, ParseResult parseResult)
     {
         var explicitLanguageId = ParseExplicitLanguageId(parseResult);
-        var templatesForPrompt = _templates.ToList();
+        var templatesForPrompt = availableTemplates.ToList();
 
         if (!string.IsNullOrWhiteSpace(explicitLanguageId))
         {
@@ -211,22 +223,41 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 .ToList();
         }
 
+        // Sort templates alphabetically by description, keeping empty templates at the end
+        templatesForPrompt.Sort((a, b) =>
+        {
+            var aIsEmpty = a.IsEmpty;
+            var bIsEmpty = b.IsEmpty;
+
+            if (aIsEmpty != bIsEmpty)
+            {
+                return aIsEmpty ? 1 : -1;
+            }
+
+            return string.Compare(a.Description, b.Description, StringComparison.OrdinalIgnoreCase);
+        });
+
         return templatesForPrompt.ToArray();
     }
 
-    private async Task<ITemplate?> GetProjectTemplateAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<ITemplate?> GetProjectTemplateAsync(ITemplate[] availableTemplates, ParseResult parseResult, CancellationToken cancellationToken)
     {
         // If a subcommand was matched (e.g., aspire new aspire-starter), find the template by command name
         if (parseResult.CommandResult.Command != this)
         {
-            var subcommandTemplate = _templates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
+            var subcommandTemplate = availableTemplates.SingleOrDefault(t => t.Name.Equals(parseResult.CommandResult.Command.Name, StringComparison.OrdinalIgnoreCase));
             if (subcommandTemplate is not null)
             {
                 return subcommandTemplate;
             }
+
+            // The template subcommand was parsed successfully but the template is
+            // not available at runtime (e.g. .NET SDK is not installed).
+            InteractionService.DisplayError($"Template '{parseResult.CommandResult.Command.Name}' is not available. Ensure the required runtime is installed.");
+            return null;
         }
 
-        var templatesForPrompt = GetTemplatesForPrompt(parseResult);
+        var templatesForPrompt = GetTemplatesForPrompt(availableTemplates, parseResult);
         if (templatesForPrompt.Length == 0)
         {
             InteractionService.DisplayError("No templates are available for the current environment.");
@@ -247,6 +278,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private sealed class ResolveTemplateVersionResult
     {
         public string? Version { get; init; }
+
+        public string? ChannelName { get; init; }
 
         [MemberNotNullWhen(true, nameof(Version))]
         [MemberNotNullWhen(false, nameof(ErrorMessage))]
@@ -293,7 +326,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     return new ResolveTemplateVersionResult { ErrorMessage = $"No template versions found in channel '{selectedChannel.Name}'." };
                 }
 
-                return new ResolveTemplateVersionResult { Version = package.Version };
+                // Only persist explicit channel names (e.g. local, daily) — implicit channels
+                // (stable/nuget.org) should not be written so aspire add uses its default behavior.
+                var channelName = selectedChannel.Type is PackageChannelType.Explicit ? selectedChannel.Name : null;
+
+                return new ResolveTemplateVersionResult { Version = package.Version, ChannelName = channelName };
             });
     }
 
@@ -301,7 +338,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
+        // Resolve which templates are actually available at runtime (performs
+        // async checks like SDK availability). This may be a subset of the
+        // templates registered as subcommands.
+        var availableTemplates = (await _templateProvider.GetTemplatesAsync(cancellationToken)).ToArray();
+
+        var template = await GetProjectTemplateAsync(availableTemplates, parseResult, cancellationToken);
         if (template is null)
         {
             return ExitCodeConstants.InvalidCommand;
@@ -314,6 +356,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         var version = parseResult.GetValue(s_versionOption);
+        string? resolvedChannelName = null;
         if (ShouldResolveCliTemplateVersion(template) &&
             string.IsNullOrWhiteSpace(version))
         {
@@ -325,6 +368,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             }
 
             version = resolveResult.Version;
+            resolvedChannelName = resolveResult.ChannelName;
         }
 
         var inputs = new TemplateInputs
@@ -333,7 +377,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Output = parseResult.GetValue(s_outputOption),
             Source = parseResult.GetValue(s_sourceOption),
             Version = version,
-            Channel = parseResult.GetValue(_channelOption),
+            Channel = parseResult.GetValue(_channelOption) ?? resolvedChannelName,
             Language = selectedLanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
@@ -342,7 +386,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
-        return templateResult.ExitCode;
+        var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
+        return await _agentInitCommand.PromptAndChainAsync(_hostEnvironment, InteractionService, templateResult.ExitCode, workspaceRoot, cancellationToken);
     }
 
     private static bool ShouldResolveCliTemplateVersion(ITemplate template)

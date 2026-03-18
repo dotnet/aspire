@@ -25,7 +25,7 @@ namespace Aspire.Cli.Projects;
 /// Handler for guest (non-.NET) AppHost projects.
 /// Supports any language registered via <see cref="ILanguageDiscovery"/>.
 /// </summary>
-internal sealed class GuestAppHostProject : IAppHostProject
+internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGenerator
 {
     private const string GeneratedFolderName = ".modules";
 
@@ -80,6 +80,9 @@ internal sealed class GuestAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
+    public bool IsUnsupported { get; set; }
+
+    /// <inheritdoc />
     public string LanguageId => _resolvedLanguage.LanguageId;
 
     /// <inheritdoc />
@@ -99,7 +102,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             _logger.LogDebug("Using SDK version from configuration: {Version}", configuredVersion);
             return configuredVersion;
         }
-        
+
         _logger.LogDebug("Using default SDK version: {Version}", DotNetBasedAppHostServerProject.DefaultSdkVersion);
         return DotNetBasedAppHostServerProject.DefaultSdkVersion;
     }
@@ -119,7 +122,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
     public bool CanHandle(FileInfo appHostFile)
     {
         // Check if file matches this language's detection patterns
-        return _resolvedLanguage.DetectionPatterns.Any(p => 
+        return _resolvedLanguage.DetectionPatterns.Any(p =>
             appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -137,21 +140,22 @@ internal sealed class GuestAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Gets all packages including the code generation package for the current language.
+    /// Gets all integration references including the code generation package for the current language.
     /// </summary>
-    private async Task<List<(string Name, string Version)>> GetAllPackagesAsync(
+    private async Task<List<IntegrationReference>> GetIntegrationReferencesAsync(
         AspireJsonConfiguration config,
+        DirectoryInfo directory,
         CancellationToken cancellationToken)
     {
         var defaultSdkVersion = GetEffectiveSdkVersion();
-        var packages = config.GetAllPackages(defaultSdkVersion).ToList();
+        var integrations = config.GetIntegrationReferences(defaultSdkVersion, directory.FullName).ToList();
         var codeGenPackage = await _languageDiscovery.GetPackageForLanguageAsync(_resolvedLanguage.LanguageId, cancellationToken);
         if (codeGenPackage is not null)
         {
             var codeGenVersion = config.GetEffectiveSdkVersion(defaultSdkVersion);
-            packages.Add((codeGenPackage, codeGenVersion));
+            integrations.Add(IntegrationReference.FromPackage(codeGenPackage, codeGenVersion));
         }
-        return packages;
+        return integrations;
     }
 
     private AspireJsonConfiguration LoadConfiguration(DirectoryInfo directory)
@@ -171,26 +175,27 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private static async Task<(bool Success, OutputCollector? Output, string? ChannelName, bool NeedsCodeGen)> PrepareAppHostServerAsync(
         IAppHostServerProject appHostServerProject,
         string sdkVersion,
-        List<(string Name, string Version)> packages,
+        List<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
-        var result = await appHostServerProject.PrepareAsync(sdkVersion, packages, cancellationToken);
+        var result = await appHostServerProject.PrepareAsync(sdkVersion, integrations, cancellationToken);
         return (result.Success, result.Output, result.ChannelName, result.NeedsCodeGeneration);
     }
 
     /// <summary>
     /// Builds the AppHost server project and generates SDK code.
     /// </summary>
-    private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    /// <returns><see langword="true"/> if the code was generated successfully; otherwise, <see langword="false"/>.</returns>
+    internal async Task<bool> BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
         var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
 
         // Step 1: Load config - source of truth for SDK version and packages
         var config = LoadConfiguration(directory);
-        var packages = await GetAllPackagesAsync(config, cancellationToken);
+        var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
         var sdkVersion = GetPrepareSdkVersion(config);
 
-        var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+        var (buildSuccess, buildOutput, _, _) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
         if (!buildSuccess)
         {
             if (buildOutput is not null)
@@ -198,7 +203,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _interactionService.DisplayLines(buildOutput.GetLines());
             }
             _interactionService.DisplayError("Failed to prepare AppHost server.");
-            return;
+            return false;
         }
 
         // Step 2: Start the AppHost server temporarily for code generation
@@ -217,8 +222,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
             await GenerateCodeViaRpcAsync(
                 directory.FullName,
                 rpcClient,
-                packages,
+                integrations,
                 cancellationToken);
+
+            return true;
         }
         finally
         {
@@ -237,6 +244,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
     }
 
+    Task<bool> IGuestAppHostSdkGenerator.BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        return BuildAndGenerateSdkAsync(directory, cancellationToken);
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // EXECUTION
     // ═══════════════════════════════════════════════════════════════
@@ -244,6 +256,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <inheritdoc />
     public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
+        if (IsUnsupported)
+        {
+            return Task.FromResult(new AppHostValidationResult(IsValid: false, IsUnsupported: true));
+        }
+
         // Check if the file exists
         if (!appHostFile.Exists)
         {
@@ -255,7 +272,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         var patterns = _resolvedLanguage.DetectionPatterns;
         if (!patterns.Any(p => appHostFile.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
         {
-            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}", 
+            _logger.LogDebug("AppHost file {File} does not match {Language} detection patterns: {Patterns}",
                 appHostFile.Name, _resolvedLanguage.DisplayName, string.Join(", ", patterns));
             return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
@@ -294,7 +311,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
             // Load config - source of truth for SDK version and packages
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             var buildResult = await _interactionService.ShowStatusAsync(
@@ -302,7 +319,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 async () =>
                 {
                     // Prepare the AppHost server (build for dev mode, restore for prebuilt)
-                    var (prepareSuccess, prepareOutput, channelName, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+                    var (prepareSuccess, prepareOutput, channelName, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
                     if (!prepareSuccess)
                     {
                         return (Success: false, Output: prepareOutput, Error: "Failed to prepare app host.", ChannelName: (string?)null, NeedsCodeGen: false);
@@ -407,7 +424,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 await GenerateCodeViaRpcAsync(
                     directory.FullName,
                     rpcClient,
-                    packages,
+                    integrations,
                     cancellationToken);
             }
 
@@ -421,17 +438,50 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
             };
 
-            // Start guest apphost - it will connect to AppHost server, define resources
-            // When hot reload is enabled, use watch mode
+            // Check if the extension should launch the guest app host (for VS Code debugging).
+            // This mirrors the pattern in DotNetCliRunner.ExecuteAsync for .NET app hosts.
+            // The RuntimeSpec declares the required extension capability (e.g., "node" for TypeScript);
+            // only use the extension launcher when the runtime requests it and the extension supports it.
+            if (_guestRuntime is null)
+            {
+                _interactionService.DisplayError("GuestRuntime not initialized.");
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
+            IGuestProcessLauncher launcher;
+            if (_guestRuntime.ExtensionLaunchCapability is { } requiredCapability
+                && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out var extensionBackchannel)
+                && await extensionBackchannel.HasCapabilityAsync(requiredCapability, cancellationToken))
+            {
+                launcher = new ExtensionGuestLauncher(extensionInteractionService, appHostFile, context.StartDebugSession);
+            }
+            else
+            {
+                launcher = _guestRuntime.CreateDefaultLauncher();
+            }
+
+            // Start guest apphost - it will connect to AppHost server, define resources.
+            // If launcher is an ExtensionGuestLauncher, it delegates to the VS Code extension.
             var (guestExitCode, guestOutput) = await ExecuteGuestAppHostAsync(
-                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, cancellationToken);
+                appHostFile, directory, environmentVariables, enableHotReload, rpcClient, launcher, cancellationToken);
+
+            if (launcher is ExtensionGuestLauncher)
+            {
+                // Extension manages the guest app host lifecycle via VS Code debug session.
+                // Wait for the AppHost server to exit (Ctrl+C or extension termination).
+                await appHostServerProcess.WaitForExitAsync(cancellationToken);
+                return appHostServerProcess.ExitCode;
+            }
 
             if (guestExitCode != 0)
             {
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -598,11 +648,11 @@ internal sealed class GuestAppHostProject : IAppHostProject
             // Step 1: Load config - source of truth for SDK version and packages
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, cancellationToken);
             var config = LoadConfiguration(directory);
-            var packages = await GetAllPackagesAsync(config, cancellationToken);
+            var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
 
             // Prepare the AppHost server (build for dev mode, restore for prebuilt)
-            var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, packages, cancellationToken);
+            var (prepareSuccess, prepareOutput, _, needsCodeGen) = await PrepareAppHostServerAsync(appHostServerProject, sdkVersion, integrations, cancellationToken);
             if (!prepareSuccess)
             {
                 // Set OutputCollector so PipelineCommandBase can display errors
@@ -680,7 +730,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 await GenerateCodeViaRpcAsync(
                     directory.FullName,
                     rpcClient,
-                    packages,
+                    integrations,
                     cancellationToken);
             }
 
@@ -702,7 +752,10 @@ internal sealed class GuestAppHostProject : IAppHostProject
                 _logger.LogError("{Language} apphost exited with code {ExitCode}", DisplayName, guestExitCode);
 
                 // Display the output (same pattern as DotNetCliRunner)
-                _interactionService.DisplayLines(guestOutput.GetLines());
+                if (guestOutput is not null)
+                {
+                    _interactionService.DisplayLines(guestOutput.GetLines());
+                }
 
                 // Signal failure so callers don't hang waiting for the backchannel
                 var error = new InvalidOperationException($"The {DisplayName} apphost failed.");
@@ -850,9 +903,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         config.Save(directory.FullName);
 
         // Build and regenerate SDK code with the new package
-        await BuildAndGenerateSdkAsync(directory, cancellationToken);
-
-        return true;
+        return await BuildAndGenerateSdkAsync(directory, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -964,13 +1015,24 @@ internal sealed class GuestAppHostProject : IAppHostProject
 
         // Rebuild and regenerate SDK code with updated packages
         _interactionService.DisplayEmptyLine();
-        await _interactionService.ShowStatusAsync(
+        var regenerateResult = await _interactionService.ShowStatusAsync(
             UpdateCommandStrings.RegeneratingSdkCode,
             async () =>
             {
-                await BuildAndGenerateSdkAsync(directory, cancellationToken);
-                return 0;
+                var regenerateSuccess = await BuildAndGenerateSdkAsync(directory, cancellationToken);
+
+                if (!regenerateSuccess)
+                {
+                    return new UpdatePackagesResult { UpdatesApplied = false };
+                }
+
+                return new UpdatePackagesResult { UpdatesApplied = true };
             });
+
+        if (!regenerateResult.UpdatesApplied)
+        {
+            return regenerateResult;
+        }
 
         _interactionService.DisplayMessage(KnownEmojis.Package, UpdateCommandStrings.RegeneratedSdkCode);
 
@@ -1004,7 +1066,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Stop all running instances
-        var stopTasks = matchingSockets.Select(socketPath => 
+        var stopTasks = matchingSockets.Select(socketPath =>
             _runningInstanceManager.StopRunningInstanceAsync(socketPath, cancellationToken));
         var results = await Task.WhenAll(stopTasks);
         return results.All(r => r) ? RunningInstanceResult.InstanceStopped : RunningInstanceResult.StopFailed;
@@ -1016,16 +1078,16 @@ internal sealed class GuestAppHostProject : IAppHostProject
     private async Task GenerateCodeViaRpcAsync(
         string appPath,
         IAppHostRpcClient rpcClient,
-        IEnumerable<(string PackageId, string Version)> packages,
+        IEnumerable<IntegrationReference> integrations,
         CancellationToken cancellationToken)
     {
-        var packagesList = packages.ToList();
+        var integrationsList = integrations.ToList();
 
         // Use CodeGenerator (e.g., "TypeScript") not LanguageId (e.g., "typescript/nodejs")
         // The code generator is registered by its Language property, not the runtime ID
         var codeGenerator = _resolvedLanguage.CodeGenerator;
 
-        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, packagesList.Count);
+        _logger.LogDebug("Generating {CodeGenerator} code via RPC for {Count} packages", codeGenerator, integrationsList.Count);
 
         // Use the typed RPC method
         var files = await rpcClient.GenerateCodeAsync(codeGenerator, cancellationToken);
@@ -1046,35 +1108,47 @@ internal sealed class GuestAppHostProject : IAppHostProject
         }
 
         // Write generation hash for caching
-        SaveGenerationHash(outputPath, packagesList);
+        SaveGenerationHash(outputPath, integrationsList);
 
         _logger.LogInformation("Generated {Count} {CodeGenerator} files in {Path}",
             files.Count, codeGenerator, outputPath);
     }
 
     /// <summary>
-    /// Saves a hash of the packages to avoid regenerating code unnecessarily.
+    /// Saves a hash of the integrations to avoid regenerating code unnecessarily.
+    /// When project references are present, the hash is always unique to force regeneration
+    /// since project outputs are mutable.
     /// </summary>
-    private static void SaveGenerationHash(string generatedPath, List<(string PackageId, string Version)> packages)
+    private static void SaveGenerationHash(string generatedPath, List<IntegrationReference> integrations)
     {
         var hashPath = Path.Combine(generatedPath, ".codegen-hash");
-        var hash = ComputePackagesHash(packages);
+        var hash = ComputeIntegrationsHash(integrations);
         File.WriteAllText(hashPath, hash);
     }
 
     /// <summary>
-    /// Computes a hash of the package list for caching purposes.
+    /// Computes a hash of the integration list for caching purposes.
+    /// If any project references are present, includes a timestamp to force regeneration
+    /// since project outputs can change between builds.
     /// </summary>
-    private static string ComputePackagesHash(List<(string PackageId, string Version)> packages)
+    private static string ComputeIntegrationsHash(List<IntegrationReference> integrations)
     {
         var sb = new System.Text.StringBuilder();
-        foreach (var (packageId, version) in packages.OrderBy(p => p.PackageId))
+        foreach (var integration in integrations.OrderBy(p => p.Name))
         {
-            sb.Append(packageId);
+            sb.Append(integration.Name);
             sb.Append(':');
-            sb.Append(version);
+            sb.Append(integration.Version ?? integration.ProjectPath ?? "");
             sb.Append(';');
         }
+
+        // Project references are mutable — always regenerate when they're present
+        if (integrations.Any(i => i.IsProjectReference))
+        {
+            sb.Append("timestamp:");
+            sb.Append(DateTime.UtcNow.Ticks);
+        }
+
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
         return Convert.ToHexString(bytes);
     }
@@ -1122,10 +1196,18 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
 
-        var result = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
+        var (result, output) = await _guestRuntime.InstallDependenciesAsync(directory, cancellationToken);
         if (result != 0)
         {
-            _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            var lines = output.GetLines().ToArray();
+            if (lines.Length > 0)
+            {
+                _interactionService.DisplayLines(lines);
+            }
+            else
+            {
+                _interactionService.DisplayError($"Failed to install {_resolvedLanguage?.DisplayName ?? "guest"} dependencies.");
+            }
         }
 
         return result;
@@ -1134,12 +1216,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
     /// <summary>
     /// Executes the guest AppHost using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
         bool watchMode,
         IAppHostRpcClient rpcClient,
+        IGuestProcessLauncher launcher,
         CancellationToken cancellationToken)
     {
         await EnsureRuntimeCreatedAsync(rpcClient, cancellationToken);
@@ -1150,13 +1233,13 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, cancellationToken);
+        return await _guestRuntime.RunAsync(appHostFile, directory, environmentVariables, watchMode, launcher, cancellationToken);
     }
 
     /// <summary>
     /// Executes the guest AppHost for publishing using GuestRuntime.
     /// </summary>
-    private async Task<(int ExitCode, OutputCollector Output)> ExecuteGuestAppHostForPublishAsync(
+    private async Task<(int ExitCode, OutputCollector? Output)> ExecuteGuestAppHostForPublishAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
@@ -1172,7 +1255,7 @@ internal sealed class GuestAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
-        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, cancellationToken);
+        return await _guestRuntime.PublishAsync(appHostFile, directory, environmentVariables, publishArgs, _guestRuntime.CreateDefaultLauncher(), cancellationToken);
     }
 
     /// <summary>
