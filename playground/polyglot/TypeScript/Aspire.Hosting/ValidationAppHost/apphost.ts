@@ -69,6 +69,8 @@ const builtConnectionString = await builder.addConnectionStringBuilder("customcs
 await builtConnectionString.withConnectionProperty("Host", expr);
 await builtConnectionString.withConnectionPropertyValue("Mode", "Development");
 
+const envConnectionString = await builder.addConnectionString("envcs");
+
 // ===================================================================
 // ResourceBuilderExtensions.cs — NEW exports on ContainerResource
 // ===================================================================
@@ -83,7 +85,7 @@ await container.withEnvironment("MY_EXPR", expr);
 await container.withEnvironment("MY_PARAM", configParam);
 
 // withEnvironment — with connection string resource
-await container.withEnvironment("MY_CONN", builtConnectionString);
+await container.withEnvironment("MY_CONN", envConnectionString);
 
 // withConnectionProperty — with ReferenceExpression
 await builtConnectionString.withConnectionProperty("Endpoint", expr);
