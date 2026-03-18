@@ -23,7 +23,7 @@ brew install --cask aspire              # stable
 
 | File | Description |
 |---|---|
-| `eng/pipelines/templates/prepare-homebrew-cask.yml` | Generates, validates, audits, and tests the cask |
+| `eng/pipelines/templates/prepare-homebrew-cask.yml` | Generates, styles, validates, audits, and tests the cask |
 | `eng/pipelines/templates/publish-homebrew.yml` | Submits the cask as a PR to `Homebrew/homebrew-cask` |
 
 ## Supported Platforms
@@ -33,7 +33,7 @@ macOS only (arm64, x64). The cask uses `arch arm: "arm64", intel: "x64"` for URL
 ## Artifact URLs
 
 ```text
-https://ci.dot.net/public/aspire/{VERSION}/aspire-cli-osx-{arch}-{VERSION}.tar.gz
+https://ci.dot.net/public/aspire/{ARTIFACT_VERSION}/aspire-cli-osx-{arch}-{VERSION}.tar.gz
 ```
 
 Where arch is `arm64` or `x64`.
@@ -57,12 +57,21 @@ Where arch is `arm64` or `x64`.
 | `azure-pipelines.yml` (prepare stage) | Stable casks (artifacts only) | — |
 | `release-publish-nuget.yml` (release) | — | Stable cask only |
 
-Publishing submits a PR to `Homebrew/homebrew-cask` using `gh pr create`:
+Publishing submits a PR to `Homebrew/homebrew-cask` using the GitHub REST API:
 
 1. Forks `Homebrew/homebrew-cask` (idempotent — reuses existing fork)
-2. Creates a branch named `aspire-{version}`
+2. Creates or resets a branch named `aspire-{version}`
 3. Copies the generated cask to `Casks/a/aspire.rb` (or `aspire@prerelease.rb`)
-4. Pushes and opens a PR with title `aspire {version}`
+4. Reuses the existing open PR for that branch when present
+5. Force-pushes the same branch for reruns; if prior PRs from that branch were closed, the publish step opens a fresh PR and marks the old ones as superseded
+6. Opens a PR with title `aspire {version}` when none exists
+
+Prepare validation currently runs:
+
+1. `ruby -c` for syntax validation
+2. `brew style --fix` on the generated cask
+3. `brew audit --cask --online`, or `brew audit --cask --new --online` when the cask does not yet exist upstream
+4. `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --cask ...` followed by uninstall validation
 
 ## Open Items
 
