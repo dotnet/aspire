@@ -380,23 +380,25 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void LoadOrCreate_MigratesLegacy_RebasesPathRelativeToAspireDir()
+    public void LoadOrCreate_MigratesLegacy_RebasesSubdirectoryPath()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
-        // "apphost.ts" in legacy settings means .aspire/apphost.ts (relative to .aspire/ dir),
-        // which should become ".aspire/apphost.ts" relative to the repo root after migration.
+        // Legacy .aspire/settings.json stores appHostPath relative to .aspire/ directory.
+        // A path like "../MyApp.AppHost/MyApp.AppHost.csproj" points from .aspire/ up to
+        // the repo root, then into a subdirectory. After migration it should become
+        // "MyApp.AppHost/MyApp.AppHost.csproj" (relative to the repo root).
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
         File.WriteAllText(settingsPath, """
             {
-                "appHostPath": "apphost.ts"
+                "appHostPath": "../MyApp.AppHost/MyApp.AppHost.csproj"
             }
             """);
 
         var config = AspireConfigFile.LoadOrCreate(root);
 
-        Assert.Equal(".aspire/apphost.ts", config.AppHost?.Path);
+        Assert.Equal("MyApp.AppHost/MyApp.AppHost.csproj", config.AppHost?.Path);
     }
 
     [Fact]
