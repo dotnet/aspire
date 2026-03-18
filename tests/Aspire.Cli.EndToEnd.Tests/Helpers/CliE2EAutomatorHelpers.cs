@@ -147,23 +147,24 @@ internal static class CliE2EAutomatorHelpers
     }
 
     /// <summary>
-    /// Verifies the installed Aspire CLI version matches the expected commit SHA.
+    /// Verifies the installed Aspire CLI version matches the expected version.
     /// </summary>
+#pragma warning disable IDE0060 // commitSha is unused during stabilized builds — restore when merging back to main
     internal static async Task VerifyAspireCliVersionAsync(
         this Hex1bTerminalAutomator auto,
         string commitSha,
         SequenceCounter counter)
+#pragma warning restore IDE0060
     {
-        if (commitSha.Length != 40)
-        {
-            throw new ArgumentException($"Commit SHA must be exactly 40 characters, got {commitSha.Length}: '{commitSha}'", nameof(commitSha));
-        }
-
-        var shortCommitSha = commitSha[..8];
-        var expectedVersionSuffix = $"g{shortCommitSha}";
         await auto.TypeAsync("aspire --version");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync(expectedVersionSuffix, timeout: TimeSpan.FromSeconds(10));
+
+        // When the build is stabilized (StabilizePackageVersion=true), the CLI version
+        // is just "13.2.0" with no commit SHA suffix. When not stabilized, it includes
+        // the SHA (e.g., "13.2.0-preview.1.g<sha>"). In both cases, "13.2.0" is present.
+        // TODO: This change should be reverted on the integration to the main branch.
+        await auto.WaitUntilTextAsync("13.2.0", timeout: TimeSpan.FromSeconds(10));
+
         await auto.WaitForSuccessPromptAsync(counter);
     }
 
