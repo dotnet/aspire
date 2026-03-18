@@ -86,43 +86,27 @@ public sealed class LocalConfigMigrationTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire run");
         await auto.EnterAsync();
 
-        // Wait for the apphost to start (Ctrl+C message) or an explicit failure message.
-        // Don't match generic "ERR:" which could match shell prompt patterns.
-        await auto.WaitUntilAsync(s =>
-            s.ContainsText("Press CTRL+C to stop the apphost and exit.") ||
-            s.ContainsText("Apphost failed"),
-            timeout: TimeSpan.FromMinutes(3),
-            description: "aspire run started or reported failure");
+        // The migration creates aspire.config.json during apphost discovery, before
+        // the actual run. Poll the host-side filesystem via the bind mount rather
+        // than parsing terminal output, which is fragile across different failure modes.
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
+        var deadline = DateTime.UtcNow.AddMinutes(3);
+        while (!File.Exists(configPath) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+        }
 
-        // Stop the apphost (Ctrl+C) and wait for the shell prompt
+        // Stop the apphost if it's still running (Ctrl+C is safe even if already exited)
         await auto.Ctrl().KeyAsync(Hex1bKey.C);
         await auto.WaitForAnyPromptAsync(counter, timeout: TimeSpan.FromSeconds(30));
 
         // Step 4: Verify aspire.config.json was created with the corrected path.
         // The path should be "apphost.ts" (relative to workspace root),
         // NOT "../apphost.ts" (the legacy .aspire/-relative path).
-        // The grep pattern '"path": "apphost.ts"' will NOT match '"path": "../apphost.ts"'
-        // because grep does substring matching on the full pattern string.
-        await auto.TypeAsync("grep '\"path\": \"apphost.ts\"' aspire.config.json");
-        await auto.EnterAsync();
-        await auto.WaitForSuccessPromptAsync(counter);
-
-        // Also verify on the host side via bind mount for a precise assertion
-        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
-        if (File.Exists(configPath))
-        {
-            var content = File.ReadAllText(configPath);
-            if (content.Contains("\"../apphost.ts\""))
-            {
-                throw new InvalidOperationException(
-                    $"Host-side aspire.config.json still contains uncorrected path '../apphost.ts'. Content:\n{content}");
-            }
-            if (!content.Contains("\"apphost.ts\""))
-            {
-                throw new InvalidOperationException(
-                    $"Host-side aspire.config.json does not contain expected path 'apphost.ts'. Content:\n{content}");
-            }
-        }
+        Assert.True(File.Exists(configPath), "aspire.config.json was not created by migration");
+        var content = File.ReadAllText(configPath);
+        Assert.DoesNotContain("\"../apphost.ts\"", content);
+        Assert.Contains("\"apphost.ts\"", content);
 
         await auto.TypeAsync("exit");
         await auto.EnterAsync();
