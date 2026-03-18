@@ -549,7 +549,7 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(flags));
     }
 
-    [AspireExport("withReference", Description = "Adds a reference to another resource")]
+    [AspireExport("withGenericResourceReference", MethodName = "withReference", Description = "Adds a reference to another resource")]
     internal static IResourceBuilder<TDestination> WithReference<TDestination>(
         this IResourceBuilder<TDestination> builder,
         IResourceBuilder<IResource> source,
