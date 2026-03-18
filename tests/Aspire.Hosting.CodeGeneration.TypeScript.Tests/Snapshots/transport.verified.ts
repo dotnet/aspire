@@ -869,11 +869,12 @@ export class AspireClient {
 
                     this.connection.listen();
                     const authToken = process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
-                    if (authToken) {
-                        const authenticated = await this.connection.sendRequest<boolean>('authenticate', authToken);
-                        if (!authenticated) {
-                            throw new Error('Failed to authenticate to the AppHost server.');
-                        }
+                    if (!authToken) {
+                        throw new Error('ASPIRE_REMOTE_APPHOST_TOKEN environment variable is not set.');
+                    }
+                    const authenticated = await this.connection.sendRequest<boolean>('authenticate', authToken);
+                    if (!authenticated) {
+                        throw new Error('Failed to authenticate to the AppHost server.');
                     }
 
                     connectedClients.add(this);

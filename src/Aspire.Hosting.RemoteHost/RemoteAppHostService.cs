@@ -14,6 +14,7 @@ internal sealed class RemoteAppHostService
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
     private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ILogger<RemoteAppHostService> _logger;
+    private JsonRpc? _clientRpc;
 
     // ATS (Aspire Type System) components
     private readonly CapabilityDispatcher _capabilityDispatcher;
@@ -37,9 +38,15 @@ internal sealed class RemoteAppHostService
     /// </summary>
     public void SetClientConnection(JsonRpc clientRpc)
     {
+        _clientRpc = clientRpc;
         _callbackInvoker.SetConnection(clientRpc);
     }
 
+    /// <summary>
+    /// Verifies the authentication token supplied by the client.
+    /// Returns <c>true</c> on success; closes the connection and returns <c>false</c> on failure
+    /// so that an unauthenticated client cannot keep retrying without limit.
+    /// </summary>
     [JsonRpcMethod("authenticate")]
     public bool Authenticate(string token)
     {
@@ -47,6 +54,8 @@ internal sealed class RemoteAppHostService
         if (!authenticated)
         {
             _logger.LogWarning("Rejected unauthenticated AppHost RPC client.");
+            // Close the connection to prevent unlimited retry attempts.
+            _ = Task.Run(() => _clientRpc?.Dispose());
         }
 
         return authenticated;

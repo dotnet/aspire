@@ -9,12 +9,11 @@ namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class JsonRpcAuthenticationState
 {
-    private const string RemoteAppHostTokenEnvironmentVariableName = "ASPIRE_REMOTE_APPHOST_TOKEN";
     private readonly byte[]? _expectedTokenBytes;
 
     public JsonRpcAuthenticationState(IConfiguration configuration)
     {
-        if (configuration[RemoteAppHostTokenEnvironmentVariableName] is { Length: > 0 } token)
+        if (configuration[KnownConfigNames.RemoteAppHostToken] is { Length: > 0 } token)
         {
             _expectedTokenBytes = Encoding.UTF8.GetBytes(token);
         }
@@ -46,8 +45,7 @@ internal sealed class JsonRpcAuthenticationState
 
         try
         {
-            var isMatch = providedTokenBytes.Length == _expectedTokenBytes.Length
-                && CryptographicOperations.FixedTimeEquals(providedTokenBytes, _expectedTokenBytes);
+            var isMatch = CryptographicOperations.FixedTimeEquals(providedTokenBytes, _expectedTokenBytes);
 
             if (isMatch)
             {

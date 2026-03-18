@@ -14,7 +14,7 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class AppHostServerSession : IAppHostServerSession
 {
-    private readonly string? _authenticationToken;
+    private readonly string _authenticationToken;
     private readonly ILogger _logger;
     private readonly Process _serverProcess;
     private readonly OutputCollector _output;
@@ -26,7 +26,7 @@ internal sealed class AppHostServerSession : IAppHostServerSession
         Process serverProcess,
         OutputCollector output,
         string socketPath,
-        string? authenticationToken,
+        string authenticationToken,
         ILogger logger)
     {
         _serverProcess = serverProcess;
@@ -125,7 +125,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
 
         // Start the server process
         var currentPid = Environment.ProcessId;
-        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        var authenticationToken = TokenGenerator.GenerateToken();
         launchSettingsEnvVars ??= [];
         launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
         var (socketPath, serverProcess, serverOutput) = appHostServerProject.Run(

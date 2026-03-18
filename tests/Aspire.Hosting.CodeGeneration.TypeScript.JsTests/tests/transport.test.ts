@@ -625,12 +625,48 @@ function createPipeFixture(options?: { authenticate?: (token: string) => boolean
 
 describe('callback invocation protocol', () => {
     async function connectFixture() {
-        const fixture = createPipeFixture();
+        const previousToken = process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
+        const testToken = 'callback-test-token';
+        process.env.ASPIRE_REMOTE_APPHOST_TOKEN = testToken;
+
+        const fixture = createPipeFixture({
+            authenticate: (token: string) => token === testToken,
+        });
+
         await fixture.start();
         const client = new AspireClient(fixture.clientSocketPath);
-        await client.connect();
-        await fixture.waitForClient();
-        return { fixture, client };
+
+        try {
+            await client.connect();
+            await fixture.waitForClient();
+        }
+        catch (error)
+        {
+            if (previousToken === undefined) {
+                delete process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
+            } else {
+                process.env.ASPIRE_REMOTE_APPHOST_TOKEN = previousToken;
+            }
+
+            await fixture.cleanup(client);
+            throw error;
+        }
+
+        return {
+            fixture: {
+                ...fixture,
+                cleanup: async (client: AspireClient) => {
+                    if (previousToken === undefined) {
+                        delete process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
+                    } else {
+                        process.env.ASPIRE_REMOTE_APPHOST_TOKEN = previousToken;
+                    }
+
+                    await fixture.cleanup(client);
+                },
+            },
+            client,
+        };
     }
 
     it('invokes a no-arg callback', async () => {

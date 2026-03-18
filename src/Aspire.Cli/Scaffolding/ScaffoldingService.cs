@@ -81,7 +81,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Step 2: Start the server temporarily for scaffolding and code generation
         var currentPid = Environment.ProcessId;
-        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        var authenticationToken = TokenGenerator.GenerateToken();
         var serverEnvironmentVariables = new Dictionary<string, string>
         {
             [KnownConfigNames.RemoteAppHostToken] = authenticationToken

@@ -167,7 +167,7 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            var authenticationToken = TokenGenerator.GenerateToken();
             var serverEnvironmentVariables = new Dictionary<string, string>
             {
                 [KnownConfigNames.RemoteAppHostToken] = authenticationToken

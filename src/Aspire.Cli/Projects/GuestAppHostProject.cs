@@ -259,7 +259,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
         // Step 2: Start the AppHost server temporarily for code generation
         var currentPid = Environment.ProcessId;
-        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        var authenticationToken = TokenGenerator.GenerateToken();
         var serverEnvironmentVariables = new Dictionary<string, string>
         {
             [KnownConfigNames.RemoteAppHostToken] = authenticationToken
@@ -423,7 +423,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
-            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            var authenticationToken = TokenGenerator.GenerateToken();
             launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Check if hot reload (watch mode) is enabled
@@ -794,7 +794,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
-            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            var authenticationToken = TokenGenerator.GenerateToken();
             launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)

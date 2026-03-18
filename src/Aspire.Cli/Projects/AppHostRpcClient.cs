@@ -24,16 +24,12 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
     }
 
     /// <summary>
-    /// Creates and connects an RPC client to the specified socket path.
+    /// Creates and connects an RPC client to the specified socket path and authenticates the session.
     /// </summary>
-    public static Task<AppHostRpcClient> ConnectAsync(string socketPath, CancellationToken cancellationToken)
-        => ConnectAsync(socketPath, authenticationToken: null, cancellationToken);
-
-    /// <summary>
-    /// Creates and connects an RPC client to the specified socket path and authenticates the session if needed.
-    /// </summary>
-    public static async Task<AppHostRpcClient> ConnectAsync(string socketPath, string? authenticationToken, CancellationToken cancellationToken)
+    public static async Task<AppHostRpcClient> ConnectAsync(string socketPath, string authenticationToken, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrEmpty(authenticationToken);
+
         var stream = await ConnectToServerAsync(socketPath, cancellationToken);
         JsonRpc? jsonRpc = null;
 
@@ -44,13 +40,10 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
             jsonRpc = new JsonRpc(handler);
             jsonRpc.StartListening();
 
-            if (!string.IsNullOrEmpty(authenticationToken))
+            var authenticated = await jsonRpc.InvokeWithCancellationAsync<bool>("authenticate", [authenticationToken], cancellationToken);
+            if (!authenticated)
             {
-                var authenticated = await jsonRpc.InvokeWithCancellationAsync<bool>("authenticate", [authenticationToken], cancellationToken);
-                if (!authenticated)
-                {
-                    throw new InvalidOperationException("Failed to authenticate to the AppHost server.");
-                }
+                throw new InvalidOperationException("Failed to authenticate to the AppHost server.");
             }
 
             return new AppHostRpcClient(stream, jsonRpc);
@@ -185,8 +178,8 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
 internal sealed class AppHostRpcClientFactory : IAppHostRpcClientFactory
 {
     /// <inheritdoc />
-    public async Task<IAppHostRpcClient> ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public async Task<IAppHostRpcClient> ConnectAsync(string socketPath, string authenticationToken, CancellationToken cancellationToken)
     {
-        return await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+        return await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
     }
 }
