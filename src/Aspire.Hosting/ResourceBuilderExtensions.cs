@@ -227,7 +227,7 @@ public static class ResourceBuilderExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/>, <paramref name="name"/>, or <paramref name="value"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is not a supported type.</exception>
     [AspireExport("withEnvironment", Description = "Sets an environment variable on the resource")]
-    public static IResourceBuilder<T> WithEnvironment<T>(
+    internal static IResourceBuilder<T> WithEnvironment<T>(
         this IResourceBuilder<T> builder,
         string name,
         [AspireUnion(typeof(string), typeof(ReferenceExpression), typeof(EndpointReference), typeof(IResourceBuilder<ParameterResource>), typeof(IResourceBuilder<IResourceWithConnectionString>))] object value)
