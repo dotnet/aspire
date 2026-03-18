@@ -312,6 +312,51 @@ Present findings in a structured format, grouped by severity:
 
 After generating the report, **post each finding as a separate PR review comment** so the team can discuss each one independently.
 
+#### Check for existing reviews (deduplication)
+
+Before posting, check whether you have already posted a review on this PR. If so, **update or skip rather than duplicate**.
+
+```python
+# check_existing_reviews.py — detect prior API review comments
+import subprocess, json, os
+
+env = {**os.environ, 'GH_PAGER': 'cat'}
+
+# Get the current authenticated user
+result = subprocess.run(['gh', 'api', '/user', '--jq', '.login'],
+    capture_output=True, text=True, env=env)
+current_user = result.stdout.strip()
+
+# Fetch all review comments on the PR by the current user
+result = subprocess.run([
+    'gh', 'api', '--paginate',
+    '/repos/dotnet/aspire/pulls/<PR_NUMBER>/comments'
+], capture_output=True, text=True, encoding='utf-8', env=env)
+all_comments = json.loads(result.stdout)
+
+my_comments = [c for c in all_comments if c['user']['login'] == current_user]
+api_review_comments = [c for c in my_comments
+    if any(marker in c['body'] for marker in
+        ['[Breaking Change]', '[Parameter Design]', '[Namespace',
+         '[Visibility]', '[Type Design]', '[Preview Package]',
+         '[Obsolete API', '[Naming', '[Experimental', '[Consistency'])]
+
+if api_review_comments:
+    print(f"Found {len(api_review_comments)} existing API review comments by @{current_user}")
+    for c in api_review_comments:
+        print(f"  - {c['id']}: {c['path']}:{c.get('line', '?')} | {c['body'][:60]}...")
+else:
+    print("No existing API review comments found — safe to post.")
+```
+
+**If existing comments are found:**
+1. Compare each new finding against existing comments (match by file path + rule name)
+2. **Skip** findings that already have a matching comment
+3. **Update** existing comments (via `PATCH /repos/{owner}/{repo}/pulls/comments/{comment_id}`) if the finding text has changed
+4. **Post only net-new** findings that don't have a matching existing comment
+
+**If no existing comments are found**, proceed to post all findings.
+
 #### Determine line numbers for inline comments
 
 For each finding, determine the line number in the diff where the API appears. Parse the diff hunks from Step 1 to map API declarations to their line numbers in the changed files.
