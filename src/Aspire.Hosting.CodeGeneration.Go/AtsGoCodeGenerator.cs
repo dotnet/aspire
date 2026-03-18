@@ -492,6 +492,11 @@ public sealed class AtsGoCodeGenerator : ICodeGenerator
         WriteLine("\tif err := client.Connect(); err != nil {");
         WriteLine("\t\treturn nil, err");
         WriteLine("\t}");
+        WriteLine("\tif authToken := os.Getenv(\"ASPIRE_REMOTE_APPHOST_TOKEN\"); authToken != \"\" {");
+        WriteLine("\t\tif err := client.Authenticate(authToken); err != nil {");
+        WriteLine("\t\t\treturn nil, err");
+        WriteLine("\t\t}");
+        WriteLine("\t}");
         WriteLine("\tclient.OnDisconnect(func() { os.Exit(1) })");
         WriteLine("\treturn client, nil");
         WriteLine("}");

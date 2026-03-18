@@ -469,6 +469,10 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         WriteLine("        }");
         WriteLine("        AspireClient client = new AspireClient(socketPath);");
         WriteLine("        client.connect();");
+        WriteLine("        String authToken = System.getenv(\"ASPIRE_REMOTE_APPHOST_TOKEN\");");
+        WriteLine("        if (authToken != null && !authToken.isEmpty()) {");
+        WriteLine("            client.authenticate(authToken);");
+        WriteLine("        }");
         WriteLine("        client.onDisconnect(() -> System.exit(1));");
         WriteLine("        return client;");
         WriteLine("    }");

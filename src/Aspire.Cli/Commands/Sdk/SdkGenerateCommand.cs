@@ -7,6 +7,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands.Sdk;
@@ -160,12 +161,17 @@ internal sealed class SdkGenerateCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
+            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            var serverEnvironmentVariables = new Dictionary<string, string>
+            {
+                [KnownConfigNames.RemoteAppHostToken] = authenticationToken
+            };
+            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
 
             try
             {
                 // Connect and generate code
-                await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+                await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
 
                 _logger.LogDebug("Generating {Language} SDK via RPC", languageInfo.CodeGenerator);
                 var generatedFiles = await rpcClient.GenerateCodeAsync(languageInfo.CodeGenerator, cancellationToken);

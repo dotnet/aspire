@@ -5,6 +5,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Scaffolding;
@@ -80,12 +81,17 @@ internal sealed class ScaffoldingService : IScaffoldingService
 
         // Step 2: Start the server temporarily for scaffolding and code generation
         var currentPid = Environment.ProcessId;
-        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
+        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        var serverEnvironmentVariables = new Dictionary<string, string>
+        {
+            [KnownConfigNames.RemoteAppHostToken] = authenticationToken
+        };
+        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
 
         try
         {
             // Step 3: Connect to server and get scaffold templates via RPC
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
 
             var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
                 language.LanguageId,

@@ -1,4 +1,4 @@
-﻿// Aspire.java - Capability-based Aspire SDK
+// Aspire.java - Capability-based Aspire SDK
 // GENERATED CODE - DO NOT EDIT
 
 package aspire;
@@ -11877,6 +11877,10 @@ public class Aspire {
         }
         AspireClient client = new AspireClient(socketPath);
         client.connect();
+        String authToken = System.getenv("ASPIRE_REMOTE_APPHOST_TOKEN");
+        if (authToken != null && !authToken.isEmpty()) {
+            client.authenticate(authToken);
+        }
         client.onDisconnect(() -> System.exit(1));
         return client;
     }

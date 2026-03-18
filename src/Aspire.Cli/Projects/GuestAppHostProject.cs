@@ -259,12 +259,17 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
         // Step 2: Start the AppHost server temporarily for code generation
         var currentPid = Environment.ProcessId;
-        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid);
+        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        var serverEnvironmentVariables = new Dictionary<string, string>
+        {
+            [KnownConfigNames.RemoteAppHostToken] = authenticationToken
+        };
+        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
 
         try
         {
             // Step 3: Connect to server
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
 
             // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
             await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
@@ -418,6 +423,8 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
@@ -444,7 +451,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
 
             // Step 5: Connect to server for RPC calls
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
 
             // Step 6: Install dependencies (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
@@ -486,7 +493,8 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             {
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
                 ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
-                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName,
+                [KnownConfigNames.RemoteAppHostToken] = authenticationToken
             };
 
             // Check if the extension should launch the guest app host (for VS Code debugging).
@@ -786,6 +794,8 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
@@ -808,7 +818,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
 
             // Step 3: Connect to server for RPC calls
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(jsonRpcSocketPath, cancellationToken);
+            await using var rpcClient = await AppHostRpcClient.ConnectAsync(jsonRpcSocketPath, authenticationToken, cancellationToken);
 
             // Step 4: Install dependencies if needed (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
@@ -848,7 +858,8 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             {
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
                 ["ASPIRE_PROJECT_DIRECTORY"] = directory.FullName,
-                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName
+                ["ASPIRE_APPHOST_FILEPATH"] = appHostFile.FullName,
+                [KnownConfigNames.RemoteAppHostToken] = authenticationToken
             };
 
             // Step 6: Execute the guest apphost for publishing

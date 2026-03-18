@@ -26,16 +26,41 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
     /// <summary>
     /// Creates and connects an RPC client to the specified socket path.
     /// </summary>
-    public static async Task<AppHostRpcClient> ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public static Task<AppHostRpcClient> ConnectAsync(string socketPath, CancellationToken cancellationToken)
+        => ConnectAsync(socketPath, authenticationToken: null, cancellationToken);
+
+    /// <summary>
+    /// Creates and connects an RPC client to the specified socket path and authenticates the session if needed.
+    /// </summary>
+    public static async Task<AppHostRpcClient> ConnectAsync(string socketPath, string? authenticationToken, CancellationToken cancellationToken)
     {
         var stream = await ConnectToServerAsync(socketPath, cancellationToken);
+        JsonRpc? jsonRpc = null;
 
-        var formatter = BackchannelJsonSerializerContext.CreateRpcMessageFormatter();
-        var handler = new HeaderDelimitedMessageHandler(stream, stream, formatter);
-        var jsonRpc = new JsonRpc(handler);
-        jsonRpc.StartListening();
+        try
+        {
+            var formatter = BackchannelJsonSerializerContext.CreateRpcMessageFormatter();
+            var handler = new HeaderDelimitedMessageHandler(stream, stream, formatter);
+            jsonRpc = new JsonRpc(handler);
+            jsonRpc.StartListening();
 
-        return new AppHostRpcClient(stream, jsonRpc);
+            if (!string.IsNullOrEmpty(authenticationToken))
+            {
+                var authenticated = await jsonRpc.InvokeWithCancellationAsync<bool>("authenticate", [authenticationToken], cancellationToken);
+                if (!authenticated)
+                {
+                    throw new InvalidOperationException("Failed to authenticate to the AppHost server.");
+                }
+            }
+
+            return new AppHostRpcClient(stream, jsonRpc);
+        }
+        catch
+        {
+            jsonRpc?.Dispose();
+            await stream.DisposeAsync();
+            throw;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

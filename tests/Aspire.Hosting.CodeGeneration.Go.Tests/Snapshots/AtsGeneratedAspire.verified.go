@@ -1,4 +1,4 @@
-﻿// aspire.go - Capability-based Aspire SDK
+// aspire.go - Capability-based Aspire SDK
 // GENERATED CODE - DO NOT EDIT
 
 package aspire
@@ -1394,6 +1394,11 @@ func Connect() (*AspireClient, error) {
 	client := NewAspireClient(socketPath)
 	if err := client.Connect(); err != nil {
 		return nil, err
+	}
+	if authToken := os.Getenv("ASPIRE_REMOTE_APPHOST_TOKEN"); authToken != "" {
+		if err := client.Authenticate(authToken); err != nil {
+			return nil, err
+		}
 	}
 	client.OnDisconnect(func() { os.Exit(1) })
 	return client, nil

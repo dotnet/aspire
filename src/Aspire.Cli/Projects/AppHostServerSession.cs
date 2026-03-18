@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -13,6 +14,7 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class AppHostServerSession : IAppHostServerSession
 {
+    private readonly string? _authenticationToken;
     private readonly ILogger _logger;
     private readonly Process _serverProcess;
     private readonly OutputCollector _output;
@@ -24,11 +26,13 @@ internal sealed class AppHostServerSession : IAppHostServerSession
         Process serverProcess,
         OutputCollector output,
         string socketPath,
+        string? authenticationToken,
         ILogger logger)
     {
         _serverProcess = serverProcess;
         _output = output;
         _socketPath = socketPath;
+        _authenticationToken = authenticationToken;
         _logger = logger;
     }
 
@@ -46,7 +50,7 @@ internal sealed class AppHostServerSession : IAppHostServerSession
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(AppHostServerSession));
 
-        return _rpcClient ??= await AppHostRpcClient.ConnectAsync(_socketPath, cancellationToken);
+        return _rpcClient ??= await AppHostRpcClient.ConnectAsync(_socketPath, _authenticationToken, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -121,6 +125,9 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
 
         // Start the server process
         var currentPid = Environment.ProcessId;
+        var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+        launchSettingsEnvVars ??= [];
+        launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
         var (socketPath, serverProcess, serverOutput) = appHostServerProject.Run(
             currentPid,
             launchSettingsEnvVars,
@@ -131,6 +138,7 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
             serverProcess,
             serverOutput,
             socketPath,
+            authenticationToken,
             _logger);
 
         return new AppHostServerSessionResult(

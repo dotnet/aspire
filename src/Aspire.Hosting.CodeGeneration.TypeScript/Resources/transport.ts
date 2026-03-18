@@ -830,7 +830,7 @@ export class AspireClient {
                 failConnect(new Error('Connection closed before JSON-RPC was established'));
             };
 
-            const onConnect = () => {
+            const onConnect = async () => {
                 if (settled) {
                     return;
                 }
@@ -868,6 +868,14 @@ export class AspireClient {
                     socket.on('close', onConnectedSocketClose);
 
                     this.connection.listen();
+                    const authToken = process.env.ASPIRE_REMOTE_APPHOST_TOKEN;
+                    if (authToken) {
+                        const authenticated = await this.connection.sendRequest<boolean>('authenticate', [authToken]);
+                        if (!authenticated) {
+                            throw new Error('Failed to authenticate to the AppHost server.');
+                        }
+                    }
+
                     connectedClients.add(this);
                     this._connectPromise = null;
                     settled = true;

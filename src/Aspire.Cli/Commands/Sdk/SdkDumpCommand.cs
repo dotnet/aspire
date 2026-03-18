@@ -11,6 +11,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Semver;
 using Spectre.Console;
@@ -166,12 +167,17 @@ internal sealed class SdkDumpCommand : BaseCommand
 
             // Start the server
             var currentPid = Environment.ProcessId;
-            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, new Dictionary<string, string>());
+            var authenticationToken = AppHostRpcTokenGenerator.GenerateToken();
+            var serverEnvironmentVariables = new Dictionary<string, string>
+            {
+                [KnownConfigNames.RemoteAppHostToken] = authenticationToken
+            };
+            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
 
             try
             {
                 // Connect and get capabilities
-                await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, cancellationToken);
+                await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
 
                 _logger.LogDebug("Fetching capabilities via RPC");
                 var capabilities = await rpcClient.GetCapabilitiesAsync(cancellationToken);
