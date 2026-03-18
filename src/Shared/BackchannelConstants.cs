@@ -59,16 +59,15 @@ namespace Aspire.Hosting.Backchannel;
 /// <para>
 /// <strong>Backward Compatibility</strong>
 /// </para>
-    /// <para>
-    /// Old CLI versions use glob pattern <c>aux*.sock.*</c> which matches the new format.
-    /// Old CLIs will work with new AppHosts, they just won't benefit from PID-based orphan detection.
-    /// </para>
-    /// <para>
-    /// New CLIs also fall back to the legacy SHA-256 AppHost hash during discovery so they can
-    /// still connect to older AppHosts that have not yet been updated to the xxHash-based prefix.
-    /// </para>
-    /// </remarks>
-internal static class BackchannelConstants
+/// <para>
+/// Old CLI versions use glob pattern <c>aux*.sock.*</c> which matches the new format.
+/// Old CLIs will work with new AppHosts, they just won't benefit from PID-based orphan detection.
+/// </para>
+/// <para>
+/// New CLIs also fall back to the legacy SHA-256 AppHost hash during discovery so they can
+/// still connect to older AppHosts that have not yet been updated to the xxHash-based prefix.
+/// </para>
+/// </remarks>
 {
     /// <summary>
     /// Prefix for auxiliary backchannel sockets.
