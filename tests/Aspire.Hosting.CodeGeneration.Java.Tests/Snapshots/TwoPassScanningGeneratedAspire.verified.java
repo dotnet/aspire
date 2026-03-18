@@ -825,7 +825,7 @@ class CSharpAppResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -2708,7 +2708,7 @@ class ContainerResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -3723,7 +3723,7 @@ class DotnetToolResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -4771,7 +4771,7 @@ class ExecutableResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -7681,7 +7681,7 @@ class ProjectResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -9041,7 +9041,7 @@ class TestDatabaseResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */
@@ -10082,7 +10082,7 @@ class TestRedisResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Gets a connection property by key */
@@ -11244,7 +11244,7 @@ class TestVaultResource extends ResourceBuilderBase {
         if (name != null) {
             reqArgs.put("name", AspireClient.serializeValue(name));
         }
-        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs);
+        return (IResourceWithEnvironment) getClient().invokeCapability("Aspire.Hosting/withReference", reqArgs);
     }
 
     /** Adds a reference to a URI */

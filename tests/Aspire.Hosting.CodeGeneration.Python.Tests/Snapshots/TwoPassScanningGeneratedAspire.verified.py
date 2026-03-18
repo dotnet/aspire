@@ -438,7 +438,7 @@ class CSharpAppResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -1845,7 +1845,7 @@ class ContainerResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -2590,7 +2590,7 @@ class DotnetToolResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -3362,7 +3362,7 @@ class ExecutableResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -5539,7 +5539,7 @@ class ProjectResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -6565,7 +6565,7 @@ class TestDatabaseResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
@@ -7330,7 +7330,7 @@ class TestRedisResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def get_connection_property(self, key: str) -> ReferenceExpression:
         """Gets a connection property by key"""
@@ -8193,7 +8193,7 @@ class TestVaultResource(ResourceBuilderBase):
         args["optional"] = serialize_value(optional)
         if name is not None:
             args["name"] = serialize_value(name)
-        return self._client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)
+        return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""

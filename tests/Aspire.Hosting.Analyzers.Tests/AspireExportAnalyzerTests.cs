@@ -1366,6 +1366,24 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
+    public async Task MissingExportAttribute_WithContainingTypeAspireExportIgnore_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            [AspireExportIgnore(Reason = "Not part of the ATS surface.")]
+            public static class TestExtensions
+            {
+                public static void AddThing(this IDistributedApplicationBuilder builder, string name) { }
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
     public async Task MissingExportAttribute_ObsoleteMethod_NoDiagnostics()
     {
         var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
@@ -1633,6 +1651,29 @@ public class AspireExportAnalyzerTests
                     string name,
                     string value)
                     where T : IResource
+                    => builder;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ExportNameMatchesMethodName_WithInterfaceTarget_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using Aspire.Hosting.ApplicationModel;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("withReference")]
+                internal static IResourceBuilder<T> WithReference<T>(
+                    this IResourceBuilder<T> builder,
+                    IResourceBuilder<IResource> target)
+                    where T : IResourceWithEnvironment
                     => builder;
             }
             """, []);

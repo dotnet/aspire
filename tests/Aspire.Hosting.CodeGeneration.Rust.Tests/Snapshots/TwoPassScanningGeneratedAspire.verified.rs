@@ -981,7 +981,7 @@ impl CSharpAppResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -3272,7 +3272,7 @@ impl ContainerResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -4580,7 +4580,7 @@ impl DotnetToolResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -5868,7 +5868,7 @@ impl ExecutableResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -9870,7 +9870,7 @@ impl ProjectResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -11639,7 +11639,7 @@ impl TestDatabaseResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -12897,7 +12897,7 @@ impl TestRedisResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }
@@ -14284,7 +14284,7 @@ impl TestVaultResource {
         if let Some(ref v) = name {
             args.insert("name".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
         }
-        let result = self.client.invoke_capability("Aspire.Hosting/withGenericResourceReference", args)?;
+        let result = self.client.invoke_capability("Aspire.Hosting/withReference", args)?;
         let handle: Handle = serde_json::from_value(result)?;
         Ok(IResourceWithEnvironment::new(handle, self.client.clone()))
     }

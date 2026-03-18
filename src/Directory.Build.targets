@@ -19,11 +19,10 @@
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Aspire.Hosting'))
                         and
                         '$(SkipAspireIntegrationAnalyzersReference)' != 'true'">
-    <ProjectReference Include="$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', 'Aspire.Hosting.Integration.Analyzers', 'Aspire.Hosting.Integration.Analyzers.csproj'))"
+    <ProjectReference Include="$(MSBuildThisFileDirectory)\Aspire.Hosting.Integration.Analyzers\Aspire.Hosting.Integration.Analyzers.csproj"
                     PrivateAssets="all"
                     ReferenceOutputAssembly="false"
-                    OutputItemType="Analyzer"
-                    SetTargetFramework="TargetFramework=netstandard2.0" />
+                    OutputItemType="Analyzer" />
   </ItemGroup>
 
   <!-- Used by Aspire.Workload.Testing.targets -->

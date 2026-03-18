@@ -7019,7 +7019,7 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new ContainerResource(result, this._client);
@@ -8937,7 +8937,7 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new CSharpAppResource(result, this._client);
@@ -10884,7 +10884,7 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new DotnetToolResource(result, this._client);
@@ -12756,7 +12756,7 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new ExecutableResource(result, this._client);
@@ -16347,7 +16347,7 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new ProjectResource(result, this._client);
@@ -18402,7 +18402,7 @@ export class TestDatabaseResource extends ResourceBuilderBase<TestDatabaseResour
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new TestDatabaseResource(result, this._client);
@@ -20561,7 +20561,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new TestRedisResource(result, this._client);
@@ -22968,7 +22968,7 @@ export class TestVaultResource extends ResourceBuilderBase<TestVaultResourceHand
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new TestVaultResource(result, this._client);
@@ -26328,7 +26328,7 @@ export class ResourceWithEnvironment extends ResourceBuilderBase<IResourceWithEn
         if (optional !== undefined) rpcArgs.optional = optional;
         if (name !== undefined) rpcArgs.name = name;
         const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
-            'Aspire.Hosting/withGenericResourceReference',
+            'Aspire.Hosting/withReference',
             rpcArgs
         );
         return new ResourceWithEnvironment(result, this._client);

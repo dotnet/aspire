@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting;
 #if !CLI && !ASPIRE_DASHBOARD
-using Aspire.Hosting.Ats;
+using Aspire.Hosting;
 #endif
 using Microsoft.Extensions.Configuration;
 
@@ -18,10 +17,10 @@ internal sealed class AspireExportIgnoreAttribute : Attribute
 }
 #endif
 
+[AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
 internal static class IConfigurationExtensions
 {
 #if !CLI
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static T GetValue<T>(this IConfiguration configuration, string primaryKey, string secondaryKey, T defaultValue)
     {
         var primaryValue = configuration.GetValue(typeof(T), primaryKey, null);
@@ -40,14 +39,12 @@ internal static class IConfigurationExtensions
     }
 #endif
 
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static bool? GetBool(this IConfiguration configuration, string primaryKey, string secondaryKey)
     {
         var value = configuration.GetBool(primaryKey) ?? configuration.GetBool(secondaryKey);
         return value;
     }
 
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static string? GetString(this IConfiguration configuration, string primaryKey, string secondaryKey, bool fallbackOnEmpty = false)
     {
         var primaryValue = configuration[primaryKey];
@@ -74,7 +71,6 @@ internal static class IConfigurationExtensions
     /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
     /// <param name="key">The configuration key.</param>
     /// <returns>The parsed value, or <see langword="null"/> if no value exists or it couldn't be parsed.</returns>
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static bool? GetBool(this IConfiguration configuration, string key)
     {
         var value = configuration[key];
@@ -105,7 +101,6 @@ internal static class IConfigurationExtensions
     /// <param name="key">The configuration key.</param>
     /// <param name="defaultValue">A default value, for when the configuration value is unspecified or white space.</param>
     /// <returns></returns>
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static bool GetBool(this IConfiguration configuration, string key, bool defaultValue)
     {
         return configuration.GetBool(key) ?? defaultValue;
@@ -120,7 +115,6 @@ internal static class IConfigurationExtensions
     /// <returns>The parsed value, or the default value if specified and parsing failed. Returns <see langword="null"/> if <paramref name="defaultValue"/> is <see langword="null"/> and parsing failed.</returns>
     /// <exception cref="InvalidOperationException">The configuration value could not be accessed, or contained incorrectly formatted data.</exception>
     [return: NotNullIfNotNull(nameof(defaultValue))]
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static Uri? GetUri(this IConfiguration configuration, string key, Uri? defaultValue = null)
     {
         try
@@ -151,7 +145,6 @@ internal static class IConfigurationExtensions
     /// <returns>The parsed values, or the default value if specified and parsing failed. Returns <see langword="null"/> if <paramref name="defaultValue"/> is <see langword="null"/> and parsing failed.</returns>
     /// <exception cref="InvalidOperationException">The configuration value could not be accessed, or contained incorrectly formatted data.</exception>
     [return: NotNullIfNotNull(nameof(defaultValue))]
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static Uri[]? GetUris(this IConfiguration configuration, string key, Uri? defaultValue = null)
     {
         try
@@ -192,7 +185,6 @@ internal static class IConfigurationExtensions
     /// <exception cref="InvalidOperationException">The configuration value is not a valid member of the enum.</exception>
     /// <returns>The parsed enum member, or <paramref name="defaultValue"/> the configuration value was null or empty.</returns>
     [return: NotNullIfNotNull(nameof(defaultValue))]
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static T? GetEnum<T>(this IConfiguration configuration, string key, T? defaultValue = default)
         where T : struct
     {
@@ -220,7 +212,6 @@ internal static class IConfigurationExtensions
     /// <param name="key">The configuration key.</param>
     /// <exception cref="InvalidOperationException">The configuration value is empty or not a valid member of the enum.</exception>
     /// <returns>The parsed enum member.</returns>
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static T GetEnum<T>(this IConfiguration configuration, string key)
         where T : struct
     {
@@ -245,7 +236,6 @@ internal static class IConfigurationExtensions
     /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
     /// <param name="configKey">The configuration key to look up.</param>
     /// <returns>The configuration value, or <see langword="null"/> if not found.</returns>
-    [AspireExportIgnore(Reason = "Internal IConfiguration helper — use the dedicated ATS configuration exports instead.")]
     public static string? GetValueWithNormalizedKey(this IConfiguration configuration, string configKey)
     {
         // First try to get the value with the exact configuration key

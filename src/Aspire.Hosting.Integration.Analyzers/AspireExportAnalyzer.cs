@@ -148,8 +148,21 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        var containingTypeHasExportIgnore = false;
+        if (!hasExportIgnore && aspireExportIgnoreAttribute is not null)
+        {
+            foreach (var attr in method.ContainingType.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportIgnoreAttribute))
+                {
+                    containingTypeHasExportIgnore = true;
+                    break;
+                }
+            }
+        }
+
         // ASPIREEXPORT008: Check for missing export attributes on builder extension methods
-        if (exportAttribute is null && !hasExportIgnore && !isObsolete)
+        if (exportAttribute is null && !hasExportIgnore && !containingTypeHasExportIgnore && !isObsolete)
         {
             AnalyzeMissingExportAttribute(context, method, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
@@ -510,8 +523,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 return null;
             }
 
-            // Check that the type argument is a concrete type, not a type parameter
-            if (namedType.TypeArguments.Length == 1 && namedType.TypeArguments[0] is not ITypeParameterSymbol)
+            // Check that the type argument is a concrete resource type, not a type parameter or interface.
+            if (namedType.TypeArguments.Length == 1 &&
+                namedType.TypeArguments[0] is not ITypeParameterSymbol &&
+                namedType.TypeArguments[0].TypeKind is not TypeKind.Interface)
             {
                 return namedType.TypeArguments[0].Name;
             }

@@ -726,7 +726,7 @@ func (s *CSharpAppResource) WithReference(source *IResource, connectionName *str
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -3569,7 +3569,7 @@ func (s *ContainerResource) WithReference(source *IResource, connectionName *str
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -5094,7 +5094,7 @@ func (s *DotnetToolResource) WithReference(source *IResource, connectionName *st
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -6683,7 +6683,7 @@ func (s *ExecutableResource) WithReference(source *IResource, connectionName *st
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -11058,7 +11058,7 @@ func (s *ProjectResource) WithReference(source *IResource, connectionName *strin
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -13093,7 +13093,7 @@ func (s *TestDatabaseResource) WithReference(source *IResource, connectionName *
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -14659,7 +14659,7 @@ func (s *TestRedisResource) WithReference(source *IResource, connectionName *str
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -16394,7 +16394,7 @@ func (s *TestVaultResource) WithReference(source *IResource, connectionName *str
 	if name != nil {
 		reqArgs["name"] = SerializeValue(name)
 	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withGenericResourceReference", reqArgs)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withReference", reqArgs)
 	if err != nil {
 		return nil, err
 	}
