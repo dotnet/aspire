@@ -79,12 +79,6 @@ public sealed class LocalConfigMigrationTests(ITestOutputHelper output)
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Verify settings.json was written correctly
-        await auto.TypeAsync("cat .aspire/settings.json");
-        await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("../src/apphost.ts", timeout: TimeSpan.FromSeconds(5));
-        await auto.WaitForSuccessPromptAsync(counter);
-
         // Step 4: Run aspire run to trigger the migration from .aspire/settings.json
         // to aspire.config.json. The migration happens in LoadConfiguration() which
         // is called before the actual build/run step.
@@ -117,24 +111,10 @@ public sealed class LocalConfigMigrationTests(ITestOutputHelper output)
         // Step 5: Verify aspire.config.json was created with the corrected path.
         // The path should be "src/apphost.ts" (relative to repo root),
         // NOT "../src/apphost.ts" (which was the legacy .aspire/-relative path).
-        await auto.TypeAsync("cat aspire.config.json");
+        // Use grep with the exact JSON key-value to avoid matching stale terminal
+        // output from the earlier echo of legacy settings.json content.
+        await auto.TypeAsync("grep '\"path\": \"src/apphost.ts\"' aspire.config.json");
         await auto.EnterAsync();
-
-        // Verify the corrected path appears in the config
-        await auto.WaitUntilAsync(s =>
-        {
-            // The path should NOT contain "../src/apphost.ts"
-            if (s.ContainsText("../src/apphost.ts"))
-            {
-                throw new InvalidOperationException(
-                    "aspire.config.json contains the uncorrected legacy path '../src/apphost.ts'. " +
-                    "Migration should have adjusted it to 'src/apphost.ts'.");
-            }
-
-            // The path SHOULD contain "src/apphost.ts"
-            return s.ContainsText("src/apphost.ts");
-        }, timeout: TimeSpan.FromSeconds(10), description: "aspire.config.json with corrected path 'src/apphost.ts'");
-
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Also verify on the host side via bind mount
