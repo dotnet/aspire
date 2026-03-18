@@ -14,7 +14,7 @@ dotnet add package Aspire.HealthChecks
 
 ## Usage example
 
-In the _Extensions.cs_ file of your project (if you're using the Aspire templates, if not - wherever you're calling `app.MapHealthChecks("/health")`, use the overload to supply options and provide this
+In the _Extensions.cs_ file of your project (if you're using the Aspire templates; otherwise, wherever you call `app.MapHealthChecks("/health")`), use the overload that accepts `HealthCheckOptions` and configure the `ResponseWriter` as shown below:
 
 ```csharp
 app.MapHealthChecks("/health", new HealthCheckOptions

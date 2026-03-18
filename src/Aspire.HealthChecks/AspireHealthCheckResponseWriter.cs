@@ -12,7 +12,46 @@ namespace Aspire.HealthChecks;
 /// A health check response writer that formats health check results in a way that Aspire can parse and display individual checks.
 /// </summary>
 /// <remarks>
-/// This response writer formats the health check results as JSON with a structure that includes the overall status
+/// This response writer formats the health check results as a JSON object with the following structure:
+/// <list type="table">
+/// <item>
+/// <term>status</term>
+/// <description>The overall <see cref="HealthStatus"/> of the health report, serialized as a string.</description>
+/// </item>
+/// <item>
+/// <term>totalDuration</term>
+/// <description>The total duration of all health checks, serialized as a string.</description>
+/// </item>
+/// <item>
+/// <term>entries</term>
+/// <description>
+/// An object whose properties are the individual health check names. Each property value is an object with:
+/// <list type="table">
+/// <item>
+/// <term>status</term>
+/// <description>The status of the individual check, serialized as a string.</description>
+/// </item>
+/// <item>
+/// <term>duration</term>
+/// <description>The duration of the individual check, serialized as a string.</description>
+/// </item>
+/// <item>
+/// <term>description</term>
+/// <description>The optional description associated with the check result.</description>
+/// </item>
+/// <item>
+/// <term>exception</term>
+/// <description>The message from any exception thrown during the check, or <c>null</c> if none occurred.</description>
+/// </item>
+/// <item>
+/// <term>data</term>
+/// <description>The optional data dictionary attached to the check result, or <c>null</c> if no data is present.</description>
+/// </item>
+/// </list>
+/// </description>
+/// </item>
+/// </list>
+///
 /// <example>
 /// In your service's Program.cs:
 /// <code lang="C#">
