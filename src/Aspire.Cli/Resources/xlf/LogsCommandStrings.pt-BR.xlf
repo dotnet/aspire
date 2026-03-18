@@ -3,18 +3,18 @@
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../LogsCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Display logs from resources in a running apphost.</source>
-        <target state="translated">Exiba os logs de recursos em um apphost em execução.</target>
+        <source>Display logs from resources in a running apphost</source>
+        <target state="new">Display logs from resources in a running apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
-        <source>Stream logs in real-time as they are written.</source>
-        <target state="translated">Transmita logs em tempo real conforme eles são gravados.</target>
+        <source>Stream logs in real-time as they are written</source>
+        <target state="new">Stream logs in real-time as they are written</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output format (Table or Json).</source>
-        <target state="translated">Formato de saída (Tabela ou Json).</target>
+        <source>Output format (Table or Json)</source>
+        <target state="new">Output format (Table or Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">
@@ -48,8 +48,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TailOptionDescription">
-        <source>Number of lines to show from the end of logs (default: all).</source>
-        <target state="translated">Número de linhas a serem mostradas a partir do final dos logs (padrão: todos).</target>
+        <source>Number of lines to show from the end of logs (default: all)</source>
+        <target state="new">Number of lines to show from the end of logs (default: all)</target>
         <note />
       </trans-unit>
       <trans-unit id="TailRequiresResource">
@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
-        <source>Show timestamps for each log line.</source>
-        <target state="translated">Mostre os carimbos de data/hora para cada linha de log.</target>
+        <source>Show timestamps for each log line</source>
+        <target state="new">Show timestamps for each log line</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLogs">
