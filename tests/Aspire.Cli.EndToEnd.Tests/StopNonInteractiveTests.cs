@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
@@ -43,7 +44,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Start the AppHost in the background using aspire start
         await auto.TypeAsync("aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen to avoid matching old patterns
@@ -52,7 +53,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Stop the AppHost using aspire stop --non-interactive --project (targets specific AppHost)
         await auto.TypeAsync("aspire stop --non-interactive --project TestStopApp.AppHost.csproj");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
+        await auto.WaitUntilTextAsync(StopCommandStrings.AppHostStoppedSuccessfully, timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen
@@ -61,7 +62,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Verify that stop --non-interactive handles no running AppHosts gracefully
         await auto.TypeAsync("aspire stop --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync(SharedCommandStrings.AppHostNotRunning, timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromSeconds(30));
 
         // Exit the shell
@@ -101,7 +102,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Start first AppHost in background
         await auto.TypeAsync("cd App1/App1.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen before starting second apphost
@@ -110,7 +111,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Navigate back and start second AppHost in background
         await auto.TypeAsync("cd ../../App2/App2.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen
@@ -119,7 +120,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Stop all AppHosts from within an AppHost directory using --non-interactive --all
         await auto.TypeAsync("aspire stop --non-interactive --all");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
+        await auto.WaitUntilTextAsync(StopCommandStrings.AppHostStoppedSuccessfully, timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen
@@ -128,7 +129,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Verify no AppHosts are running
         await auto.TypeAsync("aspire stop --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync(SharedCommandStrings.AppHostNotRunning, timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromSeconds(30));
 
         // Exit the shell
@@ -168,7 +169,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Start first AppHost in background
         await auto.TypeAsync("cd App1/App1.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen before starting second apphost
@@ -177,7 +178,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Navigate back and start second AppHost in background
         await auto.TypeAsync("cd ../../App2/App2.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Navigate to workspace root (unrelated to any AppHost directory)
@@ -191,7 +192,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Stop all AppHosts from an unrelated directory using --non-interactive --all
         await auto.TypeAsync("aspire stop --non-interactive --all");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
+        await auto.WaitUntilTextAsync(StopCommandStrings.AppHostStoppedSuccessfully, timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen
@@ -200,7 +201,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Verify no AppHosts are running
         await auto.TypeAsync("aspire stop --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("No running AppHost found", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync(SharedCommandStrings.AppHostNotRunning, timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromSeconds(30));
 
         // Exit the shell
@@ -240,7 +241,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Start first AppHost in background
         await auto.TypeAsync("cd App1/App1.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clear screen before starting second apphost
@@ -249,7 +250,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Navigate back and start second AppHost in background
         await auto.TypeAsync("cd ../../App2/App2.AppHost && aspire start");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost started successfully.", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitUntilTextAsync(RunCommandStrings.AppHostStartedSuccessfully, timeout: TimeSpan.FromMinutes(3));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Navigate to workspace root
@@ -263,7 +264,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Try to stop in non-interactive mode - should get an error about multiple AppHosts
         await auto.TypeAsync("aspire stop --non-interactive");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("Multiple AppHosts are running", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync("Multiple apphosts are running", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromSeconds(30));
 
         // Clear screen
@@ -272,7 +273,7 @@ public sealed class StopNonInteractiveTests(ITestOutputHelper output)
         // Now use --all to stop all AppHosts
         await auto.TypeAsync("aspire stop --all");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("AppHost stopped successfully.", timeout: TimeSpan.FromMinutes(1));
+        await auto.WaitUntilTextAsync(StopCommandStrings.AppHostStoppedSuccessfully, timeout: TimeSpan.FromMinutes(1));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Exit the shell

@@ -439,7 +439,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run 'cd "{0}"' and then 'aspire run' to start your AppHost..
+        ///   Looks up a localized string similar to Run 'cd "{0}"' and then 'aspire run' to start your apphost..
         /// </summary>
         public static string RunCdThenAspireRun {
             get {
@@ -448,7 +448,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run 'aspire run' to start your AppHost..
+        ///   Looks up a localized string similar to Run 'aspire run' to start your apphost..
         /// </summary>
         public static string RunAspireRun {
             get {

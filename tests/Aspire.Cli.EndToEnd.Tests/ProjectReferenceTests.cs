@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
@@ -146,12 +147,12 @@ public sealed class ProjectReferenceTests(ITestOutputHelper output)
         await auto.EnterAsync();
         await auto.WaitUntilAsync(s =>
         {
-            if (s.ContainsText("AppHost failed to build"))
+            if (s.ContainsText(RunCommandStrings.AppHostFailedToBuild))
             {
                 // Dump child logs before failing
                 return true;
             }
-            return s.ContainsText("AppHost started successfully.");
+            return s.ContainsText(RunCommandStrings.AppHostStartedSuccessfully);
         }, timeout: TimeSpan.FromMinutes(2), description: "waiting for apphost start success or failure");
         await auto.WaitForSuccessPromptAsync(counter);
 
