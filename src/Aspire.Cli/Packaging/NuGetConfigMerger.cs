@@ -4,6 +4,9 @@
 using System.Xml.Linq;
 using System.Xml;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Hashing;
+using System.Text;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Packaging;
 
@@ -86,7 +89,7 @@ internal class NuGetConfigMerger
         if (channel.ConfigureGlobalPackagesFolder)
         {
             // Need to modify the temporary config to add globalPackagesFolder before copying
-            await AddGlobalPackagesFolderToConfigAsync(tmpConfig.ConfigFile);
+            await AddGlobalPackagesFolderToConfigAsync(tmpConfig.ConfigFile, channel);
         }
         
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
@@ -138,7 +141,7 @@ internal class NuGetConfigMerger
         
         if (channel.ConfigureGlobalPackagesFolder)
         {
-            AddGlobalPackagesFolderConfiguration(configContext);
+            AddGlobalPackagesFolderConfiguration(configContext, channel);
         }
         
         await SaveConfigAsync(nugetConfigFile, configContext.Document);
@@ -938,7 +941,7 @@ internal class NuGetConfigMerger
         return matches.Length == 1;
     }
 
-    private static async Task AddGlobalPackagesFolderToConfigAsync(FileInfo configFile)
+    private static async Task AddGlobalPackagesFolderToConfigAsync(FileInfo configFile, PackageChannel channel)
     {
         XDocument doc;
         await using (var stream = configFile.OpenRead())
@@ -947,7 +950,7 @@ internal class NuGetConfigMerger
         }
 
         var configuration = doc.Root ?? throw new InvalidOperationException("Invalid NuGet config structure");
-        AddGlobalPackagesFolderConfiguration(configuration);
+        AddGlobalPackagesFolderConfiguration(configuration, channel);
 
         await using (var writeStream = configFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
         {
@@ -955,12 +958,12 @@ internal class NuGetConfigMerger
         }
     }
 
-    private static void AddGlobalPackagesFolderConfiguration(NuGetConfigContext configContext)
+    private static void AddGlobalPackagesFolderConfiguration(NuGetConfigContext configContext, PackageChannel channel)
     {
-        AddGlobalPackagesFolderConfiguration(configContext.Configuration);
+        AddGlobalPackagesFolderConfiguration(configContext.Configuration, channel);
     }
 
-    private static void AddGlobalPackagesFolderConfiguration(XElement configuration)
+    private static void AddGlobalPackagesFolderConfiguration(XElement configuration, PackageChannel channel)
     {
         // Check if config section already exists
         var config = configuration.Element("config");
@@ -979,8 +982,26 @@ internal class NuGetConfigMerger
             // Add globalPackagesFolder configuration
             var globalPackagesFolderAdd = new XElement("add");
             globalPackagesFolderAdd.SetAttributeValue("key", "globalPackagesFolder");
-            globalPackagesFolderAdd.SetAttributeValue("value", ".nugetpackages");
+            globalPackagesFolderAdd.SetAttributeValue("value", GetGlobalPackagesFolderPath(channel));
             config.Add(globalPackagesFolderAdd);
         }
+    }
+
+    internal static string GetGlobalPackagesFolderPath(PackageChannel channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+
+        var fingerprint = channel.Mappings is { Length: > 0 }
+            ? string.Join("|", channel.Mappings
+                .OrderBy(m => m.PackageFilter, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(m => m.Source, StringComparer.OrdinalIgnoreCase)
+                .Select(m => $"{m.PackageFilter}={m.Source}"))
+            : channel.Name;
+
+        var xxHash = new XxHash3();
+        xxHash.Append(Encoding.UTF8.GetBytes(fingerprint));
+
+        var hash = Convert.ToHexString(xxHash.GetCurrentHash())[..12].ToLowerInvariant();
+        return Path.Combine(CliPathHelper.GetCliNuGetPackagesDirectory(), hash);
     }
 }
