@@ -1,4 +1,4 @@
-# aspire.py - Capability-based Aspire SDK
+﻿# aspire.py - Capability-based Aspire SDK
 # GENERATED CODE - DO NOT EDIT
 
 from __future__ import annotations
@@ -8665,8 +8665,9 @@ def connect() -> AspireClient:
     client = AspireClient(socket_path)
     client.connect()
     auth_token = os.environ.get("ASPIRE_REMOTE_APPHOST_TOKEN")
-    if auth_token:
-        client.authenticate(auth_token)
+    if not auth_token:
+        raise RuntimeError("ASPIRE_REMOTE_APPHOST_TOKEN environment variable not set. Run this application using `aspire run`.")
+    client.authenticate(auth_token)
     client.on_disconnect(lambda: sys.exit(1))
     return client
 

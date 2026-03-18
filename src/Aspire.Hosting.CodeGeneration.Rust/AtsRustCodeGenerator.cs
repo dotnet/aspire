@@ -573,9 +573,9 @@ public sealed class AtsRustCodeGenerator : ICodeGenerator
         WriteLine("        .map_err(|_| \"REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Run this application using `aspire run`\")?;");
         WriteLine("    let client = Arc::new(AspireClient::new(&socket_path));");
         WriteLine("    client.connect()?;");
-        WriteLine("    if let Ok(auth_token) = std::env::var(\"ASPIRE_REMOTE_APPHOST_TOKEN\") {");
-        WriteLine("        client.authenticate(&auth_token)?;");
-        WriteLine("    }");
+        WriteLine("    let auth_token = std::env::var(\"ASPIRE_REMOTE_APPHOST_TOKEN\")");
+        WriteLine("        .map_err(|_| \"ASPIRE_REMOTE_APPHOST_TOKEN environment variable not set. Run this application using `aspire run`\")?;");
+        WriteLine("    client.authenticate(&auth_token)?;");
         WriteLine("    Ok(client)");
         WriteLine("}");
         WriteLine();
