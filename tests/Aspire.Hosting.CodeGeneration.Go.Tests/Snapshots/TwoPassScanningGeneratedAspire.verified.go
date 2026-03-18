@@ -568,34 +568,6 @@ func (s *CSharpAppResource) WithRequiredCommand(command string, helpLink *string
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *CSharpAppResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *CSharpAppResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *CSharpAppResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -611,21 +583,6 @@ func (s *CSharpAppResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *CSharpAppResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *CSharpAppResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -634,6 +591,20 @@ func (s *CSharpAppResource) WithEnvironmentEndpoint(name string, endpointReferen
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *CSharpAppResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -3411,34 +3382,6 @@ func (s *ContainerResource) WithRequiredCommand(command string, helpLink *string
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *ContainerResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *ContainerResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *ContainerResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -3454,21 +3397,6 @@ func (s *ContainerResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ContainerResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ContainerResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -3477,6 +3405,20 @@ func (s *ContainerResource) WithEnvironmentEndpoint(name string, endpointReferen
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *ContainerResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -4936,34 +4878,6 @@ func (s *DotnetToolResource) WithRequiredCommand(command string, helpLink *strin
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *DotnetToolResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *DotnetToolResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *DotnetToolResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -4979,21 +4893,6 @@ func (s *DotnetToolResource) WithEnvironmentCallback(callback func(...any) any) 
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *DotnetToolResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *DotnetToolResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -5002,6 +4901,20 @@ func (s *DotnetToolResource) WithEnvironmentEndpoint(name string, endpointRefere
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *DotnetToolResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -6525,34 +6438,6 @@ func (s *ExecutableResource) WithRequiredCommand(command string, helpLink *strin
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *ExecutableResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *ExecutableResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *ExecutableResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -6568,21 +6453,6 @@ func (s *ExecutableResource) WithEnvironmentCallback(callback func(...any) any) 
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ExecutableResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ExecutableResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -6591,6 +6461,20 @@ func (s *ExecutableResource) WithEnvironmentEndpoint(name string, endpointRefere
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *ExecutableResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -10900,34 +10784,6 @@ func (s *ProjectResource) WithRequiredCommand(command string, helpLink *string) 
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *ProjectResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *ProjectResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *ProjectResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -10943,21 +10799,6 @@ func (s *ProjectResource) WithEnvironmentCallback(callback func(...any) any) (*I
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *ProjectResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *ProjectResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -10966,6 +10807,20 @@ func (s *ProjectResource) WithEnvironmentEndpoint(name string, endpointReference
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *ProjectResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -12935,34 +12790,6 @@ func (s *TestDatabaseResource) WithRequiredCommand(command string, helpLink *str
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *TestDatabaseResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *TestDatabaseResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *TestDatabaseResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -12978,21 +12805,6 @@ func (s *TestDatabaseResource) WithEnvironmentCallback(callback func(...any) any
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestDatabaseResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestDatabaseResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -13001,6 +12813,20 @@ func (s *TestDatabaseResource) WithEnvironmentEndpoint(name string, endpointRefe
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *TestDatabaseResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -14473,34 +14299,6 @@ func (s *TestRedisResource) WithRequiredCommand(command string, helpLink *string
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *TestRedisResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *TestRedisResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *TestRedisResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -14516,21 +14314,6 @@ func (s *TestRedisResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestRedisResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestRedisResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -14539,6 +14322,20 @@ func (s *TestRedisResource) WithEnvironmentEndpoint(name string, endpointReferen
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *TestRedisResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -16236,34 +16033,6 @@ func (s *TestVaultResource) WithRequiredCommand(command string, helpLink *string
 	return result.(*IResource), nil
 }
 
-// WithEnvironment sets an environment variable
-func (s *TestVaultResource) WithEnvironment(name string, value string) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
-// WithEnvironmentExpression adds an environment variable with a reference expression
-func (s *TestVaultResource) WithEnvironmentExpression(name string, value *ReferenceExpression) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	reqArgs["name"] = SerializeValue(name)
-	reqArgs["value"] = SerializeValue(value)
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentExpression", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentCallback sets environment variables via callback
 func (s *TestVaultResource) WithEnvironmentCallback(callback func(...any) any) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -16279,21 +16048,6 @@ func (s *TestVaultResource) WithEnvironmentCallback(callback func(...any) any) (
 	return result.(*IResourceWithEnvironment), nil
 }
 
-// WithEnvironmentCallbackAsync sets environment variables via async callback
-func (s *TestVaultResource) WithEnvironmentCallbackAsync(callback func(...any) any) (*IResourceWithEnvironment, error) {
-	reqArgs := map[string]any{
-		"builder": SerializeValue(s.Handle()),
-	}
-	if callback != nil {
-		reqArgs["callback"] = RegisterCallback(callback)
-	}
-	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentCallbackAsync", reqArgs)
-	if err != nil {
-		return nil, err
-	}
-	return result.(*IResourceWithEnvironment), nil
-}
-
 // WithEnvironmentEndpoint sets an environment variable from an endpoint reference
 func (s *TestVaultResource) WithEnvironmentEndpoint(name string, endpointReference *EndpointReference) (*IResourceWithEnvironment, error) {
 	reqArgs := map[string]any{
@@ -16302,6 +16056,20 @@ func (s *TestVaultResource) WithEnvironmentEndpoint(name string, endpointReferen
 	reqArgs["name"] = SerializeValue(name)
 	reqArgs["endpointReference"] = SerializeValue(endpointReference)
 	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironmentEndpoint", reqArgs)
+	if err != nil {
+		return nil, err
+	}
+	return result.(*IResourceWithEnvironment), nil
+}
+
+// WithEnvironment sets an environment variable on the resource
+func (s *TestVaultResource) WithEnvironment(name string, value any) (*IResourceWithEnvironment, error) {
+	reqArgs := map[string]any{
+		"builder": SerializeValue(s.Handle()),
+	}
+	reqArgs["name"] = SerializeValue(name)
+	reqArgs["value"] = SerializeValue(value)
+	result, err := s.Client().InvokeCapability("Aspire.Hosting/withEnvironment", reqArgs)
 	if err != nil {
 		return nil, err
 	}
