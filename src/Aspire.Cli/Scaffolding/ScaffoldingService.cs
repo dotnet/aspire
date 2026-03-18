@@ -211,7 +211,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
         LanguageInfo language,
         CancellationToken cancellationToken)
     {
-        var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken: cancellationToken);
+        var generatedFiles = await rpcClient.GenerateCodeAsync(language.CodeGenerator, cancellationToken);
 
         // Write generated files to the output directory
         var outputPath = Path.Combine(directoryPath, GeneratedFolderName);
