@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
@@ -6,7 +6,6 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Yarp.Transforms;
 using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
-using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
@@ -31,7 +30,7 @@ public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         // Use extra long timeout because if this is first time the tunnel is being used,
-        // getting the base images and building the tunnel (client) proxy image may take a while. 
+        // getting the base images and building the tunnel (client) proxy image may take a while.
         await app.StartAsync().DefaultTimeout(TestConstants.ExtraLongTimeoutDuration);
         await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
@@ -71,7 +70,7 @@ public class ContainerTunnelTests(ITestOutputHelper testOutputHelper)
         await using var app = builder.Build();
 
         // Use extra long timeout because if this is first time the tunnel is being used,
-        // getting the base images and building the tunnel (client) proxy image may take a while. 
+        // getting the base images and building the tunnel (client) proxy image may take a while.
         await app.StartAsync().DefaultTimeout(TestConstants.ExtraLongTimeoutDuration);
         await app.WaitForTextAsync("Application started.").DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
