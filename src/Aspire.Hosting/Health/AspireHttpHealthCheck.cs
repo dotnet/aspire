@@ -53,8 +53,8 @@ internal sealed class AspireHttpHealthCheck(
             // Response is not in Aspire format - fall back to status code check
             if ((int)response.StatusCode != expectedStatusCode)
             {
-                return HealthCheckResult.Unhealthy(
-                    $"HTTP request to {uri} returned status code {response.StatusCode} (expected {expectedStatusCode}). Parse error: {parseError}");
+                var description = $"HTTP request to {uri} returned status code {response.StatusCode} (expected {expectedStatusCode}). Parse error: {parseError?.Message}";
+                return HealthCheckResult.Unhealthy(description, parseError);
             }
 
             return HealthCheckResult.Healthy($"HTTP request to {uri} returned expected status code {expectedStatusCode}. Content length: {content.Length}");
@@ -112,12 +112,13 @@ internal sealed class AspireHttpHealthCheck(
                     duration = parsedDuration;
                 }
 
+                Exception? entryException = null;
                 if (entryValue.TryGetProperty(HealthCheckConstants.JsonProperties.Exception, out var exceptionElement))
                 {
                     var exceptionText = exceptionElement.GetString();
                     if (!string.IsNullOrEmpty(exceptionText))
                     {
-                        exception = new InvalidOperationException(exceptionText);
+                        entryException = new InvalidOperationException(exceptionText);
                     }
                 }
 
@@ -130,7 +131,7 @@ internal sealed class AspireHttpHealthCheck(
                     }
                 }
 
-                entries[entryName] = new HealthReportEntry(status, description, duration, exception, data);
+                entries[entryName] = new HealthReportEntry(status, description, duration, entryException, data);
             }
 
             return true;

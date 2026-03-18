@@ -105,15 +105,12 @@ public sealed class AspireHealthCheckFunctionalTests(ITestOutputHelper testOutpu
 
         Assert.NotNull(response);
 
-        // Wait for health checks to run and expand
-        // Health checks run every 1 second when non-healthy, so give enough time for multiple attempts
-        await Task.Delay(TimeSpan.FromSeconds(30), cts.Token);
-
-        // Get the latest resource snapshot
+        // Wait until the health checks have run and the individual entries are expanded
+        // Use ResourceNotifications so the test proceeds as soon as the condition is met.
         var resourceName = "healthcheckservice";
         var latestResource = await app.ResourceNotifications.WaitForResourceAsync(
             resourceName,
-            re => re.Snapshot.State?.Text == Aspire.Hosting.ApplicationModel.KnownResourceStates.Running,
+            re => re.Snapshot.State?.Text == Aspire.Hosting.ApplicationModel.KnownResourceStates.Running && re.Snapshot.HealthReports.Length >= 4,
             cts.Token);
 
         // Verify that all individual health checks are expanded and visible to the Dashboard

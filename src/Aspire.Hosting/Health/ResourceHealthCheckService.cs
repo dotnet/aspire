@@ -292,7 +292,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         LastRunAt = runAt
                     };
 
-                    var found = false;
+                    var foundSub = false;
                     for (var i = 0; i < builder.Count; i++)
                     {
                         var existing = builder[i];
@@ -300,26 +300,41 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                         {
                             // Replace the existing entry.
                             builder[i] = subSnapshot;
-                            found = true;
+                            foundSub = true;
                             break;
                         }
                     }
 
-                    if (!found)
+                    if (!foundSub)
                     {
                         // Add a new entry.
                         builder.Add(subSnapshot);
                     }
                 }
 
-                // Remove the parent entry since we've expanded its sub-entries
-                for (var i = builder.Count - 1; i >= 0; i--)
+                // Also update the parent entry so that change detection sees a stable key.
+                var parentSnapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
                 {
-                    if (builder[i].Name == key)
+                    LastRunAt = runAt
+                };
+
+                var foundParent = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
                     {
-                        builder.RemoveAt(i);
+                        // Replace the existing parent entry.
+                        builder[i] = parentSnapshot;
+                        foundParent = true;
                         break;
                     }
+                }
+
+                if (!foundParent)
+                {
+                    // Add a new parent entry
+                    builder.Add(parentSnapshot);
                 }
             }
             else
