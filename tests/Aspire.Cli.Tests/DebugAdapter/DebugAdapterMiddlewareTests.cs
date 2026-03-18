@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Pipelines;
-using Aspire.Hosting.Cli.DebugAdapter;
+using Aspire.DebugAdapter.Protocol;
+using Aspire.DebugAdapter.Types;
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 
 namespace Aspire.Cli.Tests.DebugAdapter;
 
@@ -15,58 +14,127 @@ public class DebugAdapterMiddlewareTests
     {
         await using var fixture = new MiddlewareTestFixture();
 
-        var responseTcs = new TaskCompletionSource<EvaluateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new EvaluateRequest { Args = { Expression = "1 + 1" } };
-        fixture.Client.Host.SendRequest(request, (_, r) => responseTcs.TrySetResult(r), (_, e) => responseTcs.TrySetException(e));
-
-        var args = await fixture.Adapter.EvaluateReceived.Task.DefaultTimeout();
-        Assert.Equal("1 + 1", args.Expression);
-
-        var response = await responseTcs.Task.DefaultTimeout();
-        Assert.Equal("test-result", response.Result);
-    }
-
-    [Fact]
-    public async Task UpstreamRequestWithoutResponseIsForwarded()
-    {
-        await using var fixture = new MiddlewareTestFixture();
-
-        var responseTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new PauseRequest { Args = { ThreadId = 42 } };
-        fixture.Client.Host.SendRequest(request, _ => responseTcs.TrySetResult(), (_, e) => responseTcs.TrySetException(e));
-
-        await responseTcs.Task.DefaultTimeout();
-
-        var args = await fixture.Adapter.PauseReceived.Task.DefaultTimeout();
-        Assert.Equal(42, args.ThreadId);
-    }
-
-    [Fact]
-    public async Task DownstreamClientRequestWithResponseIsForwardedToUpstream()
-    {
-        await using var fixture = new MiddlewareTestFixture();
-
-        var responseTcs = new TaskCompletionSource<RunInTerminalResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var request = new RunInTerminalRequest
+        // Client sends an evaluate request
+        var evaluateReceivedTcs = new TaskCompletionSource<EvaluateRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Adapter.RequestReceived += msg =>
         {
-            Args =
+            if (msg is EvaluateRequest evalReq)
             {
-                Kind = RunInTerminalArguments.KindValue.Integrated,
+                evaluateReceivedTcs.TrySetResult(evalReq);
+            }
+        };
+
+        var responseTcs = new TaskCompletionSource<ResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Client.ResponseReceived += resp =>
+        {
+            responseTcs.TrySetResult(resp);
+        };
+
+        var request = new EvaluateRequest { Arguments = new EvaluateArguments { Expression = "1 + 1" } };
+        await fixture.Client.SendRequestAsync(request);
+
+        // Adapter receives the forwarded request
+        var receivedRequest = await evaluateReceivedTcs.Task.DefaultTimeout();
+        Assert.Equal("1 + 1", receivedRequest.Arguments.Expression);
+
+        // Adapter sends back a response
+        var response = new EvaluateResponse
+        {
+            Success = true,
+            Body = new EvaluateResponseBody { Result = "test-result", VariablesReference = 0 }
+        };
+        await fixture.Adapter.SendResponseAsync(response, receivedRequest.Seq);
+
+        // Client receives the forwarded response
+        var clientResponse = await responseTcs.Task.DefaultTimeout();
+        Assert.True(clientResponse.Success);
+    }
+
+    [Fact]
+    public async Task UpstreamRequestWithoutResponseBodyIsForwarded()
+    {
+        await using var fixture = new MiddlewareTestFixture();
+
+        var pauseReceivedTcs = new TaskCompletionSource<PauseRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Adapter.RequestReceived += msg =>
+        {
+            if (msg is PauseRequest pauseReq)
+            {
+                pauseReceivedTcs.TrySetResult(pauseReq);
+            }
+        };
+
+        var responseTcs = new TaskCompletionSource<ResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Client.ResponseReceived += resp =>
+        {
+            responseTcs.TrySetResult(resp);
+        };
+
+        var request = new PauseRequest { Arguments = new PauseArguments { ThreadId = 42 } };
+        await fixture.Client.SendRequestAsync(request);
+
+        var receivedRequest = await pauseReceivedTcs.Task.DefaultTimeout();
+        Assert.Equal(42, receivedRequest.Arguments.ThreadId);
+
+        // Adapter sends back an acknowledgement response (no body)
+        var response = new PauseResponse { Success = true };
+        await fixture.Adapter.SendResponseAsync(response, receivedRequest.Seq);
+
+        var clientResponse = await responseTcs.Task.DefaultTimeout();
+        Assert.True(clientResponse.Success);
+    }
+
+    [Fact]
+    public async Task DownstreamClientRequestIsForwardedToUpstream()
+    {
+        await using var fixture = new MiddlewareTestFixture();
+
+        // Adapter sends a reverse request (RunInTerminal) to the client
+        var clientRequestTcs = new TaskCompletionSource<RunInTerminalRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Client.RequestReceived += msg =>
+        {
+            if (msg is RunInTerminalRequest ritReq)
+            {
+                clientRequestTcs.TrySetResult(ritReq);
+            }
+        };
+
+        var adapterResponseTcs = new TaskCompletionSource<ResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Adapter.ResponseReceived += resp =>
+        {
+            adapterResponseTcs.TrySetResult(resp);
+        };
+
+        var reverseRequest = new RunInTerminalRequest
+        {
+            Arguments = new RunInTerminalRequestArguments
+            {
+                Kind = "integrated",
                 Title = "test-run",
                 Cwd = "/tmp",
                 Args = ["echo", "hello"]
             }
         };
-        fixture.Adapter.Protocol.SendClientRequest(request, (_, r) => responseTcs.TrySetResult(r), (_, e) => responseTcs.TrySetException(e));
+        await fixture.Adapter.SendRequestAsync(reverseRequest);
 
-        var received = await fixture.Client.RunInTerminalReceived.Task.DefaultTimeout();
-        Assert.Equal(RunInTerminalArguments.KindValue.Integrated, received.Kind);
-        Assert.Equal("test-run", received.Title);
-        Assert.Equal("/tmp", received.Cwd);
-        Assert.Equal(["echo", "hello"], received.Args);
+        // Client receives the forwarded reverse request
+        var received = await clientRequestTcs.Task.DefaultTimeout();
+        Assert.Equal("integrated", received.Arguments.Kind);
+        Assert.Equal("test-run", received.Arguments.Title);
+        Assert.Equal("/tmp", received.Arguments.Cwd);
+        Assert.Equal(["echo", "hello"], received.Arguments.Args);
 
-        var response = await responseTcs.Task.DefaultTimeout();
-        Assert.Equal(1234, response.ProcessId);
+        // Client sends back a response
+        var clientResp = new RunInTerminalResponse
+        {
+            Success = true,
+            Body = new RunInTerminalResponseBody { ProcessId = 1234 }
+        };
+        await fixture.Client.SendResponseAsync(clientResp, received.Seq);
+
+        // Adapter receives the forwarded response
+        var adapterResponse = await adapterResponseTcs.Task.DefaultTimeout();
+        Assert.True(adapterResponse.Success);
     }
 
     [Fact]
@@ -74,56 +142,75 @@ public class DebugAdapterMiddlewareTests
     {
         await using var fixture = new MiddlewareTestFixture();
 
-        fixture.Adapter.Protocol.SendEvent(new OutputEvent("hello"));
+        var eventTcs = new TaskCompletionSource<OutputEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+        fixture.Client.EventReceived += msg =>
+        {
+            if (msg is OutputEvent outputEvt)
+            {
+                eventTcs.TrySetResult(outputEvt);
+            }
+        };
 
-        var evt = await fixture.Client.OutputEventReceived.Task.DefaultTimeout();
-        Assert.Equal("hello", evt.Output);
+        var outputEvent = new OutputEvent { Body = new OutputEventBody { Output = "hello" } };
+        await fixture.Adapter.SendEventAsync(outputEvent);
+
+        var evt = await eventTcs.Task.DefaultTimeout();
+        Assert.Equal("hello", evt.Body.Output);
     }
 
     private sealed class MiddlewareTestFixture : IAsyncDisposable
     {
-        private readonly Pipe _clientToMiddleware = new();
-        private readonly Pipe _middlewareToClient = new();
-        private readonly Pipe _middlewareToAdapter = new();
-        private readonly Pipe _adapterToMiddleware = new();
+        // Streams: client <-> middleware <-> adapter
+        private readonly BlockingStream _clientToMiddleware = new();
+        private readonly BlockingStream _middlewareToClient = new();
+        private readonly BlockingStream _middlewareToAdapter = new();
+        private readonly BlockingStream _adapterToMiddleware = new();
 
         public TestDebugAdapterClient Client { get; }
         public TestDebugAdapter Adapter { get; }
         public DebugAdapterMiddleware Middleware { get; }
+        public List<string> MiddlewareLogs { get; } = [];
+
+        private readonly CancellationTokenSource _cts = new();
+        private readonly Task _middlewareTask;
 
         public MiddlewareTestFixture()
         {
-            Client = new TestDebugAdapterClient(_middlewareToClient.Reader.AsStream(), _clientToMiddleware.Writer.AsStream());
-            Adapter = new TestDebugAdapter(_middlewareToAdapter.Reader.AsStream(), _adapterToMiddleware.Writer.AsStream());
-            Middleware = new DebugAdapterMiddleware(
-                _clientToMiddleware.Reader.AsStream(),
-                _middlewareToClient.Writer.AsStream(),
-                _adapterToMiddleware.Reader.AsStream(),
-                _middlewareToAdapter.Writer.AsStream());
+            Client = new TestDebugAdapterClient(_middlewareToClient, _clientToMiddleware);
+            Adapter = new TestDebugAdapter(_middlewareToAdapter, _adapterToMiddleware);
 
-            Adapter.Protocol.Run();
-            Middleware.Run();
-            Client.Host.Run();
+            var clientTransport = new StreamMessageTransport(_clientToMiddleware, _middlewareToClient);
+            var hostTransport = new StreamMessageTransport(_adapterToMiddleware, _middlewareToAdapter);
+
+            Middleware = new DebugAdapterMiddleware();
+            Middleware.SetLogCallback(MiddlewareLogs.Add);
+            _middlewareTask = Middleware.RunAsync(clientTransport, hostTransport, _cts.Token);
         }
 
         public async ValueTask DisposeAsync()
         {
-            // Stop the protocol dispatchers first
-            Client.Host.Stop();
-            Adapter.Protocol.Stop();
-            Middleware.Protocol.Stop();
+            await _cts.CancelAsync();
 
-            // Complete all pipe writers to signal end-of-stream
-            await _clientToMiddleware.Writer.CompleteAsync();
-            await _middlewareToClient.Writer.CompleteAsync();
-            await _middlewareToAdapter.Writer.CompleteAsync();
-            await _adapterToMiddleware.Writer.CompleteAsync();
+            _clientToMiddleware.CompleteWriting();
+            _middlewareToClient.CompleteWriting();
+            _middlewareToAdapter.CompleteWriting();
+            _adapterToMiddleware.CompleteWriting();
 
-            // Complete readers as well
-            await _clientToMiddleware.Reader.CompleteAsync();
-            await _middlewareToClient.Reader.CompleteAsync();
-            await _middlewareToAdapter.Reader.CompleteAsync();
-            await _adapterToMiddleware.Reader.CompleteAsync();
+            try
+            {
+                await _middlewareTask.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception)
+            {
+                // Middleware may throw during shutdown
+            }
+
+            await Client.DisposeAsync();
+            await Adapter.DisposeAsync();
+            _cts.Dispose();
         }
     }
 }

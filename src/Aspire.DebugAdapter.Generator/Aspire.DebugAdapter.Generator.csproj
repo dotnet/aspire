@@ -5,6 +5,9 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
 
+    <!-- Source generators don't support AOT compilation -->
+    <PublishAot>false</PublishAot>
+
     <!-- Source Generator Configuration -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

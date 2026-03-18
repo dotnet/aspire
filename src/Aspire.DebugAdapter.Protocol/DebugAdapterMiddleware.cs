@@ -18,6 +18,8 @@ namespace Aspire.DebugAdapter.Protocol;
 /// </remarks>
 public class DebugAdapterMiddleware
 {
+    private Action<string>? _logCallback;
+
     /// <summary>
     /// The connection to the upstream client.
     /// </summary>
@@ -27,6 +29,18 @@ public class DebugAdapterMiddleware
     /// The connection to the downstream host/adapter.
     /// </summary>
     protected DebugAdapterConnection HostConnection { get; private set; } = null!;
+
+    /// <summary>
+    /// Sets a callback for diagnostic logging.
+    /// </summary>
+    /// <param name="callback">A callback that receives log messages.</param>
+    public void SetLogCallback(Action<string> callback) => _logCallback = callback;
+
+    /// <summary>
+    /// Logs a diagnostic message via the configured log callback.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    protected void Log(string message) => _logCallback?.Invoke(message);
 
     /// <summary>
     /// Called when a request is received from the client.
@@ -74,6 +88,15 @@ public class DebugAdapterMiddleware
         => Task.FromResult(true);
 
     /// <summary>
+    /// Called when a message is received that is not a request, response, or event.
+    /// </summary>
+    /// <param name="message">The unrecognized message.</param>
+    /// <param name="source">"client" or "host" indicating which side sent the message.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    protected virtual Task OnUnknownMessageAsync(ProtocolMessage message, string source, CancellationToken cancellationToken)
+        => Task.CompletedTask;
+
+    /// <summary>
     /// Runs the middleware, forwarding messages between client and host until the connection closes
     /// or cancellation is requested.
     /// </summary>
@@ -98,7 +121,15 @@ public class DebugAdapterMiddleware
             var hostTask = ProcessHostMessagesAsync(cancellationToken);
 
             // Wait for either side to complete (disconnect) or cancellation
-            await Task.WhenAny(clientTask, hostTask).ConfigureAwait(false);
+            var completedTask = await Task.WhenAny(clientTask, hostTask).ConfigureAwait(false);
+
+            // If the completed task faulted, propagate the exception so callers see the actual error
+            // rather than a silent exit.
+            if (completedTask.IsFaulted)
+            {
+                // Await the faulted task to unwrap and throw its exception
+                await completedTask.ConfigureAwait(false);
+            }
 
             // Cancel the other side if still running
             // The connections will be disposed, which will cancel pending operations
@@ -109,7 +140,17 @@ public class DebugAdapterMiddleware
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var message = await ClientConnection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            ProtocolMessage? message;
+            try
+            {
+                message = await ClientConnection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DebugAdapterProtocolException ex)
+            {
+                Log($"Error deserializing client message, skipping: {ex.Message}");
+                continue;
+            }
+
             if (message is null)
             {
                 break; // Client disconnected
@@ -132,6 +173,10 @@ public class DebugAdapterMiddleware
                         await ClientConnection.ForwardResponseToAsync(response, HostConnection, cancellationToken).ConfigureAwait(false);
                     }
                     break;
+
+                default:
+                    await OnUnknownMessageAsync(message, "client", cancellationToken).ConfigureAwait(false);
+                    break;
             }
         }
     }
@@ -140,7 +185,17 @@ public class DebugAdapterMiddleware
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var message = await HostConnection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            ProtocolMessage? message;
+            try
+            {
+                message = await HostConnection.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DebugAdapterProtocolException ex)
+            {
+                Log($"Error deserializing host message, skipping: {ex.Message}");
+                continue;
+            }
+
             if (message is null)
             {
                 break; // Host disconnected
@@ -170,6 +225,10 @@ public class DebugAdapterMiddleware
                     {
                         await ClientConnection.ForwardRequestAsync(request, request.Seq, cancellationToken).ConfigureAwait(false);
                     }
+                    break;
+
+                default:
+                    await OnUnknownMessageAsync(message, "host", cancellationToken).ConfigureAwait(false);
                     break;
             }
         }

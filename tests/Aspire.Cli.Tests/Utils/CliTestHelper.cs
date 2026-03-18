@@ -376,7 +376,8 @@ internal sealed class CliServiceCollectionTestOptions
     public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new ExtensionRpcTarget(configuration);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new ExtensionRpcTarget(configuration, features);
     };
 
     public Func<IServiceProvider, IExtensionBackchannel> ExtensionBackchannelFactory { get; set; } = serviceProvider =>

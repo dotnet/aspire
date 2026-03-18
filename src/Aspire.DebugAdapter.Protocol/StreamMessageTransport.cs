@@ -217,7 +217,15 @@ public sealed class StreamMessageTransport : IMessageTransport
             // System.Text.Json only applies one level of polymorphism, so we need to:
             // 1. Peek at the "type" property to determine request/response/event
             // 2. Deserialize as the specific intermediate type which applies the second level
-            return DeserializeWithNestedPolymorphism(content);
+            var message = DeserializeWithNestedPolymorphism(content);
+
+            // Stash the raw JSON on the message for diagnostic logging
+            if (message is { } m)
+            {
+                m.RawJson = Encoding.UTF8.GetString(content);
+            }
+
+            return message;
         }
         catch (JsonException ex)
         {
@@ -230,7 +238,7 @@ public sealed class StreamMessageTransport : IMessageTransport
     /// </summary>
     private ProtocolMessage? DeserializeWithNestedPolymorphism(byte[] content)
     {
-        // Parse the JSON to peek at the "type" property
+        // Parse the JSON to peek at properties we need to preserve
         using var doc = JsonDocument.Parse(content);
         var root = doc.RootElement;
 
@@ -242,14 +250,110 @@ public sealed class StreamMessageTransport : IMessageTransport
 
         var messageType = typeProperty.GetString();
 
+        // Peek at the discriminator property (command for request/response, event for events)
+        // We need to preserve this because JsonPolymorphic consumes it and doesn't put it in ExtensionData
+        string? discriminatorProperty = messageType switch { "request" or "response" => "command", "event" => "event", _ => null };
+        string? discriminatorValue = null;
+        if (discriminatorProperty is not null && root.TryGetProperty(discriminatorProperty, out var discProp) && discProp.ValueKind == JsonValueKind.String)
+        {
+            discriminatorValue = discProp.GetString();
+        }
+
+        // For error responses (success=false), deserialize as the base ResponseMessage type to avoid
+        // JsonException from derived types that have required Body properties (e.g., EvaluateResponse
+        // requires EvaluateResponseBody with required Result). Error responses may omit the body or
+        // include an error-shaped body that doesn't match the typed response body.
+        var isErrorResponse = false;
+        if (messageType == "response" && root.TryGetProperty("success", out var successProp) && successProp.ValueKind == JsonValueKind.False)
+        {
+            isErrorResponse = true;
+        }
+
         // Deserialize using the appropriate intermediate type which will apply second-level polymorphism
-        return messageType switch
+        var message = messageType switch
         {
             "request" => (ProtocolMessage?)JsonSerializer.Deserialize(content, _jsonContext.GetTypeInfo(typeof(RequestMessage))!),
+            "response" when isErrorResponse => DeserializeAsBaseResponse(content),
             "response" => (ProtocolMessage?)JsonSerializer.Deserialize(content, _jsonContext.GetTypeInfo(typeof(ResponseMessage))!),
             "event" => (ProtocolMessage?)JsonSerializer.Deserialize(content, _jsonContext.GetTypeInfo(typeof(EventMessage))!),
             _ => JsonSerializer.Deserialize(content, _protocolMessageTypeInfo)
         };
+
+        // If the message fell back to a base type (unknown command/event), the discriminator
+        // was consumed by polymorphic dispatch but no derived type matched. We need to inject
+        // it into ExtensionData so it survives re-serialization.
+        // For known derived types (e.g., EvaluateRequest), the polymorphic serializer will
+        // write the discriminator automatically — adding it to ExtensionData would create
+        // duplicate properties that cause deserialization failures.
+        var isBaseType = message is not null && (
+            message.GetType() == typeof(RequestMessage) ||
+            message.GetType() == typeof(ResponseMessage) ||
+            message.GetType() == typeof(EventMessage) ||
+            message.GetType() == typeof(ProtocolMessage));
+
+        if (isBaseType && discriminatorProperty is not null && discriminatorValue is not null)
+        {
+            // Check if the discriminator is missing from ExtensionData (consumed by polymorphism)
+            if (message!.ExtensionData is null || !message.ExtensionData.ContainsKey(discriminatorProperty))
+            {
+                message.ExtensionData ??= new Dictionary<string, System.Text.Json.JsonElement>();
+                // Create JsonElement from string - escape the value and parse as JSON string literal
+                var escaped = System.Text.Json.JsonEncodedText.Encode(discriminatorValue);
+                using var jsonDoc = System.Text.Json.JsonDocument.Parse($"\"{escaped}\"");
+                message.ExtensionData[discriminatorProperty] = jsonDoc.RootElement.Clone();
+            }
+        }
+
+        return message;
+    }
+
+    /// <summary>
+    /// Deserializes a response as the base <see cref="ResponseMessage"/> type, bypassing polymorphic
+    /// dispatch. This is used for error responses (<c>success=false</c>) where the body may not
+    /// conform to the typed derived response class (e.g., the body may be empty or contain an error
+    /// object instead of the expected response body).
+    /// </summary>
+    private static ResponseMessage DeserializeAsBaseResponse(byte[] content)
+    {
+        // Manually construct a ResponseMessage from the raw JSON to completely bypass both
+        // levels of polymorphic dispatch. Deserializing via JsonSerializer would go through
+        // ProtocolMessage → ResponseMessage → EvaluateResponse (etc.), where the derived type
+        // may have required Body properties that aren't present in error responses.
+        using var doc = JsonDocument.Parse(content);
+        var root = doc.RootElement;
+
+        var response = new ResponseMessage
+        {
+            Seq = root.TryGetProperty("seq", out var seqProp) ? seqProp.GetInt32() : 0,
+            RequestSeq = root.TryGetProperty("request_seq", out var reqSeqProp) ? reqSeqProp.GetInt32() : 0,
+            Success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean(),
+            Message = root.TryGetProperty("message", out var msgProp) && msgProp.ValueKind == JsonValueKind.String ? msgProp.GetString() : null,
+        };
+
+        // Preserve the body as a cloned JsonElement if present
+        if (root.TryGetProperty("body", out var bodyProp) && bodyProp.ValueKind != JsonValueKind.Null)
+        {
+            response.Body = bodyProp.Clone();
+        }
+
+        // Copy any additional properties into ExtensionData so they survive re-serialization
+        response.ExtensionData = new Dictionary<string, JsonElement>();
+        foreach (var property in root.EnumerateObject())
+        {
+            // Skip properties that are already mapped to strongly-typed members
+            if (property.Name is "seq" or "type" or "request_seq" or "success" or "message" or "body")
+            {
+                continue;
+            }
+            response.ExtensionData[property.Name] = property.Value.Clone();
+        }
+
+        if (response.ExtensionData.Count == 0)
+        {
+            response.ExtensionData = null;
+        }
+
+        return response;
     }
 
     private async Task<int> ReadContentLengthAsync(CancellationToken cancellationToken)
