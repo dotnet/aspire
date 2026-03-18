@@ -578,7 +578,7 @@ class CSharpAppResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         args["destinationPath"] = serialize_value(destination_path)
-        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFiles", args)
+        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFilesFromResource", args)
 
     def exclude_from_manifest(self) -> IResource:
         """Excludes the resource from the deployment manifest"""
@@ -589,7 +589,7 @@ class CSharpAppResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -602,7 +602,7 @@ class CSharpAppResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -621,7 +621,7 @@ class CSharpAppResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -669,7 +669,7 @@ class CSharpAppResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -680,13 +680,13 @@ class CSharpAppResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -1021,6 +1021,12 @@ class ConnectionStringResource(ResourceBuilderBase):
         args["value"] = serialize_value(value)
         return self._client.invoke_capability("Aspire.Hosting/withConnectionPropertyValue", args)
 
+    def get_connection_property(self, key: str) -> ReferenceExpression:
+        """Gets a connection property by key"""
+        args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
+        args["key"] = serialize_value(key)
+        return self._client.invoke_capability("Aspire.Hosting/getConnectionProperty", args)
+
     def with_urls_callback(self, callback: Callable[[ResourceUrlsCallbackContext], None]) -> IResource:
         """Customizes displayed URLs via callback"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -1071,7 +1077,7 @@ class ConnectionStringResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -1084,7 +1090,7 @@ class ConnectionStringResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -1103,7 +1109,7 @@ class ConnectionStringResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -1127,13 +1133,13 @@ class ConnectionStringResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -1424,13 +1430,13 @@ class ContainerRegistryResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -1695,14 +1701,14 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildArg", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildArg", args)
 
     def with_build_secret(self, name: str, value: ParameterResource) -> ContainerResource:
         """Adds a build secret from a parameter resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildSecret", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildSecret", args)
 
     def with_endpoint_proxy_support(self, proxy_enabled: bool) -> ContainerResource:
         """Configures endpoint proxy support"""
@@ -1983,7 +1989,7 @@ class ContainerResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -1996,7 +2002,7 @@ class ContainerResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -2015,7 +2021,7 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -2063,7 +2069,7 @@ class ContainerResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -2074,13 +2080,13 @@ class ContainerResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -2728,7 +2734,7 @@ class DotnetToolResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -2741,7 +2747,7 @@ class DotnetToolResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -2760,7 +2766,7 @@ class DotnetToolResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -2808,7 +2814,7 @@ class DotnetToolResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -2819,13 +2825,13 @@ class DotnetToolResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -3500,7 +3506,7 @@ class ExecutableResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -3513,7 +3519,7 @@ class ExecutableResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -3532,7 +3538,7 @@ class ExecutableResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -3580,7 +3586,7 @@ class ExecutableResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -3591,13 +3597,13 @@ class ExecutableResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -3971,13 +3977,13 @@ class ExternalServiceResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -4914,13 +4920,13 @@ class ParameterResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -5673,7 +5679,7 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["source"] = serialize_value(source)
         args["destinationPath"] = serialize_value(destination_path)
-        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFiles", args)
+        return self._client.invoke_capability("Aspire.Hosting/publishWithContainerFilesFromResource", args)
 
     def exclude_from_manifest(self) -> IResource:
         """Excludes the resource from the deployment manifest"""
@@ -5684,7 +5690,7 @@ class ProjectResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -5697,7 +5703,7 @@ class ProjectResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -5716,7 +5722,7 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -5764,7 +5770,7 @@ class ProjectResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -5775,13 +5781,13 @@ class ProjectResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -6415,14 +6421,14 @@ class TestDatabaseResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildArg", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildArg", args)
 
     def with_build_secret(self, name: str, value: ParameterResource) -> ContainerResource:
         """Adds a build secret from a parameter resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildSecret", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildSecret", args)
 
     def with_endpoint_proxy_support(self, proxy_enabled: bool) -> ContainerResource:
         """Configures endpoint proxy support"""
@@ -6703,7 +6709,7 @@ class TestDatabaseResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -6716,7 +6722,7 @@ class TestDatabaseResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -6735,7 +6741,7 @@ class TestDatabaseResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -6783,7 +6789,7 @@ class TestDatabaseResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -6794,13 +6800,13 @@ class TestDatabaseResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -7166,14 +7172,14 @@ class TestRedisResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildArg", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildArg", args)
 
     def with_build_secret(self, name: str, value: ParameterResource) -> ContainerResource:
         """Adds a build secret from a parameter resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildSecret", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildSecret", args)
 
     def with_endpoint_proxy_support(self, proxy_enabled: bool) -> ContainerResource:
         """Configures endpoint proxy support"""
@@ -7326,6 +7332,12 @@ class TestRedisResource(ResourceBuilderBase):
             args["name"] = serialize_value(name)
         return self._client.invoke_capability("Aspire.Hosting/withReference", args)
 
+    def get_connection_property(self, key: str) -> ReferenceExpression:
+        """Gets a connection property by key"""
+        args: Dict[str, Any] = { "resource": serialize_value(self._handle) }
+        args["key"] = serialize_value(key)
+        return self._client.invoke_capability("Aspire.Hosting/getConnectionProperty", args)
+
     def with_reference_uri(self, name: str, uri: str) -> IResourceWithEnvironment:
         """Adds a reference to a URI"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
@@ -7468,7 +7480,7 @@ class TestRedisResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -7481,7 +7493,7 @@ class TestRedisResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -7500,7 +7512,7 @@ class TestRedisResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -7548,7 +7560,7 @@ class TestRedisResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -7559,13 +7571,13 @@ class TestRedisResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
@@ -8037,14 +8049,14 @@ class TestVaultResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildArg", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildArg", args)
 
     def with_build_secret(self, name: str, value: ParameterResource) -> ContainerResource:
         """Adds a build secret from a parameter resource"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["name"] = serialize_value(name)
         args["value"] = serialize_value(value)
-        return self._client.invoke_capability("Aspire.Hosting/withBuildSecret", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterBuildSecret", args)
 
     def with_endpoint_proxy_support(self, proxy_enabled: bool) -> ContainerResource:
         """Configures endpoint proxy support"""
@@ -8325,7 +8337,7 @@ class TestVaultResource(ResourceBuilderBase):
         """Waits for another resource to be ready"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitFor", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResource", args)
 
     def wait_for_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource with specific behavior"""
@@ -8338,7 +8350,7 @@ class TestVaultResource(ResourceBuilderBase):
         """Waits for another resource to start"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
-        return self._client.invoke_capability("Aspire.Hosting/waitForStart", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceStart", args)
 
     def wait_for_start_with_behavior(self, dependency: IResource, wait_behavior: WaitBehavior) -> IResourceWithWaitSupport:
         """Waits for another resource to start with specific behavior"""
@@ -8357,7 +8369,7 @@ class TestVaultResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["dependency"] = serialize_value(dependency)
         args["exitCode"] = serialize_value(exit_code)
-        return self._client.invoke_capability("Aspire.Hosting/waitForCompletion", args)
+        return self._client.invoke_capability("Aspire.Hosting/waitForResourceCompletion", args)
 
     def with_health_check(self, key: str) -> IResource:
         """Adds a health check by key"""
@@ -8405,7 +8417,7 @@ class TestVaultResource(ResourceBuilderBase):
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         if password is not None:
             args["password"] = serialize_value(password)
-        return self._client.invoke_capability("Aspire.Hosting/withHttpsDeveloperCertificate", args)
+        return self._client.invoke_capability("Aspire.Hosting/withParameterHttpsDeveloperCertificate", args)
 
     def without_https_certificate(self) -> IResourceWithEnvironment:
         """Removes HTTPS certificate configuration"""
@@ -8416,13 +8428,13 @@ class TestVaultResource(ResourceBuilderBase):
         """Sets the parent relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["parent"] = serialize_value(parent)
-        return self._client.invoke_capability("Aspire.Hosting/withParentRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderParentRelationship", args)
 
     def with_child_relationship(self, child: IResource) -> IResource:
         """Sets a child relationship"""
         args: Dict[str, Any] = { "builder": serialize_value(self._handle) }
         args["child"] = serialize_value(child)
-        return self._client.invoke_capability("Aspire.Hosting/withChildRelationship", args)
+        return self._client.invoke_capability("Aspire.Hosting/withBuilderChildRelationship", args)
 
     def with_icon_name(self, icon_name: str, icon_variant: IconVariant = None) -> IResource:
         """Sets the icon for the resource"""
