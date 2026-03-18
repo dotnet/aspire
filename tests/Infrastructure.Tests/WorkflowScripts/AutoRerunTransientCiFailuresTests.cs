@@ -877,7 +877,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Fact]
     [RequiresTools(["node"])]
-    public async Task RerunMatchedJobsRequestsOneRerunPerSelectedJobAndWritesTheSummary()
+    public async Task RerunMatchedJobsRequestsOneRunLevelRerunAndWritesTheSummary()
     {
         RerunMatchedJobsResult result = await InvokeHarnessAsync<RerunMatchedJobsResult>(
             "rerunMatchedJobs",
@@ -928,13 +928,8 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             },
             request =>
             {
-                Assert.Equal("POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun", request.Route);
-                Assert.Equal(11, request.Payload.GetProperty("job_id").GetInt32());
-            },
-            request =>
-            {
-                Assert.Equal("POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun", request.Route);
-                Assert.Equal(22, request.Payload.GetProperty("job_id").GetInt32());
+                Assert.Equal("POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs", request.Route);
+                Assert.Equal(123, request.Payload.GetProperty("run_id").GetInt32());
             },
             request =>
             {
@@ -946,7 +941,7 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
                 Assert.Equal("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", request.Route);
                 Assert.Equal(15110, request.Payload.GetProperty("issue_number").GetInt32());
                 Assert.Equal(
-                    "The transient CI rerun workflow requested reruns for the following jobs after analyzing [the failed attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/1).\nGitHub's job rerun API also reruns dependent jobs, so the retry is being tracked in [the rerun attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/2).\nThe job links below point to the failed attempt that matched the retry-safe transient failure rules.\n\n- [Tests / One](https://github.com/dotnet/aspire/actions/runs/123/job/11) - Reason one\n- [Tests / Two](https://github.com/dotnet/aspire/actions/runs/123/job/22) - Reason two",
+                    "Re-running the failed jobs in the CI workflow for this pull request because 2 jobs were identified as retry-safe transient failures in [the CI run attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/1).\nGitHub was asked to rerun all failed jobs for that attempt, and the rerun is being tracked in [the rerun attempt](https://github.com/dotnet/aspire/actions/runs/123/attempts/2).\nThe job links below point to the failed attempt jobs that matched the retry-safe transient failure rules.\n\n- [Tests / One](https://github.com/dotnet/aspire/actions/runs/123/job/11) - Reason one\n- [Tests / Two](https://github.com/dotnet/aspire/actions/runs/123/job/22) - Reason two",
                     request.Payload.GetProperty("body").GetString());
             });
 
@@ -961,6 +956,12 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
         SummaryEvent commentLink = Assert.Single(result.Events, e => e.Type == "link" && e.Text == "PR #15110 comment");
         Assert.Equal("https://github.com/dotnet/aspire/pull/15110#issuecomment-123", commentLink.Href);
+
+        SummaryEvent rerunExplanation = Assert.Single(result.Events, e => e.Type == "raw" && e.Text == "The matched jobs below made the run eligible for rerun. GitHub was asked to rerun all failed jobs for the failed attempt.");
+        Assert.Equal("The matched jobs below made the run eligible for rerun. GitHub was asked to rerun all failed jobs for the failed attempt.", rerunExplanation.Text);
+
+        SummaryEvent retryableJobsHeading = Assert.Single(result.Events, e => e.Type == "heading" && e.Level == 2 && e.Text == "Retryable jobs");
+        Assert.Equal("Retryable jobs", retryableJobsHeading.Text);
 
         SummaryEvent tableEvent = Assert.Single(result.Events, e => e.Type == "table");
         Assert.Equal("Job", tableEvent.Rows[0][0].GetProperty("data").GetString());

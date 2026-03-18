@@ -1,8 +1,8 @@
-// aspire.ts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
+// base.ts - Core Aspire types: base classes, ReferenceExpression
+import { Handle, AspireClient, MarshalledHandle, CancellationToken, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.js';
 
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
+export { Handle, AspireClient, CapabilityError, CancellationToken, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.js';
 export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.js';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 
@@ -138,7 +138,7 @@ export class ReferenceExpression {
         if (this.isConditional) {
             return {
                 $expr: {
-                    condition: this._condition instanceof Handle ? this._condition.toJSON() : this._condition,
+                    condition: extractHandleForExpr(this._condition),
                     whenTrue: this._whenTrue!.toJSON(),
                     whenFalse: this._whenFalse!.toJSON(),
                     matchValue: this._matchValue!
@@ -158,14 +158,14 @@ export class ReferenceExpression {
      * Resolves the expression to its string value on the server.
      * Only available on server-returned ReferenceExpression instances (handle mode).
      *
-     * @param cancellationToken - Optional AbortSignal for cancellation support
+     * @param cancellationToken - Optional AbortSignal or CancellationToken for cancellation support
      * @returns The resolved string value, or null if the expression resolves to null
      */
-    async getValue(cancellationToken?: AbortSignal): Promise<string | null> {
+    async getValue(cancellationToken?: AbortSignal | CancellationToken): Promise<string | null> {
         if (!this._handle || !this._client) {
             throw new Error('getValue is only available on server-returned ReferenceExpression instances');
         }
-        const cancellationTokenId = registerCancellation(cancellationToken);
+        const cancellationTokenId = registerCancellation(this._client, cancellationToken);
         try {
             const rpcArgs: Record<string, unknown> = { context: this._handle };
             if (cancellationTokenId !== undefined) rpcArgs.cancellationToken = cancellationTokenId;
@@ -221,15 +221,15 @@ function extractHandleForExpr(value: unknown): unknown {
         return value.toJSON();
     }
 
-    // Objects with $handle property (already in handle format)
-    if (typeof value === 'object' && value !== null && '$handle' in value) {
+    // Objects with marshalled expression/handle payloads
+    if (typeof value === 'object' && value !== null && ('$handle' in value || '$expr' in value)) {
         return value;
     }
 
-    // Objects with toJSON that returns a handle
+    // Objects with toJSON that returns a marshalled expression or handle
     if (typeof value === 'object' && value !== null && 'toJSON' in value && typeof value.toJSON === 'function') {
         const json = value.toJSON();
-        if (json && typeof json === 'object' && '$handle' in json) {
+        if (json && typeof json === 'object' && ('$handle' in json || '$expr' in json)) {
             return json;
         }
     }
@@ -392,11 +392,20 @@ export class AspireList<T> {
         }) as T[];
     }
 
+    async toTransportValue(): Promise<MarshalledHandle> {
+        const handle = await this._ensureHandle();
+        return handle.toJSON();
+    }
+
     toJSON(): MarshalledHandle {
-        if (this._resolvedHandle) {
-            return this._resolvedHandle.toJSON();
+        if (!this._resolvedHandle) {
+            throw new Error(
+                'AspireList must be resolved before it can be serialized directly. ' +
+                'Pass it to generated SDK methods instead of calling JSON.stringify directly.'
+            );
         }
-        return this._handleOrContext.toJSON();
+
+        return this._resolvedHandle.toJSON();
     }
 }
 
@@ -551,8 +560,19 @@ export class AspireDict<K, V> {
         }) as Record<string, V>;
     }
 
-    async toJSON(): Promise<MarshalledHandle> {
+    async toTransportValue(): Promise<MarshalledHandle> {
         const handle = await this._ensureHandle();
         return handle.toJSON();
+    }
+
+    toJSON(): MarshalledHandle {
+        if (!this._resolvedHandle) {
+            throw new Error(
+                'AspireDict must be resolved before it can be serialized directly. ' +
+                'Pass it to generated SDK methods instead of calling JSON.stringify directly.'
+            );
+        }
+
+        return this._resolvedHandle.toJSON();
     }
 }

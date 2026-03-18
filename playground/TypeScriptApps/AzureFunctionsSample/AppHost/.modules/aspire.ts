@@ -2043,21 +2043,6 @@ export class DistributedApplicationBuilder {
         return new AzureStorageResourcePromise(this._addAzureStorageInternal(name));
     }
 
-    /** Adds an Azure Event Hubs namespace resource */
-    /** @internal */
-    async _addAzureEventHubsInternal(name: string): Promise<AzureEventHubsResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/addAzureEventHubs',
-            rpcArgs
-        );
-        return new AzureEventHubsResource(result, this._client);
-    }
-
-    addAzureEventHubs(name: string): AzureEventHubsResourcePromise {
-        return new AzureEventHubsResourcePromise(this._addAzureEventHubsInternal(name));
-    }
-
     /** Adds a Node.js application resource */
     /** @internal */
     async _addNodeAppInternal(name: string, appDirectory: string, scriptPath: string): Promise<NodeAppResource> {
@@ -2202,6 +2187,21 @@ export class DistributedApplicationBuilder {
         return new AzureUserAssignedIdentityResourcePromise(this._addAzureUserAssignedIdentityInternal(name));
     }
 
+    /** Adds an Azure Event Hubs namespace resource */
+    /** @internal */
+    async _addAzureEventHubsInternal(name: string): Promise<AzureEventHubsResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/addAzureEventHubs',
+            rpcArgs
+        );
+        return new AzureEventHubsResource(result, this._client);
+    }
+
+    addAzureEventHubs(name: string): AzureEventHubsResourcePromise {
+        return new AzureEventHubsResourcePromise(this._addAzureEventHubsInternal(name));
+    }
+
 }
 
 /**
@@ -2297,11 +2297,6 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
         return new AzureStorageResourcePromise(this._promise.then(obj => obj.addAzureStorage(name)));
     }
 
-    /** Adds an Azure Event Hubs namespace resource */
-    addAzureEventHubs(name: string): AzureEventHubsResourcePromise {
-        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.addAzureEventHubs(name)));
-    }
-
     /** Adds a Node.js application resource */
     addNodeApp(name: string, appDirectory: string, scriptPath: string): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._promise.then(obj => obj.addNodeApp(name, appDirectory, scriptPath)));
@@ -2345,6 +2340,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds an Azure user-assigned identity resource */
     addAzureUserAssignedIdentity(name: string): AzureUserAssignedIdentityResourcePromise {
         return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.addAzureUserAssignedIdentity(name)));
+    }
+
+    /** Adds an Azure Event Hubs namespace resource */
+    addAzureEventHubs(name: string): AzureEventHubsResourcePromise {
+        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.addAzureEventHubs(name)));
     }
 
 }
@@ -2774,21 +2774,6 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureBicepResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureBicepResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _publishAsConnectionStringInternal(): Promise<AzureBicepResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
@@ -2909,6 +2894,21 @@ export class AzureBicepResource extends ResourceBuilderBase<AzureBicepResourceHa
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
         return new AzureBicepResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureBicepResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureBicepResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureBicepResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -3033,11 +3033,6 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
         return new AzureBicepResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureBicepResourcePromise {
-        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Publishes an Azure resource to the manifest as a connection string */
     publishAsConnectionString(): AzureBicepResourcePromise {
         return new AzureBicepResourcePromise(this._promise.then(obj => obj.publishAsConnectionString()));
@@ -3081,6 +3076,11 @@ export class AzureBicepResourcePromise implements PromiseLike<AzureBicepResource
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureBicepResourcePromise {
         return new AzureBicepResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureBicepResourcePromise {
+        return new AzureBicepResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -5692,21 +5692,6 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureEnvironmentResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureEnvironmentResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withLocationInternal(location: ParameterResource): Promise<AzureEnvironmentResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, location };
         const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
@@ -5734,6 +5719,21 @@ export class AzureEnvironmentResource extends ResourceBuilderBase<AzureEnvironme
     /** Sets the Azure resource group for the shared Azure environment resource */
     withResourceGroup(resourceGroup: ParameterResource): AzureEnvironmentResourcePromise {
         return new AzureEnvironmentResourcePromise(this._withResourceGroupInternal(resourceGroup));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureEnvironmentResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureEnvironmentResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -5858,11 +5858,6 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
         return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEnvironmentResourcePromise {
-        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets the Azure location for the shared Azure environment resource */
     withLocation(location: ParameterResource): AzureEnvironmentResourcePromise {
         return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withLocation(location)));
@@ -5871,6 +5866,11 @@ export class AzureEnvironmentResourcePromise implements PromiseLike<AzureEnviron
     /** Sets the Azure resource group for the shared Azure environment resource */
     withResourceGroup(resourceGroup: ParameterResource): AzureEnvironmentResourcePromise {
         return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withResourceGroup(resourceGroup)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEnvironmentResourcePromise {
+        return new AzureEnvironmentResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -8409,6 +8409,51 @@ export class AzureEventHubsEmulatorResource extends ResourceBuilderBase<AzureEve
     }
 
     /** @internal */
+    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<AzureEventHubsEmulatorResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
+        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
+            rpcArgs
+        );
+        return new AzureEventHubsEmulatorResource(result, this._client);
+    }
+
+    /** Sets an environment variable from a Bicep output reference */
+    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
+    }
+
+    /** @internal */
+    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<AzureEventHubsEmulatorResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
+        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
+            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
+            rpcArgs
+        );
+        return new AzureEventHubsEmulatorResource(result, this._client);
+    }
+
+    /** Sets an environment variable from an Azure Key Vault secret reference */
+    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
+    }
+
+    /** @internal */
+    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<AzureEventHubsEmulatorResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
+        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
+            'Aspire.Hosting.Azure/withUserAssignedIdentityAzureUserAssignedIdentity',
+            rpcArgs
+        );
+        return new AzureEventHubsEmulatorResource(result, this._client);
+    }
+
+    /** Associates an Azure user-assigned identity with a compute resource */
+    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
     private async _withHostPortInternal(port?: number): Promise<AzureEventHubsEmulatorResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (port !== undefined) rpcArgs.port = port;
@@ -8453,51 +8498,6 @@ export class AzureEventHubsEmulatorResource extends ResourceBuilderBase<AzureEve
     /** Assigns Event Hubs roles to a resource */
     withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsEmulatorResourcePromise {
         return new AzureEventHubsEmulatorResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
-    private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<AzureEventHubsEmulatorResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
-        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure/withEnvironmentFromOutput',
-            rpcArgs
-        );
-        return new AzureEventHubsEmulatorResource(result, this._client);
-    }
-
-    /** Sets an environment variable from a Bicep output reference */
-    withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._withEnvironmentFromOutputInternal(name, bicepOutputReference));
-    }
-
-    /** @internal */
-    private async _withEnvironmentFromKeyVaultSecretInternal(name: string, secretReference: ResourceBuilderBase): Promise<AzureEventHubsEmulatorResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name, secretReference };
-        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure/withEnvironmentFromKeyVaultSecret',
-            rpcArgs
-        );
-        return new AzureEventHubsEmulatorResource(result, this._client);
-    }
-
-    /** Sets an environment variable from an Azure Key Vault secret reference */
-    withEnvironmentFromKeyVaultSecret(name: string, secretReference: ResourceBuilderBase): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._withEnvironmentFromKeyVaultSecretInternal(name, secretReference));
-    }
-
-    /** @internal */
-    private async _withAzureUserAssignedIdentityInternal(identityResourceBuilder: AzureUserAssignedIdentityResource): Promise<AzureEventHubsEmulatorResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, identityResourceBuilder };
-        const result = await this._client.invokeCapability<AzureEventHubsEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure/withUserAssignedIdentityAzureUserAssignedIdentity',
-            rpcArgs
-        );
-        return new AzureEventHubsEmulatorResource(result, this._client);
-    }
-
-    /** Associates an Azure user-assigned identity with a compute resource */
-    withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
     }
 
 }
@@ -8907,21 +8907,6 @@ export class AzureEventHubsEmulatorResourcePromise implements PromiseLike<AzureE
         return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Sets the host port for the Event Hubs emulator endpoint */
-    withHostPort(options?: WithHostPortOptions): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withHostPort(options)));
-    }
-
-    /** Sets the emulator configuration file path */
-    withConfigurationFile(path: string): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withConfigurationFile(path)));
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsEmulatorResourcePromise {
-        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): AzureEventHubsEmulatorResourcePromise {
         return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -8935,6 +8920,21 @@ export class AzureEventHubsEmulatorResourcePromise implements PromiseLike<AzureE
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): AzureEventHubsEmulatorResourcePromise {
         return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Sets the host port for the Event Hubs emulator endpoint */
+    withHostPort(options?: WithHostPortOptions): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withHostPort(options)));
+    }
+
+    /** Sets the emulator configuration file path */
+    withConfigurationFile(path: string): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withConfigurationFile(path)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsEmulatorResourcePromise {
+        return new AzureEventHubsEmulatorResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -9552,60 +9552,6 @@ export class AzureEventHubsResource extends ResourceBuilderBase<AzureEventHubsRe
         return new AzureEventHubsResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
-    /** @internal */
-    private async _addHubInternal(name: string, hubName?: string): Promise<AzureEventHubResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-        if (hubName !== undefined) rpcArgs.hubName = hubName;
-        const result = await this._client.invokeCapability<AzureEventHubResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/addHub',
-            rpcArgs
-        );
-        return new AzureEventHubResource(result, this._client);
-    }
-
-    /** Adds an Azure Event Hub resource */
-    addHub(name: string, options?: AddHubOptions): AzureEventHubResourcePromise {
-        const hubName = options?.hubName;
-        return new AzureEventHubResourcePromise(this._addHubInternal(name, hubName));
-    }
-
-    /** @internal */
-    private async _runAsEmulatorInternal(configureContainer?: (obj: AzureEventHubsEmulatorResource) => Promise<void>): Promise<AzureEventHubsResource> {
-        const configureContainerId = configureContainer ? registerCallback(async (objData: unknown) => {
-            const objHandle = wrapIfHandle(objData) as AzureEventHubsEmulatorResourceHandle;
-            const obj = new AzureEventHubsEmulatorResource(objHandle, this._client);
-            await configureContainer(obj);
-        }) : undefined;
-        const rpcArgs: Record<string, unknown> = { builder: this._handle };
-        if (configureContainer !== undefined) rpcArgs.configureContainer = configureContainerId;
-        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/runAsEmulator',
-            rpcArgs
-        );
-        return new AzureEventHubsResource(result, this._client);
-    }
-
-    /** Configures the Azure Event Hubs resource to run with the local emulator */
-    runAsEmulator(options?: RunAsEmulatorOptions): AzureEventHubsResourcePromise {
-        const configureContainer = options?.configureContainer;
-        return new AzureEventHubsResourcePromise(this._runAsEmulatorInternal(configureContainer));
-    }
-
-    /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureEventHubsResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureEventHubsResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsResourcePromise {
-        return new AzureEventHubsResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     async getOutput(name: string): Promise<BicepOutputReference> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -9878,6 +9824,60 @@ export class AzureEventHubsResource extends ResourceBuilderBase<AzureEventHubsRe
         return new AzureEventHubsResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
     }
 
+    /** @internal */
+    private async _addHubInternal(name: string, hubName?: string): Promise<AzureEventHubResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        if (hubName !== undefined) rpcArgs.hubName = hubName;
+        const result = await this._client.invokeCapability<AzureEventHubResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/addHub',
+            rpcArgs
+        );
+        return new AzureEventHubResource(result, this._client);
+    }
+
+    /** Adds an Azure Event Hub resource */
+    addHub(name: string, options?: AddHubOptions): AzureEventHubResourcePromise {
+        const hubName = options?.hubName;
+        return new AzureEventHubResourcePromise(this._addHubInternal(name, hubName));
+    }
+
+    /** @internal */
+    private async _runAsEmulatorInternal(configureContainer?: (obj: AzureEventHubsEmulatorResource) => Promise<void>): Promise<AzureEventHubsResource> {
+        const configureContainerId = configureContainer ? registerCallback(async (objData: unknown) => {
+            const objHandle = wrapIfHandle(objData) as AzureEventHubsEmulatorResourceHandle;
+            const obj = new AzureEventHubsEmulatorResource(objHandle, this._client);
+            await configureContainer(obj);
+        }) : undefined;
+        const rpcArgs: Record<string, unknown> = { builder: this._handle };
+        if (configureContainer !== undefined) rpcArgs.configureContainer = configureContainerId;
+        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/runAsEmulator',
+            rpcArgs
+        );
+        return new AzureEventHubsResource(result, this._client);
+    }
+
+    /** Configures the Azure Event Hubs resource to run with the local emulator */
+    runAsEmulator(options?: RunAsEmulatorOptions): AzureEventHubsResourcePromise {
+        const configureContainer = options?.configureContainer;
+        return new AzureEventHubsResourcePromise(this._runAsEmulatorInternal(configureContainer));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureEventHubsResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureEventHubsResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureEventHubsResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsResourcePromise {
+        return new AzureEventHubsResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -10060,21 +10060,6 @@ export class AzureEventHubsResourcePromise implements PromiseLike<AzureEventHubs
         return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Adds an Azure Event Hub resource */
-    addHub(name: string, options?: AddHubOptions): AzureEventHubResourcePromise {
-        return new AzureEventHubResourcePromise(this._promise.then(obj => obj.addHub(name, options)));
-    }
-
-    /** Configures the Azure Event Hubs resource to run with the local emulator */
-    runAsEmulator(options?: RunAsEmulatorOptions): AzureEventHubsResourcePromise {
-        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.runAsEmulator(options)));
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsResourcePromise {
-        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     getOutput(name: string): Promise<BicepOutputReference> {
         return this._promise.then(obj => obj.getOutput(name));
@@ -10168,6 +10153,21 @@ export class AzureEventHubsResourcePromise implements PromiseLike<AzureEventHubs
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureEventHubsResourcePromise {
         return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Adds an Azure Event Hub resource */
+    addHub(name: string, options?: AddHubOptions): AzureEventHubResourcePromise {
+        return new AzureEventHubResourcePromise(this._promise.then(obj => obj.addHub(name, options)));
+    }
+
+    /** Configures the Azure Event Hubs resource to run with the local emulator */
+    runAsEmulator(options?: RunAsEmulatorOptions): AzureEventHubsResourcePromise {
+        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.runAsEmulator(options)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureEventHubsResourcePromise {
+        return new AzureEventHubsResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -10546,21 +10546,6 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
         return new AzureProvisioningResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
-    /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureProvisioningResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureProvisioningResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     async getOutput(name: string): Promise<BicepOutputReference> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -10813,6 +10798,21 @@ export class AzureProvisioningResource extends ResourceBuilderBase<AzureProvisio
         return new AzureProvisioningResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
     }
 
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureProvisioningResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureProvisioningResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureProvisioningResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -10935,11 +10935,6 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
         return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureProvisioningResourcePromise {
-        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     getOutput(name: string): Promise<BicepOutputReference> {
         return this._promise.then(obj => obj.getOutput(name));
@@ -11028,6 +11023,11 @@ export class AzureProvisioningResourcePromise implements PromiseLike<AzureProvis
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureProvisioningResourcePromise {
         return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureProvisioningResourcePromise {
+        return new AzureProvisioningResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -13577,21 +13577,6 @@ export class AzureStorageEmulatorResource extends ResourceBuilderBase<AzureStora
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureStorageEmulatorResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureStorageEmulatorResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureStorageEmulatorResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageEmulatorResourcePromise {
-        return new AzureStorageEmulatorResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<AzureStorageEmulatorResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<AzureStorageEmulatorResourceHandle>(
@@ -13634,6 +13619,21 @@ export class AzureStorageEmulatorResource extends ResourceBuilderBase<AzureStora
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): AzureStorageEmulatorResourcePromise {
         return new AzureStorageEmulatorResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureStorageEmulatorResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureStorageEmulatorResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureStorageEmulatorResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageEmulatorResourcePromise {
+        return new AzureStorageEmulatorResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -14073,11 +14073,6 @@ export class AzureStorageEmulatorResourcePromise implements PromiseLike<AzureSto
         return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageEmulatorResourcePromise {
-        return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): AzureStorageEmulatorResourcePromise {
         return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -14091,6 +14086,11 @@ export class AzureStorageEmulatorResourcePromise implements PromiseLike<AzureSto
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): AzureStorageEmulatorResourcePromise {
         return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageEmulatorResourcePromise {
+        return new AzureStorageEmulatorResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -14811,21 +14811,6 @@ export class AzureStorageResource extends ResourceBuilderBase<AzureStorageResour
         return new AzureStorageResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
-    /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureStorageResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureStorageResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureStorageResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageResourcePromise {
-        return new AzureStorageResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     async getOutput(name: string): Promise<BicepOutputReference> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -15098,6 +15083,21 @@ export class AzureStorageResource extends ResourceBuilderBase<AzureStorageResour
         return new AzureStorageResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
     }
 
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureStorageResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureStorageResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureStorageResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageResourcePromise {
+        return new AzureStorageResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -15310,11 +15310,6 @@ export class AzureStorageResourcePromise implements PromiseLike<AzureStorageReso
         return new AzureStorageResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageResourcePromise {
-        return new AzureStorageResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     getOutput(name: string): Promise<BicepOutputReference> {
         return this._promise.then(obj => obj.getOutput(name));
@@ -15408,6 +15403,11 @@ export class AzureStorageResourcePromise implements PromiseLike<AzureStorageReso
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureStorageResourcePromise {
         return new AzureStorageResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureStorageResourcePromise {
+        return new AzureStorageResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -16344,21 +16344,6 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
         return new AzureUserAssignedIdentityResourcePromise(this._withStorageRoleAssignmentsInternal(target, roles));
     }
 
-    /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureUserAssignedIdentityResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new AzureUserAssignedIdentityResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     async getOutput(name: string): Promise<BicepOutputReference> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
@@ -16631,6 +16616,21 @@ export class AzureUserAssignedIdentityResource extends ResourceBuilderBase<Azure
         return new AzureUserAssignedIdentityResourcePromise(this._asExistingInternal(nameParameter, resourceGroupParameter));
     }
 
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<AzureUserAssignedIdentityResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<AzureUserAssignedIdentityResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new AzureUserAssignedIdentityResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
+    }
+
 }
 
 /**
@@ -16753,11 +16753,6 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
         return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureUserAssignedIdentityResourcePromise {
-        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Gets an output reference from an Azure Bicep template resource */
     getOutput(name: string): Promise<BicepOutputReference> {
         return this._promise.then(obj => obj.getOutput(name));
@@ -16851,6 +16846,11 @@ export class AzureUserAssignedIdentityResourcePromise implements PromiseLike<Azu
     /** Marks an Azure resource as existing in both run and publish modes by using parameter resources */
     asExisting(nameParameter: ParameterResource, resourceGroupParameter: ParameterResource): AzureUserAssignedIdentityResourcePromise {
         return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.asExisting(nameParameter, resourceGroupParameter)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): AzureUserAssignedIdentityResourcePromise {
+        return new AzureUserAssignedIdentityResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -19080,21 +19080,6 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ContainerResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new ContainerResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
@@ -19137,6 +19122,21 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ContainerResourcePromise {
         return new ContainerResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new ContainerResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -19456,11 +19456,6 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
         return new ContainerResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -19474,6 +19469,11 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ContainerResourcePromise {
+        return new ContainerResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -20592,21 +20592,6 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<CSharpAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new CSharpAppResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<CSharpAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
@@ -20649,6 +20634,21 @@ export class CSharpAppResource extends ResourceBuilderBase<CSharpAppResourceHand
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<CSharpAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new CSharpAppResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -20988,11 +20988,6 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): CSharpAppResourcePromise {
-        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -21006,6 +21001,11 @@ export class CSharpAppResourcePromise implements PromiseLike<CSharpAppResource> 
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): CSharpAppResourcePromise {
         return new CSharpAppResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -22212,21 +22212,6 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<DotnetToolResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new DotnetToolResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
@@ -22269,6 +22254,21 @@ export class DotnetToolResource extends ResourceBuilderBase<DotnetToolResourceHa
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<DotnetToolResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new DotnetToolResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -22638,11 +22638,6 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -22656,6 +22651,11 @@ export class DotnetToolResourcePromise implements PromiseLike<DotnetToolResource
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): DotnetToolResourcePromise {
         return new DotnetToolResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -23707,21 +23707,6 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ExecutableResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new ExecutableResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
@@ -23764,6 +23749,21 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new ExecutableResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -24083,11 +24083,6 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -24101,6 +24096,11 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ExecutableResourcePromise {
         return new ExecutableResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -25789,21 +25789,6 @@ export class JavaScriptAppResource extends ResourceBuilderBase<JavaScriptAppReso
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<JavaScriptAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<JavaScriptAppResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new JavaScriptAppResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<JavaScriptAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<JavaScriptAppResourceHandle>(
@@ -25846,6 +25831,21 @@ export class JavaScriptAppResource extends ResourceBuilderBase<JavaScriptAppReso
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): JavaScriptAppResourcePromise {
         return new JavaScriptAppResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<JavaScriptAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<JavaScriptAppResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new JavaScriptAppResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): JavaScriptAppResourcePromise {
+        return new JavaScriptAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -26195,11 +26195,6 @@ export class JavaScriptAppResourcePromise implements PromiseLike<JavaScriptAppRe
         return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): JavaScriptAppResourcePromise {
-        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): JavaScriptAppResourcePromise {
         return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -26213,6 +26208,11 @@ export class JavaScriptAppResourcePromise implements PromiseLike<JavaScriptAppRe
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): JavaScriptAppResourcePromise {
         return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): JavaScriptAppResourcePromise {
+        return new JavaScriptAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -27404,21 +27404,6 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<NodeAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<NodeAppResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new NodeAppResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withNpmInternal(install?: boolean, installCommand?: string, installArgs?: string[]): Promise<NodeAppResource> {
         const rpcArgs: Record<string, unknown> = { resource: this._handle };
         if (install !== undefined) rpcArgs.install = install;
@@ -27590,6 +27575,21 @@ export class NodeAppResource extends ResourceBuilderBase<NodeAppResourceHandle> 
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<NodeAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<NodeAppResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new NodeAppResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -27944,11 +27944,6 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
         return new NodeAppResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): NodeAppResourcePromise {
-        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Configures npm as the package manager */
     withNpm(options?: WithNpmOptions): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._promise.then(obj => obj.withNpm(options)));
@@ -27997,6 +27992,11 @@ export class NodeAppResourcePromise implements PromiseLike<NodeAppResource> {
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): NodeAppResourcePromise {
         return new NodeAppResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): NodeAppResourcePromise {
+        return new NodeAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -29603,21 +29603,6 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ProjectResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new ProjectResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withEnvironmentFromOutputInternal(name: string, bicepOutputReference: BicepOutputReference): Promise<ProjectResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, bicepOutputReference };
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
@@ -29660,6 +29645,21 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ProjectResourcePromise {
         return new ProjectResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new ProjectResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -29984,11 +29984,6 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Sets an environment variable from a Bicep output reference */
     withEnvironmentFromOutput(name: string, bicepOutputReference: BicepOutputReference): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withEnvironmentFromOutput(name, bicepOutputReference)));
@@ -30002,6 +29997,11 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ProjectResourcePromise {
         return new ProjectResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ProjectResourcePromise {
+        return new ProjectResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }
@@ -31178,21 +31178,6 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     }
 
     /** @internal */
-    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ViteAppResource> {
-        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
-        const result = await this._client.invokeCapability<ViteAppResourceHandle>(
-            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
-            rpcArgs
-        );
-        return new ViteAppResource(result, this._client);
-    }
-
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
-    }
-
-    /** @internal */
     private async _withViteConfigInternal(configPath: string): Promise<ViteAppResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, configPath };
         const result = await this._client.invokeCapability<ViteAppResourceHandle>(
@@ -31379,6 +31364,21 @@ export class ViteAppResource extends ResourceBuilderBase<ViteAppResourceHandle> 
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._withAzureUserAssignedIdentityInternal(identityResourceBuilder));
+    }
+
+    /** @internal */
+    private async _withEventHubsRoleAssignmentsInternal(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): Promise<ViteAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, target, roles };
+        const result = await this._client.invokeCapability<ViteAppResourceHandle>(
+            'Aspire.Hosting.Azure.EventHubs/withEventHubsRoleAssignments',
+            rpcArgs
+        );
+        return new ViteAppResource(result, this._client);
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ViteAppResourcePromise {
+        return new ViteAppResourcePromise(this._withEventHubsRoleAssignmentsInternal(target, roles));
     }
 
 }
@@ -31728,11 +31728,6 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
         return new ViteAppResourcePromise(this._promise.then(obj => obj.withStorageRoleAssignments(target, roles)));
     }
 
-    /** Assigns Event Hubs roles to a resource */
-    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ViteAppResourcePromise {
-        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
-    }
-
     /** Configures a custom Vite configuration file */
     withViteConfig(configPath: string): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._promise.then(obj => obj.withViteConfig(configPath)));
@@ -31786,6 +31781,11 @@ export class ViteAppResourcePromise implements PromiseLike<ViteAppResource> {
     /** Associates an Azure user-assigned identity with a compute resource */
     withAzureUserAssignedIdentity(identityResourceBuilder: AzureUserAssignedIdentityResource): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._promise.then(obj => obj.withAzureUserAssignedIdentity(identityResourceBuilder)));
+    }
+
+    /** Assigns Event Hubs roles to a resource */
+    withEventHubsRoleAssignments(target: AzureEventHubsResource, roles: AzureEventHubsRole[]): ViteAppResourcePromise {
+        return new ViteAppResourcePromise(this._promise.then(obj => obj.withEventHubsRoleAssignments(target, roles)));
     }
 
 }

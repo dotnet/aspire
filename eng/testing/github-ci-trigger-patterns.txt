@@ -28,6 +28,8 @@ eng/testing/github-ci-trigger-patterns.txt
 eng/pipelines/**
 eng/test-configuration.json
 
+Aspire-Core.slnf
+
 .github/instructions/**
 .github/skills/**
 

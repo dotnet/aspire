@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Diagnose Aspire environment issues and verify setup.</source>
-        <target state="translated">Diagnostikujte problémy s prostředím Aspire a ověřte nastavení.</target>
+        <source>Diagnose Aspire environment issues and verify setup</source>
+        <target state="needs-review-translation">Diagnostikovat problémy s prostředím Aspire a ověřit nastavení</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
@@ -123,8 +123,8 @@
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
-        <source>Output format (Table or Json).</source>
-        <target state="translated">Výstupní formát (tabulka nebo JSON)</target>
+        <source>Output format (Table or Json)</source>
+        <target state="needs-review-translation">Výstup výsledků ve formátu JSON pro integraci nástrojů</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">
