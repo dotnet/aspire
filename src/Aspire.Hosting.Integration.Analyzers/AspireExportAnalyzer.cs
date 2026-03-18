@@ -48,6 +48,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        var currentAssemblyExportedTypes = GetAssemblyExportedTypes(context.Compilation.Assembly, aspireExportAttribute);
+
         // Try to get AspireExportIgnoreAttribute for ASPIREEXPORT008
         INamedTypeSymbol? aspireExportIgnoreAttribute = null;
         try
@@ -75,7 +77,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         var exportsByKey = new ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>>();
 
         context.RegisterSymbolAction(
-            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute, aspireExportIgnoreAttribute, aspireUnionAttribute, exportsByKey),
+            c => AnalyzeMethod(c, wellKnownTypes, aspireExportAttribute, aspireExportIgnoreAttribute, aspireUnionAttribute, currentAssemblyExportedTypes, exportsByKey),
             SymbolKind.Method);
 
         // At the end of compilation, report duplicate export IDs
@@ -120,6 +122,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol aspireExportAttribute,
         INamedTypeSymbol? aspireExportIgnoreAttribute,
         INamedTypeSymbol? aspireUnionAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes,
         ConcurrentDictionary<(string ExportId, string TargetType), ConcurrentBag<(IMethodSymbol Method, Location Location)>> exportsByKey)
     {
         var method = (IMethodSymbol)context.Symbol;
@@ -148,7 +151,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // ASPIREEXPORT008: Check for missing export attributes on builder extension methods
         if (exportAttribute is null && !hasExportIgnore && !isObsolete)
         {
-            AnalyzeMissingExportAttribute(context, method, wellKnownTypes, aspireExportAttribute);
+            AnalyzeMissingExportAttribute(context, method, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         if (exportAttribute is null)
@@ -158,9 +161,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         var attributeSyntax = exportAttribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
         var location = attributeSyntax?.GetLocation() ?? method.Locations.FirstOrDefault() ?? Location.None;
+        var containingTypeExportAttribute = GetContainingTypeAspireExportAttribute(method.ContainingType, aspireExportAttribute);
 
         // Rule 1: Method must be static
-        if (!method.IsStatic)
+        if (!method.IsStatic && containingTypeExportAttribute is null)
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Diagnostics.s_exportMethodMustBeStatic,
@@ -179,7 +183,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         // Rule 3: Validate return type is ATS-compatible
-        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute))
+        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Diagnostics.s_returnTypeMustBeAtsCompatible,
@@ -191,7 +195,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // Rule 4: Validate parameter types are ATS-compatible
         foreach (var parameter in method.Parameters)
         {
-            if (!IsAtsCompatibleParameter(parameter, wellKnownTypes, aspireExportAttribute))
+            if (!IsAtsCompatibleParameter(parameter, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.s_parameterTypeMustBeAtsCompatible,
@@ -204,7 +208,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Rule 5 (ASPIREEXPORT005/006): Validate [AspireUnion] on parameters
             if (aspireUnionAttribute is not null)
             {
-                AnalyzeUnionAttribute(context, parameter.GetAttributes(), aspireUnionAttribute, wellKnownTypes, aspireExportAttribute);
+                AnalyzeUnionAttribute(context, parameter.GetAttributes(), aspireUnionAttribute, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
             }
         }
 
@@ -229,7 +233,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         SymbolAnalysisContext context,
         IMethodSymbol method,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         // Only check public static extension methods
         if (!method.IsStatic || !method.IsExtensionMethod || method.DeclaredAccessibility != Accessibility.Public)
@@ -244,13 +249,13 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 
         // Only check methods extending exported handle types that participate in ATS.
         var firstParamType = method.Parameters[0].Type;
-        if (!RequiresExplicitExportCoverage(firstParamType, wellKnownTypes, aspireExportAttribute))
+        if (!RequiresExplicitExportCoverage(firstParamType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             return;
         }
 
         // Determine the incompatibility reason (if any) to include in the warning
-        var reason = GetIncompatibilityReason(method, wellKnownTypes, aspireExportAttribute);
+        var reason = GetIncompatibilityReason(method, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         var location = method.Locations.FirstOrDefault() ?? Location.None;
 
         context.ReportDiagnostic(Diagnostic.Create(
@@ -548,17 +553,19 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     private static bool RequiresExplicitExportCoverage(
         ITypeSymbol type,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         return IsBuilderType(type, wellKnownTypes) ||
                IsResourceType(type, wellKnownTypes) ||
-               HasAspireExportAttribute(type, aspireExportAttribute);
+               HasAspireExportAttribute(type, aspireExportAttribute, currentAssemblyExportedTypes);
     }
 
     private static string? GetIncompatibilityReason(
         IMethodSymbol method,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         var reasons = new List<string>();
 
@@ -611,7 +618,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Check delegate types more carefully
             if (IsDelegateType(paramType))
             {
-                var reason = GetDelegateIncompatibilityReason(param, paramType, wellKnownTypes, aspireExportAttribute);
+                var reason = GetDelegateIncompatibilityReason(param, paramType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
                 if (reason is not null)
                 {
                     reasons.Add(reason);
@@ -619,14 +626,14 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            if (!IsAtsCompatibleValueType(paramType, wellKnownTypes, aspireExportAttribute))
+            if (!IsAtsCompatibleValueType(paramType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
             {
                 reasons.Add($"parameter '{param.Name}' of type '{paramType.ToDisplayString()}' is not ATS-compatible");
             }
         }
 
         // Check return type
-        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute))
+        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             reasons.Add($"return type '{method.ReturnType.ToDisplayString()}' is not ATS-compatible");
         }
@@ -643,7 +650,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         IParameterSymbol param,
         ITypeSymbol delegateType,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol _)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         if (delegateType is not INamedTypeSymbol namedDelegate)
         {
@@ -661,13 +669,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         foreach (var delegateParam in invokeMethod.Parameters)
         {
             var dpType = delegateParam.Type;
-            var dpTypeName = dpType.ToDisplayString();
-
-            // Check for known incompatible context types
-            if (dpTypeName is "System.IServiceProvider" or
-                "System.Text.Json.Utf8JsonWriter" or
-                "System.Threading.CancellationToken" or
-                "System.Net.Http.HttpRequestMessage")
+            if (!IsAtsCompatibleValueType(dpType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
             {
                 return $"parameter '{param.Name}' uses delegate with '{dpType.Name}' which is not ATS-compatible";
             }
@@ -700,7 +702,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         ImmutableArray<AttributeData> attributes,
         INamedTypeSymbol aspireUnionAttribute,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         foreach (var attr in attributes)
         {
@@ -745,7 +748,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             {
                 if (typeConstant.Value is INamedTypeSymbol typeSymbol)
                 {
-                    if (!IsAtsCompatibleValueType(typeSymbol, wellKnownTypes, aspireExportAttribute))
+                    if (!IsAtsCompatibleValueType(typeSymbol, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             Diagnostics.s_unionTypeMustBeAtsCompatible,
@@ -853,7 +856,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     private static bool IsAtsCompatibleType(
         ITypeSymbol type,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         // void is allowed
         if (type.SpecialType == SpecialType.System_Void)
@@ -861,21 +865,22 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        // Task and Task<T> are allowed (for async methods)
-        if (IsTaskType(type, wellKnownTypes, aspireExportAttribute))
+        // Task, Task<T>, ValueTask, and ValueTask<T> are allowed (for async methods)
+        if (IsAsyncResultType(type, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             return true;
         }
 
-        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute);
+        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
     }
 
-    private static bool IsTaskType(
+    private static bool IsAsyncResultType(
         ITypeSymbol type,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
-        // Check for Task
+        // Check for Task / ValueTask
         try
         {
             var taskType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.System_Threading_Tasks_Task);
@@ -889,7 +894,20 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             // Type not found
         }
 
-        // Check for Task<T>
+        try
+        {
+            var valueTaskType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.System_Threading_Tasks_ValueTask);
+            if (SymbolEqualityComparer.Default.Equals(type, valueTaskType))
+            {
+                return true;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found
+        }
+
+        // Check for Task<T> / ValueTask<T>
         if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
         {
             try
@@ -899,7 +917,21 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 {
                     // Validate the T in Task<T> is also ATS-compatible
                     return namedType.TypeArguments.Length == 1 &&
-                           IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
+                           IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Type not found
+            }
+
+            try
+            {
+                var valueTaskOfTType = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.System_Threading_Tasks_ValueTask_1);
+                if (SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, valueTaskOfTType))
+                {
+                    return namedType.TypeArguments.Length == 1 &&
+                           IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
                 }
             }
             catch (InvalidOperationException)
@@ -914,7 +946,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     private static bool IsAtsCompatibleValueType(
         ITypeSymbol type,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol? aspireExportAttribute = null)
+        INamedTypeSymbol? aspireExportAttribute = null,
+        HashSet<ITypeSymbol>? currentAssemblyExportedTypes = null)
     {
         // Handle nullable types
         if (type is INamedTypeSymbol namedType &&
@@ -939,11 +972,11 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // Arrays of ATS-compatible types
         if (type is IArrayTypeSymbol arrayType)
         {
-            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute);
+            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         // Collection types (Dictionary, List, IReadOnlyList, etc.)
-        if (IsAtsCompatibleCollectionType(type, wellKnownTypes, aspireExportAttribute))
+        if (IsAtsCompatibleCollectionType(type, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             return true;
         }
@@ -961,7 +994,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         // Types with [AspireExport] or [AspireDto] attribute
-        if (aspireExportAttribute != null && HasAspireExportAttribute(type, aspireExportAttribute))
+        if (aspireExportAttribute != null && HasAspireExportAttribute(type, aspireExportAttribute, currentAssemblyExportedTypes))
         {
             return true;
         }
@@ -1063,7 +1096,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     private static bool IsAtsCompatibleCollectionType(
         ITypeSymbol type,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol? aspireExportAttribute)
+        INamedTypeSymbol? aspireExportAttribute,
+        HashSet<ITypeSymbol>? currentAssemblyExportedTypes)
     {
         if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
         {
@@ -1076,8 +1110,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         {
             // Validate key and value types are ATS-compatible
             return namedType.TypeArguments.Length == 2 &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute) &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute);
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes) &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         // List<T> and IList<T>
@@ -1085,7 +1119,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IList_1))
         {
             return namedType.TypeArguments.Length == 1 &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         // IReadOnlyList<T> and IReadOnlyCollection<T>
@@ -1094,21 +1128,21 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IEnumerable_1))
         {
             return namedType.TypeArguments.Length == 1 &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         // IReadOnlyDictionary<K,V>
         if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyDictionary_2))
         {
             return namedType.TypeArguments.Length == 2 &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute) &&
-                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute);
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes) &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
         return false;
     }
 
-    private static bool HasAspireExportAttribute(ITypeSymbol type, INamedTypeSymbol aspireExportAttribute)
+    private static bool HasAspireExportAttribute(ITypeSymbol type, INamedTypeSymbol aspireExportAttribute, HashSet<ITypeSymbol>? currentAssemblyExportedTypes)
     {
         // Check direct attributes on the type
         foreach (var attr in type.GetAttributes())
@@ -1117,6 +1151,11 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             {
                 return true;
             }
+        }
+
+        if (currentAssemblyExportedTypes?.Contains(type) == true)
+        {
+            return true;
         }
 
         var containingAssembly = type.ContainingAssembly;
@@ -1140,6 +1179,26 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    private static HashSet<ITypeSymbol> GetAssemblyExportedTypes(IAssemblySymbol assembly, INamedTypeSymbol aspireExportAttribute)
+    {
+        var exportedTypes = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+
+        foreach (var attr in assembly.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                continue;
+            }
+
+            if (TryGetAssemblyExportedType(attr, out var exportedType) && exportedType is not null)
+            {
+                exportedTypes.Add(exportedType);
+            }
+        }
+
+        return exportedTypes;
     }
 
     private static bool TryGetAssemblyExportedType(AttributeData attribute, out ITypeSymbol? exportedType)
@@ -1234,7 +1293,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     private static bool IsAtsCompatibleParameter(
         IParameterSymbol parameter,
         WellKnownTypes wellKnownTypes,
-        INamedTypeSymbol aspireExportAttribute)
+        INamedTypeSymbol aspireExportAttribute,
+        HashSet<ITypeSymbol> currentAssemblyExportedTypes)
     {
         var type = parameter.Type;
 
@@ -1247,10 +1307,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // params arrays are allowed if element type is compatible
         if (parameter.IsParams && type is IArrayTypeSymbol arrayType)
         {
-            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute);
+            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
         }
 
-        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute);
+        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute, currentAssemblyExportedTypes);
     }
 
     private static bool IsDelegateType(ITypeSymbol type)

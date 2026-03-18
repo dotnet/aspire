@@ -85,6 +85,25 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
+    public async Task InstanceMethodOnExportedType_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            [AspireExport]
+            public class TestExports
+            {
+                [AspireExport("instanceMethod")]
+                public string InstanceMethod() => "test";
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
     public async Task InvalidIdFormat_WithSlash_ReportsASPIREEXPORT002()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_invalidExportIdFormat;
@@ -222,6 +241,28 @@ public class AspireExportAnalyzerTests
 
                 [AspireExport("asyncMethodWithResult")]
                 public static Task<string> AsyncMethodWithResult() => Task.FromResult("test");
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ValidValueTaskReturn_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using System.Threading.Tasks;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("asyncMethod")]
+                public static ValueTask AsyncMethod() => ValueTask.CompletedTask;
+
+                [AspireExport("asyncMethodWithResult")]
+                public static ValueTask<string> AsyncMethodWithResult() => ValueTask.FromResult("test");
             }
             """, []);
 
@@ -669,6 +710,48 @@ public class AspireExportAnalyzerTests
 
                 [AspireExport("returnsCustomType")]
                 public static MyCustomType ReturnsCustom() => new();
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task AssemblyExportedExternalType_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using System;
+            using Aspire.Hosting;
+
+            [assembly: AspireExport(typeof(IServiceProvider))]
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("getProvider")]
+                public static IServiceProvider GetProvider(this IServiceProvider provider) => provider;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ArrayOfAssemblyExportedExternalType_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using System;
+            using Aspire.Hosting;
+
+            [assembly: AspireExport(typeof(IServiceProvider))]
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("getChildren")]
+                public static IServiceProvider[] GetChildren(IServiceProvider[] providers) => providers;
             }
             """, []);
 
@@ -1382,6 +1465,29 @@ public class AspireExportAnalyzerTests
             }
             """,
             [new DiagnosticResult(diagnostic).WithLocation(13, 24).WithArguments("Configure", "Add [AspireExport] if ATS-compatible, or [AspireExportIgnore] with a reason.")]);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task MissingExportAttribute_OnAssemblyExportedExternalTypeExtension_ReportsASPIREEXPORT008()
+    {
+        var diagnostic = AspireExportAnalyzer.Diagnostics.s_missingExportAttribute;
+
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using System;
+            using Aspire.Hosting;
+
+            [assembly: AspireExport(typeof(IServiceProvider))]
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                public static void Configure(this IServiceProvider serviceProvider) { }
+            }
+            """,
+            [new DiagnosticResult(diagnostic).WithLocation(10, 24).WithArguments("Configure", "Add [AspireExport] if ATS-compatible, or [AspireExportIgnore] with a reason.")]);
 
         await test.RunAsync();
     }
