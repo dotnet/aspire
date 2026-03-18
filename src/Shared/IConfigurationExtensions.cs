@@ -3,9 +3,20 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting;
+#if !CLI && !ASPIRE_DASHBOARD
+using Aspire.Hosting.Ats;
+#endif
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire;
+
+#if CLI || ASPIRE_DASHBOARD
+[AttributeUsage(AttributeTargets.All)]
+internal sealed class AspireExportIgnoreAttribute : Attribute
+{
+    public string? Reason { get; set; }
+}
+#endif
 
 internal static class IConfigurationExtensions
 {
