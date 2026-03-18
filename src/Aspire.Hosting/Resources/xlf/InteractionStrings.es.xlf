@@ -127,8 +127,8 @@ El valor se guarda actualmente en [secretos de usuario](https://aka.ms/aspire/us
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
-        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
-        <target state="translated">Requiere que se configure un `UserSecretsId` en el archivo de proyecto AppHost. Ejecuta `aspire secret set &lt;key&gt; &lt;value&gt;` para inicializar los secretos de usuario o consulta [user secrets](https://aka.ms/aspire/user-secrets) para más información.</target>
+        <source>Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
+        <target state="new">Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
