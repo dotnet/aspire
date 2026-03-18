@@ -8,6 +8,7 @@
 
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
 
     <!-- Run only on Linux in Azdo Helix -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
