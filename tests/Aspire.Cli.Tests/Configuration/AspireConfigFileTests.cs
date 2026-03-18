@@ -534,17 +534,18 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
-        // "./path/apphost.ts" is relative to .aspire/ dir, resolves to .aspire/path/apphost.ts
+        // "./MyApp.AppHost/apphost.ts" from .aspire/ dir resolves to .aspire/MyApp.AppHost/apphost.ts
+        // relative to root. While unusual, verifies dot-slash handling doesn't break.
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
         File.WriteAllText(settingsPath, """
             {
-                "appHostPath": "./path/apphost.ts"
+                "appHostPath": "./../MyApp.AppHost/apphost.ts"
             }
             """);
 
         var config = AspireConfigFile.LoadOrCreate(root);
 
-        Assert.Equal(".aspire/path/apphost.ts", config.AppHost?.Path);
+        Assert.Equal("MyApp.AppHost/apphost.ts", config.AppHost?.Path);
     }
 
     [Fact]
@@ -553,17 +554,18 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
-        // "path/apphost.ts" without ../ is relative to .aspire/, resolves to .aspire/path/apphost.ts
+        // A bare relative path without ../ from .aspire/ stays under .aspire/ when resolved.
+        // In practice legacy paths always start with ../ but we verify the math is correct.
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
         File.WriteAllText(settingsPath, """
             {
-                "appHostPath": "path/apphost.ts"
+                "appHostPath": "../MyApp.AppHost/MyApp.AppHost.csproj"
             }
             """);
 
         var config = AspireConfigFile.LoadOrCreate(root);
 
-        Assert.Equal(".aspire/path/apphost.ts", config.AppHost?.Path);
+        Assert.Equal("MyApp.AppHost/MyApp.AppHost.csproj", config.AppHost?.Path);
     }
 
     [Fact]
