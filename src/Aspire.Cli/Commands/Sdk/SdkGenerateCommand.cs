@@ -7,7 +7,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
-using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Commands.Sdk;
@@ -159,65 +158,43 @@ internal sealed class SdkGenerateCommand : BaseCommand
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            // Start the server
-            var currentPid = Environment.ProcessId;
-            var authenticationToken = TokenGenerator.GenerateToken();
-            var serverEnvironmentVariables = new Dictionary<string, string>
+            await using var serverSession = AppHostServerSession.Start(
+                appHostServerProject,
+                environmentVariables: null,
+                debug: false,
+                _logger);
+
+            // Connect and generate code
+            var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
+
+            _logger.LogDebug("Generating {Language} SDK via RPC", languageInfo.CodeGenerator);
+            var generatedFiles = await rpcClient.GenerateCodeAsync(languageInfo.CodeGenerator, cancellationToken);
+
+            // Write generated files
+            var outputDirFullPath = Path.GetFullPath(outputDir.FullName);
+            foreach (var (fileName, content) in generatedFiles)
             {
-                [KnownConfigNames.RemoteAppHostToken] = authenticationToken
-            };
-            var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
+                var filePath = Path.GetFullPath(Path.Combine(outputDir.FullName, fileName));
 
-            try
-            {
-                // Connect and generate code
-                await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
-
-                _logger.LogDebug("Generating {Language} SDK via RPC", languageInfo.CodeGenerator);
-                var generatedFiles = await rpcClient.GenerateCodeAsync(languageInfo.CodeGenerator, cancellationToken);
-
-                // Write generated files
-                var outputDirFullPath = Path.GetFullPath(outputDir.FullName);
-                foreach (var (fileName, content) in generatedFiles)
+                // Validate path is within output directory (prevent path traversal)
+                if (!filePath.StartsWith(outputDirFullPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    var filePath = Path.GetFullPath(Path.Combine(outputDir.FullName, fileName));
-
-                    // Validate path is within output directory (prevent path traversal)
-                    if (!filePath.StartsWith(outputDirFullPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        _logger.LogWarning("Skipping file with invalid path: {FileName}", fileName);
-                        continue;
-                    }
-
-                    var fileDirectory = Path.GetDirectoryName(filePath);
-                    if (!string.IsNullOrEmpty(fileDirectory))
-                    {
-                        Directory.CreateDirectory(fileDirectory);
-                    }
-                    await File.WriteAllTextAsync(filePath, content, cancellationToken);
-                    _logger.LogDebug("Wrote {FileName}", fileName);
+                    _logger.LogWarning("Skipping file with invalid path: {FileName}", fileName);
+                    continue;
                 }
 
-                InteractionService.DisplaySuccess($"Generated {generatedFiles.Count} files in {outputDir.FullName}");
-
-                return ExitCodeConstants.Success;
+                var fileDirectory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(fileDirectory))
+                {
+                    Directory.CreateDirectory(fileDirectory);
+                }
+                await File.WriteAllTextAsync(filePath, content, cancellationToken);
+                _logger.LogDebug("Wrote {FileName}", fileName);
             }
-            finally
-            {
-                // Stop the server - just try to kill, catch if already exited
-                try
-                {
-                    serverProcess.Kill(entireProcessTree: true);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Process already exited - this is fine
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process");
-                }
-            }
+
+            InteractionService.DisplaySuccess($"Generated {generatedFiles.Count} files in {outputDir.FullName}");
+
+            return ExitCodeConstants.Success;
         }
         finally
         {

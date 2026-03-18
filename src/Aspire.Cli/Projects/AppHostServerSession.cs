@@ -45,6 +45,39 @@ internal sealed class AppHostServerSession : IAppHostServerSession
     /// <inheritdoc />
     public OutputCollector Output => _output;
 
+    /// <summary>
+    /// Starts an AppHost server process with an authentication token injected into its environment.
+    /// </summary>
+    /// <param name="appHostServerProject">The server project to run.</param>
+    /// <param name="environmentVariables">The environment variables to pass to the server.</param>
+    /// <param name="debug">Whether to enable debug logging for the server.</param>
+    /// <param name="logger">The logger to use for lifecycle diagnostics.</param>
+    /// <returns>The started AppHost server session.</returns>
+    internal static AppHostServerSession Start(
+        IAppHostServerProject appHostServerProject,
+        Dictionary<string, string>? environmentVariables,
+        bool debug,
+        ILogger logger)
+    {
+        var currentPid = Environment.ProcessId;
+        environmentVariables ??= [];
+
+        var authenticationToken = TokenGenerator.GenerateToken();
+        environmentVariables[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
+
+        var (socketPath, serverProcess, serverOutput) = appHostServerProject.Run(
+            currentPid,
+            environmentVariables,
+            debug: debug);
+
+        return new AppHostServerSession(
+            serverProcess,
+            serverOutput,
+            socketPath,
+            authenticationToken,
+            logger);
+    }
+
     /// <inheritdoc />
     public async Task<IAppHostRpcClient> GetRpcClientAsync(CancellationToken cancellationToken)
     {
@@ -123,22 +156,10 @@ internal sealed class AppHostServerSessionFactory : IAppHostServerSessionFactory
                 ChannelName: prepareResult.ChannelName);
         }
 
-        // Start the server process
-        var currentPid = Environment.ProcessId;
-        var authenticationToken = TokenGenerator.GenerateToken();
-        launchSettingsEnvVars ??= [];
-        launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
-        var (socketPath, serverProcess, serverOutput) = appHostServerProject.Run(
-            currentPid,
+        var session = AppHostServerSession.Start(
+            appHostServerProject,
             launchSettingsEnvVars,
-            debug: debug);
-
-        // Create the session
-        var session = new AppHostServerSession(
-            serverProcess,
-            serverOutput,
-            socketPath,
-            authenticationToken,
+            debug,
             _logger);
 
         return new AppHostServerSessionResult(

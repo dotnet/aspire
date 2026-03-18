@@ -5,7 +5,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Utils;
-using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Scaffolding;
@@ -80,18 +79,14 @@ internal sealed class ScaffoldingService : IScaffoldingService
         }
 
         // Step 2: Start the server temporarily for scaffolding and code generation
-        var currentPid = Environment.ProcessId;
-        var authenticationToken = TokenGenerator.GenerateToken();
-        var serverEnvironmentVariables = new Dictionary<string, string>
-        {
-            [KnownConfigNames.RemoteAppHostToken] = authenticationToken
-        };
-        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
+        await using var serverSession = AppHostServerSession.Start(
+            appHostServerProject,
+            environmentVariables: null,
+            debug: false,
+            _logger);
 
-        try
-        {
-            // Step 3: Connect to server and get scaffold templates via RPC
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
+        // Step 3: Connect to server and get scaffold templates via RPC
+        var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
 
             var scaffoldFiles = await rpcClient.ScaffoldAppHostAsync(
                 language.LanguageId,
@@ -157,23 +152,7 @@ internal sealed class ScaffoldingService : IScaffoldingService
             config.AppHost.Path ??= language.AppHostFileName;
             config.AppHost.Language = language.LanguageId;
             config.Save(directory.FullName);
-            return true;
-        }
-        finally
-        {
-            // Step 7: Stop the server
-            if (!serverProcess.HasExited)
-            {
-                try
-                {
-                    serverProcess.Kill(entireProcessTree: true);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process after scaffolding");
-                }
-            }
-        }
+        return true;
     }
 
     private async Task<int> InstallDependenciesAsync(

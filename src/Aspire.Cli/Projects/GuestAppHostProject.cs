@@ -258,46 +258,26 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
 
         // Step 2: Start the AppHost server temporarily for code generation
-        var currentPid = Environment.ProcessId;
-        var authenticationToken = TokenGenerator.GenerateToken();
-        var serverEnvironmentVariables = new Dictionary<string, string>
-        {
-            [KnownConfigNames.RemoteAppHostToken] = authenticationToken
-        };
-        var (socketPath, serverProcess, _) = appHostServerProject.Run(currentPid, serverEnvironmentVariables);
+        await using var serverSession = AppHostServerSession.Start(
+            appHostServerProject,
+            environmentVariables: null,
+            debug: false,
+            _logger);
 
-        try
-        {
-            // Step 3: Connect to server
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
+        // Step 3: Connect to server
+        var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
 
-            // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
-            await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
+        // Step 4: Install dependencies using GuestRuntime (best effort - don't block code generation)
+        await InstallDependenciesAsync(directory, rpcClient, cancellationToken);
 
-            // Step 5: Generate SDK code via RPC
-            await GenerateCodeViaRpcAsync(
-                directory.FullName,
-                rpcClient,
-                integrations,
-                cancellationToken);
+        // Step 5: Generate SDK code via RPC
+        await GenerateCodeViaRpcAsync(
+            directory.FullName,
+            rpcClient,
+            integrations,
+            cancellationToken);
 
-            return true;
-        }
-        finally
-        {
-            // Step 6: Stop the server (we were just generating code)
-            if (!serverProcess.HasExited)
-            {
-                try
-                {
-                    serverProcess.Kill(entireProcessTree: true);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process after code generation");
-                }
-            }
-        }
+        return true;
     }
 
     Task<bool> IGuestAppHostSdkGenerator.BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
@@ -423,15 +403,20 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
-            var authenticationToken = TokenGenerator.GenerateToken();
-            launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
             // Start the AppHost server process
-            var currentPid = Environment.ProcessId;
-            var (socketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
+            await using var serverSession = AppHostServerSession.Start(
+                appHostServerProject,
+                launchSettingsEnvVars,
+                context.Debug,
+                _logger);
+            var socketPath = serverSession.SocketPath;
+            var appHostServerProcess = serverSession.ServerProcess;
+            var appHostServerOutputCollector = serverSession.Output;
+            var authenticationToken = launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken];
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -451,7 +436,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
 
             // Step 5: Connect to server for RPC calls
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(socketPath, authenticationToken, cancellationToken);
+            var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
 
             // Step 6: Install dependencies (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
@@ -794,12 +779,17 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
-            var authenticationToken = TokenGenerator.GenerateToken();
-            launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken] = authenticationToken;
 
             // Step 2: Start the AppHost server process(it opens the backchannel for progress reporting)
-            var currentPid = Environment.ProcessId;
-            var (jsonRpcSocketPath, appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(currentPid, launchSettingsEnvVars, debug: context.Debug);
+            await using var serverSession = AppHostServerSession.Start(
+                appHostServerProject,
+                launchSettingsEnvVars,
+                context.Debug,
+                _logger);
+            var jsonRpcSocketPath = serverSession.SocketPath;
+            var appHostServerProcess = serverSession.ServerProcess;
+            var appHostServerOutputCollector = serverSession.Output;
+            var authenticationToken = launchSettingsEnvVars[KnownConfigNames.RemoteAppHostToken];
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -818,7 +808,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             }
 
             // Step 3: Connect to server for RPC calls
-            await using var rpcClient = await AppHostRpcClient.ConnectAsync(jsonRpcSocketPath, authenticationToken, cancellationToken);
+            var rpcClient = await serverSession.GetRpcClientAsync(cancellationToken);
 
             // Step 4: Install dependencies if needed (using GuestRuntime)
             // The GuestRuntime will skip if the RuntimeSpec doesn't have InstallDependencies configured
