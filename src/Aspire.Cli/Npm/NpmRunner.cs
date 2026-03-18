@@ -19,8 +19,10 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
     /// </summary>
     private const string PublicRegistry = "https://registry.npmjs.org/";
 
+    private readonly Lazy<string?> _npmPath = new(() => PathLookupHelper.FindFullPathFromPath("npm"));
+
     /// <inheritdoc />
-    public bool IsAvailable => FindNpmPath() is not null;
+    public bool IsAvailable => _npmPath.Value is not null;
 
     /// <inheritdoc />
     public async Task<NpmPackageInfo?> ResolvePackageAsync(string packageName, string versionRange, CancellationToken cancellationToken)
@@ -202,7 +204,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
 
     private string? FindNpmPath()
     {
-        var npmPath = PathLookupHelper.FindFullPathFromPath("npm");
+        var npmPath = _npmPath.Value;
         if (npmPath is null)
         {
             logger.LogDebug("npm is not installed or not found in PATH");
@@ -285,7 +287,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
                 var resolved = ResolveNodeAndNpmCli(npmPath);
                 if (resolved is null)
                 {
-                    logger.LogDebug("Could not resolve node.exe/npm-cli.js from {NpmCmd}, falling back to direct invocation", npmPath);
+                    logger.LogWarning("Could not resolve node.exe/npm-cli.js from {NpmCmd}, falling back to direct invocation which may produce empty output", npmPath);
                     startInfo.FileName = npmPath;
                 }
                 else

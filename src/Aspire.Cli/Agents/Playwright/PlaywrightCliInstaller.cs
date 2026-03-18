@@ -77,7 +77,7 @@ internal sealed class PlaywrightCliInstaller(
     /// <param name="repoRoot">The workspace/repository root directory.</param>
     /// <param name="selectedSkillDirectories">The skill directories the user explicitly selected.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A tuple where <c>Success</c> is true if installation succeeded, and <c>ErrorMessage</c> contains the failure reason (or null if npm is simply unavailable).</returns>
+    /// <returns>A tuple where <c>Success</c> is true if installation succeeded, and <c>ErrorMessage</c> contains the failure reason (or <see langword="null"/> when npm is not available on the system PATH).</returns>
     public async Task<(bool Success, string? ErrorMessage)> InstallAsync(string repoRoot, IReadOnlySet<string> selectedSkillDirectories, CancellationToken cancellationToken)
     {
         return await interactionService.ShowStatusAsync(
@@ -254,11 +254,21 @@ internal sealed class PlaywrightCliInstaller(
         logger.LogDebug("Generating Playwright CLI skill files");
         var preExisting = SnapshotPlaywrightSkillDirs(repoRoot);
         var skillsInstalled = await playwrightCliRunner.InstallSkillsAsync(repoRoot, cancellationToken);
-        if (skillsInstalled)
+        if (!skillsInstalled)
+        {
+            return (false, "Failed to generate Playwright CLI skill files");
+        }
+
+        try
         {
             MirrorSkillFiles(repoRoot, selectedSkillDirectories, preExisting);
         }
-        return (skillsInstalled, null);
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Failed to mirror Playwright CLI skill files");
+        }
+
+        return (true, null);
     }
 
     /// <summary>
