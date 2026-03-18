@@ -53,12 +53,22 @@ internal sealed class AppHostRpcClient : IAppHostRpcClient
             "scaffoldAppHost", [languageId, targetPath, projectName], cancellationToken);
 
     /// <inheritdoc />
-    public Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, string? assemblyName = null, CancellationToken cancellationToken = default)
+    public Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken)
+        => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
+            "generateCode", [languageId, null], cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Dictionary<string, string>> GenerateCodeForAssemblyAsync(string languageId, string assemblyName, CancellationToken cancellationToken)
         => _jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>(
             "generateCode", [languageId, assemblyName], cancellationToken);
 
     /// <inheritdoc />
-    public Task<Commands.Sdk.CapabilitiesInfo> GetCapabilitiesAsync(IReadOnlyList<string>? assemblyNames = null, CancellationToken cancellationToken = default)
+    public Task<Commands.Sdk.CapabilitiesInfo> GetCapabilitiesAsync(CancellationToken cancellationToken)
+        => _jsonRpc.InvokeWithCancellationAsync<Commands.Sdk.CapabilitiesInfo>(
+            "getCapabilities", [null], cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Commands.Sdk.CapabilitiesInfo> GetCapabilitiesForAssembliesAsync(IReadOnlyList<string> assemblyNames, CancellationToken cancellationToken)
         => _jsonRpc.InvokeWithCancellationAsync<Commands.Sdk.CapabilitiesInfo>(
             "getCapabilities", [assemblyNames], cancellationToken);
 

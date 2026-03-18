@@ -36,13 +36,30 @@ internal interface IAppHostRpcClient : IAsyncDisposable
     /// Generates code (e.g., TypeScript SDK) for a language.
     /// RPC method: "generateCode"
     /// </summary>
-    Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, string? assemblyName = null, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Generates code for a language, scoped to a specific integration assembly.
+    /// RPC method: "generateCode"
+    /// </summary>
+    /// <param name="languageId">The target language identifier.</param>
+    /// <param name="assemblyName">The assembly name to scope code generation to.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task<Dictionary<string, string>> GenerateCodeForAssemblyAsync(string languageId, string assemblyName, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the ATS capabilities, types, and diagnostics.
     /// RPC method: "getCapabilities"
     /// </summary>
-    Task<CapabilitiesInfo> GetCapabilitiesAsync(IReadOnlyList<string>? assemblyNames = null, CancellationToken cancellationToken = default);
+    Task<CapabilitiesInfo> GetCapabilitiesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the ATS capabilities, types, and diagnostics, scoped to the specified exporting assemblies.
+    /// RPC method: "getCapabilities"
+    /// </summary>
+    /// <param name="assemblyNames">The assembly names to filter capabilities by.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task<CapabilitiesInfo> GetCapabilitiesForAssembliesAsync(IReadOnlyList<string> assemblyNames, CancellationToken cancellationToken);
 
     // ═══════════════════════════════════════════════════════════════
     // GENERIC INVOKE (for future/custom calls)
