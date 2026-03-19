@@ -54,19 +54,17 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             _output.WriteLine("--- Phase 1: Opening VS Code and terminal ---");
             await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
             await page.Keyboard.PressAsync("Escape");
-            await Task.Delay(500);
             await page.Keyboard.PressAsync("Escape");
-            await Task.Delay(1000);
 
             await page.Keyboard.PressAsync("Control+Backquote");
             await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
-            await Task.Delay(2000);
+            // Brief pause to let the terminal shell initialize before typing
+            await Task.Delay(1000);
 
             // Clean up previous state
             await _fixture.Container.ExecAsync($"rm -rf $HOME/.aspire /tmp/integration-* /root/{projectName}");
             await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
             _fixture.Container.ResetHex1bPorts();
-            await Task.Delay(1000);
 
             await MaximizeTerminalPanelAsync(page);
 
@@ -75,10 +73,22 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             var (containerPort, wsUri) = _fixture.Container.AllocateHex1bPort();
             var hex1bCmd = $"hex1b terminal start --passthru --port {containerPort} --bind 0.0.0.0 --record {recordPath} -- /bin/bash";
             _output.WriteLine($"Starting hex1b: {hex1bCmd}");
+
+            // Click on the terminal area to ensure it has focus before typing the hex1b command
+            var terminalArea = await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 5000 });
+            if (terminalArea is not null)
+            {
+                await terminalArea.ClickAsync();
+            }
             await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
             await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+
+            // Verify hex1b is actually running inside the container before connecting
+            var psResult = await _fixture.Container.ExecAsync("pgrep -a hex1b || echo 'NO_HEX1B_RUNNING'");
+            _output.WriteLine($"hex1b process check: {psResult.StdOut.Trim()}");
+
             await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
@@ -101,7 +111,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
 
             // Verify CLI version
             await session.SendTextAsync("aspire --version\r");
-            await Task.Delay(3000);
+            await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(30));
 
             var versionResult = await _fixture.Container.ExecAsync(
                 "export PATH=$HOME/.aspire/bin:$PATH && aspire --version",
@@ -132,7 +142,6 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             Assert.True(namePrompt, "Expected project name prompt");
 
             await session.SendTextAsync(projectName);
-            await Task.Delay(500);
             await session.SendEnterAsync();
 
             var pathPrompt = await session.WaitForTextAsync("output path", timeout: TimeSpan.FromSeconds(15));
@@ -148,7 +157,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
 
             while (DateTime.UtcNow < createDeadline)
             {
-                await Task.Delay(2000);
+                await Task.Delay(500);
 
                 var fullText = session.GetFullText();
 
@@ -178,7 +187,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             var aiPromptDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
             while (DateTime.UtcNow < aiPromptDeadline)
             {
-                await Task.Delay(1000);
+                await Task.Delay(500);
                 var screenNow = session.GetScreenText();
 
                 if (screenNow.Contains("[y/n]", StringComparison.Ordinal) ||
@@ -240,20 +249,23 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             // the extension's workspaceContains:**/*.csproj trigger.
             _output.WriteLine("Adding project folder to workspace with 'code -a'...");
             await session.SendTextAsync($"code -a /root/{projectName}\r");
-            await Task.Delay(3000); // Give VS Code time to process the folder addition
 
-            // Dismiss the "Do you trust the authors of the files in this folder?" dialog
+            // Wait for the workspace trust dialog to appear (indicates VS Code processed the folder)
             _output.WriteLine("Checking for workspace trust dialog...");
-            var trustYesButton = await page.QuerySelectorAsync("a.monaco-button.monaco-text-button:has-text('Yes')");
-            if (trustYesButton is not null)
+            try
             {
-                await trustYesButton.ClickAsync();
-                _output.WriteLine("Dismissed workspace trust dialog (clicked Yes)");
-                await Task.Delay(1000);
+                var trustYesButton = await page.WaitForSelectorAsync(
+                    "a.monaco-button.monaco-text-button:has-text('Yes')",
+                    new() { Timeout = 10_000 });
+                if (trustYesButton is not null)
+                {
+                    await trustYesButton.ClickAsync();
+                    _output.WriteLine("Dismissed workspace trust dialog (clicked Yes)");
+                }
             }
-            else
+            catch (TimeoutException)
             {
-                _output.WriteLine("No workspace trust dialog found — may already be trusted");
+                _output.WriteLine("No workspace trust dialog appeared — may already be trusted");
             }
 
             await ScreenshotAsync(page, testDir, "04-folder-added.png");
@@ -265,7 +277,6 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             {
                 await setDefaultYes.ClickAsync();
                 _output.WriteLine("Accepted default apphost notification (clicked Yes)");
-                await Task.Delay(1000);
             }
             else
             {
@@ -299,13 +310,13 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             _output.WriteLine($"Backchannel sockets:\n{backchannelCheck.StdOut.Trim()}");
 
             var resourcesDiscovered = false;
-            for (var attempt = 0; attempt < 12; attempt++)
+            for (var attempt = 0; attempt < 30; attempt++)
             {
-                await Task.Delay(5000);
-                var psResult = await _fixture.Container.ExecAsync(
+                await Task.Delay(2000);
+                var aspPsResult = await _fixture.Container.ExecAsync(
                     "export PATH=$HOME/.aspire/bin:$PATH && aspire ps --format json --resources 2>/dev/null",
                     timeout: TimeSpan.FromSeconds(15));
-                var psOutput = psResult.StdOut.Trim();
+                var psOutput = aspPsResult.StdOut.Trim();
 
                 if (psOutput.Contains("\"name\":", StringComparison.Ordinal))
                 {
@@ -348,12 +359,10 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             {
                 await lateTrustDialog.ClickAsync();
                 _output.WriteLine("Dismissed late workspace trust dialog");
-                await Task.Delay(1000);
             }
 
             // Un-maximize the terminal so we can see the activity bar and sidebar
             await MaximizeTerminalPanelAsync(page);
-            await Task.Delay(1000);
 
             await ScreenshotAsync(page, testDir, "06-pre-aspire-click.png");
 
@@ -367,19 +376,19 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             {
                 await aspireIcon.ClickAsync();
                 _output.WriteLine("Clicked Aspire activity bar icon");
-                await Task.Delay(2000);
             }
             else
             {
                 _output.WriteLine("Aspire icon not found — using command palette");
                 await page.Keyboard.PressAsync("Control+Shift+KeyP");
-                await Task.Delay(500);
+                await page.WaitForSelectorAsync(".quick-input-widget", new() { Timeout = 5000 });
                 await page.Keyboard.TypeAsync("Aspire: Focus on Running AppHosts View", new() { Delay = 30 });
                 await Task.Delay(500);
                 await page.Keyboard.PressAsync("Enter");
-                await Task.Delay(2000);
             }
 
+            // Wait for the sidebar to render (give VS Code time to open the panel)
+            await Task.Delay(2000);
             await ScreenshotAsync(page, testDir, "06-aspire-panel.png");
 
             // Click Refresh to trigger immediate re-discovery
@@ -395,9 +404,9 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             // Retry loop: wait for tree items to appear
             _output.WriteLine("Waiting for tree items to appear...");
             IReadOnlyList<Microsoft.Playwright.IElementHandle> treeItems = [];
-            for (var attempt = 0; attempt < 12; attempt++)
+            for (var attempt = 0; attempt < 30; attempt++)
             {
-                await Task.Delay(5000);
+                await Task.Delay(2000);
                 treeItems = await page.QuerySelectorAllAsync("[role='treeitem']");
                 _output.WriteLine($"  Attempt {attempt + 1}: {treeItems.Count} tree items");
                 if (treeItems.Count > 0)
@@ -503,11 +512,22 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
     {
         _output.WriteLine("Maximizing terminal panel...");
         await page.Keyboard.PressAsync("Control+Shift+KeyP");
-        await Task.Delay(500);
+        await page.WaitForSelectorAsync(".quick-input-widget", new() { Timeout = 5000 });
         await page.Keyboard.TypeAsync("View: Toggle Maximized Panel", new() { Delay = 30 });
         await Task.Delay(500);
         await page.Keyboard.PressAsync("Enter");
-        await Task.Delay(1000);
+        // Wait for the command palette to close before returning
+        try
+        {
+            await page.WaitForSelectorAsync(".quick-input-widget", new() { State = WaitForSelectorState.Hidden, Timeout = 3000 });
+        }
+        catch (TimeoutException)
+        {
+            // If it doesn't close, press Escape to force-close it
+            _output.WriteLine("Command palette didn't close, pressing Escape");
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(300);
+        }
         _output.WriteLine("Terminal panel maximized");
     }
 
