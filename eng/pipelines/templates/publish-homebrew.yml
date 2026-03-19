@@ -252,6 +252,7 @@ steps:
 
       function Get-HomebrewPullRequestBody {
         param(
+          [string]$Version,
           [string]$CaskName,
           [string]$CaskFile,
           [bool]$IsStable,
@@ -262,7 +263,7 @@ steps:
         $stableCheck = Get-Checkmark -Condition $IsStable
         $auditDetails = "$($ValidationSummary.checks.brewAudit.details)"
         $lines = @(
-          "Update $CaskName to version $version.",
+          "Update $CaskName to version $Version.",
           "",
           "**Validation performed by Aspire CI before submission**",
           "- [$stableCheck] The submission is for a stable version or a documented exception.",
@@ -453,7 +454,7 @@ steps:
         }
       )
       $isStableCask = [bool]$validationSummary.isStableRelease
-      $pullRequestBody = Get-HomebrewPullRequestBody -CaskName $caskName -CaskFile $caskFile -IsStable $isStableCask -ValidationSummary $validationSummary -SupersededPullRequestNumbers $supersededPullRequestNumbers
+      $pullRequestBody = Get-HomebrewPullRequestBody -Version $version -CaskName $caskName -CaskFile $caskFile -IsStable $isStableCask -ValidationSummary $validationSummary -SupersededPullRequestNumbers $supersededPullRequestNumbers
 
       if ($existingOpenPr) {
         $updatedPr = Invoke-GitHubApi -Method Patch -Uri "https://api.github.com/repos/Homebrew/homebrew-cask/pulls/$($existingOpenPr.number)" -Body @{

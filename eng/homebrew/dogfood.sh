@@ -111,8 +111,9 @@ echo "  Cask name: $CASK_NAME"
 echo ""
 
 if is_cask_installed "aspire"; then
-  echo "Error: 'aspire' is already installed from the official Homebrew tap."
-  echo "Uninstall it first with: brew uninstall --cask aspire"
+  echo "Error: 'aspire' is already installed."
+  echo "If this is a previous dogfood install, remove it with: $(basename "$0") --uninstall"
+  echo "Otherwise uninstall it first with: brew uninstall --cask aspire"
   exit 1
 fi
 

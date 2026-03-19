@@ -201,13 +201,19 @@ function Get-LocalArchivePath {
     )
 
     $archiveName = "aspire-cli-$Rid-$Version.zip"
-    $match = Get-ChildItem -Path $ArchiveRoot -File -Recurse -Filter $archiveName | Select-Object -First 1
-    if ($null -eq $match) {
+    $matches = @(Get-ChildItem -Path $ArchiveRoot -File -Recurse -Filter $archiveName | Sort-Object FullName)
+    if ($matches.Count -eq 0) {
         Write-Error "Could not find local archive '$archiveName' under '$ArchiveRoot'"
         exit 1
     }
 
-    return $match.FullName
+    if ($matches.Count -gt 1) {
+        $matchList = $matches | ForEach-Object { "  $($_.FullName)" }
+        Write-Error "Found multiple local archives named '$archiveName' under '$ArchiveRoot':`n$($matchList -join "`n")"
+        exit 1
+    }
+
+    return $matches[0].FullName
 }
 
 function Get-LocalFileSha256 {

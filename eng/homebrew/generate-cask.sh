@@ -11,9 +11,9 @@ Usage: $(basename "$0") --version VERSION [OPTIONS]
 
 Required:
   --version VERSION         Installer version in the cask and archive filename (e.g. 9.2.0)
-  --artifact-version VER    Version segment used in the ci.dot.net artifact path (defaults to --version)
 
 Optional:
+  --artifact-version VER    Version segment used in the ci.dot.net artifact path (defaults to --version)
   --output PATH             Output file path (default: ./aspire.rb)
   --archive-root PATH       Root directory containing locally built CLI archives to hash
   --validate-urls           Verify all tarball URLs are accessible before downloading
@@ -94,14 +94,27 @@ compute_sha256_from_file() {
 find_local_archive() {
   local archive_name="$1"
   local archive_path
+  local matches=()
+  local match
 
-  archive_path="$(find "$ARCHIVE_ROOT" -type f -name "$archive_name" -print -quit)"
-  if [[ -z "$archive_path" ]]; then
+  while IFS= read -r archive_path; do
+    matches+=("$archive_path")
+  done < <(find "$ARCHIVE_ROOT" -type f -name "$archive_name" -print | LC_ALL=C sort)
+
+  if [[ "${#matches[@]}" -eq 0 ]]; then
     echo "Error: Could not find local archive '$archive_name' under '$ARCHIVE_ROOT'" >&2
     exit 1
   fi
 
-  echo "$archive_path"
+  if [[ "${#matches[@]}" -gt 1 ]]; then
+    echo "Error: Found multiple local archives named '$archive_name' under '$ARCHIVE_ROOT':" >&2
+    for match in "${matches[@]}"; do
+      echo "  $match" >&2
+    done
+    exit 1
+  fi
+
+  echo "${matches[0]}"
 }
 
 # Check if a URL is accessible (HEAD request)

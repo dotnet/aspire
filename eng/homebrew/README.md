@@ -8,7 +8,6 @@ Aspire CLI is distributed via [Homebrew Cask](https://docs.brew.sh/Cask-Cookbook
 
 ```bash
 brew install --cask aspire              # stable
-# brew install --cask aspire@prerelease   # preview (not yet supported)
 ```
 
 ## Contents
@@ -39,15 +38,15 @@ Where arch is `arm64` or `x64`.
 
 ## Why Cask
 
-| Product | Type | Install command | Preview channel |
-|---|---|---|---|
-| GitHub Copilot CLI | homebrew-cask | `brew install --cask copilot-cli` | `copilot-cli@prerelease` |
-| .NET SDK | homebrew-cask | `brew install --cask dotnet-sdk` | `dotnet-sdk@preview` |
-| PowerShell | homebrew-cask | `brew install --cask powershell` | `powershell@preview` |
+| Product | Type | Install command |
+|---|---|---|
+| GitHub Copilot CLI | homebrew-cask | `brew install --cask copilot-cli` |
+| .NET SDK | homebrew-cask | `brew install --cask dotnet-sdk` |
+| PowerShell | homebrew-cask | `brew install --cask powershell` |
 
 - **URL templating**: `url "...osx-#{arch}-#{version}.tar.gz"` — a single line instead of nested `on_macos do / if Hardware::CPU.arm?` blocks
 - **Official repo path**: Casks can be submitted to `Homebrew/homebrew-cask` for `brew install aspire` without a tap
-- **Cleaner multi-channel**: Follows established cask naming conventions (for example, `aspire` for stable and `aspire@prerelease` for a potential preview channel)
+- **Stable-only release flow**: the current Aspire Homebrew publishing pipeline prepares and submits only the stable `aspire` cask, while a separate prerelease cask remains a possible future option
 
 ## CI Pipeline
 
