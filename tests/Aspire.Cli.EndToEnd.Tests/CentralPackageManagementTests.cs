@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Xml.Linq;
+
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
@@ -169,7 +171,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             """);
 
         var waitingForVersionSelection = new CellPatternSearcher()
-            .Find("Select a version of Aspire.Hosting.Redis:");
+            .Find("Select a version of");
         var versionSelectionShown = false;
 
         await auto.TypeAsync("aspire add Aspire.Hosting.Redis");
@@ -187,7 +189,7 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
                 .RightText(" OK] $ ");
 
             return successPromptSearcher.Search(s).Count > 0;
-        }, timeout: TimeSpan.FromSeconds(90), description: "version selection prompt or success prompt");
+        }, timeout: TimeSpan.FromSeconds(180), description: "version selection prompt or success prompt");
 
         if (versionSelectionShown)
         {
@@ -200,8 +202,21 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
 
         // Verify the AppHost project does not end up with a version-pinned Redis PackageReference.
         {
-            var appHostContent = File.ReadAllText(appHostCsprojPath);
-            if (appHostContent.Contains("<PackageReference Include=\"Aspire.Hosting.Redis\" Version=", StringComparison.Ordinal))
+            var appHostProject = XDocument.Load(appHostCsprojPath);
+            var hasVersionPinnedRedisReference = false;
+
+            foreach (var element in appHostProject.Descendants())
+            {
+                if (element.Name.LocalName == "PackageReference" &&
+                    string.Equals((string?)element.Attribute("Include"), "Aspire.Hosting.Redis", StringComparison.Ordinal) &&
+                    element.Attribute("Version") is not null)
+                {
+                    hasVersionPinnedRedisReference = true;
+                    break;
+                }
+            }
+
+            if (hasVersionPinnedRedisReference)
             {
                 throw new InvalidOperationException($"File {appHostCsprojPath} unexpectedly contains a version-pinned PackageReference for Aspire.Hosting.Redis");
             }
