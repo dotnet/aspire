@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -253,6 +254,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             if (!resolveResult.Success)
             {
                 InteractionService.DisplayError(resolveResult.ErrorMessage);
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ProjectCouldNotBeCreated, ExecutionContext.LogFilePath));
                 return ExitCodeConstants.InvalidCommand;
             }
 
@@ -270,6 +272,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Language = template.LanguageId
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
+        if (templateResult.ExitCode != 0)
+        {
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ProjectCouldNotBeCreated, ExecutionContext.LogFilePath));
+            return templateResult.ExitCode;
+        }
+
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
