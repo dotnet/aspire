@@ -122,9 +122,10 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "01-cli-installed.png");
             _output.WriteLine($"✓ CLI installed: {version}");
 
-            // Run aspire new interactively
+            // Run aspire new interactively — use local template packages (13.2.0-dev)
+            // so the generated project references dev packages, not GA ones.
             _output.WriteLine("--- Phase 2b: Creating project with aspire new ---");
-            await session.SendTextAsync("aspire new\r");
+            await session.SendTextAsync($"aspire new --source /opt/aspire/packages --version {version}\r");
 
             var templatePrompt = await session.WaitForTextAsync("Select a template", timeout: TimeSpan.FromSeconds(60));
             if (!templatePrompt)
@@ -222,10 +223,11 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             // ===== Phase 3: Patch SDK, restore, and add folder to workspace =====
             _output.WriteLine("--- Phase 3: Patching SDK and restoring ---");
 
-            // Patch SDK version to use dev packages (backchannel sockets require 13.2.0+)
+            // Patch SDK version to match local build (safety net — templates should already reference
+            // the correct version, but the SDK import path format may differ from package references)
             var patchResult = await _fixture.Container.ExecAsync(
-                $"find /root/{projectName} -name '*.csproj' -exec sed -i 's|Aspire.AppHost.Sdk/[0-9.]*\"|Aspire.AppHost.Sdk/{version}\"|g' {{}} \\; && " +
-                $"head -1 /root/{projectName}/{projectName}.AppHost/{projectName}.AppHost.csproj",
+                $"find /root/{projectName} -name '*.csproj' -exec sed -i 's|Aspire.AppHost.Sdk/[0-9][0-9.a-z-]*\"|Aspire.AppHost.Sdk/{version}\"|g' {{}} \\; && " +
+                $"head -5 /root/{projectName}/{projectName}.AppHost/{projectName}.AppHost.csproj",
                 timeout: TimeSpan.FromSeconds(10));
             _output.WriteLine($"Patched AppHost SDK → {patchResult.StdOut.Trim()}");
 
