@@ -1,13 +1,16 @@
 /dogfood.sh                           @radical @eerhardt
 /src/Aspire.Hosting.Testing           @sebastienros
 /src/Components                       @radical @eerhardt @sebastienros
-/src/Aspire.Hosting.Azure             @eerhardt
+/src/Aspire.Hosting.Azure             @eerhardt @mitchdenny 
 /src/Aspire.Hosting.Azure.Functions   @eerhardt
-/src/Aspire.Hosting.Azure.AppContainers  @eerhardt
-/src/Aspire.Hosting.Azure.AppService  @eerhardt
-/src/Aspire.Hosting.Docker            @danegsta
+/src/Aspire.Hosting.Azure.AppContainers  @eerhardt @mitchdenny 
+/src/Aspire.Hosting.Azure.AppService  @eerhardt @mitchdenny
+/src/Aspire.Hosting.Docker            @danegsta @mitchdenny
 /src/Aspire.Hosting.Maui              @jfversluis
 /src/Aspire.Hosting.Foundry           @sebastienros
+/src/Aspire.Hosting                   @karolz-ms @danegsta @mitchdenny @davidfowl
+/src/Aspire.Dashboard                 @JamesNK @adamint
+/src/Aspire.Cli                       @mitchdenny @JamesNK @davidfowl
 
 # polyglot
 
