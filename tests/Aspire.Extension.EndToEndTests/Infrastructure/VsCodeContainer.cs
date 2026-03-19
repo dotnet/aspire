@@ -23,17 +23,15 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     private readonly ITestOutputHelper _output;
     private readonly string _dockerfilePath;
     private readonly AspireBuildArtifacts? _artifacts;
-    private readonly bool _mountDockerSocket;
     private string? _containerId;
     private int _hostPort;
     private int _hex1bHostPortBase;
     private int _nextHex1bPortOffset;
 
-    public VsCodeContainer(ITestOutputHelper output, AspireBuildArtifacts? artifacts = null, bool mountDockerSocket = false)
+    public VsCodeContainer(ITestOutputHelper output, AspireBuildArtifacts? artifacts = null)
     {
         _output = output;
         _artifacts = artifacts;
-        _mountDockerSocket = mountDockerSocket;
 
         // Find the Dockerfile relative to the repo root
         var repoRoot = FindRepoRoot();
@@ -105,12 +103,6 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
             portMappings.Add($"-p {_hex1bHostPortBase + i}:{Hex1bPortBase + i}");
         }
 
-        if (_mountDockerSocket)
-        {
-            volumes.Add("-v /var/run/docker.sock:/var/run/docker.sock");
-            _output.WriteLine("  Docker socket: mounted");
-        }
-
         if (_artifacts is not null)
         {
             volumes.Add($"-v {_artifacts.CliPublishDirectory}:{AspireBuildArtifacts.ContainerPaths.CliMount}:ro");
@@ -125,8 +117,9 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
 
         var volumeArgs = string.Join(" ", volumes);
         var portArgs = string.Join(" ", portMappings);
+        // --privileged is required for Docker-in-Docker (dockerd runs inside the container)
         var result = await RunDockerAsync(
-            $"run -d {portArgs} {volumeArgs} {ImageName}",
+            $"run -d --privileged {portArgs} {volumeArgs} {ImageName}",
             timeout: TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken);
 

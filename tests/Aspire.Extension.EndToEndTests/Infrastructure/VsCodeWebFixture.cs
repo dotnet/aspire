@@ -75,7 +75,7 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
         }
 
         // Start VS Code in Docker (with artifacts + Docker socket if available)
-        _container = new VsCodeContainer(outputHelper, Artifacts, mountDockerSocket: Artifacts is not null);
+        _container = new VsCodeContainer(outputHelper, Artifacts);
         await _container.StartAsync();
 
         // Create Playwright browser
