@@ -26,10 +26,10 @@ internal class ContainerCreationContext
 
     public Task CreateTunnel => _createTunnelLazy.Value;
 
-    public ContainerCreationContext(int containerCount, Func<Task> createTunnelFunc)
+    public ContainerCreationContext(int containerCount, Func<ContainerCreationContext, Task> createTunnelFunc)
     {
         ContainerServicesSpecReady = new CountdownEvent(containerCount);
         ContainerServicesChan = Channel.CreateUnbounded<ContainerNetworkService>();
-        _createTunnelLazy = new Lazy<Task>(createTunnelFunc, LazyThreadSafetyMode.ExecutionAndPublication);
+        _createTunnelLazy = new Lazy<Task>(() => createTunnelFunc(this), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 }
