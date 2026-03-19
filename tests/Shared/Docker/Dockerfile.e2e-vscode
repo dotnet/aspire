@@ -23,9 +23,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 
 # Install core tools, Docker CLI, and VS Code runtime dependencies
 RUN apt-get update && \
-    # socat for bridging hex1b loopback WebSocket to 0.0.0.0 (Docker port mapping)
     apt-get install -y --no-install-recommends \
-      curl wget gpg ca-certificates socat \
+      curl wget gpg ca-certificates \
       # Docker CLI for DCP container management (uses host Docker via socket mount)
       docker.io \
       # VS Code runtime dependencies
@@ -56,7 +55,7 @@ RUN mkdir -p /opt/aspire-cli /opt/aspire/packages /workspace
 WORKDIR /workspace
 
 # Install Hex1b CLI tool (provides terminal hosting with diagnostics socket for remote control)
-RUN dotnet tool install --global Hex1b.Tool --version 0.119.0
+RUN dotnet tool install --global Hex1b.Tool --version 0.120.0
 ENV PATH="$PATH:/root/.dotnet/tools"
 
 ENV DONT_PROMPT_WSL_INSTALL=1

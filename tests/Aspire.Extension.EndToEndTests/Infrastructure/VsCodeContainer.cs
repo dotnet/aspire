@@ -17,7 +17,6 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     private const string ImageName = "aspire-vscode-e2e";
     private const int ContainerPort = 8000;
     private const int Hex1bPortBase = 9222;
-    private const int Hex1bInternalPortBase = 19222;
     private const int Hex1bPortCount = 4;
     private const string ReadyPattern = @"Web UI available at (.+)";
 
@@ -319,12 +318,11 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     }
 
     /// <summary>
-    /// Allocates the next available hex1b port triple.
-    /// Returns the <c>hex1bPort</c> to use in the <c>hex1b terminal start --passthru --port</c> command
-    /// (hex1b binds to 127.0.0.1 on this port) and the host-side WebSocket URI for connecting from the test.
-    /// After starting hex1b, call <see cref="StartSocatBridgeAsync"/> to make the port accessible via Docker.
+    /// Allocates the next available hex1b port pair (container port + host port).
+    /// Returns the container port to use in <c>hex1b terminal start --passthru --port PORT --bind 0.0.0.0</c>
+    /// and the host-side WebSocket URI for connecting from the test.
     /// </summary>
-    public (int hex1bPort, Uri websocketUri) AllocateHex1bPort()
+    public (int containerPort, Uri websocketUri) AllocateHex1bPort()
     {
         if (_nextHex1bPortOffset >= Hex1bPortCount)
         {
@@ -333,45 +331,12 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         }
 
         var offset = _nextHex1bPortOffset++;
-        var hex1bPort = Hex1bInternalPortBase + offset;
-        var exposedPort = Hex1bPortBase + offset;
+        var containerPort = Hex1bPortBase + offset;
         var hostPort = _hex1bHostPortBase + offset;
 
         var uri = new Uri($"ws://localhost:{hostPort}/ws/attach");
-        _output.WriteLine($"Allocated hex1b port: hex1b={hex1bPort}, exposed={exposedPort}, host={hostPort}, uri={uri}");
-        return (hex1bPort, uri);
-    }
-
-    /// <summary>
-    /// Starts a socat bridge inside the container to forward from <c>0.0.0.0:exposedPort</c>
-    /// to <c>127.0.0.1:hex1bPort</c>. This is needed because hex1b binds to loopback only,
-    /// and Docker port mapping requires the container port to be on all interfaces.
-    /// </summary>
-    public async Task StartSocatBridgeAsync(int hex1bPort, CancellationToken cancellationToken = default)
-    {
-        var exposedPort = Hex1bPortBase + (hex1bPort - Hex1bInternalPortBase);
-        _output.WriteLine($"Starting socat bridge: 0.0.0.0:{exposedPort} → 127.0.0.1:{hex1bPort}");
-
-        // First wait for hex1b to start listening on the internal port
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-        while (DateTime.UtcNow < deadline)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var check = await ExecAsync($"ss -tlnp 2>/dev/null | grep :{hex1bPort} || true", cancellationToken: cancellationToken);
-            if (check.StdOut.Contains($":{hex1bPort}"))
-            {
-                _output.WriteLine($"Hex1b is listening on internal port {hex1bPort}");
-                break;
-            }
-            await Task.Delay(500, cancellationToken);
-        }
-
-        // Start socat in the background
-        await ExecAsync(
-            $"socat TCP-LISTEN:{exposedPort},fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:{hex1bPort} &",
-            cancellationToken: cancellationToken);
-
-        _output.WriteLine($"Socat bridge started: :{exposedPort} → :{hex1bPort}");
+        _output.WriteLine($"Allocated hex1b port: container={containerPort}, host={hostPort}, uri={uri}");
+        return (containerPort, uri);
     }
 
     /// <summary>
