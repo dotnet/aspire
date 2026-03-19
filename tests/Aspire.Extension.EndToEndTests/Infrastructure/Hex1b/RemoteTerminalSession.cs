@@ -83,11 +83,20 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Get the current screen text from the terminal snapshot.
+    /// Get the current screen text from the terminal snapshot (visible area only).
     /// </summary>
     public string GetScreenText()
     {
         using var snapshot = _terminal.CreateSnapshot();
+        return snapshot.GetText();
+    }
+
+    /// <summary>
+    /// Get the full terminal text including scrollback buffer.
+    /// </summary>
+    public string GetFullText(int scrollbackLines = 5000)
+    {
+        using var snapshot = _terminal.CreateSnapshot(scrollbackLines);
         return snapshot.GetText();
     }
 
@@ -101,9 +110,9 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Wait for specific text to appear on the terminal screen.
+    /// Wait for specific text to appear on the terminal screen or scrollback buffer.
     /// </summary>
-    public async Task<bool> WaitForTextAsync(string text, TimeSpan? timeout = null, CancellationToken ct = default)
+    public async Task<bool> WaitForTextAsync(string text, TimeSpan? timeout = null, bool includeScrollback = false, CancellationToken ct = default)
     {
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
 
@@ -111,7 +120,7 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
         {
             ct.ThrowIfCancellationRequested();
 
-            var screenText = GetScreenText();
+            var screenText = includeScrollback ? GetFullText() : GetScreenText();
             if (screenText.Contains(text, StringComparison.Ordinal))
             {
                 return true;
@@ -124,10 +133,10 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Wait for any of the specified texts to appear on the terminal screen.
+    /// Wait for any of the specified texts to appear on the terminal screen or scrollback buffer.
     /// Returns the matching text, or null if timeout.
     /// </summary>
-    public async Task<string?> WaitForAnyTextAsync(IEnumerable<string> texts, TimeSpan? timeout = null, CancellationToken ct = default)
+    public async Task<string?> WaitForAnyTextAsync(IEnumerable<string> texts, TimeSpan? timeout = null, bool includeScrollback = false, CancellationToken ct = default)
     {
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
         var textList = texts.ToList();
@@ -136,7 +145,7 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
         {
             ct.ThrowIfCancellationRequested();
 
-            var screenText = GetScreenText();
+            var screenText = includeScrollback ? GetFullText() : GetScreenText();
             foreach (var text in textList)
             {
                 if (screenText.Contains(text, StringComparison.Ordinal))

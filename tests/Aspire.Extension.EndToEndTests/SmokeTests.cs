@@ -275,7 +275,8 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             _output.WriteLine($"Waiting for Aspire CLI ({quality}) install to complete...");
             var installDone = await session.WaitForAnyTextAsync(
                 ["Successfully installed", "Installation failed", "Error:"],
-                timeout: TimeSpan.FromMinutes(5));
+                timeout: TimeSpan.FromMinutes(5),
+                includeScrollback: true);
 
             await ScreenshotAsync(page, $"install-complete-{quality}.png");
 
@@ -324,6 +325,206 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
         {
             await _fixture.SaveTraceAsync($"InstallAspireCliViaTerminal_{quality}");
         }
+    }
+
+    [Fact]
+    public async Task AspireNewCreatesProjectInteractively()
+    {
+        _output.WriteLine("Testing interactive 'aspire new' project creation");
+
+        var page = await _fixture.CreatePageAsync();
+
+        try
+        {
+            // Wait for VS Code and open terminal
+            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(500);
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(1000);
+
+            _output.WriteLine("Opening integrated terminal...");
+            await page.Keyboard.PressAsync("Control+Backquote");
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await Task.Delay(2000);
+
+            // Clean up previous state
+            await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/aspire-new-* /root/MyAspireApp");
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await Task.Delay(1000);
+
+            // Start hex1b with asciinema recording
+            var recordPath = "/tmp/aspire-new-interactive.cast";
+            var hex1bCmd = $"hex1b terminal start --attach --record {recordPath} -- /bin/bash";
+            _output.WriteLine($"Starting hex1b: {hex1bCmd}");
+            await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
+            await page.Keyboard.PressAsync("Enter");
+
+            // Connect remote terminal session
+            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
+            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            _output.WriteLine("Remote terminal session connected");
+
+            // Wait for shell prompt
+            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(10));
+
+            // Verify the session works with a quick echo test
+            var marker = $"READY_{Guid.NewGuid():N}";
+            await session.SendTextAsync($"echo {marker}\r");
+            var echoOk = await session.WaitForTextAsync(marker, timeout: TimeSpan.FromSeconds(10));
+            Assert.True(echoOk, "Remote terminal session echo test failed — input not working");
+            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(5));
+
+            // Step 1: Install Aspire CLI (release quality)
+            _output.WriteLine("Installing Aspire CLI (release)...");
+            await session.SendTextAsync("curl -sSL https://aspire.dev/install.sh | bash -s -- --quality release --verbose\r");
+
+            var installDone = await session.WaitForAnyTextAsync(
+                ["Successfully installed", "Installation failed"],
+                timeout: TimeSpan.FromMinutes(5),
+                includeScrollback: true);
+            Assert.Equal("Successfully installed", installDone);
+            _output.WriteLine("Aspire CLI installed");
+
+            // Add aspire to PATH for this session
+            await session.SendTextAsync("export PATH=\"$HOME/.aspire/bin:$PATH\"\r");
+            await Task.Delay(1000);
+
+            await ScreenshotAsync(page, "aspire-new-cli-installed.png");
+
+            // Step 2: Run 'aspire new' fully interactively (no template argument)
+            _output.WriteLine("Running: aspire new");
+            await session.SendTextAsync("aspire new\r");
+
+            // Wait for template selection prompt
+            _output.WriteLine("Waiting for template selection prompt...");
+            var templatePrompt = await session.WaitForTextAsync("Select a template", timeout: TimeSpan.FromSeconds(60));
+            if (!templatePrompt)
+            {
+                DumpScreen(session, "Template prompt NOT found");
+            }
+            Assert.True(templatePrompt, "Expected 'Select a template' prompt");
+            _output.WriteLine("Template selection prompt appeared");
+
+            await ScreenshotAsync(page, "aspire-new-template-prompt.png");
+            DumpScreen(session, "After template prompt");
+
+            // Select the first template (highlighted by default) by pressing Enter
+            _output.WriteLine("Selecting default template (Enter)...");
+            await session.SendEnterAsync();
+
+            // Wait for project name prompt
+            _output.WriteLine("Waiting for project name prompt...");
+            var namePrompt = await session.WaitForTextAsync("project name", timeout: TimeSpan.FromSeconds(15));
+            Assert.True(namePrompt, "Expected project name prompt");
+            _output.WriteLine("Project name prompt appeared");
+
+            await ScreenshotAsync(page, "aspire-new-name-prompt.png");
+            DumpScreen(session, "After name prompt");
+
+            // Type a project name and press Enter
+            var projectName = "MyAspireApp";
+            _output.WriteLine($"Entering project name: {projectName}");
+            await session.SendTextAsync(projectName);
+            await Task.Delay(500);
+            await session.SendEnterAsync();
+
+            // Wait for output path prompt
+            _output.WriteLine("Waiting for output path prompt...");
+            var pathPrompt = await session.WaitForTextAsync("output path", timeout: TimeSpan.FromSeconds(15));
+            Assert.True(pathPrompt, "Expected output path prompt");
+            _output.WriteLine("Output path prompt appeared");
+
+            await ScreenshotAsync(page, "aspire-new-path-prompt.png");
+
+            // Accept the default output path
+            _output.WriteLine("Accepting default output path (Enter)...");
+            await session.SendEnterAsync();
+
+            // Handle any additional template-specific prompts (e.g., "Use *.dev.localhost URLs",
+            // "Use Redis Cache") by accepting defaults, then wait for the success message.
+            // The success message format is "Created <type> project at <path>".
+            _output.WriteLine("Answering any additional prompts and waiting for project creation...");
+            string? created = null;
+            var createDeadline = DateTime.UtcNow + TimeSpan.FromMinutes(5);
+            var promptsAnswered = 0;
+
+            while (DateTime.UtcNow < createDeadline)
+            {
+                await Task.Delay(2000);
+
+                var fullText = session.GetFullText();
+
+                // Check for the success message — aspire new prints
+                // "Project created successfully in <path>" or "Created <type> project at <path>"
+                if (fullText.Contains("created successfully", StringComparison.OrdinalIgnoreCase) ||
+                    fullText.Contains("project at", StringComparison.Ordinal))
+                {
+                    created = "Created";
+                    break;
+                }
+
+                // Check for Spectre.Console selection prompts and accept defaults
+                var screenText = session.GetScreenText();
+                if (screenText.Contains("Type to search", StringComparison.Ordinal))
+                {
+                    promptsAnswered++;
+                    _output.WriteLine($"  Additional prompt #{promptsAnswered} detected — pressing Enter");
+                    DumpScreen(session, $"Additional prompt #{promptsAnswered}");
+                    await session.SendEnterAsync();
+                    continue;
+                }
+            }
+
+            await ScreenshotAsync(page, "aspire-new-complete.png");
+            DumpScreen(session, "After project creation");
+
+            Assert.NotNull(created);
+            Assert.Equal("Created", created);
+            _output.WriteLine("Project creation completed successfully");
+
+            // Verify project files exist inside the container
+            _output.WriteLine("Verifying project files...");
+            var lsResult = await _fixture.Container.ExecAsync(
+                $"ls -la /root/{projectName}/",
+                timeout: TimeSpan.FromSeconds(10));
+
+            _output.WriteLine($"Project directory contents:\n{lsResult.StdOut}");
+            Assert.Equal(0, lsResult.ExitCode);
+
+            // Check for AppHost project (common across all templates)
+            var findResult = await _fixture.Container.ExecAsync(
+                $"find /root/{projectName} -name '*.csproj' -o -name '*.ts' -o -name 'package.json' | head -20",
+                timeout: TimeSpan.FromSeconds(10));
+
+            _output.WriteLine($"Project files found:\n{findResult.StdOut}");
+            Assert.NotEmpty(findResult.StdOut.Trim());
+
+            _output.WriteLine($"✓ Interactive 'aspire new' created project '{projectName}' successfully");
+
+            // Copy asciinema recording
+            var artifactCastPath = Path.Combine(_fixture.ArtifactsDir, "recordings", "aspire-new-interactive.cast");
+            await _fixture.Container.CopyFromContainerAsync(recordPath, artifactCastPath);
+            if (File.Exists(artifactCastPath))
+            {
+                _output.WriteLine($"Asciinema recording saved: {artifactCastPath}");
+            }
+        }
+        finally
+        {
+            await _fixture.SaveTraceAsync(nameof(AspireNewCreatesProjectInteractively));
+        }
+    }
+
+    private void DumpScreen(RemoteTerminalSession session, string label)
+    {
+        var lines = session.GetNonEmptyLines();
+        _output.WriteLine($"--- {label} ({lines.Count} non-empty lines) ---");
+        foreach (var line in lines)
+        {
+            _output.WriteLine($"  | {line}");
+        }
+        _output.WriteLine("---");
     }
 
     private async Task ScreenshotAsync(IPage page, string filename)
