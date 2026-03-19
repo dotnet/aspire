@@ -8,10 +8,12 @@ export interface ParsedResource {
     name: string;
     /** The method name that added the resource, e.g. "AddRedis". */
     methodName: string;
-    /** The range in the document covering the full Add*("name") call. */
+    /** The range in the document covering the Add*("name") call. */
     range: vscode.Range;
-    /** Whether this is a resource declaration or a pipeline step. */
+    /** Whether this is a resource declaration or pipeline step. */
     kind: 'resource' | 'pipelineStep';
+    /** The line number of the first line of the full statement chain (e.g. the variable declaration line for a multi-line fluent chain). */
+    statementStartLine?: number;
 }
 
 /**

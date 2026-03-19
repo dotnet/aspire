@@ -349,6 +349,11 @@
         "command": "aspire-vscode.codeLensViewLogs",
         "title": "%command.codeLensViewLogs%",
         "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.codeLensRevealResource",
+        "title": "%command.codeLensRevealResource%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [
@@ -441,6 +446,10 @@
         },
         {
           "command": "aspire-vscode.codeLensViewLogs",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.codeLensRevealResource",
           "when": "false"
         },
         {
@@ -648,6 +657,18 @@
           "default": 30000,
           "minimum": 1000,
           "description": "%configuration.aspire.globalAppHostsPollingInterval%",
+          "scope": "window"
+        },
+        "aspire.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.enableCodeLens%",
+          "scope": "window"
+        },
+        "aspire.enableGutterDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.enableGutterDecorations%",
           "scope": "window"
         }
       }

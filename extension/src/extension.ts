@@ -127,7 +127,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const codeLensViewLogsRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensViewLogs', (resourceName: string, appHostPath: string) => {
     terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --apphost "${appHostPath}" --follow`); // resourceName is already resolved via getResourceName
   });
-  context.subscriptions.push(codeLensRegistration, codeLensDebugPipelineStepRegistration, codeLensResourceActionRegistration, codeLensViewLogsRegistration, codeLensProvider);
+  const codeLensRevealResourceRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensRevealResource', (resourceName: string) => {
+    const element = appHostTreeProvider.findResourceElement(resourceName);
+    if (element) {
+      appHostTreeView.reveal(element, { select: true, focus: true });
+    }
+  });
+  context.subscriptions.push(codeLensRegistration, codeLensDebugPipelineStepRegistration, codeLensResourceActionRegistration, codeLensViewLogsRegistration, codeLensRevealResourceRegistration, codeLensProvider);
 
   // Gutter decorations — colored dots next to resources showing runtime state
   const gutterDecorationProvider = new AspireGutterDecorationProvider(appHostTreeProvider);

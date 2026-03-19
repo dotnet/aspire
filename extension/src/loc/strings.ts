@@ -101,8 +101,11 @@ export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execu
 // CodeLens strings
 export const codeLensDebugPipelineStep = vscode.l10n.t('$(bug) Debug pipeline step');
 export const codeLensResourceRunning = vscode.l10n.t('$(pass) Running');
+export const codeLensResourceRunningWarning = vscode.l10n.t('$(warning) Running');
+export const codeLensResourceRunningError = vscode.l10n.t('$(error) Running');
 export const codeLensResourceStarting = vscode.l10n.t('$(loading~spin) Starting');
 export const codeLensResourceStopped = vscode.l10n.t('$(circle-outline) Stopped');
+export const codeLensResourceStoppedError = vscode.l10n.t('$(error) Stopped');
 export const codeLensResourceError = vscode.l10n.t('$(error) Error');
 export const codeLensRestart = vscode.l10n.t('$(debug-restart) Restart');
 export const codeLensStop = vscode.l10n.t('$(debug-stop) Stop');

@@ -1,15 +1,20 @@
 import * as vscode from 'vscode';
-import { getParserForDocument, ParsedResource } from './parsers/AppHostResourceParser';
+import { getParserForDocument } from './parsers/AppHostResourceParser';
 // Import parsers to trigger self-registration
 import './parsers/csharpAppHostParser';
 import './parsers/jsTsAppHostParser';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { ResourceJson, AppHostDisplayInfo, ResourceCommandJson } from '../views/AppHostDataRepository';
+import { findResourceState, findWorkspaceResourceState } from './resourceStateUtils';
+import { ResourceState, HealthStatus, StateStyle, ResourceType } from './resourceConstants';
 import {
     codeLensDebugPipelineStep,
     codeLensResourceRunning,
+    codeLensResourceRunningWarning,
+    codeLensResourceRunningError,
     codeLensResourceStarting,
     codeLensResourceStopped,
+    codeLensResourceStoppedError,
     codeLensResourceError,
     codeLensRestart,
     codeLensStop,
@@ -32,6 +37,10 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     provideCodeLenses(document: vscode.TextDocument, _token: vscode.CancellationToken): vscode.CodeLens[] {
+        if (!vscode.workspace.getConfiguration('aspire').get<boolean>('enableCodeLens', true)) {
+            return [];
+        }
+
         const parser = getParserForDocument(document);
         if (!parser) {
             return [];
@@ -44,25 +53,29 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
 
         const appHosts = this._treeProvider.appHosts;
         const workspaceResources = this._treeProvider.workspaceResources;
+        const workspaceAppHostPath = this._treeProvider.workspaceAppHostPath ?? '';
         const hasRunningData = appHosts.length > 0 || workspaceResources.length > 0;
+        const findWorkspace = findWorkspaceResourceState(workspaceResources, workspaceAppHostPath);
 
         const lenses: vscode.CodeLens[] = [];
 
         for (const resource of resources) {
-            const lineRange = new vscode.Range(resource.range.start.line, 0, resource.range.start.line, 0);
+            // Use statementStartLine to position the CodeLens at the top of a multi-line chain
+            const lensLine = resource.statementStartLine ?? resource.range.start.line;
+            const lineRange = new vscode.Range(lensLine, 0, lensLine, 0);
 
             if (resource.kind === 'pipelineStep') {
                 // Pipeline steps get Debug lens when no AppHost is running
                 if (!hasRunningData) {
                     this._addPipelineStepLenses(lenses, lineRange, resource.name);
                 }
-            } else {
+            } else if (resource.kind === 'resource') {
                 // Resources get state lenses when live data is available
                 if (hasRunningData) {
-                    const match = this._findResourceState(appHosts, resource.name)
-                        ?? this._findWorkspaceResourceState(workspaceResources, resource.name);
+                    const match = findResourceState(appHosts, resource.name)
+                        ?? findWorkspace(resource.name);
                     if (match) {
-                        this._addStateLenses(lenses, lineRange, resource, match.resource, match.appHost);
+                        this._addStateLenses(lenses, lineRange, match.resource, match.appHost);
                     }
                 }
             }
@@ -83,19 +96,24 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
     private _addStateLenses(
         lenses: vscode.CodeLens[],
         range: vscode.Range,
-        parsed: ParsedResource,
         resource: ResourceJson,
         appHost: AppHostDisplayInfo,
     ): void {
         const state = resource.state ?? '';
+        const stateStyle = resource.stateStyle ?? '';
+        const healthStatus = resource.healthStatus;
         const commands = resource.commands ? Object.keys(resource.commands) : [];
 
-        // State indicator lens
-        const stateLabel = this._getStateLabel(state);
+        // State indicator lens (clickable — reveals resource in tree view)
+        let stateLabel = getCodeLensStateLabel(state, stateStyle);
+        if (healthStatus && healthStatus !== HealthStatus.Healthy) {
+            stateLabel += ` - (${healthStatus})`;
+        }
         lenses.push(new vscode.CodeLens(range, {
             title: stateLabel,
-            command: '', // informational only
-            tooltip: `${resource.displayName ?? resource.name}: ${state}`,
+            command: 'aspire-vscode.codeLensRevealResource',
+            tooltip: `${resource.displayName ?? resource.name}: ${state}${healthStatus ? ` (${healthStatus})` : ''}`,
+            arguments: [resource.displayName ?? resource.name],
         }));
 
         // Action lenses based on available commands
@@ -127,7 +145,7 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
         }
 
         // View Logs lens (not applicable to parameters)
-        if (resource.resourceType !== 'Parameter') {
+        if (resource.resourceType !== ResourceType.Parameter) {
             lenses.push(new vscode.CodeLens(range, {
                 title: codeLensViewLogs,
                 command: 'aspire-vscode.codeLensViewLogs',
@@ -153,68 +171,39 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
         }
     }
 
-    private _getStateLabel(state: string): string {
-        switch (state) {
-            case 'Running':
-            case 'Active':
-                return codeLensResourceRunning;
-            case 'Starting':
-            case 'Building':
-            case 'Waiting':
-            case 'NotStarted':
-                return codeLensResourceStarting;
-            case 'FailedToStart':
-            case 'RuntimeUnhealthy':
-                return codeLensResourceError;
-            case 'Finished':
-            case 'Exited':
-            case 'Stopping':
-                return codeLensResourceStopped;
-            default:
-                return state || codeLensResourceStopped;
-        }
-    }
-
-    private _findResourceState(
-        appHosts: readonly AppHostDisplayInfo[],
-        resourceName: string,
-    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
-        for (const appHost of appHosts) {
-            if (!appHost.resources) {
-                continue;
-            }
-            // Match on displayName because the runtime `name` field includes a random suffix
-            // (e.g., "postgres-fbnfwdfv"), whereas displayName matches the source code name.
-            const resource = appHost.resources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
-            if (resource) {
-                return { resource, appHost };
-            }
-        }
-        return undefined;
-    }
-
-    private _findWorkspaceResourceState(
-        workspaceResources: readonly ResourceJson[],
-        resourceName: string,
-    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
-        const resource = workspaceResources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
-        if (resource) {
-            return {
-                resource,
-                appHost: {
-                    appHostPath: this._treeProvider.workspaceAppHostPath ?? '',
-                    appHostPid: 0,
-                    cliPid: null,
-                    dashboardUrl: null,
-                    resources: [...workspaceResources],
-                },
-            };
-        }
-        return undefined;
-    }
-
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
         this._onDidChangeCodeLenses.dispose();
+    }
+}
+
+export function getCodeLensStateLabel(state: string, stateStyle: string): string {
+    switch (state) {
+        case ResourceState.Running:
+        case ResourceState.Active:
+            if (stateStyle === StateStyle.Error) {
+                return codeLensResourceRunningError;
+            }
+            if (stateStyle === StateStyle.Warning) {
+                return codeLensResourceRunningWarning;
+            }
+            return codeLensResourceRunning;
+        case ResourceState.Starting:
+        case ResourceState.Building:
+        case ResourceState.Waiting:
+        case ResourceState.NotStarted:
+            return codeLensResourceStarting;
+        case ResourceState.FailedToStart:
+        case ResourceState.RuntimeUnhealthy:
+            return codeLensResourceError;
+        case ResourceState.Finished:
+        case ResourceState.Exited:
+        case ResourceState.Stopping:
+            if (stateStyle === StateStyle.Error) {
+                return codeLensResourceStoppedError;
+            }
+            return codeLensResourceStopped;
+        default:
+            return state || codeLensResourceStopped;
     }
 }

@@ -263,8 +263,9 @@ suite('CSharpAppHostParser', () => {
             '/test/AppHost.cs'
         );
         const resources = parser.parseResources(doc);
-        assert.strictEqual(resources.length, 1);
-        assert.strictEqual(resources[0].name, 'cache');
+        const addResources = resources.filter(r => r.kind === 'resource');
+        assert.strictEqual(addResources.length, 1);
+        assert.strictEqual(addResources[0].name, 'cache');
     });
 
     // --- parseResources: range accuracy ---
@@ -294,6 +295,114 @@ suite('CSharpAppHostParser', () => {
         const resources = parser.parseResources(doc);
         assert.strictEqual(resources.length, 1);
         assert.strictEqual(resources[0].range.start.line, 3, 'Resource should be on line 3');
+    });
+
+    // --- parseResources: statementStartLine ---
+
+    test('statementStartLine equals range line for single-line call', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            'var builder = DistributedApplication.CreateBuilder(args);\nvar cache = builder.AddRedis("cache");',
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, resources[0].range.start.line);
+    });
+
+    test('statementStartLine points to top of multi-line fluent chain', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                '',
+                'var cache = builder',
+                '    .AddRedis("cache")',
+                '    .WithLifetime(ContainerLifetime.Persistent);',
+            ].join('\n'),
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        const addResources = resources.filter(r => r.kind === 'resource');
+        assert.strictEqual(addResources.length, 1);
+        assert.strictEqual(addResources[0].range.start.line, 3, '.AddRedis is on line 3');
+        assert.strictEqual(addResources[0].statementStartLine, 2, 'statement starts on line 2 (var cache = builder)');
+    });
+
+    test('statementStartLine works with multiple multi-line resources', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                '',
+                'var cache = builder',
+                '    .AddRedis("cache")',
+                '    .WithLifetime(ContainerLifetime.Persistent);',
+                '',
+                'var db = builder',
+                '    .AddPostgres("postgres")',
+                '    .AddDatabase("mydb");',
+            ].join('\n'),
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources[0].statementStartLine, 2, 'cache starts at var cache');
+        assert.strictEqual(resources[1].statementStartLine, 6, 'postgres starts at var db');
+    });
+
+    test('statementStartLine points to first line after opening brace', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                '{',
+                '    builder.AddRedis("cache");',
+                '}',
+            ].join('\n'),
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, 2, 'statement starts after {');
+    });
+
+    test('statementStartLine skips single-line comments above statement', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                '',
+                '// This is the cache resource',
+                '// It uses Redis',
+                'var cache = builder',
+                '    .AddRedis("cache")',
+                '    .WithLifetime(ContainerLifetime.Persistent);',
+            ].join('\n'),
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        const addResources = resources.filter(r => r.kind === 'resource');
+        assert.strictEqual(addResources.length, 1);
+        assert.strictEqual(addResources[0].statementStartLine, 4, 'statement starts at var cache, skipping comments');
+    });
+
+    test('statementStartLine skips block comments above statement', () => {
+        const parser = getCSharpParser();
+        const doc = createMockDocument(
+            [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                '',
+                '/* Multi-line',
+                ' * block comment',
+                ' */',
+                'var cache = builder',
+                '    .AddRedis("cache");',
+            ].join('\n'),
+            '/test/AppHost.cs'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, 5, 'statement starts at var cache, skipping block comment');
     });
 
     // --- parseResources: empty / no matches ---
@@ -458,20 +567,21 @@ suite('CSharpAppHostParser', () => {
             '/test/AppHost.cs'
         );
         const resources = parser.parseResources(doc);
-        assert.strictEqual(resources.length, 5);
-        assert.strictEqual(resources[0].name, 'cache');
-        assert.strictEqual(resources[0].methodName, 'AddRedis');
-        assert.strictEqual(resources[1].name, 'postgres');
-        assert.strictEqual(resources[1].methodName, 'AddPostgres');
-        assert.strictEqual(resources[2].name, 'catalogdb');
-        assert.strictEqual(resources[2].methodName, 'AddDatabase');
-        assert.strictEqual(resources[3].name, 'catalogapi');
-        assert.strictEqual(resources[3].methodName, 'AddProject');
-        assert.strictEqual(resources[4].name, 'webfrontend');
-        assert.strictEqual(resources[4].methodName, 'AddProject');
+        const addResources = resources.filter(r => r.kind === 'resource');
+        assert.strictEqual(addResources.length, 5);
+        assert.strictEqual(addResources[0].name, 'cache');
+        assert.strictEqual(addResources[0].methodName, 'AddRedis');
+        assert.strictEqual(addResources[1].name, 'postgres');
+        assert.strictEqual(addResources[1].methodName, 'AddPostgres');
+        assert.strictEqual(addResources[2].name, 'catalogdb');
+        assert.strictEqual(addResources[2].methodName, 'AddDatabase');
+        assert.strictEqual(addResources[3].name, 'catalogapi');
+        assert.strictEqual(addResources[3].methodName, 'AddProject');
+        assert.strictEqual(addResources[4].name, 'webfrontend');
+        assert.strictEqual(addResources[4].methodName, 'AddProject');
 
         // All should be classified as resources
-        for (const r of resources) {
+        for (const r of addResources) {
             assert.strictEqual(r.kind, 'resource');
         }
     });
@@ -699,6 +809,94 @@ suite('JsTsAppHostParser', () => {
         const resources = parser.parseResources(doc);
         assert.strictEqual(resources.length, 1);
         assert.strictEqual(resources[0].range.start.line, 3, 'Resource should be on line 3');
+    });
+
+    // --- parseResources: statementStartLine ---
+
+    test('statementStartLine equals range line for single-line call', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            'import { createBuilder } from "@aspire/sdk";\nconst cache = builder.addRedis("cache");',
+            '/test/apphost.ts'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, resources[0].range.start.line);
+    });
+
+    test('statementStartLine points to top of multi-line fluent chain', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            [
+                'import { createBuilder } from "@aspire/sdk";',
+                '',
+                'const cache = builder',
+                '    .addRedis("cache")',
+                '    .withLifetime("persistent");',
+            ].join('\n'),
+            '/test/apphost.ts'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].range.start.line, 3, '.addRedis is on line 3');
+        assert.strictEqual(resources[0].statementStartLine, 2, 'statement starts on line 2 (const cache = builder)');
+    });
+
+    test('statementStartLine works with multiple multi-line resources', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            [
+                'import { createBuilder } from "@aspire/sdk";',
+                '',
+                'const cache = builder',
+                '    .addRedis("cache");',
+                '',
+                'const db = builder',
+                '    .addPostgres("postgres");',
+            ].join('\n'),
+            '/test/apphost.ts'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources[0].statementStartLine, 2, 'cache starts at const cache');
+        assert.strictEqual(resources[1].statementStartLine, 5, 'postgres starts at const db');
+    });
+
+    test('statementStartLine skips single-line comments above statement', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            [
+                'import { createBuilder } from "@aspire/sdk";',
+                '',
+                '// ── Python Player ──────────────',
+                '// A cunning Python player',
+                'const pythonPlayer = await builder',
+                '    .addPythonApp("python-player", "./python-player", "app.py")',
+                '    .withHttpEndpoint({ env: "PORT" });',
+            ].join('\n'),
+            '/test/apphost.ts'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, 4, 'statement starts at const pythonPlayer, skipping comments');
+    });
+
+    test('statementStartLine skips block comments above statement', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            [
+                'import { createBuilder } from "@aspire/sdk";',
+                '',
+                '/* Multi-line',
+                ' * block comment',
+                ' */',
+                'const cache = await builder',
+                '    .addRedis("cache");',
+            ].join('\n'),
+            '/test/apphost.ts'
+        );
+        const resources = parser.parseResources(doc);
+        assert.strictEqual(resources.length, 1);
+        assert.strictEqual(resources[0].statementStartLine, 5, 'statement starts at const cache, skipping block comment');
     });
 
     // --- parseResources: empty / no matches ---

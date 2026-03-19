@@ -4,35 +4,22 @@ import { getParserForDocument } from './parsers/AppHostResourceParser';
 import './parsers/csharpAppHostParser';
 import './parsers/jsTsAppHostParser';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
-import { ResourceJson, AppHostDisplayInfo } from '../views/AppHostDataRepository';
+import { findResourceState, findWorkspaceResourceState } from './resourceStateUtils';
+import { ResourceState, StateStyle, HealthStatus } from './resourceConstants';
 
-/** Decoration types for each resource state category. */
-const runningDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: makeGutterSvgUri('#28a745'), // green
-    gutterIconSize: '70%',
-});
+type GutterCategory = 'running' | 'warning' | 'error' | 'starting' | 'stopped';
 
-const warningDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: makeGutterSvgUri('#e0a30b'), // yellow/amber
-    gutterIconSize: '70%',
-});
+const gutterCategories: GutterCategory[] = ['running', 'warning', 'error', 'starting', 'stopped'];
 
-const errorDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: makeGutterSvgUri('#d73a49'), // red
-    gutterIconSize: '70%',
-});
 
-const startingDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: makeGutterSvgUri('#2188ff'), // blue
-    gutterIconSize: '70%',
-});
 
-const stoppedDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: makeGutterSvgUri('#6a737d'), // gray
-    gutterIconSize: '70%',
-});
-
-const allDecorationTypes = [runningDecoration, warningDecoration, errorDecoration, startingDecoration, stoppedDecoration];
+const gutterColors: Record<GutterCategory, string> = {
+    running: '#28a745',  // green
+    warning: '#e0a30b',  // yellow/amber
+    error: '#d73a49',    // red
+    starting: '#2188ff', // blue
+    stopped: '#6a737d',  // gray
+};
 
 /** Creates a data-URI SVG of a filled circle with the given color. */
 function makeGutterSvgUri(color: string): vscode.Uri {
@@ -40,24 +27,66 @@ function makeGutterSvgUri(color: string): vscode.Uri {
     return vscode.Uri.parse(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`);
 }
 
+const decorationTypes = Object.fromEntries(
+    gutterCategories.map(c => [c, vscode.window.createTextEditorDecorationType({
+        gutterIconPath: makeGutterSvgUri(gutterColors[c]),
+        gutterIconSize: '70%',
+    })])
+) as Record<GutterCategory, vscode.TextEditorDecorationType>;
+
+function classifyState(state: string, stateStyle: string, healthStatus: string): GutterCategory {
+    switch (state) {
+        case ResourceState.Running:
+        case ResourceState.Active:
+            if (stateStyle === StateStyle.Error) return 'error';
+            if (stateStyle === StateStyle.Warning || healthStatus === HealthStatus.Unhealthy || healthStatus === HealthStatus.Degraded) return 'warning';
+            return 'running';
+        case ResourceState.FailedToStart:
+        case ResourceState.RuntimeUnhealthy:
+            return 'error';
+        case ResourceState.Starting:
+        case ResourceState.Stopping:
+        case ResourceState.Building:
+        case ResourceState.Waiting:
+        case ResourceState.NotStarted:
+            return 'starting';
+        case ResourceState.Finished:
+        case ResourceState.Exited:
+            return stateStyle === StateStyle.Error ? 'error' : 'stopped';
+        default:
+            return 'stopped';
+    }
+}
+
 export class AspireGutterDecorationProvider implements vscode.Disposable {
     private readonly _disposables: vscode.Disposable[] = [];
+    private _debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
     constructor(private readonly _treeProvider: AspireAppHostTreeProvider) {
         this._disposables.push(
             _treeProvider.onDidChangeTreeData(() => this._updateAllVisibleEditors()),
             vscode.window.onDidChangeActiveTextEditor(() => this._updateAllVisibleEditors()),
             vscode.workspace.onDidChangeTextDocument(e => {
-                for (const editor of vscode.window.visibleTextEditors) {
-                    if (editor.document === e.document) {
-                        this._applyDecorations(editor);
-                    }
-                }
+                this._debouncedUpdate(e.document);
             }),
         );
 
         // Apply immediately for any already-open editors
         this._updateAllVisibleEditors();
+    }
+
+    private _debouncedUpdate(document: vscode.TextDocument): void {
+        if (this._debounceTimer) {
+            clearTimeout(this._debounceTimer);
+        }
+        this._debounceTimer = setTimeout(() => {
+            this._debounceTimer = undefined;
+            for (const editor of vscode.window.visibleTextEditors) {
+                if (editor.document === document) {
+                    this._applyDecorations(editor);
+                }
+            }
+        }, 250);
     }
 
     private _updateAllVisibleEditors(): void {
@@ -67,6 +96,11 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
     }
 
     private _applyDecorations(editor: vscode.TextEditor): void {
+        if (!vscode.workspace.getConfiguration('aspire').get<boolean>('enableGutterDecorations', true)) {
+            this._clearDecorations(editor);
+            return;
+        }
+
         const parser = getParserForDocument(editor.document);
         if (!parser) {
             this._clearDecorations(editor);
@@ -86,122 +120,43 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
             return;
         }
 
-        const running: vscode.DecorationOptions[] = [];
-        const warning: vscode.DecorationOptions[] = [];
-        const error: vscode.DecorationOptions[] = [];
-        const starting: vscode.DecorationOptions[] = [];
-        const stopped: vscode.DecorationOptions[] = [];
+        const findWorkspace = findWorkspaceResourceState(workspaceResources, this._treeProvider.workspaceAppHostPath ?? '');
+        const buckets = new Map<GutterCategory, vscode.DecorationOptions[]>(
+            gutterCategories.map(c => [c, []])
+        );
 
         for (const parsed of resources) {
-            // Only decorate resources, not pipeline steps
             if (parsed.kind !== 'resource') {
                 continue;
             }
-
-            const match = this._findResourceState(appHosts, parsed.name)
-                ?? this._findWorkspaceResourceState(workspaceResources, parsed.name);
+            const match = findResourceState(appHosts, parsed.name)
+                ?? findWorkspace(parsed.name);
             if (!match) {
                 continue;
             }
 
-            const range = new vscode.Range(parsed.range.start.line, 0, parsed.range.start.line, 0);
-            const state = match.resource.state ?? '';
-            const stateStyle = match.resource.stateStyle ?? '';
-            const displayName = match.resource.displayName ?? match.resource.name;
-            const hoverMessage = `${displayName}: ${state}`;
-
-            const decoration: vscode.DecorationOptions = { range, hoverMessage };
-
-            switch (state) {
-                case 'Running':
-                case 'Active':
-                    if (stateStyle === 'error') {
-                        error.push(decoration);
-                    } else if (stateStyle === 'warning') {
-                        warning.push(decoration);
-                    } else {
-                        running.push(decoration);
-                    }
-                    break;
-                case 'FailedToStart':
-                case 'RuntimeUnhealthy':
-                    error.push(decoration);
-                    break;
-                case 'Starting':
-                case 'Stopping':
-                case 'Building':
-                case 'Waiting':
-                case 'NotStarted':
-                    starting.push(decoration);
-                    break;
-                case 'Finished':
-                case 'Exited':
-                    if (stateStyle === 'error') {
-                        error.push(decoration);
-                    } else {
-                        stopped.push(decoration);
-                    }
-                    break;
-                default:
-                    stopped.push(decoration);
-                    break;
-            }
+            const { resource } = match;
+            const category = classifyState(resource.state ?? '', resource.stateStyle ?? '', resource.healthStatus ?? '');
+            buckets.get(category)!.push({ range: editor.document.lineAt(parsed.range.start.line).range });
         }
 
-        editor.setDecorations(runningDecoration, running);
-        editor.setDecorations(warningDecoration, warning);
-        editor.setDecorations(errorDecoration, error);
-        editor.setDecorations(startingDecoration, starting);
-        editor.setDecorations(stoppedDecoration, stopped);
+        for (const [category, options] of buckets) {
+            editor.setDecorations(decorationTypes[category], options);
+        }
     }
 
     private _clearDecorations(editor: vscode.TextEditor): void {
-        for (const type of allDecorationTypes) {
+        for (const type of Object.values(decorationTypes)) {
             editor.setDecorations(type, []);
         }
     }
 
-    private _findResourceState(
-        appHosts: readonly AppHostDisplayInfo[],
-        resourceName: string,
-    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
-        for (const appHost of appHosts) {
-            if (!appHost.resources) {
-                continue;
-            }
-            // Match on displayName because the runtime `name` field includes a random suffix
-            // (e.g., "postgres-fbnfwdfv"), whereas displayName matches the source code name.
-            const resource = appHost.resources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
-            if (resource) {
-                return { resource, appHost };
-            }
-        }
-        return undefined;
-    }
-
-    private _findWorkspaceResourceState(
-        workspaceResources: readonly ResourceJson[],
-        resourceName: string,
-    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
-        const resource = workspaceResources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
-        if (resource) {
-            return {
-                resource,
-                appHost: {
-                    appHostPath: this._treeProvider.workspaceAppHostPath ?? '',
-                    appHostPid: 0,
-                    cliPid: null,
-                    dashboardUrl: null,
-                    resources: [...workspaceResources],
-                },
-            };
-        }
-        return undefined;
-    }
-
     dispose(): void {
+        if (this._debounceTimer) {
+            clearTimeout(this._debounceTimer);
+        }
         this._disposables.forEach(d => d.dispose());
-        for (const type of allDecorationTypes) {
+        for (const type of Object.values(decorationTypes)) {
             type.dispose();
         }
     }

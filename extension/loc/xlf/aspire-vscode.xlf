@@ -361,6 +361,9 @@
     <trans-unit id="command.restartResource">
       <source xml:lang="en">Restart</source>
     </trans-unit>
+    <trans-unit id="command.codeLensRevealResource">
+      <source xml:lang="en">Reveal resource in Aspire panel</source>
+    </trans-unit>
     <trans-unit id="command.runAppHost">
       <source xml:lang="en">Run Aspire apphost</source>
     </trans-unit>
@@ -391,11 +394,17 @@
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
       <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.enableCodeLens">
+      <source xml:lang="en">Show CodeLens actions (state, restart, stop, logs) inline above resource declarations in apphost files.</source>
+    </trans-unit>
     <trans-unit id="configuration.aspire.enableAspireDashboardAutoLaunch.notification">
       <source xml:lang="en">Show a notification with a link to open the dashboard.</source>
     </trans-unit>
     <trans-unit id="command.switchToGlobalView">
       <source xml:lang="en">Show all running apphosts</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableGutterDecorations">
+      <source xml:lang="en">Show colored status dots in the editor gutter next to resource declarations in apphost files.</source>
     </trans-unit>
     <trans-unit id="command.switchToWorkspaceView">
       <source xml:lang="en">Show workspace apphost</source>
