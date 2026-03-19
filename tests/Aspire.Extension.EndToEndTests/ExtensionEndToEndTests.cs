@@ -87,10 +87,6 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
             _output.WriteLine($"WaitForHex1b: {sw.Elapsed.TotalSeconds:F1}s");
 
-            // Verify hex1b is actually running inside the container before connecting
-            var psResult = await _fixture.Container.ExecAsync("pgrep -a hex1b || echo 'NO_HEX1B_RUNNING'");
-            _output.WriteLine($"hex1b process check: {psResult.StdOut.Trim()} ({sw.Elapsed.TotalSeconds:F1}s)");
-
             await using var session = await RemoteTerminalSession.ConnectAsync(wsUri, log: msg => _output.WriteLine($"  [{sw.Elapsed.TotalSeconds:F1}s] {msg}"));
             _output.WriteLine($"Remote terminal session connected ({sw.Elapsed.TotalSeconds:F1}s)");
 

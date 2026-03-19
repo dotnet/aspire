@@ -24,7 +24,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 # Install core tools and VS Code runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      curl wget gpg ca-certificates \
+      curl wget gpg ca-certificates iproute2 \
       # VS Code runtime dependencies
       libasound2t64 libatk-bridge2.0-0 libatk1.0-0 libcairo2 libcups2 \
       libdbus-1-3 libdrm2 libexpat1 libgbm1 libglib2.0-0 libgtk-3-0 \

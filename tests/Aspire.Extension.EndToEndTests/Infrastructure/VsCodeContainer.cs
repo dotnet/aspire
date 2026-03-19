@@ -335,6 +335,11 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     /// <summary>
     /// Waits for a hex1b WebSocket endpoint to become available by attempting TCP connections.
     /// </summary>
+    /// <summary>
+    /// Waits until hex1b is actually listening inside the container on the given port.
+    /// Unlike TCP probing from the host (which Docker's proxy accepts prematurely),
+    /// this checks inside the container using <c>ss</c> or <c>cat /proc/net/tcp6</c>.
+    /// </summary>
     public async Task WaitForHex1bAsync(Uri websocketUri, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(60);
@@ -342,28 +347,42 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, timeoutCts.Token);
 
-        var port = websocketUri.Port;
-        _output.WriteLine($"Waiting for hex1b WebSocket on port {port}...");
+        var containerPort = websocketUri.Port switch
+        {
+            // Map host port back to container port range
+            _ => Hex1bPortBase + (websocketUri.Port - _hex1bHostPortBase)
+        };
+
+        _output.WriteLine($"Waiting for hex1b to listen on container port {containerPort} (host port {websocketUri.Port})...");
         var startTime = Stopwatch.GetTimestamp();
 
         while (!linkedCts.Token.IsCancellationRequested)
         {
             try
             {
-                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                await socket.ConnectAsync("localhost", port, linkedCts.Token);
-                var elapsed = Stopwatch.GetElapsedTime(startTime);
-                _output.WriteLine($"Hex1b WebSocket port {port} is ready ({elapsed.TotalSeconds:F1}s)");
-                return;
+                // Check inside the container if something is listening on the port
+                var result = await ExecAsync(
+                    $"ss -tlnp | grep ':{containerPort}' || true",
+                    timeout: TimeSpan.FromSeconds(5),
+                    cancellationToken: linkedCts.Token);
+
+                if (result.StdOut.Contains($":{containerPort}"))
+                {
+                    var elapsed = Stopwatch.GetElapsedTime(startTime);
+                    _output.WriteLine($"Hex1b listening on container port {containerPort} ({elapsed.TotalSeconds:F1}s)");
+                    return;
+                }
             }
-            catch (SocketException)
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(500), linkedCts.Token);
+                break;
             }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(300), linkedCts.Token);
         }
 
         throw new TimeoutException(
-            $"Hex1b WebSocket endpoint at port {port} did not become available within {effectiveTimeout.TotalSeconds}s");
+            $"Hex1b did not start listening on container port {containerPort} within {effectiveTimeout.TotalSeconds}s");
     }
 
     /// <summary>
