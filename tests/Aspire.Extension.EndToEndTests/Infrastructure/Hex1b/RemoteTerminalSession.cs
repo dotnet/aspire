@@ -124,15 +124,24 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     /// Installs the PROMPT_COMMAND trick and returns a <see cref="SequenceCounter"/> for tracking prompts.
     /// After this call, every completed command produces a prompt like <c>[N OK] $ </c> or <c>[N ERR:code] $ </c>.
     /// </summary>
-    public async Task<SequenceCounter> SetupPromptAsync(CancellationToken ct = default)
+    public async Task<SequenceCounter> SetupPromptAsync(Action<string>? log = null, CancellationToken ct = default)
     {
         // Wait for an initial shell prompt (root@... or ~#)
-        await WaitForAnyTextAsync(["# ", "$ "], timeout: TimeSpan.FromSeconds(30), ct: ct);
+        // Send an Enter keystroke first to nudge the shell into displaying its prompt,
+        // as the terminal may have connected before bash rendered its initial PS1.
+        log?.Invoke("Sending Enter to trigger initial prompt...");
+        await SendTextAsync("\r", ct);
+
+        log?.Invoke("Waiting for shell prompt (# or $)...");
+        var promptResult = await WaitForAnyTextAsync(["# ", "$ "], timeout: TimeSpan.FromSeconds(30), ct: ct);
+        log?.Invoke($"Got prompt: '{promptResult}'");
 
         var counter = new SequenceCounter();
 
+        log?.Invoke("Sending PROMPT_COMMAND setup...");
         await SendTextAsync(PromptSetup + "\r", ct);
         await WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(10), ct: ct);
+        log?.Invoke("PROMPT_COMMAND installed");
 
         return counter;
     }

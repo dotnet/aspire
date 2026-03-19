@@ -84,15 +84,20 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await page.Keyboard.PressAsync("Enter");
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
-            _output.WriteLine($"WaitForHex1b: {sw.Elapsed.TotalSeconds:F1}s");
+            void TimingLog(string msg) { var m = $"[TIMING {sw.Elapsed.TotalSeconds,6:F1}s] {msg}"; _output.WriteLine(m); Console.Error.WriteLine(m); }
 
-            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri, log: msg => _output.WriteLine($"  [{sw.Elapsed.TotalSeconds:F1}s] {msg}"));
-            _output.WriteLine($"Remote terminal session connected ({sw.Elapsed.TotalSeconds:F1}s)");
+            TimingLog("Waiting for hex1b to be listening...");
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+            TimingLog("hex1b is listening");
+
+            TimingLog("Connecting WebSocket...");
+            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri, log: msg => TimingLog($"  {msg}"));
+            TimingLog("WebSocket connected");
 
             // Set up the PROMPT_COMMAND trick: every command completion shows [N OK] $ or [N ERR:code] $
-            var counter = await session.SetupPromptAsync();
-            _output.WriteLine($"Prompt trick installed, counter at {counter.Value} ({sw.Elapsed.TotalSeconds:F1}s)");
+            TimingLog("Setting up PROMPT_COMMAND...");
+            var counter = await session.SetupPromptAsync(log: msg => TimingLog($"  {msg}"));
+            TimingLog($"Prompt trick installed, counter at {counter.Value}");
 
             // ===== Phase 2: Install CLI and create project interactively =====
             _output.WriteLine("--- Phase 2: Installing local CLI ---");
