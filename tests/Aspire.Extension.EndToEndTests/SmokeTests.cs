@@ -105,6 +105,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             _output.WriteLine($"hex1b --version: {hexResult.StdOut.Trim()} (exit: {hexResult.ExitCode})");
             Assert.Equal(0, hexResult.ExitCode);
 
+            // Maximize the terminal panel so it fills the entire editor area
+            await MaximizeTerminalPanelAsync(page);
+
             // Start hex1b terminal with attach in the VS Code terminal.
             // This spawns a headless host process (with diagnostics socket) and attaches a TUI.
             var cmd = "hex1b terminal start --attach -- /bin/bash";
@@ -121,6 +124,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             await ScreenshotAsync(page, "hex1b-terminal-started.png");
             _output.WriteLine("✓ hex1b terminal started, diagnostics socket is accessible via volume mount");
+
+            // Linger for 5 seconds so the final result is visible in the video
+            await Task.Delay(5000);
         }
         finally
         {
@@ -152,6 +158,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Kill any existing hex1b processes from previous tests and clean up stale sockets
             await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
             await Task.Delay(1000);
+
+            // Maximize the terminal panel so it fills the entire editor area
+            await MaximizeTerminalPanelAsync(page);
 
             // Start hex1b with attach in VS Code terminal
             var cmd = "hex1b terminal start --attach -- /bin/bash";
@@ -204,6 +213,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             Assert.True(found, $"Expected to find '{echoMarker}' in terminal screen text");
             _output.WriteLine("✓ Remote terminal round-trip verified: send input → receive output");
+
+            // Linger for 5 seconds so the final result is visible in the video
+            await Task.Delay(5000);
         }
         finally
         {
@@ -246,6 +258,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             await Task.Delay(2000);
 
             await ScreenshotAsync(page, $"terminal-opened-{quality}.png");
+
+            // Maximize the terminal panel so it fills the entire editor area
+            await MaximizeTerminalPanelAsync(page);
 
             // Start hex1b with asciinema recording
             var recordPath = $"/tmp/aspire-install-{quality}.cast";
@@ -313,6 +328,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             _output.WriteLine($"✓ Aspire CLI ({quality}) installed and verified: {version}");
 
+            // Linger for 5 seconds so the final result is visible in the video
+            await Task.Delay(5000);
+
             // Copy asciinema recording from container
             var artifactCastPath = Path.Combine(_fixture.ArtifactsDir, "recordings", $"aspire-install-{quality}.cast");
             await _fixture.Container.CopyFromContainerAsync(recordPath, artifactCastPath);
@@ -352,6 +370,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/aspire-new-* /root/MyAspireApp");
             await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
             await Task.Delay(1000);
+
+            // Maximize the terminal panel so it fills the entire editor area
+            await MaximizeTerminalPanelAsync(page);
 
             // Start hex1b with asciinema recording
             var recordPath = "/tmp/aspire-new-interactive.cast";
@@ -502,6 +523,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             _output.WriteLine($"✓ Interactive 'aspire new' created project '{projectName}' successfully");
 
+            // Linger for 5 seconds so the final result is visible in the video
+            await Task.Delay(5000);
+
             // Copy asciinema recording
             var artifactCastPath = Path.Combine(_fixture.ArtifactsDir, "recordings", "aspire-new-interactive.cast");
             await _fixture.Container.CopyFromContainerAsync(recordPath, artifactCastPath);
@@ -514,6 +538,29 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
         {
             await _fixture.SaveTraceAsync(nameof(AspireNewCreatesProjectInteractively));
         }
+    }
+
+    /// <summary>
+    /// Maximizes the VS Code terminal panel so it fills the entire editor area.
+    /// Uses the command palette to run "View: Toggle Maximized Panel".
+    /// </summary>
+    private async Task MaximizeTerminalPanelAsync(IPage page)
+    {
+        _output.WriteLine("Maximizing terminal panel...");
+
+        // Open the command palette
+        await page.Keyboard.PressAsync("Control+Shift+KeyP");
+        await Task.Delay(500);
+
+        // Type the command to maximize the panel
+        await page.Keyboard.TypeAsync("View: Toggle Maximized Panel", new() { Delay = 30 });
+        await Task.Delay(500);
+
+        // Execute it
+        await page.Keyboard.PressAsync("Enter");
+        await Task.Delay(1000);
+
+        _output.WriteLine("Terminal panel maximized");
     }
 
     private void DumpScreen(RemoteTerminalSession session, string label)
