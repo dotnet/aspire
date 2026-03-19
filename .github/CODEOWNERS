@@ -8,7 +8,7 @@
 /src/Aspire.Hosting.Docker            @danegsta @mitchdenny
 /src/Aspire.Hosting.Maui              @jfversluis
 /src/Aspire.Hosting.Foundry           @sebastienros
-/src/Aspire.Hosting                   @karolz-ms @danegsta @mitchdenny @davidfowl
+/src/Aspire.Hosting                   @JamesNK @karolz-ms @danegsta @mitchdenny @davidfowl
 /src/Aspire.Dashboard                 @JamesNK @adamint
 /src/Aspire.Cli                       @mitchdenny @JamesNK @davidfowl
 
