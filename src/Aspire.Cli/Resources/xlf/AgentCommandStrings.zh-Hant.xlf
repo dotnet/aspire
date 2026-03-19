@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent environment configuration</source>
-        <target state="needs-review-translation">管理 AI Agent 整合。</target>
+        <target state="new">Manage AI agent environment configuration</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents</source>
-        <target state="needs-review-translation">為偵測到的代理程式初始化代理程式環境設定。</target>
+        <target state="new">Initialize agent environment configuration for detected agents</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallSkillFile">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="needs-review-translation">啟動 MCP (模型內容通訊協定) 伺服器。</target>
+        <target state="new">Start the MCP (Model Context Protocol) server</target>
         <note />
       </trans-unit>
       <trans-unit id="SkipNoneDescription">

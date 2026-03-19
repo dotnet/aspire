@@ -24,32 +24,32 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent environment configuration</source>
-        <target state="needs-review-translation">Administrar integraciones de agentes de IA.</target>
+        <target state="translated">Administración de la configuración del entorno del agente de IA</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
         <source>Install Aspire MCP server</source>
-        <target state="new">Install Aspire MCP server</target>
+        <target state="translated">Instalar el servidor MCP de Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents</source>
-        <target state="needs-review-translation">Inicialice la configuración del entorno del agente para los agentes detectados.</target>
+        <target state="translated">Inicialización de la configuración del entorno del agente para los agentes detectados</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallSkillFile">
         <source>Install Aspire skill file (Recommended)</source>
-        <target state="new">Install Aspire skill file (Recommended)</target>
+        <target state="translated">Instalar el archivo de habilidades de Aspire (recomendado)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NothingSelected">
         <source>No options selected. Nothing to configure.</source>
-        <target state="new">No options selected. Nothing to configure.</target>
+        <target state="translated">No hay opciones seleccionadas. No hay nada que configurar.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WhatToConfigure">
         <source>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</source>
-        <target state="new">What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</target>
+        <target state="translated">¿Qué desea configurar? [dim](Entrar para omitir, Ctrl+C para cancelar)[/]</target>
         <note />
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
@@ -59,12 +59,12 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="needs-review-translation">Inicie el servidor MCP (protocolo de contexto de modelo).</target>
+        <target state="translated">Iniciar el servidor MCP (Protocolo de contexto de modelo)</target>
         <note />
       </trans-unit>
       <trans-unit id="SkipNoneDescription">
         <source>None — skip</source>
-        <target state="new">None — skip</target>
+        <target state="translated">Ninguno: omitir</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">

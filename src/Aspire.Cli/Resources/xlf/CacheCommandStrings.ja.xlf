@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
         <source>Clear all cache entries</source>
-        <target state="needs-review-translation">すべてのキャッシュ エントリをクリアします。</target>
+        <target state="new">Clear all cache entries</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage disk cache for CLI operations</source>
-        <target state="needs-review-translation">CLI 操作に対するディスク キャッシュを管理します。</target>
+        <target state="new">Manage disk cache for CLI operations</target>
         <note />
       </trans-unit>
     </body>

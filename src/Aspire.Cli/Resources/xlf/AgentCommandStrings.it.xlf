@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent environment configuration</source>
-        <target state="needs-review-translation">Gestire le integrazioni dell'agente AI.</target>
+        <target state="new">Manage AI agent environment configuration</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents</source>
-        <target state="needs-review-translation">Consente di inizializzare la configurazione dell'ambiente agente per gli agenti rilevati.</target>
+        <target state="new">Initialize agent environment configuration for detected agents</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallSkillFile">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="needs-review-translation">Avviare il server MCP (Model Context Protocol).</target>
+        <target state="new">Start the MCP (Model Context Protocol) server</target>
         <note />
       </trans-unit>
       <trans-unit id="SkipNoneDescription">

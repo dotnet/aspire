@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent environment configuration</source>
-        <target state="needs-review-translation">AI detekli aracı entegrasyonlarınızı yönetin.</target>
+        <target state="new">Manage AI agent environment configuration</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents</source>
-        <target state="needs-review-translation">Tespit edilen aracılar için aracı ortam yapılandırmasını başlatın.</target>
+        <target state="new">Initialize agent environment configuration for detected agents</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallSkillFile">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="needs-review-translation">MCP (Model Bağlam Protokolü) sunucusunu başlat.</target>
+        <target state="new">Start the MCP (Model Context Protocol) server</target>
         <note />
       </trans-unit>
       <trans-unit id="SkipNoneDescription">
