@@ -2770,8 +2770,7 @@ public class DcpExecutorTests
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
-            new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
-            developerCertificateService);
+            new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())));
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
