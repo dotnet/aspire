@@ -44,6 +44,8 @@ public sealed class TypeScriptPolyglotTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.DeclineAgentInitPromptAsync(counter);
 
+        await auto.SetLocalStagingChannelIfNeededAsync(counter);
+
         // Step 2: Create a Vite app using npm create vite
         // Using --template vanilla-ts for a minimal TypeScript Vite app
         // Use -y to skip npm prompts and -- to pass args to create-vite

@@ -535,7 +535,6 @@ public sealed class ConfigMigrationTests(ITestOutputHelper output)
 
         // Step 1: Install a released CLI that uses the legacy config format.
         await auto.InstallAspireCliVersionAsync(LegacyCliVersion, counter);
-        await auto.SourceAspireCliEnvironmentAsync(counter);
 
         // Verify the legacy CLI is installed.
         await auto.TypeAsync("aspire --version");

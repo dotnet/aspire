@@ -30,9 +30,6 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
         var clusterName = GenerateUniqueClusterName();
 
         output.WriteLine($"Using KinD version: {KindVersion}");
@@ -49,12 +46,7 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
         // Prepare environment
         await auto.PrepareEnvironmentAsync(workspace, counter);
 
-        if (isCI)
-        {
-            await auto.InstallAspireCliFromPullRequestAsync(prNumber, counter);
-            await auto.SourceAspireCliEnvironmentAsync(counter);
-            await auto.VerifyAspireCliVersionAsync(commitSha, counter);
-        }
+        await auto.SetupAspireCliFromPullRequestAsync(counter);
 
         try
         {
@@ -130,12 +122,10 @@ public sealed class KubernetesPublishTests(ITestOutputHelper output)
 
             // Step 3: Add Aspire.Hosting.Kubernetes package using aspire add
             // Pass the package name directly as an argument to avoid interactive selection
-            // The version selection prompt always appears for 'aspire add'
+            // The version selector only appears when multiple channels exist (e.g. PR hives).
             await auto.TypeAsync("aspire add Aspire.Hosting.Kubernetes");
             await auto.EnterAsync();
-            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
-            await auto.EnterAsync(); // select first version
-            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
+            await auto.AcceptVersionSelectionIfShownAsync(counter, TimeSpan.FromSeconds(180));
 
             // Step 4: Modify AppHost's main file to add Kubernetes environment
             // Note: Aspire templates use AppHost.cs as the main entry point, not Program.cs

@@ -51,40 +51,71 @@ internal static class CliE2EAutomatorHelpers
 
     /// <summary>
     /// Installs the Aspire CLI inside a Docker container based on the detected install mode.
+    /// Installs to a temporary directory rather than the default ~/.aspire.
+    /// <para>Env var overrides:</para>
+    /// <list type="bullet">
+    /// <item><c>ASPIRE_CLI_USE_SYSTEM=true</c> — skip install, use system aspire</item>
+    /// <item><c>ASPIRE_CLI_INSTALL_SCRIPT</c> — <c>get-aspire-cli</c> or <c>get-aspire-cli-pr</c></item>
+    /// <item><c>ASPIRE_CLI_INSTALL_ARGS</c> — extra args for the script (e.g. <c>-q dev</c> or <c>15414</c>)</item>
+    /// </list>
     /// </summary>
     internal static async Task InstallAspireCliInDockerAsync(
         this Hex1bTerminalAutomator auto,
         CliE2ETestHelpers.DockerInstallMode installMode,
         SequenceCounter counter)
     {
+        if (UseSystemCli)
+        {
+            await auto.EchoAspirePathAsync(counter);
+            return;
+        }
+
+        var scriptOverride = Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_SCRIPT");
+        if (!string.IsNullOrEmpty(scriptOverride))
+        {
+            const string installPath = "/tmp/aspire-install";
+            await auto.RemoveDefaultAspireBinAsync(counter);
+            await auto.InstallFromScriptInDockerAsync(scriptOverride, installPath, counter);
+            await auto.EnableStagingChannelIfNeededAsync(counter);
+            return;
+        }
+
+        const string defaultInstallPath = "/tmp/aspire-install";
+
+        // Remove any CLI binary at the default location so only the temp install is used
+        await auto.RemoveDefaultAspireBinAsync(counter);
+
         switch (installMode)
         {
             case CliE2ETestHelpers.DockerInstallMode.SourceBuild:
-                await auto.TypeAsync("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire");
+                await auto.TypeAsync($"mkdir -p {defaultInstallPath}/bin && cp /opt/aspire-cli/aspire {defaultInstallPath}/bin/aspire && chmod +x {defaultInstallPath}/bin/aspire");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(30));
-                await auto.TypeAsync("export PATH=~/.aspire/bin:$PATH");
+                await auto.TypeAsync($"export PATH={defaultInstallPath}/bin:$PATH");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptAsync(counter);
+                await auto.EchoAspirePathAsync(counter);
                 break;
 
             case CliE2ETestHelpers.DockerInstallMode.GaRelease:
-                await auto.TypeAsync("/opt/aspire-scripts/get-aspire-cli.sh");
+                await auto.TypeAsync($"/opt/aspire-scripts/get-aspire-cli.sh --install-path {defaultInstallPath}/bin");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(120));
-                await auto.TypeAsync("export PATH=~/.aspire/bin:$PATH");
+                await auto.TypeAsync($"export PATH={defaultInstallPath}/bin:$PATH");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptAsync(counter);
+                await auto.EchoAspirePathAsync(counter);
                 break;
 
             case CliE2ETestHelpers.DockerInstallMode.PullRequest:
                 var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-                await auto.TypeAsync($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber}");
+                await auto.TypeAsync($"/opt/aspire-scripts/get-aspire-cli-pr.sh {prNumber} --install-path {defaultInstallPath}");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
-                await auto.TypeAsync("export PATH=~/.aspire/bin:~/.aspire:$PATH");
+                await auto.TypeAsync($"export PATH={defaultInstallPath}/bin:{defaultInstallPath}:$PATH");
                 await auto.EnterAsync();
                 await auto.WaitForSuccessPromptAsync(counter);
+                await auto.EchoAspirePathAsync(counter);
                 break;
 
             default:
@@ -121,14 +152,272 @@ internal static class CliE2EAutomatorHelpers
     }
 
     /// <summary>
-    /// Installs the Aspire CLI from PR build artifacts in a non-Docker environment.
+    /// High-level setup that installs the Aspire CLI and configures the environment.
+    /// Supports env var overrides (see <see cref="InstallAspireCliInDockerAsync"/>).
+    /// No-op when not in CI and no overrides are set.
     /// </summary>
-    internal static async Task InstallAspireCliFromPullRequestAsync(
+    internal static async Task SetupAspireCliFromPullRequestAsync(
         this Hex1bTerminalAutomator auto,
-        int prNumber,
         SequenceCounter counter)
     {
-        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        if (UseSystemCli)
+        {
+            await auto.EchoAspirePathAsync(counter);
+            return;
+        }
+
+        var scriptOverride = Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_SCRIPT");
+        if (!string.IsNullOrEmpty(scriptOverride))
+        {
+            var installPath = CreateTemporaryInstallPath();
+            await auto.RemoveDefaultAspireBinAsync(counter);
+            await auto.InstallFromScriptAsync(scriptOverride, installPath, counter);
+            await auto.SourceAspireCliEnvironmentAsync(counter, installPath);
+            await auto.EnableStagingChannelIfNeededAsync(counter);
+            return;
+        }
+
+        if (!CliE2ETestHelpers.IsRunningInCI)
+        {
+            return;
+        }
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var prInstallPath = CreateTemporaryInstallPath();
+
+        await auto.RemoveDefaultAspireBinAsync(counter);
+        await auto.InstallAspireCliFromPullRequestAsync(prNumber, counter, prInstallPath);
+        await auto.SourceAspireCliEnvironmentAsync(counter, prInstallPath);
+        await auto.VerifyAspireCliVersionAsync(commitSha, counter);
+    }
+
+    /// <summary>
+    /// High-level setup that installs the Aspire CLI bundle and configures the environment.
+    /// Supports env var overrides (see <see cref="InstallAspireCliInDockerAsync"/>).
+    /// No-op when not in CI and no overrides are set.
+    /// </summary>
+    internal static async Task SetupAspireBundleFromPullRequestAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        if (UseSystemCli)
+        {
+            await auto.EchoAspirePathAsync(counter);
+            return;
+        }
+
+        var scriptOverride = Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_SCRIPT");
+        if (!string.IsNullOrEmpty(scriptOverride))
+        {
+            var installPath = CreateTemporaryInstallPath();
+            await auto.RemoveDefaultAspireBinAsync(counter);
+            await auto.InstallFromScriptAsync(scriptOverride, installPath, counter);
+            await auto.SourceAspireBundleEnvironmentAsync(counter, installPath);
+            await auto.EnableStagingChannelIfNeededAsync(counter);
+            return;
+        }
+
+        if (!CliE2ETestHelpers.IsRunningInCI)
+        {
+            return;
+        }
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var prInstallPath = CreateTemporaryInstallPath();
+
+        await auto.RemoveDefaultAspireBinAsync(counter);
+        await auto.InstallAspireBundleFromPullRequestAsync(prNumber, counter, prInstallPath);
+        await auto.SourceAspireBundleEnvironmentAsync(counter, prInstallPath);
+        await auto.VerifyAspireCliVersionAsync(commitSha, counter);
+    }
+
+    /// <summary>
+    /// Creates a unique temporary directory path for CLI installation.
+    /// </summary>
+    private static string CreateTemporaryInstallPath()
+    {
+        return Path.Combine(Path.GetTempPath(), $"aspire-e2e-{Guid.NewGuid():N}");
+    }
+
+    /// <summary>
+    /// Gets whether the tests should use the system-installed <c>aspire</c> already in PATH,
+    /// skipping all installation steps. Enabled by setting <c>ASPIRE_CLI_USE_SYSTEM=true</c>.
+    /// </summary>
+    private static bool UseSystemCli =>
+        string.Equals(Environment.GetEnvironmentVariable("ASPIRE_CLI_USE_SYSTEM"), "true", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gets whether staging quality was requested via <c>ASPIRE_CLI_INSTALL_ARGS</c>.
+    /// </summary>
+    private static bool IsStagingQuality =>
+        (Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_ARGS") ?? "").Contains("-q staging", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Enables the staging channel in aspire config if staging quality was requested.
+    /// Sets both the feature flag and the default channel so that <c>aspire new</c>
+    /// generates a NuGet.config pointing to the staging feed.
+    /// </summary>
+    private static async Task EnableStagingChannelIfNeededAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        if (!IsStagingQuality)
+        {
+            return;
+        }
+
+        await auto.TypeAsync("aspire config set -g features.stagingChannelEnabled true");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(30));
+
+        await auto.TypeAsync("aspire config set -g channel staging");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
+    /// Sets the staging channel in the local <c>aspire.config.json</c> so that <c>aspire add</c>
+    /// can find unreleased packages in TypeScript/polyglot apphosts (which don't use NuGet.config).
+    /// Call this after <c>aspire init</c> for TypeScript projects when staging quality is in use.
+    /// </summary>
+    internal static async Task SetLocalStagingChannelIfNeededAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        if (!IsStagingQuality)
+        {
+            return;
+        }
+
+        await auto.TypeAsync("aspire config set channel staging");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
+    /// Waits for either the version selection prompt or the success prompt after <c>aspire add</c>.
+    /// When multiple channels exist (e.g. PR hives), the version selector appears and is accepted.
+    /// When only the implicit channel exists (bare CLI install), the add completes directly.
+    /// </summary>
+    internal static async Task AcceptVersionSelectionIfShownAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        TimeSpan? timeout = null)
+    {
+        timeout ??= TimeSpan.FromSeconds(180);
+
+        var waitingForVersionSelection = new CellPatternSearcher()
+            .Find("Select a version of");
+        var versionSelectionShown = false;
+
+        var successPromptSearcher = new CellPatternSearcher()
+            .FindPattern(counter.Value.ToString())
+            .RightText(" OK] $ ");
+
+        await auto.WaitUntilAsync(s =>
+        {
+            if (waitingForVersionSelection.Search(s).Count > 0)
+            {
+                versionSelectionShown = true;
+                return true;
+            }
+
+            return successPromptSearcher.Search(s).Count > 0;
+        }, timeout: timeout.Value, description: "version selection prompt or success prompt");
+
+        if (versionSelectionShown)
+        {
+            await auto.EnterAsync(); // Accept the default version
+        }
+
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
+
+    /// <summary>
+    /// Builds the install command for a script override.
+    /// Uses <c>ASPIRE_CLI_INSTALL_SCRIPT</c> to pick the script name and
+    /// <c>ASPIRE_CLI_INSTALL_ARGS</c> for any extra arguments.
+    /// </summary>
+    private static string BuildScriptCommand(string scriptName, string installPathArg)
+    {
+        var extraArgs = Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_ARGS") ?? "";
+        if (!string.IsNullOrEmpty(extraArgs))
+        {
+            extraArgs = " " + extraArgs;
+        }
+
+        return $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/{scriptName}.sh | bash -s --{extraArgs} --install-path {installPathArg}";
+    }
+
+    /// <summary>
+    /// Installs the CLI using a script override inside a Docker container.
+    /// The script is fetched from <c>/opt/aspire-scripts/</c> inside the container.
+    /// </summary>
+    private static async Task InstallFromScriptInDockerAsync(
+        this Hex1bTerminalAutomator auto,
+        string scriptName,
+        string installPath,
+        SequenceCounter counter)
+    {
+        var extraArgs = Environment.GetEnvironmentVariable("ASPIRE_CLI_INSTALL_ARGS") ?? "";
+        if (!string.IsNullOrEmpty(extraArgs))
+        {
+            extraArgs = " " + extraArgs;
+        }
+
+        // get-aspire-cli installs directly to --install-path; get-aspire-cli-pr puts bin/ under it
+        var installPathArg = scriptName == "get-aspire-cli" ? $"{installPath}/bin" : installPath;
+        await auto.TypeAsync($"/opt/aspire-scripts/{scriptName}.sh{extraArgs} --install-path {installPathArg}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
+
+        await auto.TypeAsync($"export PATH={installPath}/bin:{installPath}:$PATH");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.EchoAspirePathAsync(counter);
+    }
+
+    /// <summary>
+    /// Installs the CLI using a script override in a non-Docker environment (downloads from GitHub).
+    /// </summary>
+    private static async Task InstallFromScriptAsync(
+        this Hex1bTerminalAutomator auto,
+        string scriptName,
+        string installPath,
+        SequenceCounter counter)
+    {
+        // get-aspire-cli installs directly to --install-path; get-aspire-cli-pr puts bin/ under it
+        var installPathArg = scriptName == "get-aspire-cli" ? $"{installPath}/bin" : installPath;
+        var command = BuildScriptCommand(scriptName, installPathArg);
+        await auto.TypeAsync(command);
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
+    }
+
+    /// <summary>
+    /// Removes the default <c>~/.aspire/bin</c> directory so a stale install can't interfere.
+    /// </summary>
+    private static async Task RemoveDefaultAspireBinAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync("rm -rf ~/.aspire/bin");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
+
+    /// <summary>
+    /// Installs the Aspire CLI from PR build artifacts in a non-Docker environment.
+    /// </summary>
+    private static async Task InstallAspireCliFromPullRequestAsync(
+        this Hex1bTerminalAutomator auto,
+        int prNumber,
+        SequenceCounter counter,
+        string installPath)
+    {
+        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber} --install-path {installPath}";
         await auto.TypeAsync(command);
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
@@ -137,13 +426,15 @@ internal static class CliE2EAutomatorHelpers
     /// <summary>
     /// Configures the PATH and environment variables for the Aspire CLI in a non-Docker environment.
     /// </summary>
-    internal static async Task SourceAspireCliEnvironmentAsync(
+    private static async Task SourceAspireCliEnvironmentAsync(
         this Hex1bTerminalAutomator auto,
-        SequenceCounter counter)
+        SequenceCounter counter,
+        string installPath)
     {
-        await auto.TypeAsync("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
+        await auto.TypeAsync($"export PATH={installPath}/bin:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
+        await auto.EchoAspirePathAsync(counter);
     }
 
     /// <summary>
@@ -171,12 +462,13 @@ internal static class CliE2EAutomatorHelpers
     /// <summary>
     /// Installs the Aspire CLI and bundle from PR build artifacts, using the PR head SHA to fetch the install script.
     /// </summary>
-    internal static async Task InstallAspireBundleFromPullRequestAsync(
+    private static async Task InstallAspireBundleFromPullRequestAsync(
         this Hex1bTerminalAutomator auto,
         int prNumber,
-        SequenceCounter counter)
+        SequenceCounter counter,
+        string installPath)
     {
-        var command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        var command = $"ref=$(gh api repos/dotnet/aspire/pulls/{prNumber} --jq '.head.sha') && curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/$ref/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber} --install-path {installPath}";
         await auto.TypeAsync(command);
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptFailFastAsync(counter, TimeSpan.FromSeconds(300));
@@ -184,13 +476,30 @@ internal static class CliE2EAutomatorHelpers
 
     /// <summary>
     /// Configures the PATH and environment variables for the Aspire CLI bundle in a non-Docker environment.
-    /// Unlike <see cref="SourceAspireCliEnvironmentAsync"/>, this includes <c>~/.aspire</c> in PATH for bundle tools.
     /// </summary>
-    internal static async Task SourceAspireBundleEnvironmentAsync(
+    private static async Task SourceAspireBundleEnvironmentAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        string installPath)
+    {
+        await auto.TypeAsync($"export PATH={installPath}/bin:{installPath}:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.EchoAspirePathAsync(counter);
+    }
+
+    /// <summary>
+    /// Echoes the resolved path of the <c>aspire</c> binary for diagnostic visibility.
+    /// </summary>
+    private static async Task EchoAspirePathAsync(
         this Hex1bTerminalAutomator auto,
         SequenceCounter counter)
     {
-        await auto.TypeAsync("export PATH=~/.aspire/bin:~/.aspire:$PATH ASPIRE_PLAYGROUND=true TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false");
+        await auto.TypeAsync("which aspire");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.TypeAsync("aspire --version");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
     }
@@ -221,17 +530,37 @@ internal static class CliE2EAutomatorHelpers
     }
 
     /// <summary>
-    /// Installs a specific GA version of the Aspire CLI using the install script.
+    /// Installs a specific GA version of the Aspire CLI using the install script to a temporary directory.
+    /// Also sets up PATH so the installed CLI is available. Used inside Docker containers.
     /// </summary>
     internal static async Task InstallAspireCliVersionAsync(
         this Hex1bTerminalAutomator auto,
         string version,
         SequenceCounter counter)
     {
-        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\"";
+        if (UseSystemCli)
+        {
+            await auto.EchoAspirePathAsync(counter);
+            return;
+        }
+
+        const string installPath = "/tmp/aspire-version-install";
+
+        // Remove any CLI binary at the default location and clean up any previous version install
+        await auto.TypeAsync($"rm -rf ~/.aspire/bin {installPath}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // get-aspire-cli.sh --install-path takes the direct bin directory
+        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli.sh | bash -s -- --version \"{version}\" --install-path {installPath}/bin";
         await auto.TypeAsync(command);
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptFailFastAsync(counter, timeout: TimeSpan.FromSeconds(300));
+
+        await auto.TypeAsync($"export PATH={installPath}/bin:$PATH");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.EchoAspirePathAsync(counter);
     }
 
     /// <summary>
