@@ -5,6 +5,8 @@
 
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -474,6 +476,12 @@ public class AddNodeAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["browser"]
+        });
+
         var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
             .WithBrowserDebugger();
 
@@ -501,6 +509,12 @@ public class AddNodeAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["browser"]
+        });
+
         var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
             .WithBrowserDebugger();
 
@@ -518,6 +532,12 @@ public class AddNodeAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["browser"]
+        });
+
         var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
             .WithBrowserDebugger(browser: "chrome");
 
@@ -534,6 +554,12 @@ public class AddNodeAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
 
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["browser"]
+        });
+
         // Create a minimal JavaScriptAppResource without endpoints
         var resource = new JavaScriptAppResource("jsapp", "npm", tempDir.Path);
         var jsApp = builder.AddResource(resource);
@@ -548,6 +574,42 @@ public class AddNodeAppTests
         // The browser debugger resource should still be created
         var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
         Assert.NotNull(browserDebuggerResource);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_NoOps_WhenDebugSessionInfoNotSet()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        // Do not set DEBUG_SESSION_INFO — HasBrowserCapability should return false
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path)
+            .WithBrowserDebugger();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // No browser debugger resource should be created
+        var browserDebuggerResource = appModel.Resources.OfType<BrowserDebuggerResource>().SingleOrDefault();
+        Assert.Null(browserDebuggerResource);
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_NoOps_WhenBrowserCapabilityNotListed()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        // Set DEBUG_SESSION_INFO without "browser" in supported configurations
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = ["node"]
+        });
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path);
+
+        Assert.Throws<InvalidOperationException>(() => viteApp.WithBrowserDebugger());
     }
 
     [Fact]
