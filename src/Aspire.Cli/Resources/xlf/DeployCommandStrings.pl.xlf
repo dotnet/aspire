@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an apphost to its deployment targets (Preview)</source>
-        <target state="needs-review-translation">Wdróż zawartość hosta AppHost platformy Aspire w zdefiniowanych miejscach docelowych wdrożenia. (Wersja zapoznawcza)</target>
+        <target state="new">Deploy an apphost to its deployment targets (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for deployment artifacts</source>
-        <target state="needs-review-translation">Opcjonalna ścieżka wyjściowa artefaktów wdrażania.</target>
+        <target state="new">The optional output path for deployment artifacts</target>
         <note />
       </trans-unit>
     </body>

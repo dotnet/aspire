@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy an apphost to its deployment targets (Preview)</source>
-        <target state="needs-review-translation">將 Aspire AppHost 的內容部署至其定義的部署目標。(預覽)</target>
+        <target state="new">Deploy an apphost to its deployment targets (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for deployment artifacts</source>
-        <target state="needs-review-translation">部署成品的選用輸出路徑。</target>
+        <target state="new">The optional output path for deployment artifacts</target>
         <note />
       </trans-unit>
     </body>
