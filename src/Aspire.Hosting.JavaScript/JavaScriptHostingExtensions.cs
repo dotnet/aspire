@@ -1017,8 +1017,8 @@ public static class JavaScriptHostingExtensions
     /// The parent resource must have at least one HTTP or HTTPS endpoint configured.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE extension
-    /// does not support browser debugging.
+    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE capability
+    /// information is present but does not include browser debugging support.
     /// </exception>
     /// <example>
     /// Add browser debugging to a JavaScript application:
@@ -1090,18 +1090,19 @@ public static class JavaScriptHostingExtensions
 
         try
         {
-            var debugSessionInfoJson = configuration["DEBUG_SESSION_INFO"];
+            var debugSessionInfoJson = configuration[KnownConfigNames.DebugSessionInfo];
             if (debugSessionInfoJson is null)
             {
                 return false;
             }
 
-            if (JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is not { } info || info.SupportedLaunchConfigurations is null)
+            if (JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is not { } info)
             {
+                // If we can't deserialize the capabilities object, skip validation
                 return false;
             }
 
-            if (!info.SupportedLaunchConfigurations.Contains(BrowserCapability))
+            if (info.SupportedLaunchConfigurations is null || !info.SupportedLaunchConfigurations.Contains(BrowserCapability))
             {
                 throw new InvalidOperationException(
                     "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");

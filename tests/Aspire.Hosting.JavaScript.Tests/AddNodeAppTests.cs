@@ -595,7 +595,7 @@ public class AddNodeAppTests
     }
 
     [Fact]
-    public void ViteApp_WithBrowserDebugger_NoOps_WhenBrowserCapabilityNotListed()
+    public void ViteApp_WithBrowserDebugger_Throws_WhenBrowserCapabilityNotListed()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TestTempDirectory();
@@ -605,6 +605,24 @@ public class AddNodeAppTests
         {
             ProtocolsSupported = ["test"],
             SupportedLaunchConfigurations = ["node"]
+        });
+
+        var viteApp = builder.AddViteApp("viteapp", tempDir.Path);
+
+        Assert.Throws<InvalidOperationException>(() => viteApp.WithBrowserDebugger());
+    }
+
+    [Fact]
+    public void ViteApp_WithBrowserDebugger_Throws_WhenSupportedLaunchConfigurationsOmitted()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TestTempDirectory();
+
+        // Set DEBUG_SESSION_INFO without supported_launch_configurations property
+        builder.Configuration["DEBUG_SESSION_INFO"] = JsonSerializer.Serialize(new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = null
         });
 
         var viteApp = builder.AddViteApp("viteapp", tempDir.Path);
