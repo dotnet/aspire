@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the apphost is running with Dashboard enabled.</source>
-        <target state="needs-review-translation">Interfejs API pulpitu nawigacyjnego jest niedostępny. Upewnij się, że host aplikacji działa z włączonym pulpitem nawigacyjnym.</target>
+        <target state="new">Dashboard API is not available. Ensure the apphost is running with Dashboard enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost</source>
-        <target state="needs-review-translation">Wyświetl dane telemetryczne (logi, zakresy, śledzenia) z uruchomionej aplikacji Aspire.</target>
+        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives</source>
-        <target state="needs-review-translation">Strumieniuj telemetrię w czasie rzeczywistym, gdy tylko nadejdzie.</target>
+        <target state="new">Stream telemetry in real-time as it arrives</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">Format wyjściowy (tabela lub JSON).</target>
+        <target state="new">Output format (Table or Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors)</source>
-        <target state="needs-review-translation">Filtruj według statusu błędu (wartość true, aby pokazać tylko błędy, false, aby je wykluczyć).</target>
+        <target state="new">Filter by error status (true to show only errors, false to exclude errors)</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDuration">
@@ -64,17 +64,17 @@
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return</source>
-        <target state="needs-review-translation">Maksymalna liczba elementów do zwrócenia.</target>
+        <target state="new">Maximum number of items to return</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Wyświetl strukturalne logi z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <target state="new">View structured logs from the Dashboard telemetry API</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name</source>
-        <target state="needs-review-translation">Filtruj według nazwy zasobu.</target>
+        <target state="translated">Filtruj według nazwy zasobu</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
@@ -84,22 +84,22 @@
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)</source>
-        <target state="needs-review-translation">Filtruj logi według minimalnego poziomu ważności (Śledzenie, Debugowanie, Informacja, Ostrzeżenie, Błąd, Krytyczne).</target>
+        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Wyświetl zakresy z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <target state="new">View spans from the Dashboard telemetry API</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
         <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="needs-review-translation">Identyfikator śledzenia do wyświetlenia. Jeśli nie zostanie podany, wyświetli listę wszystkich śledzeń.</target>
+        <target state="translated">Identyfikator śledzenia do wyświetlenia. Jeśli nie zostanie podany, wyświetli listę wszystkich śledzeń.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID</source>
-        <target state="needs-review-translation">Filtruj według identyfikatora śledzenia.</target>
+        <target state="new">Filter by trace ID</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Wyświetl ślady z interfejsu API telemetrii pulpitu nawigacyjnego.</target>
+        <target state="new">View traces from the Dashboard telemetry API</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">

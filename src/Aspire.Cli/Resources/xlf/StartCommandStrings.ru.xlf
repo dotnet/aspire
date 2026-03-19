@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Start an apphost in the background</source>
-        <target state="new">Start an apphost in the background</target>
+        <target state="translated">Запускать хост приложений в фоновом режиме</target>
         <note />
       </trans-unit>
     </body>

@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running apphosts</source>
-        <target state="new">Stop all running apphosts</target>
+        <target state="translated">Detener todos los apphosts en ejecución</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
         <source>Apphost stopped successfully.</source>
-        <target state="needs-review-translation">AppHost se detuvo correctamente.</target>
+        <target state="translated">Apphost se detuvo correctamente.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost</source>
-        <target state="needs-review-translation">Detenga un apphost en ejecución de Aspire.</target>
+        <target state="translated">Detener un apphost en ejecución</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
         <source>Failed to stop the apphost.</source>
-        <target state="needs-review-translation">No se pudo detener AppHost.</target>
+        <target state="translated">No se pudo detener el apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Se están ejecutando varios apphosts. Usar {0} para especificar cuál detener o usar {1} para detenerlos todos.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="needs-review-translation">Se están ejecutando varios AppHost. Use --apphost para especificar cuál se va a detener o seleccione uno:</target>
+        <target state="translated">Se están ejecutando varios apphosts. Use --apphost para especificar cuál se va a detener o seleccione uno:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
+        <target state="translated">La ruta de acceso al archivo del proyecto apphost de Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

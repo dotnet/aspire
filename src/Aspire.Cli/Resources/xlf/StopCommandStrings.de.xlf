@@ -9,17 +9,17 @@
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
         <source>Apphost stopped successfully.</source>
-        <target state="needs-review-translation">AppHost wurde erfolgreich beendet.</target>
+        <target state="new">Apphost stopped successfully.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost</source>
-        <target state="needs-review-translation">Beenden Sie einen aktiven Aspire-AppHost.</target>
+        <target state="new">Stop a running apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
         <source>Failed to stop the apphost.</source>
-        <target state="needs-review-translation">Beim Beenden des AppHost ist ein Fehler aufgetreten.</target>
+        <target state="new">Failed to stop the apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="needs-review-translation">Mehrere AppHosts sind aktiv. Verwenden Sie --apphost, um anzugeben, welcher AppHost gestoppt werden soll, oder wählen Sie einen aus:</target>
+        <target state="new">Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">Der Pfad zur Aspire AppHost-Projektdatei.</target>
+        <target state="new">The path to the Aspire apphost project file</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
