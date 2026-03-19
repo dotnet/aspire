@@ -51,9 +51,9 @@
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://aka.ms/aspire/user-secrets). You can choose to also delete it from there.</source>
-        <target state="needs-review-translation">パラメーター `{0}` の値を削除しますか?
+        <target state="translated">パラメーター `{0}` の値を削除しますか?
 
-現在、値は [ユーザー シークレット](https://learn.microsoft.com/aspnet/core/security/app-secrets) に保存されています。そこから削除することもできます。</target>
+現在、値は [ユーザー シークレット](https://aka.ms/aspire/user-secrets) に保存されています。そこから削除することもできます。</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
@@ -68,22 +68,22 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
         <source>The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">最新の開発証明書は、完全には信頼されていません。詳細については、https://aka.ms/aspire/devcerts を参照してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
         <source>Development certificate not fully trusted</source>
-        <target state="new">Development certificate not fully trusted</target>
+        <target state="translated">開発証明書が完全には信頼されていません</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedMessage">
         <source>No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">信頼済みの開発証明書が見つかりませんでした。詳細については、https://aka.ms/aspire/devcerts を参照してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedTitle">
         <source>No trusted development certificate</source>
-        <target state="new">No trusted development certificate</target>
+        <target state="translated">信頼済みの開発証明書がありません</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -128,7 +128,7 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
-        <target state="new">Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</target>
+        <target state="translated">AppHost 用にユーザー シークレットを構成する必要があります。`aspire secret set &lt;key&gt; &lt;value&gt;` を実行してユーザー シークレットを初期化するか、詳細について [ユーザー シークレット](https://aka.ms/aspire/user-secrets) を参照してください。</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -165,7 +165,7 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
         <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="needs-review-translation">パラメーターの値を指定してください。パラメーターは、将来使用するために [ユーザー シークレット](https://learn.microsoft.com/aspnet/core/security/app-secrets) に保存できます。
+        <target state="translated">パラメーターの値を指定してください。パラメーターは、将来使用するために [ユーザー シークレット](https://aka.ms/aspire/user-secrets) に保存できます。
 
 依存するリソースが再起動されるまで、新しいパラメーター値は使用されない可能性があります。</target>
         <note>Contains markdown</note>
