@@ -76,10 +76,9 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
     }
 
     [Fact]
-    public async Task Hex1bTerminalCreatesSocketViaMountedVolume()
+    public async Task Hex1bTerminalStartsWithWebSocketPort()
     {
-        _output.WriteLine("Verifying hex1b tool is installed and socket mount works");
-        _output.WriteLine($"Socket mount path: {_fixture.Container.SocketMountPath}");
+        _output.WriteLine("Verifying hex1b tool is installed and WebSocket passthrough works");
 
         var page = await _fixture.CreatePageAsync();
 
@@ -108,36 +107,35 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Maximize the terminal panel so it fills the entire editor area
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b terminal with attach in the VS Code terminal.
-            // This spawns a headless host process (with diagnostics socket) and attaches a TUI.
-            var cmd = "hex1b terminal start --attach -- /bin/bash";
+            // Allocate a port and start hex1b terminal with passthru mode
+            var (hex1bPort, wsUri) = _fixture.Container.AllocateHex1bPort();
+            var cmd = $"hex1b terminal start --passthru --port {hex1bPort} -- /bin/bash";
             _output.WriteLine($"Typing: {cmd}");
             await page.Keyboard.TypeAsync(cmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
-            // Wait for the diagnostics socket to appear in the mounted directory
-            var socketPath = await _fixture.Container.WaitForSocketAsync(
-                timeout: TimeSpan.FromSeconds(60));
+            // Wait for hex1b to start, bridge the port via socat, then wait for WebSocket
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort);
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
 
-            _output.WriteLine($"Diagnostics socket found at: {socketPath}");
-            Assert.True(File.Exists(socketPath), $"Socket file should exist at {socketPath}");
+            _output.WriteLine($"Hex1b WebSocket ready at: {wsUri}");
 
             await ScreenshotAsync(page, "hex1b-terminal-started.png");
-            _output.WriteLine("✓ hex1b terminal started, diagnostics socket is accessible via volume mount");
+            _output.WriteLine("✓ hex1b terminal started with WebSocket passthrough");
 
             // Linger for 5 seconds so the final result is visible in the video
             await Task.Delay(5000);
         }
         finally
         {
-            await _fixture.SaveTraceAsync(nameof(Hex1bTerminalCreatesSocketViaMountedVolume));
+            await _fixture.SaveTraceAsync(nameof(Hex1bTerminalStartsWithWebSocketPort));
         }
     }
 
     [Fact]
     public async Task RemoteTerminalSessionCanSendAndReceiveText()
     {
-        _output.WriteLine("Testing DiagnosticsWorkloadAdapter + RemoteTerminalSession round-trip");
+        _output.WriteLine("Testing RemoteTerminalWorkloadAdapter + RemoteTerminalSession round-trip");
 
         var page = await _fixture.CreatePageAsync();
 
@@ -155,25 +153,28 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
-            // Kill any existing hex1b processes from previous tests and clean up stale sockets
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            // Kill any existing hex1b processes from previous tests
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
+            _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
             // Maximize the terminal panel so it fills the entire editor area
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b with attach in VS Code terminal
-            var cmd = "hex1b terminal start --attach -- /bin/bash";
+            // Start hex1b with passthru mode
+            var (hex1bPort, wsUri) = _fixture.Container.AllocateHex1bPort();
+            var cmd = $"hex1b terminal start --passthru --port {hex1bPort} -- /bin/bash";
             _output.WriteLine($"Typing: {cmd}");
             await page.Keyboard.TypeAsync(cmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
-            // Wait for socket
-            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
-            _output.WriteLine($"Socket found: {socketPath}");
+            // Wait for WebSocket and connect
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort);
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+            _output.WriteLine($"WebSocket ready: {wsUri}");
 
             // Connect our remote terminal session
-            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Connected to remote terminal session");
 
             // Give the shell prompt a moment to render
@@ -242,7 +243,8 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Clean up any previous install and hex1b processes
             _output.WriteLine("Cleaning up previous state...");
             await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/aspire-install-*");
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
+            _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
             // Dismiss any first-run dialogs
@@ -262,18 +264,20 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Maximize the terminal panel so it fills the entire editor area
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b with asciinema recording
+            // Start hex1b with passthru mode and asciinema recording
             var recordPath = $"/tmp/aspire-install-{quality}.cast";
-            var hex1bCmd = $"hex1b terminal start --attach --record {recordPath} -- /bin/bash";
+            var (hex1bPort, wsUri) = _fixture.Container.AllocateHex1bPort();
+            var hex1bCmd = $"hex1b terminal start --passthru --port {hex1bPort} --record {recordPath} -- /bin/bash";
             _output.WriteLine($"Starting hex1b: {hex1bCmd}");
             await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
-            // Wait for socket and connect
-            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
-            _output.WriteLine($"Socket found: {socketPath}");
+            // Wait for WebSocket and connect
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort);
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+            _output.WriteLine($"WebSocket ready: {wsUri}");
 
-            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
             // Wait for shell prompt to appear
@@ -368,22 +372,25 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             // Clean up previous state
             await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/aspire-new-* /root/MyAspireApp");
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
+            _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
             // Maximize the terminal panel so it fills the entire editor area
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b with asciinema recording
+            // Start hex1b with passthru mode and asciinema recording
             var recordPath = "/tmp/aspire-new-interactive.cast";
-            var hex1bCmd = $"hex1b terminal start --attach --record {recordPath} -- /bin/bash";
+            var (hex1bPort, wsUri) = _fixture.Container.AllocateHex1bPort();
+            var hex1bCmd = $"hex1b terminal start --passthru --port {hex1bPort} --record {recordPath} -- /bin/bash";
             _output.WriteLine($"Starting hex1b: {hex1bCmd}");
             await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
             // Connect remote terminal session
-            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
-            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort);
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
             // Wait for shell prompt
@@ -575,22 +582,25 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             // Clean up previous state
             await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/integration-* /root/MyAspireApp");
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
+            _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
             // Maximize the terminal panel
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b with asciinema recording
+            // Start hex1b with passthru mode and asciinema recording
             var recordPath = "/tmp/integration-test.cast";
-            var hex1bCmd = $"hex1b terminal start --attach --record {recordPath} -- /bin/bash";
+            var (hex1bPort, wsUri) = _fixture.Container.AllocateHex1bPort();
+            var hex1bCmd = $"hex1b terminal start --passthru --port {hex1bPort} --record {recordPath} -- /bin/bash";
             _output.WriteLine($"Starting hex1b: {hex1bCmd}");
             await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
             // Connect remote terminal session
-            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
-            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort);
+            await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
+            await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
             // Wait for shell prompt
@@ -774,7 +784,8 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             await Task.Delay(2000);
 
             // Clean up old hex1b and start fresh
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
+            _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
             // Maximize the terminal panel
@@ -782,14 +793,16 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             // Start hex1b again (since terminal was recreated)
             var recordPath2 = "/tmp/integration-test-phase2.cast";
-            var hex1bCmd2 = $"hex1b terminal start --attach --record {recordPath2} -- /bin/bash";
+            var (hex1bPort2, wsUri2) = _fixture.Container.AllocateHex1bPort();
+            var hex1bCmd2 = $"hex1b terminal start --passthru --port {hex1bPort2} --record {recordPath2} -- /bin/bash";
             _output.WriteLine($"Starting hex1b: {hex1bCmd2}");
             await page.Keyboard.TypeAsync(hex1bCmd2, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
             // Connect new remote terminal session
-            var socketPath2 = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
-            await using var session2 = await RemoteTerminalSession.ConnectAsync(socketPath2);
+            await _fixture.Container.StartSocatBridgeAsync(hex1bPort2);
+            await _fixture.Container.WaitForHex1bAsync(wsUri2, timeout: TimeSpan.FromSeconds(60));
+            await using var session2 = await RemoteTerminalSession.ConnectAsync(wsUri2);
             _output.WriteLine("Remote terminal session reconnected");
 
             await session2.WaitForAnyTextAsync(["~#", "root@", "MyAspireApp#"], timeout: TimeSpan.FromSeconds(10));

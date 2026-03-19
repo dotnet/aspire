@@ -8,19 +8,20 @@ using Hex1b.Automation;
 namespace Aspire.Extension.EndToEndTests.Infrastructure.Hex1b;
 
 /// <summary>
-/// High-level wrapper around <see cref="DiagnosticsWorkloadAdapter"/> and <see cref="Hex1bTerminal"/>
+/// High-level wrapper around Hex1b's <see cref="RemoteTerminalWorkloadAdapter"/> and <see cref="Hex1bTerminal"/>
 /// for driving and inspecting a remote terminal session from test code.
+/// Connects via WebSocket to a hex1b process started with <c>--passthru --port PORT</c>.
 /// </summary>
 internal sealed class RemoteTerminalSession : IAsyncDisposable
 {
-    private readonly DiagnosticsWorkloadAdapter _adapter;
+    private readonly RemoteTerminalWorkloadAdapter _adapter;
     private readonly Hex1bTerminal _terminal;
     private readonly Task<int> _runTask;
     private readonly CancellationTokenSource _cts = new();
 
     public Hex1bTerminal Terminal => _terminal;
 
-    private RemoteTerminalSession(DiagnosticsWorkloadAdapter adapter, Hex1bTerminal terminal, Task<int> runTask)
+    private RemoteTerminalSession(RemoteTerminalWorkloadAdapter adapter, Hex1bTerminal terminal, Task<int> runTask)
     {
         _adapter = adapter;
         _terminal = terminal;
@@ -28,25 +29,77 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// Connect to a hex1b diagnostics socket and create a headless terminal that mirrors the remote state.
+    /// Connect to a hex1b terminal over WebSocket and create a headless terminal that mirrors the remote state.
+    /// Retries the WebSocket connection if the server isn't fully ready yet.
     /// </summary>
-    public static async Task<RemoteTerminalSession> ConnectAsync(string socketPath, CancellationToken ct = default)
+    public static async Task<RemoteTerminalSession> ConnectAsync(Uri websocketUri, Action<string>? log = null, CancellationToken ct = default)
     {
-        var adapter = await DiagnosticsWorkloadAdapter.ConnectAsync(socketPath, ct);
+        log?.Invoke($"Connecting to remote terminal: {websocketUri}");
 
-        var terminal = Hex1bTerminal.CreateBuilder()
-            .WithWorkload(adapter)
-            .WithHeadless()
-            .WithDimensions(adapter.RemoteWidth, adapter.RemoteHeight)
-            .WithScrollback(5000)
-            .Build();
+        var connectDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        var attempt = 0;
 
-        var runTask = terminal.RunAsync(ct);
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            attempt++;
 
-        // Give the terminal a moment to process the initial ANSI data
-        await Task.Delay(200, ct);
+            var terminal = Hex1bTerminal.CreateBuilder()
+                .WithRemoteTerminal(websocketUri, out var adapter)
+                .WithHeadless()
+                .WithScrollback(5000)
+                .Build();
 
-        return new RemoteTerminalSession(adapter, terminal, runTask);
+            var runTask = terminal.RunAsync(ct);
+
+            // Wait briefly for the connection to either succeed or fault
+            await Task.Delay(1000, ct);
+
+            if (runTask.IsFaulted)
+            {
+                var ex = runTask.Exception?.InnerException;
+                log?.Invoke($"[attempt {attempt}] WebSocket connection failed: {ex?.Message}");
+
+                await terminal.DisposeAsync();
+
+                if (DateTime.UtcNow >= connectDeadline)
+                {
+                    throw new TimeoutException(
+                        $"Failed to connect to hex1b WebSocket at {websocketUri} after {attempt} attempts", ex);
+                }
+
+                // Back off and retry — the server may not be fully ready
+                await Task.Delay(2000, ct);
+                continue;
+            }
+
+            // Connection succeeded — wait for initial terminal content
+            var contentDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            while (DateTime.UtcNow < contentDeadline)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (runTask.IsCompleted)
+                {
+                    log?.Invoke($"RunAsync completed unexpectedly: Status={runTask.Status}");
+                    break;
+                }
+
+                using var snapshot = terminal.CreateSnapshot();
+                var text = snapshot.GetText();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    log?.Invoke($"Connected on attempt {attempt}, terminal has content");
+                    return new RemoteTerminalSession(adapter, terminal, runTask);
+                }
+
+                await Task.Delay(250, ct);
+            }
+
+            // Even if no content yet, return — some terminals take a while to produce output
+            log?.Invoke($"Connected on attempt {attempt} (no initial content yet)");
+            return new RemoteTerminalSession(adapter, terminal, runTask);
+        }
     }
 
     /// <summary>

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -15,15 +16,19 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
 {
     private const string ImageName = "aspire-vscode-e2e";
     private const int ContainerPort = 8000;
+    private const int Hex1bPortBase = 9222;
+    private const int Hex1bInternalPortBase = 19222;
+    private const int Hex1bPortCount = 4;
     private const string ReadyPattern = @"Web UI available at (.+)";
 
     private readonly ITestOutputHelper _output;
     private readonly string _dockerfilePath;
-    private readonly string _socketMountPath;
     private readonly AspireBuildArtifacts? _artifacts;
     private readonly bool _mountDockerSocket;
     private string? _containerId;
     private int _hostPort;
+    private int _hex1bHostPortBase;
+    private int _nextHex1bPortOffset;
 
     public VsCodeContainer(ITestOutputHelper output, AspireBuildArtifacts? artifacts = null, bool mountDockerSocket = false)
     {
@@ -39,12 +44,6 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         {
             throw new FileNotFoundException($"Dockerfile not found at {_dockerfilePath}");
         }
-
-        // Create a temp directory for sharing Hex1b diagnostics sockets between container and host.
-        // Inside the container, hex1b creates sockets at /root/.hex1b/sockets/{pid}.diagnostics.socket.
-        // We volume-mount this host directory to that container path so we can connect from the test.
-        _socketMountPath = Path.Combine(Path.GetTempPath(), $"hex1b-sockets-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_socketMountPath);
     }
 
     /// <summary>
@@ -56,12 +55,6 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     /// Gets the Docker container ID, available after <see cref="StartAsync"/> completes.
     /// </summary>
     public string? ContainerId => _containerId;
-
-    /// <summary>
-    /// Gets the host-side path where Hex1b diagnostics sockets are mounted.
-    /// Socket files appear here when <c>hex1b terminal start</c> runs inside the container.
-    /// </summary>
-    public string SocketMountPath => _socketMountPath;
 
     /// <summary>
     /// Builds the Docker image and starts the container.
@@ -95,14 +88,23 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     {
         // Use a random port to avoid conflicts
         _hostPort = GetRandomPort();
+        _hex1bHostPortBase = GetRandomPort();
 
         _output.WriteLine($"Starting container on port {_hostPort}...");
+        _output.WriteLine($"  Hex1b WebSocket ports: {_hex1bHostPortBase}-{_hex1bHostPortBase + Hex1bPortCount - 1} (host) → {Hex1bPortBase}-{Hex1bPortBase + Hex1bPortCount - 1} (container)");
 
-        // Build volume mount arguments
-        var volumes = new List<string>
+        // Build volume mount and port arguments
+        var volumes = new List<string>();
+        var portMappings = new List<string>
         {
-            $"-v {_socketMountPath}:/root/.hex1b/sockets",
+            $"-p {_hostPort}:{ContainerPort}",
         };
+
+        // Map a range of ports for hex1b WebSocket connections
+        for (int i = 0; i < Hex1bPortCount; i++)
+        {
+            portMappings.Add($"-p {_hex1bHostPortBase + i}:{Hex1bPortBase + i}");
+        }
 
         if (_mountDockerSocket)
         {
@@ -123,8 +125,9 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         }
 
         var volumeArgs = string.Join(" ", volumes);
+        var portArgs = string.Join(" ", portMappings);
         var result = await RunDockerAsync(
-            $"run -d -p {_hostPort}:{ContainerPort} {volumeArgs} {ImageName}",
+            $"run -d {portArgs} {volumeArgs} {ImageName}",
             timeout: TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken);
 
@@ -211,19 +214,6 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
             }
 
             _containerId = null;
-        }
-
-        // Clean up the socket mount directory
-        try
-        {
-            if (Directory.Exists(_socketMountPath))
-            {
-                Directory.Delete(_socketMountPath, recursive: true);
-            }
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Warning: socket directory cleanup failed: {ex.Message}");
         }
     }
 
@@ -329,48 +319,102 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     }
 
     /// <summary>
-    /// Waits for a Hex1b diagnostics socket to appear in the socket mount directory.
-    /// Returns the full path to the socket file on the host.
+    /// Allocates the next available hex1b port triple.
+    /// Returns the <c>hex1bPort</c> to use in the <c>hex1b terminal start --passthru --port</c> command
+    /// (hex1b binds to 127.0.0.1 on this port) and the host-side WebSocket URI for connecting from the test.
+    /// After starting hex1b, call <see cref="StartSocatBridgeAsync"/> to make the port accessible via Docker.
     /// </summary>
-    public async Task<string> WaitForSocketAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    public (int hex1bPort, Uri websocketUri) AllocateHex1bPort()
+    {
+        if (_nextHex1bPortOffset >= Hex1bPortCount)
+        {
+            throw new InvalidOperationException(
+                $"All {Hex1bPortCount} hex1b ports have been allocated. Increase Hex1bPortCount if more are needed.");
+        }
+
+        var offset = _nextHex1bPortOffset++;
+        var hex1bPort = Hex1bInternalPortBase + offset;
+        var exposedPort = Hex1bPortBase + offset;
+        var hostPort = _hex1bHostPortBase + offset;
+
+        var uri = new Uri($"ws://localhost:{hostPort}/ws/attach");
+        _output.WriteLine($"Allocated hex1b port: hex1b={hex1bPort}, exposed={exposedPort}, host={hostPort}, uri={uri}");
+        return (hex1bPort, uri);
+    }
+
+    /// <summary>
+    /// Starts a socat bridge inside the container to forward from <c>0.0.0.0:exposedPort</c>
+    /// to <c>127.0.0.1:hex1bPort</c>. This is needed because hex1b binds to loopback only,
+    /// and Docker port mapping requires the container port to be on all interfaces.
+    /// </summary>
+    public async Task StartSocatBridgeAsync(int hex1bPort, CancellationToken cancellationToken = default)
+    {
+        var exposedPort = Hex1bPortBase + (hex1bPort - Hex1bInternalPortBase);
+        _output.WriteLine($"Starting socat bridge: 0.0.0.0:{exposedPort} → 127.0.0.1:{hex1bPort}");
+
+        // First wait for hex1b to start listening on the internal port
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var check = await ExecAsync($"ss -tlnp 2>/dev/null | grep :{hex1bPort} || true", cancellationToken: cancellationToken);
+            if (check.StdOut.Contains($":{hex1bPort}"))
+            {
+                _output.WriteLine($"Hex1b is listening on internal port {hex1bPort}");
+                break;
+            }
+            await Task.Delay(500, cancellationToken);
+        }
+
+        // Start socat in the background
+        await ExecAsync(
+            $"socat TCP-LISTEN:{exposedPort},fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:{hex1bPort} &",
+            cancellationToken: cancellationToken);
+
+        _output.WriteLine($"Socat bridge started: :{exposedPort} → :{hex1bPort}");
+    }
+
+    /// <summary>
+    /// Waits for a hex1b WebSocket endpoint to become available by attempting TCP connections.
+    /// </summary>
+    public async Task WaitForHex1bAsync(Uri websocketUri, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(60);
         using var timeoutCts = new CancellationTokenSource(effectiveTimeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, timeoutCts.Token);
 
-        _output.WriteLine($"Waiting for diagnostics socket in {_socketMountPath}...");
+        var port = websocketUri.Port;
+        _output.WriteLine($"Waiting for hex1b WebSocket on port {port}...");
         var startTime = Stopwatch.GetTimestamp();
 
         while (!linkedCts.Token.IsCancellationRequested)
         {
-            var socketFiles = Directory.GetFiles(_socketMountPath, "*.diagnostics.socket");
-            if (socketFiles.Length > 0)
+            try
             {
-                var socketPath = socketFiles[0];
+                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                await socket.ConnectAsync("localhost", port, linkedCts.Token);
                 var elapsed = Stopwatch.GetElapsedTime(startTime);
-                _output.WriteLine($"Socket found: {Path.GetFileName(socketPath)} ({elapsed.TotalSeconds:F1}s)");
-
-                // The socket is created by root inside the container. Make it accessible
-                // to the host test process by relaxing permissions via docker exec.
-                var chmodResult = await ExecAsync(
-                    "chmod 777 /root/.hex1b/sockets/*.socket",
-                    timeout: TimeSpan.FromSeconds(5),
-                    cancellationToken: cancellationToken);
-
-                if (chmodResult.ExitCode != 0)
-                {
-                    _output.WriteLine($"Warning: chmod on socket failed: {chmodResult.StdErr}");
-                }
-
-                return socketPath;
+                _output.WriteLine($"Hex1b WebSocket port {port} is ready ({elapsed.TotalSeconds:F1}s)");
+                return;
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(500), linkedCts.Token);
+            catch (SocketException)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500), linkedCts.Token);
+            }
         }
 
         throw new TimeoutException(
-            $"No diagnostics socket appeared in {_socketMountPath} within {effectiveTimeout.TotalSeconds}s");
+            $"Hex1b WebSocket endpoint at port {port} did not become available within {effectiveTimeout.TotalSeconds}s");
+    }
+
+    /// <summary>
+    /// Resets the hex1b port allocation counter so ports can be reused
+    /// (e.g., after killing previous hex1b processes).
+    /// </summary>
+    public void ResetHex1bPorts()
+    {
+        _nextHex1bPortOffset = 0;
     }
 
     /// <summary>

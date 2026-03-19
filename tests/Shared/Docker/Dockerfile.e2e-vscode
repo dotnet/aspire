@@ -23,8 +23,9 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 
 # Install core tools, Docker CLI, and VS Code runtime dependencies
 RUN apt-get update && \
+    # socat for bridging hex1b loopback WebSocket to 0.0.0.0 (Docker port mapping)
     apt-get install -y --no-install-recommends \
-      curl wget gpg ca-certificates \
+      curl wget gpg ca-certificates socat \
       # Docker CLI for DCP container management (uses host Docker via socket mount)
       docker.io \
       # VS Code runtime dependencies
