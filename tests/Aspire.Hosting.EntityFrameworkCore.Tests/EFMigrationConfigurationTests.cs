@@ -162,7 +162,7 @@ public class EFMigrationConfigurationTests
         Assert.False(migrations.Resource.PublishAsMigrationBundle);
         Assert.Null(migrations.Resource.MigrationOutputDirectory);
         Assert.Null(migrations.Resource.MigrationNamespace);
-        Assert.Null(migrations.Resource.MigrationsProjectMetadata);
+        Assert.Null(migrations.Resource.MigrationsProjectPath);
     }
 
     [Fact]
@@ -173,9 +173,9 @@ public class EFMigrationConfigurationTests
         var migrations = startupProject.AddEFMigrations<TestDbContext>("mymigrations")
             .WithMigrationsProject("path/to/Target.csproj");
 
-        Assert.NotNull(migrations.Resource.MigrationsProjectMetadata);
+        Assert.NotNull(migrations.Resource.MigrationsProjectPath);
         // Path gets combined with AppHostDirectory and normalized
-        Assert.EndsWith("Target.csproj", migrations.Resource.MigrationsProjectMetadata.ProjectPath);
+        Assert.EndsWith("Target.csproj", migrations.Resource.MigrationsProjectPath);
     }
 
     [Fact]

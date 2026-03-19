@@ -130,8 +130,6 @@
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Kubernetes" />
     <InternalsVisibleTo Include="Aspire.Hosting.RemoteHost.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.EntityFrameworkCore" />
-    <InternalsVisibleTo Include="Aspire.Hosting.EntityFrameworkCore.Tests" />
   </ItemGroup>
 
   <ItemGroup>

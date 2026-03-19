@@ -23,7 +23,7 @@ namespace Aspire.Hosting;
 internal sealed class EFCoreOperationExecutor : IDisposable
 {
     private readonly ProjectResource _startupProjectResource;
-    private readonly IProjectMetadata? _targetProjectMetadata;
+    private readonly string? _targetProjectPath;
     private readonly string? _contextTypeName;
     private readonly ILogger _logger;
     private readonly CancellationToken _cancellationToken;
@@ -31,7 +31,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private readonly DotnetToolResource _toolResource;
 
     private string? _startupProjectPath;
-    private string? _targetProjectPath;
+    private string? _resolvedTargetProjectPath;
     private string? _framework;
     private string? _configuration;
     private bool _initialized;
@@ -45,7 +45,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
     public EFCoreOperationExecutor(
         ProjectResource startupProjectResource,
-        IProjectMetadata? targetProjectMetadata,
+        string? targetProjectPath,
         string? contextTypeName,
         ILogger logger,
         CancellationToken cancellationToken,
@@ -53,7 +53,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         DotnetToolResource toolResource)
     {
         _startupProjectResource = startupProjectResource;
-        _targetProjectMetadata = targetProjectMetadata;
+        _targetProjectPath = targetProjectPath;
         _contextTypeName = contextTypeName;
         _logger = logger;
         _cancellationToken = cancellationToken;
@@ -107,15 +107,15 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             return new EFOperationResult { Success = false, ErrorMessage = "Could not determine startup project path." };
         }
 
-        _targetProjectPath = _targetProjectMetadata?.ProjectPath ?? _startupProjectPath;
+        _resolvedTargetProjectPath = _targetProjectPath ?? _startupProjectPath;
 
-        if (string.IsNullOrEmpty(_targetProjectPath))
+        if (string.IsNullOrEmpty(_resolvedTargetProjectPath))
         {
             return new EFOperationResult { Success = false, ErrorMessage = "Could not determine target project path." };
         }
 
         _logger.LogDebug("Using startup project: {StartupProject}", _startupProjectPath);
-        _logger.LogDebug("Using target project: {TargetProject}", _targetProjectPath);
+        _logger.LogDebug("Using target project: {TargetProject}", _resolvedTargetProjectPath);
 
         var workingDir = Path.GetDirectoryName(_startupProjectPath);
         if (!string.IsNullOrEmpty(workingDir))
@@ -191,9 +191,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         // Add project paths
         efArgs.Add("--project");
-        efArgs.Add(_targetProjectPath!);
+        efArgs.Add(_resolvedTargetProjectPath!);
 
-        if (_startupProjectPath != _targetProjectPath)
+        if (_startupProjectPath != _resolvedTargetProjectPath)
         {
             efArgs.Add("--startup-project");
             efArgs.Add(_startupProjectPath!);

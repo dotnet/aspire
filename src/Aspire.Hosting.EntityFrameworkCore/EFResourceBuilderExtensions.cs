@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREDOTNETTOOL
 
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
@@ -257,7 +256,7 @@ public static class EFResourceBuilderExtensions
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.MigrationsProjectMetadata,
+                        migrationResource.MigrationsProjectPath,
                         migrationResource.ContextTypeName,
                         logger,
                         stepContext.CancellationToken,
@@ -305,7 +304,7 @@ public static class EFResourceBuilderExtensions
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.MigrationsProjectMetadata,
+                        migrationResource.MigrationsProjectPath,
                         migrationResource.ContextTypeName,
                         logger,
                         stepContext.CancellationToken,
@@ -359,7 +358,7 @@ public static class EFResourceBuilderExtensions
             .WithExplicitStart()
             .WithInitialState(new CustomResourceSnapshot
             {
-                ResourceType = KnownResourceTypes.Tool,
+                ResourceType = "Tool",
                 Properties = [],
                 IsHidden = true
             });
@@ -535,7 +534,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.MigrationsProjectMetadata,
+                migrationResource.MigrationsProjectPath,
                 migrationResource.ContextTypeName,
                 logger,
                 context.CancellationToken,

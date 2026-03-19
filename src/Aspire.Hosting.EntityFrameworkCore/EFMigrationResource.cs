@@ -77,13 +77,13 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     public string? MigrationNamespace { get; set; }
 
     /// <summary>
-    /// Gets or sets the project metadata containing the migrations, when it's not the same as the startup project.
+    /// Gets or sets the path to the project containing the migrations, when it's not the same as the startup project.
     /// </summary>
     /// <remarks>
     /// If not specified, migrations are assumed to be in the startup project.
     /// When specified, this project's path will be used as the target for migration operations.
     /// </remarks>
-    public IProjectMetadata? MigrationsProjectMetadata { get; set; }
+    public string? MigrationsProjectPath { get; set; }
 
     /// <summary>
     /// Gets or sets the callback to configure the dotnet-ef tool resource.

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -152,8 +151,9 @@ public static class EFMigrationResourceBuilderExtensions
     public static IResourceBuilder<EFMigrationResource> WithMigrationsProject(this IResourceBuilder<EFMigrationResource> builder, string projectPath)
     {
         ArgumentException.ThrowIfNullOrEmpty(projectPath);
-        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, projectPath));
-        builder.Resource.MigrationsProjectMetadata = new ProjectMetadata(projectPath);
+        projectPath = projectPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        projectPath = Path.GetFullPath(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, projectPath));
+        builder.Resource.MigrationsProjectPath = projectPath;
         return builder;
     }
 
@@ -180,7 +180,7 @@ public static class EFMigrationResourceBuilderExtensions
     public static IResourceBuilder<EFMigrationResource> WithMigrationsProject<TProject>(this IResourceBuilder<EFMigrationResource> builder)
         where TProject : IProjectMetadata, new()
     {
-        builder.Resource.MigrationsProjectMetadata = new TProject();
+        builder.Resource.MigrationsProjectPath = new TProject().ProjectPath;
         return builder;
     }
 }
