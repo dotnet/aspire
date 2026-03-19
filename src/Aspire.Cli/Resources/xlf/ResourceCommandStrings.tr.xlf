@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart)</source>
-        <target state="needs-review-translation">Bir kaynak üzerinde bir komut çalıştırın.</target>
+        <target state="new">Execute a command on a resource (e.g. start, stop, restart)</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute (e.g. start, stop, restart)</source>
-        <target state="needs-review-translation">Yürütülecek komutun adı.</target>
+        <target state="new">The name of the command to execute (e.g. start, stop, restart)</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">
         <source>The name of the resource to execute the command on</source>
-        <target state="needs-review-translation">Komutu yürütecek kaynağın adı.</target>
+        <target state="new">The name of the resource to execute the command on</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

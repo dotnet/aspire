@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner</source>
-        <target state="needs-review-translation">Umožňuje zobrazit animovaný úvodní banner rozhraní příkazového řádku Aspire.</target>
+        <target state="new">Display the animated Aspire CLI welcome banner</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command</source>
-        <target state="needs-review-translation">Před provedením příkazu počkejte na připojení ladicího programu.</target>
+        <target state="new">Wait for a debugger to attach before executing the command</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console</source>
-        <target state="needs-review-translation">Povolte protokolování ladění do konzoly.</target>
+        <target state="new">Enable debug logging to the console</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications</source>
-        <target state="needs-review-translation">Aspire CLI lze použít k vytváření, spouštění a publikování aplikací založených na Aspire.</target>
+        <target state="new">The Aspire CLI can be used to create, run, and publish Aspire-based applications</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseTelemetryNotice">
@@ -59,7 +59,7 @@ Další informace o telemetrii rozhraní příkazového řádku Aspire: https://
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice</source>
-        <target state="needs-review-translation">Umožňuje potlačit banner spuštění a oznámení o telemetrii.</target>
+        <target state="new">Suppress the startup banner and telemetry notice</target>
         <note />
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
@@ -69,7 +69,7 @@ Další informace o telemetrii rozhraní příkazového řádku Aspire: https://
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command</source>
-        <target state="needs-review-translation">Před provedením příkazu počkejte na připojení ladicího programu.</target>
+        <target state="new">Wait for a debugger to attach before executing the command</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">
