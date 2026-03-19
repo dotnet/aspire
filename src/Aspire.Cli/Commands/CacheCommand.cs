@@ -113,6 +113,37 @@ internal sealed class CacheCommand : BaseCommand
                 // Also clear the logs directory (skip current process's log file)
                 var logsDirectory = ExecutionContext.LogsDirectory;
                 var currentLogFilePath = ExecutionContext.LogFilePath;
+
+                // Also clear the restored packages directory
+                var packagesDirectory = ExecutionContext.PackagesDirectory;
+                if (packagesDirectory is not null && packagesDirectory.Exists)
+                {
+                    foreach (var file in packagesDirectory.GetFiles("*", SearchOption.AllDirectories))
+                    {
+                        try
+                        {
+                            file.Delete();
+                            filesDeleted++;
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other files even if some fail
+                        }
+                    }
+
+                    // Delete subdirectories
+                    foreach (var directory in packagesDirectory.GetDirectories())
+                    {
+                        try
+                        {
+                            directory.Delete(recursive: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other directories even if some fail
+                        }
+                    }
+                }
                 if (logsDirectory.Exists)
                 {
                     foreach (var file in logsDirectory.GetFiles("*", SearchOption.AllDirectories))
