@@ -20,6 +20,7 @@ import {
     AppHostDataRepository,
     AppHostDisplayInfo,
     ResourceJson,
+    ViewMode,
     shortenPath,
 } from './AppHostDataRepository';
 
@@ -220,6 +221,18 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
 
     get appHosts(): readonly AppHostDisplayInfo[] {
         return this._repository.appHosts;
+    }
+
+    get workspaceResources(): readonly ResourceJson[] {
+        return this._repository.workspaceResources;
+    }
+
+    get workspaceAppHostPath(): string | undefined {
+        return this._repository.workspaceAppHostPath;
+    }
+
+    get viewMode(): ViewMode {
+        return this._repository.viewMode;
     }
 
     dispose(): void {

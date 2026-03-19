@@ -74,7 +74,8 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
         }
 
         const appHosts = this._treeProvider.appHosts;
-        if (appHosts.length === 0) {
+        const workspaceResources = this._treeProvider.workspaceResources;
+        if (appHosts.length === 0 && workspaceResources.length === 0) {
             this._clearDecorations(editor);
             return;
         }
@@ -97,7 +98,8 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
                 continue;
             }
 
-            const match = this._findResourceState(appHosts, parsed.name);
+            const match = this._findResourceState(appHosts, parsed.name)
+                ?? this._findWorkspaceResourceState(workspaceResources, parsed.name);
             if (!match) {
                 continue;
             }
@@ -173,6 +175,26 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
             if (resource) {
                 return { resource, appHost };
             }
+        }
+        return undefined;
+    }
+
+    private _findWorkspaceResourceState(
+        workspaceResources: readonly ResourceJson[],
+        resourceName: string,
+    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
+        const resource = workspaceResources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
+        if (resource) {
+            return {
+                resource,
+                appHost: {
+                    appHostPath: this._treeProvider.workspaceAppHostPath ?? '',
+                    appHostPid: 0,
+                    cliPid: null,
+                    dashboardUrl: null,
+                    resources: [...workspaceResources],
+                },
+            };
         }
         return undefined;
     }

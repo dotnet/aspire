@@ -560,6 +560,24 @@ suite('JsTsAppHostParser', () => {
         assert.strictEqual(parser.isAppHostFile(doc), true);
     });
 
+    test('detects AppHost via local aspire module import', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            "import { createBuilder } from './.modules/aspire.js';\nconst builder = await createBuilder();",
+            '/test/apphost.ts'
+        );
+        assert.strictEqual(parser.isAppHostFile(doc), true);
+    });
+
+    test('detects AppHost via createBuilder call without aspire import', () => {
+        const parser = getJsTsParser();
+        const doc = createMockDocument(
+            "const builder = await createBuilder();\nawait builder.build().run();",
+            '/test/apphost.ts'
+        );
+        assert.strictEqual(parser.isAppHostFile(doc), true);
+    });
+
     test('rejects non-AppHost TS file', () => {
         const parser = getJsTsParser();
         const doc = createMockDocument(

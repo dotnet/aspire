@@ -43,7 +43,8 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
         }
 
         const appHosts = this._treeProvider.appHosts;
-        const hasRunningAppHost = appHosts.length > 0;
+        const workspaceResources = this._treeProvider.workspaceResources;
+        const hasRunningData = appHosts.length > 0 || workspaceResources.length > 0;
 
         const lenses: vscode.CodeLens[] = [];
 
@@ -52,13 +53,14 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
 
             if (resource.kind === 'pipelineStep') {
                 // Pipeline steps get Debug lens when no AppHost is running
-                if (!hasRunningAppHost) {
+                if (!hasRunningData) {
                     this._addPipelineStepLenses(lenses, lineRange, resource.name);
                 }
             } else {
-                // Resources get state lenses when an AppHost is running
-                if (hasRunningAppHost) {
-                    const match = this._findResourceState(appHosts, resource.name);
+                // Resources get state lenses when live data is available
+                if (hasRunningData) {
+                    const match = this._findResourceState(appHosts, resource.name)
+                        ?? this._findWorkspaceResourceState(workspaceResources, resource.name);
                     if (match) {
                         this._addStateLenses(lenses, lineRange, resource, match.resource, match.appHost);
                     }
@@ -124,13 +126,15 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
             }));
         }
 
-        // View Logs lens
-        lenses.push(new vscode.CodeLens(range, {
-            title: codeLensViewLogs,
-            command: 'aspire-vscode.codeLensViewLogs',
-            tooltip: codeLensViewLogs,
-            arguments: [resource.displayName ?? resource.name, appHost.appHostPath],
-        }));
+        // View Logs lens (not applicable to parameters)
+        if (resource.resourceType !== 'Parameter') {
+            lenses.push(new vscode.CodeLens(range, {
+                title: codeLensViewLogs,
+                command: 'aspire-vscode.codeLensViewLogs',
+                tooltip: codeLensViewLogs,
+                arguments: [resource.displayName ?? resource.name, appHost.appHostPath],
+            }));
+        }
 
         // Custom commands (non-standard ones like "Reset Database")
         const standardCommands = new Set(['restart', 'resource-restart', 'stop', 'resource-stop', 'start', 'resource-start']);
@@ -185,6 +189,26 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
             if (resource) {
                 return { resource, appHost };
             }
+        }
+        return undefined;
+    }
+
+    private _findWorkspaceResourceState(
+        workspaceResources: readonly ResourceJson[],
+        resourceName: string,
+    ): { resource: ResourceJson; appHost: AppHostDisplayInfo } | undefined {
+        const resource = workspaceResources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
+        if (resource) {
+            return {
+                resource,
+                appHost: {
+                    appHostPath: this._treeProvider.workspaceAppHostPath ?? '',
+                    appHostPid: 0,
+                    cliPid: null,
+                    dashboardUrl: null,
+                    resources: [...workspaceResources],
+                },
+            };
         }
         return undefined;
     }

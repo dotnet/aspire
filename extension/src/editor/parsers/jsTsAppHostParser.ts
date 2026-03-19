@@ -12,8 +12,10 @@ class JsTsAppHostParser implements AppHostResourceParser {
 
     isAppHostFile(document: vscode.TextDocument): boolean {
         const text = document.getText();
-        // Look for imports/requires from @aspire or aspire-related modules
-        return /(?:from\s+['"]@aspire|require\s*\(\s*['"]@aspire)/.test(text);
+        // Match @aspire package imports, local aspire module imports (e.g. ./.modules/aspire.js),
+        // or the createBuilder() entry point from the Aspire TS SDK.
+        return /(?:from\s+['"](?:@aspire|[^'"]*aspire[^'"]*)|require\s*\(\s*['"](?:@aspire|[^'"]*aspire[^'"]*))/.test(text)
+            || /\bcreateBuilder\s*\(/.test(text);
     }
 
     parseResources(document: vscode.TextDocument): ParsedResource[] {
