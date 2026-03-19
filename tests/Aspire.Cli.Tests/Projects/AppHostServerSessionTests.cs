@@ -40,11 +40,11 @@ public class AppHostServerSessionTests
 
     private sealed class RecordingAppHostServerProject : IAppHostServerProject
     {
-        public string AppPath => Directory.GetCurrentDirectory();
+        public string AppDirectoryPath => Directory.GetCurrentDirectory();
 
         public Dictionary<string, string>? ReceivedEnvironmentVariables { get; private set; }
 
-        public string GetInstanceIdentifier() => AppPath;
+        public string GetInstanceIdentifier() => AppDirectoryPath;
 
         public Task<AppHostServerPrepareResult> PrepareAsync(
             string sdkVersion,

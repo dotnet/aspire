@@ -58,13 +58,25 @@ public sealed class JsonRpcAuthenticationTests
 
         Assert.Equal("pong", await client.InvokeAsync<string>("ping"));
 
-        var authenticated = await client.InvokeAsync<bool>("authenticate", ["wrong-token"]);
-
-        Assert.False(authenticated);
+        await AssertRejectedAuthenticationAsync(client);
         await RemoteHostTestServer.WaitForDisconnectAsync(client);
 
         await Assert.ThrowsAnyAsync<Exception>(() => client.InvokeAsync<string>("ping"));
         await Assert.ThrowsAnyAsync<Exception>(() => client.InvokeAsync<bool>("cancelToken", ["ct_missing"]));
+    }
+
+    private static async Task AssertRejectedAuthenticationAsync(JsonRpcClientHandle client)
+    {
+        try
+        {
+            var authenticated = await client.InvokeAsync<bool>("authenticate", ["wrong-token"]);
+            Assert.False(authenticated);
+        }
+        catch (ConnectionLostException)
+        {
+            // The server closes the connection immediately after rejecting the token, so the client may observe
+            // the disconnect before it receives the boolean response.
+        }
     }
 
     private sealed class RemoteHostTestServer : IAsyncDisposable
