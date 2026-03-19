@@ -92,26 +92,21 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
-            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(10));
-
-            // Verify the session works
-            var marker = $"READY_{Guid.NewGuid():N}";
-            await session.SendTextAsync($"echo {marker}\r");
-            var echoOk = await session.WaitForTextAsync(marker, timeout: TimeSpan.FromSeconds(10));
-            Assert.True(echoOk, "Remote terminal session echo test failed");
-            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(5));
+            // Set up the PROMPT_COMMAND trick: every command completion shows [N OK] $ or [N ERR:code] $
+            var counter = await session.SetupPromptAsync();
+            _output.WriteLine($"Prompt trick installed (counter at {counter.Value})");
 
             // ===== Phase 2: Install CLI and create project interactively =====
             _output.WriteLine("--- Phase 2: Installing local CLI ---");
             await session.SendTextAsync("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire\r");
-            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(10));
+            await session.WaitForSuccessPromptFailFastAsync(counter);
 
             await session.SendTextAsync($"export {envVars}\r");
-            await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(5));
+            await session.WaitForSuccessPromptAsync(counter);
 
             // Verify CLI version
             await session.SendTextAsync("aspire --version\r");
-            await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(30));
+            await session.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(30));
 
             var versionResult = await _fixture.Container.ExecAsync(
                 "export PATH=$HOME/.aspire/bin:$PATH && aspire --version",
@@ -183,31 +178,42 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "02-project-created.png");
 
             // Handle the "Would you like to configure AI agent environments?" prompt
+            // Wait for either the [y/n] prompt or the success prompt (older CLI without agent init)
             _output.WriteLine("Checking for AI agent environments prompt...");
-            var aiPromptDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-            while (DateTime.UtcNow < aiPromptDeadline)
+            var agentDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+            var agentPromptHandled = false;
+            while (DateTime.UtcNow < agentDeadline)
             {
-                await Task.Delay(500);
+                await Task.Delay(200);
                 var screenNow = session.GetScreenText();
 
                 if (screenNow.Contains("[y/n]", StringComparison.Ordinal) ||
-                    screenNow.Contains("AI agent", StringComparison.OrdinalIgnoreCase) ||
-                    screenNow.Contains("configure", StringComparison.OrdinalIgnoreCase))
+                    screenNow.Contains("AI agent", StringComparison.OrdinalIgnoreCase))
                 {
                     _output.WriteLine("AI agent environments prompt detected — declining with 'n'");
                     await session.SendTextAsync("n\r");
+                    agentPromptHandled = true;
                     break;
                 }
 
-                if (screenNow.Contains("~#", StringComparison.Ordinal) ||
-                    screenNow.Contains("root@", StringComparison.Ordinal))
+                if (screenNow.Contains($"[{counter.Value} OK]", StringComparison.Ordinal))
                 {
-                    _output.WriteLine("Already at shell prompt — no AI agent prompt");
+                    _output.WriteLine("Already at success prompt — no AI agent prompt");
                     break;
                 }
             }
 
-            await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(15));
+            // Wait for the aspire new command's success prompt
+            if (agentPromptHandled)
+            {
+                // After declining agent init, aspire new exits → success prompt appears
+                await session.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(15));
+            }
+            else
+            {
+                // Counter should already be past this prompt
+                counter.Increment();
+            }
             _output.WriteLine("Shell prompt ready");
 
             // ===== Phase 3: Patch SDK, restore, and add folder to workspace =====
@@ -222,20 +228,12 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
 
             // Copy NuGet config and restore
             await session.SendTextAsync($"cp /opt/aspire/nuget.config /root/{projectName}/nuget.config\r");
-            await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(5));
+            await session.WaitForSuccessPromptAsync(counter);
 
             _output.WriteLine("Running dotnet restore...");
             await session.SendTextAsync($"cd /root/{projectName} && dotnet restore\r");
-
-            var restoreDone = await session.WaitForAnyTextAsync(
-                ["Restore complete", "Build succeeded", "Nothing to do", projectName + "#"],
-                timeout: TimeSpan.FromMinutes(5),
-                includeScrollback: true);
-            _output.WriteLine($"Restore signal: {restoreDone ?? "TIMEOUT"}");
-
-            await session.SendTextAsync("echo RESTORE_EXIT=$?\r");
-            var restoreExitOk = await session.WaitForTextAsync("RESTORE_EXIT=0", timeout: TimeSpan.FromSeconds(10));
-            if (!restoreExitOk)
+            var restoreSuccess = await session.WaitForAnyPromptAsync(counter, timeout: TimeSpan.FromMinutes(5));
+            if (!restoreSuccess)
             {
                 DumpScreen(session, "Restore may have failed");
                 _output.WriteLine("WARNING: dotnet restore may have failed — continuing anyway");
@@ -249,6 +247,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             // the extension's workspaceContains:**/*.csproj trigger.
             _output.WriteLine("Adding project folder to workspace with 'code -a'...");
             await session.SendTextAsync($"code -a /root/{projectName}\r");
+            await session.WaitForSuccessPromptAsync(counter);
 
             // Wait for the workspace trust dialog to appear (indicates VS Code processed the folder)
             _output.WriteLine("Checking for workspace trust dialog...");
@@ -287,6 +286,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             _output.WriteLine("--- Phase 4: Starting AppHost with aspire start ---");
             await session.SendTextAsync($"cd /root/{projectName} && aspire start\r");
 
+            // aspire start detaches the app host, so wait for its success message
             var startedOk = await session.WaitForAnyTextAsync(
                 ["AppHost started successfully", "Dashboard"],
                 timeout: TimeSpan.FromMinutes(5),
@@ -298,6 +298,9 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
                 Assert.Fail("aspire start did not report success within 5 minutes");
             }
             _output.WriteLine($"✓ AppHost started — signal: {startedOk}");
+
+            // Wait for the aspire start command to fully return to the prompt
+            await session.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(30));
 
             await ScreenshotAsync(page, testDir, "05-aspire-started.png");
 

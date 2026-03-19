@@ -8,6 +8,17 @@ using Hex1b.Automation;
 namespace Aspire.Extension.EndToEndTests.Infrastructure.Hex1b;
 
 /// <summary>
+/// Tracks the sequence number for shell prompt detection, synchronized with the
+/// CMDCOUNT variable set by the PROMPT_COMMAND trick in the remote shell.
+/// </summary>
+internal sealed class SequenceCounter
+{
+    public int Value { get; private set; } = 1;
+
+    public int Increment() => ++Value;
+}
+
+/// <summary>
 /// High-level wrapper around Hex1b's <see cref="RemoteTerminalWorkloadAdapter"/> and <see cref="Hex1bTerminal"/>
 /// for driving and inspecting a remote terminal session from test code.
 /// Connects via WebSocket to a hex1b process started with <c>--passthru --port PORT</c>.
@@ -18,6 +29,13 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
     private readonly Hex1bTerminal _terminal;
     private readonly Task<int> _runTask;
     private readonly CancellationTokenSource _cts = new();
+
+    /// <summary>
+    /// Bash PROMPT_COMMAND that sets a structured prompt with command count and exit code.
+    /// After each command, the prompt appears as <c>[N OK] $ </c> or <c>[N ERR:code] $ </c>.
+    /// </summary>
+    private const string PromptSetup =
+        "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
 
     public Hex1bTerminal Terminal => _terminal;
 
@@ -99,6 +117,96 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
             // Even if no content yet, return — some terminals take a while to produce output
             log?.Invoke($"Connected on attempt {attempt} (no initial content yet)");
             return new RemoteTerminalSession(adapter, terminal, runTask);
+        }
+    }
+
+    /// <summary>
+    /// Installs the PROMPT_COMMAND trick and returns a <see cref="SequenceCounter"/> for tracking prompts.
+    /// After this call, every completed command produces a prompt like <c>[N OK] $ </c> or <c>[N ERR:code] $ </c>.
+    /// </summary>
+    public async Task<SequenceCounter> SetupPromptAsync(CancellationToken ct = default)
+    {
+        // Wait for an initial shell prompt (root@... or ~#)
+        await WaitForAnyTextAsync(["# ", "$ "], timeout: TimeSpan.FromSeconds(30), ct: ct);
+
+        var counter = new SequenceCounter();
+
+        await SendTextAsync(PromptSetup + "\r", ct);
+        await WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(10), ct: ct);
+
+        return counter;
+    }
+
+    /// <summary>
+    /// Waits for a shell success prompt matching the current sequence counter value
+    /// (<c>[N OK] $ </c>), then increments the counter.
+    /// </summary>
+    public async Task WaitForSuccessPromptAsync(
+        SequenceCounter counter, TimeSpan? timeout = null, CancellationToken ct = default)
+    {
+        var pattern = $"[{counter.Value} OK] $ ";
+        var found = await WaitForTextAsync(pattern, timeout ?? TimeSpan.FromSeconds(120), ct: ct);
+        if (!found)
+        {
+            // Check if we got an error prompt instead
+            var errCheck = GetScreenText();
+            if (errCheck.Contains($"[{counter.Value} ERR:", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Command failed with non-zero exit code (detected ERR prompt at sequence {counter.Value}). " +
+                    $"Screen: {errCheck}");
+            }
+            throw new TimeoutException($"Timed out waiting for success prompt [{counter.Value} OK] $ ");
+        }
+        counter.Increment();
+    }
+
+    /// <summary>
+    /// Waits for any prompt (success or error) matching the current sequence counter,
+    /// then increments the counter. Returns true if it was a success prompt.
+    /// </summary>
+    public async Task<bool> WaitForAnyPromptAsync(
+        SequenceCounter counter, TimeSpan? timeout = null, CancellationToken ct = default)
+    {
+        var successPattern = $"[{counter.Value} OK] $ ";
+        var errorPattern = $"[{counter.Value} ERR:";
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(120);
+        var deadline = DateTime.UtcNow + effectiveTimeout;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+            var text = GetScreenText();
+
+            if (text.Contains(successPattern, StringComparison.Ordinal))
+            {
+                counter.Increment();
+                return true;
+            }
+            if (text.Contains(errorPattern, StringComparison.Ordinal))
+            {
+                counter.Increment();
+                return false;
+            }
+
+            await Task.Delay(200, ct);
+        }
+
+        throw new TimeoutException($"Timed out waiting for any prompt [{counter.Value} OK/ERR] $ ");
+    }
+
+    /// <summary>
+    /// Waits for the success prompt, but throws immediately if an error prompt is detected.
+    /// </summary>
+    public async Task WaitForSuccessPromptFailFastAsync(
+        SequenceCounter counter, TimeSpan? timeout = null, CancellationToken ct = default)
+    {
+        var isSuccess = await WaitForAnyPromptAsync(counter, timeout, ct);
+        if (!isSuccess)
+        {
+            throw new InvalidOperationException(
+                $"Command failed with non-zero exit code (detected ERR prompt at sequence {counter.Value - 1}). " +
+                $"Check the terminal recording for details.");
         }
     }
 
