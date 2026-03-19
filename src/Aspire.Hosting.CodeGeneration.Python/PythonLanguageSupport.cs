@@ -10,7 +10,7 @@ namespace Aspire.Hosting.CodeGeneration.Python;
 /// Provides language support for Python AppHosts.
 /// Implements scaffolding, detection, and runtime configuration.
 /// </summary>
-public sealed class PythonLanguageSupport : ILanguageSupport
+internal sealed class PythonLanguageSupport : ILanguageSupport
 {
     /// <summary>
     /// The language/runtime identifier for Python.

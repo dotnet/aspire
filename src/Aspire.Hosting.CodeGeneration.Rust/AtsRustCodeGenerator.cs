@@ -13,7 +13,7 @@ namespace Aspire.Hosting.CodeGeneration.Rust;
 /// Generates a Rust SDK using the ATS (Aspire Type System) capability-based API.
 /// Produces wrapper structs that proxy capabilities via JSON-RPC.
 /// </summary>
-public sealed class AtsRustCodeGenerator : ICodeGenerator
+internal sealed class AtsRustCodeGenerator : ICodeGenerator
 {
     private static readonly HashSet<string> s_rustKeywords = new(StringComparer.Ordinal)
     {

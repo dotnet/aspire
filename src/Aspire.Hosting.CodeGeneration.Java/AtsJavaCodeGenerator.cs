@@ -12,7 +12,7 @@ namespace Aspire.Hosting.CodeGeneration.Java;
 /// Generates a Java SDK using the ATS (Aspire Type System) capability-based API.
 /// Produces wrapper classes that proxy capabilities via JSON-RPC.
 /// </summary>
-public sealed class AtsJavaCodeGenerator : ICodeGenerator
+internal sealed class AtsJavaCodeGenerator : ICodeGenerator
 {
     private static readonly HashSet<string> s_javaKeywords = new(StringComparer.Ordinal)
     {

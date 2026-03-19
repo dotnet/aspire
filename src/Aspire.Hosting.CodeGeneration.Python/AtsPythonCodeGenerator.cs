@@ -13,7 +13,7 @@ namespace Aspire.Hosting.CodeGeneration.Python;
 /// Generates a Python SDK using the ATS (Aspire Type System) capability-based API.
 /// Produces wrapper classes that proxy capabilities via JSON-RPC.
 /// </summary>
-public sealed class AtsPythonCodeGenerator : ICodeGenerator
+internal sealed class AtsPythonCodeGenerator : ICodeGenerator
 {
     private static readonly HashSet<string> s_pythonKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
