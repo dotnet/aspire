@@ -17,24 +17,24 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
     private VsCodeContainer? _container;
     private IPlaywright? _playwright;
     private IBrowser? _browser;
-    private IBrowserContext? _context;
 
     /// <summary>
-    /// Gets the directory where test artifacts (screenshots, traces, videos) are stored.
+    /// Gets the root directory for all test output.
+    /// Each test gets its own subdirectory under this root via <see cref="CreateTestOutputDir"/>.
     /// </summary>
-    public string ArtifactsDir { get; }
+    public string OutputRoot { get; }
 
     public VsCodeWebFixture(IMessageSink messageSink)
     {
         _messageSink = messageSink;
 
-        ArtifactsDir = Path.Combine(
+        OutputRoot = Path.Combine(
             FindRepoRoot(),
             "artifacts",
             "testresults",
             "extension-e2e");
 
-        Directory.CreateDirectory(ArtifactsDir);
+        Directory.CreateDirectory(OutputRoot);
     }
 
     /// <summary>
@@ -84,74 +84,70 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
         {
             Headless = true,
         });
+    }
 
-        // Create a context with video recording
-        _context = await _browser.NewContextAsync(new()
-        {
-            ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
-            RecordVideoDir = Path.Combine(ArtifactsDir, "videos"),
-            RecordVideoSize = new RecordVideoSize { Width = 1920, Height = 1080 },
-        });
-
-        // Start tracing for the context
-        await _context.Tracing.StartAsync(new()
-        {
-            Screenshots = true,
-            Snapshots = true,
-        });
+    /// <summary>
+    /// Creates a per-test output directory where all artifacts (screenshots, traces,
+    /// recordings, videos) for a single test are stored together.
+    /// </summary>
+    public string CreateTestOutputDir(string testName)
+    {
+        var dir = Path.Combine(OutputRoot, testName);
+        Directory.CreateDirectory(dir);
+        return dir;
     }
 
     /// <summary>
     /// Creates a new Playwright page navigated to the VS Code web UI.
+    /// Video is recorded into the per-test output directory.
     /// </summary>
-    public async Task<IPage> CreatePageAsync()
+    public async Task<IPage> CreatePageAsync(string testOutputDir)
     {
-        if (_context is null)
+        if (_browser is null)
         {
             throw new InvalidOperationException("Fixture not initialized");
         }
 
-        var page = await _context.NewPageAsync();
+        // Each test gets its own browser context so videos and traces land in the test dir
+        var context = await _browser.NewContextAsync(new()
+        {
+            ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+            RecordVideoDir = testOutputDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1920, Height = 1080 },
+        });
+
+        await context.Tracing.StartAsync(new()
+        {
+            Screenshots = true,
+            Snapshots = true,
+        });
+
+        var page = await context.NewPageAsync();
         await page.GotoAsync(Url);
 
         return page;
     }
 
     /// <summary>
-    /// Saves the current trace to a file.
+    /// Saves the Playwright trace and closes the page's browser context.
+    /// All artifacts (trace zip, video) are written into the per-test output directory.
     /// </summary>
-    public async Task SaveTraceAsync(string testName)
+    public async Task SaveTraceAsync(string testOutputDir, string testName)
     {
-        if (_context is null)
+        // Find contexts that have pages (the test context)
+        if (_browser is null)
         {
             return;
         }
 
-        var tracePath = Path.Combine(ArtifactsDir, "traces", $"{testName}.zip");
-        Directory.CreateDirectory(Path.GetDirectoryName(tracePath)!);
-
-        await _context.Tracing.StopAsync(new()
-        {
-            Path = tracePath,
-        });
-
-        // Restart tracing for subsequent tests
-        await _context.Tracing.StartAsync(new()
-        {
-            Screenshots = true,
-            Snapshots = true,
-        });
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_context is not null)
+        foreach (var context in _browser.Contexts)
         {
             try
             {
-                await _context.Tracing.StopAsync(new()
+                var tracePath = Path.Combine(testOutputDir, $"{testName}.trace.zip");
+                await context.Tracing.StopAsync(new()
                 {
-                    Path = Path.Combine(ArtifactsDir, "traces", "final.zip"),
+                    Path = tracePath,
                 });
             }
             catch
@@ -159,11 +155,28 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
                 // Best effort
             }
 
-            await _context.CloseAsync();
+            // Close context — this finalizes video recording into the test dir
+            await context.CloseAsync();
         }
+    }
 
+    public async ValueTask DisposeAsync()
+    {
+        // Close any remaining browser contexts
         if (_browser is not null)
         {
+            foreach (var context in _browser.Contexts)
+            {
+                try
+                {
+                    await context.CloseAsync();
+                }
+                catch
+                {
+                    // Best effort
+                }
+            }
+
             await _browser.CloseAsync();
         }
 
