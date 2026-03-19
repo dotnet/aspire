@@ -7,9 +7,6 @@
     <PackageTags>aspire integration hosting azure sql database data cloud</PackageTags>
     <Description>Azure SQL Database resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureSqlServer_256x.png</PackageIconFullPath>
-    <!-- TEMPORARY: Added because Aspire.Hosting.Azure.Network depends on a preview package (Azure.Provisioning.PrivateDns).
-         Remove once a stable version is available. See https://github.com/dotnet/aspire/issues/15328 -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
