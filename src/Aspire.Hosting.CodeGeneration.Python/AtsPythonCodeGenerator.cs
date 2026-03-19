@@ -384,6 +384,10 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         WriteLine("        raise RuntimeError(\"REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Run this application using `aspire run`.\")");
         WriteLine("    client = AspireClient(socket_path)");
         WriteLine("    client.connect()");
+        WriteLine("    auth_token = os.environ.get(\"ASPIRE_REMOTE_APPHOST_TOKEN\")");
+        WriteLine("    if not auth_token:");
+        WriteLine("        raise RuntimeError(\"ASPIRE_REMOTE_APPHOST_TOKEN environment variable not set. Run this application using `aspire run`.\")");
+        WriteLine("    client.authenticate(auth_token)");
         WriteLine("    client.on_disconnect(lambda: sys.exit(1))");
         WriteLine("    return client");
         WriteLine();

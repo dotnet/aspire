@@ -724,6 +724,10 @@ def connect() -> AspireClient:
         raise RuntimeError("REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Run this application using `aspire run`.")
     client = AspireClient(socket_path)
     client.connect()
+    auth_token = os.environ.get("ASPIRE_REMOTE_APPHOST_TOKEN")
+    if not auth_token:
+        raise RuntimeError("ASPIRE_REMOTE_APPHOST_TOKEN environment variable not set. Run this application using `aspire run`.")
+    client.authenticate(auth_token)
     client.on_disconnect(lambda: sys.exit(1))
     return client
 

@@ -154,6 +154,10 @@ class AspireClient:
             raise CapabilityError(result["$error"])
         return wrap_if_handle(result, self)
 
+    def authenticate(self, token: str) -> None:
+        if not bool(self._send_request("authenticate", [token])):
+            raise RuntimeError("Failed to authenticate to the AppHost server.")
+
     def cancel_token(self, token_id: str) -> bool:
         return bool(self._send_request("cancelToken", [token_id]))
 
