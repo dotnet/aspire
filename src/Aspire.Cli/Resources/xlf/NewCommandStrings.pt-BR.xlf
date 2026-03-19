@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template</source>
-        <target state="needs-review-translation">Criar um projeto Aspire.</target>
+        <target state="new">Create a new app from an Aspire starter template</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="new">Enter the output path</target>
+        <target state="translated">Insira o caminho de saída</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create</source>
-        <target state="needs-review-translation">O nome do projeto a ser criado.</target>
+        <target state="new">The name of the project to create</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project</source>
-        <target state="needs-review-translation">O caminho de saída para o projeto.</target>
+        <target state="new">The output path for the project</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates</source>
-        <target state="needs-review-translation">A origem do NuGet a ser usada para os modelos de projeto.</target>
+        <target state="new">The NuGet source to use for the project templates</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use</source>
-        <target state="needs-review-translation">A versão dos modelos de projeto a serem usados.</target>
+        <target state="new">The version of the project templates to use</target>
         <note />
       </trans-unit>
     </body>

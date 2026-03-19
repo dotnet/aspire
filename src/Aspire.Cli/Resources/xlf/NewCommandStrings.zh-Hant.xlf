@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template</source>
-        <target state="needs-review-translation">建立新的 Aspire 專案。</target>
+        <target state="new">Create a new app from an Aspire starter template</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="new">Enter the output path</target>
+        <target state="translated">輸入輸出路徑</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create</source>
-        <target state="needs-review-translation">要建立專案之名稱。</target>
+        <target state="new">The name of the project to create</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project</source>
-        <target state="needs-review-translation">專案的輸出路徑。</target>
+        <target state="new">The output path for the project</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates</source>
-        <target state="needs-review-translation">要用於專案範本的 NuGet 來源。</target>
+        <target state="new">The NuGet source to use for the project templates</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use</source>
-        <target state="needs-review-translation">要使用的專案範本版本。</target>
+        <target state="new">The version of the project templates to use</target>
         <note />
       </trans-unit>
     </body>

@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template</source>
-        <target state="needs-review-translation">创建新的 Aspire 项目。</target>
+        <target state="translated">使用 Aspire 初学者模板创建新应用</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="new">Enter the output path</target>
+        <target state="translated">输入输出路径</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost</source>
-        <target state="new">The programming language for the apphost</target>
+        <target state="translated">AppHost 的编程语言</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create</source>
-        <target state="needs-review-translation">要创建的项目的名称。</target>
+        <target state="translated">要创建的项目的名称</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project</source>
-        <target state="needs-review-translation">项目的输出路径。</target>
+        <target state="translated">项目的输出路径</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates</source>
-        <target state="needs-review-translation">要用于项目模板的 NuGet 源。</target>
+        <target state="translated">要用于项目模板的 NuGet 源</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use</source>
-        <target state="needs-review-translation">要使用的项目模板的版本。</target>
+        <target state="translated">要使用的项目模板的版本</target>
         <note />
       </trans-unit>
     </body>
