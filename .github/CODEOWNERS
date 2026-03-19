@@ -7,7 +7,7 @@
 /src/Aspire.Hosting.Azure.AppService  @eerhardt
 /src/Aspire.Hosting.Docker            @danegsta
 /src/Aspire.Hosting.Maui              @jfversluis
-‎/src/Aspire.Hosting.Foundry           @sebastienros
+/src/Aspire.Hosting.Foundry           @sebastienros
 
 # polyglot
 
@@ -29,3 +29,6 @@
 /playground/deployers                @karolz-ms
 /playground/publishers               @karolz-ms
 /playground/AspireWithMaui           @jfversluis
+
+# vs code extension
+/extension                           @adamint
