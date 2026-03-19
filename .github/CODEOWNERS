@@ -26,8 +26,8 @@
 /tests/templates.proj                 @radical @eerhardt
 
 # playground apps
-/playground/deployers                @karolz-ms
-/playground/publishers               @karolz-ms
+/playground/deployers                @mitchdenny
+/playground/publishers               @mitchdenny
 /playground/AspireWithMaui           @jfversluis
 
 # vs code extension
