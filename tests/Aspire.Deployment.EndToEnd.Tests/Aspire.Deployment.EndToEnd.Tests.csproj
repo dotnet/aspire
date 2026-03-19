@@ -14,8 +14,8 @@
 
     <!-- Deployment tests run on Linux only via deployment-tests.yml (excluded from tests.yml via OnlyDeploymentTests) -->
     <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
-    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
 
     <!-- Do not run tests in Helix - use GitHub Actions matrix strategy instead -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
