@@ -13,9 +13,11 @@ export function findResourceState(
         if (!appHost.resources) {
             continue;
         }
-        // Match on displayName because the runtime `name` field includes a random suffix
+        // Prefer displayName because the runtime `name` field includes a random suffix
         // (e.g., "postgres-fbnfwdfv"), whereas displayName matches the source code name.
-        const resource = appHost.resources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
+        const resource =
+            appHost.resources.find((r: ResourceJson) => r.displayName === resourceName) ??
+            appHost.resources.find((r: ResourceJson) => r.name === resourceName);
         if (resource) {
             return { resource, appHost };
         }
@@ -28,7 +30,9 @@ export function findWorkspaceResourceState(
     workspaceAppHostPath: string,
 ): (resourceName: string) => ResourceMatch | undefined {
     return (resourceName: string) => {
-        const resource = workspaceResources.find((r: ResourceJson) => r.displayName === resourceName || r.name === resourceName);
+        const resource =
+            workspaceResources.find((r: ResourceJson) => r.displayName === resourceName) ??
+            workspaceResources.find((r: ResourceJson) => r.name === resourceName);
         if (resource) {
             return {
                 resource,

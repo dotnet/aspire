@@ -122,10 +122,19 @@ export async function activate(context: vscode.ExtensionContext) {
   const codeLensRegistration = vscode.languages.registerCodeLensProvider(languageFilters, codeLensProvider);
   const codeLensDebugPipelineStepRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensDebugPipelineStep', (stepName: string) => editorCommandProvider.tryExecuteDoAppHost(false, stepName));
   const codeLensResourceActionRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensResourceAction', (resourceName: string, action: string, appHostPath: string) => {
-    terminalProvider.sendAspireCommandToAspireTerminal(`resource "${resourceName}" ${action} --apphost "${appHostPath}"`);
+    let command = `resource "${resourceName}" ${action}`;
+    if (appHostPath) {
+      command += ` --apphost "${appHostPath}"`;
+    }
+    terminalProvider.sendAspireCommandToAspireTerminal(command);
   });
   const codeLensViewLogsRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensViewLogs', (resourceName: string, appHostPath: string) => {
-    terminalProvider.sendAspireCommandToAspireTerminal(`logs "${resourceName}" --apphost "${appHostPath}" --follow`); // resourceName is already resolved via getResourceName
+    let command = `logs "${resourceName}"`;
+    if (appHostPath) {
+      command += ` --apphost "${appHostPath}"`;
+    }
+    command += ' --follow';
+    terminalProvider.sendAspireCommandToAspireTerminal(command);
   });
   const codeLensRevealResourceRegistration = vscode.commands.registerCommand('aspire-vscode.codeLensRevealResource', (resourceName: string) => {
     const element = appHostTreeProvider.findResourceElement(resourceName);
