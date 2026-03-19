@@ -12,8 +12,8 @@ public class CliPathHelperTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        var socketPath1 = CliPathHelper.CreateSocketPath("apphost.sock", workspace.WorkspaceRoot.FullName);
-        var socketPath2 = CliPathHelper.CreateSocketPath("apphost.sock", workspace.WorkspaceRoot.FullName);
+        var socketPath1 = CliPathHelper.CreateSocketPath("apphost.sock");
+        var socketPath2 = CliPathHelper.CreateSocketPath("apphost.sock");
 
         Assert.NotEqual(socketPath1, socketPath2);
 
@@ -24,7 +24,7 @@ public class CliPathHelperTests(ITestOutputHelper outputHelper)
         }
         else
         {
-            var expectedDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cli", "runtime", "sockets");
+            var expectedDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire", "cli", "runtime", "sockets");
             Assert.Equal(expectedDirectory, Path.GetDirectoryName(socketPath1));
             Assert.Equal(expectedDirectory, Path.GetDirectoryName(socketPath2));
             Assert.Matches("^apphost\\.sock\\.[a-f0-9]{12}$", Path.GetFileName(socketPath1));

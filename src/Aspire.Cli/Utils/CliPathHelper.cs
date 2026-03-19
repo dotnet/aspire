@@ -8,14 +8,13 @@ namespace Aspire.Cli.Utils;
 internal static class CliPathHelper
 {
     internal static string GetAspireHomeDirectory()
-        => GetAspireHomeDirectoryCore();
+        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspire");
 
     /// <summary>
     /// Creates a randomized CLI-managed socket path.
     /// </summary>
     /// <param name="socketPrefix">The socket file prefix.</param>
-    /// <param name="homeDirectory">An optional home directory override used by tests.</param>
-    internal static string CreateSocketPath(string socketPrefix, string? homeDirectory = null)
+    internal static string CreateSocketPath(string socketPrefix)
     {
         var socketName = $"{socketPrefix}.{BackchannelConstants.CreateRandomIdentifier()}";
 
@@ -24,25 +23,17 @@ internal static class CliPathHelper
             return socketName;
         }
 
-        var socketDirectory = GetCliSocketDirectory(homeDirectory);
+        var socketDirectory = GetCliSocketDirectory();
         Directory.CreateDirectory(socketDirectory);
         return Path.Combine(socketDirectory, socketName);
     }
 
-    private static string GetAspireHomeDirectoryCore(string? homeDirectory = null)
-        => Path.Combine(GetUserHomeDirectory(homeDirectory), ".aspire");
+    private static string GetCliHomeDirectory()
+        => Path.Combine(GetAspireHomeDirectory(), "cli");
 
-    private static string GetCliHomeDirectoryCore(string? homeDirectory = null)
-        => Path.Combine(GetAspireHomeDirectoryCore(homeDirectory), "cli");
+    private static string GetCliRuntimeDirectory()
+        => Path.Combine(GetCliHomeDirectory(), "runtime");
 
-    private static string GetCliRuntimeDirectory(string? homeDirectory = null)
-        => Path.Combine(GetCliHomeDirectoryCore(homeDirectory), "runtime");
-
-    private static string GetCliSocketDirectory(string? homeDirectory = null)
-        => Path.Combine(GetCliRuntimeDirectory(homeDirectory), "sockets");
-
-    private static string GetUserHomeDirectory(string? homeDirectory)
-        => !string.IsNullOrWhiteSpace(homeDirectory)
-            ? homeDirectory
-            : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    private static string GetCliSocketDirectory()
+        => Path.Combine(GetCliRuntimeDirectory(), "sockets");
 }
