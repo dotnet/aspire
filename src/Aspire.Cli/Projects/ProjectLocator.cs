@@ -505,15 +505,15 @@ internal sealed class ProjectLocator(
         return settingsDirectory.Parent;
     }
 
-    private static string? GetNuGetPackagesCachePath()
+    private string? GetNuGetPackagesCachePath()
     {
-        var envPath = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+        var envPath = executionContext.GetEnvironmentVariable("NUGET_PACKAGES");
         if (!string.IsNullOrEmpty(envPath))
         {
             return Path.GetFullPath(envPath);
         }
 
-        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var userProfile = executionContext.HomeDirectory.FullName;
         if (!string.IsNullOrEmpty(userProfile))
         {
             return Path.GetFullPath(Path.Combine(userProfile, ".nuget", "packages"));

@@ -19,14 +19,14 @@ namespace Aspire.Cli.Tests.Projects;
 
 public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 {
-    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    private static Aspire.Cli.CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory, IReadOnlyDictionary<string, string?>? environmentVariables = null)
     {
         // NOTE: This would normally be in the users home directory, but for tests we create
         //       it in the temporary workspace directory.
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
         var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log");
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-logs")), "test.log", environmentVariables: environmentVariables);
     }
 
     [Fact]
@@ -1041,27 +1041,19 @@ builder.Build().Run();");
             ValidateAppHostCallback = _ => new AppHostValidationResult(IsValid: true)
         };
 
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var envVars = new Dictionary<string, string?>
+        {
+            ["NUGET_PACKAGES"] = Path.Combine(workspace.WorkspaceRoot.FullName, ".nuget", "packages")
+        };
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot, environmentVariables: envVars);
         var projectLocator = CreateProjectLocator(executionContext, projectFactory: projectFactory);
 
-        // Set NUGET_PACKAGES to point to our simulated cache
-        var originalValue = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
-        try
-        {
-            Environment.SetEnvironmentVariable("NUGET_PACKAGES",
-                Path.Combine(workspace.WorkspaceRoot.FullName, ".nuget", "packages"));
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
+            workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
 
-            var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
-                workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
-
-            // Should only find the normal project, not the one inside the NuGet cache
-            Assert.Single(foundFiles);
-            Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("NUGET_PACKAGES", originalValue);
-        }
+        // Should only find the normal project, not the one inside the NuGet cache
+        Assert.Single(foundFiles);
+        Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
     }
 
     [Fact]
@@ -1117,25 +1109,19 @@ builder.Build().Run();");
             ValidateAppHostCallback = _ => new AppHostValidationResult(IsValid: true)
         };
 
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var envVars = new Dictionary<string, string?>
+        {
+            ["NUGET_PACKAGES"] = customCacheDir
+        };
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot, environmentVariables: envVars);
         var projectLocator = CreateProjectLocator(executionContext, projectFactory: projectFactory);
 
-        var originalValue = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
-        try
-        {
-            Environment.SetEnvironmentVariable("NUGET_PACKAGES", customCacheDir);
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
+            workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
 
-            var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
-                workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
-
-            // Should only find the normal project, not the one inside the custom cache
-            Assert.Single(foundFiles);
-            Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("NUGET_PACKAGES", originalValue);
-        }
+        // Should only find the normal project, not the one inside the custom cache
+        Assert.Single(foundFiles);
+        Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
     }
 
     private static ProjectLocator CreateProjectLocator(
