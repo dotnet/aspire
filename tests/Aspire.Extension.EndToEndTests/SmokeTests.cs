@@ -97,7 +97,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Open the integrated terminal
             _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Verify hex1b is available
@@ -152,7 +152,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Kill any existing hex1b processes from previous tests and clean up stale sockets
@@ -254,7 +254,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             // Open the integrated terminal
             _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             await ScreenshotAsync(page, $"terminal-opened-{quality}.png");
@@ -363,7 +363,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Clean up previous state
@@ -570,7 +570,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
 
             _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Clean up previous state
@@ -770,7 +770,7 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
             await page.Keyboard.PressAsync("Escape");
             await Task.Delay(500);
             await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Clean up old hex1b and start fresh

@@ -55,7 +55,7 @@ RUN mkdir -p /opt/aspire-cli /opt/aspire/packages /workspace
 WORKDIR /workspace
 
 # Install Hex1b CLI tool (provides terminal hosting with diagnostics socket for remote control)
-RUN dotnet tool install --global Hex1b.Tool --version 0.116.0
+RUN dotnet tool install --global Hex1b.Tool --version 0.119.0
 ENV PATH="$PATH:/root/.dotnet/tools"
 
 ENV DONT_PROMPT_WSL_INSTALL=1
