@@ -84,6 +84,112 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
         }
     }
 
+    [Fact]
+    public async Task InstallAspireCliViaTerminal()
+    {
+        _output.WriteLine($"Connecting to VS Code at {_fixture.Url}");
+
+        var page = await _fixture.CreatePageAsync();
+
+        try
+        {
+            // Wait for workbench to fully load
+            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
+            _output.WriteLine("VS Code workbench loaded.");
+
+            // Dismiss any first-run dialogs/overlays by pressing Escape a couple times
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(500);
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(1000);
+
+            // Open the integrated terminal via Ctrl+`
+            _output.WriteLine("Opening integrated terminal...");
+            await page.Keyboard.PressAsync("Control+Backquote");
+
+            // Wait for the terminal to appear
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            _output.WriteLine("Terminal panel appeared.");
+
+            // Give terminal a moment to initialize the shell
+            await Task.Delay(2000);
+
+            // Take a screenshot showing the terminal
+            await ScreenshotAsync(page, "terminal-opened.png");
+
+            // Install Aspire CLI using the official aspire.dev install script.
+            // See: https://aspire.dev/get-started/install-cli/
+            // We write a marker file on completion so we can detect it via docker exec
+            // (xterm.js renders to canvas, so we can't read terminal text from the DOM).
+            var installCmd = "curl -sSL https://aspire.dev/install.sh | bash -s -- --verbose 2>&1; echo $? > /tmp/aspire-install-exit-code";
+            _output.WriteLine($"Running: {installCmd}");
+            await page.Keyboard.TypeAsync(installCmd, new() { Delay = 20 });
+            await page.Keyboard.PressAsync("Enter");
+
+            // Poll via docker exec for the marker file to appear
+            _output.WriteLine("Waiting for Aspire CLI install to complete...");
+            var completedSuccessfully = false;
+            var timeout = TimeSpan.FromMinutes(5);
+            var start = DateTime.UtcNow;
+
+            while (DateTime.UtcNow - start < timeout)
+            {
+                await Task.Delay(5000);
+
+                var result = await _fixture.Container.ExecAsync("cat /tmp/aspire-install-exit-code 2>/dev/null");
+                if (result.ExitCode == 0 && result.StdOut.Trim().Length > 0)
+                {
+                    var exitCode = result.StdOut.Trim();
+                    _output.WriteLine($"Install script completed with exit code: {exitCode}");
+
+                    if (exitCode == "0")
+                    {
+                        completedSuccessfully = true;
+                    }
+
+                    break;
+                }
+
+                var elapsed = DateTime.UtcNow - start;
+                _output.WriteLine($"  Still installing... ({elapsed.TotalSeconds:F0}s)");
+            }
+
+            // Take a screenshot of the final state
+            await ScreenshotAsync(page, "install-complete.png");
+
+            Assert.True(completedSuccessfully, "Aspire CLI install should complete with exit code 0");
+
+            // Verify the CLI works by running aspire --version inside the container
+            _output.WriteLine("Verifying aspire CLI version via docker exec...");
+            var versionResult = await _fixture.Container.ExecAsync(
+                "export PATH=$HOME/.aspire/bin:$PATH && aspire --version",
+                timeout: TimeSpan.FromSeconds(30));
+
+            _output.WriteLine($"aspire --version exit code: {versionResult.ExitCode}");
+            _output.WriteLine($"aspire --version output: {versionResult.StdOut.Trim()}");
+            Assert.Equal(0, versionResult.ExitCode);
+            Assert.NotEmpty(versionResult.StdOut.Trim());
+
+            // Also run it in the VS Code terminal for the screenshot
+            await page.Keyboard.TypeAsync("export PATH=\"$HOME/.aspire/bin:$PATH\" && aspire --version", new() { Delay = 20 });
+            await page.Keyboard.PressAsync("Enter");
+            await Task.Delay(5000);
+            await ScreenshotAsync(page, "aspire-version.png");
+        }
+        finally
+        {
+            await _fixture.SaveTraceAsync(nameof(InstallAspireCliViaTerminal));
+        }
+    }
+
+    private async Task ScreenshotAsync(IPage page, string filename)
+    {
+        var path = Path.Combine(_fixture.ArtifactsDir, "screenshots", filename);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await page.ScreenshotAsync(new() { Path = path, FullPage = true });
+        _output.WriteLine($"Screenshot: {path}");
+    }
+
     public async ValueTask DisposeAsync()
     {
         // Cleanup is handled by the fixture

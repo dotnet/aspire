@@ -42,6 +42,11 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     public string? Url { get; private set; }
 
     /// <summary>
+    /// Gets the Docker container ID, available after <see cref="StartAsync"/> completes.
+    /// </summary>
+    public string? ContainerId => _containerId;
+
+    /// <summary>
     /// Builds the Docker image and starts the container.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -252,5 +257,21 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     [GeneratedRegex(ReadyPattern)]
     private static partial Regex ReadyRegex();
 
-    private sealed record DockerResult(int ExitCode, string StdOut, string StdErr);
+    /// <summary>
+    /// Runs a command inside the container via <c>docker exec</c>.
+    /// </summary>
+    public async Task<DockerResult> ExecAsync(string command, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    {
+        if (_containerId is null)
+        {
+            throw new InvalidOperationException("Container is not running.");
+        }
+
+        return await RunDockerAsync(
+            $"exec {_containerId} bash -c \"{command.Replace("\"", "\\\"")}\"",
+            timeout: timeout ?? TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken);
+    }
+
+    internal sealed record DockerResult(int ExitCode, string StdOut, string StdErr);
 }

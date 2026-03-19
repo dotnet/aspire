@@ -43,6 +43,12 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
     public string Url => _container?.Url
         ?? throw new InvalidOperationException("Container not started");
 
+    /// <summary>
+    /// Gets the underlying container for running <c>docker exec</c> commands.
+    /// </summary>
+    internal VsCodeContainer Container => _container
+        ?? throw new InvalidOperationException("Container not started");
+
     public async ValueTask InitializeAsync()
     {
         var outputHelper = new MessageSinkOutputHelper(_messageSink);
