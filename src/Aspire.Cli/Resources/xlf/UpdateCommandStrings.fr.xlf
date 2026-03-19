@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze apphost</source>
-        <target state="needs-review-translation">Analyser l’hôte d’application</target>
+        <target state="new">Analyze apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHostSdk">
         <source>Analyze apphost SDK</source>
-        <target state="needs-review-translation">Analyser le SDK hôte d’application</target>
+        <target state="new">Analyze apphost SDK</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeProjectFormat">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project (Preview)</source>
-        <target state="needs-review-translation">Mettre à jour les intégrations dans le projet Aspire. (Préversion)</target>
+        <target state="new">Update integrations in the Aspire project (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable apphost SDK. Dependency analysis may have reduced accuracy.</source>
-        <target state="needs-review-translation">Remarque : plan de mise à jour généré à l’aide de l’analyse de secours en raison d’un Kit de développement logiciel (SDK) AppHost non résolu. L’analyse des dépendances peut avoir une précision réduite.</target>
+        <target state="new">Note: Update plan generated using fallback parsing due to unresolvable apphost SDK. Dependency analysis may have reduced accuracy.</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire apphost project found. Would you like to update the Aspire CLI instead?</source>
-        <target state="needs-review-translation">Aucun projet Aspire AppHost trouvé. Voulez-vous plutôt mettre à jour l’interface CLI Aspire ?</target>
+        <target state="new">No Aspire apphost project found. Would you like to update the Aspire CLI instead?</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">Chemin d’accès au fichier projet AppHost Aspire.</target>
+        <target state="new">The path to the Aspire apphost project file</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
