@@ -20,12 +20,16 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     private readonly ITestOutputHelper _output;
     private readonly string _dockerfilePath;
     private readonly string _socketMountPath;
+    private readonly AspireBuildArtifacts? _artifacts;
+    private readonly bool _mountDockerSocket;
     private string? _containerId;
     private int _hostPort;
 
-    public VsCodeContainer(ITestOutputHelper output)
+    public VsCodeContainer(ITestOutputHelper output, AspireBuildArtifacts? artifacts = null, bool mountDockerSocket = false)
     {
         _output = output;
+        _artifacts = artifacts;
+        _mountDockerSocket = mountDockerSocket;
 
         // Find the Dockerfile relative to the repo root
         var repoRoot = FindRepoRoot();
@@ -94,8 +98,33 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
 
         _output.WriteLine($"Starting container on port {_hostPort}...");
 
+        // Build volume mount arguments
+        var volumes = new List<string>
+        {
+            $"-v {_socketMountPath}:/root/.hex1b/sockets",
+        };
+
+        if (_mountDockerSocket)
+        {
+            volumes.Add("-v /var/run/docker.sock:/var/run/docker.sock");
+            _output.WriteLine("  Docker socket: mounted");
+        }
+
+        if (_artifacts is not null)
+        {
+            volumes.Add($"-v {_artifacts.CliPublishDirectory}:{AspireBuildArtifacts.ContainerPaths.CliMount}:ro");
+            volumes.Add($"-v {_artifacts.VsixPath}:{AspireBuildArtifacts.ContainerPaths.VsixMount}:ro");
+            volumes.Add($"-v {_artifacts.PackagesDirectory}:{AspireBuildArtifacts.ContainerPaths.PackagesMount}:ro");
+            volumes.Add($"-v {_artifacts.NuGetConfigPath}:{AspireBuildArtifacts.ContainerPaths.NuGetConfigMount}:ro");
+            _output.WriteLine($"  CLI binary:    {_artifacts.CliPublishDirectory}");
+            _output.WriteLine($"  VSIX:          {_artifacts.VsixPath}");
+            _output.WriteLine($"  NuGet pkgs:    {_artifacts.PackagesDirectory}");
+            _output.WriteLine($"  NuGet config:  {_artifacts.NuGetConfigPath}");
+        }
+
+        var volumeArgs = string.Join(" ", volumes);
         var result = await RunDockerAsync(
-            $"run -d -p {_hostPort}:{ContainerPort} -v {_socketMountPath}:/root/.hex1b/sockets {ImageName}",
+            $"run -d -p {_hostPort}:{ContainerPort} {volumeArgs} {ImageName}",
             timeout: TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken);
 

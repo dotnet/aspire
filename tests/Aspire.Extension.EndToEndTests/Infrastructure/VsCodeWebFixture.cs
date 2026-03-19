@@ -44,6 +44,12 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
         ?? throw new InvalidOperationException("Container not started");
 
     /// <summary>
+    /// Gets the locally-built Aspire artifacts, or <c>null</c> if no local build was detected.
+    /// Tests requiring artifacts should skip when this is <c>null</c>.
+    /// </summary>
+    internal AspireBuildArtifacts? Artifacts { get; private set; }
+
+    /// <summary>
     /// Gets the underlying container for running <c>docker exec</c> commands.
     /// </summary>
     internal VsCodeContainer Container => _container
@@ -53,8 +59,23 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
     {
         var outputHelper = new MessageSinkOutputHelper(_messageSink);
 
-        // Start VS Code in Docker
-        _container = new VsCodeContainer(outputHelper);
+        // Detect locally-built Aspire artifacts (CLI, VSIX, NuGet packages).
+        // When present, these are volume-mounted into the container for integration tests.
+        var repoRoot = FindRepoRoot();
+        Artifacts = AspireBuildArtifacts.Detect(repoRoot);
+
+        if (Artifacts is not null)
+        {
+            outputHelper.WriteLine("Build artifacts detected — mounting CLI, VSIX, and NuGet packages");
+        }
+        else
+        {
+            outputHelper.WriteLine($"No build artifacts found. {AspireBuildArtifacts.DescribeMissing(repoRoot)}");
+            outputHelper.WriteLine("Integration tests requiring local builds will be skipped.");
+        }
+
+        // Start VS Code in Docker (with artifacts + Docker socket if available)
+        _container = new VsCodeContainer(outputHelper, Artifacts, mountDockerSocket: Artifacts is not null);
         await _container.StartAsync();
 
         // Create Playwright browser
