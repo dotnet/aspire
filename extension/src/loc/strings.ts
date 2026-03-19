@@ -109,21 +109,3 @@ export const codeLensStop = vscode.l10n.t('$(debug-stop) Stop');
 export const codeLensStart = vscode.l10n.t('$(debug-start) Start');
 export const codeLensViewLogs = vscode.l10n.t('$(output) Logs');
 export const codeLensCommand = (name: string) => vscode.l10n.t('$(terminal) {0}', name);
-
-// Status bar strings
-export const statusBarStopped = vscode.l10n.t('Aspire: Stopped');
-export const statusBarError = vscode.l10n.t('Aspire: Error');
-export function statusBarRunning(appHostCount: number, runningResources: number, totalResources: number): string {
-    if (totalResources === 0) {
-        return appHostCount === 1
-            ? vscode.l10n.t('Aspire: {0} apphost', appHostCount)
-            : vscode.l10n.t('Aspire: {0} apphosts', appHostCount);
-    }
-    return vscode.l10n.t('Aspire: {0}/{1} running', runningResources, totalResources);
-}
-export const statusBarTooltipStopped = vscode.l10n.t('No Aspire apphosts running. Click to open the Aspire panel.');
-export const statusBarTooltipError = vscode.l10n.t('Error fetching Aspire apphost status. Click to open the Aspire panel.');
-export const statusBarTooltipRunning = (appHostCount: number) =>
-    appHostCount === 1
-        ? vscode.l10n.t('{0} Aspire apphost running. Click to open the Aspire panel.', appHostCount)
-        : vscode.l10n.t('{0} Aspire apphosts running. Click to open the Aspire panel.', appHostCount);
