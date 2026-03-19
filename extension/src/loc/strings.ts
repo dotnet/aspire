@@ -100,3 +100,4 @@ export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execu
 
 // Endpoint URL context menu strings
 export const copiedUrlToClipboard = (url: string) => vscode.l10n.t('Copied {0} to clipboard', url);
+export const copiedToClipboard = (value: string) => vscode.l10n.t('Copied {0} to clipboard', value);
