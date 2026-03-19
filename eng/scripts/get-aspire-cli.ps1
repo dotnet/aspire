@@ -968,7 +968,7 @@ function Get-AspireExtension {
     $extensionArchive = Join-Path $TempDir $Script:ExtensionArtifactName
 
     try {
-        if ($PSCmdlet.ShouldProcess($extensionDescriptor, "Download extension")) {
+        if ($PSCmdlet.ShouldProcess($extensionArchive, "Download extension ($extensionDescriptor)")) {
             Write-Message "Downloading $extensionDescriptor" -Level Info
             Invoke-FileDownload -Uri $extensionUrl -OutputPath $extensionArchive -TimeoutSec $Script:ArchiveDownloadTimeoutSec
             Write-Message "Successfully downloaded extension archive" -Level Verbose
@@ -1196,13 +1196,13 @@ function Install-AspireCli {
         $archivePath = Join-Path $tempDir $urls.ArchiveFilename
         $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
 
-        if ($PSCmdlet.ShouldProcess($archiveDescriptor, "Download CLI archive")) {
+        if ($PSCmdlet.ShouldProcess($archivePath, "Download CLI archive ($archiveDescriptor)")) {
             # Download the Aspire CLI archive
             Write-Message "Downloading $archiveDescriptor" -Level Info
             Invoke-FileDownload -Uri $urls.ArchiveUrl -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $archivePath
         }
 
-        if ($PSCmdlet.ShouldProcess($checksumDescriptor, "Download CLI archive checksum")) {
+        if ($PSCmdlet.ShouldProcess($checksumPath, "Download CLI archive checksum ($checksumDescriptor)")) {
             # Download and test the checksum
             Invoke-FileDownload -Uri $urls.ChecksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumPath
             Test-FileChecksum -ArchiveFile $archivePath -ChecksumFile $checksumPath

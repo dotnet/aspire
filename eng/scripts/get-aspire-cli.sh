@@ -293,7 +293,7 @@ secure_curl() {
         curl_args+=(--output "$output_file")
     fi
 
-    say_verbose "curl ${curl_args[*]} $download_descriptor"
+    say_verbose "Running curl with args: ${curl_args[*]} (download descriptor: $download_descriptor)"
     curl "${curl_args[@]}" "$url"
 }
 
