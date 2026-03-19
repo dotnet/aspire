@@ -34,7 +34,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="13.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="$(PackageVersion)" />
