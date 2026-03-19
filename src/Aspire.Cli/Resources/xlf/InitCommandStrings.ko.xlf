@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">솔루션에 AppHost 프로젝트를 추가하는 중...</target>
+        <target state="new">Adding apphost project to solution...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">AppHost 프로젝트를 만드는 중...</target>
+        <target state="new">Creating apphost project...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">기존 솔루션에서 Aspire 지원을 초기화하거나 단일 파일 AppHost를 만듭니다.</target>
+        <target state="new">Initialize Aspire in an existing codebase</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">솔루션 파일을 찾을 수 없습니다. 단일 파일 AppHost를 만드는 중...</target>
+        <target state="new">No solution file found. Creating single-file apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">Добавление проекта AppHost в решение...</target>
+        <target state="translated">Выполняется добавление проекта хоста приложений в решение...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">Создание проекта AppHost...</target>
+        <target state="translated">Создается проект хоста приложений...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">Инициализируйте поддержку Aspire в существующем решении или создайте однофайловый AppHost.</target>
+        <target state="translated">Инициализировать Aspire в существующей базе программного кода</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost (csharp, typescript)</source>
-        <target state="new">The programming language for the apphost (csharp, typescript)</target>
+        <target state="translated">Язык программирования для хоста приложений (csharp, typescript)</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">Файл решения не найден. Создание однофайлового AppHost...</target>
+        <target state="translated">Файл решения не найден. Создается однофайловый хост приложений...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SolutionAndProjectInSameDirectory">
         <source>The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
-        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
+        <target state="translated">Файл решения '{0}' и файл проекта '{1}' находятся в одной и той же папке. Проекты хоста приложений и ServiceDefaults нельзя создавать внутри существующего каталога проекта. Переместите файл решения в родительскую папку или файл проекта — в подкаталог.</target>
         <note />
       </trans-unit>
     </body>

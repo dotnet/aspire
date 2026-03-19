@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">正在将 AppHost 项目添加到解决方案中...</target>
+        <target state="translated">正在将 AppHost 项目添加到解决方案中...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">正在创建 AppHost 项目...</target>
+        <target state="translated">正在创建 AppHost 项目...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">在现有解决方案中初始化 Aspire 支持，或创建单文件 AppHost。</target>
+        <target state="translated">在现有代码库中初始化 Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost (csharp, typescript)</source>
-        <target state="new">The programming language for the apphost (csharp, typescript)</target>
+        <target state="translated">AppHost 的编程语言(csharp、typescript)</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">找不到解决方案文件。正在创建单文件 AppHost...</target>
+        <target state="translated">找不到解决方案文件。正在创建单文件 AppHost...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SolutionAndProjectInSameDirectory">
         <source>The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
-        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
+        <target state="translated">解决方案文件 "{0}" 和项目文件 "{1}" 位于同一目录。无法在现有项目目录中创建 apphost 和 ServiceDefaults 项目。请将解决方案文件移至父目录，或将项目文件移至子目录。</target>
         <note />
       </trans-unit>
     </body>

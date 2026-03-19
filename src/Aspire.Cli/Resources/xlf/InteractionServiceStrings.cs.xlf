@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The apphost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">Verze AppHost není kompatibilní. Upgradujte prosím hostitele aplikací nebo rozhraní příkazového řádku Aspire.</target>
+        <target state="new">The apphost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Zadaný soubor projektu není projekt Aspire AppHost.</target>
+        <target state="new">The specified project file is not an Aspire apphost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

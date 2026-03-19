@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">Trwa dodawanie projektu AppHost do rozwiązania...</target>
+        <target state="new">Adding apphost project to solution...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">Trwa tworzenie projektu AppHost...</target>
+        <target state="new">Creating apphost project...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">Zainicjuj obsługę Aspire w istniejącym rozwiązaniu lub utwórz AppHost składający się z jednego pliku.</target>
+        <target state="new">Initialize Aspire in an existing codebase</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">Nie znaleziono pliku rozwiązania. Trwa tworzenie hosta aplikacji (AppHost) z jednym plikiem...</target>
+        <target state="new">No solution file found. Creating single-file apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">

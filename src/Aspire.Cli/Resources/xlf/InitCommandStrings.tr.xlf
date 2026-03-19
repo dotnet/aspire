@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">AppHost projesi çözüme ekleniyor...</target>
+        <target state="new">Adding apphost project to solution...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">AppHost projesi oluşturuluyor...</target>
+        <target state="new">Creating apphost project...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">Mevcut bir çözümde Aspire desteğini başlatın veya tek dosyalı bir AppHost oluşturun.</target>
+        <target state="new">Initialize Aspire in an existing codebase</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">Çözüm dosyası bulunamadı. Tek dosyalı AppHost oluşturuluyor...</target>
+        <target state="new">No solution file found. Creating single-file apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
