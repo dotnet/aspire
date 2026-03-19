@@ -28,19 +28,27 @@ internal sealed record AspireBuildArtifacts(
     /// Detects locally-built artifacts from a prior <c>./build.sh --bundle --build-extension --pack</c> run.
     /// Returns <c>null</c> if any required artifact is missing.
     /// </summary>
+    /// <remarks>
+    /// Set <c>ASPIRE_ARTIFACTS_ROOT</c> to point to a different repo's artifacts directory
+    /// (e.g., when running tests from a git worktree where the build was done in the main repo).
+    /// </remarks>
     public static AspireBuildArtifacts? Detect(string repoRoot)
     {
+        // Allow override for worktree scenarios where artifacts live in the main repo
+        var artifactsRoot = Environment.GetEnvironmentVariable("ASPIRE_ARTIFACTS_ROOT");
+        var effectiveRoot = !string.IsNullOrEmpty(artifactsRoot) ? artifactsRoot : repoRoot;
+
         // 1. CLI binary: artifacts/bin/Aspire.Cli/*/net*/linux-x64/publish/aspire
         //    Same detection logic as CliE2ETestHelpers.FindLocalCliBinary()
-        var cliPublishDir = FindCliPublishDirectory(repoRoot);
+        var cliPublishDir = FindCliPublishDirectory(effectiveRoot);
 
         // 2. NuGet packages: artifacts/packages/Debug/Shipping/ (or Release)
-        var packagesDir = FindPackagesDirectory(repoRoot);
+        var packagesDir = FindPackagesDirectory(effectiveRoot);
 
         // 3. VSIX: artifacts/packages/Debug/vscode/aspire-vscode-*.vsix (or Release)
-        var vsixPath = FindVsixPath(repoRoot);
+        var vsixPath = FindVsixPath(effectiveRoot);
 
-        // 4. NuGet config template
+        // 4. NuGet config template (always relative to the repo, not artifacts override)
         var nugetConfigPath = Path.Combine(repoRoot, "tests", "Shared", "TemplatesTesting", "data", "nuget8.config");
 
         if (cliPublishDir is null || packagesDir is null || vsixPath is null || !File.Exists(nugetConfigPath))
@@ -56,19 +64,21 @@ internal sealed record AspireBuildArtifacts(
     /// </summary>
     public static string DescribeMissing(string repoRoot)
     {
+        var artifactsRoot = Environment.GetEnvironmentVariable("ASPIRE_ARTIFACTS_ROOT");
+        var effectiveRoot = !string.IsNullOrEmpty(artifactsRoot) ? artifactsRoot : repoRoot;
         var missing = new List<string>();
 
-        if (FindCliPublishDirectory(repoRoot) is null)
+        if (FindCliPublishDirectory(effectiveRoot) is null)
         {
             missing.Add("CLI native binary (run: ./build.sh --bundle)");
         }
 
-        if (FindPackagesDirectory(repoRoot) is null)
+        if (FindPackagesDirectory(effectiveRoot) is null)
         {
             missing.Add("NuGet packages (run: ./build.sh --pack)");
         }
 
-        if (FindVsixPath(repoRoot) is null)
+        if (FindVsixPath(effectiveRoot) is null)
         {
             missing.Add("VS Code extension VSIX (run: ./build.sh --build-extension)");
         }
@@ -79,8 +89,12 @@ internal sealed record AspireBuildArtifacts(
             missing.Add($"NuGet config template ({nugetConfig})");
         }
 
+        var hint = !string.IsNullOrEmpty(artifactsRoot)
+            ? $"Looking in ASPIRE_ARTIFACTS_ROOT={artifactsRoot}"
+            : "Set ASPIRE_ARTIFACTS_ROOT to point to a repo with built artifacts, or run: ./build.sh --bundle --build-extension --pack";
+
         return missing.Count > 0
-            ? $"Missing build artifacts. Run: ./build.sh --bundle --build-extension --pack\n  - {string.Join("\n  - ", missing)}"
+            ? $"Missing build artifacts. {hint}\n  - {string.Join("\n  - ", missing)}"
             : "All artifacts present.";
     }
 

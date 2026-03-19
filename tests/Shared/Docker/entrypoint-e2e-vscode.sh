@@ -8,10 +8,19 @@ set -e
 
 VSIX_PATH="/opt/aspire/extension.vsix"
 
-# Install the Aspire extension if the VSIX file was volume-mounted
+# Install the Aspire extension if the VSIX file was volume-mounted.
+# Key flags:
+#   --user-data-dir:  bypasses the root-user safety check
+#   --extensions-dir: forces installation into the directory that serve-web reads
+#                     (without this, `code --install-extension` writes to ~/.vscode/extensions/
+#                      but serve-web loads from ~/.vscode-server/extensions/)
+SERVE_WEB_EXTENSIONS_DIR="/root/.vscode-server/extensions"
 if [ -f "$VSIX_PATH" ]; then
     echo "Installing Aspire extension from: $VSIX_PATH"
-    code --install-extension "$VSIX_PATH" --force 2>&1 || true
+    mkdir -p "$SERVE_WEB_EXTENSIONS_DIR"
+    code --install-extension "$VSIX_PATH" --force \
+        --user-data-dir /root/.vscode-server \
+        --extensions-dir "$SERVE_WEB_EXTENSIONS_DIR" 2>&1
     echo "Extension installation complete"
 fi
 
