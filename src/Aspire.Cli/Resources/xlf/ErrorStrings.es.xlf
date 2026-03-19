@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">Ya está conectado al canal de retroalimentación de AppHost.</target>
+        <target state="translated">Ya está conectado al canal de retroalimentación de apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost no es compatible con la CLI. Debe actualizarse a una versión que soporte la funcionalidad {0}.</target>
+        <target state="translated">Apphost no es compatible con la CLI. El apphost debe actualizarse a una versión que admita la funcionalidad {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">El archivo AppHost se especificó en '{0}' pero no existe en '{1}'.</target>
+        <target state="translated">El archivo Apphost se especificó en "{0}" pero no existe en "{1}".</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">Este comando aún no es compatible con AppHosts de un solo archivo.</target>
+        <target state="translated">Este comando aún no se admite con apphosts de un solo archivo.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="InvalidJsonInConfigFile">
         <source>The configuration file '{0}' contains invalid JSON: {1}</source>
-        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <target state="translated">El archivo de configuración "{0}" contiene JSON no válido: {1}</target>
         <note>{0} is the file path, {1} is the exception message</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
@@ -159,12 +159,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">El archivo del proyecto no es un proyecto AppHost de Aspire.</target>
+        <target state="translated">El archivo del proyecto no es un proyecto apphost de Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
         <source>Project is not supported in the current environment: {0}</source>
-        <target state="new">Project is not supported in the current environment: {0}</target>
+        <target state="translated">El proyecto no se admite en el entorno actual: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">La característica AppHost de un solo archivo no está habilitada. Para usar archivos AppHost .cs, habilite la función mediante la configuración.</target>
+        <target state="translated">La característica apphost de un solo archivo no está habilitada. Para usar archivos apphost .cs, habilite la función mediante la configuración.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

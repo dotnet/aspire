@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">AppHost 백채널에 이미 연결되었습니다.</target>
+        <target state="translated">apphost 백채널에 이미 연결되어 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost가 CLI와 호환되지 않습니다. AppHost를 {0} 기능을 지원하는 버전으로 업데이트해야 합니다.</target>
+        <target state="translated">Apphost가 CLI와 호환되지 않습니다. apphost는 {0} 기능을 지원하는 버전으로 업데이트해야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">appHost 파일이 '{0}'에 지정되었지만, '{1}'에 존재하지 않습니다.</target>
+        <target state="translated">Apphost 파일이 '{0}'에 지정되었지만 '{1}'에 없습니다.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">이 명령은 단일 파일 AppHosts에서 아직 지원되지 않습니다.</target>
+        <target state="translated">이 명령은 아직 단일 파일 apphosts에서 지원되지 않습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="InvalidJsonInConfigFile">
         <source>The configuration file '{0}' contains invalid JSON: {1}</source>
-        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <target state="translated">구성 파일 '{0}'에 잘못된 JSON이 포함되어 있습니다. {1}</target>
         <note>{0} is the file path, {1} is the exception message</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
@@ -159,12 +159,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">프로젝트 파일이 Aspire AppHost 프로젝트가 아닙니다.</target>
+        <target state="translated">프로젝트 파일은 지호스트 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
         <source>Project is not supported in the current environment: {0}</source>
-        <target state="new">Project is not supported in the current environment: {0}</target>
+        <target state="translated">현재 환경에서는 프로젝트가 지원되지 않습니다. {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">단일 파일 AppHost 기능을 사용할 수 없습니다. .cs AppHost 파일을 사용하려면 설정을 사용하여 기능을 활성화해야 합니다.</target>
+        <target state="translated">단일 파일 apphost 기능을 사용할 수 없습니다. apphost 파일을 .cs 사용하려면 구성을 사용하여 기능을 사용하도록 설정합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

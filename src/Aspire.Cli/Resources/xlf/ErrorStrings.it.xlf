@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">Connessione al backchannel di AppHost già stabilita.</target>
+        <target state="new">Already connected to apphost backchannel.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost non è compatibile con l'interfaccia della riga di comando. AppHost deve essere aggiornato a una versione che supporta la funzionalità {0}.</target>
+        <target state="new">Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">Il file AppHost è stato specificato in '{0}', ma non esiste in '{1}'.</target>
+        <target state="new">Apphost file was specified in '{0}' but it does not exist at '{1}'.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">Questo comando non è ancora supportato con AppHost a file singolo.</target>
+        <target state="new">This command is not yet supported with single file apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Il file di progetto non è un progetto AppHost Aspire.</target>
+        <target state="new">Project file is not an Aspire apphost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">La funzionalità AppHost a file singolo non è abilitata. Per usare i file AppHost .cs, abilitare la funzionalità tramite la configurazione.</target>
+        <target state="new">Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
