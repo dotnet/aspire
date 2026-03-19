@@ -293,7 +293,7 @@ secure_curl() {
         curl_args+=(--output "$output_file")
     fi
 
-    say_verbose "Running curl with args: ${curl_args[*]} (download descriptor: $download_descriptor)"
+    say_verbose "curl ${curl_args[*]} $url"
     curl "${curl_args[@]}" "$url"
 }
 
@@ -328,14 +328,14 @@ validate_content_type() {
 
     download_descriptor=$(get_download_descriptor "$url")
 
-    say_verbose "Validating content type for $download_descriptor"
+    say_verbose "Validating content type for $url"
 
     # Get headers via HEAD request
     local headers
     if headers=$(secure_curl "$url" /dev/null 60 "$USER_AGENT" 3 "HEAD" 2>&1); then
         # Check if response suggests HTML content (error page)
         if echo "$headers" | grep -qi "content-type:.*text/html"; then
-            say_error "Server returned HTML content instead of expected file while validating $download_descriptor."
+            say_error "Server returned HTML content instead of expected file. Make sure the URL is correct: $url"
             return 1
         fi
     else
@@ -375,7 +375,7 @@ download_file() {
         fi
     fi
 
-    say_verbose "Downloading $download_descriptor to $target_file"
+    say_verbose "Downloading $url to $target_file"
     say_info "Downloading $download_descriptor"
 
     # Download the file
@@ -388,7 +388,7 @@ download_file() {
         say_verbose "Successfully downloaded file to: $output_path"
         return 0
     else
-        say_error "Failed to download $download_descriptor"
+        say_error "Failed to download $url"
         return 1
     fi
 }

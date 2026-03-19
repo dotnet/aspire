@@ -536,21 +536,21 @@ function Invoke-FileDownload {
     $downloadDescriptor = Get-DownloadDescriptor -Uri $Uri
 
     # Validate content type via HEAD request
-    Write-Message "Validating content type for $downloadDescriptor" -Level Verbose
+    Write-Message "Validating content type for $Uri" -Level Verbose
     $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
     Write-Message "Detected content type: $contentType" -Level Verbose
 
     if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-        throw "Server returned HTML content instead of expected file while validating $downloadDescriptor."
+        throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
     }
 
     try {
-        Write-Message "Downloading $downloadDescriptor to $OutputPath" -Level Verbose
+        Write-Message "Downloading $Uri to $OutputPath" -Level Verbose
         Invoke-SecureWebRequest -Uri $Uri -OutFile $OutputPath -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
         Write-Message "Successfully downloaded file to: $OutputPath" -Level Verbose
     }
     catch {
-        throw "Failed to download $downloadDescriptor - $($_.Exception.Message)"
+        throw "Failed to download $Uri - $($_.Exception.Message)"
     }
 }
 
