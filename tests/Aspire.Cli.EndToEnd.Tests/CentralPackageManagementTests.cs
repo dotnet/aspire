@@ -168,16 +168,42 @@ public sealed class CentralPackageManagementTests(ITestOutputHelper output)
             </Project>
             """);
 
-        await auto.TypeAsync($"aspire add Aspire.Hosting.Redis --version 13.1.2");
+        var waitingForVersionSelection = new CellPatternSearcher()
+            .Find("Select a version of Aspire.Hosting.Redis:");
+        var versionSelectionShown = false;
+
+        await auto.TypeAsync("aspire add Aspire.Hosting.Redis");
         await auto.EnterAsync();
+        await auto.WaitUntilAsync(s =>
+        {
+            if (waitingForVersionSelection.Search(s).Count > 0)
+            {
+                versionSelectionShown = true;
+                return true;
+            }
+
+            var successPromptSearcher = new CellPatternSearcher()
+                .FindPattern(counter.Value.ToString())
+                .RightText(" OK] $ ");
+
+            return successPromptSearcher.Search(s).Count > 0;
+        }, timeout: TimeSpan.FromSeconds(90), description: "version selection prompt or success prompt");
+
+        if (versionSelectionShown)
+        {
+            // PR hives can surface multiple channels in CI. Accept the default implicit-channel version
+            // so this test validates CPM behavior without pinning a specific package version.
+            await auto.EnterAsync();
+        }
+
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Verify the PackageVersion for Aspire.Hosting.AppHost was removed
+        // Verify the AppHost project does not end up with a version-pinned Redis PackageReference.
         {
-            var content = File.ReadAllText(appHostCsprojPath);
-            if (content.Contains("Version=\"13.1.2\""))
+            var appHostContent = File.ReadAllText(appHostCsprojPath);
+            if (appHostContent.Contains("<PackageReference Include=\"Aspire.Hosting.Redis\" Version=", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"File {appHostCsprojPath} unexpectedly contains: Version=\"13.1.2\"");
+                throw new InvalidOperationException($"File {appHostCsprojPath} unexpectedly contains a version-pinned PackageReference for Aspire.Hosting.Redis");
             }
         }
 
