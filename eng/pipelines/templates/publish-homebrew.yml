@@ -303,6 +303,7 @@ steps:
       $botUser = (Invoke-GitHubApi -Method Get -Uri 'https://api.github.com/user' -Body $null).login
       $upstreamRepo = Invoke-GitHubApi -Method Get -Uri 'https://api.github.com/repos/Homebrew/homebrew-cask' -Body $null
       $defaultBranch = $upstreamRepo.default_branch
+      $defaultBranchForUri = [Uri]::EscapeDataString($defaultBranch)
       Write-Host "Authenticated as: $botUser"
       Write-Host "Upstream default branch: $defaultBranch"
 
@@ -335,7 +336,7 @@ steps:
       $firstLetter = $caskName.Substring(0, 1)
       $targetPath = "Casks/$firstLetter/$caskFile"
       $targetPathForUri = "Casks/$firstLetter/$([Uri]::EscapeDataString($caskFile))"
-      $upstreamBranch = Invoke-GitHubApi -Method Get -Uri "https://api.github.com/repos/Homebrew/homebrew-cask/branches/$defaultBranch" -Body $null
+      $upstreamBranch = Invoke-GitHubApi -Method Get -Uri "https://api.github.com/repos/Homebrew/homebrew-cask/branches/$defaultBranchForUri" -Body $null
       $upstreamSha = $upstreamBranch.commit.sha
       $caskContent = (Get-Content -Path $caskPath -Raw) -replace "`r`n", "`n"
       if (-not $caskContent.EndsWith("`n")) {
@@ -344,7 +345,7 @@ steps:
 
       $upstreamContent = $null
       try {
-        $upstreamFile = Invoke-GitHubApi -Method Get -Uri "https://api.github.com/repos/Homebrew/homebrew-cask/contents/$targetPathForUri?ref=$([Uri]::EscapeDataString($defaultBranch))" -Body $null
+        $upstreamFile = Invoke-GitHubApi -Method Get -Uri "https://api.github.com/repos/Homebrew/homebrew-cask/contents/${targetPathForUri}?ref=$defaultBranchForUri" -Body $null
         if ($upstreamFile.content) {
           $upstreamContent = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($upstreamFile.content -replace '\s', ''))) -replace "`r`n", "`n"
         }
@@ -384,7 +385,7 @@ steps:
         }
       }
 
-      $branchFileUri = "https://api.github.com/repos/$botUser/homebrew-cask/contents/$targetPathForUri?ref=$([Uri]::EscapeDataString($branchName))"
+      $branchFileUri = "https://api.github.com/repos/$botUser/homebrew-cask/contents/${targetPathForUri}?ref=$([Uri]::EscapeDataString($branchName))"
       $existingBranchFileSha = $null
       try {
         $branchFile = Invoke-GitHubApi -Method Get -Uri $branchFileUri -Body $null
@@ -410,7 +411,7 @@ steps:
       $contentResult = Invoke-GitHubApi -Method Put -Uri "https://api.github.com/repos/$botUser/homebrew-cask/contents/$targetPathForUri" -Body $putBody
       Write-Host "Updated $targetPath on branch $branchName with commit $($contentResult.commit.sha)"
 
-      $compareUri = "https://api.github.com/repos/Homebrew/homebrew-cask/compare/$([Uri]::EscapeDataString($defaultBranch))...$([Uri]::EscapeDataString("${botUser}:$branchName"))"
+      $compareUri = "https://api.github.com/repos/Homebrew/homebrew-cask/compare/$defaultBranchForUri...$([Uri]::EscapeDataString("${botUser}:$branchName"))"
       $compareResult = $null
       for ($attempt = 1; $attempt -le 10; $attempt++) {
         try {
