@@ -533,8 +533,6 @@ function Invoke-FileDownload {
         [int]$MaxRetries = 5
     )
 
-    $downloadDescriptor = Get-DownloadDescriptor -Uri $Uri
-
     # Validate content type via HEAD request
     Write-Message "Validating content type for $Uri" -Level Verbose
     $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries

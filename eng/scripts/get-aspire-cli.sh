@@ -262,9 +262,6 @@ secure_curl() {
     local user_agent="${4:-$USER_AGENT}"
     local max_retries="${5:-5}"
     local method="${6:-GET}"
-    local download_descriptor
-
-    download_descriptor=$(get_download_descriptor "$url")
 
     local curl_args=(
         --fail
@@ -324,9 +321,6 @@ get_download_descriptor() {
 # Validate content type via HEAD request
 validate_content_type() {
     local url="$1"
-    local download_descriptor
-
-    download_descriptor=$(get_download_descriptor "$url")
 
     say_verbose "Validating content type for $url"
 
