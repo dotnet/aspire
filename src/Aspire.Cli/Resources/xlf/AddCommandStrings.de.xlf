@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost</source>
-        <target state="needs-review-translation">Fügen Sie dem Aspire AppHost eine Hosting-Integration hinzu.</target>
+        <target state="new">Add a hosting integration to the apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
         <source>The name of the integration to add (e.g. redis, postgres)</source>
-        <target state="needs-review-translation">Der Name der Integration, die Sie hinzufügen möchten (z. B. redis, postgres).</target>
+        <target state="new">The name of the integration to add (e.g. redis, postgres)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file to add the integration to</source>
-        <target state="needs-review-translation">Der Pfad zur Projektdatei, der die Integration hinzugefügt werden soll.</target>
+        <target state="new">The path to the Aspire apphost project file to add the integration to</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the integration</source>
-        <target state="needs-review-translation">Die NuGet-Quelle, die für die Integration verwendet werden soll.</target>
+        <target state="new">The NuGet source to use for the integration</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
@@ -93,7 +93,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add</source>
-        <target state="needs-review-translation">Die Version der Integration, die Sie hinzufügen möchten.</target>
+        <target state="new">The version of the integration to add</target>
         <note />
       </trans-unit>
     </body>

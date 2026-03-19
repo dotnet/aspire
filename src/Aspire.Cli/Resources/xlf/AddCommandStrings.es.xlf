@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the apphost</source>
-        <target state="needs-review-translation">Agregue una integración de hospedaje a Aspire AppHost.</target>
+        <target state="translated">Incorporación de una integración de hospedaje al apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="IntegrationArgumentDescription">
         <source>The name of the integration to add (e.g. redis, postgres)</source>
-        <target state="needs-review-translation">El nombre de la integración que se va a agregar (por ejemplo, redis, postgres).</target>
+        <target state="translated">Nombre de la integración que se va a agregar (por ejemplo, redis, postgres)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoIntegrationPackagesFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file to add the integration to</source>
-        <target state="needs-review-translation">La ruta al archivo del proyecto al que se agregará la integración.</target>
+        <target state="translated">Ruta al archivo de proyecto Aspire apphost al que se va agregar la integración</target>
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
@@ -69,16 +69,16 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the integration</source>
-        <target state="needs-review-translation">El origen de NuGet que se utilizará para la integración.</target>
+        <target state="translated">Origen de NuGet que se va a usar para la integración</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppedRunningInstance" translate="yes" xml:space="preserve">
           <source>Stopped a running Aspire apphost instance to allow package modification.</source>
-          <target state="new">Stopped a running Aspire apphost instance to allow package modification.</target><note />
+          <target state="translated">Se detuvo una instancia de Aspire apphost en ejecución para permitir la modificación del paquete.</target><note />
         </trans-unit>
       <trans-unit id="UnableToStopRunningInstances">
         <source>Unable to stop one or more running Aspire apphost instances. Please stop the application and try again.</source>
-        <target state="new">Unable to stop one or more running Aspire apphost instances. Please stop the application and try again.</target>
+        <target state="translated">No se pueden detener una o varias instancias de Aspire apphost en ejecución. Detenga la aplicación e inténtelo de nuevo.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedNumberOfPackagesFound">
@@ -93,7 +93,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the integration to add</source>
-        <target state="needs-review-translation">La versión de la integración que se va a agregar.</target>
+        <target state="translated">Versión de la integración que se va a agregar</target>
         <note />
       </trans-unit>
     </body>
