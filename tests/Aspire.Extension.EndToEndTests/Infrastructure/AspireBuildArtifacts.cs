@@ -100,10 +100,9 @@ internal sealed record AspireBuildArtifacts(
 
     private static string? FindCliPublishDirectory(string repoRoot)
     {
-        // Search both Aspire.Cli.Tool (framework-dependent from localhive.sh)
-        // and Aspire.Cli (native AOT from build.sh --bundle).
-        // Prefer Release to match localhive.sh package versions.
-        foreach (var dirName in new[] { "Aspire.Cli.Tool", "Aspire.Cli" })
+        // Prefer native AOT (Aspire.Cli, self-contained single binary) over
+        // framework-dependent (Aspire.Cli.Tool, needs all DLLs copied).
+        foreach (var dirName in new[] { "Aspire.Cli", "Aspire.Cli.Tool" })
         {
             var cliBaseDir = Path.Combine(repoRoot, "artifacts", "bin", dirName);
             if (!Directory.Exists(cliBaseDir))
@@ -113,8 +112,9 @@ internal sealed record AspireBuildArtifacts(
 
             var matches = Directory.GetFiles(cliBaseDir, "aspire", SearchOption.AllDirectories)
                 .Where(f => !f.Contains("win-") && !f.Contains("osx-"))
-                .OrderByDescending(f => f.Contains("Release")) // prefer Release config
-                .ThenByDescending(f => f.Contains("publish"))  // then prefer publish dirs
+                .OrderByDescending(f => f.Contains("Release"))  // prefer Release config
+                .ThenByDescending(f => f.Contains("native"))    // then native AOT
+                .ThenByDescending(f => f.Contains("publish"))   // then publish dirs
                 .ToArray();
 
             if (matches.Length > 0)
