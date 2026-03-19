@@ -42,32 +42,35 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
         _output.WriteLine($"  VSIX:     {artifacts.VsixPath}");
         _output.WriteLine($"  Packages: {artifacts.PackagesDirectory}");
 
+        var projectName = "MyAspireApp";
+        var envVars = "PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true BUILT_NUGETS_PATH=/opt/aspire/packages " +
+                      "TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false";
+
         var page = await _fixture.CreatePageAsync(testDir);
 
         try
         {
-            // Wait for VS Code and open terminal
+            // ===== Phase 1: Launch VS Code and set up terminal =====
+            _output.WriteLine("--- Phase 1: Opening VS Code and terminal ---");
             await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
             await page.Keyboard.PressAsync("Escape");
             await Task.Delay(500);
             await page.Keyboard.PressAsync("Escape");
             await Task.Delay(1000);
 
-            _output.WriteLine("Opening integrated terminal...");
             await page.Keyboard.PressAsync("Control+Backquote");
             await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
             await Task.Delay(2000);
 
             // Clean up previous state
-            await _fixture.Container.ExecAsync("rm -rf $HOME/.aspire /tmp/integration-* /root/MyAspireApp");
+            await _fixture.Container.ExecAsync($"rm -rf $HOME/.aspire /tmp/integration-* /root/{projectName}");
             await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
             _fixture.Container.ResetHex1bPorts();
             await Task.Delay(1000);
 
-            // Maximize the terminal panel
             await MaximizeTerminalPanelAsync(page);
 
-            // Start hex1b with passthru mode and asciinema recording
+            // Start hex1b with asciinema recording
             var recordPath = "/tmp/integration-test.cast";
             var (containerPort, wsUri) = _fixture.Container.AllocateHex1bPort();
             var hex1bCmd = $"hex1b terminal start --passthru --port {containerPort} --bind 0.0.0.0 --record {recordPath} -- /bin/bash";
@@ -75,12 +78,10 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await page.Keyboard.TypeAsync(hex1bCmd, new() { Delay = 20 });
             await page.Keyboard.PressAsync("Enter");
 
-            // Connect remote terminal session
             await _fixture.Container.WaitForHex1bAsync(wsUri, timeout: TimeSpan.FromSeconds(60));
             await using var session = await RemoteTerminalSession.ConnectAsync(wsUri);
             _output.WriteLine("Remote terminal session connected");
 
-            // Wait for shell prompt
             await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(10));
 
             // Verify the session works
@@ -90,13 +91,12 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             Assert.True(echoOk, "Remote terminal session echo test failed");
             await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(5));
 
-            // ===== Phase 1: Install local CLI =====
-            _output.WriteLine("--- Phase 1: Installing local CLI ---");
+            // ===== Phase 2: Install CLI and create project interactively =====
+            _output.WriteLine("--- Phase 2: Installing local CLI ---");
             await session.SendTextAsync("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire\r");
             await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(10));
 
-            // Set PATH and environment variables
-            await session.SendTextAsync("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true BUILT_NUGETS_PATH=/opt/aspire/packages TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false\r");
+            await session.SendTextAsync($"export {envVars}\r");
             await session.WaitForTextAsync("~#", timeout: TimeSpan.FromSeconds(5));
 
             // Verify CLI version
@@ -114,12 +114,10 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "01-cli-installed.png");
             _output.WriteLine($"✓ CLI installed: {version}");
 
-            // ===== Phase 2: Create project with aspire new =====
-            _output.WriteLine("--- Phase 2: Creating project with aspire new ---");
+            // Run aspire new interactively
+            _output.WriteLine("--- Phase 2b: Creating project with aspire new ---");
             await session.SendTextAsync("aspire new\r");
 
-            // Wait for template selection prompt
-            _output.WriteLine("Waiting for template selection prompt...");
             var templatePrompt = await session.WaitForTextAsync("Select a template", timeout: TimeSpan.FromSeconds(60));
             if (!templatePrompt)
             {
@@ -128,24 +126,18 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             Assert.True(templatePrompt, "Expected 'Select a template' prompt");
             _output.WriteLine("Template selection prompt appeared");
 
-            // Select the first template (Starter App) by pressing Enter
             await session.SendEnterAsync();
 
-            // Wait for project name prompt
             var namePrompt = await session.WaitForTextAsync("project name", timeout: TimeSpan.FromSeconds(15));
             Assert.True(namePrompt, "Expected project name prompt");
 
-            // Type project name and press Enter
-            var projectName = "MyAspireApp";
             await session.SendTextAsync(projectName);
             await Task.Delay(500);
             await session.SendEnterAsync();
 
-            // Wait for output path prompt
             var pathPrompt = await session.WaitForTextAsync("output path", timeout: TimeSpan.FromSeconds(15));
             Assert.True(pathPrompt, "Expected output path prompt");
 
-            // Accept the default output path
             await session.SendEnterAsync();
 
             // Handle additional template-specific prompts and wait for success
@@ -209,120 +201,97 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(15));
             _output.WriteLine("Shell prompt ready");
 
-            // ===== Phase 2b: Patch SDK version to use dev packages =====
-            _output.WriteLine("--- Phase 2b: Patching SDK version to use dev packages ---");
+            // ===== Phase 3: Patch SDK, restore, and add folder to workspace =====
+            _output.WriteLine("--- Phase 3: Patching SDK and restoring ---");
+
+            // Patch SDK version to use dev packages (backchannel sockets require 13.2.0+)
             var patchResult = await _fixture.Container.ExecAsync(
                 $"find /root/{projectName} -name '*.csproj' -exec sed -i 's|Aspire.AppHost.Sdk/[0-9.]*\"|Aspire.AppHost.Sdk/{version}\"|g' {{}} \\; && " +
                 $"head -1 /root/{projectName}/{projectName}.AppHost/{projectName}.AppHost.csproj",
                 timeout: TimeSpan.FromSeconds(10));
             _output.WriteLine($"Patched AppHost SDK → {patchResult.StdOut.Trim()}");
 
-            // ===== Phase 3: Open project folder in VS Code =====
-            _output.WriteLine("--- Phase 3: Opening project folder in VS Code ---");
-
-            var folderUrl = $"{_fixture.Url}/?folder=/root/{projectName}";
-            _output.WriteLine($"Navigating to: {folderUrl}");
-            await page.GotoAsync(folderUrl);
-
-            // VS Code reloads when opening a folder — wait for workbench
-            _output.WriteLine("Waiting for VS Code to reload with project folder...");
-            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
-            await Task.Delay(5000);
-
-            // Dismiss any trust dialog that may appear
-            var trustButton = await page.QuerySelectorAsync("text=Yes, I trust the authors");
-            if (trustButton is not null)
-            {
-                await trustButton.ClickAsync();
-                _output.WriteLine("Dismissed workspace trust dialog");
-                await Task.Delay(2000);
-            }
-
-            await ScreenshotAsync(page, testDir, "03-folder-opened.png");
-
-            // The terminal closed during reload — reopen it
-            _output.WriteLine("Reopening terminal after folder change...");
-            await page.Keyboard.PressAsync("Escape");
-            await Task.Delay(500);
-            await page.Keyboard.PressAsync("Control+Backquote");
-            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 60_000 });
-            await Task.Delay(2000);
-
-            // Clean up old hex1b and start fresh
-            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null");
-            _fixture.Container.ResetHex1bPorts();
-            await Task.Delay(1000);
-
-            // Maximize the terminal panel
-            await MaximizeTerminalPanelAsync(page);
-
-            // Start hex1b again (since terminal was recreated)
-            var recordPath2 = "/tmp/integration-test-phase2.cast";
-            var (containerPort2, wsUri2) = _fixture.Container.AllocateHex1bPort();
-            var hex1bCmd2 = $"hex1b terminal start --passthru --port {containerPort2} --bind 0.0.0.0 --record {recordPath2} -- /bin/bash";
-            _output.WriteLine($"Starting hex1b: {hex1bCmd2}");
-            await page.Keyboard.TypeAsync(hex1bCmd2, new() { Delay = 20 });
-            await page.Keyboard.PressAsync("Enter");
-
-            // Connect new remote terminal session
-            await _fixture.Container.WaitForHex1bAsync(wsUri2, timeout: TimeSpan.FromSeconds(60));
-            await using var session2 = await RemoteTerminalSession.ConnectAsync(wsUri2);
-            _output.WriteLine("Remote terminal session reconnected");
-
-            await session2.WaitForAnyTextAsync(["~#", "root@", "MyAspireApp#"], timeout: TimeSpan.FromSeconds(10));
-
-            // Re-set environment variables in the new shell
-            await session2.SendTextAsync("export PATH=~/.aspire/bin:$PATH ASPIRE_PLAYGROUND=true BUILT_NUGETS_PATH=/opt/aspire/packages TERM=xterm DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false\r");
-            await session2.WaitForAnyTextAsync(["~#", "root@", "MyAspireApp#"], timeout: TimeSpan.FromSeconds(5));
-
-            _output.WriteLine("✓ Project folder opened in VS Code");
-
-            // ===== Phase 4: Set up NuGet config + restore =====
-            _output.WriteLine("--- Phase 4: Setting up NuGet config ---");
-
-            await session2.SendTextAsync($"cp /opt/aspire/nuget.config /root/{projectName}/nuget.config\r");
-            await session2.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(5));
+            // Copy NuGet config and restore
+            await session.SendTextAsync($"cp /opt/aspire/nuget.config /root/{projectName}/nuget.config\r");
+            await session.WaitForAnyTextAsync(["~#", "root@"], timeout: TimeSpan.FromSeconds(5));
 
             _output.WriteLine("Running dotnet restore...");
-            await session2.SendTextAsync($"cd /root/{projectName} && dotnet restore\r");
+            await session.SendTextAsync($"cd /root/{projectName} && dotnet restore\r");
 
-            var restoreDone = await session2.WaitForAnyTextAsync(
+            var restoreDone = await session.WaitForAnyTextAsync(
                 ["Restore complete", "Build succeeded", "Nothing to do", projectName + "#"],
                 timeout: TimeSpan.FromMinutes(5),
                 includeScrollback: true);
             _output.WriteLine($"Restore signal: {restoreDone ?? "TIMEOUT"}");
 
-            await session2.SendTextAsync("echo RESTORE_EXIT=$?\r");
-            var restoreExitOk = await session2.WaitForTextAsync("RESTORE_EXIT=0", timeout: TimeSpan.FromSeconds(10));
+            await session.SendTextAsync("echo RESTORE_EXIT=$?\r");
+            var restoreExitOk = await session.WaitForTextAsync("RESTORE_EXIT=0", timeout: TimeSpan.FromSeconds(10));
             if (!restoreExitOk)
             {
-                DumpScreen(session2, "Restore may have failed");
+                DumpScreen(session, "Restore may have failed");
                 _output.WriteLine("WARNING: dotnet restore may have failed — continuing anyway");
             }
 
-            await ScreenshotAsync(page, testDir, "04-restored.png");
+            await ScreenshotAsync(page, testDir, "03-restored.png");
             _output.WriteLine("✓ NuGet restore complete");
 
-            // ===== Phase 5: Run aspire start =====
-            _output.WriteLine("--- Phase 5: Starting AppHost with aspire start ---");
-            await session2.SendTextAsync($"cd /root/{projectName} && aspire start\r");
+            // Add the project folder to the VS Code workspace using `code -a`.
+            // This keeps the current session alive (no page reload) while activating
+            // the extension's workspaceContains:**/*.csproj trigger.
+            _output.WriteLine("Adding project folder to workspace with 'code -a'...");
+            await session.SendTextAsync($"code -a /root/{projectName}\r");
+            await Task.Delay(3000); // Give VS Code time to process the folder addition
 
-            var startedOk = await session2.WaitForAnyTextAsync(
+            // Dismiss the "Do you trust the authors of the files in this folder?" dialog
+            _output.WriteLine("Checking for workspace trust dialog...");
+            var trustYesButton = await page.QuerySelectorAsync("a.monaco-button.monaco-text-button:has-text('Yes')");
+            if (trustYesButton is not null)
+            {
+                await trustYesButton.ClickAsync();
+                _output.WriteLine("Dismissed workspace trust dialog (clicked Yes)");
+                await Task.Delay(1000);
+            }
+            else
+            {
+                _output.WriteLine("No workspace trust dialog found — may already be trusted");
+            }
+
+            await ScreenshotAsync(page, testDir, "04-folder-added.png");
+
+            // Handle the "Set default apphost?" notification from the Aspire extension
+            _output.WriteLine("Checking for default apphost notification...");
+            var setDefaultYes = await page.QuerySelectorAsync(".notification-list-item a.monaco-button:has-text('Yes')");
+            if (setDefaultYes is not null)
+            {
+                await setDefaultYes.ClickAsync();
+                _output.WriteLine("Accepted default apphost notification (clicked Yes)");
+                await Task.Delay(1000);
+            }
+            else
+            {
+                _output.WriteLine("No default apphost notification found");
+            }
+
+            // ===== Phase 4: Run aspire start =====
+            _output.WriteLine("--- Phase 4: Starting AppHost with aspire start ---");
+            await session.SendTextAsync($"cd /root/{projectName} && aspire start\r");
+
+            var startedOk = await session.WaitForAnyTextAsync(
                 ["AppHost started successfully", "Dashboard"],
                 timeout: TimeSpan.FromMinutes(5),
                 includeScrollback: true);
 
             if (startedOk is null)
             {
-                DumpScreen(session2, "aspire start - did not succeed");
+                DumpScreen(session, "aspire start - did not succeed");
                 Assert.Fail("aspire start did not report success within 5 minutes");
             }
             _output.WriteLine($"✓ AppHost started — signal: {startedOk}");
 
             await ScreenshotAsync(page, testDir, "05-aspire-started.png");
 
-            // ===== Phase 5b: Wait for resources to be discoverable =====
-            _output.WriteLine("--- Phase 5b: Waiting for resources via backchannel ---");
+            // ===== Phase 5: Wait for resources to be discoverable =====
+            _output.WriteLine("--- Phase 5: Waiting for resources via backchannel ---");
 
             var backchannelCheck = await _fixture.Container.ExecAsync(
                 "ls -la /root/.aspire/cli/backchannels/ 2>/dev/null",
@@ -373,9 +342,20 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             // ===== Phase 6: Verify extension shows resources =====
             _output.WriteLine("--- Phase 6: Verifying extension tree view ---");
 
+            // Dismiss any lingering dialogs before interacting with the sidebar
+            var lateTrustDialog = await page.QuerySelectorAsync(".monaco-dialog-box a.monaco-button:has-text('Yes')");
+            if (lateTrustDialog is not null)
+            {
+                await lateTrustDialog.ClickAsync();
+                _output.WriteLine("Dismissed late workspace trust dialog");
+                await Task.Delay(1000);
+            }
+
             // Un-maximize the terminal so we can see the activity bar and sidebar
             await MaximizeTerminalPanelAsync(page);
             await Task.Delay(1000);
+
+            await ScreenshotAsync(page, testDir, "06-pre-aspire-click.png");
 
             // Click the Aspire icon in the activity bar to open the panel
             _output.WriteLine("Looking for Aspire activity bar icon...");
@@ -402,7 +382,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
 
             await ScreenshotAsync(page, testDir, "06-aspire-panel.png");
 
-            // Click Refresh to trigger immediate re-discovery via describe --follow
+            // Click Refresh to trigger immediate re-discovery
             _output.WriteLine("Clicking Refresh to trigger re-discovery...");
             var refreshButton = await page.QuerySelectorAsync("[aria-label='Refresh']")
                              ?? await page.QuerySelectorAsync("a[title='Refresh']");
@@ -412,7 +392,7 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
                 _output.WriteLine("Clicked Refresh button");
             }
 
-            // Retry loop: wait for tree items to appear (resources from backchannel RPC)
+            // Retry loop: wait for tree items to appear
             _output.WriteLine("Waiting for tree items to appear...");
             IReadOnlyList<Microsoft.Playwright.IElementHandle> treeItems = [];
             for (var attempt = 0; attempt < 12; attempt++)
@@ -454,7 +434,6 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             {
                 await ScreenshotAsync(page, testDir, "07-no-resources-debug.png");
 
-                // Dump extension Output channel for debugging
                 await page.Keyboard.PressAsync("Control+Shift+KeyP");
                 await Task.Delay(500);
                 await page.Keyboard.TypeAsync("Output: Show Output Channel...", new() { Delay = 30 });
@@ -478,24 +457,16 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "08-final.png");
             _output.WriteLine("=== Full Integration Test Complete ===");
 
-            // Copy asciinema recordings from both sessions
-            var castPath1 = Path.Combine(testDir, "integration-test-phase1.cast");
-            await _fixture.Container.CopyFromContainerAsync(recordPath, castPath1);
-            if (File.Exists(castPath1))
+            // Copy asciinema recording
+            var castPath = Path.Combine(testDir, "terminal-recording.cast");
+            await _fixture.Container.CopyFromContainerAsync(recordPath, castPath);
+            if (File.Exists(castPath))
             {
-                _output.WriteLine($"Asciinema recording (phase 1): {castPath1}");
-            }
-
-            var castPath2 = Path.Combine(testDir, "integration-test-phase2.cast");
-            await _fixture.Container.CopyFromContainerAsync(recordPath2, castPath2);
-            if (File.Exists(castPath2))
-            {
-                _output.WriteLine($"Asciinema recording (phase 2): {castPath2}");
+                _output.WriteLine($"Asciinema recording: {castPath}");
             }
         }
         finally
         {
-            // Try to stop aspire before container teardown
             try
             {
                 await _fixture.Container.ExecAsync(

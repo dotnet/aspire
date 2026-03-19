@@ -101,7 +101,9 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
     /// Creates a new Playwright page navigated to the VS Code web UI.
     /// Video is recorded into the per-test output directory.
     /// </summary>
-    public async Task<IPage> CreatePageAsync(string testOutputDir)
+    /// <param name="testOutputDir">Directory for video and trace output.</param>
+    /// <param name="folder">Optional container path to open as the workspace folder.</param>
+    public async Task<IPage> CreatePageAsync(string testOutputDir, string? folder = null)
     {
         if (_browser is null)
         {
@@ -122,8 +124,9 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
             Snapshots = true,
         });
 
+        var url = folder is not null ? $"{Url}/?folder={folder}" : Url;
         var page = await context.NewPageAsync();
-        await page.GotoAsync(Url);
+        await page.GotoAsync(url);
 
         return page;
     }
