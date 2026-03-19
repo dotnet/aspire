@@ -7,6 +7,12 @@
 /src/Aspire.Hosting.Azure.AppService  @eerhardt
 /src/Aspire.Hosting.Docker            @danegsta
 /src/Aspire.Hosting.Maui              @jfversluis
+‎/src/Aspire.Hosting.Foundry           @sebastienros
+
+# polyglot
+
+/src/Aspire.Hosting.RemoteHost        @sebastienros
+/src/Aspire.Hosting/Ats               @sebastienros
 
 # tests
 
@@ -14,7 +20,7 @@
 /tests/Aspire.Hosting.Maui.Tests      @jfversluis
 /tests/Aspire.Hosting.Testing.Tests   @sebastienros
 /tests/Aspire.Hosting.Tests           @mitchdenny
-/tests/Aspire.Templates.Tests          @radical @eerhardt
+/tests/Aspire.Templates.Tests         @radical @eerhardt
 /tests/Shared                         @radical @eerhardt
 /tests/helix                          @radical @eerhardt
 /tests/templates.proj                 @radical @eerhardt
