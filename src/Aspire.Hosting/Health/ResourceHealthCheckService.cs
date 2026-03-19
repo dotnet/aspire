@@ -290,28 +290,91 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+            // Check if this health check result contains multiple individual health check entries
+            if (entry.Data.TryGetValue(HealthCheckConstants.DataKeys.MultipleHealthChecks, out var hasMultiple) &&
+                hasMultiple is true &&
+                entry.Data.TryGetValue(HealthCheckConstants.DataKeys.SubEntries, out var subEntriesObj) &&
+                subEntriesObj is Dictionary<string, HealthReportEntry> subEntries)
             {
-                LastRunAt = runAt
-            };
-
-            var found = false;
-            for (var i = 0; i < builder.Count; i++)
-            {
-                var existing = builder[i];
-                if (existing.Name == key)
+                // Expand sub-entries into individual health report snapshots
+                foreach (var (subKey, subEntry) in subEntries)
                 {
-                    // Replace the existing entry.
-                    builder[i] = snapshot;
-                    found = true;
-                    break;
+                    var subSnapshot = new HealthReportSnapshot(subKey, subEntry.Status, subEntry.Description, subEntry.Exception?.ToString())
+                    {
+                        LastRunAt = runAt
+                    };
+
+                    var foundSub = false;
+                    for (var i = 0; i < builder.Count; i++)
+                    {
+                        var existing = builder[i];
+                        if (existing.Name == subKey)
+                        {
+                            // Replace the existing entry.
+                            builder[i] = subSnapshot;
+                            foundSub = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundSub)
+                    {
+                        // Add a new entry.
+                        builder.Add(subSnapshot);
+                    }
+                }
+
+                // Also update the parent entry so that change detection sees a stable key.
+                var parentSnapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+                {
+                    LastRunAt = runAt
+                };
+
+                var foundParent = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
+                    {
+                        // Replace the existing parent entry.
+                        builder[i] = parentSnapshot;
+                        foundParent = true;
+                        break;
+                    }
+                }
+
+                if (!foundParent)
+                {
+                    // Add a new parent entry
+                    builder.Add(parentSnapshot);
                 }
             }
-
-            if (!found)
+            else
             {
-                // Add a new entry.
-                builder.Add(snapshot);
+                // Regular health check entry
+                var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString())
+                {
+                    LastRunAt = runAt
+                };
+
+                var found = false;
+                for (var i = 0; i < builder.Count; i++)
+                {
+                    var existing = builder[i];
+                    if (existing.Name == key)
+                    {
+                        // Replace the existing entry.
+                        builder[i] = snapshot;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Add a new entry.
+                    builder.Add(snapshot);
+                }
             }
         }
 

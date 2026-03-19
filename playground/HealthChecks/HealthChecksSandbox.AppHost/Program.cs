@@ -10,9 +10,25 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.Services.TryAddEventingSubscriber<TestResourceLifecycle>();
 
+// Scenario 1: Keyed health checks (in-process)
+// Each resource has multiple health checks registered directly in the AppHost.
+// The dashboard shows each keyed health check as an individual entry.
 AddTestResource("healthy", HealthStatus.Healthy, "I'm fine, thanks for asking.");
 AddTestResource("unhealthy", HealthStatus.Unhealthy, "I can't do that, Dave.", exceptionMessage: "Feeling unhealthy.");
 AddTestResource("degraded", HealthStatus.Degraded, "Had better days.", exceptionMessage: "Feeling degraded.");
+
+// Scenario 2: Expanded HTTP health checks (using AspireHealthCheckResponseWriter)
+// A single /health endpoint returns Aspire JSON format with multiple sub-entries.
+// WithHttpHealthCheck() automatically detects the format and expands them into
+// individual health check entries in the dashboard.
+builder.AddProject<Projects.HealthChecksSandbox_ExpandedHealthService>("expanded-health")
+    .WithHttpHealthCheck("/health").ExcludeFromManifest();
+
+// Scenario 3: Plain HTTP health check (no Aspire response writer)
+// A single /health endpoint returns the default ASP.NET Core response (just "Healthy"/"Unhealthy").
+// WithHttpHealthCheck() can't parse sub-entries, so it shows as a single health check entry.
+builder.AddProject<Projects.HealthChecksSandbox_PlainHealthService>("plain-health")
+    .WithHttpHealthCheck("/health").ExcludeFromManifest();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
@@ -56,12 +72,12 @@ void AddTestResource(string name, HealthStatus status, string? description = nul
             Properties = [],
         })
         .ExcludeFromManifest();
-    return;
 }
 
 internal sealed class TestResource(string name) : Resource(name);
 
-internal sealed class TestResourceLifecycle(ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
+internal sealed class TestResourceLifecycle(
+    ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
 {
     public Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken)
     {

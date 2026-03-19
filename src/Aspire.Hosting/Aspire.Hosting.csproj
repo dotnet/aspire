@@ -117,6 +117,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.HealthChecks.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Yarp.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.JavaScript" />

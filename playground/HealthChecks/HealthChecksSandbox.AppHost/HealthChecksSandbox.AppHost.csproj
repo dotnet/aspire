@@ -11,6 +11,12 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.HealthChecks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HealthChecksSandbox.ExpandedHealthService\HealthChecksSandbox.ExpandedHealthService.csproj" />
+    <ProjectReference Include="..\HealthChecksSandbox.PlainHealthService\HealthChecksSandbox.PlainHealthService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

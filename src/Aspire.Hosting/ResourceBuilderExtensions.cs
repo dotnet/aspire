@@ -11,6 +11,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -2110,15 +2111,29 @@ public static class ResourceBuilderExtensions
 
         builder.ApplicationBuilder.Services.SuppressHealthCheckHttpClientLogging(healthCheckKey);
 
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddUrlGroup(options =>
-        {
-            if (uri is null)
+        builder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healthCheckKey,
+            sp =>
             {
-                throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
-            }
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
 
-            options.AddUri(uri, setup => setup.ExpectHttpCode(statusCode ?? 200));
-        }, healthCheckKey);
+                return new Health.AspireHttpHealthCheck(
+                    () =>
+                    {
+                        if (uri is null)
+                        {
+                            throw new DistributedApplicationException($"The URI for the health check is not set. Ensure that the resource has been allocated before the health check is executed.");
+                        }
+
+                        return uri;
+                    },
+                    () => httpClientFactory.CreateClient(healthCheckKey),
+                    builder.Resource.Name,
+                    statusCode ?? 200);
+            },
+            failureStatus: default,
+            tags: default,
+            timeout: default));
 
         builder.WithHealthCheck(healthCheckKey);
 

@@ -226,6 +226,8 @@
   </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
+    <Project Path="playground/HealthChecks/HealthChecksSandbox.ExpandedHealthService/HealthChecksSandbox.ExpandedHealthService.csproj" />
+    <Project Path="playground/HealthChecks/HealthChecksSandbox.PlainHealthService/HealthChecksSandbox.PlainHealthService.csproj" />
   </Folder>
   <Folder Name="/playground/kafka/">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />
@@ -385,6 +387,7 @@
     <Project Path="src/Aspire.Hosting.CodeGeneration.Java/Aspire.Hosting.CodeGeneration.Java.csproj" />
     <Project Path="src/Aspire.Hosting.CodeGeneration.Rust/Aspire.Hosting.CodeGeneration.Rust.csproj" />
     <Project Path="src/Aspire.Hosting.RemoteHost/Aspire.Hosting.RemoteHost.csproj" />
+    <Project Path="src/Aspire.HealthChecks/Aspire.HealthChecks.csproj" />
     <Project Path="src/Aspire.Managed/Aspire.Managed.csproj" />
   </Folder>
   <Folder Name="/Testing/">
@@ -420,6 +423,7 @@
     <Project Path="tests/Aspire.Azure.Storage.Queues.Tests/Aspire.Azure.Storage.Queues.Tests.csproj" />
     <Project Path="tests/Aspire.Components.Common.TestUtilities/Aspire.Components.Common.TestUtilities.csproj" />
     <Project Path="tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj" />
+    <Project Path="tests/Aspire.HealthChecks.Tests/Aspire.HealthChecks.Tests.csproj" />
     <Project Path="tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.Azure.StackExchangeRedis.Tests/Aspire.Microsoft.Azure.StackExchangeRedis.Tests.csproj" />
@@ -497,6 +501,7 @@
   </Folder>
   <Folder Name="/tests/testproject/">
     <Project Path="tests/testproject/TestProject.AppHost/TestProject.AppHost.csproj" />
+    <Project Path="tests/testproject/TestProject.HealthCheckService/TestProject.HealthCheckService.csproj" />
     <Project Path="tests/testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj" />
     <Project Path="tests/testproject/TestProject.ServiceA/TestProject.ServiceA.csproj" />
     <Project Path="tests/testproject/TestProject.ServiceB/TestProject.ServiceB.csproj" />
