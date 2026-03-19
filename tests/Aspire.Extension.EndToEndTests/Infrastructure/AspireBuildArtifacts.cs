@@ -75,7 +75,7 @@ internal sealed record AspireBuildArtifacts(
 
         if (FindPackagesDirectory(effectiveRoot) is null)
         {
-            missing.Add("NuGet packages (run: ./build.sh --pack)");
+            missing.Add("NuGet packages (run: ./localhive.sh or ./build.sh --pack)");
         }
 
         if (FindVsixPath(effectiveRoot) is null)
@@ -100,23 +100,36 @@ internal sealed record AspireBuildArtifacts(
 
     private static string? FindCliPublishDirectory(string repoRoot)
     {
-        var cliBaseDir = Path.Combine(repoRoot, "artifacts", "bin", "Aspire.Cli");
-        if (!Directory.Exists(cliBaseDir))
+        // Search both Aspire.Cli.Tool (framework-dependent from localhive.sh)
+        // and Aspire.Cli (native AOT from build.sh --bundle).
+        // Prefer Release to match localhive.sh package versions.
+        foreach (var dirName in new[] { "Aspire.Cli.Tool", "Aspire.Cli" })
         {
-            return null;
+            var cliBaseDir = Path.Combine(repoRoot, "artifacts", "bin", dirName);
+            if (!Directory.Exists(cliBaseDir))
+            {
+                continue;
+            }
+
+            var matches = Directory.GetFiles(cliBaseDir, "aspire", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("win-") && !f.Contains("osx-"))
+                .OrderByDescending(f => f.Contains("Release")) // prefer Release config
+                .ThenByDescending(f => f.Contains("publish"))  // then prefer publish dirs
+                .ToArray();
+
+            if (matches.Length > 0)
+            {
+                return Path.GetDirectoryName(matches[0]);
+            }
         }
 
-        var matches = Directory.GetFiles(cliBaseDir, "aspire", SearchOption.AllDirectories)
-            .Where(f => f.Contains("linux-x64") && f.Contains("publish"))
-            .ToArray();
-
-        return matches.Length > 0 ? Path.GetDirectoryName(matches[0]) : null;
+        return null;
     }
 
     private static string? FindPackagesDirectory(string repoRoot)
     {
-        // Check Debug first, then Release
-        foreach (var config in new[] { "Debug", "Release" })
+        // Prefer Release (localhive.sh produces properly versioned prerelease packages)
+        foreach (var config in new[] { "Release", "Debug" })
         {
             var dir = Path.Combine(repoRoot, "artifacts", "packages", config, "Shipping");
             if (Directory.Exists(dir) && Directory.GetFiles(dir, "*.nupkg").Length > 0)

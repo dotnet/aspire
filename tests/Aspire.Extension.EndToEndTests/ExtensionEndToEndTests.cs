@@ -101,7 +101,12 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
 
             // ===== Phase 2: Install CLI and create project interactively =====
             _output.WriteLine("--- Phase 2: Installing local CLI ---");
-            await session.SendTextAsync("mkdir -p ~/.aspire/bin && cp /opt/aspire-cli/aspire ~/.aspire/bin/aspire && chmod +x ~/.aspire/bin/aspire\r");
+            await session.SendTextAsync("mkdir -p ~/.aspire/bin && cp -a /opt/aspire-cli/* ~/.aspire/bin/ && chmod +x ~/.aspire/bin/aspire\r");
+            await session.WaitForSuccessPromptFailFastAsync(counter);
+
+            // Set up a package hive so the CLI discovers local dev packages as the "local" channel.
+            // This is the same mechanism used by get-aspire-cli-pr.sh for PR builds.
+            await session.SendTextAsync("mkdir -p ~/.aspire/hives/local && ln -s /opt/aspire/packages ~/.aspire/hives/local/packages\r");
             await session.WaitForSuccessPromptFailFastAsync(counter);
 
             await session.SendTextAsync($"export {envVars}\r");
@@ -122,10 +127,11 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "01-cli-installed.png");
             _output.WriteLine($"✓ CLI installed: {version}");
 
-            // Run aspire new interactively — use local template packages (13.2.0-dev)
-            // so the generated project references dev packages, not GA ones.
+            // Run aspire new interactively using the local hive channel.
+            // --channel local tells the CLI to use the hive packages (13.2.0-dev) and
+            // auto-select the highest version without prompting for channel/version.
             _output.WriteLine("--- Phase 2b: Creating project with aspire new ---");
-            await session.SendTextAsync($"aspire new --source /opt/aspire/packages --version {version}\r");
+            await session.SendTextAsync("aspire new --channel local\r");
 
             var templatePrompt = await session.WaitForTextAsync("Select a template", timeout: TimeSpan.FromSeconds(60));
             if (!templatePrompt)
@@ -220,20 +226,43 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             }
             _output.WriteLine("Shell prompt ready");
 
-            // ===== Phase 3: Patch SDK, restore, and add folder to workspace =====
-            _output.WriteLine("--- Phase 3: Patching SDK and restoring ---");
+            // ===== Phase 3: Verify packages, restore, and add folder to workspace =====
+            _output.WriteLine("--- Phase 3: Verifying packages and restoring ---");
 
-            // Patch SDK version to match local build (safety net — templates should already reference
-            // the correct version, but the SDK import path format may differ from package references)
-            var patchResult = await _fixture.Container.ExecAsync(
-                $"find /root/{projectName} -name '*.csproj' -exec sed -i 's|Aspire.AppHost.Sdk/[0-9][0-9.a-z-]*\"|Aspire.AppHost.Sdk/{version}\"|g' {{}} \\; && " +
-                $"head -5 /root/{projectName}/{projectName}.AppHost/{projectName}.AppHost.csproj",
+            // Verify the CLI created the project with the local dev package version.
+            // The hive channel + --channel local uses the locally-built packages.
+            var csprojCheck = await _fixture.Container.ExecAsync(
+                $"cat /root/{projectName}/{projectName}.AppHost/{projectName}.AppHost.csproj",
                 timeout: TimeSpan.FromSeconds(10));
-            _output.WriteLine($"Patched AppHost SDK → {patchResult.StdOut.Trim()}");
+            _output.WriteLine($"AppHost csproj:\n{csprojCheck.StdOut.Trim()}");
 
-            // Copy NuGet config and restore
-            await session.SendTextAsync($"cp /opt/aspire/nuget.config /root/{projectName}/nuget.config\r");
-            await session.WaitForSuccessPromptAsync(counter);
+            // Safety net: patch SDK import version if templates used a different format
+            var patchResult = await _fixture.Container.ExecAsync(
+                $"find /root/{projectName} -name '*.csproj' -exec sed -i 's|Aspire.AppHost.Sdk/[0-9][0-9.a-z-]*\"|Aspire.AppHost.Sdk/{version}\"|g' {{}} \\;",
+                timeout: TimeSpan.FromSeconds(10));
+
+            // The CLI auto-generates a NuGet.config from the hive channel with:
+            //   Aspire* → /root/.aspire/hives/local/packages (→ /opt/aspire/packages)
+            //   * → https://api.nuget.org/v3/index.json
+            // Verify it exists, and if not, copy our fallback config.
+            var nugetConfigCheck = await _fixture.Container.ExecAsync(
+                $"test -f /root/{projectName}/nuget.config && echo EXISTS || echo MISSING",
+                timeout: TimeSpan.FromSeconds(5));
+            if (nugetConfigCheck.StdOut.Trim() == "MISSING")
+            {
+                _output.WriteLine("CLI did not create NuGet.config — using fallback");
+                await session.SendTextAsync($"cp /opt/aspire/nuget.config /root/{projectName}/nuget.config\r");
+                await session.WaitForSuccessPromptAsync(counter);
+            }
+            else
+            {
+                _output.WriteLine("CLI created NuGet.config from hive channel ✓");
+                // Log the generated config for diagnostics
+                var configContent = await _fixture.Container.ExecAsync(
+                    $"cat /root/{projectName}/nuget.config",
+                    timeout: TimeSpan.FromSeconds(5));
+                _output.WriteLine($"NuGet.config:\n{configContent.StdOut.Trim()}");
+            }
 
             _output.WriteLine("Running dotnet restore...");
             await session.SendTextAsync($"cd /root/{projectName} && dotnet restore\r");
