@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost</source>
-        <target state="needs-review-translation">実行中の Aspire apphost からのリソース スナップショットを表示します。</target>
+        <target state="translated">実行中の apphost のリソースを説明します</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes</source>
-        <target state="new">Continuously stream resource state changes</target>
+        <target state="translated">リソースの状態の変化を継続的にストリームします</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
@@ -39,17 +39,17 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">機械処理用の JSON 形式で出力します。</target>
+        <target state="translated">出力形式 (テーブルまたは JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No apphost project found.</source>
-        <target state="needs-review-translation">AppHost プロジェクトは見つかりません。</target>
+        <target state="translated">apphost プロジェクトは見つかりません。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="needs-review-translation">表示するリソースの名前。指定しない場合は、すべてのリソースが表示されます。</target>
+        <target state="translated">表示するリソースの名前。指定しない場合は、すべてのリソースが表示されます。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">

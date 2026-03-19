@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../DoctorCommandStrings.resx">
     <body>
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Diagnose Aspire environment issues and verify setup</source>
-        <target state="needs-review-translation">诊断 Aspire 环境问题并验证设置</target>
+        <target state="translated">诊断 Aspire 环境问题并验证设置</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
@@ -24,92 +24,92 @@
       </trans-unit>
       <trans-unit id="DevCertsCleanAndTrustFixFormat">
         <source>Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</source>
-        <target state="new">Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</target>
+        <target state="translated">运行“{0}”以移除所有证书，然后运行“{1}”以创建新证书并信任它们。</target>
         <note>{0} is the aspire certs clean command, {1} is the aspire certs trust command (not localizable)</note>
       </trans-unit>
       <trans-unit id="DevCertsMultipleNoneTrustedDetailsFormat">
         <source>Found certificates: {0}. Having multiple certificates can cause confusion.</source>
-        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion.</target>
+        <target state="translated">已找到证书: {0}。拥有多个证书可能会导致混淆。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleNoneTrustedMessageFormat">
         <source>Multiple HTTPS development certificates found ({0} certificates), but none are trusted</source>
-        <target state="new">Multiple HTTPS development certificates found ({0} certificates), but none are trusted</target>
+        <target state="translated">找到多个 HTTPS 开发证书({0} 证书)，但均不是受信任的证书</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleSomeUntrustedDetailsFormat">
         <source>Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</source>
-        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</target>
+        <target state="translated">已找到证书: {0}。选择要使用的证书时，有多个证书可能会导致混淆。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleSomeUntrustedMessageFormat">
         <source>Multiple HTTPS development certificates found ({0} certificates)</source>
-        <target state="new">Multiple HTTPS development certificates found ({0} certificates)</target>
+        <target state="translated">找到多个 HTTPS 开发证书({0} 个证书)</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNoCertificateDetails">
         <source>Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</source>
-        <target state="new">Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</target>
+        <target state="translated">Aspire 在本地开发期间使用 HTTPS 在仪表板和服务之间进行安全通信。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNoCertificateMessage">
         <source>No HTTPS development certificate found</source>
-        <target state="new">No HTTPS development certificate found</target>
+        <target state="translated">找不到 HTTPS 开发证书</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNotTrustedDetailsFormat">
         <source>Certificate {0} exists in the personal store but was not found in the trusted root store.</source>
-        <target state="new">Certificate {0} exists in the personal store but was not found in the trusted root store.</target>
+        <target state="translated">证书 {0} 存在于个人存储中，但不在受信任的根存储中。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNotTrustedMessage">
         <source>HTTPS development certificate is not trusted</source>
-        <target state="new">HTTPS development certificate is not trusted</target>
+        <target state="translated">HTTPS 开发证书不受信任</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsOldVersionDetailsFormat">
         <source>Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</source>
-        <target state="new">Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</target>
+        <target state="translated">较旧的证书版本(低于版本 {0})可能不支持所有证书信任方案。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsOldVersionMessageFormat">
         <source>HTTPS development certificate has an older version ({0})</source>
-        <target state="new">HTTPS development certificate has an older version ({0})</target>
+        <target state="translated">HTTPS 开发证书的版本较旧({0})</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedDetailsFormat">
         <source>The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</source>
-        <target state="new">The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</target>
+        <target state="translated">该证书位于受信任的存储中，但未将 SSL_CERT_DIR 配置为包含“{0}”。一些应用程序可能不信任该证书。"aspire run" 将自动配置此项。</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedFixFormat">
         <source>Set SSL_CERT_DIR in your shell profile: {0}</source>
-        <target state="new">Set SSL_CERT_DIR in your shell profile: {0}</target>
+        <target state="translated">在 shell 配置文件中设置 SSL_CERT_DIR: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedMessage">
         <source>HTTPS development certificate is only partially trusted</source>
-        <target state="new">HTTPS development certificate is only partially trusted</target>
+        <target state="translated">HTTPS 开发证书仅部分受信任</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustFixFormat">
         <source>Run '{0}' to trust the HTTPS development certificate.</source>
-        <target state="new">Run '{0}' to trust the HTTPS development certificate.</target>
+        <target state="translated">运行“{0}”以信任 HTTPS 开发证书。</target>
         <note>{0} is the aspire certs trust command (not localizable)</note>
       </trans-unit>
       <trans-unit id="DevCertsTrustLabelFull">
         <source>[trusted]</source>
-        <target state="new">[trusted]</target>
+        <target state="translated">[受信任]</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustLabelPartial">
         <source>[partial]</source>
-        <target state="new">[partial]</target>
+        <target state="translated">[部分]</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustedMessage">
         <source>HTTPS development certificate is trusted</source>
-        <target state="new">HTTPS development certificate is trusted</target>
+        <target state="translated">HTTPS 开发证书受信任</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentCategoryHeader">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">将结果输出为 JSON g格式以便工具集成</target>
+        <target state="translated">输出格式(表格或 Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">

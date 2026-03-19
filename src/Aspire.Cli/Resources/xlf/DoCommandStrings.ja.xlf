@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies (Preview)</source>
-        <target state="needs-review-translation">特定のパイプライン ステップとその依存関係を実行します。(プレビュー)</target>
+        <target state="translated">特定のパイプライン ステップとその依存関係を実行します (プレビュー)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts</source>
-        <target state="needs-review-translation">成果物の省略可能な出力パス。</target>
+        <target state="translated">成果物のオプションの出力パスです</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute</source>
-        <target state="needs-review-translation">実行するステップの名前です。</target>
+        <target state="translated">実行するステップの名前です</target>
         <note />
       </trans-unit>
     </body>

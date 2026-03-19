@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies (Preview)</source>
-        <target state="needs-review-translation">Esegui un passaggio specifico della pipeline e le relative dipendenze. (Anteprima)</target>
+        <target state="new">Execute a specific pipeline step and its dependencies (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts</source>
-        <target state="needs-review-translation">Percorso di output facoltativo per gli artefatti.</target>
+        <target state="new">The optional output path for artifacts</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute</source>
-        <target state="needs-review-translation">Nome del passaggio da eseguire.</target>
+        <target state="new">The name of the step to execute</target>
         <note />
       </trans-unit>
     </body>

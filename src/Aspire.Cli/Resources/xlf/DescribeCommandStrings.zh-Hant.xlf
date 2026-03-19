@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost</source>
-        <target state="needs-review-translation">顯示正在執行的 Aspire AppHost 的資源快照集。</target>
+        <target state="new">Describe resources in a running apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
@@ -39,17 +39,17 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">輸出為 JSON 格式供機器使用。</target>
+        <target state="new">Output format (Table or Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No apphost project found.</source>
-        <target state="needs-review-translation">找不到 AppHost 專案。</target>
+        <target state="new">No apphost project found.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>The name of the resource to display. If not specified, all resources are shown.</source>
-        <target state="needs-review-translation">要顯示的資源名稱。如果未指定，則會顯示所有資源。</target>
+        <target state="translated">要顯示的資源名稱。如果未指定，則會顯示所有資源。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNotFound">
