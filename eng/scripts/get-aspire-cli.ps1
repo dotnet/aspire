@@ -470,6 +470,49 @@ function Invoke-SecureWebRequest {
     }
 }
 
+# Builds a compact display string for download messages without exposing the full URL.
+function Get-DownloadDescriptor {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Uri
+    )
+
+    try {
+        $downloadUri = [System.Uri]$Uri
+        $fileName = [System.IO.Path]::GetFileName($downloadUri.AbsolutePath)
+        $trimmedPath = $downloadUri.AbsolutePath.Trim("/")
+        $source = $downloadUri.Host
+
+        if ($trimmedPath -match "^dotnet/[^/]+/aspire/(?<source>.+)/(?<file>[^/]+)$") {
+            $source = $Matches["source"]
+            $fileName = $Matches["file"]
+        }
+        elseif ($trimmedPath -match "^public(?:-checksums)?/aspire/+(?<version>[^/]+)/(?<file>[^/]+)$") {
+            $source = "version/$($Matches["version"])"
+            $fileName = $Matches["file"]
+        }
+        elseif ($trimmedPath -match "^(?<source>.+)/(?<file>[^/]+)$") {
+            $source = $Matches["source"]
+            $fileName = $Matches["file"]
+        }
+
+        if ([string]::IsNullOrWhiteSpace($fileName)) {
+            return $Uri
+        }
+
+        if ([string]::IsNullOrWhiteSpace($source)) {
+            return $fileName
+        }
+
+        return "$fileName from '$source'"
+    }
+    catch {
+        return $Uri
+    }
+}
+
 # Enhanced file download wrapper with validation
 function Invoke-FileDownload {
     [CmdletBinding()]
@@ -490,22 +533,24 @@ function Invoke-FileDownload {
         [int]$MaxRetries = 5
     )
 
+    $downloadDescriptor = Get-DownloadDescriptor -Uri $Uri
+
     # Validate content type via HEAD request
-    Write-Message "Validating content type for $Uri" -Level Verbose
+    Write-Message "Validating content type for $downloadDescriptor" -Level Verbose
     $contentType = Get-ContentTypeFromUri -Uri $Uri -TimeoutSec 60 -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
     Write-Message "Detected content type: $contentType" -Level Verbose
 
     if ($contentType -and $contentType.ToLowerInvariant().StartsWith("text/html")) {
-        throw "Server returned HTML content instead of expected file. Make sure the URL is correct: $Uri"
+        throw "Server returned HTML content instead of expected file while validating $downloadDescriptor."
     }
 
     try {
-        Write-Message "Downloading $Uri to $OutputPath" -Level Verbose
+        Write-Message "Downloading $downloadDescriptor to $OutputPath" -Level Verbose
         Invoke-SecureWebRequest -Uri $Uri -OutFile $OutputPath -TimeoutSec $TimeoutSec -OperationTimeoutSec $OperationTimeoutSec -MaxRetries $MaxRetries
         Write-Message "Successfully downloaded file to: $OutputPath" -Level Verbose
     }
     catch {
-        throw "Failed to download $Uri - $($_.Exception.Message)"
+        throw "Failed to download $downloadDescriptor - $($_.Exception.Message)"
     }
 }
 
@@ -919,11 +964,12 @@ function Get-AspireExtension {
     Write-Message "Downloading Aspire VS Code extension" -Level Info
 
     $extensionUrl = Get-AspireExtensionUrl -Version $Version -Quality $Quality
+    $extensionDescriptor = Get-DownloadDescriptor -Uri $extensionUrl
     $extensionArchive = Join-Path $TempDir $Script:ExtensionArtifactName
 
     try {
-        if ($PSCmdlet.ShouldProcess($extensionArchive, "Download extension from $extensionUrl")) {
-            Write-Message "Downloading from: $extensionUrl" -Level Info
+        if ($PSCmdlet.ShouldProcess($extensionDescriptor, "Download extension")) {
+            Write-Message "Downloading $extensionDescriptor" -Level Info
             Invoke-FileDownload -Uri $extensionUrl -OutputPath $extensionArchive -TimeoutSec $Script:ArchiveDownloadTimeoutSec
             Write-Message "Successfully downloaded extension archive" -Level Verbose
         }
@@ -1144,17 +1190,19 @@ function Install-AspireCli {
         $runtimeIdentifier = "$targetOS-$targetArch"
         $extension = if ($targetOS -eq "win") { "zip" } else { "tar.gz" }
         $urls = Get-AspireCliUrl -Version $Version -Quality $Quality -RuntimeIdentifier $runtimeIdentifier -Extension $extension
+        $archiveDescriptor = Get-DownloadDescriptor -Uri $urls.ArchiveUrl
+        $checksumDescriptor = Get-DownloadDescriptor -Uri $urls.ChecksumUrl
 
         $archivePath = Join-Path $tempDir $urls.ArchiveFilename
         $checksumPath = Join-Path $tempDir $urls.ChecksumFilename
 
-        if ($PSCmdlet.ShouldProcess($urls.ArchiveUrl, "Download CLI archive")) {
+        if ($PSCmdlet.ShouldProcess($archiveDescriptor, "Download CLI archive")) {
             # Download the Aspire CLI archive
-            Write-Message "Downloading from: $($urls.ArchiveUrl)" -Level Info
+            Write-Message "Downloading $archiveDescriptor" -Level Info
             Invoke-FileDownload -Uri $urls.ArchiveUrl -TimeoutSec $Script:ArchiveDownloadTimeoutSec -OutputPath $archivePath
         }
 
-        if ($PSCmdlet.ShouldProcess($urls.ChecksumUrl, "Download CLI archive checksum")) {
+        if ($PSCmdlet.ShouldProcess($checksumDescriptor, "Download CLI archive checksum")) {
             # Download and test the checksum
             Invoke-FileDownload -Uri $urls.ChecksumUrl -TimeoutSec $Script:ChecksumDownloadTimeoutSec -OutputPath $checksumPath
             Test-FileChecksum -ArchiveFile $archivePath -ChecksumFile $checksumPath
