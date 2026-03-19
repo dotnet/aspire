@@ -70,8 +70,8 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
 
             var runTask = terminal.RunAsync(ct);
 
-            // Wait briefly for the connection to either succeed or fault
-            await Task.Delay(1000, ct);
+            // Brief wait for the connection to either succeed or fault
+            await Task.Delay(300, ct);
 
             if (runTask.IsFaulted)
             {
@@ -87,12 +87,12 @@ internal sealed class RemoteTerminalSession : IAsyncDisposable
                 }
 
                 // Back off and retry — the server may not be fully ready
-                await Task.Delay(2000, ct);
+                await Task.Delay(500, ct);
                 continue;
             }
 
             // Connection succeeded — wait for initial terminal content
-            var contentDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            var contentDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
             while (DateTime.UtcNow < contentDeadline)
             {
                 ct.ThrowIfCancellationRequested();
