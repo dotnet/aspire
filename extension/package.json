@@ -499,12 +499,12 @@
         },
         {
           "command": "aspire-vscode.executeResourceCommand",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource/",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource(:|$)/",
           "group": "2_actions@4"
         },
         {
           "command": "aspire-vscode.viewResourceLogs",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource/",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource(:|$)/",
           "group": "3_info@1"
         },
         {
@@ -524,7 +524,7 @@
         },
         {
           "command": "aspire-vscode.copyResourceName",
-          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource/",
+          "when": "view == aspire-vscode.runningAppHosts && viewItem =~ /^resource(:|$)/",
           "group": "3_info@2"
         },
         {

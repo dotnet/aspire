@@ -135,7 +135,7 @@
   "command.copyAppHostPath": "Copy apphost path",
   "command.copyResourceName": "Copy resource name",
   "command.copyPid": "Copy ID",
-  "command.switchToGlobalView": "Show global apphosts",
+  "command.switchToGlobalView": "Show all running apphosts",
   "command.switchToWorkspaceView": "Show workspace apphost",
   "command.installCliStable": "Install Aspire CLI (stable)",
   "command.installCliDaily": "Install Aspire CLI (daily)",

@@ -389,7 +389,7 @@
       <source xml:lang="en">Show a notification with a link to open the dashboard.</source>
     </trans-unit>
     <trans-unit id="command.switchToGlobalView">
-      <source xml:lang="en">Show global apphosts</source>
+      <source xml:lang="en">Show all running apphosts</source>
     </trans-unit>
     <trans-unit id="command.switchToWorkspaceView">
       <source xml:lang="en">Show workspace apphost</source>
