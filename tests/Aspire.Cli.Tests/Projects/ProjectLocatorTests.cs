@@ -1019,6 +1019,125 @@ builder.Build().Run();");
         Assert.False(sdkCheckCalled);
     }
 
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_ExcludesProjectsInsideNuGetCache()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a valid AppHost project in a normal location
+        var normalProject = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyApp", "AppHost.csproj"));
+        Directory.CreateDirectory(normalProject.DirectoryName!);
+        await File.WriteAllTextAsync(normalProject.FullName, "Not a real project file.");
+
+        // Create a project inside a simulated NuGet cache path
+        var nugetCacheDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".nuget", "packages",
+            "aspire.projecttemplates", "9.1.0", "content", "templates", "aspire-apphost");
+        Directory.CreateDirectory(nugetCacheDir);
+        var cachedProject = new FileInfo(Path.Combine(nugetCacheDir, "Aspire.AppHost1.csproj"));
+        await File.WriteAllTextAsync(cachedProject.FullName, "Not a real project file.");
+
+        var projectFactory = new TestAppHostProjectFactory
+        {
+            ValidateAppHostCallback = _ => new AppHostValidationResult(IsValid: true)
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, projectFactory: projectFactory);
+
+        // Set NUGET_PACKAGES to point to our simulated cache
+        var originalValue = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+        try
+        {
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES",
+                Path.Combine(workspace.WorkspaceRoot.FullName, ".nuget", "packages"));
+
+            var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
+                workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+            // Should only find the normal project, not the one inside the NuGet cache
+            Assert.Single(foundFiles);
+            Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", originalValue);
+        }
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_FindsProjectsOutsideNuGetCache()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create projects in various subdirectories (none are NuGet cache)
+        var project1 = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "src", "App1", "AppHost.csproj"));
+        Directory.CreateDirectory(project1.DirectoryName!);
+        await File.WriteAllTextAsync(project1.FullName, "Not a real project file.");
+
+        var project2 = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "samples", "App2", "AppHost.csproj"));
+        Directory.CreateDirectory(project2.DirectoryName!);
+        await File.WriteAllTextAsync(project2.FullName, "Not a real project file.");
+
+        var projectFactory = new TestAppHostProjectFactory
+        {
+            ValidateAppHostCallback = _ => new AppHostValidationResult(IsValid: true)
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, projectFactory: projectFactory);
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
+            workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal(2, foundFiles.Count);
+        var foundPaths = foundFiles.Select(f => f.FullName).ToHashSet();
+        Assert.Contains(project1.FullName, foundPaths);
+        Assert.Contains(project2.FullName, foundPaths);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_RespectsCustomNuGetPackagesEnvVar()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a valid AppHost project in a normal location
+        var normalProject = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyApp", "AppHost.csproj"));
+        Directory.CreateDirectory(normalProject.DirectoryName!);
+        await File.WriteAllTextAsync(normalProject.FullName, "Not a real project file.");
+
+        // Create a project inside a custom NuGet cache location (not the default .nuget/packages)
+        var customCacheDir = Path.Combine(workspace.WorkspaceRoot.FullName, "custom-nuget-cache");
+        var cachedProjectDir = Path.Combine(customCacheDir, "aspire.projecttemplates", "9.1.0", "content");
+        Directory.CreateDirectory(cachedProjectDir);
+        var cachedProject = new FileInfo(Path.Combine(cachedProjectDir, "Aspire.AppHost1.csproj"));
+        await File.WriteAllTextAsync(cachedProject.FullName, "Not a real project file.");
+
+        var projectFactory = new TestAppHostProjectFactory
+        {
+            ValidateAppHostCallback = _ => new AppHostValidationResult(IsValid: true)
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocator(executionContext, projectFactory: projectFactory);
+
+        var originalValue = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+        try
+        {
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", customCacheDir);
+
+            var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(
+                workspace.WorkspaceRoot.FullName, CancellationToken.None).DefaultTimeout();
+
+            // Should only find the normal project, not the one inside the custom cache
+            Assert.Single(foundFiles);
+            Assert.Equal(normalProject.FullName, foundFiles[0].FullName);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", originalValue);
+        }
+    }
+
     private static ProjectLocator CreateProjectLocator(
         CliExecutionContext executionContext,
         IInteractionService? interactionService = null,

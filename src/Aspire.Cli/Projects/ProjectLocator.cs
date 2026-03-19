@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.IO.Enumeration;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
@@ -76,12 +77,30 @@ internal sealed class ProjectLocator(
 
             logger.LogDebug("Searching for patterns: {Patterns}", string.Join(", ", allPatterns));
 
+            var nugetCachePath = GetNuGetPackagesCachePath();
+            var pathComparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            logger.LogDebug("NuGet cache path to exclude: {NuGetCachePath}", nugetCachePath ?? "(none)");
+
             // Collect all candidates with their handlers across all patterns
             var candidatesWithHandlers = new List<(FileInfo File, IAppHostProject Handler)>();
 
             foreach (var pattern in allPatterns)
             {
-                var candidateFiles = searchDirectory.GetFiles(pattern, enumerationOptions);
+                var enumerable = new FileSystemEnumerable<FileInfo>(
+                    searchDirectory.FullName,
+                    (ref FileSystemEntry entry) => new FileInfo(entry.ToFullPath()),
+                    enumerationOptions)
+                {
+                    ShouldIncludePredicate = (ref FileSystemEntry entry) =>
+                        !entry.IsDirectory && FileSystemName.MatchesSimpleExpression(pattern, entry.FileName),
+                    ShouldRecursePredicate = (ref FileSystemEntry entry) =>
+                        nugetCachePath is null ||
+                        !entry.ToFullPath().StartsWith(nugetCachePath, pathComparison)
+                };
+                var candidateFiles = enumerable.ToArray();
                 logger.LogDebug("Found {CandidateCount} files matching pattern '{Pattern}'", candidateFiles.Length, pattern);
 
                 foreach (var candidateFile in candidateFiles)
@@ -484,6 +503,23 @@ internal sealed class ProjectLocator(
         }
 
         return settingsDirectory.Parent;
+    }
+
+    private static string? GetNuGetPackagesCachePath()
+    {
+        var envPath = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+        if (!string.IsNullOrEmpty(envPath))
+        {
+            return Path.GetFullPath(envPath);
+        }
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(userProfile))
+        {
+            return Path.GetFullPath(Path.Combine(userProfile, ".nuget", "packages"));
+        }
+
+        return null;
     }
 
 }
