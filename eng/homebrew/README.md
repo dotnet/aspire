@@ -16,7 +16,6 @@ brew install --cask aspire              # stable
 | File | Description |
 |---|---|
 | `aspire.rb.template` | Cask template for stable releases |
-| `aspire@prerelease.rb.template` | Cask template for prerelease builds |
 | `generate-cask.sh` | Downloads tarballs, computes SHA256 hashes, generates cask from template |
 
 ### Pipeline templates
@@ -48,7 +47,7 @@ Where arch is `arm64` or `x64`.
 
 - **URL templating**: `url "...osx-#{arch}-#{version}.tar.gz"` — a single line instead of nested `on_macos do / if Hardware::CPU.arm?` blocks
 - **Official repo path**: Casks can be submitted to `Homebrew/homebrew-cask` for `brew install aspire` without a tap
-- **Cleaner multi-channel**: `aspire` and `aspire@prerelease` follow established cask naming conventions
+- **Cleaner multi-channel**: Follows established cask naming conventions (for example, `aspire` for stable and `aspire@prerelease` for a potential preview channel)
 
 ## CI Pipeline
 
@@ -61,7 +60,7 @@ Publishing submits a PR to `Homebrew/homebrew-cask` using the GitHub REST API:
 
 1. Forks `Homebrew/homebrew-cask` (idempotent — reuses existing fork)
 2. Creates or resets a branch named `aspire-{version}`
-3. Copies the generated cask to `Casks/a/aspire.rb` (or `aspire@prerelease.rb`)
+3. Copies the generated cask to `Casks/a/aspire.rb`
 4. Reuses the existing open PR for that branch when present
 5. Force-pushes the same branch for reruns; if prior PRs from that branch were closed, the publish step opens a fresh PR and marks the old ones as superseded
 6. Opens a PR with title `aspire {version}` when none exists
@@ -76,7 +75,7 @@ Prepare validation currently runs:
 ## Open Items
 
 - [ ] Submit initial `aspire` cask PR to `Homebrew/homebrew-cask` for acceptance
-- [ ] Submit `aspire@prerelease` cask PR to `Homebrew/homebrew-cask`
+- [ ] (Future) Decide whether to add a separate prerelease cask (for example, `aspire@prerelease`) and update pipelines/docs accordingly
 - [ ] Configure `aspire-homebrew-bot-pat` secret in the pipeline variable group
 
 ## References
