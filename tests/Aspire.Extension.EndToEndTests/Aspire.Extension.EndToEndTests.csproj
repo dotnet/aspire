@@ -33,6 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hex1b" />
     <PackageReference Include="Microsoft.Playwright" />
   </ItemGroup>
 

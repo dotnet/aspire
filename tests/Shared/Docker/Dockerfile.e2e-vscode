@@ -46,6 +46,10 @@ RUN mkdir -p /ext
 RUN mkdir -p /workspace
 WORKDIR /workspace
 
+# Install Hex1b CLI tool (provides terminal hosting with diagnostics socket for remote control)
+RUN dotnet tool install --global Hex1b.Tool --version 0.116.0
+ENV PATH="$PATH:/root/.dotnet/tools"
+
 ENV DONT_PROMPT_WSL_INSTALL=1
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 

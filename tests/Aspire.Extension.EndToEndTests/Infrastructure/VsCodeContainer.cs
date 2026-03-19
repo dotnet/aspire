@@ -19,6 +19,7 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
 
     private readonly ITestOutputHelper _output;
     private readonly string _dockerfilePath;
+    private readonly string _socketMountPath;
     private string? _containerId;
     private int _hostPort;
 
@@ -34,6 +35,12 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         {
             throw new FileNotFoundException($"Dockerfile not found at {_dockerfilePath}");
         }
+
+        // Create a temp directory for sharing Hex1b diagnostics sockets between container and host.
+        // Inside the container, hex1b creates sockets at /root/.hex1b/sockets/{pid}.diagnostics.socket.
+        // We volume-mount this host directory to that container path so we can connect from the test.
+        _socketMountPath = Path.Combine(Path.GetTempPath(), $"hex1b-sockets-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_socketMountPath);
     }
 
     /// <summary>
@@ -45,6 +52,12 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
     /// Gets the Docker container ID, available after <see cref="StartAsync"/> completes.
     /// </summary>
     public string? ContainerId => _containerId;
+
+    /// <summary>
+    /// Gets the host-side path where Hex1b diagnostics sockets are mounted.
+    /// Socket files appear here when <c>hex1b terminal start</c> runs inside the container.
+    /// </summary>
+    public string SocketMountPath => _socketMountPath;
 
     /// <summary>
     /// Builds the Docker image and starts the container.
@@ -82,7 +95,7 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
         _output.WriteLine($"Starting container on port {_hostPort}...");
 
         var result = await RunDockerAsync(
-            $"run -d -p {_hostPort}:{ContainerPort} {ImageName}",
+            $"run -d -p {_hostPort}:{ContainerPort} -v {_socketMountPath}:/root/.hex1b/sockets {ImageName}",
             timeout: TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken);
 
@@ -169,6 +182,19 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
             }
 
             _containerId = null;
+        }
+
+        // Clean up the socket mount directory
+        try
+        {
+            if (Directory.Exists(_socketMountPath))
+            {
+                Directory.Delete(_socketMountPath, recursive: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"Warning: socket directory cleanup failed: {ex.Message}");
         }
     }
 
@@ -271,6 +297,78 @@ internal sealed partial class VsCodeContainer : IAsyncDisposable
             $"exec {_containerId} bash -c \"{command.Replace("\"", "\\\"")}\"",
             timeout: timeout ?? TimeSpan.FromSeconds(30),
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Waits for a Hex1b diagnostics socket to appear in the socket mount directory.
+    /// Returns the full path to the socket file on the host.
+    /// </summary>
+    public async Task<string> WaitForSocketAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(60);
+        using var timeoutCts = new CancellationTokenSource(effectiveTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, timeoutCts.Token);
+
+        _output.WriteLine($"Waiting for diagnostics socket in {_socketMountPath}...");
+        var startTime = Stopwatch.GetTimestamp();
+
+        while (!linkedCts.Token.IsCancellationRequested)
+        {
+            var socketFiles = Directory.GetFiles(_socketMountPath, "*.diagnostics.socket");
+            if (socketFiles.Length > 0)
+            {
+                var socketPath = socketFiles[0];
+                var elapsed = Stopwatch.GetElapsedTime(startTime);
+                _output.WriteLine($"Socket found: {Path.GetFileName(socketPath)} ({elapsed.TotalSeconds:F1}s)");
+
+                // The socket is created by root inside the container. Make it accessible
+                // to the host test process by relaxing permissions via docker exec.
+                var chmodResult = await ExecAsync(
+                    "chmod 777 /root/.hex1b/sockets/*.socket",
+                    timeout: TimeSpan.FromSeconds(5),
+                    cancellationToken: cancellationToken);
+
+                if (chmodResult.ExitCode != 0)
+                {
+                    _output.WriteLine($"Warning: chmod on socket failed: {chmodResult.StdErr}");
+                }
+
+                return socketPath;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(500), linkedCts.Token);
+        }
+
+        throw new TimeoutException(
+            $"No diagnostics socket appeared in {_socketMountPath} within {effectiveTimeout.TotalSeconds}s");
+    }
+
+    /// <summary>
+    /// Copies a file from the container to the host via <c>docker cp</c>.
+    /// </summary>
+    public async Task CopyFromContainerAsync(string containerPath, string hostPath, CancellationToken cancellationToken = default)
+    {
+        if (_containerId is null)
+        {
+            throw new InvalidOperationException("Container is not running.");
+        }
+
+        var hostDir = Path.GetDirectoryName(hostPath);
+        if (hostDir is not null)
+        {
+            Directory.CreateDirectory(hostDir);
+        }
+
+        var result = await RunDockerAsync(
+            $"cp {_containerId}:{containerPath} {hostPath}",
+            timeout: TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken);
+
+        if (result.ExitCode != 0)
+        {
+            _output.WriteLine($"Warning: docker cp failed: {result.StdErr}");
+        }
     }
 
     internal sealed record DockerResult(int ExitCode, string StdOut, string StdErr);

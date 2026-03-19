@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Extension.EndToEndTests.Infrastructure;
+using Aspire.Extension.EndToEndTests.Infrastructure.Hex1b;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -71,6 +72,142 @@ public sealed class SmokeTests : IClassFixture<VsCodeWebFixture>, IAsyncDisposab
         finally
         {
             await _fixture.SaveTraceAsync(nameof(VsCodeLaunchesAndRendersWorkbench));
+        }
+    }
+
+    [Fact]
+    public async Task Hex1bTerminalCreatesSocketViaMountedVolume()
+    {
+        _output.WriteLine("Verifying hex1b tool is installed and socket mount works");
+        _output.WriteLine($"Socket mount path: {_fixture.Container.SocketMountPath}");
+
+        var page = await _fixture.CreatePageAsync();
+
+        try
+        {
+            // Wait for VS Code workbench to fully load
+            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
+
+            // Dismiss any first-run dialogs
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(500);
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(1000);
+
+            // Open the integrated terminal
+            _output.WriteLine("Opening integrated terminal...");
+            await page.Keyboard.PressAsync("Control+Backquote");
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await Task.Delay(2000);
+
+            // Verify hex1b is available
+            var hexResult = await _fixture.Container.ExecAsync("hex1b --version");
+            _output.WriteLine($"hex1b --version: {hexResult.StdOut.Trim()} (exit: {hexResult.ExitCode})");
+            Assert.Equal(0, hexResult.ExitCode);
+
+            // Start hex1b terminal with attach in the VS Code terminal.
+            // This spawns a headless host process (with diagnostics socket) and attaches a TUI.
+            var cmd = "hex1b terminal start --attach -- /bin/bash";
+            _output.WriteLine($"Typing: {cmd}");
+            await page.Keyboard.TypeAsync(cmd, new() { Delay = 20 });
+            await page.Keyboard.PressAsync("Enter");
+
+            // Wait for the diagnostics socket to appear in the mounted directory
+            var socketPath = await _fixture.Container.WaitForSocketAsync(
+                timeout: TimeSpan.FromSeconds(60));
+
+            _output.WriteLine($"Diagnostics socket found at: {socketPath}");
+            Assert.True(File.Exists(socketPath), $"Socket file should exist at {socketPath}");
+
+            await ScreenshotAsync(page, "hex1b-terminal-started.png");
+            _output.WriteLine("✓ hex1b terminal started, diagnostics socket is accessible via volume mount");
+        }
+        finally
+        {
+            await _fixture.SaveTraceAsync(nameof(Hex1bTerminalCreatesSocketViaMountedVolume));
+        }
+    }
+
+    [Fact]
+    public async Task RemoteTerminalSessionCanSendAndReceiveText()
+    {
+        _output.WriteLine("Testing DiagnosticsWorkloadAdapter + RemoteTerminalSession round-trip");
+
+        var page = await _fixture.CreatePageAsync();
+
+        try
+        {
+            // Wait for VS Code and open terminal
+            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 120_000 });
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(500);
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(1000);
+
+            _output.WriteLine("Opening integrated terminal...");
+            await page.Keyboard.PressAsync("Control+Backquote");
+            await page.WaitForSelectorAsync(".terminal-wrapper", new() { Timeout = 30_000 });
+            await Task.Delay(2000);
+
+            // Kill any existing hex1b processes from previous tests and clean up stale sockets
+            await _fixture.Container.ExecAsync("pkill -f 'hex1b terminal' 2>/dev/null; rm -f /root/.hex1b/sockets/*.socket");
+            await Task.Delay(1000);
+
+            // Start hex1b with attach in VS Code terminal
+            var cmd = "hex1b terminal start --attach -- /bin/bash";
+            _output.WriteLine($"Typing: {cmd}");
+            await page.Keyboard.TypeAsync(cmd, new() { Delay = 20 });
+            await page.Keyboard.PressAsync("Enter");
+
+            // Wait for socket
+            var socketPath = await _fixture.Container.WaitForSocketAsync(timeout: TimeSpan.FromSeconds(60));
+            _output.WriteLine($"Socket found: {socketPath}");
+
+            // Connect our remote terminal session
+            await using var session = await RemoteTerminalSession.ConnectAsync(socketPath);
+            _output.WriteLine("Connected to remote terminal session");
+
+            // Give the shell prompt a moment to render
+            await Task.Delay(1000);
+            var initialText = session.GetScreenText();
+            _output.WriteLine($"Initial screen (first 200 chars): {initialText[..Math.Min(200, initialText.Length)]}");
+
+            // Send a command and verify we see the output
+            var echoMarker = $"HEX1B_ECHO_{Guid.NewGuid():N}";
+            _output.WriteLine($"Sending: echo {echoMarker}");
+            await session.SendTextAsync($"echo {echoMarker}\r");
+
+            // Wait longer with periodic screen dumps for debugging
+            var found = false;
+            for (int i = 0; i < 30; i++)
+            {
+                await Task.Delay(500);
+                var screenNow = session.GetScreenText();
+                if (screenNow.Contains(echoMarker, StringComparison.Ordinal))
+                {
+                    found = true;
+                    _output.WriteLine($"Marker found after {(i + 1) * 500}ms");
+                    break;
+                }
+                if (i % 4 == 0)
+                {
+                    var nonEmpty = session.GetNonEmptyLines();
+                    _output.WriteLine($"  Poll {i}: {nonEmpty.Count} non-empty lines: {string.Join(" | ", nonEmpty.Take(5))}");
+                }
+            }
+
+            var finalText = session.GetScreenText();
+            _output.WriteLine($"Final screen contains marker: {found}");
+            _output.WriteLine($"Final screen (first 500 chars):\n{finalText[..Math.Min(500, finalText.Length)]}");
+
+            await ScreenshotAsync(page, "remote-terminal-echo.png");
+
+            Assert.True(found, $"Expected to find '{echoMarker}' in terminal screen text");
+            _output.WriteLine("✓ Remote terminal round-trip verified: send input → receive output");
+        }
+        finally
+        {
+            await _fixture.SaveTraceAsync(nameof(RemoteTerminalSessionCanSendAndReceiveText));
         }
     }
 
