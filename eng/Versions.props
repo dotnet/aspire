@@ -81,6 +81,7 @@
     <MicrosoftExtensionsFeaturesPreviewVersion>10.0.5</MicrosoftExtensionsFeaturesPreviewVersion>
     <MicrosoftAspNetCoreSignalRClientPreviewVersion>10.0.5</MicrosoftAspNetCoreSignalRClientPreviewVersion>
     <!-- Runtime -->
+    <MicrosoftBclMemoryPreviewVersion>10.0.5</MicrosoftBclMemoryPreviewVersion>
     <MicrosoftExtensionsHostingAbstractionsPreviewVersion>10.0.5</MicrosoftExtensionsHostingAbstractionsPreviewVersion>
     <MicrosoftExtensionsHostingPreviewVersion>10.0.5</MicrosoftExtensionsHostingPreviewVersion>
     <MicrosoftExtensionsCachingMemoryPreviewVersion>10.0.5</MicrosoftExtensionsCachingMemoryPreviewVersion>
