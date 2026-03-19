@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="BannerArgumentDescription">
         <source>Display the animated Aspire CLI welcome banner</source>
-        <target state="needs-review-translation">Exibir a barra de notificação de boas-vindas animada da CLI Aspire.</target>
+        <target state="new">Display the animated Aspire CLI welcome banner</target>
         <note />
       </trans-unit>
       <trans-unit id="BannerVersionFormat">
@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="CliWaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command</source>
-        <target state="needs-review-translation">Aguarde um depurador anexar antes de executar o comando.</target>
+        <target state="new">Wait for a debugger to attach before executing the command</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugArgumentDescription">
         <source>Enable debug logging to the console</source>
-        <target state="needs-review-translation">Habilitar o log de depuração no console.</target>
+        <target state="new">Enable debug logging to the console</target>
         <note />
       </trans-unit>
       <trans-unit id="DebugLevelArgumentDescription">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>The Aspire CLI can be used to create, run, and publish Aspire-based applications</source>
-        <target state="needs-review-translation">A CLI do Aspire pode ser usada para criar, executar e publicar aplicações baseadas em Aspire.</target>
+        <target state="new">The Aspire CLI can be used to create, run, and publish Aspire-based applications</target>
         <note />
       </trans-unit>
       <trans-unit id="FirstTimeUseTelemetryNotice">
@@ -59,7 +59,7 @@ Leia mais sobre a telemetria da CLI do Aspire: https://aka.ms/aspire/cli-telemet
       </trans-unit>
       <trans-unit id="NoLogoArgumentDescription">
         <source>Suppress the startup banner and telemetry notice</source>
-        <target state="needs-review-translation">Suprima a faixa de inicialização e o aviso de telemetria.</target>
+        <target state="new">Suppress the startup banner and telemetry notice</target>
         <note />
       </trans-unit>
       <trans-unit id="NonInteractiveArgumentDescription">
@@ -69,7 +69,7 @@ Leia mais sobre a telemetria da CLI do Aspire: https://aka.ms/aspire/cli-telemet
       </trans-unit>
       <trans-unit id="WaitForDebuggerArgumentDescription">
         <source>Wait for a debugger to attach before executing the command</source>
-        <target state="needs-review-translation">Aguarde um depurador anexar antes de executar o comando.</target>
+        <target state="new">Wait for a debugger to attach before executing the command</target>
         <note />
       </trans-unit>
       <trans-unit id="WaitingForDebugger">
