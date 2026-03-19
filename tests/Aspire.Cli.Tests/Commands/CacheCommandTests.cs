@@ -43,7 +43,7 @@ public class CacheCommandTests(ITestOutputHelper outputHelper)
     public async Task CacheClear_ClearsPackagesDirectory()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var packagesDir = new DirectoryInfo(Path.Combine(workspace.WorkingDirectory.FullName, ".aspire", "packages"));
+        var packagesDir = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "packages"));
         var restoreDir = packagesDir.CreateSubdirectory("restore").CreateSubdirectory("ABC123");
         File.WriteAllText(Path.Combine(restoreDir.FullName, "test.dll"), "fake");
 
@@ -66,7 +66,7 @@ public class CacheCommandTests(ITestOutputHelper outputHelper)
     public async Task CacheClear_HandlesNonExistentPackagesDirectory()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var packagesDir = new DirectoryInfo(Path.Combine(workspace.WorkingDirectory.FullName, ".aspire", "packages-nonexistent"));
+        var packagesDir = new DirectoryInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "packages-nonexistent"));
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
