@@ -334,6 +334,21 @@
         "command": "aspire-vscode.verifyCliInstalled",
         "title": "%command.verifyCliInstalled%",
         "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.codeLensDebugPipelineStep",
+        "title": "%command.codeLensDebugPipelineStep%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.codeLensResourceAction",
+        "title": "%command.codeLensResourceAction%",
+        "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.codeLensViewLogs",
+        "title": "%command.codeLensViewLogs%",
+        "category": "Aspire"
       }
     ],
     "jsonValidation": [
@@ -414,6 +429,18 @@
         },
         {
           "command": "aspire-vscode.executeResourceCommand",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.codeLensDebugPipelineStep",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.codeLensResourceAction",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.codeLensViewLogs",
           "when": "false"
         },
         {

@@ -1,0 +1,53 @@
+import * as vscode from 'vscode';
+import { AppHostResourceParser, ParsedResource, registerParser } from './AppHostResourceParser';
+
+/**
+ * C# AppHost resource parser.
+ * Detects AppHost files via SDK directive or DistributedApplication.CreateBuilder pattern,
+ * then extracts builder.Add*("name") calls.
+ */
+class CSharpAppHostParser implements AppHostResourceParser {
+    getSupportedExtensions(): string[] {
+        return ['.cs'];
+    }
+
+    isAppHostFile(document: vscode.TextDocument): boolean {
+        const text = document.getText();
+        if (text.includes('#:sdk Aspire.AppHost.Sdk')) {
+            return true;
+        }
+        return text.includes('DistributedApplication.CreateBuilder');
+    }
+
+    parseResources(document: vscode.TextDocument): ParsedResource[] {
+        const text = document.getText();
+        const results: ParsedResource[] = [];
+
+        // Match .AddXyz("name") or .AddXyz<...>("name") patterns
+        // Captures: group 1 = method name, group 2 = resource name string
+        const pattern = /\.(Add\w+)(?:<[^>]*>)?\s*\(\s*"([^"]+)"/g;
+        let match: RegExpExecArray | null;
+
+        while ((match = pattern.exec(text)) !== null) {
+            const methodName = match[1];
+            const resourceName = match[2];
+
+            // Calculate start position of the full match (the dot before Add*)
+            const matchStart = match.index;
+            const startPos = document.positionAt(matchStart);
+            const endPos = document.positionAt(matchStart + match[0].length);
+
+            results.push({
+                name: resourceName,
+                methodName: methodName,
+                range: new vscode.Range(startPos, endPos),
+                kind: methodName === 'AddStep' ? 'pipelineStep' : 'resource',
+            });
+        }
+
+        return results;
+    }
+}
+
+// Self-register on import
+registerParser(new CSharpAppHostParser());

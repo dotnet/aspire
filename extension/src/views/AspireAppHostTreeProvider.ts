@@ -218,6 +218,10 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         });
     }
 
+    get appHosts(): readonly AppHostDisplayInfo[] {
+        return this._repository.appHosts;
+    }
+
     dispose(): void {
         this._dataSubscription.dispose();
         this._onDidChangeTreeData.dispose();

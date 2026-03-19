@@ -97,3 +97,33 @@ export const cliFoundAtDefaultPath = (path: string) => vscode.l10n.t('Aspire CLI
 export const selectDirectoryTitle = vscode.l10n.t('Select directory');
 export const selectFileTitle = vscode.l10n.t('Select file');
 export const enterPipelineStep = vscode.l10n.t('Enter the pipeline step to execute');
+
+// CodeLens strings
+export const codeLensDebugPipelineStep = vscode.l10n.t('$(bug) Debug pipeline step');
+export const codeLensResourceRunning = vscode.l10n.t('$(pass) Running');
+export const codeLensResourceStarting = vscode.l10n.t('$(loading~spin) Starting');
+export const codeLensResourceStopped = vscode.l10n.t('$(circle-outline) Stopped');
+export const codeLensResourceError = vscode.l10n.t('$(error) Error');
+export const codeLensRestart = vscode.l10n.t('$(debug-restart) Restart');
+export const codeLensStop = vscode.l10n.t('$(debug-stop) Stop');
+export const codeLensStart = vscode.l10n.t('$(debug-start) Start');
+export const codeLensViewLogs = vscode.l10n.t('$(output) Logs');
+export const codeLensCommand = (name: string) => vscode.l10n.t('$(terminal) {0}', name);
+
+// Status bar strings
+export const statusBarStopped = vscode.l10n.t('Aspire: Stopped');
+export const statusBarError = vscode.l10n.t('Aspire: Error');
+export function statusBarRunning(appHostCount: number, runningResources: number, totalResources: number): string {
+    if (totalResources === 0) {
+        return appHostCount === 1
+            ? vscode.l10n.t('Aspire: {0} apphost', appHostCount)
+            : vscode.l10n.t('Aspire: {0} apphosts', appHostCount);
+    }
+    return vscode.l10n.t('Aspire: {0}/{1} running', runningResources, totalResources);
+}
+export const statusBarTooltipStopped = vscode.l10n.t('No Aspire apphosts running. Click to open the Aspire panel.');
+export const statusBarTooltipError = vscode.l10n.t('Error fetching Aspire apphost status. Click to open the Aspire panel.');
+export const statusBarTooltipRunning = (appHostCount: number) =>
+    appHostCount === 1
+        ? vscode.l10n.t('{0} Aspire apphost running. Click to open the Aspire panel.', appHostCount)
+        : vscode.l10n.t('{0} Aspire apphosts running. Click to open the Aspire panel.', appHostCount);
