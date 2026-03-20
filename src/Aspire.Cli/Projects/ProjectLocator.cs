@@ -410,6 +410,18 @@ internal sealed class ProjectLocator(
             if (nearAppHost is not null)
             {
                 var configDir = Path.GetDirectoryName(nearAppHost)!;
+
+                // For legacy .aspire/settings.json, the config root is the parent of .aspire/
+                var trimmedConfigDir = configDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (string.Equals(Path.GetFileName(trimmedConfigDir), ".aspire", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parentDir = Directory.GetParent(trimmedConfigDir);
+                    if (parentDir is not null)
+                    {
+                        configDir = parentDir.FullName;
+                    }
+                }
+
                 var existingConfig = AspireConfigFile.Load(configDir);
                 if (existingConfig?.AppHost?.Path is { } existingPath)
                 {

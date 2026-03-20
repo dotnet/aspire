@@ -69,6 +69,8 @@ public sealed class ConfigDiscoveryTests(ITestOutputHelper output)
         // Step 2: Stay in the parent directory (do NOT cd into the project).
         // Run aspire run — this should find the apphost in the subdirectory
         // and use the adjacent aspire.config.json, not create a new one in CWD.
+        // Run aspire run — this should find the apphost in the subdirectory
+        // and use the adjacent aspire.config.json, not create a new one in CWD.
         await auto.TypeAsync($"aspire run --apphost {projectName}");
         await auto.EnterAsync();
 
@@ -101,6 +103,10 @@ public sealed class ConfigDiscoveryTests(ITestOutputHelper output)
             $"aspire.config.json in project directory should still exist: {projectConfigPath}");
 
         var currentContent = File.ReadAllText(projectConfigPath);
+
+        // Verify the config was not modified by the run.
+        Assert.Equal(originalContent, currentContent);
+
         using var doc = JsonDocument.Parse(currentContent);
         var root = doc.RootElement;
 

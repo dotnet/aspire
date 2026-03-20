@@ -37,7 +37,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
-    private readonly IConfigurationService _configurationService;
     private readonly IFeatures _features;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly ILogger<GuestAppHostProject> _logger;
@@ -58,7 +57,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         IDotNetCliRunner runner,
         IPackagingService packagingService,
         IConfiguration configuration,
-        IConfigurationService configurationService,
         IFeatures features,
         ILanguageDiscovery languageDiscovery,
         ILogger<GuestAppHostProject> logger,
@@ -73,7 +71,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         _runner = runner;
         _packagingService = packagingService;
         _configuration = configuration;
-        _configurationService = configurationService;
         _features = features;
         _languageDiscovery = languageDiscovery;
         _logger = logger;
@@ -167,7 +164,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
     /// <summary>
     /// Resolves the directory containing the nearest aspire.config.json (or legacy settings file)
-    /// by using the already-resolved path from <see cref="IConfigurationService"/>.
+    /// by searching upward from <paramref name="appHostDirectory"/>.
     /// Falls back to <paramref name="appHostDirectory"/> when no config file is found.
     /// </summary>
     private static DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
