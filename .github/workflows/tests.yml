@@ -193,7 +193,7 @@ jobs:
     name: Aspire CLI Starter Validation (Windows)
     runs-on: windows-latest
     needs: [build_packages, build_cli_archive_windows]
-    if: ${{ github.event_name == 'pull_request' && github.repository_owner == 'dotnet' }}
+    if: ${{ github.event_name == 'pull_request' && github.repository_owner == 'microsoft' }}
     env:
       GH_TOKEN: ${{ github.token }}
       MAX_STARTUP_SECONDS: '120'
@@ -432,7 +432,7 @@ jobs:
     uses: ./.github/workflows/typescript-sdk-tests.yml
 
   results:
-    if: ${{ always() && github.repository_owner == 'dotnet' }}
+    if: ${{ always() && github.repository_owner == 'microsoft' }}
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
