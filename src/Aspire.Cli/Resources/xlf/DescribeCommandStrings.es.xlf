@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="Description">
         <source>Describe resources in a running apphost</source>
-        <target state="new">Describe resources in a running apphost</target>
+        <target state="translated">Describir los recursos de un apphost en ejecución</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Continuously stream resource state changes</source>
-        <target state="new">Continuously stream resource state changes</target>
+        <target state="translated">Transmita continuamente los cambios de estado de los recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderEndpoints">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="new">Output format (Table or Json)</target>
+        <target state="translated">Formato de salida (Tabla o JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFound">
         <source>No apphost project found.</source>
-        <target state="new">No apphost project found.</target>
+        <target state="translated">No se encontró ningún proyecto apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
