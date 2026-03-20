@@ -262,7 +262,6 @@ jobs:
             $startStdOutPath = Join-Path $diagnosticsDir 'aspire-start.stdout.log'
             $startStdErrPath = Join-Path $diagnosticsDir 'aspire-start.stderr.log'
             $startCombinedPath = Join-Path $diagnosticsDir 'aspire-start.log'
-            $resourcesPath = Join-Path $diagnosticsDir 'aspire-resources.json'
             $stopLogPath = Join-Path $diagnosticsDir 'aspire-stop.log'
 
             New-Item -ItemType Directory -Path $diagnosticsDir -Force | Out-Null
@@ -315,33 +314,32 @@ jobs:
                   throw "${templateId}: aspire start did not report a successful startup."
                 }
 
-                $deadline = (Get-Date).AddSeconds([int]$env:RESOURCE_READY_TIMEOUT_SECONDS)
-                $resourcesReady = $false
+                Set-Location $projectRoot
 
-                do {
-                  Set-Location $projectRoot
+                foreach ($resourceName in $expectedResources) {
+                  $sanitizedResourceName = $resourceName -replace '[^A-Za-z0-9_.-]', '_'
+                  $waitStdOutPath = Join-Path $diagnosticsDir "aspire-wait-${sanitizedResourceName}.stdout.log"
+                  $waitStdErrPath = Join-Path $diagnosticsDir "aspire-wait-${sanitizedResourceName}.stderr.log"
+                  $waitCombinedPath = Join-Path $diagnosticsDir "aspire-wait-${sanitizedResourceName}.log"
 
-                  $resourcesJson = aspire resources --format json
-                  Set-Content -Path $resourcesPath -Value $resourcesJson
+                  $waitProcess = Start-Process -FilePath 'aspire' `
+                    -ArgumentList @('wait', $resourceName, '--status', 'up', '--timeout', $env:RESOURCE_READY_TIMEOUT_SECONDS) `
+                    -WorkingDirectory $projectRoot `
+                    -RedirectStandardOutput $waitStdOutPath `
+                    -RedirectStandardError $waitStdErrPath `
+                    -Wait `
+                    -PassThru
 
-                  $resources = @((ConvertFrom-Json $resourcesJson).resources)
-                  $readyResources = $resources | Where-Object {
-                    $_.Name -in $expectedResources -and
-                    $_.State -eq 'Running' -and
-                    ($null -eq $_.HealthStatus -or $_.HealthStatus -ne 'Unhealthy')
+                  $waitOutput = @(
+                    if (Test-Path $waitStdOutPath) { Get-Content $waitStdOutPath }
+                    if (Test-Path $waitStdErrPath) { Get-Content $waitStdErrPath }
+                  ) -join [Environment]::NewLine
+
+                  Set-Content -Path $waitCombinedPath -Value $waitOutput
+
+                  if ($waitProcess.ExitCode -ne 0) {
+                    throw "${templateId}: aspire wait for resource $resourceName failed with exit code $($waitProcess.ExitCode)."
                   }
-
-                  if ($readyResources.Count -eq $expectedResources.Count) {
-                    $resourcesReady = $true
-                    break
-                  }
-
-                  Start-Sleep -Seconds 5
-                } while ((Get-Date) -lt $deadline)
-
-                if (-not $resourcesReady) {
-                  $expectedResourcesText = $expectedResources -join ', '
-                  throw "${templateId}: expected resources $expectedResourcesText to be running within $($env:RESOURCE_READY_TIMEOUT_SECONDS) seconds."
                 }
 
                 Write-Host "$templateId started in $([math]::Round($elapsed.TotalSeconds, 2)) seconds."
