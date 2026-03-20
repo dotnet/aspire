@@ -533,6 +533,7 @@ jobs:
           path: |
             **/*.binlog
             testresults/**
+            artifacts/testresults/**
             artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
             artifacts/log/test-logs/**
 
@@ -541,7 +542,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p cli-e2e-recordings
-          find testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
+          find testresults artifacts/testresults -name "*.cast" -exec cp {} cli-e2e-recordings/ \; 2>/dev/null || true
           if [ -n "$(ls -A cli-e2e-recordings 2>/dev/null)" ]; then
             echo "Found recordings:"
             ls -la cli-e2e-recordings/
