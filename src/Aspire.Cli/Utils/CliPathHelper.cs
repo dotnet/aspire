@@ -14,9 +14,20 @@ internal static class CliPathHelper
     /// Creates a randomized CLI-managed socket path.
     /// </summary>
     /// <param name="socketPrefix">The socket file prefix.</param>
-    internal static string CreateSocketPath(string socketPrefix)
+    internal static string CreateUnixDomainSocketPath(string socketPrefix)
+        => CreateSocketPath(socketPrefix, isGuestAppHost: false);
+
+    internal static string CreateGuestAppHostSocketPath(string socketPrefix)
+        => CreateSocketPath(socketPrefix, isGuestAppHost: true);
+
+    private static string CreateSocketPath(string socketPrefix, bool isGuestAppHost)
     {
         var socketName = $"{socketPrefix}.{BackchannelConstants.CreateRandomIdentifier()}";
+
+        if (isGuestAppHost && OperatingSystem.IsWindows())
+        {
+            return socketName;
+        }
 
         var socketDirectory = GetCliSocketDirectory();
         Directory.CreateDirectory(socketDirectory);

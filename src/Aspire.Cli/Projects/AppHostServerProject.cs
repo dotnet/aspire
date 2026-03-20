@@ -34,7 +34,7 @@ internal sealed class AppHostServerProjectFactory(
 {
     public async Task<IAppHostServerProject> CreateAsync(string appPath, CancellationToken cancellationToken = default)
     {
-        var socketPath = CliPathHelper.CreateSocketPath("apphost.sock");
+        var socketPath = CliPathHelper.CreateGuestAppHostSocketPath("apphost.sock");
 
         // Priority 1: Check for dev mode (ASPIRE_REPO_ROOT or running from Aspire source repo)
         var repoRoot = AspireRepositoryDetector.DetectRepositoryRoot(appPath);

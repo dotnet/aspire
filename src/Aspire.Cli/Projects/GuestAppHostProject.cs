@@ -925,7 +925,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// </summary>
     private static string GetBackchannelSocketPath()
     {
-        return CliPathHelper.CreateSocketPath("cli.sock");
+        return CliPathHelper.CreateUnixDomainSocketPath("cli.sock");
     }
 
     /// <summary>

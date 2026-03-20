@@ -83,7 +83,7 @@ internal sealed class DotNetCliRunner(
 
     internal static string GetBackchannelSocketPath()
     {
-        return CliPathHelper.CreateSocketPath("cli.sock");
+        return CliPathHelper.CreateUnixDomainSocketPath("cli.sock");
     }
 
     private async Task<int> ExecuteAsync(
