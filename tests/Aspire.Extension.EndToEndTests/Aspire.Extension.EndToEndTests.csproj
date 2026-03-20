@@ -8,6 +8,14 @@
     <IsTestProject>true</IsTestProject>
     <IsUnitTestProject>true</IsUnitTestProject>
     <OutputType>Exe</OutputType>
+    <!-- Only run on PRs (like CLI E2E tests) -->
+    <SkipTests Condition="'$(IsGitHubActionsRunner)' == 'true' and '$(IsGithubPullRequest)' != 'true'">true</SkipTests>
+
+    <!-- Each test class becomes a separate CI job -->
+    <SplitTestsOnCI>true</SplitTestsOnCI>
+    <RequiresNugets>true</RequiresNugets>
+    <RequiresCliArchive>true</RequiresCliArchive>
+    <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
 
     <!-- Disable strong name signing for third-party packages -->
     <SignAssembly>false</SignAssembly>
@@ -24,6 +32,8 @@
     <!-- Do not run on AzDO CI agents -->
     <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
     <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
+
+    <TestClassNamePrefixForCI>Aspire.Extension.EndToEndTests</TestClassNamePrefixForCI>
 
     <TestSessionTimeout>15m</TestSessionTimeout>
     <TestHangTimeout>10m</TestHangTimeout>

@@ -25,7 +25,7 @@ jobs:
       - uses: ./.github/actions/enumerate-tests
         id: generate_tests_matrix
         with:
-          buildArgs: '/p:IncludeTemplateTests=true /p:IncludeCliE2ETests=${{ github.event_name == ''pull_request'' }}'
+          buildArgs: '/p:IncludeTemplateTests=true /p:IncludeCliE2ETests=${{ github.event_name == ''pull_request'' }} /p:IncludeExtensionE2ETests=${{ github.event_name == ''pull_request'' }}'
 
       - name: Split matrix by dependency type
         id: split_matrix
@@ -181,6 +181,7 @@ jobs:
       requiresNugets: ${{ matrix.requiresNugets }}
       requiresTestSdk: ${{ matrix.requiresTestSdk }}
       requiresCliArchive: true
+      enablePlaywrightInstall: ${{ matrix.enablePlaywrightInstall || false }}
 
   polyglot_validation:
     name: Polyglot SDK Validation
