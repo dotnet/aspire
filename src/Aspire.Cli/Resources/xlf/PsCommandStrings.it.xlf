@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts</source>
-        <target state="new">List running apphosts</target>
+        <target state="translated">Elenca apphost in esecuzione</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="new">Output format (Table or Json)</target>
+        <target state="translated">Formato di output (tabella o JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesOptionDescription">
         <source>Include resource details for each running apphost. Only applies to JSON output.</source>
-        <target state="new">Include resource details for each running apphost. Only applies to JSON output.</target>
+        <target state="translated">Includi i dettagli delle risorse per ogni apphost in esecuzione. Si applica solo all'output JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">
