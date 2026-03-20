@@ -225,6 +225,7 @@ jobs:
           aspire --version
 
       - name: Create starter app and validate startup
+        timeout-minutes: 10
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
