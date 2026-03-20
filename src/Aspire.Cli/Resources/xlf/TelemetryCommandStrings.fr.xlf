@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the apphost is running with Dashboard enabled.</source>
-        <target state="new">Dashboard API is not available. Ensure the apphost is running with Dashboard enabled.</target>
+        <target state="translated">L'API du tableau de bord n'est pas disponible. Assurez-vous que l'apphost est en cours d'exécution avec le tableau de bord activé.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost</source>
-        <target state="new">View OpenTelemetry data (logs, spans, traces) from a running apphost</target>
+        <target state="translated">Visualiser les données OpenTelemetry (journaux, spans, traces) depuis un apphost en cours d'exécution</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives</source>
-        <target state="new">Stream telemetry in real-time as it arrives</target>
+        <target state="translated">Diffusez la télémétrie en temps réel, dès son arrivée</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="new">Output format (Table or Json)</target>
+        <target state="translated">Format de sortie (Table ou JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors)</source>
-        <target state="new">Filter by error status (true to show only errors, false to exclude errors)</target>
+        <target state="translated">Filtrer par statut d'erreur (true pour afficher uniquement les erreurs, false pour exclure les erreurs)</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDuration">
@@ -64,12 +64,12 @@
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return</source>
-        <target state="new">Maximum number of items to return</target>
+        <target state="translated">Nombre maximum d'éléments à renvoyer</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API</source>
-        <target state="new">View structured logs from the Dashboard telemetry API</target>
+        <target state="translated">Consulter les journaux structurés depuis l'API de télémétrie du tableau de bord</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
@@ -84,12 +84,12 @@
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)</source>
-        <target state="new">Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)</target>
+        <target state="translated">Filtrer les journaux par niveau de gravité minimum (Trace, Débogage, Information, Avertissement, Erreur, Critique)</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API</source>
-        <target state="new">View spans from the Dashboard telemetry API</target>
+        <target state="translated">Afficher les spans depuis l'API de télémétrie du tableau de bord</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID</source>
-        <target state="new">Filter by trace ID</target>
+        <target state="translated">Filtrer par ID de trace</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API</source>
-        <target state="new">View traces from the Dashboard telemetry API</target>
+        <target state="translated">Afficher les traces depuis l'API de télémétrie du tableau de bord</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">

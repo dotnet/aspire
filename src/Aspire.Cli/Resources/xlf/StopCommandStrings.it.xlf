@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running apphosts</source>
-        <target state="new">Stop all running apphosts</target>
+        <target state="translated">Arrestare tutti gli apphost in esecuzione</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
         <source>Apphost stopped successfully.</source>
-        <target state="new">Apphost stopped successfully.</target>
+        <target state="translated">Apphost arrestato correttamente.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost</source>
-        <target state="new">Stop a running apphost</target>
+        <target state="translated">Arrestare un apphost in esecuzione</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
         <source>Failed to stop the apphost.</source>
-        <target state="new">Failed to stop the apphost.</target>
+        <target state="translated">Non è possibile arrestare l'apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Sono in esecuzione più apphost. Usare {0} per specificare quale arrestare oppure usare {1} per arrestarli tutti.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">Sono in esecuzione più apphost. Usare --apphost per specificare quale arrestare o selezionarne uno:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="new">The path to the Aspire apphost project file</target>
+        <target state="translated">Percorso del file di un progetto apphost di Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">

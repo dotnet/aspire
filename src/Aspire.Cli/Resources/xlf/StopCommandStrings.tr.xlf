@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AllOptionDescription">
         <source>Stop all running apphosts</source>
-        <target state="new">Stop all running apphosts</target>
+        <target state="translated">Çalışan tüm uygulama ana işlemlerini durdurun</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStoppedSuccessfully">
         <source>Apphost stopped successfully.</source>
-        <target state="new">Apphost stopped successfully.</target>
+        <target state="translated">Uygulama ana işlemi başarıyla durduruldu.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Stop a running apphost</source>
-        <target state="new">Stop a running apphost</target>
+        <target state="translated">Çalışan bir uygulama ana işlemini durdurun</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToStopAppHost">
         <source>Failed to stop the apphost.</source>
-        <target state="new">Failed to stop the apphost.</target>
+        <target state="translated">Uygulama ana işlemi durdurulamadı.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsNonInteractive">
         <source>Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</source>
-        <target state="new">Multiple apphosts are running. Use {0} to specify which one to stop, or use {1} to stop all of them.</target>
+        <target state="translated">Birden çok uygulama ana işlemi çalışıyor. Hangisinin durdurulacağını belirtmek için {0} kullanın veya tümünü durdurmak için {1} kullanın.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleAppHostsRunning">
         <source>Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</source>
-        <target state="new">Multiple apphosts are running. Use --apphost to specify which one to stop, or select one:</target>
+        <target state="translated">Birden çok uygulama ana işlemi çalışıyor. Hangisinin durdurulacağını belirtmek için --apphost kullanın veya birini seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="new">The path to the Aspire apphost project file</target>
+        <target state="translated">Aspire uygulama ana işlemi projesi dosyasının yolu</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
