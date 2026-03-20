@@ -45,6 +45,11 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         // Update the aspire-with-node sample to the PR/CI build
         await auto.AspireUpdateInSampleAsync(counter, "aspire-samples/samples/aspire-with-node");
 
+        // Verify that the AppHost csproj was actually updated (no longer contains 13.1.0)
+        await auto.VerifySampleWasUpgradedAsync(counter,
+            "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj",
+            originalVersion: "13.1.0");
+
         // Run the sample — the AppHost csproj is in the AspireWithNode.AppHost subdirectory
         await auto.AspireRunSampleAsync(
             appHostRelativePath: "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj",

@@ -72,9 +72,11 @@ internal static class SampleUpgradeHelpers
 
         // Wait for completion. Handle interactive prompts along the way:
         // 1. Channel selection prompt (if hives exist) — select default (Enter)
-        // 2. CLI update prompt (after package update) — decline (type 'n')
+        // 2. "Perform updates?" confirmation — accept (Enter, default is yes)
+        // 3. CLI update prompt (after package update) — decline (type 'n')
         var expectedCounter = counter.Value;
         var channelPromptHandled = false;
+        var performUpdatesPromptHandled = false;
         var cliUpdatePromptHandled = false;
 
         await auto.WaitUntilAsync(snapshot =>
@@ -100,6 +102,17 @@ internal static class SampleUpgradeHelpers
             if (!channelPromptHandled && snapshot.ContainsText("Select a channel:"))
             {
                 channelPromptHandled = true;
+                _ = Task.Run(async () =>
+                {
+                    await auto.WaitAsync(500);
+                    await auto.EnterAsync();
+                });
+            }
+
+            // Handle "Perform updates?" confirmation — accept default (Enter)
+            if (!performUpdatesPromptHandled && snapshot.ContainsText("Perform updates?"))
+            {
+                performUpdatesPromptHandled = true;
                 _ = Task.Run(async () =>
                 {
                     await auto.WaitAsync(500);
@@ -176,6 +189,33 @@ internal static class SampleUpgradeHelpers
 
         await auto.Ctrl().KeyAsync(Hex1bKey.C);
         await auto.WaitForSuccessPromptAsync(counter, effectiveTimeout);
+    }
+
+    /// <summary>
+    /// Verifies that a sample's AppHost csproj was actually upgraded by checking that it
+    /// no longer contains the original version string. This ensures <c>aspire update</c>
+    /// actually modified the project file.
+    /// </summary>
+    /// <param name="auto">The terminal automator.</param>
+    /// <param name="counter">The sequence counter for prompt tracking.</param>
+    /// <param name="csprojRelativePath">Relative path to the AppHost csproj from the sample directory.</param>
+    /// <param name="originalVersion">The original Aspire version the sample was pinned to (e.g., <c>13.1.0</c>).</param>
+    internal static async Task VerifySampleWasUpgradedAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        string csprojRelativePath,
+        string originalVersion)
+    {
+        // Check that the original version is no longer in the csproj
+        await auto.TypeAsync($"grep -c '{originalVersion}' {csprojRelativePath} && echo 'UPGRADE_VERIFY_FAIL: still contains {originalVersion}' || echo 'UPGRADE_VERIFY_OK: no longer contains {originalVersion}'");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("UPGRADE_VERIFY_OK", timeout: TimeSpan.FromSeconds(10));
+        await auto.WaitForAnyPromptAsync(counter);
+
+        // Also print the current csproj for the recording so we can see what it was updated to
+        await auto.TypeAsync($"cat {csprojRelativePath}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
     }
 
     /// <summary>
