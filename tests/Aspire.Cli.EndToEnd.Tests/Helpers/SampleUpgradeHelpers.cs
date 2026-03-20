@@ -74,15 +74,27 @@ internal static class SampleUpgradeHelpers
     {
         var hivePath = $"/root/.aspire/hives/{channel}/packages";
 
-        // Detect the PR version from the hive packages directory.
-        // Find any Aspire package nupkg and extract its version.
-        await auto.TypeAsync(
-            $"PR_VERSION=$(ls {hivePath}/aspire.hosting.redis.*.nupkg 2>/dev/null " +
-            "| head -1 | sed 's/.*aspire.hosting.redis.//;s/.nupkg//' " +
-            ") && echo \"PR_VERSION=$PR_VERSION\"");
+        // First, list the hive packages for diagnostics
+        await auto.TypeAsync($"echo '--- Hive packages ---' && ls {hivePath}/*.nupkg 2>/dev/null | head -5");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("PR_VERSION=", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
+
+        // Detect the PR version from ANY nupkg in the hive.
+        // Extract the version pattern (e.g., 13.3.0-pr.15421.g07ca6510) from the filename.
+        // NuGet package filenames follow: {id}.{version}.nupkg (case may vary).
+        await auto.TypeAsync(
+            $"PR_VERSION=$(ls {hivePath}/*.nupkg 2>/dev/null " +
+            "| head -1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+-pr\\.[0-9]+\\.g[0-9a-f]+' " +
+            ") && echo \"DETECTED_PR_VERSION=$PR_VERSION\"");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("DETECTED_PR_VERSION=", timeout: TimeSpan.FromSeconds(10));
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Bail out with a clear error if the version wasn't detected
+        await auto.TypeAsync("[ -n \"$PR_VERSION\" ] && echo 'VERSION_OK' || { echo 'VERSION_DETECT_FAILED'; false; }");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("VERSION_OK", timeout: TimeSpan.FromSeconds(5));
+        await auto.WaitForAnyPromptAsync(counter);
 
         // Replace all Aspire version strings in the csproj using the detected PR version.
         // This handles both PackageReference Version attributes and the Sdk attribute.
