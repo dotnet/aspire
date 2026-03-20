@@ -24,42 +24,42 @@
       </trans-unit>
       <trans-unit id="DevCertsCleanAndTrustFixFormat">
         <source>Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</source>
-        <target state="new">Run '{0}' to remove all certificates, then run '{1}' to create and trust a new one.</target>
+        <target state="translated">Führen Sie „{0}“ aus, um alle Zertifikate zu entfernen, und führen Sie dann „{1}“ aus, um ein neues Zertifikat zu erstellen und zu vertrauen.</target>
         <note>{0} is the aspire certs clean command, {1} is the aspire certs trust command (not localizable)</note>
       </trans-unit>
       <trans-unit id="DevCertsMultipleNoneTrustedDetailsFormat">
         <source>Found certificates: {0}. Having multiple certificates can cause confusion.</source>
-        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion.</target>
+        <target state="translated">Gefundene Zertifikate: {0} Wenn mehrere Zertifikate vorhanden sind, kann dies zu Verwirrung führen.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleNoneTrustedMessageFormat">
         <source>Multiple HTTPS development certificates found ({0} certificates), but none are trusted</source>
-        <target state="new">Multiple HTTPS development certificates found ({0} certificates), but none are trusted</target>
+        <target state="translated">Es wurden mehrere HTTPS-Entwicklungszertifikate gefunden ({0} Zertifikate), aber keine sind vertrauenswürdig.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleSomeUntrustedDetailsFormat">
         <source>Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</source>
-        <target state="new">Found certificates: {0}. Having multiple certificates can cause confusion when selecting which one to use.</target>
+        <target state="translated">Gefundene Zertifikate: {0} Wenn mehrere Zertifikate vorhanden sind, kann dies bei der Auswahl, welches genutzt werden soll, zu Verwirrung führen.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsMultipleSomeUntrustedMessageFormat">
         <source>Multiple HTTPS development certificates found ({0} certificates)</source>
-        <target state="new">Multiple HTTPS development certificates found ({0} certificates)</target>
+        <target state="translated">Es wurden mehrere HTTPS-Entwicklungszertifikate gefunden ({0} Zertifikate)</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNoCertificateDetails">
         <source>Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</source>
-        <target state="new">Aspire uses HTTPS for secure communication between the dashboard and your services during local development.</target>
+        <target state="translated">Aspire verwendet HTTPS für die sichere Kommunikation zwischen dem Dashboard und Ihren Diensten während der lokalen Entwicklung.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNoCertificateMessage">
         <source>No HTTPS development certificate found</source>
-        <target state="new">No HTTPS development certificate found</target>
+        <target state="translated">Kein HTTPS-Entwicklungszertifikat gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNotTrustedDetailsFormat">
         <source>Certificate {0} exists in the personal store but was not found in the trusted root store.</source>
-        <target state="new">Certificate {0} exists in the personal store but was not found in the trusted root store.</target>
+        <target state="translated">Das Zertifikat {0} ist im persönlichen Speicher vorhanden, wurde aber nicht im vertrauenswürdigen Stammspeicher gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsNotTrustedMessage">
@@ -69,47 +69,47 @@
       </trans-unit>
       <trans-unit id="DevCertsOldVersionDetailsFormat">
         <source>Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</source>
-        <target state="new">Older certificate versions (&lt; v{0}) may not support all certificate trust scenarios.</target>
+        <target state="translated">Ältere Zertifikatversionen (&lt; v{0}) unterstützen möglicherweise nicht alle Zertifikatvertrauensstellungsszenarien.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsOldVersionMessageFormat">
         <source>HTTPS development certificate has an older version ({0})</source>
-        <target state="new">HTTPS development certificate has an older version ({0})</target>
+        <target state="translated">Das HTTPS-Entwicklungszertifikat verfügt über eine ältere Version ({0}).</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedDetailsFormat">
         <source>The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</source>
-        <target state="new">The certificate is in the trusted store, but SSL_CERT_DIR is not configured to include '{0}'. Some applications may not trust the certificate. 'aspire run' will configure this automatically.</target>
+        <target state="translated">Das Zertifikat befindet sich im vertrauenswürdigen Speicher, aber SSL_CERT_DIR ist nicht so konfiguriert, dass es „{0}“ enthält. Einige Anwendungen vertrauen dem Zertifikat möglicherweise nicht. „aspire run“ konfiguriert dies automatisch.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedFixFormat">
         <source>Set SSL_CERT_DIR in your shell profile: {0}</source>
-        <target state="new">Set SSL_CERT_DIR in your shell profile: {0}</target>
+        <target state="translated">Legen Sie SSL_CERT_DIR in Ihrem Shellprofil fest: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsPartiallyTrustedMessage">
         <source>HTTPS development certificate is only partially trusted</source>
-        <target state="new">HTTPS development certificate is only partially trusted</target>
+        <target state="translated">Das HTTPS-Entwicklungszertifikat ist nur teilweise vertrauenswürdig.</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustFixFormat">
         <source>Run '{0}' to trust the HTTPS development certificate.</source>
-        <target state="new">Run '{0}' to trust the HTTPS development certificate.</target>
+        <target state="translated">Führen Sie „{0}“ aus, um dem HTTPS-Entwicklungszertifikat zu vertrauen.</target>
         <note>{0} is the aspire certs trust command (not localizable)</note>
       </trans-unit>
       <trans-unit id="DevCertsTrustLabelFull">
         <source>[trusted]</source>
-        <target state="new">[trusted]</target>
+        <target state="translated">[vertrauenswürdig]</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustLabelPartial">
         <source>[partial]</source>
-        <target state="new">[partial]</target>
+        <target state="translated">[teilweise]</target>
         <note />
       </trans-unit>
       <trans-unit id="DevCertsTrustedMessage">
         <source>HTTPS development certificate is trusted</source>
-        <target state="new">HTTPS development certificate is trusted</target>
+        <target state="translated">Das HTTPS-Entwicklungszertifikat ist nicht vertrauenswürdig.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentCategoryHeader">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="new">Output format (Table or Json)</target>
+        <target state="translated">Ausgabeformat (Tabelle oder JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">
