@@ -80,35 +80,6 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
             channel: channel,
             timeout: TimeSpan.FromMinutes(5));
 
-        // In PR mode, fix up any package references that aspire update failed to apply.
-        // The SDK version is updated correctly but dotnet package add may fail because
-        // it doesn't pass --configfile to the underlying NuGet restore.
-        if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
-        {
-            var csproj = await File.ReadAllTextAsync(
-                Path.Combine(workDir, SamplePath, AppHostCsproj));
-
-            // Extract the PR version from the SDK attribute that aspire update did set
-            var sdkMatch = System.Text.RegularExpressions.Regex.Match(
-                csproj, @"Aspire\.AppHost\.Sdk/([\d]+\.[\d]+\.[\d]+-pr\.\d+\.g[0-9a-f]+)");
-
-            if (sdkMatch.Success)
-            {
-                var prVersion = sdkMatch.Groups[1].Value;
-                output.WriteLine($"PR version from SDK: {prVersion}");
-
-                // Use sed to update any PackageReference entries still on old versions
-                await auto.TypeAsync(
-                    $"sed -i -E " +
-                    "'s|(Include=\"Aspire\\.[^\"]+\" Version=\")([0-9]+\\.[0-9]+\\.[0-9]+[^\"]*)(\")|\\1" +
-                    prVersion +
-                    "\\3|g' " +
-                    AppHostCsproj);
-                await auto.EnterAsync();
-                await auto.WaitForSuccessPromptAsync(counter);
-            }
-        }
-
         // Verify the upgrade by reading the csproj directly from the mounted volume
         var hostCsprojPath = Path.Combine(workDir, SamplePath, AppHostCsproj);
         var csprojContent = await File.ReadAllTextAsync(hostCsprojPath);

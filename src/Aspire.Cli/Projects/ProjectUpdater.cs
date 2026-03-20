@@ -25,6 +25,9 @@ internal interface IProjectUpdater
 
 internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
+    // Set during UpdateProjectAsync for explicit channels (e.g., PR hives) so that
+    // dotnet package add can discover the channel's package source via NuGet.config.
+    private DirectoryInfo? _nugetConfigDirectory;
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
@@ -75,6 +78,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
+        // Track the NuGet config directory so we can pass it to the apply phase.
+        // When using an explicit channel (e.g., a PR hive), the NuGet config contains
+        // the package source needed to resolve hive packages during dotnet package add.
+        _nugetConfigDirectory = null;
+
         if (channel.Type == PackageChannelType.Explicit)
         {
             var (configPathsExitCode, configPaths) = await runner.GetNuGetConfigPathsAsync(projectFile.Directory!, new(), cancellationToken);
@@ -114,8 +122,8 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 required: true,
                 cancellationToken: cancellationToken);
 
-            var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
-            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
+            _nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
+            await NuGetConfigMerger.CreateOrUpdateAsync(_nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
         }
 
         interactionService.DisplayEmptyLine();
@@ -883,6 +891,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             packageVersion: package.Version,
             nugetSource: null,
             noRestore: false,
+            nugetConfigDirectory: _nugetConfigDirectory,
             options: new(),
             cancellationToken: cancellationToken);
 
