@@ -456,7 +456,7 @@ function Remove-OldCliBackupFiles {
     foreach ($backupFile in $oldBackupFiles) {
         if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
             try {
-                Remove-Item -Path $backupFile.FullName -Force
+                Remove-Item -Path $backupFile.FullName -Force -ErrorAction Stop
                 Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
             }
             catch {
@@ -688,7 +688,7 @@ function Remove-TempDirectory {
             Write-Message "Cleaning up temporary files..." -Level Verbose
             try {
                 if ($PSCmdlet.ShouldProcess($TempDir, "Remove temporary directory")) {
-                    Remove-Item $TempDir -Recurse -Force
+                    Remove-Item $TempDir -Recurse -Force -ErrorAction Stop
                 }
             }
             catch {
@@ -1062,7 +1062,7 @@ function Install-BuiltNugets {
     if (Test-Path $NugetHiveDir) {
         Write-Message "Removing existing nuget directory: $NugetHiveDir" -Level Verbose
         if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Remove existing directory")) {
-            Remove-Item $NugetHiveDir -Recurse -Force
+            Remove-Item $NugetHiveDir -Recurse -Force -ErrorAction Stop
         }
     }
 

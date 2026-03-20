@@ -688,7 +688,7 @@ function Remove-OldCliBackupFiles {
     foreach ($backupFile in $oldBackupFiles) {
         if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
             try {
-                Remove-Item -Path $backupFile.FullName -Force
+                Remove-Item -Path $backupFile.FullName -Force -ErrorAction Stop
                 Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
             }
             catch {
