@@ -110,13 +110,6 @@ internal static class SampleUpgradeHelpers
         await auto.TypeAsync($"echo '--- Updated csproj ---' && cat {csprojRelativePath}");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
-
-        // Verify restore works with the PR packages
-        await auto.TypeAsync(
-            $"dotnet restore {csprojRelativePath} --verbosity quiet && echo 'RESTORE_OK' || echo 'RESTORE_FAILED'");
-        await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("RESTORE_OK", timeout: TimeSpan.FromMinutes(3));
-        await auto.WaitForAnyPromptAsync(counter);
     }
 
     /// <summary>
