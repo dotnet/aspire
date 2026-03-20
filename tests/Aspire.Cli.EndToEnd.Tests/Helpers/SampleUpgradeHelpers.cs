@@ -49,11 +49,13 @@ internal static class SampleUpgradeHelpers
     /// <param name="auto">The terminal automator.</param>
     /// <param name="counter">The sequence counter for prompt tracking.</param>
     /// <param name="samplePath">The relative path to the sample directory from the current working directory (e.g., <c>aspire-samples/samples/aspire-with-node</c>).</param>
+    /// <param name="channel">Optional channel name to pass via <c>--channel</c>. When set, bypasses the interactive channel selection prompt and ensures the specified channel's packages are used.</param>
     /// <param name="timeout">Timeout for the update operation. Defaults to 180 seconds.</param>
     internal static async Task AspireUpdateInSampleAsync(
         this Hex1bTerminalAutomator auto,
         SequenceCounter counter,
         string samplePath,
+        string? channel = null,
         TimeSpan? timeout = null)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(180);
@@ -63,19 +65,27 @@ internal static class SampleUpgradeHelpers
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Run aspire update. The behavior depends on the install mode:
-        // - PR mode (hives exist): May prompt for channel selection ("Select a channel:")
-        // - GA/source mode (no hives): Auto-selects the implicit/default channel
-        // After update, may prompt to update CLI ("Would you like to update it now?")
-        await auto.TypeAsync("aspire update");
+        // Run aspire update. When a channel is specified (e.g., "pr-15421"), pass it
+        // explicitly via --channel to ensure PR hive packages are used for the upgrade
+        // instead of the default nuget.org stable versions.
+        var command = channel is not null
+            ? $"aspire update --channel {channel}"
+            : "aspire update";
+        await auto.TypeAsync(command);
         await auto.EnterAsync();
 
         // Wait for completion. Handle interactive prompts along the way:
-        // 1. Channel selection prompt (if hives exist) — select default (Enter)
-        // 2. "Perform updates?" confirmation — accept (Enter, default is yes)
-        // 3. CLI update prompt (after package update) — decline (type 'n')
+        // When using an explicit channel (e.g., PR hive), additional NuGet config prompts appear:
+        // 1. "Which directory for NuGet.config file?" — accept default (Enter)
+        // 2. "Apply these changes to NuGet.config?" — accept (Enter, default is yes)
+        // Then for all modes:
+        // 3. Channel selection prompt (if hives exist and no --channel) — select default (Enter)
+        // 4. "Perform updates?" confirmation — accept (Enter, default is yes)
+        // 5. CLI update prompt (after package update) — decline (type 'n')
         var expectedCounter = counter.Value;
         var channelPromptHandled = false;
+        var nugetConfigDirPromptHandled = false;
+        var nugetConfigApplyPromptHandled = false;
         var performUpdatesPromptHandled = false;
         var cliUpdatePromptHandled = false;
 
@@ -102,6 +112,28 @@ internal static class SampleUpgradeHelpers
             if (!channelPromptHandled && snapshot.ContainsText("Select a channel:"))
             {
                 channelPromptHandled = true;
+                _ = Task.Run(async () =>
+                {
+                    await auto.WaitAsync(500);
+                    await auto.EnterAsync();
+                });
+            }
+
+            // Handle "Which directory for NuGet.config file?" prompt — accept default (Enter)
+            if (!nugetConfigDirPromptHandled && snapshot.ContainsText("NuGet.config file?"))
+            {
+                nugetConfigDirPromptHandled = true;
+                _ = Task.Run(async () =>
+                {
+                    await auto.WaitAsync(500);
+                    await auto.EnterAsync();
+                });
+            }
+
+            // Handle "Apply these changes to NuGet.config?" prompt — accept (Enter)
+            if (!nugetConfigApplyPromptHandled && snapshot.ContainsText("Apply these changes to NuGet.config?"))
+            {
+                nugetConfigApplyPromptHandled = true;
                 _ = Task.Run(async () =>
                 {
                     await auto.WaitAsync(500);

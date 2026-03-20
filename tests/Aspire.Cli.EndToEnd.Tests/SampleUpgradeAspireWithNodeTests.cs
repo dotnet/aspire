@@ -42,8 +42,15 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         // Clone the aspire-samples repository
         await auto.CloneSampleRepoAsync(counter);
 
+        // Determine the update channel. In PullRequest mode, explicitly pass the PR channel
+        // so that aspire update uses the PR hive packages instead of stable nuget.org versions.
+        string? updateChannel = installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest
+            ? $"pr-{CliE2ETestHelpers.GetRequiredPrNumber()}"
+            : null;
+
         // Update the aspire-with-node sample to the PR/CI build
-        await auto.AspireUpdateInSampleAsync(counter, "aspire-samples/samples/aspire-with-node");
+        await auto.AspireUpdateInSampleAsync(counter, "aspire-samples/samples/aspire-with-node",
+            channel: updateChannel);
 
         // Verify that the AppHost csproj was actually updated (no longer contains 13.1.0)
         await auto.VerifySampleWasUpgradedAsync(counter,
