@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="CommandDescription">
         <source>Execute a command on a resource (e.g. start, stop, restart)</source>
-        <target state="new">Execute a command on a resource (e.g. start, stop, restart)</target>
+        <target state="translated">在資源上執行命令 (例如啟動、停止、重新啟動)</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandNameArgumentDescription">
         <source>The name of the command to execute (e.g. start, stop, restart)</source>
-        <target state="new">The name of the command to execute (e.g. start, stop, restart)</target>
+        <target state="translated">要執行的命令名稱 (例如啟動、停止、重新啟動)</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandResourceArgumentDescription">
         <source>The name of the resource to execute the command on</source>
-        <target state="new">The name of the resource to execute the command on</target>
+        <target state="translated">要執行命令的資源名稱</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
