@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="Description">
         <source>Display logs from resources in a running apphost</source>
-        <target state="new">Display logs from resources in a running apphost</target>
+        <target state="translated">Wyświetl dzienniki z zasobów w działającym hoście apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream logs in real-time as they are written</source>
-        <target state="new">Stream logs in real-time as they are written</target>
+        <target state="translated">Przesyłaj dzienniki w czasie rzeczywistym podczas ich zapisywania</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="new">Output format (Table or Json)</target>
+        <target state="translated">Format danych wyjściowych (tabela lub JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="NoResourcesFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="TailOptionDescription">
         <source>Number of lines to show from the end of logs (default: all)</source>
-        <target state="new">Number of lines to show from the end of logs (default: all)</target>
+        <target state="translated">Liczba wierszy wyświetlanych od końca dzienników (domyślnie: wszystkie)</target>
         <note />
       </trans-unit>
       <trans-unit id="TailRequiresResource">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="TimestampsOptionDescription">
         <source>Show timestamps for each log line</source>
-        <target state="new">Show timestamps for each log line</target>
+        <target state="translated">Pokaż znaczniki czasu dla każdego wiersza dziennika</target>
         <note />
       </trans-unit>
       <trans-unit id="GettingLogs">
