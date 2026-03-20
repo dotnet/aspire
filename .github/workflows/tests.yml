@@ -224,6 +224,14 @@ jobs:
 
           aspire --version
 
+      - name: Trust Aspire HTTPS development certificate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          aspire certs trust --non-interactive --nologo
+
       - name: Create starter app and validate startup
         timeout-minutes: 10
         shell: pwsh
