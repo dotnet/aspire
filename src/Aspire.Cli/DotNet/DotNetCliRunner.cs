@@ -34,7 +34,6 @@ internal interface IDotNetCliRunner
     Task<int> RestoreAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DirectoryInfo? nugetConfigDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -672,10 +671,7 @@ internal sealed class DotNetCliRunner(
             cancellationToken: cancellationToken);
     }
 
-    public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken) =>
-        AddPackageAsync(projectFilePath, packageName, packageVersion, nugetSource, noRestore, nugetConfigDirectory: null, options, cancellationToken);
-
-    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DirectoryInfo? nugetConfigDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();
 
@@ -718,17 +714,11 @@ internal sealed class DotNetCliRunner(
 
         logger.LogInformation("Adding package {PackageName} with version {PackageVersion} to project {ProjectFilePath}", packageName, packageVersion, projectFilePath.FullName);
 
-        // When a NuGet config directory is provided (e.g., for explicit channel hive packages),
-        // use it as the working directory so that dotnet package add discovers the NuGet.config
-        // containing the channel's package source. This follows the same pattern as
-        // InstallTemplateAsync which uses the config directory as the working directory.
-        var workingDirectory = nugetConfigDirectory ?? projectFilePath.Directory!;
-
         var result = await ExecuteAsync(
             args: cliArgs,
             env: null,
             projectFile: projectFilePath,
-            workingDirectory: workingDirectory,
+            workingDirectory: projectFilePath.Directory!,
             backchannelCompletionSource: null,
             options: options,
             cancellationToken: cancellationToken);

@@ -32,11 +32,6 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : throw new NotImplementedException();
     }
 
-    public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DirectoryInfo? nugetConfigDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-    {
-        return AddPackageAsync(projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken);
-    }
-
     public Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return AddProjectToSolutionAsyncCallback != null

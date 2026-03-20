@@ -25,9 +25,7 @@ internal interface IProjectUpdater
 
 internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
-    // Set during UpdateProjectAsync for explicit channels (e.g., PR hives) so that
-    // dotnet package add can discover the channel's package source via NuGet.config.
-    private DirectoryInfo? _nugetConfigDirectory;
+    private bool _isExplicitChannel;
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
@@ -78,10 +76,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
-        // Track the NuGet config directory so we can pass it to the apply phase.
-        // When using an explicit channel (e.g., a PR hive), the NuGet config contains
-        // the package source needed to resolve hive packages during dotnet package add.
-        _nugetConfigDirectory = null;
+        // Track whether we're using an explicit channel (e.g., PR hive) so that
+        // individual dotnet package add calls can skip the implicit restore.
+        _isExplicitChannel = false;
 
         if (channel.Type == PackageChannelType.Explicit)
         {
@@ -122,8 +119,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 required: true,
                 cancellationToken: cancellationToken);
 
-            _nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
-            await NuGetConfigMerger.CreateOrUpdateAsync(_nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
+            _isExplicitChannel = true;
+            var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
+            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
         }
 
         interactionService.DisplayEmptyLine();
@@ -143,7 +141,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // When using an explicit channel with --no-restore on individual package adds,
         // perform a final restore to ensure all packages resolve correctly together.
-        if (_nugetConfigDirectory is not null)
+        if (_isExplicitChannel)
         {
             await interactionService.ShowStatusAsync(
                 UpdateCommandStrings.RestoringPackages,
@@ -908,7 +906,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         // exclusively to the hive source, but during the restore triggered by dotnet package add,
         // other Aspire packages not yet updated still reference old versions that don't exist in
         // the hive. A final restore is performed after all packages are updated.
-        var noRestore = _nugetConfigDirectory is not null;
+        var noRestore = _isExplicitChannel;
 
         var exitCode = await runner.AddPackageAsync(
             projectFilePath: projectFile,
@@ -916,7 +914,6 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             packageVersion: package.Version,
             nugetSource: null,
             noRestore: noRestore,
-            nugetConfigDirectory: _nugetConfigDirectory,
             options: new(),
             cancellationToken: cancellationToken);
 
