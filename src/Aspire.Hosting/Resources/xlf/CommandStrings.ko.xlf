@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="RebuildDescription">
         <source>Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</source>
-        <target state="new">Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</target>
+        <target state="translated">리소스를 중지하고, 원본에서 프로젝트를 다시 빌드하고, 다시 시작합니다. 소스 코드 변경 내용을 적용하는 데 사용합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="RebuildName">
         <source>Rebuild</source>
-        <target state="new">Rebuild</target>
+        <target state="translated">다시 빌드</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="RebuilderResourceNotFound">
         <source>Rebuilder resource for '{0}' not found.</source>
-        <target state="new">Rebuilder resource for '{0}' not found.</target>
+        <target state="translated">'{0}'에 대한 리빌더 리소스를 찾을 수 없습니다.</target>
         <note />
       </trans-unit>
     </body>

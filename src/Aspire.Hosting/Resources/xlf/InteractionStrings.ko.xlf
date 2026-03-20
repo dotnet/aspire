@@ -68,22 +68,22 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
         <source>The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">가장 최근 개발 인증서가 완전히 신뢰되지 않습니다. 자세한 내용은 https://aka.ms/aspire/devcerts 를 확인하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
         <source>Development certificate not fully trusted</source>
-        <target state="new">Development certificate not fully trusted</target>
+        <target state="translated">개발 인증서가 완전히 신뢰되지 않습니다</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedMessage">
         <source>No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">신뢰할 수 있는 개발 인증서를 찾을 수 없습니다. 자세한 내용은 https://aka.ms/aspire/devcerts 를 확인하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedTitle">
         <source>No trusted development certificate</source>
-        <target state="new">No trusted development certificate</target>
+        <target state="translated">신뢰할 수 있는 개발 인증서 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -128,7 +128,7 @@ The value is currently saved in [user secrets](https://aka.ms/aspire/user-secret
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
-        <target state="new">Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</target>
+        <target state="translated">AppHost에 사용자 비밀 구성이 필요합니다. 사용자 비밀을 초기화하려면 `aspire secret set &lt;key&gt; &lt;value&gt;` 명령을 실행하거나, 자세한 내용은 [user secrets](https://aka.ms/aspire/user-secrets)에서 확인할 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">

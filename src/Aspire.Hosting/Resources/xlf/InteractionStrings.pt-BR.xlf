@@ -68,22 +68,22 @@ O valor está atualmente salvo em [segredos do usuário](https://aka.ms/aspire/u
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedMessage">
         <source>The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">The most recent development certificate isn't fully trusted. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">O certificado de desenvolvimento mais recente não é totalmente confiável. Consulte https://aka.ms/aspire/devcerts para obter mais informações.</target>
         <note />
       </trans-unit>
       <trans-unit id="DeveloperCertificateNotFullyTrustedTitle">
         <source>Development certificate not fully trusted</source>
-        <target state="new">Development certificate not fully trusted</target>
+        <target state="translated">Certificado de desenvolvimento não totalmente confiável</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedMessage">
         <source>No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</source>
-        <target state="new">No trusted development certificate was found. See https://aka.ms/aspire/devcerts for more information.</target>
+        <target state="translated">Nenhum certificado de desenvolvimento confiável foi encontrado. Consulte https://aka.ms/aspire/devcerts para obter mais informações.</target>
         <note />
       </trans-unit>
       <trans-unit id="NoDeveloperCertificateTrustedTitle">
         <source>No trusted development certificate</source>
-        <target state="new">No trusted development certificate</target>
+        <target state="translated">Nenhum certificado de desenvolvimento confiável</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -128,7 +128,7 @@ O valor está atualmente salvo em [segredos do usuário](https://aka.ms/aspire/u
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</source>
-        <target state="new">Requires user secrets to be configured for the AppHost. Run `aspire secret set &lt;key&gt; &lt;value&gt;` to initialize user secrets, or see [user secrets](https://aka.ms/aspire/user-secrets) for more information.</target>
+        <target state="translated">Requer que os segredos do usuário sejam configurados para o AppHost. Execute `aspire secret set &lt;key&gt; &lt;value&gt;` para inicializar os segredos do usuário ou veja [user secrets](https://aka.ms/aspire/user-secrets) para mais informações.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
