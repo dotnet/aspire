@@ -22,8 +22,6 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
@@ -35,12 +33,7 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         // PrepareEnvironment
         await auto.PrepareEnvironmentAsync(workspace, counter);
 
-        if (isCI)
-        {
-            await auto.InstallAspireCliFromPullRequestAsync(prNumber, counter);
-            await auto.SourceAspireCliEnvironmentAsync(counter);
-            await auto.VerifyAspireCliVersionAsync(commitSha, counter);
-        }
+        await auto.SetupAspireCliFromPullRequestAsync(counter);
 
         // Step 1: Create a new Aspire Starter App (no Redis cache)
         await auto.AspireNewAsync(ProjectName, counter, useRedisCache: false);
@@ -55,14 +48,9 @@ public sealed class DockerDeploymentTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire add Aspire.Hosting.Docker");
         await auto.EnterAsync();
 
-        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
-        if (isCI)
-        {
-            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
-            await auto.EnterAsync(); // select first version (PR build)
-        }
-
-        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
+        // The version selector only appears when multiple channels exist (e.g. PR hives).
+        // Bare CLI installs auto-select the single implicit channel without prompting.
+        await auto.AcceptVersionSelectionIfShownAsync(counter, TimeSpan.FromSeconds(180));
 
         // Step 4: Modify AppHost's main file to add Docker Compose environment
         // Note: Aspire templates use AppHost.cs as the main entry point, not Program.cs
@@ -143,8 +131,6 @@ builder.Build().Run();
     {
         using var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         var isCI = CliE2ETestHelpers.IsRunningInCI;
         using var terminal = CliE2ETestHelpers.CreateTestTerminal();
 
@@ -156,12 +142,7 @@ builder.Build().Run();
         // PrepareEnvironment
         await auto.PrepareEnvironmentAsync(workspace, counter);
 
-        if (isCI)
-        {
-            await auto.InstallAspireCliFromPullRequestAsync(prNumber, counter);
-            await auto.SourceAspireCliEnvironmentAsync(counter);
-            await auto.VerifyAspireCliVersionAsync(commitSha, counter);
-        }
+        await auto.SetupAspireCliFromPullRequestAsync(counter);
 
         // Step 1: Create a new Aspire Starter App (no Redis cache)
         await auto.AspireNewAsync(ProjectName, counter, useRedisCache: false);
@@ -176,14 +157,9 @@ builder.Build().Run();
         await auto.TypeAsync("aspire add Aspire.Hosting.Docker");
         await auto.EnterAsync();
 
-        // In CI, aspire add shows a version selection prompt (unlike aspire new which auto-selects when channel is set)
-        if (isCI)
-        {
-            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
-            await auto.EnterAsync(); // select first version (PR build)
-        }
-
-        await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
+        // The version selector only appears when multiple channels exist (e.g. PR hives).
+        // Bare CLI installs auto-select the single implicit channel without prompting.
+        await auto.AcceptVersionSelectionIfShownAsync(counter, TimeSpan.FromSeconds(180));
 
         // Step 4: Modify AppHost's main file to add Docker Compose environment
         // Note: Aspire templates use AppHost.cs as the main entry point, not Program.cs

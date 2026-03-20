@@ -306,6 +306,8 @@ jobs:
           GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
           GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
           GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
+          ASPIRE_CLI_INSTALL_SCRIPT: get-aspire-cli
+          ASPIRE_CLI_INSTALL_ARGS: -q staging
         run: |
           # Start heartbeat monitor in background
           ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -348,6 +350,8 @@ jobs:
           GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
           GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
           GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
+          ASPIRE_CLI_INSTALL_SCRIPT: get-aspire-cli
+          ASPIRE_CLI_INSTALL_ARGS: -q staging
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "dotnet" `
@@ -392,6 +396,8 @@ jobs:
           GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
           GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
           GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
+          ASPIRE_CLI_INSTALL_SCRIPT: get-aspire-cli
+          ASPIRE_CLI_INSTALL_ARGS: -q staging
         run: |
           # Start heartbeat monitor in background
           ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -434,6 +440,8 @@ jobs:
           GITHUB_PR_NUMBER: ${{ inputs.requiresCliArchive && github.event.pull_request.number || '' }}
           GITHUB_PR_HEAD_SHA: ${{ inputs.requiresCliArchive && github.event.pull_request.head.sha || '' }}
           GH_TOKEN: ${{ inputs.requiresCliArchive && github.token || '' }}
+          ASPIRE_CLI_INSTALL_SCRIPT: get-aspire-cli
+          ASPIRE_CLI_INSTALL_ARGS: -q staging
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `

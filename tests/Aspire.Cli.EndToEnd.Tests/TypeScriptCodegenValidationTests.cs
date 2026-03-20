@@ -39,6 +39,8 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
 
+        await auto.SetLocalStagingChannelIfNeededAsync(counter);
+
         // Step 2: Add two integrations
         await auto.TypeAsync("aspire add Aspire.Hosting.Redis");
         await auto.EnterAsync();
@@ -101,10 +103,6 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
 
-        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
-        var isCI = CliE2ETestHelpers.IsRunningInCI;
-
         using var terminal = CliE2ETestHelpers.CreateTestTerminal();
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -114,17 +112,14 @@ public sealed class TypeScriptCodegenValidationTests(ITestOutputHelper output)
         // PrepareEnvironment
         await auto.PrepareEnvironmentAsync(workspace, counter);
 
-        if (isCI)
-        {
-            await auto.InstallAspireBundleFromPullRequestAsync(prNumber, counter);
-            await auto.SourceAspireBundleEnvironmentAsync(counter);
-            await auto.VerifyAspireCliVersionAsync(commitSha, counter);
-        }
+        await auto.SetupAspireBundleFromPullRequestAsync(counter);
 
         await auto.TypeAsync("aspire init --language typescript --non-interactive");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("Created apphost.ts", timeout: TimeSpan.FromMinutes(2));
         await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.SetLocalStagingChannelIfNeededAsync(counter);
 
         await auto.TypeAsync("aspire add Aspire.Hosting.PostgreSQL");
         await auto.EnterAsync();

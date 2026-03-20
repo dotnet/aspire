@@ -200,9 +200,30 @@ public sealed class StartStopTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync(AddCommandStrings.SelectAnIntegrationToAdd, timeout: TimeSpan.FromMinutes(1));
         await auto.TypeAsync("mongodb"); // type to filter the list
         await auto.EnterAsync(); // select the filtered result
-        await auto.WaitUntilTextAsync("Select a version of", timeout: TimeSpan.FromSeconds(30));
-        await auto.EnterAsync(); // Accept the default version
-        await auto.WaitUntilTextAsync("was added successfully.", timeout: TimeSpan.FromMinutes(2));
+
+        // The version selector only appears when multiple channels exist (e.g. PR hives).
+        // Bare CLI installs auto-select the single implicit channel without prompting.
+        var waitingForVersionSelection = new CellPatternSearcher()
+            .Find("Select a version of");
+        var versionSelectionShown = false;
+
+        await auto.WaitUntilAsync(s =>
+        {
+            if (waitingForVersionSelection.Search(s).Count > 0)
+            {
+                versionSelectionShown = true;
+                return true;
+            }
+
+            return s.ContainsText("was added successfully.");
+        }, timeout: TimeSpan.FromMinutes(2), description: "version selection prompt or add success");
+
+        if (versionSelectionShown)
+        {
+            await auto.EnterAsync(); // Accept the default version
+            await auto.WaitUntilTextAsync("was added successfully.", timeout: TimeSpan.FromMinutes(2));
+        }
+
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Clean up: stop if still running
