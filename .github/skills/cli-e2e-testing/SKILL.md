@@ -596,3 +596,207 @@ RUN_ID=$(gh run list --branch $(git branch --show-current) --workflow CI --limit
 | Pattern not found but text is visible | Using `FindPattern` with regex special chars | Use `Find()` instead of `FindPattern()` for literal strings containing `(`, `)`, `/`, etc. |
 | Test hangs indefinitely | Waiting for wrong prompt number | Verify `SequenceCounter` usage matches commands |
 | Timeout waiting for dashboard URL | Project failed to build/run | Check recording for build errors |
+
+## Sample Upgrade Tests
+
+Sample upgrade tests validate that `aspire update` can upgrade external Git repos (e.g., `dotnet/aspire-samples`) to the PR/CI build and that the upgraded samples run correctly.
+
+**Location**: `tests/Aspire.Cli.EndToEnd.Tests/SampleUpgrade*.cs` and `Helpers/SampleUpgradeHelpers.cs`
+
+### Test Architecture
+
+Each sample upgrade test follows this flow:
+
+1. Create a Docker terminal with host networking and Docker socket access
+2. Install the Aspire CLI from the PR build
+3. Clone the external repo (e.g., `dotnet/aspire-samples`)
+4. Run `aspire update --channel pr-{N}` to upgrade packages to the PR version
+5. Verify the upgrade via mounted volume (read csproj, check versions)
+6. Run `aspire run` and capture the dashboard URL
+7. Verify the dashboard shows expected resources via Playwright
+8. Poll HTTP endpoints from the host to confirm services are running
+9. Take a dashboard screenshot and save it as a test artifact
+10. Stop the apphost and exit
+
+### Helper Classes
+
+| Class | Description |
+|-------|-------------|
+| `SampleUpgradeHelpers` | Extension methods on `Hex1bTerminalAutomator` for clone, update, run, stop |
+| `DashboardVerificationHelpers` | Playwright-based dashboard verification and HTTP endpoint polling |
+| `AspireRunInfo` | Record returned by `AspireRunSampleAsync` containing the dashboard URL |
+
+### Host Network Mode
+
+Sample upgrade tests use Docker's host network mode (`c.Network = "host"`) so that services started by `aspire run` inside the container are directly accessible from the test process on the host. This enables:
+- Playwright browser access to the Aspire dashboard
+- `HttpClient` polling of app HTTP endpoints
+- No port mapping configuration needed
+
+```csharp
+using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
+    repoRoot, installMode, output,
+    mountDockerSocket: true,
+    useHostNetwork: true,
+    workspace: workspace,
+    additionalVolumes: [$"{workDir}:{containerWorkDir}"]);
+```
+
+### Dashboard URL Capture
+
+`AspireRunSampleAsync` returns an `AspireRunInfo` record containing the dashboard login URL parsed from terminal output. The URL includes the auth token needed for Playwright access.
+
+```csharp
+var runInfo = await auto.AspireRunSampleAsync(
+    appHostRelativePath: AppHostCsproj,
+    startTimeout: TimeSpan.FromMinutes(5));
+
+// runInfo.DashboardUrl is e.g.: http://localhost:18888/login?t=abc123
+```
+
+### Playwright Dashboard Verification
+
+Use `DashboardVerificationHelpers.VerifyDashboardAsync` to navigate to the dashboard, verify resources are displayed, and take a screenshot:
+
+```csharp
+var screenshotPath = DashboardVerificationHelpers.GetScreenshotPath(
+    nameof(UpgradeAndRunAspireWithNodeSample));
+
+await DashboardVerificationHelpers.VerifyDashboardAsync(
+    runInfo.DashboardUrl,
+    expectedResourceNames: ["cache", "weatherapi", "frontend"],
+    screenshotPath,
+    output,
+    timeout: TimeSpan.FromSeconds(90));
+```
+
+Playwright browsers are installed automatically on first use via `EnsureBrowsersInstalled()`. This installs Chromium with system dependencies.
+
+Screenshots are saved to `testresults/screenshots/` within the test output directory and are included in CI artifacts.
+
+### HTTP Endpoint Polling from Host
+
+Use `DashboardVerificationHelpers.PollEndpointAsync` to verify HTTP endpoints are reachable from the host. Uses retry with exponential backoff:
+
+```csharp
+await DashboardVerificationHelpers.PollEndpointAsync(
+    "http://localhost:18888",
+    output,
+    expectedStatusCode: 200,
+    timeout: TimeSpan.FromSeconds(30));
+```
+
+### aspire update Interactive Prompts
+
+When running `aspire update` with `--channel`, the helper handles these interactive prompts automatically:
+
+| Prompt | Action | When it appears |
+|--------|--------|-----------------|
+| "Select a channel:" | Press Enter (default) | Hives exist, no `--channel` flag |
+| "Which directory for NuGet.config file?" | Press Enter (accept default) | Explicit channel specified |
+| "Apply these changes to NuGet.config?" | Press Enter (yes) | Explicit channel specified |
+| "Perform updates?" | Press Enter (yes) | Always |
+| "Would you like to update it now?" | Type "n", Enter | CLI self-update prompt |
+
+### Writing a New Sample Upgrade Test
+
+1. **Create a new test class** named `SampleUpgrade{SampleName}Tests.cs`
+2. **Define constants**: sample path, AppHost csproj path, original version, expected resources
+3. **Use `SampleUpgradeHelpers`** for clone, update, run, stop
+4. **Use `DashboardVerificationHelpers`** for dashboard verification and endpoint polling
+5. **Enable host networking** with `useHostNetwork: true`
+6. **Mount a working directory** for direct file assertions from the host
+
+```csharp
+public sealed class SampleUpgradeMyNewSampleTests(ITestOutputHelper output)
+{
+    private const string SamplePath = "aspire-samples/samples/my-new-sample";
+    private const string AppHostCsproj = "MyNewSample.AppHost/MyNewSample.AppHost.csproj";
+    private const string OriginalVersion = "13.1.0";
+    private static readonly string[] s_expectedResources = ["resource1", "resource2"];
+
+    [Fact]
+    public async Task UpgradeAndRunMyNewSample()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var installMode = CliE2ETestHelpers.DetectDockerInstallMode(repoRoot);
+        var workspace = TemporaryWorkspace.Create(output);
+
+        var workDir = Path.Combine(workspace.WorkspaceRoot.FullName, "sample-work");
+        Directory.CreateDirectory(workDir);
+
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
+            repoRoot, installMode, output,
+            mountDockerSocket: true,
+            useHostNetwork: true,
+            workspace: workspace,
+            additionalVolumes: [$"{workDir}:/sample-work"]);
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+        var counter = new SequenceCounter();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(600));
+
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliInDockerAsync(installMode, counter);
+
+        await auto.TypeAsync("cd /sample-work");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        await auto.CloneSampleRepoAsync(counter);
+
+        await auto.TypeAsync($"cd {SamplePath}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        string? channel = null;
+        if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
+        {
+            channel = $"pr-{CliE2ETestHelpers.GetRequiredPrNumber()}";
+        }
+
+        await auto.AspireUpdateInSampleAsync(counter, samplePath: ".",
+            channel: channel, timeout: TimeSpan.FromMinutes(5));
+
+        // Verify upgrade via mounted volume
+        var csproj = await File.ReadAllTextAsync(
+            Path.Combine(workDir, SamplePath, AppHostCsproj));
+        Assert.DoesNotContain(OriginalVersion, csproj);
+
+        // Run and verify dashboard
+        var runInfo = await auto.AspireRunSampleAsync(
+            appHostRelativePath: AppHostCsproj,
+            startTimeout: TimeSpan.FromMinutes(5));
+
+        if (runInfo.DashboardUrl is not null)
+        {
+            await DashboardVerificationHelpers.VerifyDashboardAsync(
+                runInfo.DashboardUrl,
+                s_expectedResources,
+                DashboardVerificationHelpers.GetScreenshotPath(nameof(UpgradeAndRunMyNewSample)),
+                output);
+        }
+
+        await auto.StopAspireRunAsync(counter);
+        await auto.TypeAsync("exit");
+        await auto.EnterAsync();
+        await pendingRun;
+    }
+}
+```
+
+### Special Docker Images for Samples
+
+Some samples may need additional tooling not in the base `Dockerfile.e2e` (e.g., Go, Java). For these:
+- Create a new `DockerfileVariant` enum value
+- Add a new Dockerfile (e.g., `Dockerfile.e2e-go`) extending the base image
+- Pass the variant to `CreateDockerTestTerminal`
+
+### CI Artifacts for Sample Tests
+
+Sample upgrade tests produce these artifacts:
+- **Asciinema recording** (`.cast`): Full terminal session replay for debugging
+- **Dashboard screenshot** (`.png`): Visual proof of the dashboard state
+- **Test output log**: Includes upgrade details, endpoint polling results, resource verification
+
+All are uploaded to GitHub Actions artifacts under the test job's `logs-*` artifact.

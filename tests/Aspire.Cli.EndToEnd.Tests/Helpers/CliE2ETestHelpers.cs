@@ -173,6 +173,9 @@ internal static class CliE2ETestHelpers
     /// <param name="output">Test output helper for logging configuration details.</param>
     /// <param name="variant">Which Dockerfile variant to use (DotNet or Polyglot).</param>
     /// <param name="mountDockerSocket">Whether to mount the Docker socket for DCP/container access.</param>
+    /// <param name="useHostNetwork">Whether to use Docker host network mode. When true, the container shares the host's
+    /// network namespace, making all container-bound ports directly accessible from the test process. This is useful for
+    /// accessing the Aspire dashboard and app endpoints via Playwright or HttpClient.</param>
     /// <param name="workspace">Optional workspace to mount into the container at /workspace.</param>
     /// <param name="width">Terminal width in columns.</param>
     /// <param name="height">Terminal height in rows.</param>
@@ -184,6 +187,7 @@ internal static class CliE2ETestHelpers
         ITestOutputHelper output,
         DockerfileVariant variant = DockerfileVariant.DotNet,
         bool mountDockerSocket = false,
+        bool useHostNetwork = false,
         TemporaryWorkspace? workspace = null,
         IEnumerable<string>? additionalVolumes = null,
         int width = 160,
@@ -206,6 +210,7 @@ internal static class CliE2ETestHelpers
         output.WriteLine($"  Dockerfile:     {dockerfilePath}");
         output.WriteLine($"  Workspace:      {workspace?.WorkspaceRoot.FullName ?? "(none)"}");
         output.WriteLine($"  Docker socket:  {mountDockerSocket}");
+        output.WriteLine($"  Host network:   {useHostNetwork}");
         output.WriteLine($"  Dimensions:     {width}x{height}");
         output.WriteLine($"  Recording:      {recordingPath}");
 
@@ -221,6 +226,11 @@ internal static class CliE2ETestHelpers
                 if (mountDockerSocket)
                 {
                     c.MountDockerSocket = true;
+                }
+
+                if (useHostNetwork)
+                {
+                    c.Network = "host";
                 }
 
                 if (workspace is not null)

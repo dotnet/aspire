@@ -19,6 +19,11 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
     private const string AppHostCsproj = "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj";
     private const string OriginalVersion = "13.1.0";
 
+    /// <summary>
+    /// Expected resource names that should appear in the Aspire dashboard after running the sample.
+    /// </summary>
+    private static readonly string[] s_expectedResources = ["cache", "weatherapi", "frontend"];
+
     [Fact]
     public async Task UpgradeAndRunAspireWithNodeSample()
     {
@@ -33,9 +38,12 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         Directory.CreateDirectory(workDir);
         const string containerWorkDir = "/sample-work";
 
+        // Use host networking so the Aspire dashboard and app endpoints are directly
+        // accessible from the test process for Playwright and HttpClient verification.
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
             repoRoot, installMode, output,
             mountDockerSocket: true,
+            useHostNetwork: true,
             workspace: workspace,
             additionalVolumes: [$"{workDir}:{containerWorkDir}"]);
 
@@ -63,12 +71,6 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Run aspire update with the PR channel to upgrade to the PR build.
-        // In PullRequest mode, the PR hive is already installed at ~/.aspire/hives/pr-{N}.
-        // The --channel flag tells aspire update to use that hive for package resolution.
-        // Note: aspire update --channel correctly updates the SDK version and creates the
-        // NuGet.config, but has a known issue where the apply phase (dotnet package add)
-        // can fail for individual PackageReference entries. After the update we fix up any
-        // remaining old references.
         string? channel = null;
         if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
         {
@@ -93,10 +95,38 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
             Assert.Contains("-pr.", csprojContent);
         }
 
-        // Run the sample
-        await auto.AspireRunSampleAsync(
+        // Run the sample and capture the dashboard URL
+        var runInfo = await auto.AspireRunSampleAsync(
             appHostRelativePath: AppHostCsproj,
             startTimeout: TimeSpan.FromMinutes(5));
+
+        output.WriteLine($"Dashboard URL: {runInfo.DashboardUrl ?? "(not captured)"}");
+
+        // Verify the dashboard is accessible and shows expected resources via Playwright
+        if (runInfo.DashboardUrl is not null)
+        {
+            var screenshotPath = DashboardVerificationHelpers.GetScreenshotPath(
+                nameof(UpgradeAndRunAspireWithNodeSample));
+            output.WriteLine($"Screenshot will be saved to: {screenshotPath}");
+
+            await DashboardVerificationHelpers.VerifyDashboardAsync(
+                runInfo.DashboardUrl,
+                s_expectedResources,
+                screenshotPath,
+                output,
+                timeout: TimeSpan.FromSeconds(90));
+
+            // Also poll the dashboard endpoint from the host to confirm HTTP accessibility
+            var dashboardBase = new Uri(runInfo.DashboardUrl).GetLeftPart(UriPartial.Authority);
+            await DashboardVerificationHelpers.PollEndpointAsync(
+                dashboardBase,
+                output,
+                timeout: TimeSpan.FromSeconds(30));
+        }
+        else
+        {
+            output.WriteLine("WARNING: Dashboard URL was not captured from terminal output. Skipping dashboard verification.");
+        }
 
         // Stop the running apphost
         await auto.StopAspireRunAsync(counter);

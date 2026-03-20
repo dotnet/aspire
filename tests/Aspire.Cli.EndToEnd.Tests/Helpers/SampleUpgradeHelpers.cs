@@ -1,10 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Hex1b.Automation;
 using Hex1b.Input;
 
 namespace Aspire.Cli.EndToEnd.Tests.Helpers;
+
+/// <summary>
+/// Information captured from a running <c>aspire run</c> session.
+/// </summary>
+/// <param name="DashboardUrl">The full dashboard login URL including auth token, or <c>null</c> if not found.</param>
+internal sealed record AspireRunInfo(string? DashboardUrl);
 
 /// <summary>
 /// Extension methods for <see cref="Hex1bTerminalAutomator"/> providing helpers for
@@ -16,6 +23,10 @@ internal static class SampleUpgradeHelpers
 {
     private const string DefaultSamplesRepoUrl = "https://github.com/dotnet/aspire-samples.git";
     private const string DefaultSamplesBranch = "main";
+
+    private static readonly Regex s_dashboardUrlRegex = new(
+        @"https?://[^\s]+/login\?t=[^\s]+",
+        RegexOptions.Compiled);
 
     /// <summary>
     /// Clones a Git repository inside the container.
@@ -172,12 +183,13 @@ internal static class SampleUpgradeHelpers
 
     /// <summary>
     /// Runs <c>aspire run</c> on a sample and waits for the apphost to start.
-    /// Returns when the "Press CTRL+C to stop the apphost and exit." message is displayed.
+    /// Returns an <see cref="AspireRunInfo"/> containing the dashboard URL parsed from terminal output.
     /// </summary>
     /// <param name="auto">The terminal automator.</param>
     /// <param name="appHostRelativePath">Optional relative path to the AppHost csproj file. If specified, passed as <c>--apphost</c>.</param>
     /// <param name="startTimeout">Timeout for the apphost to start. Defaults to 5 minutes.</param>
-    internal static async Task AspireRunSampleAsync(
+    /// <returns>An <see cref="AspireRunInfo"/> containing the dashboard login URL.</returns>
+    internal static async Task<AspireRunInfo> AspireRunSampleAsync(
         this Hex1bTerminalAutomator auto,
         string? appHostRelativePath = null,
         TimeSpan? startTimeout = null)
@@ -191,7 +203,9 @@ internal static class SampleUpgradeHelpers
         await auto.TypeAsync(command);
         await auto.EnterAsync();
 
-        // Wait for the apphost to start successfully
+        string? dashboardUrl = null;
+
+        // Wait for the apphost to start successfully, capturing the dashboard URL along the way
         await auto.WaitUntilAsync(s =>
         {
             // Fail fast if apphost selection prompt appears (multiple apphosts detected)
@@ -202,8 +216,21 @@ internal static class SampleUpgradeHelpers
                     "This indicates multiple apphosts were incorrectly detected in the sample.");
             }
 
+            // Try to capture the dashboard login URL from terminal output
+            if (dashboardUrl is null)
+            {
+                var screenText = s.GetScreenText();
+                var match = s_dashboardUrlRegex.Match(screenText);
+                if (match.Success)
+                {
+                    dashboardUrl = match.Value;
+                }
+            }
+
             return s.ContainsText("Press CTRL+C to stop the apphost and exit.");
         }, timeout: effectiveTimeout, description: "aspire run to start (Press CTRL+C message)");
+
+        return new AspireRunInfo(dashboardUrl);
     }
 
     /// <summary>

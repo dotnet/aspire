@@ -48,6 +48,7 @@
   <ItemGroup>
     <PackageReference Include="Hex1b" />
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+    <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
