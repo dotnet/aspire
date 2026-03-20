@@ -18,13 +18,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
-        <source>Clear all cache entries</source>
-        <target state="translated">Borrar todas las entradas de caché</target>
+        <source>Clear all cache entries.</source>
+        <target state="new">Clear all cache entries.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage disk cache for CLI operations</source>
-        <target state="translated">Administración de la caché de disco para las operaciones de la CLI</target>
+        <source>Manage disk cache for CLI operations.</source>
+        <target state="new">Manage disk cache for CLI operations.</target>
         <note />
       </trans-unit>
     </body>

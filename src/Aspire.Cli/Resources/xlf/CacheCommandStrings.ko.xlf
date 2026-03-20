@@ -18,13 +18,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
-        <source>Clear all cache entries</source>
-        <target state="translated">모든 캐시 항목 지우기</target>
+        <source>Clear all cache entries.</source>
+        <target state="new">Clear all cache entries.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage disk cache for CLI operations</source>
-        <target state="translated">CLI 작업에 대한 디스크 캐시 관리</target>
+        <source>Manage disk cache for CLI operations.</source>
+        <target state="new">Manage disk cache for CLI operations.</target>
         <note />
       </trans-unit>
     </body>

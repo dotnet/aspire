@@ -18,13 +18,13 @@
         <note />
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
-        <source>Clear all cache entries</source>
-        <target state="new">Clear all cache entries</target>
+        <source>Clear all cache entries.</source>
+        <target state="translated">Vymaže všechny položky mezipaměti.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage disk cache for CLI operations</source>
-        <target state="new">Manage disk cache for CLI operations</target>
+        <source>Manage disk cache for CLI operations.</source>
+        <target state="translated">Umožňuje spravovat mezipaměť disku pro operace rozhraní příkazového řádku.</target>
         <note />
       </trans-unit>
     </body>

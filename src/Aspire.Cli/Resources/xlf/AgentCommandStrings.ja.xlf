@@ -23,33 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage AI agent environment configuration</source>
-        <target state="translated">AI エージェント環境構成を管理します</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_ConfigureMcpServer">
-        <source>Install Aspire MCP server</source>
-        <target state="translated">Aspire MCP サーバーのインストール</target>
+        <source>Manage AI agent specific setup.</source>
+        <target state="new">Manage AI agent specific setup.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
-        <source>Initialize agent environment configuration for detected agents</source>
-        <target state="translated">検出されたエージェントのエージェント環境構成を初期化します</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_InstallSkillFile">
-        <source>Install Aspire skill file (Recommended)</source>
-        <target state="translated">Aspire スキル ファイルのインストール (推奨)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_NothingSelected">
-        <source>No options selected. Nothing to configure.</source>
-        <target state="translated">オプションが選択されていません。構成するものはありません。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_WhatToConfigure">
-        <source>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</source>
-        <target state="translated">何を構成しますか?[dim](Enter キーでスキップ、Ctrl+C でキャンセル)[/]</target>
+        <source>Initialize agent environment configuration for detected agents.</source>
+        <target state="new">Initialize agent environment configuration for detected agents.</target>
         <note />
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
@@ -58,13 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="McpCommand_Description">
-        <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="translated">MCP (モデル コンテキスト プロトコル) サーバーを起動します</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SkipNoneDescription">
-        <source>None — skip</source>
-        <target state="translated">なし — スキップ</target>
+        <source>Start the MCP (Model Context Protocol) server.</source>
+        <target state="new">Start the MCP (Model Context Protocol) server.</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">

@@ -23,33 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Manage AI agent environment configuration</source>
-        <target state="translated">Administración de la configuración del entorno del agente de IA</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_ConfigureMcpServer">
-        <source>Install Aspire MCP server</source>
-        <target state="translated">Instalar el servidor MCP de Aspire</target>
+        <source>Manage AI agent specific setup.</source>
+        <target state="new">Manage AI agent specific setup.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
-        <source>Initialize agent environment configuration for detected agents</source>
-        <target state="translated">Inicialización de la configuración del entorno del agente para los agentes detectados</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_InstallSkillFile">
-        <source>Install Aspire skill file (Recommended)</source>
-        <target state="translated">Instalar el archivo de habilidades de Aspire (recomendado)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_NothingSelected">
-        <source>No options selected. Nothing to configure.</source>
-        <target state="translated">No hay opciones seleccionadas. No hay nada que configurar.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_WhatToConfigure">
-        <source>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</source>
-        <target state="translated">¿Qué desea configurar? [dim](Entrar para omitir, Ctrl+C para cancelar)[/]</target>
+        <source>Initialize agent environment configuration for detected agents.</source>
+        <target state="new">Initialize agent environment configuration for detected agents.</target>
         <note />
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
@@ -58,13 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="McpCommand_Description">
-        <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="translated">Iniciar el servidor MCP (Protocolo de contexto de modelo)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SkipNoneDescription">
-        <source>None — skip</source>
-        <target state="translated">Ninguno: omitir</target>
+        <source>Start the MCP (Model Context Protocol) server.</source>
+        <target state="new">Start the MCP (Model Context Protocol) server.</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">
