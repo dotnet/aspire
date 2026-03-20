@@ -294,6 +294,30 @@ secure_curl() {
     curl "${curl_args[@]}" "$url"
 }
 
+# Build a compact display string for download messages without exposing the full URL.
+get_download_descriptor() {
+    local url="$1"
+    local file_name source
+
+    if [[ "$url" =~ ^https://aka\.ms/dotnet/[^/]+/aspire/(.+)/([^/]+)$ ]]; then
+        source="${BASH_REMATCH[1]}"
+        file_name="${BASH_REMATCH[2]}"
+    elif [[ "$url" =~ ^https://ci\.dot\.net/public(-checksums)?/aspire/+([^/]+)/([^/]+)$ ]]; then
+        source="version/${BASH_REMATCH[2]}"
+        file_name="${BASH_REMATCH[3]}"
+    else
+        file_name="${url##*/}"
+        source="${url#https://}"
+        source="${source%%/*}"
+    fi
+
+    if [[ -n "$file_name" && -n "$source" ]]; then
+        printf "%s from '%s'" "$file_name" "$source"
+    else
+        printf "%s" "$file_name"
+    fi
+}
+
 # Validate content type via HEAD request
 validate_content_type() {
     local url="$1"
@@ -324,9 +348,12 @@ download_file() {
     local max_retries="${4:-5}"
     local validate_content_type="${5:-true}"
     local use_temp_file="${6:-true}"
+    local download_descriptor
+
+    download_descriptor=$(get_download_descriptor "$url")
 
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would download $url"
+        say_info "[DRY RUN] Would download $download_descriptor"
         return 0
     fi
 
@@ -343,7 +370,7 @@ download_file() {
     fi
 
     say_verbose "Downloading $url to $target_file"
-    say_info "Downloading from: $url"
+    say_info "Downloading $download_descriptor"
 
     # Download the file
     if secure_curl "$url" "$target_file" "$timeout" "$USER_AGENT" "$max_retries"; then
@@ -843,7 +870,6 @@ download_aspire_extension() {
 
     extension_archive="${temp_dir}/${EXTENSION_ARTIFACT_NAME}"
 
-    say_info "Downloading from: $url"
     if ! download_file "$url" "$extension_archive" $ARCHIVE_DOWNLOAD_TIMEOUT_SEC; then
         return 1
     fi
