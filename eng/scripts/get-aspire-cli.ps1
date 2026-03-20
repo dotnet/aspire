@@ -664,7 +664,7 @@ function Restore-CliExecutableFromBackup {
             Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
         }
         
-        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force -ErrorAction Stop
     }
 }
 
@@ -716,7 +716,7 @@ function Expand-AspireCliArchive {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
             Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
-            New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $DestinationPath -Force -ErrorAction Stop | Out-Null
         }
         else {
             # Backup existing executable before extraction
@@ -1011,7 +1011,7 @@ function Install-AspireExtension {
         if ($PSCmdlet.ShouldProcess($extractDir, "Extract extension archive")) {
             # Expand the zip archive
             if ($Script:IsModernPowerShell) {
-                Expand-Archive -Path $ExtensionArchive -DestinationPath $extractDir -Force
+                Expand-Archive -Path $ExtensionArchive -DestinationPath $extractDir -Force -ErrorAction Stop
             } else {
                 Add-Type -AssemblyName System.IO.Compression.FileSystem
                 [System.IO.Compression.ZipFile]::ExtractToDirectory($ExtensionArchive, $extractDir)
@@ -1174,7 +1174,7 @@ function Install-AspireCli {
     if ($PSCmdlet.ShouldProcess($InstallPath, "Create temporary directory")) {
         Write-Message "Creating temporary directory: $tempDir" -Level Verbose
         try {
-            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction Stop | Out-Null
         }
         catch {
             throw "Failed to create temporary directory: $tempDir - $($_.Exception.Message)"
@@ -1322,7 +1322,7 @@ function Start-AspireCliInstallation {
             Write-Message "Creating installation directory: $resolvedInstallPath" -Level Info
             if ($PSCmdlet.ShouldProcess($resolvedInstallPath, "Create installation directory")) {
                 try {
-                    New-Item -ItemType Directory -Path $resolvedInstallPath -Force | Out-Null
+                    New-Item -ItemType Directory -Path $resolvedInstallPath -Force -ErrorAction Stop | Out-Null
                 }
                 catch {
                     throw "Failed to create installation directory: $resolvedInstallPath - $($_.Exception.Message)"

@@ -432,7 +432,7 @@ function Restore-CliExecutableFromBackup {
             Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
         }
         
-        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force -ErrorAction Stop
     }
 }
 
@@ -487,7 +487,7 @@ function Expand-AspireCliArchive {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
             Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
-            New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $DestinationPath -Force -ErrorAction Stop | Out-Null
         }
         else {
             # Backup existing executable before extraction
@@ -662,7 +662,7 @@ function New-TempDirectory {
 
         Write-Message "Creating temporary directory: $tempDir" -Level Verbose
         try {
-            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction Stop | Out-Null
             return $tempDir
         }
         catch {
@@ -1067,7 +1067,7 @@ function Install-BuiltNugets {
     }
 
     if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Create directory")) {
-        New-Item -ItemType Directory -Path $NugetHiveDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $NugetHiveDir -Force -ErrorAction Stop | Out-Null
     }
 
     Write-Message "Copying nugets from $DownloadDir to $NugetHiveDir" -Level Verbose
@@ -1083,7 +1083,7 @@ function Install-BuiltNugets {
 
         foreach ($file in $nupkgFiles) {
             if ($PSCmdlet.ShouldProcess($file.FullName, "Copy to $NugetHiveDir")) {
-                Copy-Item $file.FullName -Destination $NugetHiveDir
+                Copy-Item $file.FullName -Destination $NugetHiveDir -ErrorAction Stop
             }
         }
 
