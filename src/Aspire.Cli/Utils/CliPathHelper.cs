@@ -18,11 +18,6 @@ internal static class CliPathHelper
     {
         var socketName = $"{socketPrefix}.{BackchannelConstants.CreateRandomIdentifier()}";
 
-        if (OperatingSystem.IsWindows())
-        {
-            return socketName;
-        }
-
         var socketDirectory = GetCliSocketDirectory();
         Directory.CreateDirectory(socketDirectory);
         return Path.Combine(socketDirectory, socketName);
