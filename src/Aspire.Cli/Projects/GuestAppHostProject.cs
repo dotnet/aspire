@@ -37,7 +37,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
-    private readonly IConfigurationService _configurationService;
     private readonly IFeatures _features;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly ILogger<GuestAppHostProject> _logger;
@@ -58,7 +57,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         IDotNetCliRunner runner,
         IPackagingService packagingService,
         IConfiguration configuration,
-        IConfigurationService configurationService,
         IFeatures features,
         ILanguageDiscovery languageDiscovery,
         ILogger<GuestAppHostProject> logger,
@@ -73,7 +71,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         _runner = runner;
         _packagingService = packagingService;
         _configuration = configuration;
-        _configurationService = configurationService;
         _features = features;
         _languageDiscovery = languageDiscovery;
         _logger = logger;
@@ -167,27 +164,27 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
     /// <summary>
     /// Resolves the directory containing the nearest aspire.config.json (or legacy settings file)
-    /// by using the already-resolved path from <see cref="IConfigurationService"/>.
+    /// by searching upward from <paramref name="appHostDirectory"/>.
     /// Falls back to <paramref name="appHostDirectory"/> when no config file is found.
     /// </summary>
-    private DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
+    private static DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
     {
-        var settingsFilePath = _configurationService.GetSettingsFilePath(isGlobal: false);
-        var settingsFile = new FileInfo(settingsFilePath);
-
-        // If the settings file exists and has a parent directory, use that
-        if (settingsFile.Directory is { Exists: true })
+        // Search from the apphost's directory upward to find the nearest config file.
+        var nearAppHost = ConfigurationHelper.FindNearestConfigFilePath(appHostDirectory);
+        if (nearAppHost is not null)
         {
-            // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
-            // TODO: Remove legacy .aspire/ check once confident most users have migrated.
-            // Tracked by https://github.com/dotnet/aspire/issues/15239
-            if (string.Equals(settingsFile.Directory.Name, ".aspire", StringComparison.OrdinalIgnoreCase)
-                && settingsFile.Directory.Parent is not null)
+            var configFile = new FileInfo(nearAppHost);
+            if (configFile.Directory is { Exists: true })
             {
-                return settingsFile.Directory.Parent;
-            }
+                // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
+                if (string.Equals(configFile.Directory.Name, ".aspire", StringComparison.OrdinalIgnoreCase)
+                    && configFile.Directory.Parent is not null)
+                {
+                    return configFile.Directory.Parent;
+                }
 
-            return settingsFile.Directory;
+                return configFile.Directory;
+            }
         }
 
         return appHostDirectory;
@@ -209,7 +206,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
     }
 
-    private void SaveConfiguration(AspireConfigFile config, DirectoryInfo directory)
+    private static void SaveConfiguration(AspireConfigFile config, DirectoryInfo directory)
     {
         var configDir = GetConfigDirectory(directory);
         config.Save(configDir.FullName);
