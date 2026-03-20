@@ -401,7 +401,12 @@ function Backup-ExistingCliExecutable {
             Write-Message "Backing up existing CLI: $TargetExePath -> $backupPath" -Level Verbose
             
             # Rename existing executable to .old.[timestamp]
-            Move-Item -Path $TargetExePath -Destination $backupPath -Force
+            try {
+                Move-Item -Path $TargetExePath -Destination $backupPath -Force -ErrorAction Stop
+            }
+            catch {
+                throw "Failed to back up existing CLI at '$TargetExePath'. The file may be in use by another process. Please close any running Aspire CLI instances and try again. Error: $($_.Exception.Message)"
+            }
             return $backupPath
         }
     }
@@ -498,7 +503,7 @@ function Expand-AspireCliArchive {
                 throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
             }
 
-            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
+            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force -ErrorAction Stop
         }
         elseif ($ArchiveFile -match "\.tar\.gz$") {
             # Use tar for tar.gz files
