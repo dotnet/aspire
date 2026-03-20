@@ -13,7 +13,7 @@ concurrency:
 jobs:
   quarantine_test:
     if: >-
-      github.repository == 'dotnet/aspire' &&
+      github.repository == 'microsoft/aspire' &&
       (
         startsWith(github.event.comment.body, '/quarantine-test ') ||
         startsWith(github.event.comment.body, '/unquarantine-test ') ||
