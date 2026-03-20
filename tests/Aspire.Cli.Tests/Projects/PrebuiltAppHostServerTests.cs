@@ -3,11 +3,18 @@
 
 using System.Xml.Linq;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Layout;
+using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Tests.Mcp;
+using Aspire.Cli.Tests.TestServices;
+using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Projects;
 
-public class PrebuiltAppHostServerTests
+public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public void GenerateIntegrationProjectFile_WithPackagesOnly_ProducesPackageReferences()
@@ -143,6 +150,44 @@ public class PrebuiltAppHostServerTests
         var ns = doc.Root!.GetDefaultNamespace();
         var restoreSources = doc.Descendants(ns + "RestoreAdditionalProjectSources").FirstOrDefault();
         Assert.Null(restoreSources);
+    }
+
+    [Fact]
+    public void Constructor_UsesUserAspireDirectoryForWorkingDirectory()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var nugetService = new BundleNuGetService(new NullLayoutDiscovery(), NullLogger<BundleNuGetService>.Instance);
+        var server = new PrebuiltAppHostServer(
+            workspace.WorkspaceRoot.FullName,
+            "test.sock",
+            new LayoutConfiguration(),
+            nugetService,
+            new TestDotNetCliRunner(),
+            new TestDotNetSdkInstaller(),
+            new MockPackagingService(),
+            new TestConfigurationService(),
+            NullLogger.Instance);
+
+        var workingDirectory = Assert.IsType<string>(
+            typeof(PrebuiltAppHostServer)
+                .GetField("_workingDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(server));
+
+        try
+        {
+            Assert.StartsWith(
+                Path.Combine(CliPathHelper.GetAspireHomeDirectory(), "bundle-hosts"),
+                workingDirectory,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(workingDirectory))
+            {
+                Directory.Delete(workingDirectory, recursive: true);
+            }
+        }
     }
 
 }

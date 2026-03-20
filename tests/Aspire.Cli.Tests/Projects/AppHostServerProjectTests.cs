@@ -7,6 +7,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Utils;
 using Aspire.Cli.Tests.Mcp;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -184,6 +185,27 @@ public class AppHostServerProjectTests(ITestOutputHelper outputHelper) : IDispos
 
         // Assert - same app path should result in same project model path
         Assert.Equal(project1.ProjectModelPath, project2.ProjectModelPath);
+    }
+
+    [Fact]
+    public void ProjectModelPath_UsesUserAspireDirectory()
+    {
+        // Arrange
+        var project = CreateProject();
+        var expectedRoot = Path.Combine(CliPathHelper.GetAspireHomeDirectory(), "hosts");
+
+        try
+        {
+            // Assert
+            Assert.StartsWith(expectedRoot, project.ProjectModelPath, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(project.ProjectModelPath))
+            {
+                Directory.Delete(project.ProjectModelPath, recursive: true);
+            }
+        }
     }
 
     [Fact]
