@@ -17,6 +17,9 @@
     <RequiresCliArchive>true</RequiresCliArchive>
     <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
 
+    <!-- Install Playwright browsers during build on CI -->
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
+
     <!-- Disable strong name signing for third-party packages -->
     <SignAssembly>false</SignAssembly>
 
@@ -44,11 +47,12 @@
 
   <ItemGroup>
     <PackageReference Include="Hex1b" />
-    <PackageReference Include="Microsoft.Playwright" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
   </ItemGroup>
+
+  <Import Project="..\Shared\Playwright\Playwright.targets" />
 
 </Project>
