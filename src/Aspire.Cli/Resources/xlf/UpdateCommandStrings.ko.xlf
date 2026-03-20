@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze apphost</source>
-        <target state="new">Analyze apphost</target>
+        <target state="translated">AppHost 분석</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHostSdk">
         <source>Analyze apphost SDK</source>
-        <target state="new">Analyze apphost SDK</target>
+        <target state="translated">AppHost SDK 분석</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeProjectFormat">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project (Preview)</source>
-        <target state="new">Update integrations in the Aspire project (Preview)</target>
+        <target state="translated">Aspire 프로젝트에서 통합 업데이트(미리 보기)</target>
         <note />
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="FallbackParsingWarning">
         <source>Note: Update plan generated using fallback parsing due to unresolvable apphost SDK. Dependency analysis may have reduced accuracy.</source>
-        <target state="new">Note: Update plan generated using fallback parsing due to unresolvable apphost SDK. Dependency analysis may have reduced accuracy.</target>
+        <target state="translated">참고: 해결할 수 없는 AppHost SDK 때문에 대체 구문 분석을 사용하여 업데이트 계획이 생성되었습니다. 종속성 분석의 정확도가 낮아질 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire apphost project found. Would you like to update the Aspire CLI instead?</source>
-        <target state="new">No Aspire apphost project found. Would you like to update the Aspire CLI instead?</target>
+        <target state="translated">Azure AppHost 프로젝트를 찾을 수 없습니다. 대신 Aspire CLI를 업데이트하시겠어요?</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="new">The path to the Aspire apphost project file</target>
+        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
@@ -229,7 +229,7 @@
       </trans-unit>
       <trans-unit id="SelfOptionDescription">
         <source>Update the Aspire CLI itself to the latest version</source>
-        <target state="new">Update the Aspire CLI itself to the latest version</target>
+        <target state="translated">Aspire CLI 자체를 최신 버전으로 업데이트</target>
         <note />
       </trans-unit>
       <trans-unit id="UnxpectedCodePath">
