@@ -15,6 +15,10 @@ namespace Aspire.Cli.EndToEnd.Tests;
 /// </summary>
 public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
 {
+    private const string SamplePath = "aspire-samples/samples/aspire-with-node";
+    private const string AppHostCsproj = "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj";
+    private const string OriginalVersion = "13.1.0";
+
     [Fact]
     public async Task UpgradeAndRunAspireWithNodeSample()
     {
@@ -23,10 +27,17 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
 
         var workspace = TemporaryWorkspace.Create(output);
 
+        // Mount a host-side working directory into the container so we can
+        // inspect files directly from the test process after the upgrade.
+        var workDir = Path.Combine(workspace.WorkspaceRoot.FullName, "sample-work");
+        Directory.CreateDirectory(workDir);
+        const string containerWorkDir = "/sample-work";
+
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
             repoRoot, installMode, output,
             mountDockerSocket: true,
-            workspace: workspace);
+            workspace: workspace,
+            additionalVolumes: [$"{workDir}:{containerWorkDir}"]);
 
         var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
 
@@ -39,11 +50,15 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         // Install the Aspire CLI
         await auto.InstallAspireCliInDockerAsync(installMode, counter);
 
-        // Clone the aspire-samples repository
+        // Clone the aspire-samples repository into the mounted working directory
+        await auto.TypeAsync($"cd {containerWorkDir}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
         await auto.CloneSampleRepoAsync(counter);
 
         // Navigate to the sample directory
-        await auto.TypeAsync("cd aspire-samples/samples/aspire-with-node");
+        await auto.TypeAsync($"cd {SamplePath}");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
@@ -61,18 +76,25 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
             var channel = $"pr-{prNumber}";
 
             await auto.SetupPrHiveNuGetConfigAsync(counter, channel);
-            await auto.UpgradeToPrVersionAsync(counter, channel,
-                "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj");
+            await auto.UpgradeToPrVersionAsync(counter, channel, AppHostCsproj);
         }
 
-        // Verify that the AppHost csproj was actually updated (no longer contains 13.1.0)
-        await auto.VerifySampleWasUpgradedAsync(counter,
-            "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj",
-            originalVersion: "13.1.0");
+        // Verify the upgrade by reading the csproj directly from the mounted volume
+        var hostCsprojPath = Path.Combine(workDir, SamplePath, AppHostCsproj);
+        var csprojContent = await File.ReadAllTextAsync(hostCsprojPath);
+        output.WriteLine($"--- AppHost csproj after upgrade ---");
+        output.WriteLine(csprojContent);
 
-        // Run the sample — the AppHost csproj is in the AspireWithNode.AppHost subdirectory
+        Assert.DoesNotContain(OriginalVersion, csprojContent);
+
+        if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
+        {
+            Assert.Contains("-pr.", csprojContent);
+        }
+
+        // Run the sample
         await auto.AspireRunSampleAsync(
-            appHostRelativePath: "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj",
+            appHostRelativePath: AppHostCsproj,
             startTimeout: TimeSpan.FromMinutes(5));
 
         // Stop the running apphost
