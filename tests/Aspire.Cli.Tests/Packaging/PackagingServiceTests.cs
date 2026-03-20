@@ -382,8 +382,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var globalPackagesFolderAdd = configSection.Elements("add")
             .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(globalPackagesFolderAdd);
-        var actualGlobalPackagesFolder = (string?)globalPackagesFolderAdd.Attribute("value");
-        Assert.Equal(".nugetpackages", actualGlobalPackagesFolder);
+        Assert.Equal(".nugetpackages", (string?)globalPackagesFolderAdd.Attribute("value"));
     }
 
     [Fact]

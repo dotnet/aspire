@@ -53,7 +53,9 @@ public class Program
 {
     private static string GetUsersAspirePath()
     {
-        return CliPathHelper.GetAspireHomeDirectory();
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var aspirePath = Path.Combine(homeDirectory, ".aspire");
+        return aspirePath;
     }
 
     /// <summary>

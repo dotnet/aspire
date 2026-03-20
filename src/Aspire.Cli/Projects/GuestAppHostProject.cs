@@ -925,7 +925,11 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// </summary>
     private static string GetBackchannelSocketPath()
     {
-        return CliPathHelper.CreateSocketPath("cli.sock");
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+        Directory.CreateDirectory(aspireCliPath);
+        var socketName = $"{Guid.NewGuid():N}.sock";
+        return Path.Combine(aspireCliPath, socketName);
     }
 
     /// <summary>
