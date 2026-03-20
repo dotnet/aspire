@@ -196,7 +196,6 @@ jobs:
     if: ${{ github.event_name == 'pull_request' && github.repository_owner == 'dotnet' }}
     env:
       GH_TOKEN: ${{ github.token }}
-      START_TIMEOUT_SECONDS: '60'
       MAX_STARTUP_SECONDS: '120'
       RESOURCE_READY_TIMEOUT_SECONDS: '60'
     steps:
@@ -220,10 +219,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          $scriptUrl = "https://raw.githubusercontent.com/dotnet/aspire/${{ github.event.pull_request.head.sha }}/eng/scripts/get-aspire-cli-pr.ps1"
-          $scriptPath = Join-Path $env:RUNNER_TEMP "get-aspire-cli-pr.ps1"
-
-          Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE "eng/scripts/get-aspire-cli-pr.ps1"
           & $scriptPath ${{ github.event.pull_request.number }} -WorkflowRunId ${{ github.run_id }} -SkipExtension
 
           aspire --version
@@ -264,6 +260,7 @@ jobs:
             $startCombinedPath = Join-Path $diagnosticsDir 'aspire-start.log'
             $stopLogPath = Join-Path $diagnosticsDir 'aspire-stop.log'
 
+            New-Item -ItemType Directory -Path $templateRoot -Force | Out-Null
             New-Item -ItemType Directory -Path $diagnosticsDir -Force | Out-Null
 
             Push-Location $templateRoot
@@ -280,14 +277,14 @@ jobs:
                   -PassThru
 
                 try {
-                  $process | Wait-Process -Timeout ([int]$env:START_TIMEOUT_SECONDS) -ErrorAction Stop
+                  $process | Wait-Process -Timeout ([int]$env:MAX_STARTUP_SECONDS) -ErrorAction Stop
                 }
                 catch {
                   if (-not $process.HasExited) {
                     $process | Stop-Process -Force -ErrorAction SilentlyContinue
                   }
 
-                  throw "${templateId}: aspire start did not exit within $($env:START_TIMEOUT_SECONDS) seconds."
+                  throw "${templateId}: aspire start did not exit within $($env:MAX_STARTUP_SECONDS) seconds."
                 }
 
                 $elapsed = (Get-Date) - $startAt
