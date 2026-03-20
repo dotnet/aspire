@@ -155,7 +155,7 @@ public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        var nugetService = new BundleNuGetService(new NullLayoutDiscovery(), NullLogger<BundleNuGetService>.Instance);
+        var nugetService = new BundleNuGetService(new NullLayoutDiscovery(), Microsoft.Extensions.Logging.Abstractions.NullLogger<BundleNuGetService>.Instance);
         var server = new PrebuiltAppHostServer(
             workspace.WorkspaceRoot.FullName,
             "test.sock",
@@ -163,9 +163,9 @@ public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
             nugetService,
             new TestDotNetCliRunner(),
             new TestDotNetSdkInstaller(),
-            new MockPackagingService(),
+            new Aspire.Cli.Tests.Mcp.MockPackagingService(),
             new TestConfigurationService(),
-            NullLogger.Instance);
+            Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
         var workingDirectory = Assert.IsType<string>(
             typeof(PrebuiltAppHostServer)
