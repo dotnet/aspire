@@ -277,11 +277,18 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             _output.WriteLine("✓ NuGet restore complete");
 
             // Add the project folder to the VS Code workspace using `code -a`.
-            // This keeps the current session alive (no page reload) while activating
-            // the extension's workspaceContains:**/*.csproj trigger.
+            // This triggers a VS Code window reload (navigation) when transitioning
+            // from an empty workspace to having a folder.
             _output.WriteLine("Adding project folder to workspace with 'code -a'...");
             await session.SendTextAsync($"code -a /root/{projectName}\r");
             await session.WaitForSuccessPromptAsync(counter);
+
+            // VS Code reloads when a folder is added — wait for the navigation to complete
+            // and the workbench to be fully loaded again.
+            _output.WriteLine("Waiting for VS Code to reload after folder add...");
+            await page.WaitForLoadStateAsync(LoadState.Load, new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".monaco-workbench", new() { Timeout = 60_000 });
+            _output.WriteLine("VS Code reloaded successfully");
 
             // Wait for the workspace trust dialog to appear (indicates VS Code processed the folder)
             _output.WriteLine("Checking for workspace trust dialog...");
@@ -304,14 +311,21 @@ public sealed class ExtensionEndToEndTests : IClassFixture<VsCodeWebFixture>, IA
             await ScreenshotAsync(page, testDir, "04-folder-added.png");
 
             // Handle the "Set default apphost?" notification from the Aspire extension
+            // Use WaitForSelector with a short timeout instead of QuerySelector to avoid
+            // race conditions with VS Code's async notification rendering.
             _output.WriteLine("Checking for default apphost notification...");
-            var setDefaultYes = await page.QuerySelectorAsync(".notification-list-item a.monaco-button:has-text('Yes')");
-            if (setDefaultYes is not null)
+            try
             {
-                await setDefaultYes.ClickAsync();
-                _output.WriteLine("Accepted default apphost notification (clicked Yes)");
+                var setDefaultYes = await page.WaitForSelectorAsync(
+                    ".notification-list-item a.monaco-button:has-text('Yes')",
+                    new() { Timeout = 5_000 });
+                if (setDefaultYes is not null)
+                {
+                    await setDefaultYes.ClickAsync();
+                    _output.WriteLine("Accepted default apphost notification (clicked Yes)");
+                }
             }
-            else
+            catch (TimeoutException)
             {
                 _output.WriteLine("No default apphost notification found");
             }
