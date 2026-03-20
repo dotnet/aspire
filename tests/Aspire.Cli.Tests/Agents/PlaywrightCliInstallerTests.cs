@@ -545,6 +545,8 @@ public class PlaywrightCliInstallerTests
         public bool AuditResult { get; set; } = true;
         public bool InstallGlobalResult { get; set; } = true;
 
+        public bool IsAvailable => true;
+
         public bool PackCalled { get; private set; }
         public bool InstallGlobalCalled { get; private set; }
         public string? ResolvedVersionRange { get; private set; }
