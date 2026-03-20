@@ -84,6 +84,13 @@ internal sealed class PlaywrightCliInstaller(
 
     private async Task<bool> InstallCoreAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
+        // Early exit if npm is not available — playwright-cli requires npm.
+        if (!npmRunner.IsAvailable)
+        {
+            logger.LogDebug("npm is not available on PATH, skipping Playwright CLI installation.");
+            return false;
+        }
+
         // Step 1: Resolve the target version and integrity hash from the npm registry.
         var versionOverride = configuration[VersionOverrideKey];
         var effectiveRange = !string.IsNullOrEmpty(versionOverride) ? versionOverride : VersionRange;

@@ -12,6 +12,18 @@ namespace Aspire.Cli.Npm;
 /// </summary>
 internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
 {
+    /// <summary>
+    /// The public npm registry URL. Commands that resolve packages from the registry
+    /// pass this explicitly via <c>--registry</c> to avoid inheriting a project-level
+    /// <c>.npmrc</c> that may redirect to a private feed (e.g. Azure DevOps).
+    /// </summary>
+    private const string PublicRegistry = "https://registry.npmjs.org/";
+
+    private readonly Lazy<string?> _npmPath = new(() => PathLookupHelper.FindFullPathFromPath("npm"));
+
+    /// <inheritdoc />
+    public bool IsAvailable => _npmPath.Value is not null;
+
     /// <inheritdoc />
     public async Task<NpmPackageInfo?> ResolvePackageAsync(string packageName, string versionRange, CancellationToken cancellationToken)
     {
@@ -30,7 +42,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
             // Resolve version: npm view <package>@<range> version
             var versionOutput = await RunNpmCommandInDirectoryAsync(
                 npmPath,
-                ["view", $"{packageName}@{versionRange}", "version"],
+                ["view", NpmPackageInfo.FormatPackageSpecifier(packageName, versionRange), "version", "--registry", PublicRegistry],
                 tempDir,
                 cancellationToken);
 
@@ -49,7 +61,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
             // Resolve integrity hash: npm view <package>@<version> dist.integrity
             var integrityOutput = await RunNpmCommandInDirectoryAsync(
                 npmPath,
-                ["view", $"{packageName}@{version}", "dist.integrity"],
+                ["view", NpmPackageInfo.FormatPackageSpecifier(packageName, version), "dist.integrity", "--registry", PublicRegistry],
                 tempDir,
                 cancellationToken);
 
@@ -82,7 +94,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
 
         var output = await RunNpmCommandInDirectoryAsync(
             npmPath,
-            ["pack", $"{packageName}@{version}", "--pack-destination", outputDirectory],
+            ["pack", NpmPackageInfo.FormatPackageSpecifier(packageName, version), "--pack-destination", outputDirectory, "--registry", PublicRegistry],
             outputDirectory,
             cancellationToken);
 
@@ -136,7 +148,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
             // Install the package from the registry to get proper attestation metadata
             var installOutput = await RunNpmCommandInDirectoryAsync(
                 npmPath,
-                ["install", $"{packageName}@{version}", "--ignore-scripts"],
+                ["install", NpmPackageInfo.FormatPackageSpecifier(packageName, version), "--ignore-scripts", "--registry", PublicRegistry],
                 tempDir,
                 cancellationToken);
 
@@ -192,7 +204,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
 
     private string? FindNpmPath()
     {
-        var npmPath = PathLookupHelper.FindFullPathFromPath("npm");
+        var npmPath = _npmPath.Value;
         if (npmPath is null)
         {
             logger.LogDebug("npm is not installed or not found in PATH");
@@ -230,7 +242,7 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
 
         try
         {
-            var startInfo = new ProcessStartInfo(npmPath)
+            var startInfo = new ProcessStartInfo
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -238,6 +250,22 @@ internal sealed class NpmRunner(ILogger<NpmRunner> logger) : INpmRunner
                 CreateNoWindow = true,
                 WorkingDirectory = workingDirectory
             };
+
+            // On Windows, npm resolves to npm.cmd (a batch wrapper). .NET's
+            // Process.Start auto-wraps .cmd files with cmd /c, but the
+            // interaction between ArgumentList escaping and cmd.exe's argument
+            // parser can mangle arguments (especially those containing @, >=).
+            // Launch through cmd.exe /c explicitly so arguments pass through correctly.
+            if (OperatingSystem.IsWindows() && npmPath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))
+            {
+                startInfo.FileName = "cmd.exe";
+                startInfo.ArgumentList.Add("/c");
+                startInfo.ArgumentList.Add(npmPath);
+            }
+            else
+            {
+                startInfo.FileName = npmPath;
+            }
 
             foreach (var arg in args)
             {
