@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="AppHostExitedWithCode">
         <source>Apphost process exited with code {0}.</source>
-        <target state="new">Apphost process exited with code {0}.</target>
+        <target state="translated">Apphost 程序以返回碼 {0} 結束。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>Apphost failed to build.</source>
-        <target state="new">Apphost failed to build.</target>
+        <target state="translated">無法建置 apphost。</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>Apphost started successfully.</source>
-        <target state="new">Apphost started successfully.</target>
+        <target state="translated">已成功啟動 apphost。</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckLogsForDetails">
@@ -74,12 +74,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire apphost interactively for development</source>
-        <target state="new">Run an Aspire apphost interactively for development</target>
+        <target state="translated">以互動方式執行 Aspire apphost 以進行開發</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
         <source>Run the apphost in the background and exit after it starts</source>
-        <target state="new">Run the apphost in the background and exit after it starts</target>
+        <target state="translated">在背景執行 apphost，啟動後即退出</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -89,12 +89,12 @@
       </trans-unit>
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the apphost.</source>
-        <target state="new">Failed to start the apphost.</target>
+        <target state="translated">無法啟動 apphost。</target>
         <note />
       </trans-unit>
       <trans-unit id="ForceArgumentDescription">
         <source>Stop any running instance of the apphost without prompting</source>
-        <target state="new">Stop any running instance of the apphost without prompting</target>
+        <target state="translated">停止任何正在執行的 apphost 執行個體，且不顯示提示</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
@@ -114,17 +114,17 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached apphost results</source>
-        <target state="new">Output format for detached apphost results</target>
+        <target state="translated">中斷連接 apphost 結果的輸出格式</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously</source>
-        <target state="new">Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously</target>
+        <target state="translated">在隔離模式中搭配隨機化連接埠和隔離的使用者袐密執行，允許同時執行多個執行個體</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this apphost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="new">A running instance of this apphost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</target>
+        <target state="translated">找到此 apphost 的一個執行中執行個體，將會停止。若要同時執行多個隔離的執行個體，請從 git worktree 目錄等不同目錄執行。</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running</source>
-        <target state="new">Do not build or restore the project before running</target>
+        <target state="translated">請勿在執行之前組建或還原專案</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="new">The path to the Aspire apphost project file</target>
+        <target state="translated">Aspire apphost 專案檔案的路徑</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal</source>
-        <target state="new">Whether to start a debug session, if running in an Aspire Terminal</target>
+        <target state="translated">是否要啟動偵測工作階段 (當在 Aspire 終端機中執行時)</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -204,7 +204,7 @@
       </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for apphost to start.</source>
-        <target state="new">Timeout waiting for apphost to start.</target>
+        <target state="translated">等候 apphost 啟動時發生逾時。</target>
         <note />
       </trans-unit>
       <trans-unit id="Type">
@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode</source>
-        <target state="new">Start project resources in watch mode</target>
+        <target state="translated">以監視模式啟動專案資源</target>
         <note />
       </trans-unit>
     </body>
