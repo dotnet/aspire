@@ -74,7 +74,7 @@ internal sealed class PrebuiltAppHostServer : IAppHostServerProject
         // Create a working directory for this app host session
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appDirectoryPath));
         var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
-        _workingDirectory = Path.Combine(Path.GetTempPath(), ".aspire", "bundle-hosts", pathDir);
+        _workingDirectory = Path.Combine(CliPathHelper.GetAspireHomeDirectory(), "bundle-hosts", pathDir);
         Directory.CreateDirectory(_workingDirectory);
     }
 
