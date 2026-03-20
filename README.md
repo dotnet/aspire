@@ -1,9 +1,9 @@
 # Aspire
 
-[![Tests](https://github.com/dotnet/aspire/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/dotnet/aspire/actions/workflows/tests.yml)
+[![Tests](https://github.com/microsoft/aspire/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/microsoft/aspire/actions/workflows/tests.yml)
 [![Build Status](https://dev.azure.com/dnceng-public/public/_apis/build/status%2Fdotnet%2Faspire%2Fdotnet.aspire?branchName=main)](https://dev.azure.com/dnceng-public/public/_build/latest?definitionId=274&branchName=main)
-[![Help Wanted](https://img.shields.io/github/issues/dotnet/aspire/help%20wanted?style=flat&color=%24EC820&label=help%20wanted)](https://github.com/dotnet/aspire/labels/help%20wanted)
-[![Good First Issue](https://img.shields.io/github/issues/dotnet/aspire/good%20first%20issue?style=flat&color=%24EC820&label=good%20first%20issue)](https://github.com/dotnet/aspire/labels/good%20first%20issue)
+[![Help Wanted](https://img.shields.io/github/issues/microsoft/aspire/help%20wanted?style=flat&color=%24EC820&label=help%20wanted)](https://github.com/microsoft/aspire/labels/help%20wanted)
+[![Good First Issue](https://img.shields.io/github/issues/microsoft/aspire/good%20first%20issue?style=flat&color=%24EC820&label=good%20first%20issue)](https://github.com/microsoft/aspire/labels/good%20first%20issue)
 [![Discord](https://img.shields.io/discord/1361488941836140614?style=flat&logo=discord&logoColor=white&label=Join%20our%20Discord&labelColor=512bd4&color=cyan)](https://discord.gg/raNPcaaSj8)
 
 ## What is Aspire?
@@ -15,7 +15,7 @@ Aspire gives you a unified toolchain: launch and debug your entire app locally w
 ## Useful links
 
 - [Aspire overview and documentation](https://aspire.dev/docs/)
-- [Aspire samples repository](https://github.com/dotnet/aspire-samples)
+- [Aspire samples repository](https://github.com/microsoft/aspire-samples)
 - [Dogfooding pull requests](docs/dogfooding-pull-requests.md) - Test changes from specific pull requests locally
 
 ## Getting started
