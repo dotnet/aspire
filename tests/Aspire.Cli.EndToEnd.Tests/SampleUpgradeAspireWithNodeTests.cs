@@ -62,22 +62,20 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Phase 1: Run aspire update to perform structural migration (SDK format, etc.)
-        // This uses the implicit channel and updates to the latest stable version.
-        await auto.AspireUpdateInSampleAsync(counter, samplePath: ".",
-            timeout: TimeSpan.FromMinutes(5));
-
-        // Phase 2: In PullRequest mode, upgrade all Aspire package versions to the PR build.
-        // aspire update --channel has issues with dotnet package add and PR hive sources,
-        // so we do a direct version replacement and set up the NuGet.config for the hive.
+        // Run aspire update with the PR channel to upgrade directly to the PR build.
+        // In PullRequest mode, the PR hive is already installed at ~/.aspire/hives/pr-{N}.
+        // The --channel flag tells aspire update to use that hive for package resolution.
+        // aspire update handles NuGet.config creation/merging via its own interactive prompts.
+        string? channel = null;
         if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
         {
             var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-            var channel = $"pr-{prNumber}";
-
-            await auto.SetupPrHiveNuGetConfigAsync(counter, channel);
-            await auto.UpgradeToPrVersionAsync(counter, channel, AppHostCsproj);
+            channel = $"pr-{prNumber}";
         }
+
+        await auto.AspireUpdateInSampleAsync(counter, samplePath: ".",
+            channel: channel,
+            timeout: TimeSpan.FromMinutes(5));
 
         // Verify the upgrade by reading the csproj directly from the mounted volume
         var hostCsprojPath = Path.Combine(workDir, SamplePath, AppHostCsproj);
