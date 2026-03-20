@@ -59,6 +59,18 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         _cancellationToken = cancellationToken;
         _serviceProvider = serviceProvider;
         _toolResource = toolResource;
+    }
+
+    private EFOperationResult EnsurePathsInitialized()
+    {
+        if (_initialized)
+        {
+            return _startupProjectPath != null
+                ? new EFOperationResult { Success = true }
+                : new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path." };
+        }
+
+        _initialized = true;
 
         // Get build settings from the entry assembly (AppHost)
         var entryAssembly = Assembly.GetEntryAssembly();
@@ -88,18 +100,6 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             // Parse configuration, framework from the assembly path (if not found from attributes)
             ParseBuildSettingsFromPath(appHostAssemblyPath);
         }
-    }
-
-    private EFOperationResult EnsurePathsInitialized()
-    {
-        if (_initialized)
-        {
-            return _startupProjectPath != null
-                ? new EFOperationResult { Success = true }
-                : new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path." };
-        }
-
-        _initialized = true;
 
         _startupProjectPath = GetProjectPath(_startupProjectResource);
         if (string.IsNullOrEmpty(_startupProjectPath))
@@ -274,24 +274,20 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     _cancellationToken).ConfigureAwait(false);
 
                 // Give a moment for logs to flush, then cancel log capture
-                await Task.Delay(200, _cancellationToken).ConfigureAwait(false);
+                await Task.Delay(100, _cancellationToken).ConfigureAwait(false);
+                // Cancel log capture and wait for it to drain
                 await logCancellation.CancelAsync().ConfigureAwait(false);
-
-                // Get final state
-                var resourceEvent = await notificationService.WaitForResourceAsync(
-                    _toolResource.Name,
-                    _ => true, // Just get current state
-                    _cancellationToken).ConfigureAwait(false);
-
-                var snapshot = resourceEvent.Snapshot;
-                
                 try
                 {
-                    await logTask.ConfigureAwait(false);
+                    await logTask.WaitAsync(TimeSpan.FromSeconds(5), _cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                     // Expected when we cancel the log capture
+                }
+                catch (TimeoutException)
+                {
+                    // Log drain took too long, proceed with what we have
                 }
 
                 var stdout = outputBuilder.ToString();
@@ -308,7 +304,14 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     _logger.LogDebug("dotnet-ef errors: {Output}", stderr);
                 }
 
+                // Get final state
+                var resourceEvent = await notificationService.WaitForResourceAsync(
+                    _toolResource.Name,
+                    _ => true, // Just get current state
+                    _cancellationToken).ConfigureAwait(false);
+
                 // Check if the command succeeded
+                var snapshot = resourceEvent.Snapshot;
                 var exitCode = snapshot.Properties.FirstOrDefault(p => p.Name == "ExitCode")?.Value?.ToString();
                 if ((exitCode != null && exitCode != "0") || snapshot.State?.Text == KnownResourceStates.FailedToStart)
                 {
@@ -665,7 +668,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 /// <summary>
 /// Result of an EF Core operation.
 /// </summary>
-internal sealed class EFOperationResult
+internal sealed record EFOperationResult
 {
     public bool Success { get; init; }
     public string? ErrorMessage { get; init; }

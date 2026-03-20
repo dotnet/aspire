@@ -13,7 +13,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .RunDatabaseUpdateOnStart();
 
         // The resource should have the migrations applied at startup
@@ -26,7 +26,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationScript();
 
         Assert.True(migrations.Resource.PublishAsMigrationScript);
@@ -37,7 +37,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationBundle();
 
         Assert.True(migrations.Resource.PublishAsMigrationBundle);
@@ -48,7 +48,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .WithMigrationOutputDirectory("Data/Migrations");
 
         Assert.Equal("Data/Migrations", migrations.Resource.MigrationOutputDirectory);
@@ -59,7 +59,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .WithMigrationNamespace("MyApp.Data.Migrations");
 
         Assert.Equal("MyApp.Data.Migrations", migrations.Resource.MigrationNamespace);
@@ -70,7 +70,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.Throws<ArgumentException>(() => migrations.WithMigrationOutputDirectory(""));
     }
@@ -80,7 +80,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.Throws<ArgumentException>(() => migrations.WithMigrationNamespace(""));
     }
@@ -90,7 +90,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript();
 
@@ -102,7 +102,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript()
             .PublishAsMigrationBundle()
@@ -120,7 +120,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript()
             .PublishAsMigrationBundle();
@@ -134,7 +134,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
         
         var afterUpdate = migrations.RunDatabaseUpdateOnStart();
         var afterScript = afterUpdate.PublishAsMigrationScript();
@@ -155,7 +155,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Options should all be false/null initially
         Assert.False(migrations.Resource.PublishAsMigrationScript);
@@ -170,7 +170,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var startupProject = builder.AddProject<Projects.ServiceA>("startup");
-        var migrations = startupProject.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = startupProject.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .WithMigrationsProject("path/to/Target.csproj");
 
         Assert.NotNull(migrations.Resource.MigrationsProjectPath);
@@ -183,7 +183,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.Throws<ArgumentNullException>(() => migrations.WithMigrationsProject(null!));
     }
@@ -193,7 +193,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.Throws<ArgumentException>(() => migrations.WithMigrationsProject(""));
     }
@@ -203,7 +203,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationScript(idempotent: true);
 
         Assert.True(migrations.Resource.PublishAsMigrationScript);
@@ -215,7 +215,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationScript(noTransactions: true);
 
         Assert.True(migrations.Resource.PublishAsMigrationScript);
@@ -227,7 +227,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationBundle(targetRuntime: "linux-x64");
 
         Assert.True(migrations.Resource.PublishAsMigrationBundle);
@@ -239,7 +239,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationBundle(selfContained: true);
 
         Assert.True(migrations.Resource.PublishAsMigrationBundle);
@@ -251,7 +251,7 @@ public class EFMigrationConfigurationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .PublishAsMigrationScript(idempotent: true, noTransactions: true)
             .PublishAsMigrationBundle(targetRuntime: "win-x64", selfContained: true);
 

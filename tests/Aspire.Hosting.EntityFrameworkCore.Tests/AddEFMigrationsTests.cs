@@ -14,7 +14,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.NotNull(migrations);
         Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
@@ -38,11 +38,11 @@ public class AddEFMigrationsTests
     }
 
     [Fact]
-    public void AddEFMigrationsWithExplicitContextTypeCreatesResource()
+    public void AddEFMigrationsWithExplicitContextTypeNameCreatesResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext));
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.NotNull(migrations);
         Assert.IsAssignableFrom<IResourceBuilder<EFMigrationResource>>(migrations);
@@ -71,7 +71,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        project.AddEFMigrations<TestDbContext>("mymigrations");
+        project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         using var app = builder.Build();
 
@@ -87,8 +87,8 @@ public class AddEFMigrationsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
 
-        var migrations1 = project.AddEFMigrations<TestDbContext>("migrations1");
-        var migrations2 = project.AddEFMigrations<AnotherDbContext>("migrations2");
+        var migrations1 = project.AddEFMigrations("migrations1", typeof(TestDbContext).FullName!);
+        var migrations2 = project.AddEFMigrations("migrations2", typeof(AnotherDbContext).FullName!);
 
         Assert.NotEqual(migrations1.Resource, migrations2.Resource);
         Assert.Equal(typeof(TestDbContext).FullName, migrations1.Resource.ContextTypeName);
@@ -115,11 +115,11 @@ public class AddEFMigrationsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
 
-        project.AddEFMigrations<TestDbContext>("migrations1");
+        project.AddEFMigrations("migrations1", typeof(TestDbContext).FullName!);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
         {
-            project.AddEFMigrations<TestDbContext>("migrations2");
+            project.AddEFMigrations("migrations2", typeof(TestDbContext).FullName!);
         });
 
         Assert.Contains("TestDbContext", exception.Message);
@@ -151,7 +151,7 @@ public class AddEFMigrationsTests
 
         Assert.Throws<ArgumentNullException>(() =>
         {
-            project.AddEFMigrations<TestDbContext>(null!);
+            project.AddEFMigrations(null!, typeof(TestDbContext).FullName!);
         });
     }
 
@@ -163,7 +163,7 @@ public class AddEFMigrationsTests
 
         Assert.Throws<ArgumentException>(() =>
         {
-            project.AddEFMigrations<TestDbContext>("");
+            project.AddEFMigrations("", typeof(TestDbContext).FullName!);
         });
     }
 
@@ -184,7 +184,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var snapshotAnnotation = migrations.Resource.Annotations.OfType<ResourceSnapshotAnnotation>().FirstOrDefault();
         Assert.NotNull(snapshotAnnotation);
@@ -197,7 +197,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var iconAnnotation = migrations.Resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
         Assert.NotNull(iconAnnotation);
@@ -209,7 +209,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.IsAssignableFrom<IResourceWithWaitSupport>(migrations.Resource);
     }
@@ -219,7 +219,7 @@ public class AddEFMigrationsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         Assert.False(migrations.Resource.PublishAsMigrationScript);
         Assert.False(migrations.Resource.PublishAsMigrationBundle);

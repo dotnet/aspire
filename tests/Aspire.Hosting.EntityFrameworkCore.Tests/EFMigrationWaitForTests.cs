@@ -14,7 +14,7 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Another resource can wait for the migrations
         var anotherProject = builder.AddProject<Projects.ServiceB>("anotherproject")
@@ -31,7 +31,7 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var project1 = builder.AddProject<Projects.ServiceB>("project1")
             .WaitFor(migrations);
@@ -50,8 +50,8 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations1 = project.AddEFMigrations<TestDbContext>("migrations1");
-        var migrations2 = project.AddEFMigrations<AnotherDbContext>("migrations2");
+        var migrations1 = project.AddEFMigrations("migrations1", typeof(TestDbContext).FullName!);
+        var migrations2 = project.AddEFMigrations("migrations2", typeof(AnotherDbContext).FullName!);
 
         var anotherProject = builder.AddProject<Projects.ServiceB>("anotherproject")
             .WaitFor(migrations1)
@@ -68,7 +68,7 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!)
             .RunDatabaseUpdateOnStart();
 
         var anotherProject = builder.AddProject<Projects.ServiceB>("anotherproject")
@@ -82,7 +82,7 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var container = builder.AddContainer("mycontainer", "someimage")
             .WaitFor(migrations);
@@ -97,7 +97,7 @@ public class EFMigrationWaitForTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        _ = project.AddEFMigrations<TestDbContext>("mymigrations");
+        _ = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

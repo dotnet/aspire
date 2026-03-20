@@ -28,55 +28,6 @@ public static class EFResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds EF Core migration management for a specific DbContext type.
-    /// </summary>
-    /// <typeparam name="TContext">The DbContext type to manage migrations for.</typeparam>
-    /// <param name="builder">The resource builder for the project.</param>
-    /// <param name="name">The name of the migration resource.</param>
-    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
-    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
-    /// <remarks>
-    /// Multiple calls to this method with different context types are supported, allowing you to manage
-    /// migrations for multiple DbContexts in the same project.
-    /// </remarks>
-    [AspireExportIgnore(Reason = "Action<IResourceBuilder<DotnetToolResource>> callbacks are not ATS-compatible.")]
-    public static IResourceBuilder<EFMigrationResource> AddEFMigrations<TContext>(
-        this IResourceBuilder<ProjectResource> builder,
-        [ResourceName] string name,
-        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null) where TContext : class
-    {
-        return builder.AddEFMigrations(name, typeof(TContext), configureToolResource);
-    }
-
-    /// <summary>
-    /// Adds EF Core migration management for a specific DbContext type.
-    /// </summary>
-    /// <param name="builder">The resource builder for the project.</param>
-    /// <param name="name">The name of the migration resource.</param>
-    /// <param name="contextType">The DbContext type to manage migrations for.</param>
-    /// <param name="configureToolResource">Optional callback to configure the dotnet-ef tool resource used for migrations.</param>
-    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
-    /// <remarks>
-    /// Multiple calls to this method with different context types are supported, allowing you to manage
-    /// migrations for multiple DbContexts in the same project.
-    /// </remarks>
-    [AspireExportIgnore(Reason = "System.Type and Action<IResourceBuilder<DotnetToolResource>> are not ATS-compatible.")]
-    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
-        this IResourceBuilder<ProjectResource> builder,
-        [ResourceName] string name,
-        Type contextType,
-        Action<IResourceBuilder<DotnetToolResource>>? configureToolResource = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNull(contextType);
-
-        return AddEFMigrationsCore(builder, name, contextType.FullName, configureToolResource);
-    }
-
-    /// <summary>
     /// Adds EF Core migration management for a specific DbContext type identified by name.
     /// </summary>
     /// <param name="builder">The resource builder for the project.</param>

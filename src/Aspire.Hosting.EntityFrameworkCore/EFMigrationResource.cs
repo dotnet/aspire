@@ -98,6 +98,7 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     /// <summary>
     /// Gets or sets whether a migration was recently added that requires a project rebuild.
     /// </summary>
+    // TODO: Remove this after #14388 is implemented
     internal bool RequiresRebuild { get; set; }
 
     /// <summary>

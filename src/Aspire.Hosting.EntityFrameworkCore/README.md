@@ -32,7 +32,7 @@ Then, in the _AppHost.cs_ file of `AppHost`, add EF migrations to a project reso
 var api = builder.AddProject<Projects.Api>("api");
 
 // Add EF migrations for a specific DbContext
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations");
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext");
 ```
 
 ### Resource Commands
@@ -62,21 +62,21 @@ You can customize the `dotnet-ef` tool version, NuGet sources, or allow prerelea
 var api = builder.AddProject<Projects.Api>("api");
 
 // Use a specific version of dotnet-ef
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations", 
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext",
     configureToolResource: tool =>
     {
         tool.WithToolVersion("10.0.0");
     });
 
 // Allow prerelease versions
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext",
     configureToolResource: tool =>
     {
         tool.WithToolPrerelease();
     });
 
 // Use a custom NuGet source
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations",
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext",
     configureToolResource: tool =>
     {
         tool.WithToolSource("https://api.nuget.org/v3/index.json")
@@ -92,7 +92,7 @@ You can configure migrations to run automatically when the AppHost starts:
 var api = builder.AddProject<Projects.Api>("api");
 
 // Add EF migrations and run on startup
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .RunDatabaseUpdateOnStart();
 
 // Other resources can wait for migrations to complete
@@ -112,7 +112,7 @@ When `RunDatabaseUpdateOnStart()` is called, a health check is automatically reg
 Configure where new migrations are created using the Add Migration command:
 
 ```csharp
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .WithMigrationOutputDirectory("Data/Migrations")  // Custom output directory
     .WithMigrationNamespace("MyApp.Data.Migrations"); // Custom namespace
 ```
@@ -125,11 +125,11 @@ When migrations are in a different project than the startup project, use `WithMi
 var startup = builder.AddProject<Projects.Api>("api");
 
 // Using a project metadata type (recommended)
-var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = startup.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .WithMigrationsProject<Projects.Data>();
 
 // Or using a project path
-var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = startup.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .WithMigrationsProject("../MyApp.Data/MyApp.Data.csproj");
 ```
 
@@ -140,8 +140,8 @@ You can add migrations for multiple DbContexts in the same project:
 ```csharp
 var api = builder.AddProject<Projects.Api>("api");
 
-var userMigrations = api.AddEFMigrations<UserDbContext>("user-migrations");
-var orderMigrations = api.AddEFMigrations<OrderDbContext>("order-migrations");
+var userMigrations = api.AddEFMigrations("user-migrations", "MyApp.Data.UserDbContext");
+var orderMigrations = api.AddEFMigrations("order-migrations", "MyApp.Data.OrderDbContext");
 ```
 
 ### Publishing Support
@@ -150,11 +150,11 @@ Configure migration script or bundle generation during publishing:
 
 ```csharp
 // Generate SQL script during publish
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .PublishAsMigrationScript();
 
 // Or generate a self-contained migration bundle executable
-var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+var apiMigrations = api.AddEFMigrations("api-migrations", "MyApp.Data.MyDbContext")
     .PublishAsMigrationBundle();
 ```
 

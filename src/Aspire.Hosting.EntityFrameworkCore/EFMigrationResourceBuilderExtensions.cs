@@ -46,9 +46,9 @@ public static class EFMigrationResourceBuilderExtensions
         EFMigrationResource migrationResource,
         CancellationToken cancellationToken)
     {
-        var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
         try
         {
+            var resourceCommandService = serviceProvider.GetRequiredService<ResourceCommandService>();
             var result = await resourceCommandService.ExecuteCommandAsync(
                 migrationResource,
                 "ef-database-update",

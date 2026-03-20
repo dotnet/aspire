@@ -14,7 +14,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Commands are added to the migration resource
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
@@ -29,7 +29,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var dropCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-drop"));
@@ -44,7 +44,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var resetCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-reset"));
@@ -59,7 +59,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var addCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-migrations-add"));
@@ -73,7 +73,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var removeCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-migrations-remove"));
@@ -87,7 +87,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
         var statusCommand = commands.FirstOrDefault(c => c.Name.Contains("ef-database-status"));
@@ -101,7 +101,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
@@ -129,7 +129,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Verify the context type name is stored on the resource
         Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
@@ -140,7 +140,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
@@ -155,7 +155,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
@@ -171,7 +171,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
@@ -187,7 +187,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         var commands = migrations.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
 
@@ -214,7 +214,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Simulate a command currently executing
         migrations.Resource.IsExecutingCommand = true;
@@ -244,7 +244,7 @@ public class EFMigrationCommandsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
-        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+        var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext).FullName!);
 
         // Simulate command executing then completing
         migrations.Resource.IsExecutingCommand = true;
