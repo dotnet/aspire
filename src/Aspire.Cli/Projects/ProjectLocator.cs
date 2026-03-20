@@ -409,13 +409,23 @@ internal sealed class ProjectLocator(
             var nearAppHost = ConfigurationHelper.FindNearestConfigFilePath(appHostDir);
             if (nearAppHost is not null)
             {
-                var existingConfig = AspireConfigFile.Load(Path.GetDirectoryName(nearAppHost)!);
-                if (existingConfig?.AppHost?.Path is not null)
+                var configDir = Path.GetDirectoryName(nearAppHost)!;
+                var existingConfig = AspireConfigFile.Load(configDir);
+                if (existingConfig?.AppHost?.Path is { } existingPath)
                 {
-                    logger.LogDebug(
-                        "Found existing config with valid appHost.path at {Path}, skipping creation",
-                        nearAppHost);
-                    return;
+                    // Resolve the stored path relative to the config file's directory.
+                    var resolvedPath = Path.GetFullPath(
+                        Path.IsPathRooted(existingPath) ? existingPath : Path.Combine(configDir, existingPath));
+
+                    // Only skip creation if the config already points to the discovered apphost.
+                    // If the path is stale/invalid, fall through so the config gets healed.
+                    if (string.Equals(resolvedPath, projectFile.FullName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger.LogDebug(
+                            "Config at {Path} already references apphost {AppHost}, skipping creation",
+                            nearAppHost, projectFile.FullName);
+                        return;
+                    }
                 }
             }
         }
