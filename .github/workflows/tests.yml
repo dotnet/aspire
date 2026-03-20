@@ -288,7 +288,7 @@ jobs:
                     $process | Stop-Process -Force -ErrorAction SilentlyContinue
                   }
 
-                  throw "$templateId: aspire start did not exit within $($env:START_TIMEOUT_SECONDS) seconds."
+                  throw "${templateId}: aspire start did not exit within $($env:START_TIMEOUT_SECONDS) seconds."
                 }
 
                 $elapsed = (Get-Date) - $startAt
@@ -300,19 +300,19 @@ jobs:
                 Set-Content -Path $startCombinedPath -Value $startOutput
 
                 if ($process.ExitCode -ne 0) {
-                  throw "$templateId: aspire start failed with exit code $($process.ExitCode)."
+                  throw "${templateId}: aspire start failed with exit code $($process.ExitCode)."
                 }
 
                 if ($elapsed.TotalSeconds -ge [int]$env:MAX_STARTUP_SECONDS) {
-                  throw "$templateId: aspire start took $([math]::Round($elapsed.TotalSeconds, 2)) seconds, which exceeds the $($env:MAX_STARTUP_SECONDS)-second limit."
+                  throw "${templateId}: aspire start took $([math]::Round($elapsed.TotalSeconds, 2)) seconds, which exceeds the $($env:MAX_STARTUP_SECONDS)-second limit."
                 }
 
                 if ($startOutput -match 'Timeout waiting for apphost to start') {
-                  throw "$templateId: aspire start reported a startup timeout."
+                  throw "${templateId}: aspire start reported a startup timeout."
                 }
 
                 if ($startOutput -notmatch 'Apphost started successfully\.') {
-                  throw "$templateId: aspire start did not report a successful startup."
+                  throw "${templateId}: aspire start did not report a successful startup."
                 }
 
                 $deadline = (Get-Date).AddSeconds([int]$env:RESOURCE_READY_TIMEOUT_SECONDS)
@@ -341,7 +341,7 @@ jobs:
 
                 if (-not $resourcesReady) {
                   $expectedResourcesText = $expectedResources -join ', '
-                  throw "$templateId: expected resources $expectedResourcesText to be running within $($env:RESOURCE_READY_TIMEOUT_SECONDS) seconds."
+                  throw "${templateId}: expected resources $expectedResourcesText to be running within $($env:RESOURCE_READY_TIMEOUT_SECONDS) seconds."
                 }
 
                 Write-Host "$templateId started in $([math]::Round($elapsed.TotalSeconds, 2)) seconds."
