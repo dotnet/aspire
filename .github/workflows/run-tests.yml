@@ -49,6 +49,11 @@ on:
         required: false
         type: boolean
         default: false
+      # Controls whether to download CLI archive + VSIX for extension E2E tests
+      requiresExtensionArtifacts:
+        required: false
+        type: boolean
+        default: false
       os:
         required: false
         type: string
@@ -186,6 +191,55 @@ jobs:
             }
             Write-Host "Merged $($nupkgs.Count) arch-specific nugets for RID=$env:RID into $dest"
           }
+
+      - name: Download CLI archive for extension E2E tests
+        if: ${{ inputs.requiresExtensionArtifacts }}
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cli-native-archives-linux-x64
+          path: ${{ github.workspace }}/cli-archive-download
+
+      - name: Extract CLI binary for extension E2E tests
+        if: ${{ inputs.requiresExtensionArtifacts }}
+        shell: bash
+        run: |
+          # AspireBuildArtifacts.Detect() looks for: artifacts/bin/Aspire.Cli/*/net*/linux-x64/publish/aspire
+          CLI_DIR="${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release/net10.0/linux-x64/publish"
+          mkdir -p "$CLI_DIR"
+          # Find the tar.gz and extract
+          ARCHIVE=$(find "${{ github.workspace }}/cli-archive-download" -name "aspire-cli-linux-x64-*.tar.gz" | head -1)
+          if [ -z "$ARCHIVE" ]; then
+            echo "::error::No CLI archive tar.gz found"
+            exit 1
+          fi
+          echo "Extracting $ARCHIVE to $CLI_DIR"
+          tar xzf "$ARCHIVE" -C "$CLI_DIR"
+          chmod +x "$CLI_DIR/aspire"
+          ls -la "$CLI_DIR"
+
+      - name: Download VSIX for extension E2E tests
+        if: ${{ inputs.requiresExtensionArtifacts }}
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: aspire-extension
+          path: ${{ github.workspace }}/vsix-download
+
+      - name: Place VSIX for extension E2E tests
+        if: ${{ inputs.requiresExtensionArtifacts }}
+        shell: bash
+        run: |
+          # AspireBuildArtifacts.Detect() looks for: artifacts/packages/{Debug|Release}/vscode/aspire-vscode-*.vsix
+          VSIX_DIR="${{ github.workspace }}/artifacts/packages/Debug/vscode"
+          mkdir -p "$VSIX_DIR"
+          VSIX_SRC=$(find "${{ github.workspace }}/vsix-download" -name "*.vsix" | head -1)
+          if [ -z "$VSIX_SRC" ]; then
+            echo "::error::No VSIX file found"
+            exit 1
+          fi
+          # Rename to match the aspire-vscode-*.vsix pattern
+          cp "$VSIX_SRC" "$VSIX_DIR/aspire-vscode-extension.vsix"
+          echo "Placed VSIX at $VSIX_DIR/aspire-vscode-extension.vsix"
+          ls -la "$VSIX_DIR"
 
       - name: Install sdk for nuget based testing
         if: ${{ inputs.requiresTestSdk }}
