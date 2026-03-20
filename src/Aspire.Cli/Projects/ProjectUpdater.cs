@@ -141,6 +141,24 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 return 0;
             });
 
+        // When using an explicit channel with --no-restore on individual package adds,
+        // perform a final restore to ensure all packages resolve correctly together.
+        if (_nugetConfigDirectory is not null)
+        {
+            await interactionService.ShowStatusAsync(
+                UpdateCommandStrings.RestoringPackages,
+                async () =>
+                {
+                    var exitCode = await runner.RestoreAsync(projectFile, new(), cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new ProjectUpdaterException(UpdateCommandStrings.FailedRestoreAfterUpdate);
+                    }
+
+                    return 0;
+                });
+        }
+
         interactionService.DisplayEmptyLine();
 
         interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
@@ -885,12 +903,19 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, CancellationToken cancellationToken)
     {
+        // When using an explicit channel, skip the implicit restore during package add to
+        // avoid failures from NuGet package source mapping. The mapping routes Aspire* packages
+        // exclusively to the hive source, but during the restore triggered by dotnet package add,
+        // other Aspire packages not yet updated still reference old versions that don't exist in
+        // the hive. A final restore is performed after all packages are updated.
+        var noRestore = _nugetConfigDirectory is not null;
+
         var exitCode = await runner.AddPackageAsync(
             projectFilePath: projectFile,
             packageName: package.Id,
             packageVersion: package.Version,
             nugetSource: null,
-            noRestore: false,
+            noRestore: noRestore,
             nugetConfigDirectory: _nugetConfigDirectory,
             options: new(),
             cancellationToken: cancellationToken);

@@ -165,4 +165,10 @@
   <data name="SelfOptionDescription" xml:space="preserve">
     <value>Update the Aspire CLI itself to the latest version</value>
   </data>
+  <data name="RestoringPackages" xml:space="preserve">
+    <value>Restoring packages...</value>
+  </data>
+  <data name="FailedRestoreAfterUpdate" xml:space="preserve">
+    <value>Failed to restore packages after update. You may need to run 'dotnet restore' manually.</value>
+  </data>
 </root>

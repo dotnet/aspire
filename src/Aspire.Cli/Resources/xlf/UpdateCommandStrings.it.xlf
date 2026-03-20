@@ -107,6 +107,11 @@
         <target state="translated">Non è possibile recuperare elementi e proprietà per il progetto: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedRestoreAfterUpdate">
+        <source>Failed to restore packages after update. You may need to run 'dotnet restore' manually.</source>
+        <target state="new">Failed to restore packages after update. You may need to run 'dotnet restore' manually.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedUpdatePackageReferenceFormat">
         <source>Failed to update package reference for {0} in project {1}.</source>
         <target state="translated">Non è possibile aggiornare il riferimento al pacchetto per {0} nel progetto {1}.</target>
@@ -215,6 +220,11 @@
       <trans-unit id="RemovedObsoleteAppHostPackage">
         <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
         <target state="translated">Rimosso riferimento al pacchetto Aspire.Hosting.AppHost obsoleto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestoringPackages">
+        <source>Restoring packages...</source>
+        <target state="new">Restoring packages...</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">
