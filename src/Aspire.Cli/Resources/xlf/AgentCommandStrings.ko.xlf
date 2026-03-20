@@ -24,32 +24,32 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage AI agent environment configuration</source>
-        <target state="new">Manage AI agent environment configuration</target>
+        <target state="translated">AI 에이전트 환경 구성 관리</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
         <source>Install Aspire MCP server</source>
-        <target state="new">Install Aspire MCP server</target>
+        <target state="translated">Andrew MCP 서버 설치</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize agent environment configuration for detected agents</source>
-        <target state="new">Initialize agent environment configuration for detected agents</target>
+        <target state="translated">검색된 에이전트에 대한 에이전트 환경 구성 초기화</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallSkillFile">
         <source>Install Aspire skill file (Recommended)</source>
-        <target state="new">Install Aspire skill file (Recommended)</target>
+        <target state="translated">스킬 파일 설치(권장)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NothingSelected">
         <source>No options selected. Nothing to configure.</source>
-        <target state="new">No options selected. Nothing to configure.</target>
+        <target state="translated">옵션을 선택하지 않았습니다. 구성할 항목이 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WhatToConfigure">
         <source>What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</source>
-        <target state="new">What would you like to configure? [dim](Enter to skip, Ctrl+C to cancel)[/]</target>
+        <target state="translated">무엇을 구성하시겠습니까? [dim](건너뛰려면 Enter, 취소하려면 Ctrl+C)[/]</target>
         <note />
       </trans-unit>
       <trans-unit id="MalformedConfigFileError">
@@ -59,12 +59,12 @@
       </trans-unit>
       <trans-unit id="McpCommand_Description">
         <source>Start the MCP (Model Context Protocol) server</source>
-        <target state="new">Start the MCP (Model Context Protocol) server</target>
+        <target state="translated">MCP(모델 컨텍스트 프로토콜) 서버 시작</target>
         <note />
       </trans-unit>
       <trans-unit id="SkipNoneDescription">
         <source>None — skip</source>
-        <target state="new">None — skip</target>
+        <target state="translated">없음 – 건너뛰기</target>
         <note />
       </trans-unit>
       <trans-unit id="SkippedMalformedConfigFile">

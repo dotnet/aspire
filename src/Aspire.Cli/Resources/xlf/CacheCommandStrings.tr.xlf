@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
         <source>Clear all cache entries</source>
-        <target state="new">Clear all cache entries</target>
+        <target state="translated">Tüm önbellek girişlerini temizleyin</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage disk cache for CLI operations</source>
-        <target state="new">Manage disk cache for CLI operations</target>
+        <target state="translated">CLI işlemleri için disk önbelleğini yönetin</target>
         <note />
       </trans-unit>
     </body>
