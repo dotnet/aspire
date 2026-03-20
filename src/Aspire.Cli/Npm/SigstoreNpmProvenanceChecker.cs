@@ -31,9 +31,12 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         CancellationToken cancellationToken,
         string? sriIntegrity = null)
     {
+        logger.LogDebug("Verifying provenance for {PackageSpecifier} from {ExpectedSourceRepository}", NpmPackageInfo.FormatPackageSpecifier(packageName, version), expectedSourceRepository);
+
         var json = await FetchAttestationJsonAsync(packageName, version, cancellationToken).ConfigureAwait(false);
         if (json is null)
         {
+            logger.LogDebug("Attestation fetch failed for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationFetchFailed };
         }
 
@@ -41,11 +44,13 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         var bundleJson = ExtractSlsaBundleJson(json, out var parseFailed);
         if (bundleJson is null)
         {
+            var outcome = parseFailed
+                    ? ProvenanceVerificationOutcome.AttestationParseFailed
+                    : ProvenanceVerificationOutcome.SlsaProvenanceNotFound;
+            logger.LogDebug("SLSA bundle extraction failed for {PackageSpecifier}: {Outcome}", NpmPackageInfo.FormatPackageSpecifier(packageName, version), outcome);
             return new ProvenanceVerificationResult
             {
-                Outcome = parseFailed
-                    ? ProvenanceVerificationOutcome.AttestationParseFailed
-                    : ProvenanceVerificationOutcome.SlsaProvenanceNotFound
+                Outcome = outcome
             };
         }
 
@@ -56,7 +61,7 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Failed to deserialize Sigstore bundle for {Package}@{Version}", packageName, version);
+            logger.LogDebug(ex, "Failed to deserialize Sigstore bundle for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
         }
 
@@ -75,12 +80,17 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         var provenance = ExtractProvenanceFromResult(verificationResult!);
         if (provenance is null)
         {
+            logger.LogDebug("Failed to extract provenance data from verified result for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
         }
 
-        return VerifyProvenanceFields(
+        var result = VerifyProvenanceFields(
             provenance, expectedSourceRepository, expectedWorkflowPath,
             expectedBuildType, validateWorkflowRef);
+
+        logger.LogDebug("Provenance verification for {PackageSpecifier} completed with outcome {Outcome}", NpmPackageInfo.FormatPackageSpecifier(packageName, version), result.Outcome);
+
+        return result;
     }
 
     /// <summary>
@@ -107,7 +117,7 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         }
         catch (HttpRequestException ex)
         {
-            logger.LogDebug(ex, "Failed to fetch attestations for {Package}@{Version}", packageName, version);
+            logger.LogDebug(ex, "Failed to fetch attestations for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return null;
         }
     }
@@ -248,8 +258,8 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             {
                 logger.LogDebug(
                     "Retrying Sigstore verification without CertificateIdentity due to known SAN extraction bug " +
-                    "(https://github.com/mitchdenny/sigstore-dotnet/issues/14) for {Package}@{Version}",
-                    packageName, version);
+                    "(https://github.com/mitchdenny/sigstore-dotnet/issues/14) for {PackageSpecifier}",
+                    NpmPackageInfo.FormatPackageSpecifier(packageName, version));
 
                 var fallbackPolicy = new VerificationPolicy();
                 (success, result) = await VerifyBundleWithPolicyAsync(
@@ -268,20 +278,20 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             if (!success)
             {
                 logger.LogWarning(
-                    "Sigstore verification failed for {Package}@{Version}: {FailureReason}",
-                    packageName, version, result?.FailureReason);
+                    "Sigstore verification failed for {PackageSpecifier}: {FailureReason}",
+                    NpmPackageInfo.FormatPackageSpecifier(packageName, version), result?.FailureReason);
                 return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed }, null);
             }
 
             logger.LogDebug(
-                "Sigstore verification passed for {Package}@{Version}. Signed by: {Signer}",
-                packageName, version, result?.SignerIdentity?.SubjectAlternativeName);
+                "Sigstore verification passed for {PackageSpecifier}. Signed by: {Signer}",
+                NpmPackageInfo.FormatPackageSpecifier(packageName, version), result?.SignerIdentity?.SubjectAlternativeName);
 
             return (null, result);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Sigstore verification threw an exception for {Package}@{Version}", packageName, version);
+            logger.LogWarning(ex, "Sigstore verification threw an exception for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return (new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed }, null);
         }
     }
@@ -335,7 +345,7 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
 
         if (certBytes is not { Length: > 0 } leafCertBytes)
         {
-            logger.LogWarning("No signing certificate found in bundle for {Package}@{Version}", packageName, version);
+            logger.LogWarning("No signing certificate found in bundle for {PackageSpecifier}", NpmPackageInfo.FormatPackageSpecifier(packageName, version));
             return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
         }
 
@@ -347,9 +357,9 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
         {
             if (extensions.Issuer is null || !string.Equals(extensions.Issuer, expectedIdentity.Issuer, StringComparison.Ordinal))
             {
-                logger.LogWarning(
-                    "OIDC issuer mismatch for {Package}@{Version}: expected '{Expected}', got '{Actual}'",
-                    packageName, version, expectedIdentity.Issuer, extensions.Issuer);
+                 logger.LogWarning(
+                    "OIDC issuer mismatch for {PackageSpecifier}: expected '{Expected}', got '{Actual}'",
+                    NpmPackageInfo.FormatPackageSpecifier(packageName, version), expectedIdentity.Issuer, extensions.Issuer);
                 return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
             }
         }
@@ -360,8 +370,8 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             if (!string.Equals(extensions.SourceRepositoryUri, expectedIdentity.Extensions.SourceRepositoryUri, StringComparison.Ordinal))
             {
                 logger.LogWarning(
-                    "SourceRepositoryUri mismatch for {Package}@{Version}: expected '{Expected}', got '{Actual}'",
-                    packageName, version, expectedIdentity.Extensions.SourceRepositoryUri, extensions.SourceRepositoryUri);
+                    "SourceRepositoryUri mismatch for {PackageSpecifier}: expected '{Expected}', got '{Actual}'",
+                    NpmPackageInfo.FormatPackageSpecifier(packageName, version), expectedIdentity.Extensions.SourceRepositoryUri, extensions.SourceRepositoryUri);
                 return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.SourceRepositoryMismatch };
             }
         }
@@ -373,15 +383,15 @@ internal sealed class SigstoreNpmProvenanceChecker(HttpClient httpClient, ILogge
             if (san is null || !Regex.IsMatch(san, expectedIdentity.SubjectAlternativeNamePattern))
             {
                 logger.LogWarning(
-                    "SAN pattern mismatch for {Package}@{Version}: expected pattern '{Pattern}', got '{Actual}'",
-                    packageName, version, expectedIdentity.SubjectAlternativeNamePattern, san);
+                    "SAN pattern mismatch for {PackageSpecifier}: expected pattern '{Pattern}', got '{Actual}'",
+                    NpmPackageInfo.FormatPackageSpecifier(packageName, version), expectedIdentity.SubjectAlternativeNamePattern, san);
                 return new ProvenanceVerificationResult { Outcome = ProvenanceVerificationOutcome.AttestationParseFailed };
             }
         }
 
         logger.LogDebug(
-            "Manual certificate identity verification passed for {Package}@{Version} (issuer: {Issuer}, repo: {Repo})",
-            packageName, version, extensions.Issuer, extensions.SourceRepositoryUri);
+            "Manual certificate identity verification passed for {PackageSpecifier} (issuer: {Issuer}, repo: {Repo})",
+            NpmPackageInfo.FormatPackageSpecifier(packageName, version), extensions.Issuer, extensions.SourceRepositoryUri);
 
         return null;
     }
