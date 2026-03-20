@@ -170,24 +170,24 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// by using the already-resolved path from <see cref="IConfigurationService"/>.
     /// Falls back to <paramref name="appHostDirectory"/> when no config file is found.
     /// </summary>
-    private DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
+    private static DirectoryInfo GetConfigDirectory(DirectoryInfo appHostDirectory)
     {
-        var settingsFilePath = _configurationService.GetSettingsFilePath(isGlobal: false);
-        var settingsFile = new FileInfo(settingsFilePath);
-
-        // If the settings file exists and has a parent directory, use that
-        if (settingsFile.Directory is { Exists: true })
+        // Search from the apphost's directory upward to find the nearest config file.
+        var nearAppHost = ConfigurationHelper.FindNearestConfigFilePath(appHostDirectory);
+        if (nearAppHost is not null)
         {
-            // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
-            // TODO: Remove legacy .aspire/ check once confident most users have migrated.
-            // Tracked by https://github.com/dotnet/aspire/issues/15239
-            if (string.Equals(settingsFile.Directory.Name, ".aspire", StringComparison.OrdinalIgnoreCase)
-                && settingsFile.Directory.Parent is not null)
+            var configFile = new FileInfo(nearAppHost);
+            if (configFile.Directory is { Exists: true })
             {
-                return settingsFile.Directory.Parent;
-            }
+                // For legacy .aspire/settings.json, the config directory is the parent of .aspire/
+                if (string.Equals(configFile.Directory.Name, ".aspire", StringComparison.OrdinalIgnoreCase)
+                    && configFile.Directory.Parent is not null)
+                {
+                    return configFile.Directory.Parent;
+                }
 
-            return settingsFile.Directory;
+                return configFile.Directory;
+            }
         }
 
         return appHostDirectory;
@@ -209,7 +209,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
     }
 
-    private void SaveConfiguration(AspireConfigFile config, DirectoryInfo directory)
+    private static void SaveConfiguration(AspireConfigFile config, DirectoryInfo directory)
     {
         var configDir = GetConfigDirectory(directory);
         config.Save(configDir.FullName);

@@ -401,6 +401,25 @@ internal sealed class ProjectLocator(
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
+        // Search from the apphost's directory upward for an existing config file.
+        // This handles the case where "aspire new" created a project in a subdirectory
+        // and the user runs "aspire run" from the parent without cd-ing first.
+        if (projectFile.Directory is { } appHostDir)
+        {
+            var nearAppHost = ConfigurationHelper.FindNearestConfigFilePath(appHostDir);
+            if (nearAppHost is not null)
+            {
+                var existingConfig = AspireConfigFile.Load(Path.GetDirectoryName(nearAppHost)!);
+                if (existingConfig?.AppHost?.Path is not null)
+                {
+                    logger.LogDebug(
+                        "Found existing config with valid appHost.path at {Path}, skipping creation",
+                        nearAppHost);
+                    return;
+                }
+            }
+        }
+
         var settingsFile = GetOrCreateLocalAspireConfigFile();
         var fileExisted = settingsFile.Exists;
 
