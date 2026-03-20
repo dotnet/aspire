@@ -10,8 +10,10 @@ namespace Aspire.Hosting
 {
     public static partial class AzureSearchExtensions
     {
+        [AspireExport("addAzureSearch", Description = "Adds an Azure AI Search service resource")]
         public static ApplicationModel.IResourceBuilder<Azure.AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        [AspireExportIgnore(Reason = "SearchBuiltInRole is an Azure.Provisioning type not compatible with ATS. Use the AzureSearchRole-based overload instead.")]
         public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureSearchResource> target, params global::Azure.Provisioning.Search.SearchBuiltInRole[] roles)
             where T : ApplicationModel.IResource { throw null; }
     }
@@ -19,15 +21,19 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureSearchResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureSearchResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IAzurePrivateEndpointTarget
     {
         public AzureSearchResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
+
+        BicepOutputReference IAzurePrivateEndpointTarget.Id { get { throw null; } }
 
         public BicepOutputReference ConnectionString { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference Endpoint { get { throw null; } }
+
+        public BicepOutputReference Id { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
@@ -36,5 +42,9 @@ namespace Aspire.Hosting.Azure
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
+        string IAzurePrivateEndpointTarget.GetPrivateDnsZoneName() { throw null; }
+
+        System.Collections.Generic.IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() { throw null; }
     }
 }
