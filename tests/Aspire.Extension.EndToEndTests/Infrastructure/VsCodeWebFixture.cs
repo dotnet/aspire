@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Templates.Tests;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Sdk;
@@ -79,6 +80,7 @@ public sealed class VsCodeWebFixture : IAsyncLifetime
         await _container.StartAsync();
 
         // Create Playwright browser
+        PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath();
         _playwright = await Playwright.CreateAsync();
         _browser = await _playwright.Chromium.LaunchAsync(new()
         {
