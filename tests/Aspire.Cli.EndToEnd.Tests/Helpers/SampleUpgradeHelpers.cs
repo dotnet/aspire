@@ -57,6 +57,57 @@ internal static class SampleUpgradeHelpers
     }
 
     /// <summary>
+    /// Upgrades all Aspire package references in a csproj to the PR version found in the hive.
+    /// Detects the PR version by inspecting the hive packages directory, then uses <c>sed</c>
+    /// to replace all Aspire version strings in the project file and the SDK version in the
+    /// <c>Project Sdk</c> attribute.
+    /// </summary>
+    /// <param name="auto">The terminal automator.</param>
+    /// <param name="counter">The sequence counter for prompt tracking.</param>
+    /// <param name="channel">The PR channel name (e.g., <c>pr-15421</c>).</param>
+    /// <param name="csprojRelativePath">Relative path to the AppHost csproj from the current directory.</param>
+    internal static async Task UpgradeToPrVersionAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        string channel,
+        string csprojRelativePath)
+    {
+        var hivePath = $"/root/.aspire/hives/{channel}/packages";
+
+        // Detect the PR version from the hive packages directory.
+        // Find any Aspire package nupkg and extract its version.
+        await auto.TypeAsync(
+            $"PR_VERSION=$(ls {hivePath}/aspire.hosting.redis.*.nupkg 2>/dev/null " +
+            "| head -1 | sed 's/.*aspire.hosting.redis.//;s/.nupkg//' " +
+            ") && echo \"PR_VERSION=$PR_VERSION\"");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("PR_VERSION=", timeout: TimeSpan.FromSeconds(10));
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Replace all Aspire version strings in the csproj using the detected PR version.
+        // This handles both PackageReference Version attributes and the Sdk attribute.
+        await auto.TypeAsync(
+            $"sed -i -E " +
+            "'s|(Aspire\\.AppHost\\.Sdk/)([0-9]+\\.[0-9]+\\.[0-9]+[^\"]*)|\\1'\"$PR_VERSION\"'|g; " +
+            "s|(Include=\"Aspire\\.[^\"]+\" Version=\")([0-9]+\\.[0-9]+\\.[0-9]+[^\"]*)(\")|\\1'\"$PR_VERSION\"'\\3|g' " +
+            $"{csprojRelativePath}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Show the updated csproj for the recording
+        await auto.TypeAsync($"echo '--- Updated csproj ---' && cat {csprojRelativePath}");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // Verify restore works with the PR packages
+        await auto.TypeAsync(
+            $"dotnet restore {csprojRelativePath} --verbosity quiet && echo 'RESTORE_OK' || echo 'RESTORE_FAILED'");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("RESTORE_OK", timeout: TimeSpan.FromMinutes(3));
+        await auto.WaitForAnyPromptAsync(counter);
+    }
+
+    /// <summary>
     /// Clones a Git repository inside the container.
     /// </summary>
     /// <param name="auto">The terminal automator.</param>

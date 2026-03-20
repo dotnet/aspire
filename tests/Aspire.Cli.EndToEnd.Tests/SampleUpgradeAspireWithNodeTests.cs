@@ -42,27 +42,28 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
         // Clone the aspire-samples repository
         await auto.CloneSampleRepoAsync(counter);
 
-        // Determine the update channel. In PullRequest mode, explicitly pass the PR channel
-        // so that aspire update uses the PR hive packages instead of stable nuget.org versions.
-        string? updateChannel = installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest
-            ? $"pr-{CliE2ETestHelpers.GetRequiredPrNumber()}"
-            : null;
-
-        // Navigate to the sample directory first
+        // Navigate to the sample directory
         await auto.TypeAsync("cd aspire-samples/samples/aspire-with-node");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // In PullRequest mode, set up a NuGet.config with the PR hive source so that
-        // dotnet add package (used by aspire update's apply phase) can resolve PR packages.
-        if (updateChannel is not null)
-        {
-            await auto.SetupPrHiveNuGetConfigAsync(counter, updateChannel);
-        }
-
-        // Update the sample to the PR/CI build (already in the sample directory)
+        // Phase 1: Run aspire update to perform structural migration (SDK format, etc.)
+        // This uses the implicit channel and updates to the latest stable version.
         await auto.AspireUpdateInSampleAsync(counter, samplePath: ".",
-            channel: updateChannel, timeout: TimeSpan.FromMinutes(5));
+            timeout: TimeSpan.FromMinutes(5));
+
+        // Phase 2: In PullRequest mode, upgrade all Aspire package versions to the PR build.
+        // aspire update --channel has issues with dotnet package add and PR hive sources,
+        // so we do a direct version replacement and set up the NuGet.config for the hive.
+        if (installMode == CliE2ETestHelpers.DockerInstallMode.PullRequest)
+        {
+            var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+            var channel = $"pr-{prNumber}";
+
+            await auto.SetupPrHiveNuGetConfigAsync(counter, channel);
+            await auto.UpgradeToPrVersionAsync(counter, channel,
+                "AspireWithNode.AppHost/AspireWithNode.AppHost.csproj");
+        }
 
         // Verify that the AppHost csproj was actually updated (no longer contains 13.1.0)
         await auto.VerifySampleWasUpgradedAsync(counter,
