@@ -172,16 +172,20 @@ public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
                 .GetField("_workingDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
                 .GetValue(server));
 
+        var rootDirectory = Path.Combine(CliPathHelper.GetAspireHomeDirectory(), "bundle-hosts");
+        var isUnderRoot = workingDirectory.StartsWith(rootDirectory, StringComparison.OrdinalIgnoreCase);
+        var parentDirectory = Path.GetDirectoryName(workingDirectory);
+        var isDirectChildOfRoot = parentDirectory is not null &&
+                                   string.Equals(parentDirectory, rootDirectory, StringComparison.OrdinalIgnoreCase);
+        var isSafeToDelete = isUnderRoot && isDirectChildOfRoot && !string.Equals(workingDirectory, rootDirectory, StringComparison.OrdinalIgnoreCase);
+
         try
         {
-            Assert.StartsWith(
-                Path.Combine(CliPathHelper.GetAspireHomeDirectory(), "bundle-hosts"),
-                workingDirectory,
-                StringComparison.OrdinalIgnoreCase);
+            Assert.True(isSafeToDelete);
         }
         finally
         {
-            if (Directory.Exists(workingDirectory))
+            if (isSafeToDelete && Directory.Exists(workingDirectory))
             {
                 Directory.Delete(workingDirectory, recursive: true);
             }
