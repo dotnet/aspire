@@ -48,9 +48,21 @@ public sealed class SampleUpgradeAspireWithNodeTests(ITestOutputHelper output)
             ? $"pr-{CliE2ETestHelpers.GetRequiredPrNumber()}"
             : null;
 
-        // Update the aspire-with-node sample to the PR/CI build
-        await auto.AspireUpdateInSampleAsync(counter, "aspire-samples/samples/aspire-with-node",
-            channel: updateChannel);
+        // Navigate to the sample directory first
+        await auto.TypeAsync("cd aspire-samples/samples/aspire-with-node");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+
+        // In PullRequest mode, set up a NuGet.config with the PR hive source so that
+        // dotnet add package (used by aspire update's apply phase) can resolve PR packages.
+        if (updateChannel is not null)
+        {
+            await auto.SetupPrHiveNuGetConfigAsync(counter, updateChannel);
+        }
+
+        // Update the sample to the PR/CI build (already in the sample directory)
+        await auto.AspireUpdateInSampleAsync(counter, samplePath: ".",
+            channel: updateChannel, timeout: TimeSpan.FromMinutes(5));
 
         // Verify that the AppHost csproj was actually updated (no longer contains 13.1.0)
         await auto.VerifySampleWasUpgradedAsync(counter,

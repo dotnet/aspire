@@ -18,6 +18,45 @@ internal static class SampleUpgradeHelpers
     private const string DefaultSamplesBranch = "main";
 
     /// <summary>
+    /// Creates a NuGet.config in the current directory that includes the PR hive packages
+    /// as a package source. This is needed because <c>aspire update --channel</c> uses a
+    /// temporary NuGet config for the search phase but the apply phase (<c>dotnet add package</c>)
+    /// needs the PR hive source in the project's NuGet config to resolve PR-versioned packages.
+    /// </summary>
+    /// <param name="auto">The terminal automator.</param>
+    /// <param name="counter">The sequence counter for prompt tracking.</param>
+    /// <param name="channel">The PR channel name (e.g., <c>pr-15421</c>).</param>
+    internal static async Task SetupPrHiveNuGetConfigAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter,
+        string channel)
+    {
+        // Write a NuGet.config that includes both the PR hive source and nuget.org.
+        // Package source mapping ensures Aspire* packages come from the hive.
+        var hivePath = $"/root/.aspire/hives/{channel}/packages";
+        var nugetConfig = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<configuration>
+  <packageSources>
+    <add key=""{channel}"" value=""{hivePath}"" />
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key=""{channel}"">
+      <package pattern=""Aspire*"" />
+    </packageSource>
+    <packageSource key=""nuget.org"">
+      <package pattern=""*"" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>";
+
+        // Use heredoc to write the file
+        await auto.TypeAsync($"cat > NuGet.config << 'NUGETEOF'\n{nugetConfig}\nNUGETEOF");
+        await auto.EnterAsync();
+        await auto.WaitForSuccessPromptAsync(counter);
+    }
+
+    /// <summary>
     /// Clones a Git repository inside the container.
     /// </summary>
     /// <param name="auto">The terminal automator.</param>
