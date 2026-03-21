@@ -670,6 +670,7 @@ internal sealed class DotNetCliRunner(
             options: options,
             cancellationToken: cancellationToken);
     }
+
     public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.StartDiagnosticActivity();

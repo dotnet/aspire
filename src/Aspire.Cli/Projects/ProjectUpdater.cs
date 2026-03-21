@@ -25,6 +25,7 @@ internal interface IProjectUpdater
 
 internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
+    private bool _isExplicitChannel;
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Fetching '{AppHostPath}' items and properties.", projectFile.FullName);
@@ -75,6 +76,10 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return new ProjectUpdateResult { UpdatedApplied = false };
         }
 
+        // Track whether we're using an explicit channel (e.g., PR hive) so that
+        // individual dotnet package add calls can skip the implicit restore.
+        _isExplicitChannel = false;
+
         if (channel.Type == PackageChannelType.Explicit)
         {
             var (configPathsExitCode, configPaths) = await runner.GetNuGetConfigPathsAsync(projectFile.Directory!, new(), cancellationToken);
@@ -114,6 +119,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 required: true,
                 cancellationToken: cancellationToken);
 
+            _isExplicitChannel = true;
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
             await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
         }
@@ -132,6 +138,24 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
                 return 0;
             });
+
+        // When using an explicit channel with --no-restore on individual package adds,
+        // perform a final restore to ensure all packages resolve correctly together.
+        if (_isExplicitChannel)
+        {
+            await interactionService.ShowStatusAsync(
+                UpdateCommandStrings.RestoringPackages,
+                async () =>
+                {
+                    var exitCode = await runner.RestoreAsync(projectFile, new(), cancellationToken);
+                    if (exitCode != 0)
+                    {
+                        throw new ProjectUpdaterException(UpdateCommandStrings.FailedRestoreAfterUpdate);
+                    }
+
+                    return 0;
+                });
+        }
 
         interactionService.DisplayEmptyLine();
 
@@ -877,12 +901,19 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task UpdatePackageReferenceInProject(FileInfo projectFile, NuGetPackageCli package, CancellationToken cancellationToken)
     {
+        // When using an explicit channel, skip the implicit restore during package add to
+        // avoid failures from NuGet package source mapping. The mapping routes Aspire* packages
+        // exclusively to the hive source, but during the restore triggered by dotnet package add,
+        // other Aspire packages not yet updated still reference old versions that don't exist in
+        // the hive. A final restore is performed after all packages are updated.
+        var noRestore = _isExplicitChannel;
+
         var exitCode = await runner.AddPackageAsync(
             projectFilePath: projectFile,
             packageName: package.Id,
             packageVersion: package.Version,
             nugetSource: null,
-            noRestore: false,
+            noRestore: noRestore,
             options: new(),
             cancellationToken: cancellationToken);
 
