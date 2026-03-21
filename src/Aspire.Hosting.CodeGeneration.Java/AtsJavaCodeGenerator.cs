@@ -1201,6 +1201,12 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         WriteLine("        if (!resolvedOptions.containsKey(\"ProjectDirectory\")) {");
         WriteLine("            resolvedOptions.put(\"ProjectDirectory\", System.getProperty(\"user.dir\"));");
         WriteLine("        }");
+        WriteLine("        if (!resolvedOptions.containsKey(\"AppHostFilePath\")) {");
+        WriteLine("            String appHostFilePath = System.getenv(\"ASPIRE_APPHOST_FILEPATH\");");
+        WriteLine("            if (appHostFilePath != null && !appHostFilePath.isEmpty()) {");
+        WriteLine("                resolvedOptions.put(\"AppHostFilePath\", appHostFilePath);");
+        WriteLine("            }");
+        WriteLine("        }");
         WriteLine("        Map<String, Object> args = new HashMap<>();");
         WriteLine("        args.put(\"options\", resolvedOptions);");
         WriteLine($"        return ({builderClassName}) client.invokeCapability(\"Aspire.Hosting/createBuilderWithOptions\", args);");

@@ -1218,6 +1218,12 @@ public class Aspire {
         if (!resolvedOptions.containsKey("ProjectDirectory")) {
             resolvedOptions.put("ProjectDirectory", System.getProperty("user.dir"));
         }
+        if (!resolvedOptions.containsKey("AppHostFilePath")) {
+            String appHostFilePath = System.getenv("ASPIRE_APPHOST_FILEPATH");
+            if (appHostFilePath != null && !appHostFilePath.isEmpty()) {
+                resolvedOptions.put("AppHostFilePath", appHostFilePath);
+            }
+        }
         Map<String, Object> args = new HashMap<>();
         args.put("options", resolvedOptions);
         return (IDistributedApplicationBuilder) client.invokeCapability("Aspire.Hosting/createBuilderWithOptions", args);

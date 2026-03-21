@@ -397,6 +397,9 @@ public sealed class AtsPythonCodeGenerator : ICodeGenerator
         WriteLine("            resolved_options.update(options)");
         WriteLine("    resolved_options.setdefault(\"Args\", sys.argv[1:])");
         WriteLine("    resolved_options.setdefault(\"ProjectDirectory\", os.environ.get(\"ASPIRE_PROJECT_DIRECTORY\", os.getcwd()))");
+        WriteLine("    apphost_file_path = os.environ.get(\"ASPIRE_APPHOST_FILEPATH\")");
+        WriteLine("    if apphost_file_path:");
+        WriteLine("        resolved_options.setdefault(\"AppHostFilePath\", apphost_file_path)");
         WriteLine("    result = client.invoke_capability(\"Aspire.Hosting/createBuilderWithOptions\", {\"options\": resolved_options})");
         WriteLine("    return result");
         WriteLine();
