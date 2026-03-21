@@ -1005,6 +1005,7 @@ public static class JavaScriptHostingExtensions
     /// <summary>
     /// Configures a browser debugger for the JavaScript application resource, enabling browser-based debugging
     /// through a child resource that launches when the parent application is ready.
+    /// This resource relies on IDE support for browser debugging and will not be added if the required IDE capability is missing.
     /// </summary>
     /// <typeparam name="T">The type of the JavaScript application resource.</typeparam>
     /// <param name="builder">The resource builder for the JavaScript application.</param>
@@ -1016,8 +1017,8 @@ public static class JavaScriptHostingExtensions
     /// The parent resource must have at least one HTTP or HTTPS endpoint configured.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE extension
-    /// does not support browser debugging.
+    /// Thrown when the parent resource does not have an HTTP or HTTPS endpoint, or when the IDE capability
+    /// information is present but does not include browser debugging support.
     /// </exception>
     /// <example>
     /// Add browser debugging to a JavaScript application:
@@ -1037,7 +1038,10 @@ public static class JavaScriptHostingExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         // Validate that the extension supports browser debugging if we're running in an extension context
-        ValidateBrowserCapability(builder);
+        if (!HasBrowserCapability(builder))
+        {
+            return builder;
+        }
 
         var parentResource = builder.Resource;
         var debuggerResourceName = $"{parentResource.Name}-browser";
@@ -1080,24 +1084,36 @@ public static class JavaScriptHostingExtensions
         return builder;
     }
 
-    private static void ValidateBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
+    private static bool HasBrowserCapability<T>(IResourceBuilder<T> builder) where T : IResource
     {
         var configuration = builder.ApplicationBuilder.Configuration;
 
         try
         {
-            if (configuration["DEBUG_SESSION_INFO"] is { } debugSessionInfoJson
-                && JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is { } info
-                && info.SupportedLaunchConfigurations is not null
-                && !info.SupportedLaunchConfigurations.Contains(BrowserCapability))
+            var debugSessionInfoJson = configuration[KnownConfigNames.DebugSessionInfo];
+            if (debugSessionInfoJson is null)
+            {
+                return false;
+            }
+
+            if (JsonSerializer.Deserialize<DebugSessionCapabilities>(debugSessionInfoJson) is not { } info)
+            {
+                // If we can't deserialize the capabilities object, skip validation
+                return false;
+            }
+
+            if (info.SupportedLaunchConfigurations is null || !info.SupportedLaunchConfigurations.Contains(BrowserCapability))
             {
                 throw new InvalidOperationException(
                     "This version of the Aspire extension does not support browser debugging. Please update the Aspire extension to use browser debugging support with WithBrowserDebugger().");
             }
+
+            return true;
         }
         catch (JsonException)
         {
             // If we can't parse the debug session info, skip validation
+            return false;
         }
     }
 
