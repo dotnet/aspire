@@ -17,6 +17,7 @@ public sealed class TypeScriptExpressDeploymentTests(ITestOutputHelper output)
     private static readonly TimeSpan s_testTimeout = TimeSpan.FromMinutes(40);
 
     [Fact]
+    [ActiveIssue("https://github.com/microsoft/aspire/issues/15222")]
     public async Task DeployTypeScriptExpressTemplateToAzureContainerApps()
     {
         using var cts = new CancellationTokenSource(s_testTimeout);

@@ -6,6 +6,11 @@ inputs:
     type: string
     default: ''
     description: 'Additional MSBuild arguments passed to the test matrix generation step (e.g., /p:IncludeTemplateTests=true /p:OnlyDeploymentTests=true)'
+  artifactSuffix:
+    required: false
+    type: string
+    default: ''
+    description: 'Suffix to append to artifact names to avoid collisions when the action is used multiple times in the same workflow run'
 
 # Output format: JSON with structure {"include": [{...}, ...]}
 # Each entry contains:
@@ -75,7 +80,7 @@ runs:
       if: always()
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
-        name: logs-enumerate-tests-${{ runner.os }}
+        name: logs-enumerate-tests${{ inputs.artifactSuffix && format('-{0}', inputs.artifactSuffix) || '' }}-${{ runner.os }}
         path: |
           artifacts/log/**/*.binlog
           artifacts/**/*tests-partitions.json
