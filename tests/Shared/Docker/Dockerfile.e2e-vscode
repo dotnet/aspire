@@ -1,0 +1,91 @@
+# VS Code Extension E2E testing image.
+#
+# Serves VS Code in the browser via `code serve-web` with the Aspire extension
+# pre-installed. Designed for Playwright-based UI automation from the test host.
+#
+# Build artifacts (CLI binary, VSIX, NuGet packages) are volume-mounted at
+# test time — the image itself is lightweight. Follows the same pattern as the
+# CLI E2E tests: build on host, mount read-only into container.
+#
+# Base: .NET 10 SDK (needed for Aspire project creation and AppHost execution)
+# Adds: Node.js, Docker Engine (DinD), VS Code, Hex1b.Tool
+#
+# Usage:
+#   docker build -f Dockerfile.e2e-vscode -t aspire-vscode-e2e .
+#   docker run -d -p 8000:8000 \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -v /path/to/cli/publish:/opt/aspire-cli:ro \
+#     -v /path/to/extension.vsix:/opt/aspire/extension.vsix:ro \
+#     -v /path/to/packages:/opt/aspire/packages:ro \
+#     aspire-vscode-e2e
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+# Install core tools and VS Code runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      curl wget gpg ca-certificates iproute2 \
+      # VS Code runtime dependencies
+      libasound2t64 libatk-bridge2.0-0 libatk1.0-0 libcairo2 libcups2 \
+      libdbus-1-3 libdrm2 libexpat1 libgbm1 libglib2.0-0 libgtk-3-0 \
+      libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 libxcomposite1 \
+      libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 xdg-utils && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Docker Engine (daemon + CLI + Compose + BuildX) for Docker-in-Docker.
+# DCP uses Docker to manage container resources (e.g., Redis, PostgreSQL).
+# We run dockerd inside this container rather than mounting the host socket,
+# so that DCP-created containers share the same network namespace.
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+      https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+      > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+      docker-ce docker-ce-cli containerd.io \
+      docker-compose-plugin docker-buildx-plugin \
+      iptables && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Node.js LTS (needed for VS Code extension host)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install VS Code from Microsoft apt repository
+RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
+      | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.microsoft.gpg && \
+    echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] \
+      https://packages.microsoft.com/repos/code stable main" \
+      > /etc/apt/sources.list.d/vscode.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends code && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create mount points for build artifacts (volume-mounted at test time)
+RUN mkdir -p /opt/aspire-cli /opt/aspire/packages /workspace
+
+WORKDIR /workspace
+
+# Install Hex1b CLI tool (provides terminal hosting with diagnostics socket for remote control)
+RUN dotnet tool install --global Hex1b.Tool --version 0.121.0
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+ENV DONT_PROMPT_WSL_INSTALL=1
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+ENV DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+ENV DOTNET_GENERATE_ASPNET_CERTIFICATE=false
+ENV TERM=xterm
+
+# Entrypoint: install VSIX if mounted, then start VS Code serve-web
+COPY tests/Shared/Docker/entrypoint-e2e-vscode.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Docker-in-Docker: use a volume for Docker data to avoid overlay-on-overlay issues
+VOLUME /var/lib/docker
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]

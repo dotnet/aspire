@@ -28,6 +28,7 @@
 
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeTemplateTests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Templates.Tests'">true</_ShouldSkipProject>
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeCliE2ETests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Cli.EndToEnd.Tests'">true</_ShouldSkipProject>
+    <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(IncludeExtensionE2ETests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Extension.EndToEndTests'">true</_ShouldSkipProject>
 
     <!-- Deployment tests: skip by default, include only when OnlyDeploymentTests=true -->
     <_ShouldSkipProject Condition="'$(_ShouldSkipProject)' == '' and '$(OnlyDeploymentTests)' != 'true' and '$(MSBuildProjectName)' == 'Aspire.Deployment.EndToEnd.Tests'">true</_ShouldSkipProject>
@@ -65,6 +66,10 @@
       <!-- Determine requiresCliArchive based on project properties -->
       <_RequiresCliArchive>false</_RequiresCliArchive>
       <_RequiresCliArchive Condition="'$(RequiresCliArchive)' == 'true'">true</_RequiresCliArchive>
+
+      <!-- Determine requiresExtensionArtifacts based on project properties -->
+      <_RequiresExtensionArtifacts>false</_RequiresExtensionArtifacts>
+      <_RequiresExtensionArtifacts Condition="'$(RequiresExtensionArtifacts)' == 'true'">true</_RequiresExtensionArtifacts>
 
       <!-- Determine enablePlaywrightInstall based on project properties -->
       <_EnablePlaywrightInstall>false</_EnablePlaywrightInstall>
@@ -106,6 +111,7 @@
   "requiresNugets": "$(_RequiresNugets.ToLowerInvariant())",
   "requiresTestSdk": "$(_RequiresTestSdk.ToLowerInvariant())",
   "requiresCliArchive": "$(_RequiresCliArchive.ToLowerInvariant())",
+  "requiresExtensionArtifacts": "$(_RequiresExtensionArtifacts.ToLowerInvariant())",
   "enablePlaywrightInstall": "$(_EnablePlaywrightInstall.ToLowerInvariant())",
   "splitTests": "$(SplitTestsOnCI)",
   "supportedOSes": [$(_SupportedOSesJson)],

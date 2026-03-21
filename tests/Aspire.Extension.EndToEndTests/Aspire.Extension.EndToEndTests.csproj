@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsUnitTestProject>true</IsUnitTestProject>
+    <OutputType>Exe</OutputType>
+    <!-- Only run on PRs (like CLI E2E tests) -->
+    <SkipTests Condition="'$(IsGitHubActionsRunner)' == 'true' and '$(IsGithubPullRequest)' != 'true'">true</SkipTests>
+
+    <!-- Each test class becomes a separate CI job -->
+    <SplitTestsOnCI>true</SplitTestsOnCI>
+    <RequiresNugets>true</RequiresNugets>
+    <RequiresCliArchive>true</RequiresCliArchive>
+    <RequiresExtensionArtifacts>true</RequiresExtensionArtifacts>
+    <EnablePlaywrightInstall>true</EnablePlaywrightInstall>
+
+    <!-- Install Playwright browsers during build on CI -->
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
+
+    <!-- Disable strong name signing for third-party packages -->
+    <SignAssembly>false</SignAssembly>
+
+    <!-- Linux-only: VS Code serve-web and Docker work best on Linux -->
+    <RunOnGithubActionsWindows>false</RunOnGithubActionsWindows>
+    <RunOnGithubActionsMacOS>false</RunOnGithubActionsMacOS>
+    <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>
+
+    <!-- Do not run in Helix -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+
+    <!-- Do not run on AzDO CI agents -->
+    <RunOnAzdoCIWindows>false</RunOnAzdoCIWindows>
+    <RunOnAzdoCILinux>false</RunOnAzdoCILinux>
+
+    <TestClassNamePrefixForCI>Aspire.Extension.EndToEndTests</TestClassNamePrefixForCI>
+
+    <TestSessionTimeout>15m</TestSessionTimeout>
+    <TestHangTimeout>10m</TestHangTimeout>
+
+    <!-- IDE0005 false positive: xunit.v3 global using adds Xunit.v3 but not Xunit namespace -->
+    <NoWarn>$(NoWarn);IDE0005</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hex1b" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Shared\Playwright\Playwright.targets" />
+
+</Project>
