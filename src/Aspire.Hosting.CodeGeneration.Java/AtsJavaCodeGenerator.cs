@@ -540,7 +540,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             {
                 foreach (var method in methods)
                 {
-                    GenerateCapabilityMethod(method);
+                    GenerateCapabilityMethod(handleType, method);
                 }
             }
 
@@ -581,7 +581,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    private void GenerateCapabilityMethod(AtsCapabilityInfo capability)
+    private void GenerateCapabilityMethod(JavaHandleType handleType, AtsCapabilityInfo capability)
     {
         var targetParamName = capability.TargetParameterName ?? "builder";
         var methodName = ToCamelCase(capability.MethodName);
@@ -591,6 +591,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         var (requiredParameters, optionalParameters) = SeparateParameters(parameters);
         var optionsClassName = ResolveOptionsClassName(capability);
         var useOptionsClass = optionsClassName is not null;
+        var returnInfo = GetMethodReturnInfo(handleType, capability);
 
         if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
         {
@@ -601,19 +602,19 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         if (useOptionsClass)
         {
             var implementationMethodName = $"{methodName}Impl";
-            GenerateUnionOverloadsWithOptions(capability, methodName, requiredParameters, optionsClassName!);
-            GenerateOptionsOverloads(capability, methodName, implementationMethodName, requiredParameters, optionalParameters, optionsClassName!);
-            GenerateCapabilityMethodImplementation(capability, implementationMethodName, targetParamName, parameters, isPublic: false);
+            GenerateUnionOverloadsWithOptions(returnInfo, methodName, requiredParameters, optionsClassName!);
+            GenerateOptionsOverloads(capability, returnInfo, methodName, implementationMethodName, requiredParameters, optionalParameters, optionsClassName!);
+            GenerateCapabilityMethodImplementation(capability, returnInfo, implementationMethodName, targetParamName, parameters, isPublic: false);
         }
         else
         {
-            GenerateUnionOverloads(capability, methodName, parameters);
-            GenerateOptionalOverloads(capability, methodName, parameters);
-            GenerateCapabilityMethodImplementation(capability, methodName, targetParamName, parameters, isPublic: true);
+            GenerateUnionOverloads(returnInfo, methodName, parameters);
+            GenerateOptionalOverloads(returnInfo, methodName, parameters);
+            GenerateCapabilityMethodImplementation(capability, returnInfo, methodName, targetParamName, parameters, isPublic: true);
         }
     }
 
-    private void GenerateUnionOverloads(AtsCapabilityInfo capability, string methodName, List<AtsParameterInfo> parameters)
+    private void GenerateUnionOverloads(JavaCapabilityReturnInfo returnInfo, string methodName, List<AtsParameterInfo> parameters)
     {
         var unionParameters = parameters.Where(p => IsUnionType(p.Type)).ToList();
         if (unionParameters.Count != 1)
@@ -628,8 +629,6 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             return;
         }
 
-        var returnType = MapTypeRefToJava(capability.ReturnType, false);
-        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
         var unionParamName = ToCamelCase(unionParameter.Name);
 
         foreach (var unionType in unionTypes
@@ -651,12 +650,12 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
                 overloadParameters.Append(CultureInfo.InvariantCulture, $"{parameterType} {ToCamelCase(parameter.Name)}");
             }
 
-            WriteLine($"    public {returnType} {methodName}({overloadParameters}) {{");
+            WriteLine($"    public {returnInfo.ReturnType} {methodName}({overloadParameters}) {{");
             var callArguments = string.Join(", ", parameters.Select(parameter =>
                 ReferenceEquals(parameter, unionParameter)
                     ? $"AspireUnion.of({unionParamName})"
                     : ToCamelCase(parameter.Name)));
-            if (hasReturn)
+            if (returnInfo.HasReturn)
             {
                 WriteLine($"        return {methodName}({callArguments});");
             }
@@ -669,7 +668,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateOptionalOverloads(AtsCapabilityInfo capability, string methodName, List<AtsParameterInfo> parameters)
+    private void GenerateOptionalOverloads(JavaCapabilityReturnInfo returnInfo, string methodName, List<AtsParameterInfo> parameters)
     {
         var trailingOptionalCount = parameters.AsEnumerable().Reverse().TakeWhile(IsOmittableParameter).Count();
         if (trailingOptionalCount == 0)
@@ -677,14 +676,11 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             return;
         }
 
-        var returnType = MapTypeRefToJava(capability.ReturnType, false);
-        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
-
         for (var omitCount = trailingOptionalCount; omitCount >= 1; omitCount--)
         {
             var visibleParameters = parameters.Take(parameters.Count - omitCount).ToList();
             var parameterList = string.Join(", ", visibleParameters.Select(parameter => $"{MapParameterToJava(parameter)} {ToCamelCase(parameter.Name)}"));
-            WriteLine($"    public {returnType} {methodName}({parameterList}) {{");
+            WriteLine($"    public {returnInfo.ReturnType} {methodName}({parameterList}) {{");
 
             var callArguments = new List<string>(parameters.Count);
             foreach (var parameter in parameters)
@@ -699,7 +695,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
                 }
             }
 
-            if (hasReturn)
+            if (returnInfo.HasReturn)
             {
                 WriteLine($"        return {methodName}({string.Join(", ", callArguments)});");
             }
@@ -711,15 +707,15 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             WriteLine();
 
             GenerateResourceBuilderOverloads(
-                returnType,
+                returnInfo.ReturnType,
                 methodName,
                 CreateMethodParameters(visibleParameters),
-                hasReturn);
+                returnInfo.HasReturn);
         }
     }
 
     private void GenerateUnionOverloadsWithOptions(
-        AtsCapabilityInfo capability,
+        JavaCapabilityReturnInfo returnInfo,
         string methodName,
         List<AtsParameterInfo> requiredParameters,
         string optionsClassName)
@@ -737,8 +733,6 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             return;
         }
 
-        var returnType = MapTypeRefToJava(capability.ReturnType, false);
-        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
         var unionParamName = ToCamelCase(unionParameter.Name);
 
         foreach (var unionType in unionTypes
@@ -766,12 +760,12 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             }
             overloadParameters.Append(CultureInfo.InvariantCulture, $"{optionsClassName} options");
 
-            WriteLine($"    public {returnType} {methodName}({overloadParameters}) {{");
+            WriteLine($"    public {returnInfo.ReturnType} {methodName}({overloadParameters}) {{");
             var callArguments = string.Join(", ", requiredParameters.Select(parameter =>
                 ReferenceEquals(parameter, unionParameter)
                     ? $"AspireUnion.of({unionParamName})"
                     : ToCamelCase(parameter.Name)));
-            if (hasReturn)
+            if (returnInfo.HasReturn)
             {
                 WriteLine($"        return {methodName}({callArguments}, options);");
             }
@@ -782,8 +776,8 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             WriteLine("    }");
             WriteLine();
 
-            WriteLine($"    public {returnType} {methodName}({string.Join(", ", requiredParameters.Select(parameter => ReferenceEquals(parameter, unionParameter) ? $"{MapInputTypeToJava(unionType, unionParameter.IsOptional || unionParameter.IsNullable)} {ToCamelCase(parameter.Name)}" : $"{MapParameterToJava(parameter)} {ToCamelCase(parameter.Name)}"))}) {{");
-            if (hasReturn)
+            WriteLine($"    public {returnInfo.ReturnType} {methodName}({string.Join(", ", requiredParameters.Select(parameter => ReferenceEquals(parameter, unionParameter) ? $"{MapInputTypeToJava(unionType, unionParameter.IsOptional || unionParameter.IsNullable)} {ToCamelCase(parameter.Name)}" : $"{MapParameterToJava(parameter)} {ToCamelCase(parameter.Name)}"))}) {{");
+            if (returnInfo.HasReturn)
             {
                 WriteLine($"        return {methodName}({callArguments});");
             }
@@ -798,15 +792,13 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
 
     private void GenerateOptionsOverloads(
         AtsCapabilityInfo capability,
+        JavaCapabilityReturnInfo returnInfo,
         string methodName,
         string implementationMethodName,
         List<AtsParameterInfo> requiredParameters,
         List<AtsParameterInfo> optionalParameters,
         string optionsClassName)
     {
-        var returnType = MapTypeRefToJava(capability.ReturnType, false);
-        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
-
         var requiredParameterList = string.Join(", ", requiredParameters.Select(parameter => $"{MapParameterToJava(parameter)} {ToCamelCase(parameter.Name)}"));
         var publicParameterList = string.IsNullOrEmpty(requiredParameterList)
             ? $"{optionsClassName} options"
@@ -817,7 +809,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             WriteLine($"    /** {capability.Description} */");
         }
 
-        WriteLine($"    public {returnType} {methodName}({publicParameterList}) {{");
+        WriteLine($"    public {returnInfo.ReturnType} {methodName}({publicParameterList}) {{");
         foreach (var parameter in optionalParameters)
         {
             var paramName = ToCamelCase(parameter.Name);
@@ -829,7 +821,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             .Concat(optionalParameters.Select(parameter => ToCamelCase(parameter.Name)))
             .ToList();
 
-        if (hasReturn)
+        if (returnInfo.HasReturn)
         {
             WriteLine($"        return {implementationMethodName}({string.Join(", ", implementationArguments)});");
         }
@@ -843,13 +835,13 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         var optionsParameters = CreateMethodParameters(requiredParameters);
         optionsParameters.Add(new JavaMethodParameter(optionsClassName, "options"));
         GenerateResourceBuilderOverloads(
-            returnType,
+            returnInfo.ReturnType,
             methodName,
             optionsParameters,
-            hasReturn);
+            returnInfo.HasReturn);
 
-        WriteLine($"    public {returnType} {methodName}({requiredParameterList}) {{");
-        if (hasReturn)
+        WriteLine($"    public {returnInfo.ReturnType} {methodName}({requiredParameterList}) {{");
+        if (returnInfo.HasReturn)
         {
             WriteLine($"        return {methodName}({AppendArgumentList(requiredParameters.Select(parameter => ToCamelCase(parameter.Name)), "null")});");
         }
@@ -861,17 +853,14 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         WriteLine();
 
         GenerateResourceBuilderOverloads(
-            returnType,
+            returnInfo.ReturnType,
             methodName,
             CreateMethodParameters(requiredParameters),
-            hasReturn);
+            returnInfo.HasReturn);
     }
 
-    private void GenerateCapabilityMethodImplementation(AtsCapabilityInfo capability, string methodName, string targetParamName, List<AtsParameterInfo> parameters, bool isPublic)
+    private void GenerateCapabilityMethodImplementation(AtsCapabilityInfo capability, JavaCapabilityReturnInfo returnInfo, string methodName, string targetParamName, List<AtsParameterInfo> parameters, bool isPublic)
     {
-        var returnType = MapTypeRefToJava(capability.ReturnType, false);
-        var hasReturn = capability.ReturnType.TypeId != AtsConstants.Void;
-
         var paramList = new StringBuilder();
         foreach (var parameter in parameters)
         {
@@ -888,7 +877,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         }
 
         var accessibility = isPublic ? "public" : "private";
-        WriteLine($"    {accessibility} {returnType} {methodName}({paramList}) {{");
+        WriteLine($"    {accessibility} {returnInfo.ReturnType} {methodName}({paramList}) {{");
         WriteLine("        Map<String, Object> reqArgs = new HashMap<>();");
         WriteLine($"        reqArgs.put(\"{targetParamName}\", AspireClient.serializeValue(getHandle()));");
 
@@ -924,7 +913,12 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             }
         }
 
-        if (hasReturn)
+        if (returnInfo.ReturnsCurrentBuilder)
+        {
+            WriteLine($"        getClient().invokeCapability(\"{capability.CapabilityId}\", reqArgs);");
+            WriteLine("        return this;");
+        }
+        else if (returnInfo.HasReturn)
         {
             if (IsUnionType(capability.ReturnType))
             {
@@ -932,7 +926,7 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
             }
             else
             {
-                WriteLine($"        return ({returnType}) getClient().invokeCapability(\"{capability.CapabilityId}\", reqArgs);");
+                WriteLine($"        return ({returnInfo.ReturnType}) getClient().invokeCapability(\"{capability.CapabilityId}\", reqArgs);");
             }
         }
         else
@@ -946,11 +940,28 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         if (isPublic)
         {
             GenerateResourceBuilderOverloads(
-                returnType,
+                returnInfo.ReturnType,
                 methodName,
                 CreateMethodParameters(parameters),
-                hasReturn);
+                returnInfo.HasReturn);
         }
+    }
+
+    private JavaCapabilityReturnInfo GetMethodReturnInfo(JavaHandleType handleType, AtsCapabilityInfo capability)
+    {
+        if (capability.ReturnsBuilder)
+        {
+            var returnsDifferentBuilder = capability.ReturnType?.TypeId is { } returnTypeId &&
+                !string.Equals(returnTypeId, handleType.TypeId, StringComparison.Ordinal) &&
+                !string.Equals(returnTypeId, capability.TargetTypeId, StringComparison.Ordinal);
+
+            return returnsDifferentBuilder
+                ? new(MapHandleType(capability.ReturnType!.TypeId!), HasReturn: true, ReturnsCurrentBuilder: false)
+                : new(handleType.ClassName, HasReturn: true, ReturnsCurrentBuilder: true);
+        }
+
+        var hasReturn = capability.ReturnType?.TypeId != AtsConstants.Void;
+        return new(hasReturn ? MapTypeRefToJava(capability.ReturnType, false) : "void", hasReturn, ReturnsCurrentBuilder: false);
     }
 
     private string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, AtsTypeRef? callbackReturnType)
@@ -1594,4 +1605,5 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
 
     private sealed record JavaHandleType(string TypeId, string ClassName, bool IsResourceBuilder);
     private sealed record JavaMethodParameter(string Type, string Name, string? ResourceWrapperType = null);
+    private sealed record JavaCapabilityReturnInfo(string ReturnType, bool HasReturn, bool ReturnsCurrentBuilder);
 }

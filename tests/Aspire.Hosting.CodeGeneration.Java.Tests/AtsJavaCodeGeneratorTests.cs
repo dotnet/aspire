@@ -152,6 +152,30 @@ public class AtsJavaCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_FluentBuilderCapabilities_ReturnBuilder()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var withReference = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/withReference");
+        Assert.True(withReference.ReturnsBuilder);
+
+        var waitFor = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/waitFor");
+        Assert.True(waitFor.ReturnsBuilder);
+    }
+
+    [Fact]
+    public void GeneratedCode_HostingAssembly_FluentBuilderMethods_ReturnConcreteBuilderType()
+    {
+        var atsContext = CreateContextFromBothAssemblies();
+
+        var files = _generator.GenerateDistributedApplication(atsContext);
+        var aspireJava = files["Aspire.java"];
+
+        Assert.Contains("public ContainerResource withReference(IResource source, WithReferenceOptions options)", aspireJava);
+        Assert.Contains("public ContainerResource waitFor(IResource dependency)", aspireJava);
+    }
+
+    [Fact]
     public void RuntimeType_ContainerResource_IsNotInterface()
     {
         // Verify that ContainerResource.IsInterface returns false using runtime reflection
