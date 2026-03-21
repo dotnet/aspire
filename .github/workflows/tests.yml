@@ -315,6 +315,30 @@ jobs:
 
                 Set-Location $projectRoot
 
+                $resourcesStdOutPath = Join-Path $diagnosticsDir 'aspire-resources.stdout.log'
+                $resourcesStdErrPath = Join-Path $diagnosticsDir 'aspire-resources.stderr.log'
+                $resourcesCombinedPath = Join-Path $diagnosticsDir 'aspire-resources.log'
+
+                $resourcesProcess = Start-Process -FilePath 'aspire' `
+                  -ArgumentList @('resources') `
+                  -WorkingDirectory $projectRoot `
+                  -RedirectStandardOutput $resourcesStdOutPath `
+                  -RedirectStandardError $resourcesStdErrPath `
+                  -Wait `
+                  -PassThru
+
+                $resourcesOutput = @(
+                  if (Test-Path $resourcesStdOutPath) { Get-Content $resourcesStdOutPath }
+                  if (Test-Path $resourcesStdErrPath) { Get-Content $resourcesStdErrPath }
+                ) -join [Environment]::NewLine
+
+                Set-Content -Path $resourcesCombinedPath -Value $resourcesOutput
+                Write-Host $resourcesOutput
+
+                if ($resourcesProcess.ExitCode -ne 0) {
+                  throw "${templateId}: aspire resources failed with exit code $($resourcesProcess.ExitCode)."
+                }
+
                 foreach ($resourceName in $expectedResources) {
                   $sanitizedResourceName = $resourceName -replace '[^A-Za-z0-9_.-]', '_'
                   $waitStdOutPath = Join-Path $diagnosticsDir "aspire-wait-${sanitizedResourceName}.stdout.log"
