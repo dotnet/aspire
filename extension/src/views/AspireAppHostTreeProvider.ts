@@ -25,6 +25,14 @@ import {
 
 type TreeElement = AppHostItem | DetailItem | ResourcesGroupItem | ResourceItem | WorkspaceResourcesItem;
 
+function sortResources(resources: ResourceJson[]): ResourceJson[] {
+    return [...resources].sort((a, b) => {
+        const nameA = (a.displayName ?? a.name).toLowerCase();
+        const nameB = (b.displayName ?? b.name).toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+}
+
 function appHostIcon(path?: string): vscode.ThemeIcon {
     const icon = path?.endsWith('.csproj') ? 'server-process' : 'file-code';
     return new vscode.ThemeIcon(icon, new vscode.ThemeColor('aspire.brandPurple'));
@@ -71,12 +79,19 @@ class ResourcesGroupItem extends vscode.TreeItem {
     }
 }
 
+function getParentResourceName(resource: ResourceJson): string | null {
+    return resource.properties?.['resource.parentName'] ?? null;
+}
+
 class ResourceItem extends vscode.TreeItem {
-    constructor(public readonly resource: ResourceJson, public readonly appHostPid: number | null) {
+    constructor(public readonly resource: ResourceJson, public readonly appHostPid: number | null, hasChildren: boolean) {
         const state = resource.state ?? '';
         const label = state ? resourceStateLabel(resource.displayName ?? resource.name, state) : (resource.displayName ?? resource.name);
         const hasUrls = resource.urls && resource.urls.filter(u => !u.isInternal).length > 0;
-        super(label, hasUrls ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+        const collapsible = hasChildren
+            ? vscode.TreeItemCollapsibleState.Expanded
+            : hasUrls ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+        super(label, collapsible);
         this.id = appHostPid !== null ? `resource:${appHostPid}:${resource.name}` : `resource:workspace:${resource.name}`;
         this.iconPath = getResourceIcon(resource);
         this.description = resource.resourceType;
@@ -220,14 +235,17 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 ));
             }
 
-            for (const resource of element.resources) {
-                items.push(new ResourceItem(resource, null));
+            // Show only top-level resources (those without a parent)
+            const topLevel = element.resources.filter(r => !getParentResourceName(r));
+            for (const resource of sortResources(topLevel)) {
+                const hasChildren = element.resources.some(r => getParentResourceName(r) === resource.name);
+                items.push(new ResourceItem(resource, null, hasChildren));
             }
             return items;
         }
 
         if (element instanceof ResourceItem) {
-            return this._getUrlChildren(element);
+            return this._getResourceChildren(element, [...this._repository.workspaceResources]);
         }
 
         return [];
@@ -277,14 +295,37 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
         }
 
         if (element instanceof ResourcesGroupItem) {
-            return element.resources.map(r => new ResourceItem(r, element.appHostPid));
+            const topLevel = element.resources.filter(r => !getParentResourceName(r));
+            return sortResources(topLevel).map(r => {
+                const hasChildren = element.resources.some(c => getParentResourceName(c) === r.name);
+                return new ResourceItem(r, element.appHostPid, hasChildren);
+            });
         }
 
         if (element instanceof ResourceItem) {
-            return this._getUrlChildren(element);
+            const allResources = this._repository.viewMode === 'workspace'
+                ? [...this._repository.workspaceResources]
+                : this._repository.appHosts.find(a => a.appHostPid === element.appHostPid)?.resources ?? [];
+            return this._getResourceChildren(element, allResources);
         }
 
         return [];
+    }
+
+    private _getResourceChildren(element: ResourceItem, allResources: readonly ResourceJson[]): TreeElement[] {
+        const items: TreeElement[] = [];
+
+        // Add child resources
+        const children = allResources.filter(r => getParentResourceName(r) === element.resource.name);
+        for (const child of sortResources(children)) {
+            const hasChildren = allResources.some(r => getParentResourceName(r) === child.name);
+            items.push(new ResourceItem(child, element.appHostPid, hasChildren));
+        }
+
+        // Add URL children
+        items.push(...this._getUrlChildren(element));
+
+        return items;
     }
 
     private _getUrlChildren(element: ResourceItem): TreeElement[] {

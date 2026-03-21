@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.InternalTesting;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -299,22 +298,22 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var config = new ConfigurationBuilder().Build();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
+        var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile, NullLogger<ConfigurationService>.Instance);
 
         var locator = CreateProjectLocator(executionContext, configurationService: configurationService, projectFactory: projectFactory);
 
         await locator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true, CancellationToken.None).DefaultTimeout();
 
-        var settingsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "settings.json"));
+        var settingsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName));
         Assert.True(settingsFile.Exists, "Settings file should exist.");
 
         var settingsJson = await File.ReadAllTextAsync(settingsFile.FullName);
-        var settings = JsonSerializer.Deserialize<CliSettings>(settingsJson);
+        var settings = JsonSerializer.Deserialize<AspireConfigFile>(settingsJson);
 
         Assert.NotNull(settings);
-        Assert.NotNull(settings!.AppHostPath);
-        Assert.DoesNotContain('\\', settings.AppHostPath); // Ensure no backslashes
-        Assert.Contains('/', settings.AppHostPath); // Ensure forward slashes
+        Assert.NotNull(settings!.AppHost?.Path);
+        Assert.DoesNotContain('\\', settings.AppHost.Path); // Ensure no backslashes
+        Assert.Contains('/', settings.AppHost.Path); // Ensure forward slashes
     }
 
     [Fact]
@@ -615,13 +614,7 @@ builder.Build().Run();");
         Assert.True(result.FullName == csprojFile.FullName || result.FullName == appHostFile.FullName);
     }
 
-    private sealed class CliSettings
-    {
-        [JsonPropertyName("appHostPath")]
-        public string? AppHostPath { get; set; }
-    }
-
-    private sealed class TestConfigurationService : IConfigurationService
+    private sealed class TestConfigurationService(CliExecutionContext executionContext) : IConfigurationService
     {
         public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
         {
@@ -658,7 +651,9 @@ builder.Build().Run();");
 
         public string GetSettingsFilePath(bool isGlobal)
         {
-            return string.Empty;
+            return isGlobal
+                ? Path.Combine(executionContext.HomeDirectory.FullName, ".aspire", AspireConfigFile.FileName)
+                : Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
         }
     }
 
@@ -840,7 +835,7 @@ builder.Build().Run();");
     }
 
     /// <summary>
-    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Regression test for https://github.com/microsoft/aspire/issues/13971
     /// Verifies that AppHost.cs (without SDK directive, with sibling .csproj) is NOT detected as a single-file apphost.
     /// This simulates the .NET starter template structure.
     /// </summary>
@@ -884,7 +879,7 @@ builder.Build().Run();");
     }
 
     /// <summary>
-    /// Regression test for https://github.com/dotnet/aspire/issues/13971
+    /// Regression test for https://github.com/microsoft/aspire/issues/13971
     /// Verifies that even if apphost.cs has the SDK directive, it is NOT detected if there's a sibling .csproj.
     /// </summary>
     [Fact]
@@ -1038,11 +1033,10 @@ builder.Build().Run();");
             logger,
             executionContext,
             interactionService ?? new TestInteractionService(),
-            configurationService ?? new TestConfigurationService(),
+            configurationService ?? new TestConfigurationService(executionContext),
             projectFactory ?? new TestAppHostProjectFactory(),
             languageDiscovery ?? new TestLanguageDiscovery(),
             sdkInstaller ?? new TestDotNetSdkInstaller(),
             telemetry ?? TestTelemetryHelper.CreateInitializedTelemetry());
     }
 }
-

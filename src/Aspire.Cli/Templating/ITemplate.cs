@@ -36,16 +36,9 @@ internal interface ITemplate
     Func<string, string> PathDeriver { get; }
 
     /// <summary>
-    /// Determines whether this template is available for the selected language.
+    /// Gets the AppHost language identifier associated with this template.
     /// </summary>
-    /// <param name="languageId">The selected language identifier.</param>
-    /// <returns><see langword="true"/> if the template is available; otherwise <see langword="false"/>.</returns>
-    bool SupportsLanguage(string languageId);
-
-    /// <summary>
-    /// Gets the AppHost languages that this template can prompt for.
-    /// </summary>
-    IReadOnlyList<string> SelectableAppHostLanguages { get; }
+    string? LanguageId { get; }
 
     /// <summary>
     /// Applies template-specific command options.
