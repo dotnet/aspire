@@ -178,8 +178,8 @@ public class KustoFunctionalTests
         builder.Services.AddFakeLogging();
 
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
-        kusto.AddReadWriteDatabase("TestDb1", "TestDb");
-        kusto.AddReadWriteDatabase("TestDb2", "TestDb");
+        var db1 = kusto.AddReadWriteDatabase("TestDb1", "TestDb");
+        var db2 = kusto.AddReadWriteDatabase("TestDb2", "TestDb");
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
@@ -189,7 +189,7 @@ public class KustoFunctionalTests
 
         // Assert no warnings or errors were logged about the database already existing
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
+        var logs = GetResourceLogs(snapshot, db1.Resource.Name, db2.Resource.Name);
         Assert.Empty(logs);
     }
 
@@ -220,8 +220,9 @@ public class KustoFunctionalTests
 
         // Assert an error was logged about the invalid database
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var logs = snapshot.Where(IsResourceLog).Where(record => record.Level >= LogLevel.Warning);
-        Assert.Single(logs);
+        var logs = GetResourceLogs(snapshot, db1.Resource.Name, db2.Resource.Name);
+        var log = Assert.Single(logs);
+        Assert.True(IsResourceLog(log, db2.Resource.Name));
     }
 
     [Fact]
@@ -268,9 +269,28 @@ public class KustoFunctionalTests
         }
     }
 
-    private static bool IsResourceLog(FakeLogRecord record)
+    private static FakeLogRecord[] GetResourceLogs(IEnumerable<FakeLogRecord> snapshot, params string[] resourceNames)
     {
-        return (record.Category ?? string.Empty).StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase);
+        return snapshot.Where(record => record.Level >= LogLevel.Warning && IsResourceLog(record, resourceNames)).ToArray();
+    }
+
+    private static bool IsResourceLog(FakeLogRecord record, params string[] resourceNames)
+    {
+        var category = record.Category ?? string.Empty;
+        if (!category.StartsWith("Aspire.Hosting.Tests.Resources", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        foreach (var resourceName in resourceNames)
+        {
+            if (category.EndsWith($".{resourceName}", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
