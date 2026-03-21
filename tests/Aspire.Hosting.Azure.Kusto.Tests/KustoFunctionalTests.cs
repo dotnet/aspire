@@ -41,7 +41,6 @@ public class KustoFunctionalTests
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/microsoft/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/15463", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task KustoEmulator_Starts()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -92,7 +91,6 @@ public class KustoFunctionalTests
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/microsoft/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/15463", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task KustoEmulator_WithDatabase_CanReadIngestedData()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -171,7 +169,6 @@ public class KustoFunctionalTests
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/microsoft/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/15463", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task KustoEmulator_WithDatabaseThatAlreadyExists_ErrorIsIgnored()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -199,7 +196,6 @@ public class KustoFunctionalTests
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/microsoft/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/15463", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task KustoEmulator_WithInvalidDatabase_LogsErrorAndContinues()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
@@ -231,7 +227,6 @@ public class KustoFunctionalTests
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
     [ActiveIssue("https://github.com/microsoft/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/15463", typeof(PlatformDetection), nameof(PlatformDetection.IsLinux))]
     public async Task KustoEmulator_WithBindMount_IsUsedForPersistence()
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
