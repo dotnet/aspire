@@ -14,6 +14,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -1870,7 +1871,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             if (configuration.Exception is not null)
             {
-                throw new FailedToApplyEnvironmentException();
+                ExceptionDispatchInfo.Throw(configuration.Exception);
             }
 
             // Invoke the debug configuration callback now that endpoints are allocated.
@@ -2344,7 +2345,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Command = containerResource.Entrypoint;
             }
 
-            if (failedToApplyRunArgs || configuration.Exception is not null)
+            if (configuration.Exception is not null)
+            {
+                ExceptionDispatchInfo.Throw(configuration.Exception);
+            }
+            if (failedToApplyRunArgs)
             {
                 throw new FailedToApplyEnvironmentException();
             }
