@@ -91,7 +91,11 @@ final class AppHost {
         container.withUrlExpression(ReferenceExpression.refExpr("http://%s", endpoint));
         container.withHealthCheck("mycheck");
         container.withHttpHealthCheck();
-        container.withCommand("restart", "Restart", (_ctx) -> new ExecuteCommandResult().setSuccess(true));
+        container.withCommand("restart", "Restart", (_ctx) -> {
+            var result = new ExecuteCommandResult();
+            result.setSuccess(true);
+            return result;
+        });
         var app = builder.build();
         var _distributedAppConnectionString = app.getConnectionString("customcs");
         var _distributedAppEndpoint = app.getEndpoint("dockerapp", "http");

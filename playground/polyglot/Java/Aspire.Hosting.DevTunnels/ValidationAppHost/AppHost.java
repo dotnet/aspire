@@ -37,7 +37,7 @@ final class AppHost {
         tunnel4.withTunnelReference(web4Endpoint);
         var _tunnelEndpoint = tunnel4.getTunnelEndpoint(web4Endpoint);
         // Test 9: addDevTunnel with the dedicated polyglot parameters
-        var tunnel5 = builder.addDevTunnel("configured-tunnel", new AddDevTunnelOptions().tunnelId("configured-tunnel-id").allowAnonymous(true).description("Configured by the polyglot validation app").labels(new String[] { "validation", "polyglot"; }));
+        var tunnel5 = builder.addDevTunnel("configured-tunnel", new AddDevTunnelOptions().tunnelId("configured-tunnel-id").allowAnonymous(true).description("Configured by the polyglot validation app").labels(new String[] { "validation", "polyglot" }));
         var web5 = builder.addContainer("web5", "nginx");
         web5.withHttpEndpoint(new WithHttpEndpointOptions().port(9090.0));
         var web5Endpoint = web5.getEndpoint("http");

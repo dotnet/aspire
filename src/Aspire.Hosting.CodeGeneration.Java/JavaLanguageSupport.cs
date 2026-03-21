@@ -109,8 +109,8 @@ public sealed class JavaLanguageSupport : ILanguageSupport
                 // On Windows, use cmd /c; on Unix, use sh -c
                 Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
                 Args = OperatingSystem.IsWindows()
-                    ? ["/c", "javac -d . .modules\\Transport.java .modules\\Base.java .modules\\Aspire.java AppHost.java && java aspire.AppHost"]
-                    : ["-c", "javac -d . .modules/Transport.java .modules/Base.java .modules/Aspire.java AppHost.java && java aspire.AppHost"]
+                    ? ["/c", "javac -d . .modules\\Transport.java .modules\\Base.java .modules\\Aspire.java AppHost.java && java aspire.AppHost {args}"]
+                    : ["-c", "javac -d . .modules/Transport.java .modules/Base.java .modules/Aspire.java AppHost.java && java aspire.AppHost {args}"]
             }
         };
     }

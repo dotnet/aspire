@@ -13,7 +13,7 @@ final class AppHost {
         var hubWithName = webpubsub.addHub("hub2", "customhub");
         // addEventHandler - adds an event handler to a hub
         hub.addEventHandler(ReferenceExpression.refExpr("https://example.com/handler"));
-        hub.addEventHandler(ReferenceExpression.refExpr("https://example.com/handler2"), new AddEventHandlerOptions().userEventPattern("event1").systemEvents(new String[] { "connect", "connected"; }));
+        hub.addEventHandler(ReferenceExpression.refExpr("https://example.com/handler2"), new AddEventHandlerOptions().userEventPattern("event1").systemEvents(new String[] { "connect", "connected" }));
         // withRoleAssignments - assigns roles on a container resource
         var container = builder.addContainer("mycontainer", "mcr.microsoft.com/dotnet/samples:aspnetapp");
         container.withWebPubSubRoleAssignments(webpubsub, new AzureWebPubSubRole[] { AzureWebPubSubRole.WEB_PUB_SUB_SERVICE_OWNER, AzureWebPubSubRole.WEB_PUB_SUB_SERVICE_READER, AzureWebPubSubRole.WEB_PUB_SUB_CONTRIBUTOR });

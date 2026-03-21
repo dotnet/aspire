@@ -13,8 +13,8 @@ final class AppHost {
         uvicorn.withVirtualEnvironment(".venv", false);
         uvicorn.withDebugging();
         uvicorn.withEntrypoint(EntrypointType.MODULE, "uvicorn");
-        uvicorn.withPip(new WithPipOptions().install(true).installArgs(new String[] { "install", "-r", "requirements.txt"; }));
-        uvicorn.withUv(new WithUvOptions().install(false).args(new String[] { "sync"; }));
+        uvicorn.withPip(new WithPipOptions().install(true).installArgs(new String[] { "install", "-r", "requirements.txt" }));
+        uvicorn.withUv(new WithUvOptions().install(false).args(new String[] { "sync" }));
         builder.build().run();
     }
 }

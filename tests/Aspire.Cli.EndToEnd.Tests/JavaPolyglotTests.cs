@@ -64,8 +64,6 @@ public sealed class JavaPolyglotTests(ITestOutputHelper output)
                     IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
                     ViteAppResource viteApp = builder.addViteApp("viteapp", "./viteapp");
-                    viteApp.withHttpEndpoint(new WithHttpEndpointOptions().env("PORT"));
-                    viteApp.withExternalHttpEndpoints();
 
                     builder.build().run();
                 }

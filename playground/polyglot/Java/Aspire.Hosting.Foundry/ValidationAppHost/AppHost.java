@@ -17,7 +17,10 @@ final class AppHost {
                 var _capacity = deployment.skuCapacity();
             });
 
-        var model = new FoundryModel().setName("gpt-4.1-mini").setVersion("1").setFormat("OpenAI");
+        var model = new FoundryModel();
+        model.setName("gpt-4.1-mini");
+        model.setVersion("1");
+        model.setFormat("OpenAI");
 
         var _chatFromModel = foundry.addDeploymentFromModel("chat-from-model", model);
 
