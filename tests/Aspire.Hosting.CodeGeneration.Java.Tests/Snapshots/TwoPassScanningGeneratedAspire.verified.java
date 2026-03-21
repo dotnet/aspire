@@ -16194,14 +16194,14 @@ public class Aspire {
         if (options != null) {
             resolvedOptions.putAll(options.toMap());
         }
-        if (!resolvedOptions.containsKey("Args")) {
+        if (resolvedOptions.get("Args") == null) {
             // Note: Java doesn't have easy access to command line args from here
             resolvedOptions.put("Args", new String[0]);
         }
-        if (!resolvedOptions.containsKey("ProjectDirectory")) {
+        if (resolvedOptions.get("ProjectDirectory") == null) {
             resolvedOptions.put("ProjectDirectory", System.getProperty("user.dir"));
         }
-        if (!resolvedOptions.containsKey("AppHostFilePath")) {
+        if (resolvedOptions.get("AppHostFilePath") == null) {
             String appHostFilePath = System.getenv("ASPIRE_APPHOST_FILEPATH");
             if (appHostFilePath != null && !appHostFilePath.isEmpty()) {
                 resolvedOptions.put("AppHostFilePath", appHostFilePath);

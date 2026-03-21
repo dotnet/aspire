@@ -1194,14 +1194,14 @@ public sealed class AtsJavaCodeGenerator : ICodeGenerator
         WriteLine("        if (options != null) {");
         WriteLine("            resolvedOptions.putAll(options.toMap());");
         WriteLine("        }");
-        WriteLine("        if (!resolvedOptions.containsKey(\"Args\")) {");
+        WriteLine("        if (resolvedOptions.get(\"Args\") == null) {");
         WriteLine("            // Note: Java doesn't have easy access to command line args from here");
         WriteLine("            resolvedOptions.put(\"Args\", new String[0]);");
         WriteLine("        }");
-        WriteLine("        if (!resolvedOptions.containsKey(\"ProjectDirectory\")) {");
+        WriteLine("        if (resolvedOptions.get(\"ProjectDirectory\") == null) {");
         WriteLine("            resolvedOptions.put(\"ProjectDirectory\", System.getProperty(\"user.dir\"));");
         WriteLine("        }");
-        WriteLine("        if (!resolvedOptions.containsKey(\"AppHostFilePath\")) {");
+        WriteLine("        if (resolvedOptions.get(\"AppHostFilePath\") == null) {");
         WriteLine("            String appHostFilePath = System.getenv(\"ASPIRE_APPHOST_FILEPATH\");");
         WriteLine("            if (appHostFilePath != null && !appHostFilePath.isEmpty()) {");
         WriteLine("                resolvedOptions.put(\"AppHostFilePath\", appHostFilePath);");
