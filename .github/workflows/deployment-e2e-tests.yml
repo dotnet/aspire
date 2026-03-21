@@ -46,6 +46,7 @@ jobs:
         id: enumerate
         with:
           buildArgs: '/p:OnlyDeploymentTests=true'
+          artifactSuffix: 'deployment'
 
       - name: Display test matrix
         run: |
