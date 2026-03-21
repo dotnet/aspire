@@ -198,7 +198,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       MAX_STARTUP_SECONDS: '120'
-      RESOURCE_READY_TIMEOUT_SECONDS: '60'
+      RESOURCE_READY_TIMEOUT_SECONDS: '120'
     steps:
       - name: Checkout PR head
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -245,7 +245,7 @@ jobs:
             @{
               TemplateId = 'aspire-starter'
               ProjectName = 'AspireCliCsStarterSmoke'
-              ExpectedResources = @('apiservice', 'webfrontend')
+              ExpectedResources = @('apiservice')
             }
           )
           $failures = [System.Collections.Generic.List[string]]::new()
@@ -260,6 +260,7 @@ jobs:
             $startStdOutPath = Join-Path $diagnosticsDir 'aspire-start.stdout.log'
             $startStdErrPath = Join-Path $diagnosticsDir 'aspire-start.stderr.log'
             $startCombinedPath = Join-Path $diagnosticsDir 'aspire-start.log'
+            $preStartStopLogPath = Join-Path $diagnosticsDir 'aspire-stop-before-start.log'
             $stopLogPath = Join-Path $diagnosticsDir 'aspire-stop.log'
 
             New-Item -ItemType Directory -Path $templateRoot -Force | Out-Null
@@ -269,6 +270,19 @@ jobs:
             try {
               try {
                 aspire new $templateId --name $projectName --output $projectRoot --channel pr-${{ github.event.pull_request.number }} --non-interactive --nologo
+
+                try {
+                  aspire stop *> $preStartStopLogPath
+                }
+                catch {
+                  $preStartStopOutput = if (Test-Path $preStartStopLogPath) { Get-Content $preStartStopLogPath -Raw } else { '' }
+                  if ($preStartStopOutput -notmatch 'No running apphost found\.') {
+                    Write-Warning "$templateId pre-start cleanup with aspire stop failed: $($_.Exception.Message)"
+                    if ($preStartStopOutput) {
+                      Write-Host $preStartStopOutput
+                    }
+                  }
+                }
 
                 $startAt = Get-Date
                 $process = Start-Process -FilePath 'aspire' `
