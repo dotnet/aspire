@@ -401,7 +401,12 @@ function Backup-ExistingCliExecutable {
             Write-Message "Backing up existing CLI: $TargetExePath -> $backupPath" -Level Verbose
             
             # Rename existing executable to .old.[timestamp]
-            Move-Item -Path $TargetExePath -Destination $backupPath -Force
+            try {
+                Move-Item -Path $TargetExePath -Destination $backupPath -Force -ErrorAction Stop
+            }
+            catch {
+                throw "Failed to back up existing CLI at '$TargetExePath'. The file may be in use by another process. Please close any running Aspire CLI instances and try again. Error: $($_.Exception.Message)"
+            }
             return $backupPath
         }
     }
@@ -427,7 +432,7 @@ function Restore-CliExecutableFromBackup {
             Remove-Item -Path $TargetExePath -Force -ErrorAction SilentlyContinue
         }
         
-        Move-Item -Path $BackupPath -Destination $TargetExePath -Force
+        Move-Item -Path $BackupPath -Destination $TargetExePath -Force -ErrorAction Stop
     }
 }
 
@@ -451,7 +456,7 @@ function Remove-OldCliBackupFiles {
     foreach ($backupFile in $oldBackupFiles) {
         if ($PSCmdlet.ShouldProcess($backupFile.FullName, "Delete old backup")) {
             try {
-                Remove-Item -Path $backupFile.FullName -Force
+                Remove-Item -Path $backupFile.FullName -Force -ErrorAction Stop
                 Write-Message "Deleted old backup file: $($backupFile.FullName)" -Level Verbose
             }
             catch {
@@ -482,7 +487,7 @@ function Expand-AspireCliArchive {
         # Create destination directory if it doesn't exist
         if (-not (Test-Path $DestinationPath)) {
             Write-Message "Creating destination directory: $DestinationPath" -Level Verbose
-            New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $DestinationPath -Force -ErrorAction Stop | Out-Null
         }
         else {
             # Backup existing executable before extraction
@@ -498,7 +503,7 @@ function Expand-AspireCliArchive {
                 throw "Expand-Archive cmdlet not found. Please use PowerShell 5.0 or later to extract ZIP files."
             }
 
-            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force
+            Expand-Archive -Path $ArchiveFile -DestinationPath $DestinationPath -Force -ErrorAction Stop
         }
         elseif ($ArchiveFile -match "\.tar\.gz$") {
             # Use tar for tar.gz files
@@ -657,7 +662,7 @@ function New-TempDirectory {
 
         Write-Message "Creating temporary directory: $tempDir" -Level Verbose
         try {
-            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction Stop | Out-Null
             return $tempDir
         }
         catch {
@@ -683,7 +688,7 @@ function Remove-TempDirectory {
             Write-Message "Cleaning up temporary files..." -Level Verbose
             try {
                 if ($PSCmdlet.ShouldProcess($TempDir, "Remove temporary directory")) {
-                    Remove-Item $TempDir -Recurse -Force
+                    Remove-Item $TempDir -Recurse -Force -ErrorAction Stop
                 }
             }
             catch {
@@ -1057,12 +1062,12 @@ function Install-BuiltNugets {
     if (Test-Path $NugetHiveDir) {
         Write-Message "Removing existing nuget directory: $NugetHiveDir" -Level Verbose
         if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Remove existing directory")) {
-            Remove-Item $NugetHiveDir -Recurse -Force
+            Remove-Item $NugetHiveDir -Recurse -Force -ErrorAction Stop
         }
     }
 
     if ($PSCmdlet.ShouldProcess($NugetHiveDir, "Create directory")) {
-        New-Item -ItemType Directory -Path $NugetHiveDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $NugetHiveDir -Force -ErrorAction Stop | Out-Null
     }
 
     Write-Message "Copying nugets from $DownloadDir to $NugetHiveDir" -Level Verbose
@@ -1078,7 +1083,7 @@ function Install-BuiltNugets {
 
         foreach ($file in $nupkgFiles) {
             if ($PSCmdlet.ShouldProcess($file.FullName, "Copy to $NugetHiveDir")) {
-                Copy-Item $file.FullName -Destination $NugetHiveDir
+                Copy-Item $file.FullName -Destination $NugetHiveDir -ErrorAction Stop
             }
         }
 
