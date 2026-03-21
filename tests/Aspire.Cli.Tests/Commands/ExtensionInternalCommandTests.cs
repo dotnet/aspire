@@ -55,7 +55,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12304")]
+    [QuarantinedTest("https://github.com/microsoft/aspire/issues/12304")]
     public async Task GetAppHostsCommand_WithSingleProject_ReturnsSuccessWithValidJson()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -97,7 +97,7 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/12300")]
+    [QuarantinedTest("https://github.com/microsoft/aspire/issues/12300")]
     public async Task GetAppHostsCommand_WithMultipleProjects_ReturnsSuccessWithAllCandidates()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

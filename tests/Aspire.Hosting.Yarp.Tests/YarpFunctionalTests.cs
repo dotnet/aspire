@@ -11,7 +11,7 @@ public class YarpFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresFeature(TestFeature.Docker)]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9344")]
+    [QuarantinedTest("https://github.com/microsoft/aspire/issues/9344")]
     public async Task VerifyYarpResourceExtensionsConfig()
     {
         await VerifyYarpResource((yarp, endpoint) =>

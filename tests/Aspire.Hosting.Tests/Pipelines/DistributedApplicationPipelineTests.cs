@@ -697,7 +697,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     }
 
     // Test for multiple failing steps at the same level removed due to inherent race conditions.
-    // See https://github.com/dotnet/aspire/issues/12200
+    // See https://github.com/microsoft/aspire/issues/12200
 
     [Fact]
     public async Task ExecuteAsync_WithFailingStep_PreservesOriginalStackTrace()
@@ -2028,7 +2028,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13083")]
+    [QuarantinedTest("https://github.com/microsoft/aspire/issues/13083")]
     public async Task ProcessParametersStep_ValidatesBehavior()
     {
         // Arrange
