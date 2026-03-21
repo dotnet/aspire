@@ -75,10 +75,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly List<AppResource> _appResources = [];
 
-    // Portion of the application startup is using _appResources list concurrently (from multiple tasks).
-    // This lock protects it from concurrent modifications.
-    private readonly object _appResourcesLock = new();
-
     // Has an entry if we raised ResourceEndpointsAllocatedEvent for a resource with a given name.
     // We want to ensure we raise the event only once for each app model resource. 
     // There may be multiple physical replicas of the same app model resource 
@@ -2118,11 +2114,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         await _kubernetesService.CreateAsync(dcpContainer, cToken).ConfigureAwait(false);
 
-        ImmutableArray<RenderedModelResource> containerExes;
-        lock (_appResourcesLock)
-        {
-            containerExes = [.. _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is ContainerExec ce && ce.Spec.ContainerName == dcpContainer.Metadata.Name)];
-        }
+        var containerExes = _appResources.OfType<RenderedModelResource>().Where(ar => ar.DcpResource is ContainerExec ce && ce.Spec.ContainerName == dcpContainer.Metadata.Name).ToArray();
         if (containerExes.Length > 0)
         {
             await CreateContainerExecutablesAsync(containerExes, cToken).ConfigureAwait(false);
