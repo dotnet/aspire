@@ -240,7 +240,7 @@ jobs:
             @{
               TemplateId = 'aspire-ts-starter'
               ProjectName = 'AspireCliTsStarterSmoke'
-              ExpectedResources = @('server', 'webfrontend')
+              ExpectedResources = @('app', 'frontend')
             },
             @{
               TemplateId = 'aspire-starter'
