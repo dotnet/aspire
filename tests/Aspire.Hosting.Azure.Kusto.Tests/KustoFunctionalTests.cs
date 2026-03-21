@@ -277,6 +277,8 @@ public class KustoFunctionalTests
     {
         return IsResourceLog(record)
             && record.Level >= LogLevel.Warning
+            // Matches the error logged by CreateDatabaseAsync in
+            // src/Aspire.Hosting.Azure.Kusto/AzureKustoBuilderExtensions.cs.
             && (record.Message?.Contains("Failed to create database", StringComparison.Ordinal) ?? false);
     }
 
