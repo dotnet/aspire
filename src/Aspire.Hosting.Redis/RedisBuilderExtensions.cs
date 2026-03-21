@@ -370,11 +370,7 @@ public static class RedisBuilderExtensions
                 })
                 .ExcludeFromManifest();
 
-<<<<<<< HEAD
-            builder.ApplicationBuilder.OnBeforeStart((@event, cancellationToken) =>
-=======
             resourceBuilder.SubscribeHttpsEndpointsUpdate(ctx =>
->>>>>>> upstream/main
             {
                 // If a TLS certificate is configured, ensure the endpoint uses https scheme
                 resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
