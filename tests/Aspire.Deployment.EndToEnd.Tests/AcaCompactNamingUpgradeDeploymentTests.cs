@@ -106,11 +106,29 @@ public sealed class AcaCompactNamingUpgradeDeploymentTests(ITestOutputHelper out
             await auto.DeclineAgentInitPromptAsync(counter);
 
             // Step 6: Add ACA package using GA CLI (uses GA NuGet packages)
+            // The GA CLI may show a version picker (with "based on NuGet.config" text)
+            // or may auto-select the version. Handle both paths.
             output.WriteLine("Step 6: Adding Azure Container Apps package (GA)...");
             await auto.TypeAsync("aspire add Aspire.Hosting.Azure.AppContainers");
             await auto.EnterAsync();
-            await auto.WaitUntilTextAsync("(based on NuGet.config)", timeout: TimeSpan.FromSeconds(60));
-            await auto.EnterAsync();
+
+            // Wait for either the version picker prompt or the command to complete
+            var showedVersionPicker = false;
+            await auto.WaitUntilAsync(s =>
+            {
+                if (s.ContainsText("(based on NuGet.config)"))
+                {
+                    showedVersionPicker = true;
+                    return true;
+                }
+                return s.ContainsText("was added to");
+            }, timeout: TimeSpan.FromSeconds(120), description: "aspire add version picker or completion");
+
+            // If the version picker appeared, press Enter to accept the default
+            if (showedVersionPicker)
+            {
+                await auto.EnterAsync();
+            }
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(180));
 
             // Step 7: Modify apphost.cs with a short env name (fits within 24 chars with default naming)
