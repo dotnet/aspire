@@ -220,7 +220,7 @@ public class KustoFunctionalTests
 
         // Assert an error was logged about the invalid database.
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
-        var log = Assert.Single(snapshot.Where(IsDatabaseCreationFailureLog));
+        var log = Assert.Single(snapshot, IsDatabaseCreationFailureLog);
         Assert.Equal("Failed to create database '__invalid'", log.Message);
     }
 
