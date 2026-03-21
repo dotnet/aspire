@@ -246,7 +246,6 @@ internal static class Hex1bAutomatorTestHelpers
                 await auto.DownAsync();
                 await auto.DownAsync();
                 await auto.DownAsync();
-                await auto.DownAsync();
                 await auto.WaitUntilAsync(
                     s => new CellPatternSearcher().Find("> Empty (Java AppHost)").Search(s).Count > 0,
                     timeout: TimeSpan.FromSeconds(5),

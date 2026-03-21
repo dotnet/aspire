@@ -31,7 +31,9 @@ if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
     instrumentations: [getNodeAutoInstrumentations()],
   });
 
-  sdk.start();
+  sdk.start().catch((error) => {
+    console.error('Failed to start OpenTelemetry NodeSDK:', error);
+  });
 
   process.on('SIGTERM', () => {
     sdk.shutdown().finally(() => process.exit(0));

@@ -81,7 +81,7 @@ for app_dir in "${APP_DIRS[@]}"; do
     java_sources=()
     while IFS= read -r java_source; do
         java_sources+=("$java_source")
-    done < <(find .modules -maxdepth 1 -name '*.java' | sort)
+    done < <(find .modules -name '*.java' | sort)
 
     if [ ${#java_sources[@]} -eq 0 ]; then
         echo "  ❌ No generated Java sources found for $app_name"

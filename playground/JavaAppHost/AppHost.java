@@ -1,8 +1,8 @@
 package aspire;
 
 final class AppHost {
-    void main() throws Exception {
-        IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder();
+    public static void main(String[] args) throws Exception {
+        IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
         NodeAppResource app = builder.addNodeApp("app", "./api", "src/index.ts");
         app.withHttpEndpoint(new WithHttpEndpointOptions().env("PORT"));

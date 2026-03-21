@@ -33,8 +33,8 @@ cat > AppHost.java <<'EOF'
 package aspire;
 
 final class AppHost {
-    void main() throws Exception {
-        var builder = DistributedApplication.CreateBuilder();
+    public static void main(String[] args) throws Exception {
+        var builder = DistributedApplication.CreateBuilder(args);
 
         builder.addRedis("cache")
             .withImageRegistry("netaspireci.azurecr.io");

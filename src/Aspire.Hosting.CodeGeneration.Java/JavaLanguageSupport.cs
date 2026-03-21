@@ -41,8 +41,8 @@ public sealed class JavaLanguageSupport : ILanguageSupport
             package aspire;
 
             final class AppHost {
-                void main() throws Exception {
-                    IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder();
+                public static void main(String[] args) throws Exception {
+                    IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
                     // Add your resources here, for example:
                     // var redis = builder.addRedis("cache");
