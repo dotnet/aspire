@@ -1,0 +1,55 @@
+package aspire;
+
+import java.util.Map;
+
+final class AppHost {
+    void main() throws Exception {
+        var builder = DistributedApplication.CreateBuilder();
+        var buildVersion = builder.addParameterFromConfiguration("buildVersion", "MyConfig:BuildVersion");
+        var buildSecret = builder.addParameterFromConfiguration("buildSecret", "MyConfig:Secret", true);
+        var staticFilesSource = builder.addContainer("static-files-source", "nginx");
+        var backend = builder.addContainer("backend", "nginx");
+        backend.withHttpEndpoint(new WithHttpEndpointOptions().name("http").targetPort(80.0));
+        var externalBackend = builder.addExternalService("external-backend", "https://example.com");
+        var proxy = builder.addYarp("proxy");
+        proxy.withHostPort(8080.0);
+        proxy.withHostHttpsPort(8443.0);
+        proxy.withEndpointProxySupport(true);
+        proxy.withDockerfile("./context");
+        proxy.withImageSHA256("abc123def456");
+        proxy.withContainerNetworkAlias("myalias");
+        proxy.publishAsContainer();
+        proxy.publishWithStaticFiles(new IResourceWithContainerFiles(staticFilesSource.getHandle(), staticFilesSource.getClient()));
+        proxy.withVolume("/data", new WithVolumeOptions().name("proxy-data"));
+        proxy.withBuildArg("BUILD_VERSION", buildVersion);
+        proxy.withBuildSecret("MY_SECRET", buildSecret);
+        proxy.withConfiguration((config) -> { var endpoint = backend.getEndpoint("http"); var backendService = new IResourceWithServiceDiscovery(backend.getHandle(), backend.getClient()); var endpointCluster = config.addClusterFromEndpoint(endpoint); var resourceCluster = config.addClusterFromResource(backendService); var externalServiceCluster = config.addClusterFromExternalService(externalBackend); var singleDestinationCluster = config.addClusterWithDestination("single-destination", "https://example.net"); var multiDestinationCluster = config.addClusterWithDestinations("multi-destination", new String[] { "https://example.org", "https://example.edu" }); var routeFromEndpoint = config.addRouteFromEndpoint("/from-endpoint/{**catchall}", endpoint); var routeFromResource = config.addRouteFromResource("/from-resource/{**catchall}", backendService); var routeFromExternalService = config.addRouteFromExternalService("/from-external/{**catchall}", externalBackend); var catchAllRoute = config.addCatchAllRoute(endpointCluster); var catchAllRouteFromEndpoint = config.addCatchAllRouteFromEndpoint(endpoint); var catchAllRouteFromResource = config.addCatchAllRouteFromResource(backendService); var catchAllRouteFromExternalService = config.addCatchAllRouteFromExternalService(externalBackend); endpointCluster.withForwarderRequestConfig(new YarpForwarderRequestConfig().setActivityTimeout(30_000_000.0).setAllowResponseBuffering(true).setVersion("2.0")); endpointCluster.withHttpClientConfig(new YarpHttpClientConfig().setDangerousAcceptAnyServerCertificate(true).setEnableMultipleHttp2Connections(true).setMaxConnectionsPerServer(10).setRequestHeaderEncoding("utf-8").setResponseHeaderEncoding("utf-8")); var sessionAffinityCookie = new YarpSessionAffinityCookieConfig(); sessionAffinityCookie.setDomain("example.com"); sessionAffinityCookie.setHttpOnly(true); sessionAffinityCookie.setIsEssential(true); sessionAffinityCookie.setPath("/"); var sessionAffinity = new YarpSessionAffinityConfig(); sessionAffinity.setAffinityKeyName(".Aspire.Affinity"); sessionAffinity.setEnabled(true); sessionAffinity.setFailurePolicy("Redistribute"); sessionAffinity.setPolicy("Cookie"); sessionAffinity.setCookie(sessionAffinityCookie); endpointCluster.withSessionAffinityConfig(sessionAffinity); var activeHealthCheck = new YarpActiveHealthCheckConfig(); activeHealthCheck.setEnabled(true); activeHealthCheck.setInterval(50_000_000.0); activeHealthCheck.setPath("/health"); activeHealthCheck.setPolicy("ConsecutiveFailures"); activeHealthCheck.setQuery("probe=1"); activeHealthCheck.setTimeout(20_000_000.0); var passiveHealthCheck = new YarpPassiveHealthCheckConfig(); passiveHealthCheck.setEnabled(true); passiveHealthCheck.setPolicy("TransportFailureRateHealthPolicy"); passiveHealthCheck.setReactivationPeriod(100_000_000.0); var healthCheck = new YarpHealthCheckConfig(); healthCheck.setAvailableDestinationsPolicy("HealthyOrPanic"); healthCheck.setActive(activeHealthCheck); healthCheck.setPassive(passiveHealthCheck); endpointCluster.withHealthCheckConfig(healthCheck); config.addRoute("/{**catchall}", endpointCluster)
+        .withTransformXForwarded()
+        .withTransformForwarded()
+        .withTransformClientCertHeader("X-Client-Cert")
+        .withTransformHttpMethodChange("GET", "POST")
+        .withTransformPathSet("/backend/{**catchall}")
+        .withTransformPathPrefix("/api")
+        .withTransformPathRemovePrefix("/legacy")
+        .withTransformPathRouteValues("/api/{id}")
+        .withTransformQueryValue("source", "apphost")
+        .withTransformQueryRouteValue("routeId", "id")
+        .withTransformQueryRemoveKey("remove")
+        .withTransformCopyRequestHeaders()
+        .withTransformUseOriginalHostHeader()
+        .withTransformRequestHeader("X-Test-Header", "test-value")
+        .withTransformRequestHeaderRouteValue("X-Route-Value", "id")
+        .withTransformRequestHeaderRemove("X-Remove-Request")
+        .withTransformRequestHeadersAllowed(new String[] { "X-Test-Header", "X-Route-Value" })
+        .withTransformCopyResponseHeaders()
+        .withTransformCopyResponseTrailers()
+        .withTransformResponseHeader("X-Response-Header", "response-value")
+        .withTransformResponseHeaderRemove("X-Remove-Response")
+        .withTransformResponseHeadersAllowed(new String[] { "X-Response-Header" })
+        .withTransformResponseTrailer("X-Response-Trailer", "trailer-value")
+        .withTransformResponseTrailerRemove("X-Remove-Trailer")
+        .withTransformResponseTrailersAllowed(new String[] { "X-Response-Trailer" }); routeFromEndpoint.withMatch(new YarpRouteMatch().setPath("/from-endpoint/{**catchall}").setMethods(new String[] { "GET", "POST" }).setHosts(new String[] { "endpoint.example.com" })); routeFromEndpoint.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/endpoint"), Map.entry("RequestHeadersCopy", "true"))); routeFromResource.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/resource"))); routeFromExternalService.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/external"))); catchAllRoute.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/cluster"))); catchAllRouteFromEndpoint.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/catchall-endpoint"))); catchAllRouteFromResource.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/catchall-resource"))); catchAllRouteFromExternalService.withTransform(Map.ofEntries(Map.entry("PathPrefix", "/catchall-external"))); config.addRoute("/resource/{**catchall}", resourceCluster); config.addRoute("/external/{**catchall}", externalServiceCluster); config.addRoute("/single/{**catchall}", singleDestinationCluster); config.addRoute("/multi/{**catchall}", multiDestinationCluster); });
+        proxy.publishAsConnectionString();
+        builder.build().run();
+    }
+}

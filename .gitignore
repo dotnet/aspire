@@ -128,6 +128,10 @@ node_modules/
 target/
 dependency-reduced-pom.xml
 
+# Java AppHost build artifacts
+playground/**/.java-build/
+playground/**/*.class
+
 # Ignore cache created with the Angular CLI.
 .angular/
 

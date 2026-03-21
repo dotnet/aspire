@@ -40,22 +40,15 @@ public sealed class JavaLanguageSupport : ILanguageSupport
 
             package aspire;
 
-            public class AppHost {
-                public static void main(String[] args) {
-                    try {
-                        IDistributedApplicationBuilder builder = Aspire.createBuilder(null);
+            final class AppHost {
+                void main() throws Exception {
+                    IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder();
 
-                        // Add your resources here, for example:
-                        // var redis = builder.addRedis("cache");
-                        // var postgres = builder.addPostgres("db");
+                    // Add your resources here, for example:
+                    // var redis = builder.addRedis("cache");
+                    // var postgres = builder.addPostgres("db");
 
-                        DistributedApplication app = builder.build();
-                        app.run(null);
-                    } catch (Exception e) {
-                        System.err.println("Failed to run: " + e.getMessage());
-                        e.printStackTrace();
-                        System.exit(1);
-                    }
+                    builder.build().run();
                 }
             }
             """;
