@@ -59,6 +59,8 @@ jobs:
       targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}]'
 
   build_cli_archive_macos:
+    # TEMPORARY: macOS runners are not available in the microsoft org yet. See https://github.com/microsoft/aspire/issues/15461
+    if: false
     name: Build native CLI archive (macOS)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
@@ -147,7 +149,8 @@ jobs:
     name: ${{ matrix.shortname }}
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests, build_packages, build_cli_archive_macos]
-    if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null }}
+    # TEMPORARY: macOS runners are not available in the microsoft org yet. See https://github.com/microsoft/aspire/issues/15461
+    if: false
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos) }}
@@ -227,14 +230,16 @@ jobs:
       build_packages,
       build_cli_archive_linux,
       build_cli_archive_windows,
-      build_cli_archive_macos,
+      # TEMPORARY: macOS disabled, see https://github.com/microsoft/aspire/issues/15461
+      # build_cli_archive_macos,
       extension_tests_win,
       typescript_sdk_tests,
       tests_no_nugets,
       tests_no_nugets_overflow,
       tests_requires_nugets_linux,
       tests_requires_nugets_windows,
-      tests_requires_nugets_macos,
+      # TEMPORARY: macOS disabled, see https://github.com/microsoft/aspire/issues/15461
+      # tests_requires_nugets_macos,
       tests_requires_cli_archive,
       polyglot_validation,
     ]
@@ -254,11 +259,12 @@ jobs:
           merge-multiple: true
           path: ${{ github.workspace }}/testresults/windows-latest
 
-      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
-        with:
-          pattern: logs-*-macos-latest
-          merge-multiple: true
-          path: testresults/macos-latest
+      # TEMPORARY: macOS disabled, see https://github.com/microsoft/aspire/issues/15461
+      # - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+      #   with:
+      #     pattern: logs-*-macos-latest
+      #     merge-multiple: true
+      #     path: testresults/macos-latest
 
       - name: Upload test results
         if: always()
@@ -287,6 +293,7 @@ jobs:
         #   primary no-nugets matrix exceeds the overflow threshold.
         # - tests_requires_nugets_macos: some runs intentionally produce no macOS requires-nugets
         #   tests, so an empty matrix and 'skipped' result are expected.
+        # TEMPORARY: macOS checks removed from failure conditions. See https://github.com/microsoft/aspire/issues/15461
         # All other jobs in this gate are required, and a 'skipped' result is treated as a failure.
         if: >-
           ${{ always() &&
@@ -298,8 +305,6 @@ jobs:
                    needs.tests_no_nugets.result == 'skipped' ||
                    needs.tests_requires_nugets_linux.result == 'skipped' ||
                    needs.tests_requires_nugets_windows.result == 'skipped' ||
-                   (fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null &&
-                    needs.tests_requires_nugets_macos.result == 'skipped') ||
                    needs.tests_requires_cli_archive.result == 'skipped' ||
                   needs.polyglot_validation.result == 'skipped')) ||
                 (github.event_name != 'pull_request' &&
@@ -308,8 +313,6 @@ jobs:
                    needs.tests_no_nugets.result == 'skipped' ||
                    needs.tests_requires_nugets_linux.result == 'skipped' ||
                    needs.tests_requires_nugets_windows.result == 'skipped' ||
-                   (fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null &&
-                    needs.tests_requires_nugets_macos.result == 'skipped') ||
                   needs.polyglot_validation.result == 'skipped'))) }}
         run: |
           echo "One or more dependent jobs failed."
