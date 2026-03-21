@@ -221,6 +221,8 @@ public class KustoFunctionalTests
         // Assert an error was logged about the invalid database.
         var snapshot = app.Services.GetRequiredService<FakeLogCollector>().GetSnapshot();
         var log = Assert.Single(snapshot, IsDatabaseCreationFailureLog);
+        Assert.Equal(LogLevel.Error, log.Level);
+        Assert.NotNull(log.Exception);
         Assert.Contains("Failed to create database '__invalid'", log.Message, StringComparison.Ordinal);
     }
 
@@ -276,7 +278,7 @@ public class KustoFunctionalTests
     private static bool IsDatabaseCreationFailureLog(FakeLogRecord record)
     {
         return IsResourceLog(record)
-            && record.Level >= LogLevel.Warning
+            && record.Level >= LogLevel.Error
             // Matches the error logged by CreateDatabaseAsync in
             // src/Aspire.Hosting.Azure.Kusto/AzureKustoBuilderExtensions.cs.
             && (record.Message?.Contains("Failed to create database", StringComparison.Ordinal) ?? false);
