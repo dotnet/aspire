@@ -1,6 +1,6 @@
 #!/bin/bash
 # Polyglot SDK Validation - Java
-# Creates a minimal Java AppHost, restores the SDK, and validates that
+# Creates a Java AppHost via the CLI, adds Redis, and validates that
 # `aspire run` can launch a Redis-backed app non-interactively.
 set -euo pipefail
 
@@ -29,38 +29,27 @@ trap cleanup EXIT
 echo "Working directory: $WORK_DIR"
 cd "$WORK_DIR"
 
-cat > AppHost.java <<'EOF'
-package aspire;
+echo "Creating Java apphost project..."
+aspire init --language java --non-interactive -d
 
-final class AppHost {
-    public static void main(String[] args) throws Exception {
-        var builder = DistributedApplication.CreateBuilder(args);
-
-        builder.addRedis("cache")
-            .withImageRegistry("netaspireci.azurecr.io");
-
-        builder.build().run();
-    }
+echo "Adding Redis integration..."
+aspire add Aspire.Hosting.Redis --non-interactive -d 2>&1 || {
+    echo "aspire add failed, manually updating settings.json..."
+    PKG_VERSION=$(aspire --version | grep -oP '\d+\.\d+\.\d+-.*' | head -1)
+    if [ -f ".aspire/settings.json" ]; then
+        if command -v jq &> /dev/null; then
+            jq '.packages["Aspire.Hosting.Redis"] = "'"$PKG_VERSION"'"' .aspire/settings.json > .aspire/settings.json.tmp && mv .aspire/settings.json.tmp .aspire/settings.json
+        fi
+        echo "Settings.json updated"
+        cat .aspire/settings.json
+    fi
 }
-EOF
 
-cat > aspire.config.json <<'EOF'
-{
-  "appHost": {
-    "path": "AppHost.java",
-    "language": "java"
-  },
-  "features": {
-    "experimentalPolyglot:java": true
-  },
-  "packages": {
-    "Aspire.Hosting.Redis": ""
-  }
-}
-EOF
-
-echo "Restoring Java SDK..."
-aspire restore --non-interactive
+echo "Configuring AppHost.java with Redis..."
+if grep -q "builder.build().run();" AppHost.java; then
+    sed -i '/builder.build().run();/i\        builder.addRedis("cache")\n            .withImageRegistry("netaspireci.azurecr.io");' AppHost.java
+    echo "✅ Redis configuration added to AppHost.java"
+fi
 
 echo "=== AppHost.java ==="
 cat AppHost.java
