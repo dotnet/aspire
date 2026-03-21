@@ -618,7 +618,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         });
 
         Assert.Equal(
-            "The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithBuildArg.",
+            "The resource 'mycontainer' does not have a Dockerfile build annotation. Call WithDockerfile before calling WithBuildArg.",
             ex.Message
             );
     }
