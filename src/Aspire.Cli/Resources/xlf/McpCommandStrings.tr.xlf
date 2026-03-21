@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Interact with MCP (Model Context Protocol) tools exposed by Aspire resources</source>
-        <target state="needs-review-translation">MCP (Model Bağlam Protokolü) sunucusunu yönetin. (kullanım dışı, 'agent' kullanın)</target>
+        <target state="new">Interact with MCP (Model Context Protocol) tools exposed by Aspire resources</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments (deprecated, use 'agent init')</source>
-        <target state="needs-review-translation">Algılanan aracı ortamları için MCP sunucu yapılandırmasını başlatın. (kullanım dışı, 'agent init' kullanın)</target>
+        <target state="new">Initialize MCP server configuration for detected agent environments (deprecated, use 'agent init')</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server (deprecated, use 'agent mcp')</source>
-        <target state="needs-review-translation">MCP (Model Bağlam Protokolü) sunucusunu başlat. (kullanım dışı, 'agent mcp' kullanın)</target>
+        <target state="new">Start the MCP (Model Context Protocol) server (deprecated, use 'agent mcp')</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolsCommand_Description">

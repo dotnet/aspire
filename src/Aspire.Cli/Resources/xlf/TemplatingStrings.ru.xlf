@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="AspireEmptyDotNetTemplate_Description">
         <source>Empty (C# AppHost, dotnet template)</source>
-        <target state="new">Empty (C# AppHost, dotnet template)</target>
+        <target state="translated">Пустой (хост приложения C#, шаблон dotnet)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireEmpty_Description">
@@ -219,12 +219,12 @@
       </trans-unit>
       <trans-unit id="RunAspireRun">
         <source>Run 'aspire run' to start your apphost.</source>
-        <target state="new">Run 'aspire run' to start your apphost.</target>
+        <target state="translated">Выполните команду 'aspire run', чтобы запустить хост приложения.</target>
         <note />
       </trans-unit>
       <trans-unit id="RunCdThenAspireRun">
         <source>Run 'cd "{0}"' and then 'aspire run' to start your apphost.</source>
-        <target state="new">Run 'cd "{0}"' and then 'aspire run' to start your apphost.</target>
+        <target state="translated">Выполните команду 'cd "{0}"', а затем 'aspire run', чтобы запустить хост приложения.</target>
         <note>{0} is the relative path to the project directory</note>
       </trans-unit>
     </body>

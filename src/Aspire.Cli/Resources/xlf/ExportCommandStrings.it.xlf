@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="NoResourcesFound">
         <source>No resources found.</source>
-        <target state="new">No resources found.</target>
+        <target state="translated">Non sono state trovate risorse.</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputOptionDescription">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ResourceNotFound">
         <source>Resource '{0}' not found.</source>
-        <target state="new">Resource '{0}' not found.</target>
+        <target state="translated">Risorsa '{0}' non trovata.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceOptionDescription">

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts</source>
-        <target state="needs-review-translation">Wyświetl listę uruchomionych hostów aplikacji Aspire.</target>
+        <target state="translated">Wyświetl listę uruchomionych hostów apphost</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">Wynik w formacie JSON.</target>
+        <target state="translated">Format danych wyjściowych (tabela lub JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesOptionDescription">
         <source>Include resource details for each running apphost. Only applies to JSON output.</source>
-        <target state="new">Include resource details for each running apphost. Only applies to JSON output.</target>
+        <target state="translated">Uwzględnij szczegóły zasobu dla każdego uruchomionego hosta apphost. Dotyczy tylko danych wyjściowych JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

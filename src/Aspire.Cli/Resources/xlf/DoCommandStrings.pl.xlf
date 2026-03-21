@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies (Preview)</source>
-        <target state="needs-review-translation">Wykonaj określony krok potoku i jego zależności. (Wersja zapoznawcza)</target>
+        <target state="translated">Wykonaj określony krok potoku i jego zależności (wersja zapoznawcza)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts</source>
-        <target state="needs-review-translation">Opcjonalna ścieżka wyjściowa artefaktów.</target>
+        <target state="translated">Opcjonalna ścieżka danych wyjściowych dla artefaktów</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute</source>
-        <target state="needs-review-translation">Nazwa kroku do wykonania.</target>
+        <target state="translated">Nazwa kroku do wykonania</target>
         <note />
       </trans-unit>
     </body>

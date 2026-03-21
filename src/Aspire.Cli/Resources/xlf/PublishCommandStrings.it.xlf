@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generate deployment artifacts for an apphost (Preview)</source>
-        <target state="needs-review-translation">Genera artefatti della distribuzione per un AppHost Aspire. (Anteprima)</target>
+        <target state="translated">Genera artefatti della distribuzione per un apphost (anteprima)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running</source>
-        <target state="new">Do not build or restore the project before running</target>
+        <target state="translated">Non compilare o ripristinare il progetto prima dell'esecuzione</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
-        <target state="needs-review-translation">Percorso di output per gli artefatti generati. Se non viene specificato alcun valore, l'impostazione predefinita è './aspire-output'.</target>
+        <target state="translated">Percorso di output per gli artefatti generati. Se non viene specificato alcun valore, l'impostazione predefinita è './aspire-output'.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">Percorso del file di un progetto AppHost di Aspire.</target>
+        <target state="translated">Percorso del file di un progetto apphost di Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

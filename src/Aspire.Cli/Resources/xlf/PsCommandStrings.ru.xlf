@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts</source>
-        <target state="needs-review-translation">Перечислить запущенные apphosts Aspire.</target>
+        <target state="translated">Перечислить работающие хосты приложений</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">Вывод в формате JSON.</target>
+        <target state="translated">Формат вывода (таблица или JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesOptionDescription">
         <source>Include resource details for each running apphost. Only applies to JSON output.</source>
-        <target state="new">Include resource details for each running apphost. Only applies to JSON output.</target>
+        <target state="translated">Включите сведения о ресурсах для каждого запущенного хоста приложений. Применяется только к результатам в формате JSON.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

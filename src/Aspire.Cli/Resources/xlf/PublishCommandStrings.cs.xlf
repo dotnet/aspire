@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generate deployment artifacts for an apphost (Preview)</source>
-        <target state="needs-review-translation">Generuje artefakty nasazení pro hostitele aplikací Aspire. (Preview)</target>
+        <target state="new">Generate deployment artifacts for an apphost (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
-        <target state="needs-review-translation">Výstupní cesta pro vygenerované artefakty. Pokud není zadaná, použije se výchozí hodnota ./aspire-output.</target>
+        <target state="translated">Výstupní cesta pro vygenerované artefakty. Pokud není zadaná, použije se výchozí hodnota ./aspire-output.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">Cesta k souboru projektu Aspire AppHost.</target>
+        <target state="new">The path to the Aspire apphost project file</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

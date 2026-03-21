@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="RebuildDescription">
         <source>Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</source>
-        <target state="new">Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</target>
+        <target state="translated">停止资源，重新从源代码构建项目，然后重启。使用此操作来应用源代码更改。</target>
         <note />
       </trans-unit>
       <trans-unit id="RebuildName">
         <source>Rebuild</source>
-        <target state="new">Rebuild</target>
+        <target state="translated">重新构建</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="RebuilderResourceNotFound">
         <source>Rebuilder resource for '{0}' not found.</source>
-        <target state="new">Rebuilder resource for '{0}' not found.</target>
+        <target state="translated">未找到“{0}”的重建器资源。</target>
         <note />
       </trans-unit>
     </body>

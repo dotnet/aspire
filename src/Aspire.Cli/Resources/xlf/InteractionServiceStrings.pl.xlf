@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The apphost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">Wersja hosta AppHost jest niezgodna. Uaktualnij hosta AppHost lub interfejs wiersza polecenia platformy Aspire.</target>
+        <target state="translated">Wersja hosta apphost jest niezgodna. Uaktualnij hosta apphost lub interfejs wiersza polecenia platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of Aspire is available: {0}[/]</source>
-        <target state="new">[yellow]A new version of Aspire is available: {0}[/]</target>
+        <target state="translated">[żółty]Dostępna jest nowa wersja platformy Aspire: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Określony plik projektu nie jest projektem hosta AppHost platformy Aspire.</target>
+        <target state="translated">Określony plik projektu nie jest projektem hosta apphost platformy Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="UpdatedSettingsFile">
         <source>Updated settings file at {0}.</source>
-        <target state="new">Updated settings file at {0}.</target>
+        <target state="translated">Zaktualizowano plik ustawień w {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">

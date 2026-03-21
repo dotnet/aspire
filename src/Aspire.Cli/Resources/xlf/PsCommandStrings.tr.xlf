@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>List running apphosts</source>
-        <target state="needs-review-translation">Çalışan bir Aspire uygulama ana işlemlerini listeleyin.</target>
+        <target state="translated">Çalışan uygulama ana işlemini listeleyin</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderCliPid">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">Çıkışı JSON biçiminde oluşturun.</target>
+        <target state="translated">Çıktı biçimi (Tablo veya Json)</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesOptionDescription">
         <source>Include resource details for each running apphost. Only applies to JSON output.</source>
-        <target state="new">Include resource details for each running apphost. Only applies to JSON output.</target>
+        <target state="translated">Çalışan her uygulama ana işlemi için kaynak ayrıntılarını ekleyin. Yalnızca JSON çıktısı için geçerlidir.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownPath">

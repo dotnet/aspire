@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="RebuildDescription">
         <source>Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</source>
-        <target state="new">Stop the resource, rebuild the project from source, and restart. Use this to apply source code changes.</target>
+        <target state="translated">Остановите ресурс, выполните заново сборку проекта из исходного кода, а затем перезапустите. Используйте этот способ, чтобы изменения в исходном коде вступили в силу.</target>
         <note />
       </trans-unit>
       <trans-unit id="RebuildName">
         <source>Rebuild</source>
-        <target state="new">Rebuild</target>
+        <target state="translated">Выполнить сборку заново</target>
         <note />
       </trans-unit>
       <trans-unit id="RestartDescription">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="RebuilderResourceNotFound">
         <source>Rebuilder resource for '{0}' not found.</source>
-        <target state="new">Rebuilder resource for '{0}' not found.</target>
+        <target state="translated">Ресурс выполнения сборки заново для '{0}' не найден.</target>
         <note />
       </trans-unit>
     </body>

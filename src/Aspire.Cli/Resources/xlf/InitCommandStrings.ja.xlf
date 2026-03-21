@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">AppHost プロジェクトをソリューションに追加しています...</target>
+        <target state="translated">apphost プロジェクトをソリューションに追加しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">AppHost プロジェクトを作成しています...</target>
+        <target state="translated">apphost プロジェクトを作成しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">既存のソリューションで Aspire サポートを初期化するか、単一ファイルの AppHost を作成します。</target>
+        <target state="translated">既存のコードベースで Aspire を初期化します</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost (csharp, typescript)</source>
-        <target state="new">The programming language for the apphost (csharp, typescript)</target>
+        <target state="translated">apphost のプログラミング言語 (csharp、typescript)</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">ソリューション ファイルが見つかりません。単一ファイルの AppHost を作成しています...</target>
+        <target state="translated">ソリューション ファイルが見つかりません。単一ファイルの apphost を作成しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SolutionAndProjectInSameDirectory">
         <source>The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
-        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
+        <target state="translated">ソリューション ファイル '{0}' とプロジェクト ファイル '{1}' は同じディレクトリにあります。apphost および ServiceDefaults プロジェクトは、既存のプロジェクト ディレクトリ内に作成できません。ソリューション ファイルを親ディレクトリに、またはプロジェクト ファイルをサブディレクトリに移動してください。</target>
         <note />
       </trans-unit>
     </body>

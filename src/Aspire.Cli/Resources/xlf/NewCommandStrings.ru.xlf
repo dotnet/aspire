@@ -14,12 +14,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Create a new app from an Aspire starter template</source>
-        <target state="needs-review-translation">Создайте новый проект Aspire.</target>
+        <target state="translated">Создать приложение на основе начального шаблона Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheOutputPath">
         <source>Enter the output path</source>
-        <target state="new">Enter the output path</target>
+        <target state="translated">Введите выходной путь</target>
         <note />
       </trans-unit>
       <trans-unit id="EnterTheProjectName">
@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost</source>
-        <target state="new">The programming language for the apphost</target>
+        <target state="translated">Язык программирования для хоста приложений</target>
         <note />
       </trans-unit>
       <trans-unit id="NameArgumentDescription">
         <source>The name of the project to create</source>
-        <target state="needs-review-translation">Имя создаваемого проекта.</target>
+        <target state="translated">Имя проекта, который будет создан</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputArgumentDescription">
         <source>The output path for the project</source>
-        <target state="needs-review-translation">Выходной путь для проекта.</target>
+        <target state="translated">Путь выдачи результатов работы проекта</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="SourceArgumentDescription">
         <source>The NuGet source to use for the project templates</source>
-        <target state="needs-review-translation">Источник NuGet для использования в шаблонах проекта.</target>
+        <target state="translated">Источник NuGet для использования в шаблонах проекта</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="VersionArgumentDescription">
         <source>The version of the project templates to use</source>
-        <target state="needs-review-translation">Версия шаблонов проекта, которую следует использовать.</target>
+        <target state="translated">Версия шаблонов проекта, которую следует использовать</target>
         <note />
       </trans-unit>
     </body>

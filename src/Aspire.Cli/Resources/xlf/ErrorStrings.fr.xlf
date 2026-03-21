@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">Déjà connecté au backchannel AppHost.</target>
+        <target state="translated">Déjà connecté au canal de retour d'apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost est incompatible avec l’interface CLI. AppHost doit être mis à jour vers une version qui prend en charge la fonctionnalité {0}.</target>
+        <target state="translated">Apphost est incompatible avec la CLI. L'apphost doit être mis à jour vers une version prenant en charge la capacité {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">Le fichier AppHost a été spécifié dans « {0} » mais il n’existe pas dans « {1} ».</target>
+        <target state="translated">Le fichier Apphost a été spécifié dans « {0} » mais il n'existe pas à l'emplacement « {1} ».</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">Cette commande n’est pas encore prise en charge avec les hôtes d’application à fichier unique.</target>
+        <target state="translated">Cette commande n'est pas encore prise en charge avec les hôtes d'application à fichier unique.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="InvalidJsonInConfigFile">
         <source>The configuration file '{0}' contains invalid JSON: {1}</source>
-        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <target state="translated">Le fichier de configuration « {0} » contient du JSON invalide : {1}</target>
         <note>{0} is the file path, {1} is the exception message</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
@@ -159,12 +159,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Le fichier projet n’est pas un projet Aspire AppHost.</target>
+        <target state="translated">Le fichier projet n'est pas un projet Aspire apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
         <source>Project is not supported in the current environment: {0}</source>
-        <target state="new">Project is not supported in the current environment: {0}</target>
+        <target state="translated">Le projet n'est pas pris en charge dans l'environnement actuel. : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">La fonctionnalité d’hôte d’application à fichier unique n’est pas activée. Pour utiliser les fichiers AppHost .cs, activez la fonctionnalité via la configuration.</target>
+        <target state="translated">La fonctionnalité apphost à fichier unique n'est pas activée. Pour utiliser les fichiers .cs apphost, activez la fonctionnalité via la configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

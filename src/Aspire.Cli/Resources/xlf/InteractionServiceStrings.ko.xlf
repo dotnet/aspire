@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The apphost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">AppHost 버전이 호환되지 않습니다. AppHost 또는 Aspire CLI를 업그레이드해 주세요.</target>
+        <target state="translated">apphost 버전이 호환되지 않습니다. AppHost 또는 Aspire CLI를 업그레이드해 주세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="NewCliVersionAvailable">
         <source>[yellow]A new version of Aspire is available: {0}[/]</source>
-        <target state="new">[yellow]A new version of Aspire is available: {0}[/]</target>
+        <target state="translated">[yellow]새 버전의 Aspire가 있습니다: {0}[/]</target>
         <note>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</note>
       </trans-unit>
       <trans-unit id="NoItemsAvailableForSelection">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">지정한 프로젝트 파일은 Aspire AppHost 프로젝트가 아닙니다.</target>
+        <target state="translated">지정한 프로젝트 파일이 지호스트 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="UpdatedSettingsFile">
         <source>Updated settings file at {0}.</source>
-        <target state="new">Updated settings file at {0}.</target>
+        <target state="translated">{0}에서 설정 파일을 업데이트했습니다.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="WaitingForDebuggerToAttachToAppHost">

@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">Подключение к тайному входу AppHost уже установлено.</target>
+        <target state="translated">Подключение к тайному входу хоста приложений уже установлено.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost несовместим с CLI. AppHost необходимо обновить до версии, которая поддерживает возможность {0}.</target>
+        <target state="translated">Хост приложений несовместим с интерфейсом командной строки. Хост приложений нужно обновить до версии, поддерживающей возможность {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">Файл AppHost указан в "{0}", но не существует в пути "{1}".</target>
+        <target state="translated">Файл хоста приложений указан в "{0}", но не существует в пути "{1}".</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">Эта команда пока не поддерживается для одиночных файлов AppHost.</target>
+        <target state="translated">Эта команда пока не поддерживается для хостов приложений с единым файлом.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="InvalidJsonInConfigFile">
         <source>The configuration file '{0}' contains invalid JSON: {1}</source>
-        <target state="new">The configuration file '{0}' contains invalid JSON: {1}</target>
+        <target state="translated">Файл конфигурации "{0}" содержит некорректный JSON: {1}</target>
         <note>{0} is the file path, {1} is the exception message</note>
       </trans-unit>
       <trans-unit id="InvalidLocaleProvided">
@@ -159,12 +159,12 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Файл проекта не является проектом Aspire AppHost.</target>
+        <target state="translated">Файл проекта не является проектом хоста приложений Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
         <source>Project is not supported in the current environment: {0}</source>
-        <target state="new">Project is not supported in the current environment: {0}</target>
+        <target state="translated">Проект не поддерживается в текущей среде:{0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">Функция одиночного файла AppHost не включена. Чтобы использовать CS-файлы AppHost, включите эту функцию с помощью конфигурации.</target>
+        <target state="translated">Возможность использования хостов приложений с единым файлом не включена. Чтобы использовать файлы .cs хоста приложений, включите эту функцию с помощью конфигурации.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

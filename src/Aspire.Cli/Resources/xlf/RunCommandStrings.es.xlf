@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="AppHostExitedWithCode">
         <source>Apphost process exited with code {0}.</source>
-        <target state="needs-review-translation">El proceso AppHost se cerró con código {0}.</target>
+        <target state="translated">El proceso apphost se cerró con código {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostFailedToBuild">
         <source>Apphost failed to build.</source>
-        <target state="new">Apphost failed to build.</target>
+        <target state="translated">Error al compilar apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostStartedSuccessfully">
         <source>Apphost started successfully.</source>
-        <target state="needs-review-translation">AppHost se ha iniciado correctamente.</target>
+        <target state="translated">AppHost se ha iniciado correctamente</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckLogsForDetails">
@@ -74,12 +74,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire apphost interactively for development</source>
-        <target state="needs-review-translation">Ejecutar un apphost de Aspire en modo de desarrollo.</target>
+        <target state="translated">Ejecute Aspire apphost de forma interactiva para el desarrollo</target>
         <note />
       </trans-unit>
       <trans-unit id="DetachArgumentDescription">
         <source>Run the apphost in the background and exit after it starts</source>
-        <target state="needs-review-translation">Ejecute AppHost en segundo plano y cierre la aplicación una vez que se inicie.</target>
+        <target state="translated">Ejecute apphost en segundo plano y cierre la aplicación una vez que se inicie</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -89,12 +89,12 @@
       </trans-unit>
       <trans-unit id="FailedToStartAppHost">
         <source>Failed to start the apphost.</source>
-        <target state="needs-review-translation">Error al iniciar AppHost.</target>
+        <target state="translated">Error al iniciar apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ForceArgumentDescription">
         <source>Stop any running instance of the apphost without prompting</source>
-        <target state="needs-review-translation">Detenga cualquier instancia en ejecución de AppHost sin pedir confirmación.</target>
+        <target state="translated">Detenga cualquier instancia en ejecución del apphost sin preguntar</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatRequiresDetach">
@@ -114,17 +114,17 @@
       </trans-unit>
       <trans-unit id="JsonArgumentDescription">
         <source>Output format for detached apphost results</source>
-        <target state="needs-review-translation">Resultado de salida como JSON (solo válido con --detach).</target>
+        <target state="translated">Formato de salida para los resultados de apphost desasociados.</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedArgumentDescription">
         <source>Run in isolated mode with randomized ports and isolated user secrets, allowing multiple instances to run simultaneously</source>
-        <target state="needs-review-translation">Ejecutar en modo aislado con puertos aleatorios y secretos de usuario aislados, lo que permite que varias instancias se ejecuten simultáneamente.</target>
+        <target state="translated">Ejecutar en modo aislado con puertos aleatorios y secretos de usuario aislados, permitiendo que varias instancias se ejecuten simultáneamente</target>
         <note />
       </trans-unit>
       <trans-unit id="IsolatedModeRunningInstanceWarning">
         <source>A running instance of this apphost was found and will be stopped. To run multiple isolated instances simultaneously, run from different directories such as git worktree directories.</source>
-        <target state="needs-review-translation">Se ha encontrado una instancia en ejecución de este AppHost y se detendrá. Para ejecutar varias instancias aisladas simultáneamente, ejecute desde directorios diferentes, como directorios de árbol de trabajo de Git.</target>
+        <target state="translated">Se ha encontrado una instancia en ejecución de este apphost y se detendrá. Para ejecutar varias instancias aisladas simultáneamente, ejecute desde directorios diferentes, como directorios de árbol de trabajo de Git.</target>
         <note />
       </trans-unit>
       <trans-unit id="Logs">
@@ -134,7 +134,7 @@
       </trans-unit>
       <trans-unit id="NoBuildArgumentDescription">
         <source>Do not build or restore the project before running</source>
-        <target state="new">Do not build or restore the project before running</target>
+        <target state="translated">No compile ni restaure el proyecto antes de ejecutarlo</target>
         <note />
       </trans-unit>
       <trans-unit id="NoBuildNotSupportedWithWatchMode">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire apphost project file</source>
-        <target state="needs-review-translation">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
+        <target state="translated">La ruta de acceso al archivo del proyecto apphost de Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal</source>
-        <target state="needs-review-translation">Indique si se debe iniciar una sesión de depuración si se ejecuta en un terminal Aspire.</target>
+        <target state="translated">Indique si se debe iniciar una sesión de depuración si se ejecuta en un terminal Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -204,7 +204,7 @@
       </trans-unit>
       <trans-unit id="TimeoutWaitingForAppHost">
         <source>Timeout waiting for apphost to start.</source>
-        <target state="needs-review-translation">Tiempo de espera de inicio de AppHost.</target>
+        <target state="translated">Se ha agotado el tiempo de espera para el inicio de apphost.</target>
         <note />
       </trans-unit>
       <trans-unit id="Type">
@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="WatchArgumentDescription">
         <source>Start project resources in watch mode</source>
-        <target state="needs-review-translation">Inicie los recursos del proyecto en modo de inspección.</target>
+        <target state="translated">Inicie recursos del proyecto en modo inspección</target>
         <note />
       </trans-unit>
     </body>

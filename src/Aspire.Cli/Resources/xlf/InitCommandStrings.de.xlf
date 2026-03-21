@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding apphost project to solution...</source>
-        <target state="needs-review-translation">AppHost-Projekt wird der Lösung hinzugefügt …</target>
+        <target state="translated">AppHost-Projekt wird der Lösung hinzugefügt…</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating apphost project...</source>
-        <target state="needs-review-translation">AppHost-Projekt wird erstellt …</target>
+        <target state="translated">AppHost-Projekt wird erstellt…</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire in an existing codebase</source>
-        <target state="needs-review-translation">Initialisieren der Unterstützung von Aspire in einer vorhandenen Lösung, oder Erstellen einen AppHosts mit nur einer Datei.</target>
+        <target state="translated">Initialisieren Sie Aspire in einer vorhandenen Codebasis.</target>
         <note />
       </trans-unit>
       <trans-unit id="LanguageOptionDescription">
         <source>The programming language for the apphost (csharp, typescript)</source>
-        <target state="new">The programming language for the apphost (csharp, typescript)</target>
+        <target state="translated">Die Programmiersprache für den Apphost (Csharp, Typescript)</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file apphost...</source>
-        <target state="needs-review-translation">Keine Lösungsdatei gefunden. AppHost mit einzelner Datei wird erstellt …</target>
+        <target state="translated">Keine Lösungsdatei gefunden. AppHost mit einzelner Datei wird erstellt…</target>
         <note />
       </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SolutionAndProjectInSameDirectory">
         <source>The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</source>
-        <target state="new">The solution file '{0}' and project file '{1}' are in the same directory. The apphost and ServiceDefaults projects cannot be created inside an existing project directory. Move the solution file to a parent directory or the project file to a subdirectory.</target>
+        <target state="translated">Die Lösungsdatei „{0}“ und die Projektdatei „{1}“ befinden sich im selben Verzeichnis. Die Projekte apphost und ServiceDefaults können nicht innerhalb eines bestehenden Projektverzeichnisses erstellt werden. Verschieben Sie die Lösungsdatei in ein übergeordnetes Verzeichnis oder die Projektdatei in ein Unterverzeichnis.</target>
         <note />
       </trans-unit>
     </body>

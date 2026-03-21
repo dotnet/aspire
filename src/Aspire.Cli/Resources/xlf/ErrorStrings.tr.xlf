@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="AlreadyConnectedToBackchannel">
         <source>Already connected to apphost backchannel.</source>
-        <target state="needs-review-translation">AppHost arka kanala zaten bağlı.</target>
+        <target state="new">Already connected to apphost backchannel.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostIncompatibleWithCli">
         <source>Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</source>
-        <target state="needs-review-translation">AppHost, CLI ile uyumsuzdur. AppHost, bu {0} yeteneğini destekleyen bir sürüme güncelleştirilmelidir.</target>
+        <target state="new">Apphost is incompatible with the CLI. The apphost must be updated to a version that supports the {0} capability.</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHostWasSpecifiedButDoesntExist">
         <source>Apphost file was specified in '{0}' but it does not exist at '{1}'.</source>
-        <target state="needs-review-translation">AppHost dosyası '{0}' dosyasında belirtilmiş ancak '{1}' konumunda mevcut değil.</target>
+        <target state="new">Apphost file was specified in '{0}' but it does not exist at '{1}'.</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="AppHostsMayNotBeBuildable">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file apphosts.</source>
-        <target state="needs-review-translation">Bu komut, tek dosya Uygulama Ana İşlemlerinde henüz desteklenmemektedir.</target>
+        <target state="new">This command is not yet supported with single file apphosts.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -159,7 +159,7 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire apphost project.</source>
-        <target state="needs-review-translation">Proje dosyası bir Aspire AppHost projesi değil.</target>
+        <target state="new">Project file is not an Aspire apphost project.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileUnsupportedInCurrentEnvironment">
@@ -174,7 +174,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</source>
-        <target state="needs-review-translation">Tek dosya Uygulama Ana İşlemi özelliği etkinleştirilmemiştir. .cs AppHost dosyalarını kullanmak için, yapılandırmaları kullanarak özelliği etkinleştirin.</target>
+        <target state="new">Single file apphost feature is not enabled. To use .cs apphost files, enable the feature using configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

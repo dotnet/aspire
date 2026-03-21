@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="DashboardApiNotAvailable">
         <source>Dashboard API is not available. Ensure the apphost is running with Dashboard enabled.</source>
-        <target state="needs-review-translation">API панели мониторинга недоступен. Убедитесь, что AppHost запущен с включенной панелью мониторинга.</target>
+        <target state="translated">API панели мониторинга недоступен. Убедитесь, что у работающего хоста приложений включена панель мониторинга.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>View OpenTelemetry data (logs, spans, traces) from a running apphost</source>
-        <target state="needs-review-translation">Просмотр данных телеметрии (журналы, диапазоны, трассировки) из запущенного приложения Aspire.</target>
+        <target state="translated">Просмотр данных OpenTelemetry (журналы, диапазоны, трассировки) работающего хоста приложений</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedToFetchTelemetry">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="FollowOptionDescription">
         <source>Stream telemetry in real-time as it arrives</source>
-        <target state="needs-review-translation">Потоковая передача телеметрии в реальном времени по мере поступления.</target>
+        <target state="translated">Потоковая передача телеметрии в реальном времени по мере поступления</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatOptionDescription">
         <source>Output format (Table or Json)</source>
-        <target state="needs-review-translation">Формат вывода (таблица или JSON).</target>
+        <target state="translated">Формат вывода (таблица или JSON)</target>
         <note />
       </trans-unit>
       <trans-unit id="HasErrorOptionDescription">
         <source>Filter by error status (true to show only errors, false to exclude errors)</source>
-        <target state="needs-review-translation">Фильтрация по состоянию ошибки (true — показывать только ошибки, false — исключать ошибки).</target>
+        <target state="translated">Фильтровать по статусу ошибки (true — показывать только ошибки, false — исключать ошибки)</target>
         <note />
       </trans-unit>
       <trans-unit id="HeaderDuration">
@@ -64,17 +64,17 @@
       </trans-unit>
       <trans-unit id="LimitOptionDescription">
         <source>Maximum number of items to return</source>
-        <target state="needs-review-translation">Максимальное возвращаемое количество элементов.</target>
+        <target state="translated">Максимальное количество элементов, которое следует возвращать</target>
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
         <source>View structured logs from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Просмотр структурированных журналов через API телеметрии панели мониторинга.</target>
+        <target state="translated">Просматривать структурированные журналы через API телеметрии панели мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceArgumentDescription">
         <source>Filter by resource name</source>
-        <target state="needs-review-translation">Фильтровать по имени ресурса.</target>
+        <target state="translated">Фильтр по имени ресурса</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostAction">
@@ -84,22 +84,22 @@
       </trans-unit>
       <trans-unit id="SeverityOptionDescription">
         <source>Filter logs by minimum severity (Trace, Debug, Information, Warning, Error, Critical)</source>
-        <target state="needs-review-translation">Фильтрация журналов по минимальному уровню серьезности (трассировка, отладка, информация, предупреждение, ошибка, критическое).</target>
+        <target state="translated">Фильтровать журналы по минимальному уровню серьезности (трассировка, отладка, информационное сообщение, предупреждение, ошибка, критическая ошибка)</target>
         <note />
       </trans-unit>
       <trans-unit id="SpansDescription">
         <source>View spans from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Просмотр диапазонов через API телеметрии панели мониторинга.</target>
+        <target state="translated">Просматривать диапазоны через API телеметрии панели мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdArgumentDescription">
         <source>The trace ID to view. If not specified, lists all traces.</source>
-        <target state="needs-review-translation">Идентификатор трассировки для просмотра. Если не указан, отображаются все трассировки.</target>
+        <target state="translated">Идентификатор трассировки для просмотра. Если не указан, отображаются все трассировки.</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceIdOptionDescription">
         <source>Filter by trace ID</source>
-        <target state="needs-review-translation">Фильтровать по идентификатору трассировки.</target>
+        <target state="translated">Фильтровать по идентификатору трассировки</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceNotFound">
@@ -109,7 +109,7 @@
       </trans-unit>
       <trans-unit id="TracesDescription">
         <source>View traces from the Dashboard telemetry API</source>
-        <target state="needs-review-translation">Просмотр трассировок через API телеметрии панели мониторинга.</target>
+        <target state="translated">Просмотр трассировок через API телеметрии панели мониторинга</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedContentType">

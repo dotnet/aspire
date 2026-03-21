@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Start an apphost in the background</source>
-        <target state="new">Start an apphost in the background</target>
+        <target state="translated">백그라운드에서 apphost 시작</target>
         <note />
       </trans-unit>
     </body>
