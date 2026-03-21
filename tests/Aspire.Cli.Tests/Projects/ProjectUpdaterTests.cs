@@ -2139,7 +2139,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Verify the project was migrated to the new SDK format
         var updatedContent = await File.ReadAllTextAsync(appHostProjectFile.FullName);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2399,7 +2399,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2426,7 +2426,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2458,7 +2458,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2489,7 +2489,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2516,7 +2516,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
 
     [Fact]
@@ -2544,7 +2544,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Assert
         var updatedContent = await File.ReadAllTextAsync(projectFile);
-        await Verify(updatedContent, extension: "xml");
+        await VerifyXml(updatedContent);
     }
     [Fact]
     public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesPackageVersionFromDirectoryPackagesPropsForCpm()

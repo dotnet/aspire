@@ -95,7 +95,7 @@ public class NuGetConfigMergerSnapshotTests
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
-        await Verify(xmlString, extension: "xml")
+        await VerifyXml(xmlString)
             .UseFileName($"Merge_WithSimpleNuGetConfig_ProducesExpectedXml.{channelName}");
     }
 
@@ -158,7 +158,7 @@ public class NuGetConfigMergerSnapshotTests
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
-        await Verify(xmlString, extension: "xml")
+        await VerifyXml(xmlString)
             .UseFileName($"Merge_WithBrokenSdkState_ProducesExpectedXml.{channelName}");
     }
 
@@ -220,7 +220,7 @@ public class NuGetConfigMergerSnapshotTests
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
-        await Verify(xmlString, extension: "xml")
+        await VerifyXml(xmlString)
             .UseFileName($"Merge_WithDailyFeedWithExtraMappingsIsPreserved_ProducesExpectedXml.{channelName}");
     }
 
@@ -280,7 +280,7 @@ public class NuGetConfigMergerSnapshotTests
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
-        await Verify(xmlString, extension: "xml")
+        await VerifyXml(xmlString)
             .UseFileName($"Merge_WithExtraInternalFeedIncorrectlyMapped_ProducesExpectedXml.{channelName}");
     }
 
@@ -345,7 +345,7 @@ public class NuGetConfigMergerSnapshotTests
             xmlString = xmlString.Replace(hivePath, "{PR_HIVE}");
         }
 
-        await Verify(xmlString, extension: "xml")
+        await VerifyXml(xmlString)
             .UseFileName($"Merge_ExtraPatternOnDailyFeedWhenOnPrFeedGetsConsolidatedWithOtherPatterns_ProducesExpectedXml.{channelName}");
     }
 }
