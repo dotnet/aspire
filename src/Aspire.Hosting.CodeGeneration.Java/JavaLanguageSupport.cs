@@ -40,22 +40,15 @@ public sealed class JavaLanguageSupport : ILanguageSupport
 
             package aspire;
 
-            public class AppHost {
-                public static void main(String[] args) {
-                    try {
-                        IDistributedApplicationBuilder builder = Aspire.createBuilder(null);
+            final class AppHost {
+                public static void main(String[] args) throws Exception {
+                    IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
-                        // Add your resources here, for example:
-                        // var redis = builder.addRedis("cache");
-                        // var postgres = builder.addPostgres("db");
+                    // Add your resources here, for example:
+                    // var redis = builder.addRedis("cache");
+                    // var postgres = builder.addPostgres("db");
 
-                        DistributedApplication app = builder.build();
-                        app.run(null);
-                    } catch (Exception e) {
-                        System.err.println("Failed to run: " + e.getMessage());
-                        e.printStackTrace();
-                        System.exit(1);
-                    }
+                    builder.build().run();
                 }
             }
             """;
@@ -116,8 +109,8 @@ public sealed class JavaLanguageSupport : ILanguageSupport
                 // On Windows, use cmd /c; on Unix, use sh -c
                 Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
                 Args = OperatingSystem.IsWindows()
-                    ? ["/c", "javac -d . .modules\\Transport.java .modules\\Base.java .modules\\Aspire.java AppHost.java && java aspire.AppHost"]
-                    : ["-c", "javac -d . .modules/Transport.java .modules/Base.java .modules/Aspire.java AppHost.java && java aspire.AppHost"]
+                    ? ["/c", "javac -d . .modules\\Transport.java .modules\\Base.java .modules\\Aspire.java AppHost.java && java aspire.AppHost {args}"]
+                    : ["-c", "javac -d . .modules/Transport.java .modules/Base.java .modules/Aspire.java AppHost.java && java aspire.AppHost {args}"]
             }
         };
     }
