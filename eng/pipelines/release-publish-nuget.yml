@@ -5,6 +5,7 @@
 # 2. Publishes packages to NuGet.org
 # 3. Promotes the build to the Aspire GA channel via darc
 # 4. Submits WinGet manifests and Homebrew cask PRs
+# 5. Publishes VS Code extension to the Marketplace
 #
 # For full documentation, see: docs/release-process.md
 
@@ -40,6 +41,21 @@ parameters:
 
   - name: SkipHomebrewPublish
     displayName: 'Skip Homebrew Publishing (set true if already completed)'
+    type: boolean
+    default: false
+
+  - name: PublishVSCodeExtension
+    displayName: 'Publish VS Code Extension to Marketplace'
+    type: boolean
+    default: false
+
+  - name: VSCodePreRelease
+    displayName: 'Publish VS Code Extension as Pre-Release'
+    type: boolean
+    default: false
+
+  - name: SkipVSCodePublish
+    displayName: 'Skip VS Code Extension Publishing (set true if already completed)'
     type: boolean
     default: false
 
@@ -107,6 +123,10 @@ extends:
                   displayName: 'Publish Homebrew Cask'
                   targetPath: '$(Pipeline.Workspace)/installers/homebrew-cask-stable'
                   artifactName: 'homebrew-cask-stable'
+                - output: pipelineArtifact
+                  displayName: 'Publish VS Code Extension'
+                  targetPath: '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                  artifactName: 'aspire-vscode-extension'
             steps:
               - checkout: none
 
@@ -132,26 +152,31 @@ extends:
                 displayName: 'Download Homebrew Cask from Source Build'
                 artifact: homebrew-cask-stable
 
+              - download: aspire-build
+                displayName: 'Download VS Code Extension from Source Build'
+                artifact: aspire-vscode-extension
+                condition: eq('${{ parameters.PublishVSCodeExtension }}', 'true')
+
               # Move artifacts to expected location for output
               - powershell: |
                   $sourcePath = "$(Pipeline.Workspace)/aspire-build/PackageArtifacts"
                   $targetPath = "$(Pipeline.Workspace)/packages/PackageArtifacts"
-                  
+
                   Write-Host "Moving artifacts from $sourcePath to $targetPath"
-                  
+
                   if (!(Test-Path $targetPath)) {
                     New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
                   }
-                  
+
                   # Copy all nupkg files
                   $packages = Get-ChildItem -Path $sourcePath -Filter "*.nupkg" -Recurse
                   Write-Host "Found $($packages.Count) packages to copy"
-                  
+
                   foreach ($pkg in $packages) {
                     Copy-Item $pkg.FullName -Destination $targetPath -Force
                     Write-Host "  Copied: $($pkg.Name)"
                   }
-                  
+
                   Write-Host "✓ Artifacts prepared for SBOM generation"
                 displayName: 'Prepare Artifacts for Publishing'
 
@@ -185,6 +210,34 @@ extends:
 
                   Write-Host "✓ Installer artifacts prepared"
                 displayName: 'Prepare Installer Artifacts'
+
+              # Copy VS Code extension artifacts to expected location for output
+              - powershell: |
+                  $sourcePath = "$(Pipeline.Workspace)/aspire-build/aspire-vscode-extension"
+                  $targetPath = "$(Pipeline.Workspace)/vscode/aspire-vscode-extension"
+
+                  if (!(Test-Path $sourcePath)) {
+                    Write-Host "No VS Code extension artifacts to copy (PublishVSCodeExtension may be false)"
+                    if (!(Test-Path $targetPath)) {
+                      New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+                    }
+                    exit 0
+                  }
+
+                  Write-Host "Copying VS Code extension from $sourcePath to $targetPath"
+                  if (!(Test-Path $targetPath)) {
+                    New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+                  }
+
+                  $files = Get-ChildItem -Path $sourcePath -Recurse -File
+                  Write-Host "  Found $($files.Count) files"
+                  foreach ($file in $files) {
+                    Copy-Item $file.FullName -Destination $targetPath -Force
+                    Write-Host "    Copied: $($file.Name)"
+                  }
+
+                  Write-Host "✓ VS Code extension artifacts prepared"
+                displayName: 'Prepare VS Code Extension Artifacts'
 
       # ===== STAGE 2: RELEASE =====
       # This releaseJob consumes the artifacts with SBOM and publishes to NuGet.org
@@ -380,23 +433,23 @@ extends:
               - ${{ if eq(parameters.SkipChannelPromotion, false) }}:
                 - powershell: |
                     Write-Host "Installing darc CLI..."
-                    
+
                     # Query Maestro API for the correct darc version
                     $versionEndpoint = 'https://maestro.dot.net/api/assets/darc-version?api-version=2020-02-20'
                     $darcVersion = (Invoke-WebRequest -Uri $versionEndpoint -UseBasicParsing).Content
                     Write-Host "Darc version: $darcVersion"
-                    
+
                     # Install darc as a .NET global tool
                     $arcadeServicesSource = 'https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json'
                     Write-Host "Installing darc from $arcadeServicesSource..."
-                    
+
                     dotnet tool install microsoft.dotnet.darc --version $darcVersion --add-source "$arcadeServicesSource" -g
-                    
+
                     if ($LASTEXITCODE -ne 0) {
                       Write-Error "Failed to install darc CLI"
                       exit 1
                     }
-                    
+
                     Write-Host "✓ Darc CLI installed successfully"
                   displayName: 'Install darc'
 
@@ -468,6 +521,9 @@ extends:
                   }
                   Write-Host "║ WinGet:         (runs in parallel after this job)"
                   Write-Host "║ Homebrew:       (runs in parallel after this job)"
+                  if ("${{ parameters.PublishVSCodeExtension }}" -eq "true") {
+                    Write-Host "║ VS Code:        (runs in parallel after this job)"
+                  }
                   Write-Host "╚═══════════════════════════════════════════════════════════════╝"
                   Write-Host ""
                 displayName: 'Print Summary'
@@ -528,3 +584,203 @@ extends:
                   caskArtifactPath: $(Pipeline.Workspace)/homebrew/homebrew-cask-stable
                   channel: stable
                   dryRun: ${{ parameters.DryRun }}
+
+          # ===== VS CODE EXTENSION PUBLISHING =====
+          - job: VSCodeJob
+            displayName: 'Publish VS Code Extension to Marketplace'
+            dependsOn: ReleaseJob
+            condition: |
+              and(
+                in(dependencies.ReleaseJob.result, 'Succeeded', 'SucceededWithIssues'),
+                eq('${{ parameters.PublishVSCodeExtension }}', 'true'),
+                eq('${{ parameters.SkipVSCodePublish }}', 'false')
+              )
+            timeoutInMinutes: 30
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2026preview.scout.amd64
+              os: windows
+            templateContext:
+              type: releaseJob
+              isProduction: true
+              inputs:
+                - input: pipelineArtifact
+                  artifactName: aspire-vscode-extension
+                  targetPath: '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+            steps:
+              - task: NodeTool@0
+                displayName: 'Install node.js'
+                inputs:
+                  versionSpec: '20.x'
+
+              - powershell: |
+                  npm install -g @vscode/vsce@3.7.1
+                  vsce --version
+                displayName: 'Install vsce'
+
+              # Verify the signed VSIX artifacts are present
+              - powershell: |
+                  $vsixDir = '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                  Write-Host "=== VS Code Extension Artifacts ==="
+                  $files = Get-ChildItem -Path $vsixDir -Recurse -File -ErrorAction SilentlyContinue
+                  if ($files.Count -eq 0) {
+                    Write-Error "No files found in VS Code extension artifact directory: $vsixDir"
+                    exit 1
+                  }
+                  foreach ($file in $files) {
+                    $sizeMB = [math]::Round($file.Length / 1MB, 2)
+                    Write-Host "  - $($file.Name) ($sizeMB MB)"
+                  }
+
+                  $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+                  if ($vsixFiles.Count -eq 0) {
+                    Write-Error "No .vsix files found in: $vsixDir"
+                    exit 1
+                  }
+                  foreach ($vsix in $vsixFiles) {
+                    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.FullName)
+                    $manifestPath = Join-Path $vsixDir "$baseName.manifest"
+                    $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
+
+                    if (-not (Test-Path $manifestPath)) {
+                      Write-Error "Manifest file not found: $manifestPath"
+                      exit 1
+                    }
+                    if (-not (Test-Path $signaturePath)) {
+                      Write-Error "Signature file not found: $signaturePath"
+                      exit 1
+                    }
+                    Write-Host "✓ $($vsix.Name) has manifest and signature"
+                  }
+                  Write-Host "==========================="
+                displayName: 'Verify Extension Artifacts'
+
+              # Verify the VSIX pre-release metadata matches the pipeline parameter.
+              # vsce package --pre-release embeds a PreRelease property in the VSIX manifest;
+              # if the build was packaged as stable but the release pipeline tries to publish
+              # as pre-release (or vice-versa), vsce publish will fail. Catch the mismatch early.
+              - powershell: |
+                  $vsixDir = '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                  $expectPreRelease = '${{ parameters.VSCodePreRelease }}' -eq 'True'
+                  $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+                  foreach ($vsix in $vsixFiles) {
+                    # The VSIX is a ZIP; extract extension.vsixmanifest and check for PreRelease property
+                    $zip = [System.IO.Compression.ZipFile]::OpenRead($vsix.FullName)
+                    try {
+                      $entry = $zip.Entries | Where-Object { $_.FullName -eq 'extension.vsixmanifest' } | Select-Object -First 1
+                      if (-not $entry) {
+                        Write-Error "extension.vsixmanifest not found in $($vsix.Name)"
+                        exit 1
+                      }
+                      $reader = New-Object System.IO.StreamReader($entry.Open())
+                      $content = $reader.ReadToEnd()
+                      $reader.Close()
+                    } finally {
+                      $zip.Dispose()
+                    }
+                    $isPackagedAsPreRelease = $content -match 'Microsoft\.VisualStudio\.Code\.PreRelease.*Value="true"'
+                    if ($expectPreRelease -and -not $isPackagedAsPreRelease) {
+                      Write-Error "Mismatch: VSCodePreRelease is true but $($vsix.Name) was NOT packaged with --pre-release. Rebuild with PackExtensionAsPreRelease=true."
+                      exit 1
+                    }
+                    if (-not $expectPreRelease -and $isPackagedAsPreRelease) {
+                      Write-Error "Mismatch: VSCodePreRelease is false but $($vsix.Name) WAS packaged as pre-release. Rebuild without --pre-release."
+                      exit 1
+                    }
+                    $mode = if ($isPackagedAsPreRelease) { "pre-release" } else { "stable" }
+                    Write-Host "✅ $($vsix.Name) packaged as $mode (matches pipeline parameter)"
+                  }
+                displayName: 'Validate Pre-Release Metadata'
+
+              # Re-verify signature before publishing (defense-in-depth)
+              - powershell: |
+                  $vsixDir = '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                  $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+                  foreach ($vsix in $vsixFiles) {
+                    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.FullName)
+                    $manifestPath = Join-Path $vsixDir "$baseName.manifest"
+                    $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
+
+                    # Verify PKCS#7 format
+                    $bytes = [System.IO.File]::ReadAllBytes($signaturePath)
+                    if ($bytes.Length -eq 0 -or $bytes[0] -ne 0x30) {
+                      $firstByte = if ($bytes.Length -gt 0) { "0x{0:X2}" -f $bytes[0] } else { "empty" }
+                      Write-Error "$baseName.signature.p7s does NOT appear to be signed. First byte: $firstByte (expected 0x30 for PKCS#7)"
+                      exit 1
+                    }
+
+                    Write-Host "Verifying signature for $($vsix.Name)..."
+                    vsce verify-signature --packagePath $vsix.FullName --manifestPath $manifestPath --signaturePath $signaturePath
+                    if ($LASTEXITCODE -ne 0) {
+                      Write-Error "Signature verification failed for $($vsix.Name)"
+                      exit 1
+                    }
+                    Write-Host "✅ $($vsix.Name) signature verified"
+                  }
+                displayName: 'Verify Extension Signature'
+
+              # Verify the PAT is valid
+              - powershell: |
+                  Write-Host "Verifying VS Code Marketplace PAT..."
+                  $publisher = "microsoft-aspire"
+                  vsce verify-pat $publisher
+                  if ($LASTEXITCODE -ne 0) {
+                    Write-Error "PAT verification failed for publisher '$publisher'. Ensure the token has 'Marketplace: Manage' scope."
+                    exit 1
+                  }
+                  Write-Host "✅ PAT verified successfully for publisher '$publisher'"
+                displayName: 'Verify Marketplace PAT'
+                env:
+                  VSCE_PAT: $(VscePublishToken)
+
+              # Publish (or dry-run)
+              - ${{ if eq(parameters.DryRun, true) }}:
+                - powershell: |
+                    $vsixDir = '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                    $preRelease = '${{ parameters.VSCodePreRelease }}'
+                    $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+                    Write-Host "=== DRY RUN MODE ==="
+                    Write-Host "⚠️ The following extensions would be published to VS Code Marketplace:"
+                    foreach ($vsix in $vsixFiles) {
+                      Write-Host "  - $($vsix.Name)"
+                    }
+                    if ($preRelease -eq 'True') {
+                      Write-Host "  Mode: PRE-RELEASE"
+                    } else {
+                      Write-Host "  Mode: STABLE"
+                    }
+                    Write-Host "=== DRY RUN - No extensions were actually published ==="
+                  displayName: 'Dry Run - List Extension (No Publish)'
+
+              - ${{ if eq(parameters.DryRun, false) }}:
+                - powershell: |
+                    $vsixDir = '$(Pipeline.Workspace)/vscode/aspire-vscode-extension'
+                    $preRelease = '${{ parameters.VSCodePreRelease }}'
+                    $vsixFiles = Get-ChildItem -Path "$vsixDir/*.vsix" -ErrorAction SilentlyContinue
+                    if ($vsixFiles.Count -eq 0) {
+                      Write-Error "No .vsix files found to publish"
+                      exit 1
+                    }
+                    foreach ($vsix in $vsixFiles) {
+                      $baseName = [System.IO.Path]::GetFileNameWithoutExtension($vsix.FullName)
+                      $manifestPath = Join-Path $vsixDir "$baseName.manifest"
+                      $signaturePath = Join-Path $vsixDir "$baseName.signature.p7s"
+
+                      $publishArgs = @("publish", "--packagePath", $vsix.FullName, "--manifestPath", $manifestPath, "--signaturePath", $signaturePath)
+                      if ($preRelease -eq 'True') {
+                        $publishArgs += "--pre-release"
+                        Write-Host "Publishing $($vsix.Name) to VS Code Marketplace as PRE-RELEASE..."
+                      } else {
+                        Write-Host "Publishing $($vsix.Name) to VS Code Marketplace..."
+                      }
+
+                      & vsce @publishArgs
+                      if ($LASTEXITCODE -ne 0) {
+                        Write-Error "Failed to publish $($vsix.Name)"
+                        exit 1
+                      }
+                      Write-Host "✅ $($vsix.Name) published successfully"
+                    }
+                  displayName: 'Publish VS Code Extension to Marketplace'
+                  env:
+                    VSCE_PAT: $(VscePublishToken)
