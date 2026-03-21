@@ -192,6 +192,7 @@ jobs:
   cli_starter_validation_win:
     name: Aspire CLI Starter Validation (Windows)
     runs-on: windows-latest
+    timeout-minutes: 10
     needs: [build_packages, build_cli_archive_windows]
     if: ${{ github.event_name == 'pull_request' && github.repository_owner == 'microsoft' }}
     env:
@@ -225,6 +226,7 @@ jobs:
           aspire --version
 
       - name: Trust Aspire HTTPS development certificate
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
