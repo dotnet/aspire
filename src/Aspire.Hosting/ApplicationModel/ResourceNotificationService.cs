@@ -884,6 +884,14 @@ public class ResourceNotificationService : IDisposable
                 };
             }
 
+            if (!string.Equals(newState.State?.Text, KnownResourceStates.UnresolvedParameters, StringComparisons.ResourceState))
+            {
+                newState = newState with
+                {
+                    Properties = newState.Properties.RemoveResourceProperty(KnownProperties.Resource.UnresolvedParameters)
+                };
+            }
+
             newState = UpdateCommands(resource, newState);
 
             newState = UpdateIcons(resource, newState);
