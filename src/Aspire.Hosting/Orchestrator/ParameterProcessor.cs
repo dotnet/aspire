@@ -38,6 +38,14 @@ public sealed class ParameterProcessor(
     private Task? _parameterResolutionTask;
     internal bool HasUnresolvedParameters => AreParametersUnresolved(_unresolvedParameters);
 
+    internal bool IsParameterUnresolved(ParameterResource parameterResource)
+    {
+        lock (_unresolvedParametersLock)
+        {
+            return _unresolvedParameters.Contains(parameterResource);
+        }
+    }
+
     /// <summary>
     /// AppHost-scoped history that records resolved secret parameter values so <c>aspire describe</c>/<c>watch</c>
     /// can redact them. Assigned by DI after construction (see <c>DistributedApplicationBuilder</c>) rather than
