@@ -36,6 +36,7 @@ public sealed class ParameterProcessor(
     private CancellationTokenSource? _allParametersResolvedCts;
     private Task _allParametersResolvedCancellation = Task.CompletedTask;
     private Task? _parameterResolutionTask;
+    internal bool HasUnresolvedParameters => AreParametersUnresolved(_unresolvedParameters);
 
     /// <summary>
     /// AppHost-scoped history that records resolved secret parameter values so <c>aspire describe</c>/<c>watch</c>
@@ -66,7 +67,7 @@ public sealed class ParameterProcessor(
 
         // If interaction service is available, we can handle unresolved parameters.
         // This will allow the user to provide values for parameters that could not be initialized.
-        if (interactionService.IsAvailable && HasUnresolvedParameters(_unresolvedParameters))
+        if (interactionService.IsAvailable && AreParametersUnresolved(_unresolvedParameters))
         {
             // Start the loop that will allow the user to specify values for unresolved parameters.
             var task = EnsureParameterResolutionTaskRunningAsync();
@@ -681,7 +682,7 @@ public sealed class ParameterProcessor(
         var stateModified = false;
 
         // This method will continue in a loop until all unresolved parameters are resolved.
-        while (!allParametersResolvedToken.IsCancellationRequested && HasUnresolvedParameters(unresolvedParameters))
+        while (!allParametersResolvedToken.IsCancellationRequested && AreParametersUnresolved(unresolvedParameters))
         {
             var showNotification = executionContext.IsRunMode;
             var showSaveToSecrets = executionContext.IsRunMode;
@@ -857,7 +858,7 @@ public sealed class ParameterProcessor(
         }
     }
 
-    private bool HasUnresolvedParameters(IList<ParameterResource> unresolvedParameters)
+    private bool AreParametersUnresolved(IList<ParameterResource> unresolvedParameters)
     {
         if (ReferenceEquals(unresolvedParameters, _unresolvedParameters))
         {

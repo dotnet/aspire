@@ -292,14 +292,18 @@ internal sealed class ApplicationOrchestrator
 
     private async Task PublishUnresolvedParametersStateAsync(OnResourceStartingContext context)
     {
-        if (!_model.Resources.OfType<ParameterResource>().Any(static parameter => parameter.WaitForValueTcs?.Task.IsCompleted is false))
+        // Dependency discovery invokes environment-variable and argument callbacks, so avoid that work
+        // unless parameter processing found at least one value that is still waiting for user input.
+        if (!_parameterProcessor.HasUnresolvedParameters)
         {
             return;
         }
 
+        // Inspect only values resolved by this resource's launch configuration. Recursive discovery would
+        // also include parameters used by referenced resources even though they do not block this resource.
         var dependencies = await context.Resource.GetResourceDependenciesAsync(
             _executionContext,
-            ResourceDependencyDiscoveryMode.Recursive,
+            ResourceDependencyDiscoveryMode.DirectOnly,
             context.CancellationToken).ConfigureAwait(false);
         var unresolvedParameters = dependencies
             .OfType<ParameterResource>()
@@ -314,6 +318,8 @@ internal sealed class ApplicationOrchestrator
 
         await PublishUnresolvedParametersUpdateAsync(context.Resource, context.DcpResourceName, unresolvedParameters, allowStartingState: true).ConfigureAwait(false);
 
+        // The launch configuration remains the authoritative startup gate and awaits these same parameter
+        // tasks. This monitor only keeps the informational state and parameter-name list up to date.
         _ = MonitorUnresolvedParametersAsync(context.Resource, context.DcpResourceName, unresolvedParameters, context.CancellationToken);
     }
 
@@ -324,6 +330,9 @@ internal sealed class ApplicationOrchestrator
         CancellationToken cancellationToken)
     {
         var remainingParameters = unresolvedParameters.ToHashSet();
+
+        // Parameters can complete concurrently. Serialize removal and publication so every snapshot contains
+        // a consistent list and a later completion cannot overwrite a newer list with stale data.
         using var updateLock = new SemaphoreSlim(1, 1);
 
         try
@@ -376,6 +385,8 @@ internal sealed class ApplicationOrchestrator
     {
         CustomResourceSnapshot UpdateSnapshot(CustomResourceSnapshot snapshot)
         {
+            // The initial update may replace Starting. Monitor updates are accepted only while this method
+            // still owns the state, preventing late parameter completion from regressing Running or terminal states.
             var isUnresolvedParametersState = string.Equals(snapshot.State?.Text, KnownResourceStates.UnresolvedParameters, StringComparisons.ResourceState);
             var canEnterUnresolvedParametersState = allowStartingState &&
                 string.Equals(snapshot.State?.Text, KnownResourceStates.Starting, StringComparisons.ResourceState);
@@ -386,6 +397,7 @@ internal sealed class ApplicationOrchestrator
 
             if (unresolvedParameters.Count == 0)
             {
+                // Parameter blocking is finished, but normal DCP startup is still in progress.
                 return snapshot with
                 {
                     State = KnownResourceStates.Starting,
@@ -405,6 +417,8 @@ internal sealed class ApplicationOrchestrator
             };
         }
 
+        // Scope the update to the DCP resource instance when one is known; replicated/grouped starts publish
+        // through the model resource because their starting event does not identify a single instance.
         return resourceId is not null
             ? _notificationService.PublishUpdateAsync(resource, resourceId, UpdateSnapshot)
             : _notificationService.PublishUpdateAsync(resource, UpdateSnapshot);
