@@ -1363,6 +1363,7 @@ public static class ResourceBuilderExtensions
         connectionName ??= resource.Name;
 
         builder.WithReferenceRelationship(resource);
+        builder.WithReferenceRelationship(resource.ConnectionStringExpression);
 
         // Determine what to inject based on the annotation on the destination resource
         builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
