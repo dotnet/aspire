@@ -1363,7 +1363,6 @@ public static class ResourceBuilderExtensions
         connectionName ??= resource.Name;
 
         builder.WithReferenceRelationship(resource);
-        builder.WithReferenceRelationship(resource.ConnectionStringExpression);
 
         // Determine what to inject based on the annotation on the destination resource
         builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
@@ -1380,6 +1379,20 @@ public static class ResourceBuilderExtensions
                 nameof(IResourceWithConnectionString.ConnectionStringExpression),
                 connectionStringExpression: null);
         }
+
+        var injectedValues = new List<object>();
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
+        {
+            injectedValues.Add(resource.ConnectionStringExpression);
+        }
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+        {
+            injectedValues.AddRange(resource.GetConnectionProperties().Select(static property => property.Value));
+            injectedValues.AddRange(resource.Annotations.OfType<ConnectionPropertyAnnotation>().Select(static annotation => annotation.Value));
+        }
+
+        WalkAndLinkResourceReferences(builder, injectedValues);
 
         return builder.WithEnvironment(context =>
         {

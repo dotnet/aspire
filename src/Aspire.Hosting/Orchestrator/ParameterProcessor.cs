@@ -36,6 +36,9 @@ public sealed class ParameterProcessor(
     private CancellationTokenSource? _allParametersResolvedCts;
     private Task _allParametersResolvedCancellation = Task.CompletedTask;
     private Task? _parameterResolutionTask;
+
+    internal event Func<ParameterResource, Task>? ParameterBecameUnresolved;
+
     internal bool HasUnresolvedParameters => AreParametersUnresolved(_unresolvedParameters);
 
     internal bool IsParameterUnresolved(ParameterResource parameterResource)
@@ -295,6 +298,7 @@ public sealed class ParameterProcessor(
             {
                 if (interactionService.IsAvailable && AddUnresolvedParameter(parameterResource, eventArgs.Version))
                 {
+                    await NotifyParameterBecameUnresolvedAsync(parameterResource).ConfigureAwait(false);
                     _ = EnsureParameterResolutionTaskRunningAsync();
                 }
 
@@ -866,6 +870,26 @@ public sealed class ParameterProcessor(
         }
     }
 
+    private async Task NotifyParameterBecameUnresolvedAsync(ParameterResource parameterResource)
+    {
+        if (ParameterBecameUnresolved is not { } parameterBecameUnresolved)
+        {
+            return;
+        }
+
+        foreach (Func<ParameterResource, Task> handler in parameterBecameUnresolved.GetInvocationList())
+        {
+            try
+            {
+                await handler(parameterResource).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to publish unresolved state for parameter {ParameterName}.", parameterResource.Name);
+            }
+        }
+    }
+
     private bool AreParametersUnresolved(IList<ParameterResource> unresolvedParameters)
     {
         if (ReferenceEquals(unresolvedParameters, _unresolvedParameters))
@@ -937,6 +961,15 @@ public sealed class ParameterProcessor(
 
     private async Task UpdateParameterStateAsync(ParameterResource parameterResource, string? value, ResourceStateSnapshot? state)
     {
+        // Referenced parameters do not have to be model resources, so distinct instances can share a name.
+        // The notification service has one snapshot per resource name; keep the first instance as its owner
+        // while still processing every instance's value task and unresolved state.
+        if (notificationService.TryGetCurrentState(parameterResource.Name, out var currentState) &&
+            !ReferenceEquals(currentState.Resource, parameterResource))
+        {
+            return;
+        }
+
         await notificationService.PublishUpdateAsync(parameterResource, s =>
         {
             var properties = value is null
