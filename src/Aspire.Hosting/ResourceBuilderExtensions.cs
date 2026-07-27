@@ -559,10 +559,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
 
-        if (value is IValueWithReferences valueWithReferences)
-        {
-            WalkAndLinkResourceReferences(builder, valueWithReferences.References);
-        }
+        WalkAndLinkResourceReferences(builder, [value]);
 
         return builder.WithEnvironment(context =>
         {
@@ -589,11 +586,7 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(value);
 
-        // Check if the value has resource references and link them
-        if (value is IValueWithReferences valueWithReferences)
-        {
-            WalkAndLinkResourceReferences(builder, valueWithReferences.References);
-        }
+        WalkAndLinkResourceReferences(builder, [value]);
 
         return builder.WithEnvironment(context =>
         {
@@ -4945,7 +4938,8 @@ public static class ResourceBuilderExtensions
             {
                 AddReference(resourceBuilder.Resource);
             }
-            else if (value is IValueWithReferences valueWithReferences)
+
+            if (value is IValueWithReferences valueWithReferences)
             {
                 foreach (var reference in valueWithReferences.References)
                 {
