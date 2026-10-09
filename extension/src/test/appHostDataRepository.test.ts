@@ -3583,18 +3583,19 @@ suite('AppHostDataRepository', () => {
         }
     });
 
-    test('configured AppHost outside aspire ls candidates remains selected in workspace view', async () => {
-        const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-extension-workspace-'));
-        const configuredAppHostPath = path.join(path.dirname(workspaceRoot), 'external', 'AppHost.csproj');
+    test('configured AppHost returned by aspire ls remains selected outside the workspace', async () => {
+        const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-extension-workspace-'));
+        const workspaceRoot = path.join(fixtureRoot, 'workspace');
+        const configuredAppHostPath = path.join(fixtureRoot, 'external', 'AppHost.csproj');
         const discoveredAppHostPath = path.join(workspaceRoot, 'apps', 'Store', 'AppHost.csproj');
         const secondDiscoveredAppHostPath = path.join(workspaceRoot, 'samples', 'Store', 'AppHost.csproj');
         let workspaceFoldersStub: sinon.SinonStub | undefined;
         let repository: AppHostDataRepository | undefined;
 
-        fs.mkdirSync(path.dirname(configuredAppHostPath), { recursive: true });
-        fs.writeFileSync(configuredAppHostPath, '');
-
         try {
+            fs.mkdirSync(workspaceRoot);
+            fs.mkdirSync(path.dirname(configuredAppHostPath));
+            fs.writeFileSync(configuredAppHostPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
             fs.writeFileSync(path.join(workspaceRoot, 'aspire.config.json'), JSON.stringify({
                 appHost: {
                     path: configuredAppHostPath,
@@ -3627,6 +3628,12 @@ suite('AppHostDataRepository', () => {
             assert.ok(getAppHostsLineCallback);
 
             getAppHostsLineCallback(JSON.stringify([
+                {
+                    relativePath: path.relative(workspaceRoot, configuredAppHostPath),
+                    path: configuredAppHostPath,
+                    language: 'csharp',
+                    status: 'buildable',
+                },
                 {
                     relativePath: 'apps/Store/AppHost.csproj',
                     path: discoveredAppHostPath,
@@ -3673,8 +3680,7 @@ suite('AppHostDataRepository', () => {
         } finally {
             repository?.dispose();
             workspaceFoldersStub?.restore();
-            removeDirectorySafely(workspaceRoot);
-            removeDirectorySafely(path.dirname(configuredAppHostPath));
+            removeDirectorySafely(fixtureRoot);
         }
     });
 
