@@ -1006,7 +1006,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     // (case-insensitive on the package id), including trailing line break, so the
     // whole directive can be removed without leaving a blank line behind. NuGet
     // package IDs are case-insensitive (https://learn.microsoft.com/nuget/concepts/package-identifier).
-    [GeneratedRegex(@"^[ \t]*#:package[ \t]+Aspire\.Hosting\.AppHost@(?:[\d.\-+a-zA-Z]+|\*)[ \t]*\r?$(?:\n)?", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+    [GeneratedRegex(@"^[ \t]*#:package[ \t]+(?i:Aspire\.Hosting\.AppHost)@(?:[\d.\-+a-zA-Z]+|\*)[ \t]*\r?$(?:\n)?", RegexOptions.Multiline)]
     internal static partial Regex LegacyAppHostPackageDirectiveRegex();
 
     private static bool HasLegacyAppHostPackageDirective(FileInfo projectFile)
