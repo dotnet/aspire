@@ -20,6 +20,8 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("src/Aspire.Dashboard/Components/Pages/Resources.razor")]
     [InlineData("src/Aspire.Hosting/Dashboard/proto/dashboard_service.proto")]
     [InlineData("src/Shared/SocketPermissionHelper.cs")]
+    [InlineData("playground/NativeHosting/AtsServer/AtsSession.cs")]
+    [InlineData("playground/NativeHosting/ManagedAdapter/NativeHosting.ManagedAdapter.csproj")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/Program.cs")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeRevisionSmoke.mts")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/CliAppHost/apphost.mts")]
@@ -102,6 +104,12 @@ public sealed class NativeHostingWorkflowTests
         Assert.Equal("ubuntu-latest", job.Children[new YamlScalarNode("runs-on")].ToString());
         Assert.False(job.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
         var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
+        var nodeSetup = Assert.Single(steps.Cast<YamlMappingNode>(),
+            step => step.Children.TryGetValue(new YamlScalarNode("uses"), out var uses)
+                && uses.ToString().StartsWith("actions/setup-node@", StringComparison.Ordinal));
+        var nodeInputs = (YamlMappingNode)nodeSetup.Children[new YamlScalarNode("with")];
+        Assert.Equal("false", nodeInputs.Children[new YamlScalarNode("package-manager-cache")].ToString());
+        Assert.False(nodeInputs.Children.ContainsKey(new YamlScalarNode("cache")));
         var harness = Assert.Single(steps.Cast<YamlMappingNode>(),
             step => step.Children.ContainsKey(new YamlScalarNode("run")));
         Assert.Equal("bash eng/scripts/test-native-hosting.sh linux-x64",

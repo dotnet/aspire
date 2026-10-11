@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Server;
 
@@ -169,13 +170,23 @@ internal static class NativeBackchannelConnection
                 {
                     error = new(-32602, "The backchannel arguments are invalid.");
                 }
-                catch (InvalidOperationException exception)
+                catch (InvalidOperationException exception) when (exception is not ObjectDisposedException)
                 {
                     error = new(-32000, exception.Message);
                 }
                 catch (OperationCanceledException) when (cancellation.IsCancellationRequested || lifetime.IsCancellationRequested)
                 {
                     error = new(-32800, "The backchannel request was cancelled.");
+                }
+                catch (Exception exception)
+                {
+                    // Dispatch and iterator failures are request failures, not transport
+                    // failures. Log only classification: controller exceptions can carry secrets.
+                    using var operation = new NativeDiagnostics.Operation("backchannel.request", null, null)
+                    {
+                        ErrorType = exception.GetType().FullName
+                    };
+                    error = new(-32603, "The backchannel request failed internally.");
                 }
                 if (request.Id is null)
                 {

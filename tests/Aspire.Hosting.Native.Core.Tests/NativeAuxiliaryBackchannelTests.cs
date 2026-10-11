@@ -14,6 +14,81 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeAuxiliaryBackchannelTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ResourceWatchHidesRemovedNamesAcrossEmptyRevisionsAndRetirement(bool retireWorkspace)
+    {
+        var server = new NativeApplicationServer();
+        var workspace = server.CreateApplicationWorkspace();
+        var revision = workspace.BeginRevision();
+        revision.AddResource("removed", "custom/Resource");
+        await workspace.CommitRevision(revision);
+        await using var host = new NativeAuxiliaryTestHost(server);
+        var rpc = host.Connect();
+        var stream = await rpc.InvokeAsync<IAsyncEnumerable<ResourceSnapshot>>("WatchResourcesAsync");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await using var enumerator = stream.GetAsyncEnumerator(timeout.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+        var initial = enumerator.Current;
+        Assert.Equal("removed", initial.Name);
+        if (retireWorkspace)
+        {
+            await workspace.RetireApplicationWorkspace();
+        }
+        else
+        {
+            await workspace.CommitRevision(workspace.BeginRevision());
+        }
+        Assert.Empty((await rpc.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources);
+        Assert.True(await enumerator.MoveNextAsync());
+        var removed = enumerator.Current;
+        Assert.Equal("removed", removed.Name);
+        Assert.Equal("Hidden", removed.State);
+        Assert.True(removed.IsHidden);
+        Assert.True(removed.Version > initial.Version);
+        Assert.Empty(removed.Urls);
+        Assert.Empty(removed.Commands);
+    }
+
+    [Fact]
+    public async Task IndependentSlowResourceWatchDoesNotMissRemovalAcrossCoalescedRevisions()
+    {
+        var server = new NativeApplicationServer();
+        var workspace = server.CreateApplicationWorkspace();
+        var revision = workspace.BeginRevision();
+        revision.AddResource("original", "custom/Resource");
+        await workspace.CommitRevision(revision);
+        await using var host = new NativeAuxiliaryTestHost(server);
+        var fast = host.Connect();
+        var slow = host.Connect();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await using var fastUpdates = (await fast.InvokeAsync<IAsyncEnumerable<ResourceSnapshot>>("WatchResourcesAsync"))
+            .GetAsyncEnumerator(timeout.Token);
+        await using var slowUpdates = (await slow.InvokeAsync<IAsyncEnumerable<ResourceSnapshot>>("WatchResourcesAsync"))
+            .GetAsyncEnumerator(timeout.Token);
+        Assert.True(await fastUpdates.MoveNextAsync());
+        Assert.True(await slowUpdates.MoveNextAsync());
+        var originalVersion = slowUpdates.Current.Version;
+        revision = workspace.BeginRevision();
+        revision.AddResource("intermediate", "custom/Resource");
+        await workspace.CommitRevision(revision);
+        Assert.True(await fastUpdates.MoveNextAsync());
+        Assert.Equal(("original", "Hidden"), (fastUpdates.Current.Name, fastUpdates.Current.State));
+        Assert.True(await fastUpdates.MoveNextAsync());
+        Assert.Equal("intermediate", fastUpdates.Current.Name);
+        revision = workspace.BeginRevision();
+        revision.AddResource("latest", "custom/Resource");
+        await workspace.CommitRevision(revision);
+        Assert.Equal("latest", Assert.Single((await fast.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources).Name);
+        Assert.True(await slowUpdates.MoveNextAsync());
+        Assert.Equal(("original", "Hidden"), (slowUpdates.Current.Name, slowUpdates.Current.State));
+        Assert.True(slowUpdates.Current.Version > originalVersion);
+        Assert.True(await slowUpdates.MoveNextAsync());
+        Assert.Equal("latest", slowUpdates.Current.Name);
+        await workspace.RetireApplicationWorkspace();
+    }
+
+    [Theory]
     [InlineData("configured-file", "cli-file", "configured-path", "native-file", "configured-file")]
     [InlineData(null, "cli-file", "configured-path", "native-file", "cli-file")]
     [InlineData(null, null, "configured-path", "native-file", "configured-path")]

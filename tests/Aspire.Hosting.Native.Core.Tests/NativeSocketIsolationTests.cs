@@ -17,6 +17,39 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeSocketIsolationTests
 {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task UnexpectedBackchannelDispatchFailureIsSanitizedAndDoesNotStopOtherRequests(int failure)
+    {
+        using var capture = new DiagnosticCapture(sampleActivities: true);
+        var exception = failure switch
+        {
+            0 => (Exception)new HttpRequestException("secret-controller-token"),
+            1 => new ObjectDisposedException("secret-controller-token"),
+            _ => new OperationCanceledException("secret-controller-token")
+        };
+        await using var host = new NativeSocketTestHost((request, _) => request.Method == "Fail"
+            ? Task.FromException<NativeBackchannelConnection.Reply>(exception)
+            : Task.FromResult(NativeBackchannelConnection.Value("ok", NativeCliJsonContext.Default.String)));
+        using (var client = new NativeSocketTestClient(host.EndPoint))
+        {
+            var response = await client.CallAsync("Fail", null, TestContext.Current.CancellationToken);
+            var error = response["error"]!.AsObject();
+            Assert.Equal(["code", "message"], error.Select(property => property.Key));
+            Assert.Equal(-32603, error["code"]!.GetValue<int>());
+            Assert.Equal("The backchannel request failed internally.", error["message"]!.GetValue<string>());
+            Assert.Equal("ok", (await client.CallAsync("Succeed", null, TestContext.Current.CancellationToken))["result"]!.GetValue<string>());
+        }
+        using var subsequent = new NativeSocketTestClient(host.EndPoint);
+        Assert.Equal("ok", (await subsequent.CallAsync("Succeed", null, TestContext.Current.CancellationToken))["result"]!.GetValue<string>());
+        var diagnostic = Assert.Single(capture.Events, value => value.Operation == "backchannel.request" && value.Outcome == "error");
+        Assert.Equal("error", diagnostic.Outcome);
+        Assert.Equal(exception.GetType().FullName, diagnostic.ErrorType);
+        Assert.False(host.Completion.IsCompleted);
+    }
+
+    [Theory]
     [InlineData("Content-Length: invalid\r\n\r\n")]
     [InlineData("Content-Length: 262145\r\n\r\n")]
     [InlineData("Content-Length: 1\r\nContent-Length: 1\r\n\r\n")]

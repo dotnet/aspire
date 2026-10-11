@@ -345,25 +345,45 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         long previous = -1;
+        var previousSnapshots = new Dictionary<string, NativeAuxiliaryResourceSnapshot>(StringComparer.OrdinalIgnoreCase);
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             NativeAuxiliaryResourceSnapshot[] snapshots;
+            long version;
             try
             {
-                snapshots = ReadSnapshots(request);
+                lock (_snapshotGate)
+                {
+                    snapshots = ReadSnapshots(request);
+                    version = _version;
+                }
             }
             catch (ObjectDisposedException)
             {
+                await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
                 continue;
             }
-            foreach (var snapshot in snapshots.Where(snapshot => snapshot.Version > previous))
+            if (version > previous)
             {
-                yield return snapshot;
-            }
-            if (snapshots.Length > 0)
-            {
-                previous = snapshots.Max(snapshot => snapshot.Version);
+                var current = snapshots.ToDictionary(snapshot => snapshot.Name, StringComparer.OrdinalIgnoreCase);
+                // Hosting watchers upsert by name. Each stream must hide names it
+                // previously sent but no longer owns, even when intermediate revisions
+                // were coalesced or the entire workspace becomes empty.
+                foreach (var removed in previousSnapshots.Values.Where(snapshot => !current.ContainsKey(snapshot.Name)))
+                {
+                    yield return removed with
+                    {
+                        Version = version, State = "Hidden", IsHidden = true,
+                        StateStyle = null, HealthStatus = null, Urls = [], Commands = []
+                    };
+                }
+                foreach (var snapshot in snapshots)
+                {
+                    yield return snapshot;
+                }
+                previousSnapshots = current;
+                previous = version;
             }
             await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
         }

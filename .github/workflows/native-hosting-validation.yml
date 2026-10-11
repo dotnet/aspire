@@ -8,6 +8,7 @@ on:
       # Broad source/build coverage intentionally includes transitive MSBuild dependencies,
       # linked files and runtime-only CLI/Dashboard/codegen inputs without a second project graph.
       - 'src/**'
+      - 'playground/NativeHosting/**'
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
@@ -28,6 +29,7 @@ on:
     branches: [main, 'release/**']
     paths:
       - 'src/**'
+      - 'playground/NativeHosting/**'
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
@@ -65,6 +67,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Execute native hosting validation
         run: bash eng/scripts/test-native-hosting.sh linux-x64
       - name: Upload native hosting evidence
