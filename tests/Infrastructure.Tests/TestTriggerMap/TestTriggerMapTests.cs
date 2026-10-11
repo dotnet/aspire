@@ -84,6 +84,32 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData("src/Aspire.Dashboard/Aspire.Dashboard.csproj")]
+    [InlineData("src/Aspire.Cli/Resources/NewResource.resx")]
+    [InlineData("src/Aspire.Hosting.Testing/Properties/NewResource.resx")]
+    public void ResourceMetadataInputsSelectInfrastructureTests(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+        Assert.Contains("Infrastructure.Tests", result.TestProjects);
+    }
+
+    [Theory]
+    [InlineData("src/Aspire.Dashboard/Resources/NewResource.Designer.cs")]
+    [InlineData("src/Aspire.Dashboard/Resources/xlf/NewResource.fr.xlf")]
+    [InlineData("src/Aspire.Dashboard/Components/NewComponent.razor")]
+    public void InputsNotReadByResourceMetadataTestsKeepExistingSelection(string path)
+    {
+        var result = SelectWithRealMap(path, "Aspire.Dashboard");
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+        Assert.Equal(["Aspire.Templates.Tests"], result.TestProjects);
+    }
+
+    [Theory]
     [InlineData("eng/WarningPolicy.proj")]
     [InlineData("eng/build.ps1")]
     [InlineData("eng/build.sh")]
@@ -832,7 +858,9 @@ public sealed class TestTriggerMapTests
     [InlineData("tests/Aspire.Dashboard.Components.Tests/JavaScript/TerminalWindow.test.mjs")]
     [InlineData("tests/Aspire.Dashboard.Components.Tests/JavaScript/TerminalTitle.test.mjs")]
     [InlineData("tests/Aspire.Dashboard.Components.Tests/JavaScript/TerminalDock.test.mjs")]
-    public void DashboardTerminalScriptInputsSelectInfrastructureTests(string path)
+    [InlineData("src/Aspire.Dashboard/wwwroot/js/app-resourcegraph.js")]
+    [InlineData("tests/Aspire.Dashboard.Components.Tests/JavaScript/ResourceGraph.test.mjs")]
+    public void DashboardScriptInputsSelectInfrastructureTests(string path)
     {
         var result = SelectWithRealMap(path);
 
@@ -1014,6 +1042,33 @@ public sealed class TestTriggerMapTests
         Assert.Equal(
             ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void CliBundleConsumersRunWhenStandaloneTerminalHostIsAffected()
+    {
+        var result = SelectWithRealMap("src/Aspire.TerminalHost/Program.cs", "Aspire.TerminalHost");
+
+        Assert.False(result.SelectsAll);
+        Assert.Contains("Aspire.Cli.EndToEnd.Tests", result.TestProjects);
+        Assert.Equal(
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:winget-installer"],
+            result.Jobs.Order(StringComparer.Ordinal));
+        Assert.Contains(s_map.Ignore, pattern => TestTriggerMap.GlobMatches(pattern, "eng/scripts/test-native-terminalhost.ps1"));
+    }
+
+    [Theory]
+    [InlineData("Aspire.Cli", "Aspire.Cli.EndToEnd.Tests")]
+    [InlineData("Aspire.TerminalHost", "Aspire.Cli.EndToEnd.Tests")]
+    [InlineData("Aspire.Dashboard", "Aspire.Templates.Tests")]
+    public void TerminalPipelinePublishSettingsRunTheirInfrastructureCoverage(string projectName, string consumerProject)
+    {
+        var result = SelectWithRealMap(
+            $"src/{projectName}/{projectName}.csproj", projectName);
+
+        Assert.False(result.SelectsAll);
+        Assert.Contains("Infrastructure.Tests", result.TestProjects);
+        Assert.Contains(consumerProject, result.TestProjects);
     }
 
     [Fact]
