@@ -5,7 +5,149 @@
 > **Baseline:** [Aspire Resource Model: Concepts, Design, and Authoring Guidance](appmodel.md).
 > **Related:** [Polyglot integrations](polyglot-integrations.md#single-runtime-representation).
 
-## Purpose
+## Start here: how an integration is built today
+
+**An integration is code outside the native server that uses the generated ATS
+SDK to declare resources and operate them.** The server has no Redis,
+PostgreSQL, or Dev Tunnels implementation. It exposes resource composition,
+owned container/executable execution, observations, logs, commands and
+confirmation requests.
+
+There are two sides to an integration:
+
+| Side | What it does | Current example |
+| --- | --- | --- |
+| Composition helpers, called by the AppHost | Declare resources, desired configuration and readiness dependencies | [`CliAppHost/apphost.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/CliAppHost/apphost.mts) |
+| Runtime implementation, running in an integration host | Start workloads, perform service-specific initialization/probes, report health, handle commands and apply configuration | [`NativeIntegrationWorker.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeIntegrationWorker.mts) |
+
+The examples are executable conformance fixtures, **not a finished integration
+package authoring experience**. They manually launch the integration worker and
+pass invitations over Node IPC. That IPC, the test assertions and the
+`native.testing/*` type names are fixture plumbing, not native APIs. Packaging,
+provider discovery/activation and generated C# integration clients are not
+implemented yet.
+
+### 1. The AppHost declares and delegates
+
+After connecting through the generated `connectNativeAppHost` client, the
+current CLI sample performs these calls:
+
+```typescript
+const session = await server.openApplication();
+const composition = await session.startGeneration();
+const cache = await composition.addResource('cache', 'native.testing/Redis');
+const tunnel = await composition.addResource('tunnel', 'native.testing/LocalTunnel');
+await tunnel.waitFor(cache);
+const execution = await composition.createExecution();
+const invitation = await execution.inviteResourceExecution(cache);
+```
+
+`addResource` declares an identity and type label; it does not start Redis or
+select an integration implementation. `createExecution` seals the declarations.
+The AppHost passes `invitation` to the integration host. The invitation is
+one-use and grants exclusive execution authority for that resource, not access
+to every resource in the application.
+
+### 2. The integration host implements the resource
+
+It opens its own authenticated ATS connection and redeems the invitation:
+
+```typescript
+const resource = await server.joinResourceExecution(invitation);
+const allocation = await resource.startContainerWorkload({
+    image: 'redis:8.6', entrypoint: '', mounts: [],
+    environment: [], arguments: [],
+    endpoints: [{
+        name: 'tcp', protocol: 'TCP', uriScheme: 'redis',
+        targetPort: 6379, hostPort: 0, environmentVariable: ''
+    }]
+});
+```
+
+The server allocates endpoints and owns the workload through DCP. The
+integration uses the returned `allocation.endpoints` to run a Redis probe,
+then calls `publishObservation` with state, health and URLs. It must not confuse
+"process started" with "service ready." The server removes owned workloads on
+resource retirement; the integration does not need a DCP client or Docker
+process handle.
+
+[`NativeIntegrationWorker.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeIntegrationWorker.mts)
+shows this service-specific work in `cacheReady`, `databaseReady` and
+`tunnelReady`: Redis PING, PostgreSQL initialization/query, and an executable
+relay respectively. It uses the shorter single-port `startContainer` and
+`startExecutable` exports. For the general named-endpoint APIs shown above,
+including mounts and multiple ports, read
+[`NativeBaselineSmoke.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeBaselineSmoke.mts).
+The relay is a local test executable, not the live Dev Tunnels service.
+
+### 3. The native API is small and explicit
+
+The authoritative declarations are the `[AspireExport]` methods and
+`[AspireDto]` payloads in these files. Their C# classes are server bindings,
+**not classes an integration imports or subclasses**.
+
+| What an integration needs | Native exports to look at | Source |
+| --- | --- | --- |
+| Declare resources and desired configuration | `AddResource`, `WaitFor`, `SetResourceConfiguration` | [`CompositionApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/CompositionApi.cs) |
+| Acquire scoped runtime authority | `InviteResourceExecution`, `JoinResourceExecution` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
+| Launch or replace containers/executables with named endpoints | `StartContainerWorkload`, `StartExecutableWorkload`, corresponding `Restart*` methods | [`WorkloadApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/WorkloadApi.cs) |
+| Report state/health/URLs and resource logs | `PublishObservation`, `AppendResourceLog` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
+| Implement resource commands | `DefineResourceCommand`, `WaitResourceCommands`, `CompleteResourceCommand` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
+| Ask for confirmation | `RequestConfirmation`, `AwaitRuntimeOperation` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
+| Apply desired configuration changes | `ReadResourceConfiguration`, `WaitResourceConfiguration`, `ReadResourceDependencies`, `CompleteResourceConfiguration` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
+| Keep runtime resources across AppHost reexecution | `BeginRevision`, `CommitRevision`, workspace invitations | [`ApplicationWorkspace.cs`](../../src/Aspire.Hosting.Native.Server/Api/ApplicationWorkspace.cs) |
+
+For reexecution, start with
+[`NativeRevisionAppHost.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeRevisionAppHost.mts)
+and the worker's `watchConfiguration` loop. A workspace retains compatible
+resource executions across committed model revisions; an integration can apply
+a change in place or request workload replacement. Removing a resource revokes
+its runtime handle and triggers cleanup.
+
+**What is still missing:** a general typed schema/value/secret model,
+connection-expression resolution, general lifecycle/initialization registration,
+production integration provider activation, publishing/deployment, and
+interactions beyond confirmation. The current samples prove the runtime
+boundary; they do not yet show how to ship a complete replacement for today's
+hosting integration packages.
+
+### Acceptance gate: rebuild existing integrations
+
+**The hosting API must be sufficient to rebuild existing integrations, not just
+the workloads in these fixtures.** Integrations retain their own resource types,
+configuration, fluent APIs and service-specific behavior. The native host
+provides general hosting primitives; it must not grow Redis, PostgreSQL or
+Dev Tunnels special cases to make a port work.
+
+The current baseline does **not** pass this gate. Reading the existing
+implementations exposes requirements not covered by the launch demonstrations:
+
+| Integration | Existing behavior the rebuild must preserve | Hosting contract gaps to exercise |
+| --- | --- | --- |
+| Redis | Password parameters, deferred connection properties, persistence/modules, TLS endpoint changes, certificate files, admin companions and terminal commands | Structured values/secrets and references; run/publish resolution; extensible model metadata; certificate/file and terminal capabilities |
+| PostgreSQL | Server/database resources, database names and connection properties, readiness-ordered database creation/custom scripts, data/init mounts, admin/MCP companions and terminal commands | Parent/child semantics distinct from visual grouping; child configuration inspection; initialization completion barriers; structured values/files and terminal capabilities |
+| Dev Tunnels | CLI validation/login, tunnel/port configuration, target endpoint references, public endpoint allocation, monitoring, access notifications, run-only exclusion and retaining remote tunnels after local shutdown | Pre-start ordering; externally allocated endpoints and failure propagation; synthetic child resources; interaction/notification surfaces; external-object lifetime distinct from owned processes |
+
+Sources:
+[`RedisBuilderExtensions.cs`](../../src/Aspire.Hosting.Redis/RedisBuilderExtensions.cs),
+[`RedisResource.cs`](../../src/Aspire.Hosting.Redis/RedisResource.cs),
+[`PostgresBuilderExtensions.cs`](../../src/Aspire.Hosting.PostgreSQL/PostgresBuilderExtensions.cs),
+[`PostgresDatabaseResource.cs`](../../src/Aspire.Hosting.PostgreSQL/PostgresDatabaseResource.cs),
+and
+[`DevTunnelResourceBuilderExtensions.cs`](../../src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs).
+The corresponding existing integration tests define the behavioral comparison,
+including connection properties and functional scenarios. They are not required
+to retain assertions about the old CLR model's implementation details.
+
+For each rebuild, compare declarations and consumer-visible behavior, exercise
+the real service/tool, and test run and publish behavior, failure, cancellation,
+reexecution and cleanup. A consumer must obtain its connection information through
+hosting references, not fixture IPC. Integration-owned API/schema registration
+and activation must also work without importing the implementation into the
+native server. An unimplemented feature or untested live-service path stays an
+explicit gap, not a passed compatibility claim.
+
+## Design rationale and validation history
 
 This document evolves with the native hosting proof of concept. Its purpose is to
 give each integration-authoring pattern in `appmodel.md` an ATS-native equivalent,
