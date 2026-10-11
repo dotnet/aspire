@@ -34,6 +34,8 @@ aspire <command> [options]
 | `stop` | Stop a running apphost or the specified resource. |
 | `ps` | List running apphosts. |
 
+C# AppHosts created with Aspire 17 or later use package directives instead of the obsolete AppHost SDK. When targeting an earlier Aspire release, the empty template retains its SDK directive so it does not require the newer `Aspire.Hosting.Dotnet` package.
+
 ### Resource Management
 
 | Command | Description |

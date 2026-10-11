@@ -289,8 +289,7 @@ internal sealed class InitCommand : BaseCommand
         // NuGet package versions omit the CLI build-metadata suffix.
         var aspireVersion = _executionContext.IdentitySdkVersion;
         var appHostContent = $$"""
-            #:package Aspire.Hosting.AppHost@{{aspireVersion}}
-            #:package Aspire.Hosting.Dotnet@{{aspireVersion}}
+            {{CliTemplateFactory.GetCSharpAppHostDirectives(aspireVersion)}}
             #:property AspireUseCliBundle=true
 
             var builder = DistributedApplication.CreateBuilder(args);
