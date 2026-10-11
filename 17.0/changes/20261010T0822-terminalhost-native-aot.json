@@ -1,0 +1,21 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "`WithTerminal()` now launches a standalone Native AOT `Aspire.TerminalHost` executable instead of running inside the managed `aspire-managed` process, improving startup and resource usage. Older Hosting versions keep working through a thin `aspire-managed terminalhost` compatibility shim.",
+  "docsPrs": [
+    1866
+  ],
+  "docsRequired": true,
+  "emoji": "🚀",
+  "firstMergedAt": "2026-10-10T08:22:00Z",
+  "lastMergedAt": "2026-10-10T08:22:00Z",
+  "name": "TerminalHost ships as a standalone Native AOT executable",
+  "owner": "mitchdenny",
+  "prs": [
+    20775
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Bot dependency version bump (DCP 0.26.5 -> 0.27.0)",
+  "mergedAt": "2026-10-10T06:46:07Z",
+  "number": 20874,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "excluded",
+  "title": "Update Microsoft Developer Control Plane to 0.27.0"
+}

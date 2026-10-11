@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "CLI/Dashboard product telemetry shutdown durability improvements",
+  "mergedAt": "2026-10-10T06:02:24Z",
+  "number": 20851,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Improve CLI and Dashboard product telemetry shutdown durability"
+}

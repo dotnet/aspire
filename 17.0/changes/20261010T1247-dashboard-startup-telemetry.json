@@ -1,0 +1,21 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "The Dashboard now records an `aspire/dashboard/startup` product telemetry event capturing startup result, duration, and launch context (AppHost, CLI, or container), helping track startup reliability and performance across launch scenarios.",
+  "docsPrs": [
+    1867
+  ],
+  "docsRequired": true,
+  "emoji": "📈",
+  "firstMergedAt": "2026-10-10T12:47:43Z",
+  "lastMergedAt": "2026-10-10T12:47:43Z",
+  "name": "Dashboard startup telemetry",
+  "owner": "JamesNK",
+  "prs": [
+    20846
+  ]
+}

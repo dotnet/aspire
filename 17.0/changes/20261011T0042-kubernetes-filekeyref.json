@@ -1,0 +1,21 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Kubernetes workloads can now source individual environment variables from an env file written by an init container, using the new `FileKeySelectorV1` and `EnvVarSourceV1.FileKeyRef` APIs matching Kubernetes 1.35's `EnvFiles` schema, without mounting the file or overriding the entrypoint.",
+  "docsPrs": [
+    1868
+  ],
+  "docsRequired": true,
+  "emoji": "🔑",
+  "firstMergedAt": "2026-10-11T00:42:08Z",
+  "lastMergedAt": "2026-10-11T00:42:08Z",
+  "name": "Kubernetes fileKeyRef environment variable support",
+  "owner": "mitchdenny",
+  "prs": [
+    20847
+  ]
+}

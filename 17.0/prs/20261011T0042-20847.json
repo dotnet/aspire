@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "New Kubernetes fileKeyRef environment variable support",
+  "mergedAt": "2026-10-11T00:42:08Z",
+  "number": 20847,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Add Kubernetes fileKeyRef environment variable support"
+}

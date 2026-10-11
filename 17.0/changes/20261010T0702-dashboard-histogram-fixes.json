@@ -1,0 +1,21 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Histogram charts on the Metrics page no longer show incorrect counts or percentiles with delta data, cumulative resets, or mismatched bucket layouts across dimensions. When selected dimensions share no bucket boundaries, percentiles are now hidden with a warning instead of showing invented values, while the count view remains usable.",
+  "docsPrs": [
+    1865
+  ],
+  "docsRequired": true,
+  "emoji": "📉",
+  "firstMergedAt": "2026-10-10T07:02:26Z",
+  "lastMergedAt": "2026-10-10T07:02:26Z",
+  "name": "Fix histogram temporality and bucket aggregation",
+  "owner": "JamesNK",
+  "prs": [
+    20755
+  ]
+}

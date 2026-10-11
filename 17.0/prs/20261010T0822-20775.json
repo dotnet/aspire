@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Ships TerminalHost as standalone Native AOT executable",
+  "mergedAt": "2026-10-10T08:22:00Z",
+  "number": 20775,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Ship TerminalHost as a standalone Native AOT bundle executable"
+}

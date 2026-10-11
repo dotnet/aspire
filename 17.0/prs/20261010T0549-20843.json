@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Internal RESX generator/designer metadata consolidation, no user-facing behavior change",
+  "mergedAt": "2026-10-10T05:49:13Z",
+  "number": 20843,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "excluded",
+  "title": "Consolidate RESX generator metadata and align resource visibility"
+}

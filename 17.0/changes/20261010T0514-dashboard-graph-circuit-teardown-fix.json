@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Fixed unhandled errors on the Resources page when switching to the graph view before the first resource snapshot loads, or when the browser circuit disconnects during graph teardown.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧩",
+  "firstMergedAt": "2026-10-10T05:14:55Z",
+  "lastMergedAt": "2026-10-10T05:14:55Z",
+  "name": "Fix dashboard graph initialization and teardown errors",
+  "owner": "JamesNK",
+  "prs": [
+    20811
+  ]
+}

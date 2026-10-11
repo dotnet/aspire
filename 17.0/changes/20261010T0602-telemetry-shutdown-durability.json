@@ -1,0 +1,21 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "CLI and Dashboard product telemetry shutdown now follows an explicit persist-first policy: successful local commands write queued telemetry without waiting on ingestion, failed commands get a bounded persistence-and-delivery window, and CI commands attempt delivery immediately instead of relying on a later invocation. No commands or flags changed.",
+  "docsPrs": [
+    1864
+  ],
+  "docsRequired": true,
+  "emoji": "🛟",
+  "firstMergedAt": "2026-10-10T06:02:24Z",
+  "lastMergedAt": "2026-10-10T06:02:24Z",
+  "name": "More durable telemetry shutdown",
+  "owner": "JamesNK",
+  "prs": [
+    20851
+  ]
+}

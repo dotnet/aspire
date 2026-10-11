@@ -1,0 +1,21 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Text visualizer dialogs (used for Mermaid graph exports and other content) can now show an optional Markdown description above the source or rendered content, with a link to relevant Aspire documentation.",
+  "docsPrs": [
+    1863
+  ],
+  "docsRequired": true,
+  "emoji": "📖",
+  "firstMergedAt": "2026-10-10T01:12:23Z",
+  "lastMergedAt": "2026-10-10T01:12:23Z",
+  "name": "Markdown descriptions in text visualizer dialogs",
+  "owner": "JamesNK",
+  "prs": [
+    20819
+  ]
+}

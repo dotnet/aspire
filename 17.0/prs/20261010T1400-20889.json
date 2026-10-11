@@ -1,0 +1,9 @@
+{
+  "author": "afscrome",
+  "comment": "Test-only fix for dashboard component test dispose delay, no user-facing impact",
+  "mergedAt": "2026-10-10T14:00:50Z",
+  "number": 20889,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "excluded",
+  "title": "Fix 10 second dispose delay in dashboard component tests using FluentDataGrid"
+}

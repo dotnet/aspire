@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Adds dashboard startup telemetry event",
+  "mergedAt": "2026-10-10T12:47:43Z",
+  "number": 20846,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Add dashboard startup telemetry"
+}

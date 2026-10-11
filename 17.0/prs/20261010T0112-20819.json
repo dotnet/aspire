@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "New Markdown description support in text visualizer dialogs",
+  "mergedAt": "2026-10-10T01:12:23Z",
+  "number": 20819,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Add Markdown descriptions to dashboard text visualizer dialogs"
+}

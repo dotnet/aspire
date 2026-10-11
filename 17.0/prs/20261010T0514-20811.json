@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Fixes dashboard graph init/circuit teardown errors",
+  "mergedAt": "2026-10-10T05:14:55Z",
+  "number": 20811,
+  "runDate": "2026-10-11T12:10:07Z",
+  "status": "included",
+  "title": "Fix dashboard graph initialization and circuit teardown errors"
+}
