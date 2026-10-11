@@ -178,21 +178,12 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         // Check for #:sdk Aspire.AppHost.Sdk directive
         try
         {
-            using var reader = candidateFile.OpenText();
-            string? line;
-            while ((line = reader.ReadLine()) is not null)
-            {
-                var trimmedLine = line.TrimStart();
-                if (trimmedLine.StartsWith("#:sdk Aspire.AppHost.Sdk", StringComparison.Ordinal)
-                    || FallbackProjectParser.HasAppHostPackageDirective(trimmedLine))
-                {
-                    return true;
-                }
-            }
+            var content = File.ReadAllText(candidateFile.FullName);
+            return FallbackProjectParser.HasAppHostSdkDirective(content)
+                || FallbackProjectParser.HasAppHostPackageDirective(content);
         }
         catch
         {
-            return false;
         }
 
         return false;

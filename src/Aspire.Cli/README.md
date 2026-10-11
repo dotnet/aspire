@@ -72,6 +72,19 @@ aspire <command> [options]
 | `docs` | Browse and search Aspire documentation and API reference from aspire.dev. |
 | `agent` | Manage AI agent specific setup. |
 
+### Updating .NET AppHosts
+
+`aspire update` preserves package-only AppHosts: it updates their
+`Aspire.Hosting.AppHost` reference without adding `Aspire.AppHost.Sdk`.
+SDK-based AppHosts remain supported, including C#, F#, and Visual Basic project
+files and C# file-based AppHosts with an SDK directive.
+
+For non-central package references declared in imported build files, the updater
+changes the original declaration rather than adding a duplicate to the AppHost.
+Imported SDK versions are updated in place when evaluation identifies one
+declaring file. Ambiguous imported declarations require an explicit SDK version
+update instead of guessing which shared file to change.
+
 ## Examples
 
 To initialize an empty C# AppHost without discovering incidental `.sln` or `.slnx` files, run this from the repository root:
