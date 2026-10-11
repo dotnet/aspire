@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 #pragma warning disable ASPIRECOMPUTE003
-#pragma warning disable ASPIREDOCKERFILEBUILDER001
 
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;

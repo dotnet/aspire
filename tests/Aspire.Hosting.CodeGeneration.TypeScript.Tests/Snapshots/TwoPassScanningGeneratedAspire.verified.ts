@@ -1744,6 +1744,11 @@ export interface WithBindMountOptions {
     isReadOnly?: boolean;
 }
 
+export interface WithCertificateTrustEnvironmentOptions {
+    /** The optional environment variable that receives the certificate directories path. */
+    certificateDirectoriesEnvironmentVariable?: string;
+}
+
 export interface WithCommandOptions {
     /** Optional configuration for the command. */
     commandOptions?: CommandOptions;
@@ -1813,6 +1818,13 @@ export interface WithEndpointOptions {
     isExternal?: boolean | null;
     /** Network protocol: TCP or UDP are supported today, others possibly in future. */
     protocol?: ProtocolType | null;
+}
+
+export interface WithExecutableDebugSupportOptions {
+    /** The optional runtime executable to use in the launch configuration. */
+    runtimeExecutable?: string;
+    /** The optional launch method to use in the launch configuration. */
+    launchMethod?: string;
 }
 
 export interface WithHiddenOnCompletionOptions {
@@ -2413,6 +2425,8 @@ const CommandLineArgsCallbackContextPromiseImpl = $aspireCreateFluentPromiseClas
 /** Provides an ATS-first editor for command-line arguments within polyglot callbacks. */
 export interface CommandLineArgsEditor {
     toJSON(): MarshalledHandle;
+    /** Clears all command-line arguments. */
+    clear(): CommandLineArgsEditorPromise;
     /**
      * Adds a command-line argument.
      * @param value The argument to add.
@@ -2421,6 +2435,8 @@ export interface CommandLineArgsEditor {
 }
 
 export interface CommandLineArgsEditorPromise extends PromiseLike<CommandLineArgsEditor> {
+    /** Clears all command-line arguments. */
+    clear(): CommandLineArgsEditorPromise;
     /**
      * Adds a command-line argument.
      * @param value The argument to add.
@@ -2438,6 +2454,21 @@ class CommandLineArgsEditorImpl implements CommandLineArgsEditor {
 
     /** Serialize for JSON-RPC transport */
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** @internal */
+    async _clearInternal(): Promise<CommandLineArgsEditor> {
+        const rpcArgs: Record<string, unknown> = { context: this._handle };
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/clear',
+            rpcArgs
+        );
+        return this;
+    }
+
+    /** Clears all command-line arguments. */
+    clear(): CommandLineArgsEditorPromise {
+        return new CommandLineArgsEditorPromiseImpl(this._clearInternal(), this._client);
+    }
 
     /** @internal */
     async _addInternal(value: string | ReferenceExpression | EndpointReference | ParameterResource | ResourceWithConnectionString | TestRedisResource | DestinationImageResource | EndpointReferenceExpression | Awaitable<EndpointReference | ParameterResource | ResourceWithConnectionString | TestRedisResource | DestinationImageResource | EndpointReferenceExpression>): Promise<CommandLineArgsEditor> {
@@ -2462,6 +2493,7 @@ class CommandLineArgsEditorImpl implements CommandLineArgsEditor {
 
 /** @internal */
 const CommandLineArgsEditorPromiseImpl = $aspireCreateFluentPromiseClass<CommandLineArgsEditor, CommandLineArgsEditorPromise>((): $aspireFluentPromiseTransitions => ({
+    ["clear"]: () => CommandLineArgsEditorPromiseImpl,
     ["add"]: () => CommandLineArgsEditorPromiseImpl,
 }));
 
@@ -3793,48 +3825,24 @@ const DockerfileBuilderPromiseImpl = $aspireCreateFluentPromiseClass<DockerfileB
 /** Provides context information for Dockerfile build callbacks. */
 export interface DockerfileBuilderCallbackContext {
     toJSON(): MarshalledHandle;
-    /**
-     * Gets the resource being built.
-     * @experimental
-     */
+    /** Gets the resource being built. */
     resource(): ResourcePromise;
-    /**
-     * Gets the Dockerfile builder instance.
-     * @experimental
-     */
+    /** Gets the Dockerfile builder instance. */
     builder(): DockerfileBuilderPromise;
-    /**
-     * Gets the service provider for dependency injection.
-     * @experimental
-     */
+    /** Gets the service provider for dependency injection. */
     services(): ServiceProviderPromise;
-    /**
-     * Gets the cancellation token to observe while waiting for the task to complete.
-     * @experimental
-     */
+    /** Gets the cancellation token to observe while waiting for the task to complete. */
     cancellationToken(): Promise<CancellationToken>;
 }
 
 export interface DockerfileBuilderCallbackContextPromise extends PromiseLike<DockerfileBuilderCallbackContext> {
-    /**
-     * Gets the resource being built.
-     * @experimental
-     */
+    /** Gets the resource being built. */
     resource(): ResourcePromise;
-    /**
-     * Gets the Dockerfile builder instance.
-     * @experimental
-     */
+    /** Gets the Dockerfile builder instance. */
     builder(): DockerfileBuilderPromise;
-    /**
-     * Gets the service provider for dependency injection.
-     * @experimental
-     */
+    /** Gets the service provider for dependency injection. */
     services(): ServiceProviderPromise;
-    /**
-     * Gets the cancellation token to observe while waiting for the task to complete.
-     * @experimental
-     */
+    /** Gets the cancellation token to observe while waiting for the task to complete. */
     cancellationToken(): Promise<CancellationToken>;
 }
 
@@ -9702,28 +9710,13 @@ export interface DistributedApplicationBuilder {
     /**
      * Adds a container resource built from a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Use the callback's Dockerfile builder to define the image's stages and instructions.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param name The name of the resource.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     addDockerfileBuilder(name: string, contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: AddDockerfileBuilderOptions): ContainerResourcePromise;
     /**
@@ -9950,28 +9943,13 @@ export interface DistributedApplicationBuilderPromise extends PromiseLike<Distri
     /**
      * Adds a container resource built from a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Use the callback's Dockerfile builder to define the image's stages and instructions.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param name The name of the resource.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     addDockerfileBuilder(name: string, contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: AddDockerfileBuilderOptions): ContainerResourcePromise;
     /**
@@ -10353,28 +10331,13 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     /**
      * Adds a container resource built from a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Use the callback's Dockerfile builder to define the image's stages and instructions.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param name The name of the resource.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     addDockerfileBuilder(name: string, contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: AddDockerfileBuilderOptions): ContainerResourcePromise {
         const stage = options?.stage;
@@ -13064,20 +13027,10 @@ export interface ContainerImageResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerImageResourcePromise;
     /**
@@ -13135,6 +13088,25 @@ export interface ContainerImageResource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ContainerImageResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -13457,20 +13429,10 @@ export interface ContainerImageResourcePromise extends PromiseLike<ContainerImag
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerImageResourcePromise;
     /**
@@ -13528,6 +13490,25 @@ export interface ContainerImageResourcePromise extends PromiseLike<ContainerImag
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ContainerImageResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -13987,20 +13968,10 @@ class ContainerImageResourceImpl extends ResourceBuilderBase<ContainerImageResou
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerImageResourcePromise {
         const buildImage = options?.buildImage;
@@ -14149,6 +14120,50 @@ class ContainerImageResourceImpl extends ResourceBuilderBase<ContainerImageResou
      */
     withParentProcessLifetime(parentProcessId: number): ContainerImageResourcePromise {
         return new ContainerImageResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -15215,6 +15230,9 @@ const ContainerImageResourcePromiseImpl = $aspireCreateFluentPromiseClass<Contai
     ["withPersistentLifetime"]: () => ContainerImageResourcePromiseImpl,
     ["withLifetimeOf"]: () => ContainerImageResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => ContainerImageResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => ContainerImageResourcePromiseImpl,
     ["withUrl"]: () => ContainerImageResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => ContainerImageResourcePromiseImpl,
@@ -15299,20 +15317,10 @@ export interface ContainerRegistryResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerRegistryResourcePromise;
     /**
@@ -15370,6 +15378,25 @@ export interface ContainerRegistryResource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ContainerRegistryResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -15644,20 +15671,10 @@ export interface ContainerRegistryResourcePromise extends PromiseLike<ContainerR
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerRegistryResourcePromise;
     /**
@@ -15715,6 +15732,25 @@ export interface ContainerRegistryResourcePromise extends PromiseLike<ContainerR
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ContainerRegistryResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -16037,20 +16073,10 @@ class ContainerRegistryResourceImpl extends ResourceBuilderBase<ContainerRegistr
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerRegistryResourcePromise {
         const buildImage = options?.buildImage;
@@ -16199,6 +16225,50 @@ class ContainerRegistryResourceImpl extends ResourceBuilderBase<ContainerRegistr
      */
     withParentProcessLifetime(parentProcessId: number): ContainerRegistryResourcePromise {
         return new ContainerRegistryResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -17285,6 +17355,9 @@ const ContainerRegistryResourcePromiseImpl = $aspireCreateFluentPromiseClass<Con
     ["withPersistentLifetime"]: () => ContainerRegistryResourcePromiseImpl,
     ["withLifetimeOf"]: () => ContainerRegistryResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => ContainerRegistryResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => ContainerRegistryResourcePromiseImpl,
     ["withUrl"]: () => ContainerRegistryResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => ContainerRegistryResourcePromiseImpl,
@@ -17513,49 +17586,22 @@ export interface ContainerResource {
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): ContainerResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerResourcePromise;
     /**
@@ -17661,6 +17707,31 @@ export interface ContainerResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): ContainerResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ContainerResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -17875,6 +17946,13 @@ export interface ContainerResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ContainerResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ContainerResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -18343,49 +18421,22 @@ export interface ContainerResourcePromise extends PromiseLike<ContainerResource>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): ContainerResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerResourcePromise;
     /**
@@ -18491,6 +18542,31 @@ export interface ContainerResourcePromise extends PromiseLike<ContainerResource>
      * @returns The resource builder.
      */
     withArgs(args: string[]): ContainerResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ContainerResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -18705,6 +18781,13 @@ export interface ContainerResourcePromise extends PromiseLike<ContainerResource>
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ContainerResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ContainerResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -19477,30 +19560,13 @@ class ContainerResourceImpl extends ResourceBuilderBase<ContainerResourceHandle>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): ContainerResourcePromise {
         const stage = options?.stage;
@@ -19522,20 +19588,10 @@ class ContainerResourceImpl extends ResourceBuilderBase<ContainerResourceHandle>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ContainerResourcePromise {
         const buildImage = options?.buildImage;
@@ -19835,6 +19891,69 @@ class ContainerResourceImpl extends ResourceBuilderBase<ContainerResourceHandle>
      */
     withArgs(args: string[]): ContainerResourcePromise {
         return new ContainerResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new ContainerResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ContainerResourcePromise {
+        return new ContainerResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -20661,6 +20780,28 @@ class ContainerResourceImpl extends ResourceBuilderBase<ContainerResourceHandle>
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ContainerResourcePromise {
         return new ContainerResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<ContainerResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new ContainerResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ContainerResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new ContainerResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -21794,6 +21935,10 @@ const ContainerResourcePromiseImpl = $aspireCreateFluentPromiseClass<ContainerRe
     ["withEnvironment"]: () => ContainerResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => ContainerResourcePromiseImpl,
     ["withArgs"]: () => ContainerResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => ContainerResourcePromiseImpl,
     ["withArgsCallback"]: () => ContainerResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => ContainerResourcePromiseImpl,
     ["withReference"]: () => ContainerResourcePromiseImpl,
@@ -21823,6 +21968,7 @@ const ContainerResourcePromiseImpl = $aspireCreateFluentPromiseClass<ContainerRe
     ["withHttpCommand"]: () => ContainerResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => ContainerResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => ContainerResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => ContainerResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => ContainerResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => ContainerResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => ContainerResourcePromiseImpl,
@@ -21896,20 +22042,10 @@ export interface CSharpAppResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): CSharpAppResourcePromise;
     /**
@@ -22017,6 +22153,31 @@ export interface CSharpAppResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): CSharpAppResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): CSharpAppResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -22237,6 +22398,13 @@ export interface CSharpAppResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): CSharpAppResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): CSharpAppResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -22549,20 +22717,10 @@ export interface CSharpAppResourcePromise extends PromiseLike<CSharpAppResource>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): CSharpAppResourcePromise;
     /**
@@ -22670,6 +22828,31 @@ export interface CSharpAppResourcePromise extends PromiseLike<CSharpAppResource>
      * @returns The resource builder.
      */
     withArgs(args: string[]): CSharpAppResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): CSharpAppResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -22890,6 +23073,13 @@ export interface CSharpAppResourcePromise extends PromiseLike<CSharpAppResource>
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): CSharpAppResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): CSharpAppResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -23236,20 +23426,10 @@ class CSharpAppResourceImpl extends ResourceBuilderBase<CSharpAppResourceHandle>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): CSharpAppResourcePromise {
         const buildImage = options?.buildImage;
@@ -23571,6 +23751,69 @@ class CSharpAppResourceImpl extends ResourceBuilderBase<CSharpAppResourceHandle>
      */
     withArgs(args: string[]): CSharpAppResourcePromise {
         return new CSharpAppResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<CSharpAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new CSharpAppResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): CSharpAppResourcePromise {
+        return new CSharpAppResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -24417,6 +24660,28 @@ class CSharpAppResourceImpl extends ResourceBuilderBase<CSharpAppResourceHandle>
      */
     withCertificateTrustScope(scope: CertificateTrustScope): CSharpAppResourcePromise {
         return new CSharpAppResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<CSharpAppResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new CSharpAppResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): CSharpAppResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new CSharpAppResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -25544,6 +25809,10 @@ const CSharpAppResourcePromiseImpl = $aspireCreateFluentPromiseClass<CSharpAppRe
     ["withEnvironment"]: () => CSharpAppResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => CSharpAppResourcePromiseImpl,
     ["withArgs"]: () => CSharpAppResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => CSharpAppResourcePromiseImpl,
     ["withArgsCallback"]: () => CSharpAppResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => CSharpAppResourcePromiseImpl,
     ["withReference"]: () => CSharpAppResourcePromiseImpl,
@@ -25574,6 +25843,7 @@ const CSharpAppResourcePromiseImpl = $aspireCreateFluentPromiseClass<CSharpAppRe
     ["withHttpCommand"]: () => CSharpAppResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => CSharpAppResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => CSharpAppResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => CSharpAppResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => CSharpAppResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => CSharpAppResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => CSharpAppResourcePromiseImpl,
@@ -25691,20 +25961,10 @@ export interface DestinationImageResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DestinationImageResourcePromise;
     /**
@@ -25762,6 +26022,25 @@ export interface DestinationImageResource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): DestinationImageResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -26057,20 +26336,10 @@ export interface DestinationImageResourcePromise extends PromiseLike<Destination
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DestinationImageResourcePromise;
     /**
@@ -26128,6 +26397,25 @@ export interface DestinationImageResourcePromise extends PromiseLike<Destination
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): DestinationImageResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -26463,20 +26751,10 @@ class DestinationImageResourceImpl extends ResourceBuilderBase<DestinationImageR
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DestinationImageResourcePromise {
         const buildImage = options?.buildImage;
@@ -26625,6 +26903,50 @@ class DestinationImageResourceImpl extends ResourceBuilderBase<DestinationImageR
      */
     withParentProcessLifetime(parentProcessId: number): DestinationImageResourcePromise {
         return new DestinationImageResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -27715,6 +28037,9 @@ const DestinationImageResourcePromiseImpl = $aspireCreateFluentPromiseClass<Dest
     ["withPersistentLifetime"]: () => DestinationImageResourcePromiseImpl,
     ["withLifetimeOf"]: () => DestinationImageResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => DestinationImageResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => DestinationImageResourcePromiseImpl,
     ["withUrl"]: () => DestinationImageResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => DestinationImageResourcePromiseImpl,
@@ -27785,20 +28110,10 @@ export interface DotnetToolResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DotnetToolResourcePromise;
     /**
@@ -27946,6 +28261,31 @@ export interface DotnetToolResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): DotnetToolResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): DotnetToolResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -28161,6 +28501,13 @@ export interface DotnetToolResource {
      */
     withCertificateTrustScope(scope: CertificateTrustScope): DotnetToolResourcePromise;
     /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): DotnetToolResourcePromise;
+    /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
      * Use the developer certificate for HTTPS/TLS endpoints on a container resource:
@@ -28255,6 +28602,14 @@ export interface DotnetToolResource {
      * @returns The resource builder.
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): DotnetToolResourcePromise;
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): DotnetToolResourcePromise;
     /**
      * Adds an HTTP health probe to the resource
      * @param options Additional options.
@@ -28466,20 +28821,10 @@ export interface DotnetToolResourcePromise extends PromiseLike<DotnetToolResourc
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DotnetToolResourcePromise;
     /**
@@ -28627,6 +28972,31 @@ export interface DotnetToolResourcePromise extends PromiseLike<DotnetToolResourc
      * @returns The resource builder.
      */
     withArgs(args: string[]): DotnetToolResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): DotnetToolResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -28842,6 +29212,13 @@ export interface DotnetToolResourcePromise extends PromiseLike<DotnetToolResourc
      */
     withCertificateTrustScope(scope: CertificateTrustScope): DotnetToolResourcePromise;
     /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): DotnetToolResourcePromise;
+    /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
      * Use the developer certificate for HTTPS/TLS endpoints on a container resource:
@@ -28936,6 +29313,14 @@ export interface DotnetToolResourcePromise extends PromiseLike<DotnetToolResourc
      * @returns The resource builder.
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): DotnetToolResourcePromise;
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): DotnetToolResourcePromise;
     /**
      * Adds an HTTP health probe to the resource
      * @param options Additional options.
@@ -29181,20 +29566,10 @@ class DotnetToolResourceImpl extends ResourceBuilderBase<DotnetToolResourceHandl
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): DotnetToolResourcePromise {
         const buildImage = options?.buildImage;
@@ -29632,6 +30007,69 @@ class DotnetToolResourceImpl extends ResourceBuilderBase<DotnetToolResourceHandl
      */
     withArgs(args: string[]): DotnetToolResourcePromise {
         return new DotnetToolResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<DotnetToolResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new DotnetToolResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): DotnetToolResourcePromise {
+        return new DotnetToolResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -30461,6 +30899,28 @@ class DotnetToolResourceImpl extends ResourceBuilderBase<DotnetToolResourceHandl
     }
 
     /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<DotnetToolResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new DotnetToolResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): DotnetToolResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new DotnetToolResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
+    }
+
+    /** @internal */
     private async _withHttpsDeveloperCertificateInternal(password?: Awaitable<ParameterResource>): Promise<DotnetToolResource> {
         password = isPromiseLike(password) ? await password : password;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
@@ -30689,6 +31149,31 @@ class DotnetToolResourceImpl extends ResourceBuilderBase<DotnetToolResourceHandl
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): DotnetToolResourcePromise {
         return new DotnetToolResourcePromiseImpl(this._withComputeEnvironmentInternal(computeEnvironmentResource), this._client);
+    }
+
+    /** @internal */
+    private async _withExecutableDebugSupportInternal(launchConfigurationType: string, scriptPath: string, runtimeExecutable?: string, launchMethod?: string): Promise<DotnetToolResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, launchConfigurationType, scriptPath };
+        if (runtimeExecutable !== undefined) rpcArgs.runtimeExecutable = runtimeExecutable;
+        if (launchMethod !== undefined) rpcArgs.launchMethod = launchMethod;
+        const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
+            'Aspire.Hosting/withExecutableDebugSupport',
+            rpcArgs
+        );
+        return new DotnetToolResourceImpl(result, this._client);
+    }
+
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): DotnetToolResourcePromise {
+        const runtimeExecutable = options?.runtimeExecutable;
+        const launchMethod = options?.launchMethod;
+        return new DotnetToolResourcePromiseImpl(this._withExecutableDebugSupportInternal(launchConfigurationType, scriptPath, runtimeExecutable, launchMethod), this._client);
     }
 
     /** @internal */
@@ -31572,6 +32057,10 @@ const DotnetToolResourcePromiseImpl = $aspireCreateFluentPromiseClass<DotnetTool
     ["withEnvironment"]: () => DotnetToolResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => DotnetToolResourcePromiseImpl,
     ["withArgs"]: () => DotnetToolResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => DotnetToolResourcePromiseImpl,
     ["withArgsCallback"]: () => DotnetToolResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => DotnetToolResourcePromiseImpl,
     ["withReference"]: () => DotnetToolResourcePromiseImpl,
@@ -31601,6 +32090,7 @@ const DotnetToolResourcePromiseImpl = $aspireCreateFluentPromiseClass<DotnetTool
     ["withHttpCommand"]: () => DotnetToolResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => DotnetToolResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => DotnetToolResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => DotnetToolResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => DotnetToolResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => DotnetToolResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => DotnetToolResourcePromiseImpl,
@@ -31610,6 +32100,7 @@ const DotnetToolResourcePromiseImpl = $aspireCreateFluentPromiseClass<DotnetTool
     ["withChildRelationship"]: () => DotnetToolResourcePromiseImpl,
     ["withIconName"]: () => DotnetToolResourcePromiseImpl,
     ["withComputeEnvironment"]: () => DotnetToolResourcePromiseImpl,
+    ["withExecutableDebugSupport"]: () => DotnetToolResourcePromiseImpl,
     ["withHttpProbe"]: () => DotnetToolResourcePromiseImpl,
     ["excludeFromMcp"]: () => DotnetToolResourcePromiseImpl,
     ["withHidden"]: () => DotnetToolResourcePromiseImpl,
@@ -31681,20 +32172,10 @@ export interface ExecutableResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExecutableResourcePromise;
     /**
@@ -31803,6 +32284,31 @@ export interface ExecutableResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): ExecutableResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ExecutableResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -32018,6 +32524,13 @@ export interface ExecutableResource {
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ExecutableResourcePromise;
     /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ExecutableResourcePromise;
+    /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
      * Use the developer certificate for HTTPS/TLS endpoints on a container resource:
@@ -32112,6 +32625,14 @@ export interface ExecutableResource {
      * @returns The resource builder.
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): ExecutableResourcePromise;
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): ExecutableResourcePromise;
     /**
      * Adds an HTTP health probe to the resource
      * @param options Additional options.
@@ -32323,20 +32844,10 @@ export interface ExecutableResourcePromise extends PromiseLike<ExecutableResourc
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExecutableResourcePromise;
     /**
@@ -32445,6 +32956,31 @@ export interface ExecutableResourcePromise extends PromiseLike<ExecutableResourc
      * @returns The resource builder.
      */
     withArgs(args: string[]): ExecutableResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ExecutableResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -32660,6 +33196,13 @@ export interface ExecutableResourcePromise extends PromiseLike<ExecutableResourc
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ExecutableResourcePromise;
     /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ExecutableResourcePromise;
+    /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
      * Use the developer certificate for HTTPS/TLS endpoints on a container resource:
@@ -32754,6 +33297,14 @@ export interface ExecutableResourcePromise extends PromiseLike<ExecutableResourc
      * @returns The resource builder.
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): ExecutableResourcePromise;
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): ExecutableResourcePromise;
     /**
      * Adds an HTTP health probe to the resource
      * @param options Additional options.
@@ -33006,20 +33557,10 @@ class ExecutableResourceImpl extends ResourceBuilderBase<ExecutableResourceHandl
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExecutableResourcePromise {
         const buildImage = options?.buildImage;
@@ -33340,6 +33881,69 @@ class ExecutableResourceImpl extends ResourceBuilderBase<ExecutableResourceHandl
      */
     withArgs(args: string[]): ExecutableResourcePromise {
         return new ExecutableResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new ExecutableResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ExecutableResourcePromise {
+        return new ExecutableResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -34169,6 +34773,28 @@ class ExecutableResourceImpl extends ResourceBuilderBase<ExecutableResourceHandl
     }
 
     /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new ExecutableResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ExecutableResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new ExecutableResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
+    }
+
+    /** @internal */
     private async _withHttpsDeveloperCertificateInternal(password?: Awaitable<ParameterResource>): Promise<ExecutableResource> {
         password = isPromiseLike(password) ? await password : password;
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
@@ -34397,6 +35023,31 @@ class ExecutableResourceImpl extends ResourceBuilderBase<ExecutableResourceHandl
      */
     withComputeEnvironment(computeEnvironmentResource: Awaitable<ComputeEnvironmentResource>): ExecutableResourcePromise {
         return new ExecutableResourcePromiseImpl(this._withComputeEnvironmentInternal(computeEnvironmentResource), this._client);
+    }
+
+    /** @internal */
+    private async _withExecutableDebugSupportInternal(launchConfigurationType: string, scriptPath: string, runtimeExecutable?: string, launchMethod?: string): Promise<ExecutableResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, launchConfigurationType, scriptPath };
+        if (runtimeExecutable !== undefined) rpcArgs.runtimeExecutable = runtimeExecutable;
+        if (launchMethod !== undefined) rpcArgs.launchMethod = launchMethod;
+        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+            'Aspire.Hosting/withExecutableDebugSupport',
+            rpcArgs
+        );
+        return new ExecutableResourceImpl(result, this._client);
+    }
+
+    /**
+     * Adds VS Code-compatible debug metadata for an executable resource.
+     * @param launchConfigurationType The launch configuration type understood by the extension.
+     * @param scriptPath The script path, relative to the executable working directory when not rooted.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withExecutableDebugSupport(launchConfigurationType: string, scriptPath: string, options?: WithExecutableDebugSupportOptions): ExecutableResourcePromise {
+        const runtimeExecutable = options?.runtimeExecutable;
+        const launchMethod = options?.launchMethod;
+        return new ExecutableResourcePromiseImpl(this._withExecutableDebugSupportInternal(launchConfigurationType, scriptPath, runtimeExecutable, launchMethod), this._client);
     }
 
     /** @internal */
@@ -35274,6 +35925,10 @@ const ExecutableResourcePromiseImpl = $aspireCreateFluentPromiseClass<Executable
     ["withEnvironment"]: () => ExecutableResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => ExecutableResourcePromiseImpl,
     ["withArgs"]: () => ExecutableResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => ExecutableResourcePromiseImpl,
     ["withArgsCallback"]: () => ExecutableResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => ExecutableResourcePromiseImpl,
     ["withReference"]: () => ExecutableResourcePromiseImpl,
@@ -35303,6 +35958,7 @@ const ExecutableResourcePromiseImpl = $aspireCreateFluentPromiseClass<Executable
     ["withHttpCommand"]: () => ExecutableResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => ExecutableResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => ExecutableResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => ExecutableResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => ExecutableResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => ExecutableResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => ExecutableResourcePromiseImpl,
@@ -35312,6 +35968,7 @@ const ExecutableResourcePromiseImpl = $aspireCreateFluentPromiseClass<Executable
     ["withChildRelationship"]: () => ExecutableResourcePromiseImpl,
     ["withIconName"]: () => ExecutableResourcePromiseImpl,
     ["withComputeEnvironment"]: () => ExecutableResourcePromiseImpl,
+    ["withExecutableDebugSupport"]: () => ExecutableResourcePromiseImpl,
     ["withHttpProbe"]: () => ExecutableResourcePromiseImpl,
     ["excludeFromMcp"]: () => ExecutableResourcePromiseImpl,
     ["withHidden"]: () => ExecutableResourcePromiseImpl,
@@ -35376,20 +36033,10 @@ export interface ExternalServiceResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExternalServiceResourcePromise;
     /**
@@ -35452,6 +36099,25 @@ export interface ExternalServiceResource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ExternalServiceResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -35711,20 +36377,10 @@ export interface ExternalServiceResourcePromise extends PromiseLike<ExternalServ
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExternalServiceResourcePromise;
     /**
@@ -35787,6 +36443,25 @@ export interface ExternalServiceResourcePromise extends PromiseLike<ExternalServ
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ExternalServiceResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -36080,20 +36755,10 @@ class ExternalServiceResourceImpl extends ResourceBuilderBase<ExternalServiceRes
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ExternalServiceResourcePromise {
         const buildImage = options?.buildImage;
@@ -36266,6 +36931,50 @@ class ExternalServiceResourceImpl extends ResourceBuilderBase<ExternalServiceRes
      */
     withParentProcessLifetime(parentProcessId: number): ExternalServiceResourcePromise {
         return new ExternalServiceResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -37352,6 +38061,9 @@ const ExternalServiceResourcePromiseImpl = $aspireCreateFluentPromiseClass<Exter
     ["withPersistentLifetime"]: () => ExternalServiceResourcePromiseImpl,
     ["withLifetimeOf"]: () => ExternalServiceResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => ExternalServiceResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => ExternalServiceResourcePromiseImpl,
     ["withUrl"]: () => ExternalServiceResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => ExternalServiceResourcePromiseImpl,
@@ -37423,20 +38135,10 @@ export interface ParameterResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ParameterResourcePromise;
     /**
@@ -37507,6 +38209,25 @@ export interface ParameterResource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ParameterResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -37766,20 +38487,10 @@ export interface ParameterResourcePromise extends PromiseLike<ParameterResource>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ParameterResourcePromise;
     /**
@@ -37850,6 +38561,25 @@ export interface ParameterResourcePromise extends PromiseLike<ParameterResource>
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ParameterResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -38144,20 +38874,10 @@ class ParameterResourceImpl extends ResourceBuilderBase<ParameterResourceHandle>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ParameterResourcePromise {
         const buildImage = options?.buildImage;
@@ -38347,6 +39067,50 @@ class ParameterResourceImpl extends ResourceBuilderBase<ParameterResourceHandle>
      */
     withParentProcessLifetime(parentProcessId: number): ParameterResourcePromise {
         return new ParameterResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -39434,6 +40198,9 @@ const ParameterResourcePromiseImpl = $aspireCreateFluentPromiseClass<ParameterRe
     ["withPersistentLifetime"]: () => ParameterResourcePromiseImpl,
     ["withLifetimeOf"]: () => ParameterResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => ParameterResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => ParameterResourcePromiseImpl,
     ["withUrl"]: () => ParameterResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => ParameterResourcePromiseImpl,
@@ -39505,20 +40272,10 @@ export interface ProjectResource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ProjectResourcePromise;
     /**
@@ -39626,6 +40383,31 @@ export interface ProjectResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): ProjectResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ProjectResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -39846,6 +40628,13 @@ export interface ProjectResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ProjectResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ProjectResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -40158,20 +40947,10 @@ export interface ProjectResourcePromise extends PromiseLike<ProjectResource> {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ProjectResourcePromise;
     /**
@@ -40279,6 +41058,31 @@ export interface ProjectResourcePromise extends PromiseLike<ProjectResource> {
      * @returns The resource builder.
      */
     withArgs(args: string[]): ProjectResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ProjectResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -40499,6 +41303,13 @@ export interface ProjectResourcePromise extends PromiseLike<ProjectResource> {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ProjectResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ProjectResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -40846,20 +41657,10 @@ class ProjectResourceImpl extends ResourceBuilderBase<ProjectResourceHandle> imp
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ProjectResourcePromise {
         const buildImage = options?.buildImage;
@@ -41181,6 +41982,69 @@ class ProjectResourceImpl extends ResourceBuilderBase<ProjectResourceHandle> imp
      */
     withArgs(args: string[]): ProjectResourcePromise {
         return new ProjectResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new ProjectResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ProjectResourcePromise {
+        return new ProjectResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -42027,6 +42891,28 @@ class ProjectResourceImpl extends ResourceBuilderBase<ProjectResourceHandle> imp
      */
     withCertificateTrustScope(scope: CertificateTrustScope): ProjectResourcePromise {
         return new ProjectResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<ProjectResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new ProjectResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ProjectResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new ProjectResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -43154,6 +44040,10 @@ const ProjectResourcePromiseImpl = $aspireCreateFluentPromiseClass<ProjectResour
     ["withEnvironment"]: () => ProjectResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => ProjectResourcePromiseImpl,
     ["withArgs"]: () => ProjectResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => ProjectResourcePromiseImpl,
     ["withArgsCallback"]: () => ProjectResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => ProjectResourcePromiseImpl,
     ["withReference"]: () => ProjectResourcePromiseImpl,
@@ -43184,6 +44074,7 @@ const ProjectResourcePromiseImpl = $aspireCreateFluentPromiseClass<ProjectResour
     ["withHttpCommand"]: () => ProjectResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => ProjectResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => ProjectResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => ProjectResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => ProjectResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => ProjectResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => ProjectResourcePromiseImpl,
@@ -43415,49 +44306,22 @@ export interface TestDatabaseResource {
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestDatabaseResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestDatabaseResourcePromise;
     /**
@@ -43563,6 +44427,31 @@ export interface TestDatabaseResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestDatabaseResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestDatabaseResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -43777,6 +44666,13 @@ export interface TestDatabaseResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestDatabaseResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestDatabaseResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -44245,49 +45141,22 @@ export interface TestDatabaseResourcePromise extends PromiseLike<TestDatabaseRes
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestDatabaseResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestDatabaseResourcePromise;
     /**
@@ -44393,6 +45262,31 @@ export interface TestDatabaseResourcePromise extends PromiseLike<TestDatabaseRes
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestDatabaseResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestDatabaseResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -44607,6 +45501,13 @@ export interface TestDatabaseResourcePromise extends PromiseLike<TestDatabaseRes
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestDatabaseResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestDatabaseResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -45378,30 +46279,13 @@ class TestDatabaseResourceImpl extends ResourceBuilderBase<TestDatabaseResourceH
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestDatabaseResourcePromise {
         const stage = options?.stage;
@@ -45423,20 +46307,10 @@ class TestDatabaseResourceImpl extends ResourceBuilderBase<TestDatabaseResourceH
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestDatabaseResourcePromise {
         const buildImage = options?.buildImage;
@@ -45736,6 +46610,69 @@ class TestDatabaseResourceImpl extends ResourceBuilderBase<TestDatabaseResourceH
      */
     withArgs(args: string[]): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<TestDatabaseResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new TestDatabaseResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestDatabaseResourcePromise {
+        return new TestDatabaseResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -46562,6 +47499,28 @@ class TestDatabaseResourceImpl extends ResourceBuilderBase<TestDatabaseResourceH
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestDatabaseResourcePromise {
         return new TestDatabaseResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<TestDatabaseResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new TestDatabaseResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestDatabaseResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new TestDatabaseResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -47695,6 +48654,10 @@ const TestDatabaseResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestData
     ["withEnvironment"]: () => TestDatabaseResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => TestDatabaseResourcePromiseImpl,
     ["withArgs"]: () => TestDatabaseResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => TestDatabaseResourcePromiseImpl,
     ["withArgsCallback"]: () => TestDatabaseResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => TestDatabaseResourcePromiseImpl,
     ["withReference"]: () => TestDatabaseResourcePromiseImpl,
@@ -47724,6 +48687,7 @@ const TestDatabaseResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestData
     ["withHttpCommand"]: () => TestDatabaseResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => TestDatabaseResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => TestDatabaseResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => TestDatabaseResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => TestDatabaseResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => TestDatabaseResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => TestDatabaseResourcePromiseImpl,
@@ -47954,49 +48918,22 @@ export interface TestRedisResource {
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestRedisResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestRedisResourcePromise;
     /**
@@ -48109,6 +49046,31 @@ export interface TestRedisResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestRedisResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestRedisResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -48332,6 +49294,13 @@ export interface TestRedisResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestRedisResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestRedisResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -48868,49 +49837,22 @@ export interface TestRedisResourcePromise extends PromiseLike<TestRedisResource>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestRedisResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestRedisResourcePromise;
     /**
@@ -49023,6 +49965,31 @@ export interface TestRedisResourcePromise extends PromiseLike<TestRedisResource>
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestRedisResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestRedisResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -49246,6 +50213,13 @@ export interface TestRedisResourcePromise extends PromiseLike<TestRedisResource>
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestRedisResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestRedisResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -50085,30 +51059,13 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestRedisResourcePromise {
         const stage = options?.stage;
@@ -50130,20 +51087,10 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestRedisResourcePromise {
         const buildImage = options?.buildImage;
@@ -50463,6 +51410,69 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
      */
     withArgs(args: string[]): TestRedisResourcePromise {
         return new TestRedisResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new TestRedisResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestRedisResourcePromise {
+        return new TestRedisResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -51305,6 +52315,28 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestRedisResourcePromise {
         return new TestRedisResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<TestRedisResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new TestRedisResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestRedisResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new TestRedisResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -52714,6 +53746,10 @@ const TestRedisResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestRedisRe
     ["withEnvironmentCallback"]: () => TestRedisResourcePromiseImpl,
     ["withConnectionProperty"]: () => TestRedisResourcePromiseImpl,
     ["withArgs"]: () => TestRedisResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => TestRedisResourcePromiseImpl,
     ["withArgsCallback"]: () => TestRedisResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => TestRedisResourcePromiseImpl,
     ["withReference"]: () => TestRedisResourcePromiseImpl,
@@ -52744,6 +53780,7 @@ const TestRedisResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestRedisRe
     ["withHttpCommand"]: () => TestRedisResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => TestRedisResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => TestRedisResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => TestRedisResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => TestRedisResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => TestRedisResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => TestRedisResourcePromiseImpl,
@@ -52990,49 +54027,22 @@ export interface TestVaultResource {
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestVaultResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestVaultResourcePromise;
     /**
@@ -53138,6 +54148,31 @@ export interface TestVaultResource {
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestVaultResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestVaultResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -53352,6 +54387,13 @@ export interface TestVaultResource {
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestVaultResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestVaultResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -53822,49 +54864,22 @@ export interface TestVaultResourcePromise extends PromiseLike<TestVaultResource>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestVaultResourcePromise;
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestVaultResourcePromise;
     /**
@@ -53970,6 +54985,31 @@ export interface TestVaultResourcePromise extends PromiseLike<TestVaultResource>
      * @returns The resource builder.
      */
     withArgs(args: string[]): TestVaultResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestVaultResourcePromise;
     /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
@@ -54184,6 +55224,13 @@ export interface TestVaultResourcePromise extends PromiseLike<TestVaultResource>
      * @returns The resource builder.
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestVaultResourcePromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestVaultResourcePromise;
     /**
      * Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time. Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used when running in local development scenarios; in publish mode resources will use their default certificate configuration.
      *
@@ -54957,30 +56004,13 @@ class TestVaultResourceImpl extends ResourceBuilderBase<TestVaultResourceHandle>
     /**
      * Configures the resource to use a programmatically generated Dockerfile
      *
-     * This method provides a programmatic way to build Dockerfiles using the `DockerfileBuilder` API
-     * instead of string manipulation. Callbacks can be composed by calling this method multiple times - each callback will be invoked
-     * in order to build up the final Dockerfile.
-     * The `contextPath` is relative to the AppHost directory unless it is fully qualified.
-     * Creates a container with a programmatically built Dockerfile using fluent API:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddContainer("mycontainer", "myimage")
-     * .WithDockerfileBuilder("path/to/context", context =>
-     * {
-     * context.Builder.From("alpine:latest")
-     * .WorkDir("/app")
-     * .Run("apk add curl")
-     * .Copy(".", ".")
-     * .Cmd(["./myapp"]);
-     * return Task.CompletedTask;
-     * });
-     * builder.Build().Run();
-     * ```
+     * Calling this method multiple times composes callbacks, which are invoked in registration order
+     * to build the final Dockerfile.
+     * The build context path is relative to the AppHost directory unless it is fully qualified.
      * @param contextPath Path to be used as the context for the container image build.
      * @param callback A callback that uses the `DockerfileBuilder` API to construct the Dockerfile.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBuilder(contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: WithDockerfileBuilderOptions): TestVaultResourcePromise {
         const stage = options?.stage;
@@ -55002,20 +56032,10 @@ class TestVaultResourceImpl extends ResourceBuilderBase<TestVaultResourceHandle>
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): TestVaultResourcePromise {
         const buildImage = options?.buildImage;
@@ -55315,6 +56335,69 @@ class TestVaultResourceImpl extends ResourceBuilderBase<TestVaultResourceHandle>
      */
     withArgs(args: string[]): TestVaultResourcePromise {
         return new TestVaultResourcePromiseImpl(this._withArgsInternal(args), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new TestVaultResourceImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): TestVaultResourcePromise {
+        return new TestVaultResourcePromiseImpl(this._withArgsReplaceInternal(args), this._client);
     }
 
     /** @internal */
@@ -56141,6 +57224,28 @@ class TestVaultResourceImpl extends ResourceBuilderBase<TestVaultResourceHandle>
      */
     withCertificateTrustScope(scope: CertificateTrustScope): TestVaultResourcePromise {
         return new TestVaultResourcePromiseImpl(this._withCertificateTrustScopeInternal(scope), this._client);
+    }
+
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<TestVaultResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<TestVaultResourceHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new TestVaultResourceImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): TestVaultResourcePromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new TestVaultResourcePromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
     }
 
     /** @internal */
@@ -57289,6 +58394,10 @@ const TestVaultResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestVaultRe
     ["withEnvironment"]: () => TestVaultResourcePromiseImpl,
     ["withEnvironmentCallback"]: () => TestVaultResourcePromiseImpl,
     ["withArgs"]: () => TestVaultResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
+    ["withArgsReplace"]: () => TestVaultResourcePromiseImpl,
     ["withArgsCallback"]: () => TestVaultResourcePromiseImpl,
     ["withReferenceEnvironment"]: () => TestVaultResourcePromiseImpl,
     ["withReference"]: () => TestVaultResourcePromiseImpl,
@@ -57318,6 +58427,7 @@ const TestVaultResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestVaultRe
     ["withHttpCommand"]: () => TestVaultResourcePromiseImpl,
     ["withDeveloperCertificateTrust"]: () => TestVaultResourcePromiseImpl,
     ["withCertificateTrustScope"]: () => TestVaultResourcePromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => TestVaultResourcePromiseImpl,
     ["withHttpsDeveloperCertificate"]: () => TestVaultResourcePromiseImpl,
     ["withoutHttpsCertificate"]: () => TestVaultResourcePromiseImpl,
     ["withHttpsCertificateConfiguration"]: () => TestVaultResourcePromiseImpl,
@@ -57676,20 +58786,10 @@ export interface Resource {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ResourcePromise;
     /**
@@ -57747,6 +58847,25 @@ export interface Resource {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -58006,20 +59125,10 @@ export interface ResourcePromise extends PromiseLike<Resource> {
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ResourcePromise;
     /**
@@ -58077,6 +59186,25 @@ export interface ResourcePromise extends PromiseLike<Resource> {
      * @experimental
      */
     withParentProcessLifetime(parentProcessId: number): ResourcePromise;
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise;
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    getSerializedAnnotation(annotationId: string): Promise<string>;
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    hasSerializedAnnotation(annotationId: string): Promise<boolean>;
     /**
      * Registers a callback to customize the URLs displayed for the resource.
      * @param callback The callback that will customize URLs for the resource.
@@ -58371,20 +59499,10 @@ class ResourceImpl extends ResourceBuilderBase<IResourceHandle> implements Resou
     /**
      * Configures custom base images for generated Dockerfiles.
      *
-     * This extension method allows customization of the base images used in generated Dockerfiles.
-     * For multi-stage Dockerfiles (e.g., Python with UV), you can specify separate build and runtime images.
-     * Specify custom base images for a Python application:
-     * ```
-     * var builder = DistributedApplication.CreateBuilder(args);
-     * builder.AddPythonApp("myapp", "path/to/app", "main.py")
-     * .WithDockerfileBaseImage(
-     * buildImage: "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
-     * runtimeImage: "python:3.12-slim-bookworm");
-     * builder.Build().Run();
-     * ```
+     * For multi-stage Dockerfiles, specify separate build and runtime base images.
+     * Images that are not specified use the integration's defaults. At least one base image must be specified.
      * @param options Additional options.
      * @returns The resource builder.
-     * @experimental
      */
     withDockerfileBaseImage(options?: WithDockerfileBaseImageOptions): ResourcePromise {
         const buildImage = options?.buildImage;
@@ -58533,6 +59651,50 @@ class ResourceImpl extends ResourceBuilderBase<IResourceHandle> implements Resou
      */
     withParentProcessLifetime(parentProcessId: number): ResourcePromise {
         return new ResourcePromiseImpl(this._withParentProcessLifetimeInternal(parentProcessId), this._client);
+    }
+
+    /**
+     * Stores a serialized ATS annotation payload on a resource, replacing any existing annotation with the same ID.
+     * @param annotationId The stable annotation identifier.
+     * @param json The serialized JSON payload.
+     * @returns The resource.
+     */
+    withSerializedAnnotation(annotationId: string, json: string): ResourcePromise {
+        const promise = (async () => {
+            const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId, json };
+            const handle = await this._client.invokeCapability<IResourceHandle>(
+                'Aspire.Hosting/withSerializedAnnotation',
+                rpcArgs
+            );
+            return new ResourceImpl(handle, this._client);
+        })();
+        return new ResourcePromiseImpl(promise, this._client);
+    }
+
+    /**
+     * Gets a serialized ATS annotation payload from a resource.
+     * @param annotationId The stable annotation identifier.
+     * @returns The serialized JSON payload.
+     */
+    async getSerializedAnnotation(annotationId: string): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getSerializedAnnotation',
+            rpcArgs
+        );
+    }
+
+    /**
+     * Determines whether a resource has a serialized ATS annotation with the specified ID.
+     * @param annotationId The stable annotation identifier.
+     * @returns `true` if the annotation exists; otherwise, `false`.
+     */
+    async hasSerializedAnnotation(annotationId: string): Promise<boolean> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle, annotationId };
+        return await this._client.invokeCapability<boolean>(
+            'Aspire.Hosting/hasSerializedAnnotation',
+            rpcArgs
+        );
     }
 
     /** @internal */
@@ -59618,6 +60780,9 @@ const ResourcePromiseImpl = $aspireCreateFluentPromiseClass<Resource, ResourcePr
     ["withPersistentLifetime"]: () => ResourcePromiseImpl,
     ["withLifetimeOf"]: () => ResourcePromiseImpl,
     ["withParentProcessLifetime"]: () => ResourcePromiseImpl,
+    ["withSerializedAnnotation"]: () => ResourcePromiseImpl,
+    ["getSerializedAnnotation"]: null,
+    ["hasSerializedAnnotation"]: null,
     ["withUrls"]: () => ResourcePromiseImpl,
     ["withUrl"]: () => ResourcePromiseImpl,
     ["withUrlForEndpoint"]: () => ResourcePromiseImpl,
@@ -59683,11 +60848,24 @@ export interface ResourceWithArgs {
      */
     withArgs(args: string[]): ResourceWithArgsPromise;
     /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ResourceWithArgsPromise;
+    /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
      * @returns The resource builder.
      */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ResourceWithArgsPromise;
 }
 
 export interface ResourceWithArgsPromise extends PromiseLike<ResourceWithArgs> {
@@ -59698,11 +60876,24 @@ export interface ResourceWithArgsPromise extends PromiseLike<ResourceWithArgs> {
      */
     withArgs(args: string[]): ResourceWithArgsPromise;
     /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ResourceWithArgsPromise;
+    /**
      * Adds a callback to be executed with a list of command-line arguments when a resource is started.
      * @param callback A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.
      * @returns The resource builder.
      */
     withArgsCallback(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): ResourceWithArgsPromise;
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ResourceWithArgsPromise;
 }
 
 // ============================================================================
@@ -59735,6 +60926,25 @@ class ResourceWithArgsImpl extends ResourceBuilderBase<IResourceWithArgsHandle> 
     }
 
     /** @internal */
+    private async _withArgsReplaceInternal(args: string[]): Promise<ResourceWithArgs> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, args };
+        const result = await this._client.invokeCapability<IResourceWithArgsHandle>(
+            'Aspire.Hosting/withArgsReplace',
+            rpcArgs
+        );
+        return new ResourceWithArgsImpl(result, this._client);
+    }
+
+    /**
+     * Replaces the arguments to be passed to a resource that supports arguments when it is launched.
+     * @param args The arguments to be passed to the resource when it is started.
+     * @returns The resource builder.
+     */
+    withArgsReplace(args: string[]): ResourceWithArgsPromise {
+        return new ResourceWithArgsPromiseImpl(this._withArgsReplaceInternal(args), this._client);
+    }
+
+    /** @internal */
     private async _withArgsCallbackInternal(callback: (obj: CommandLineArgsCallbackContext) => Promise<void>): Promise<ResourceWithArgs> {
         const callbackId = registerCallback(async (objData: unknown) => {
             const objHandle = wrapIfHandle(objData) as CommandLineArgsCallbackContextHandle;
@@ -59758,12 +60968,36 @@ class ResourceWithArgsImpl extends ResourceBuilderBase<IResourceWithArgsHandle> 
         return new ResourceWithArgsPromiseImpl(this._withArgsCallbackInternal(callback), this._client);
     }
 
+    /** @internal */
+    private async _withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable: string, certificateDirectoriesEnvironmentVariable?: string): Promise<ResourceWithArgs> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, certificateBundleEnvironmentVariable };
+        if (certificateDirectoriesEnvironmentVariable !== undefined) rpcArgs.certificateDirectoriesEnvironmentVariable = certificateDirectoriesEnvironmentVariable;
+        const result = await this._client.invokeCapability<IResourceWithArgsHandle>(
+            'Aspire.Hosting/withCertificateTrustEnvironment',
+            rpcArgs
+        );
+        return new ResourceWithArgsImpl(result, this._client);
+    }
+
+    /**
+     * Configures environment variables that point to Aspire-managed certificate trust paths.
+     * @param certificateBundleEnvironmentVariable The environment variable that receives the certificate bundle path.
+     * @param options Additional options.
+     * @returns The resource builder.
+     */
+    withCertificateTrustEnvironment(certificateBundleEnvironmentVariable: string, options?: WithCertificateTrustEnvironmentOptions): ResourceWithArgsPromise {
+        const certificateDirectoriesEnvironmentVariable = options?.certificateDirectoriesEnvironmentVariable;
+        return new ResourceWithArgsPromiseImpl(this._withCertificateTrustEnvironmentInternal(certificateBundleEnvironmentVariable, certificateDirectoriesEnvironmentVariable), this._client);
+    }
+
 }
 
 /** @internal */
 const ResourceWithArgsPromiseImpl = $aspireCreateFluentPromiseClass<ResourceWithArgs, ResourceWithArgsPromise>((): $aspireFluentPromiseTransitions => ({
     ["withArgs"]: () => ResourceWithArgsPromiseImpl,
+    ["withArgsReplace"]: () => ResourceWithArgsPromiseImpl,
     ["withArgsCallback"]: () => ResourceWithArgsPromiseImpl,
+    ["withCertificateTrustEnvironment"]: () => ResourceWithArgsPromiseImpl,
 }));
 
 // ============================================================================
