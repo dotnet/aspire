@@ -49,6 +49,20 @@ The `Aspire.Hosting.AppHost` package establishes `IsAspireHost` and supplies the
 including `dotnet run` integration. It does not automatically promote ordinary project
 references into resources.
 
+### Central Package Management
+
+If `ManagePackageVersionsCentrally` is enabled, place the AppHost and Dotnet versions
+on `PackageVersion` items in `Directory.Packages.props` and omit `Version` from the
+corresponding `PackageReference` items in the AppHost project. Do not remove the explicit
+AppHost reference during migration.
+
+New AppHost templates currently emit explicit package versions. Creating an AppHost
+under an existing CPM root therefore requires this manual adjustment before restore;
+otherwise NuGet reports `NU1008`, even if matching central versions already exist.
+This is an expanded limitation compared with the former SDK-only AppHost template.
+Starter service projects and optional integrations may also need their package versions
+moved to the central file. See [NuGet/Home#12967](https://github.com/NuGet/Home/issues/12967).
+
 ## 3. Install the required Aspire CLI bundle
 
 ```xml
