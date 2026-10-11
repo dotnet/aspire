@@ -232,7 +232,7 @@ public sealed class BundleSmokeTests(ITestOutputHelper output)
         Assert.Contains("#:package Aspire.Hosting.Dotnet@", appHostSource);
         Assert.Contains("var builder = DistributedApplication.CreateBuilder(args);", appHostSource);
         Assert.DoesNotContain("#:sdk Aspire.AppHost.Sdk@", appHostSource);
-        Assert.DoesNotContain("#:property AspireUseCliBundle=", appHostSource);
+        Assert.Contains("#:property AspireUseCliBundle=true", appHostSource);
 
         File.WriteAllText(
             appHostSourcePath,

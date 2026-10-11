@@ -73,7 +73,7 @@ public sealed class SingleFileAppHostInitDotnetRunTests(ITestOutputHelper output
         Assert.StartsWith("#:package Aspire.Hosting.AppHost@", appHostSource);
         Assert.Contains("#:package Aspire.Hosting.Dotnet@", appHostSource);
         Assert.DoesNotContain("#:sdk Aspire.AppHost.Sdk@", appHostSource);
-        Assert.DoesNotContain("#:property AspireUseCliBundle=", appHostSource);
+        Assert.Contains("#:property AspireUseCliBundle=true", appHostSource);
         Assert.True(
             File.Exists(appHostRunJson),
             $"Expected apphost.run.json to exist at: {appHostRunJson}. "

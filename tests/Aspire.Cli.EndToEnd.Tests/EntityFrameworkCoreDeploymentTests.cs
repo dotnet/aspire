@@ -176,7 +176,7 @@ public sealed class EntityFrameworkCoreDeploymentTests(ITestOutputHelper output)
                 });
             var database = postgres.AddDatabase("db");
 
-            var api = builder.AddProject<Projects.{{ProjectName}}_ApiService>("server")
+            var api = builder.AddDotnetProject("server", "../{{ProjectName}}.ApiService/{{ProjectName}}.ApiService.csproj")
                 .WithReference(database)
                 .WithExternalHttpEndpoints();
 
