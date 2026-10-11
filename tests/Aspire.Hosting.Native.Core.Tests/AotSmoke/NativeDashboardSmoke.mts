@@ -101,6 +101,12 @@ export class NativeDashboardSmoke {
         }
     }
 
+    async dismiss(message: string): Promise<void> {
+        await this.page.getByText(message, { exact: true }).waitFor({ timeout: 30_000 });
+        await this.page.keyboard.press('Escape');
+        await this.page.getByText(message, { exact: true }).waitFor({ state: 'hidden', timeout: 30_000 });
+    }
+
     async verifyResources(): Promise<void> {
         for (const name of ['cache', 'database', 'tunnel']) {
             const row = this.page.getByRole('row').filter({ hasText: name });

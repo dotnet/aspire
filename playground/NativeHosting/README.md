@@ -126,7 +126,10 @@ eight headless revision scenarios also passed after the transport extraction.
 
 Server shutdown quiesces Dashboard resource-service requests before deleting the
 Dashboard executable: active watches cancel immediately and reconnects receive
-503. It also starts DCP's dependency-aware full cleanup concurrently with owner
+503. Closing a dismissible confirmation rejects the pending operation rather
+than faulting its interaction stream; a subsequent confirmation can still complete.
+The real browser scenario covers dismissal followed by acceptance.
+It also starts DCP's dependency-aware full cleanup concurrently with owner
 retirement, rather than serializing every individual API deletion before
 controller cleanup. Both obligations must complete before stopping DCP. Without
 these orderings, termination could consume the CLI grace window and tree-kill

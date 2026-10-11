@@ -109,8 +109,8 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 179 tests,
-CLI launcher coverage passes 88 tests, and the current Rust baseline passes 35 tests.
+the independent Rust server. The native regression suite passes 181 tests,
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 37 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
@@ -119,6 +119,9 @@ extend the Dashboard's cleanup grace period. DCP's dependency-aware full cleanup
 starts with owner retirement, rather than after all individual deletion waits.
 The controller is stopped only after cleanup completes; the ordinary CLI
 shutdown budget and owned-resource assertions are unchanged.
+Closing a dismissible Dashboard confirmation sends `InteractionComplete`, which
+rejects the pending confirmation. Acceptance, explicit rejection, and dismissal
+all permit a subsequent confirmation on the same duplex stream.
 
 Auxiliary watches emit versioned hidden snapshots for removed names, including
 empty revisions and workspace retirement. Each stream tracks only its previous
@@ -196,17 +199,17 @@ Local macOS arm64 results use three samples per mode and implementation:
 
 | Measurement | C# NativeAOT | Rust reference |
 | --- | ---: | ---: |
-| Complete server executable | 15.47 MiB | 5.63 MiB |
-| Contract-only empty server RSS | 20.86 MiB | 8.28 MiB |
-| Contract-only 100-resource server RSS | 23.42 MiB | 9.20 MiB |
-| DCP/resource-service empty server RSS | 38.69 MiB | 10.23 MiB |
-| DCP/resource-service 100-resource server RSS | 38.77 MiB | 10.94 MiB |
-| Generic workloads ready server RSS | 41.06 MiB | 11.75 MiB |
-| Contract-only direct launch to readiness | 17.18 ms | 36.47 ms |
-| DCP/resource-service direct launch to readiness | 6.50 s | 3.00 s |
-| Direct launch to generic workload readiness | 8.42 s | 4.85 s |
-| External process tree, empty | 155.06 MiB | 153.77 MiB |
-| External process tree, workloads ready | 552.22 MiB | 553.00 MiB |
+| Complete server executable | 15.47 MiB | 5.61 MiB |
+| Contract-only empty server RSS | 20.84 MiB | 8.25 MiB |
+| Contract-only 100-resource server RSS | 25.92 MiB | 9.27 MiB |
+| DCP/resource-service empty server RSS | 38.69 MiB | 10.20 MiB |
+| DCP/resource-service 100-resource server RSS | 38.78 MiB | 11.02 MiB |
+| Generic workloads ready server RSS | 41.13 MiB | 13.11 MiB |
+| Contract-only direct launch to readiness | 17.82 ms | 45.75 ms |
+| DCP/resource-service direct launch to readiness | 4.03 s | 6.46 s |
+| Direct launch to generic workload readiness | 6.12 s | 9.57 s |
+| External process tree, empty | 154.31 MiB | 153.17 MiB |
+| External process tree, workloads ready | 550.69 MiB | 551.31 MiB |
 
 Both modes use the same complete executable; contract-only disables DCP and
 resource-service startup, rather than linking a separate minimal kernel binary.
@@ -222,11 +225,14 @@ RSS sums are not unique physical memory and can double-count shared pages.
 Diagnostic/platform differences remain outside this conformance claim.
 
 The fresh C# lane `bash eng/scripts/test-native-hosting.sh osx-arm64` passed the
-baseline, RPC/runtime, real workloads and revisions with Dashboard browser
-checks, actual CLI server swap, auxiliary commands, and their unchanged cleanup
-assertions. Raw final C# samples are in
+complete auxiliary-feedback baseline. The subsequent dismissal build passed
+AOT, RPC/runtime, neutral baseline, real workloads, revisions and browser dismissal,
+but its CLI shutdown attempt left the native/DCP tree OS-stopped after escalation.
+That attempt remains failed. Rerunning the unchanged CLI and auxiliary scripts
+against those same fresh artifacts passed their owned-resource assertions.
+The intermittent macOS shutdown cause is not claimed fixed. Raw final C# samples are in
 `artifacts/native-hosting/ci/logs/baseline-smoke.log`; the independent Rust samples
-are in `artifacts/native-hosting/rust-baseline-e2e-aux-feedback-final.log`.
+are in `artifacts/native-hosting/rust-baseline-e2e-dismissal-final.log`.
 
 ### Integration provider direction
 

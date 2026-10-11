@@ -80,8 +80,11 @@ public class NativeDashboardTests
         Assert.Equal(HealthStatus.Unhealthy, Assert.Single(failed.HealthReports).Status);
     }
 
-    [Fact]
-    public async Task GrpcCommandsAndDuplexConfirmationsReachIndependentIntegrationConnection()
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    public async Task GrpcCommandsAndDuplexConfirmationsReachIndependentIntegrationConnection(bool accepted, bool dismiss)
     {
         using var context = new RuntimeRpcTestContext();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -109,15 +112,30 @@ public class NativeDashboardTests
         Assert.True(await interactions.ResponseStream.MoveNext(timeout.Token));
         var prompt = interactions.ResponseStream.Current;
         Assert.Equal("Initialize database?", prompt.Message);
+        Assert.True(prompt.ShowDismiss);
         Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.MessageBox, prompt.KindCase);
-        await interactions.RequestStream.WriteAsync(new()
+        await interactions.RequestStream.WriteAsync(dismiss ? new()
         {
-            InteractionId = prompt.InteractionId, MessageBox = new InteractionMessageBox { Result = true }
+            InteractionId = prompt.InteractionId, Complete = new InteractionComplete()
+        } : new()
+        {
+            InteractionId = prompt.InteractionId, MessageBox = new InteractionMessageBox { Result = accepted }
         }, timeout.Token);
-        Assert.Equal("accepted", Result(await completion.WaitAsync(timeout.Token))["status"]!.GetValue<string>());
+        Assert.Equal(accepted ? "accepted" : "rejected", Result(await completion.WaitAsync(timeout.Token))["status"]!.GetValue<string>());
         Assert.True(await interactions.ResponseStream.MoveNext(timeout.Token));
         Assert.Equal(prompt.InteractionId, interactions.ResponseStream.Current.InteractionId);
         Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.Complete, interactions.ResponseStream.Current.KindCase);
+        operation = Result(context.Integration.Invoke("requestConfirmation", Arguments(("context", context.Writer),
+            ("message", JsonValue.Create("Continue after the previous response?")))));
+        completion = context.Integration.InvokeAsync("awaitRuntimeOperation", Arguments(("context", operation)));
+        Assert.True(await interactions.ResponseStream.MoveNext(timeout.Token));
+        var nextPrompt = interactions.ResponseStream.Current;
+        Assert.True(nextPrompt.InteractionId > prompt.InteractionId);
+        await interactions.RequestStream.WriteAsync(new()
+        {
+            InteractionId = nextPrompt.InteractionId, MessageBox = new InteractionMessageBox { Result = true }
+        }, timeout.Token);
+        Assert.Equal("accepted", Result(await completion.WaitAsync(timeout.Token))["status"]!.GetValue<string>());
     }
 
     [Fact]

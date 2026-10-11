@@ -186,15 +186,18 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
                         throw new RpcException(new Status(StatusCode.InvalidArgument, "The interaction is not pending on this stream."));
                     }
                 }
-                if (request.KindCase != WatchInteractionsRequestUpdate.KindOneofCase.MessageBox || !request.MessageBox.HasResult)
+                var accepted = request.KindCase switch
                 {
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, "A confirmation response is required."));
-                }
+                    WatchInteractionsRequestUpdate.KindOneofCase.MessageBox when request.MessageBox.HasResult => request.MessageBox.Result,
+                    // Closing a dismissible Dashboard dialog sends Complete without a result.
+                    WatchInteractionsRequestUpdate.KindOneofCase.Complete => false,
+                    _ => throw new RpcException(new Status(StatusCode.InvalidArgument, "A confirmation response is required."))
+                };
                 if (!prompt.Observer.IsRevoked)
                 {
                     try
                     {
-                        prompt.Observer.RespondConfirmation(prompt.RequestId, request.MessageBox.Result);
+                        prompt.Observer.RespondConfirmation(prompt.RequestId, accepted);
                     }
                     catch (Exception exception) when (exception is ObjectDisposedException or ArgumentException)
                     {

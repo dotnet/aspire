@@ -35,6 +35,7 @@ const server = spawn(binary, ['--port', '0'], {
 const timeout = setTimeout(() => server.kill('SIGKILL'), 180_000);
 let author: AspireClient | undefined;
 let observerClient: AspireClient | undefined;
+let confirmationClient: AspireClient | undefined;
 let worker: ReturnType<typeof fork> | undefined;
 let dashboardUi: NativeDashboardSmoke | undefined;
 async function stopWorker(child: ReturnType<typeof fork>): Promise<number | null> {
@@ -161,8 +162,24 @@ try {
     assert.throws(() => process.kill(Number(workloads.relay.instanceId), 0), (error: unknown) =>
         error instanceof Error && 'code' in error && error.code === 'ESRCH');
     const replacement = await session.startGeneration();
-    await replacement.addResource('cache', 'native.testing/Redis');
+    const replacementCache = await replacement.addResource('cache', 'native.testing/Redis');
     assert.equal((await replacement.inspect()).resources?.length, 1);
+    if (dashboardUi) {
+        const integration = await connectNativeAppHost(options);
+        confirmationClient = integration.client;
+        const replacementExecution = await replacement.createExecution();
+        const writer = await integration.server.joinResourceExecution(
+            await replacementExecution.inviteResourceExecution(replacementCache));
+        const dismissed = await writer.requestConfirmation('Dismiss this native confirmation.');
+        const rejected = dismissed.awaitRuntimeOperation();
+        await dashboardUi.dismiss('Dismiss this native confirmation.');
+        assert.equal((await rejected).status, 'rejected');
+        const next = await writer.requestConfirmation('Keep the initialized database running?');
+        const accepted = next.awaitRuntimeOperation();
+        await dashboardUi.confirm();
+        assert.equal((await accepted).status, 'accepted');
+        await confirmationClient.flushPendingPromises();
+    }
     console.log(JSON.stringify({
         nativeWorkloadRoundTrips: 'passed',
         separateIntegrationProcess: 'passed',
@@ -174,6 +191,7 @@ try {
         ownedContainersAndExecutableRemoved: 'passed',
         generationReplacement: 'passed',
         actualDashboardResourcesAndConfirmation: dashboardUi ? 'passed' : 'not exercised',
+        actualDashboardDismissalAndSubsequentConfirmation: dashboardUi ? 'passed' : 'not exercised',
         liveDevTunnelsService: 'not exercised'
     }, null, 2));
 } finally {
@@ -183,6 +201,7 @@ try {
         await dashboardUi?.dispose();
         author?.disconnect();
         observerClient?.disconnect();
+        confirmationClient?.disconnect();
         const exited = server.exitCode === null && server.signalCode === null
             ? once(server, 'exit') : Promise.resolve([server.exitCode]);
         if (server.exitCode === null && server.signalCode === null) server.kill('SIGINT');
