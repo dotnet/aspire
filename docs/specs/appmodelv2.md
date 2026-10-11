@@ -109,8 +109,8 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 173 tests,
-CLI launcher coverage passes 88 tests, and the current Rust baseline passes 29 tests.
+the independent Rust server. The native regression suite passes 179 tests,
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 35 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
@@ -119,6 +119,13 @@ extend the Dashboard's cleanup grace period. DCP's dependency-aware full cleanup
 starts with owner retirement, rather than after all individual deletion waits.
 The controller is stopped only after cleanup completes; the ordinary CLI
 shutdown budget and owned-resource assertions are unchanged.
+
+Auxiliary watches emit versioned hidden snapshots for removed names, including
+empty revisions and workspace retirement. Each stream tracks only its previous
+current graph, so slow consumers do not miss removals across coalesced revisions
+and the server does not retain an unbounded global deletion history.
+Unexpected backchannel dispatch or iterator errors become sanitized JSON-RPC
+internal errors with classification-only diagnostics, not listener failures.
 
 ## Architecture and dependency boundary
 
@@ -189,17 +196,17 @@ Local macOS arm64 results use three samples per mode and implementation:
 
 | Measurement | C# NativeAOT | Rust reference |
 | --- | ---: | ---: |
-| Complete server executable | 15.47 MiB | 5.61 MiB |
-| Contract-only empty server RSS | 20.84 MiB | 8.22 MiB |
-| Contract-only 100-resource server RSS | 23.41 MiB | 9.06 MiB |
-| DCP/resource-service empty server RSS | 38.53 MiB | 10.19 MiB |
-| DCP/resource-service 100-resource server RSS | 38.61 MiB | 10.91 MiB |
-| Generic workloads ready server RSS | 39.69 MiB | 11.83 MiB |
-| Contract-only direct launch to readiness | 22.88 ms | 44.02 ms |
-| DCP/resource-service direct launch to readiness | 4.93 s | 2.78 s |
-| Direct launch to generic workload readiness | 6.81 s | 4.59 s |
-| External process tree, empty | 154.44 MiB | 155.88 MiB |
-| External process tree, workloads ready | 553.55 MiB | 554.00 MiB |
+| Complete server executable | 15.47 MiB | 5.63 MiB |
+| Contract-only empty server RSS | 20.86 MiB | 8.28 MiB |
+| Contract-only 100-resource server RSS | 23.42 MiB | 9.20 MiB |
+| DCP/resource-service empty server RSS | 38.69 MiB | 10.23 MiB |
+| DCP/resource-service 100-resource server RSS | 38.77 MiB | 10.94 MiB |
+| Generic workloads ready server RSS | 41.06 MiB | 11.75 MiB |
+| Contract-only direct launch to readiness | 17.18 ms | 36.47 ms |
+| DCP/resource-service direct launch to readiness | 6.50 s | 3.00 s |
+| Direct launch to generic workload readiness | 8.42 s | 4.85 s |
+| External process tree, empty | 155.06 MiB | 153.77 MiB |
+| External process tree, workloads ready | 552.22 MiB | 553.00 MiB |
 
 Both modes use the same complete executable; contract-only disables DCP and
 resource-service startup, rather than linking a separate minimal kernel binary.
@@ -219,7 +226,7 @@ baseline, RPC/runtime, real workloads and revisions with Dashboard browser
 checks, actual CLI server swap, auxiliary commands, and their unchanged cleanup
 assertions. Raw final C# samples are in
 `artifacts/native-hosting/ci/logs/baseline-smoke.log`; the independent Rust samples
-are in `artifacts/native-hosting/rust-baseline-e2e-controller-final.log`.
+are in `artifacts/native-hosting/rust-baseline-e2e-aux-feedback-final.log`.
 
 ### Integration provider direction
 

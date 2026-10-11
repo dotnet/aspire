@@ -40,6 +40,10 @@ on Linux. Individual logs and raw footprint samples are in its `logs` directory.
 The independent Rust reference remains local-only and is not a dependency or PR
 input.
 
+The dedicated workflow also watches `playground/NativeHosting/**`, whose projects
+are native-test dependencies. Node package-manager caching is explicitly disabled;
+this lane prepares its own smoke dependencies rather than restoring a shared cache.
+
 Footprint accounting reports the complete server executable and server-only RSS,
 then its external process tree separately. Contract-only mode disables DCP and
 resource-service startup but uses the same complete executable; it is not a
@@ -66,7 +70,13 @@ The server advertises `aux.v1`, `aux.v2`, `aux.v3`, and
 snapshots/watches, console logs/search/tail/follow/batches, registered commands,
 resource/startup waits, Dashboard metadata, and cooperative stop. Snapshot versions
 remain ordered across revisions and replacement runtimes. Authoring configuration
-and launch environments are not exposed. Resource URLs, console logs, and command
+and launch environments are not exposed. Each watch sends versioned hidden
+snapshots for previously observed names removed by a revision or workspace
+retirement, including empty graphs and slow consumers that miss intermediate
+revisions. `GetResourcesAsync` returns only the current graph. Unexpected request
+or iterator failures return a sanitized JSON-RPC internal error and classification-only
+diagnostics without terminating the auxiliary listener.
+Resource URLs, console logs, and command
 result messages retain their integration-supplied content; this is not a general
 secret-redaction layer. Dashboard API credentials are separate from browser login
 and resource-service credentials.
@@ -103,6 +113,10 @@ resource watches and enumeration abort, logs/batches, request cancellation,
 validation-only versus real command dispatch, resource waits, and authenticated
 Dashboard API access (wrong key: 401; correct key: 200). It also runs the actual
 CLI `describe`, `logs`, `resource`, `wait`, and instance-scoped `stop` commands.
+
+The shared socket-runtime smoke separately verifies removal, same-name restoration,
+and complete workspace retirement through the actual auxiliary watch protocol,
+including monotonic versions and discoverable-socket cleanup.
 
 The script verifies server/socket and owned workload cleanup before independently
 signalling its fixture launcher. Instance-scoped stop deliberately does not signal
