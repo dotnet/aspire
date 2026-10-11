@@ -291,11 +291,26 @@ public class ParameterResource : Resource, IExpressionValue
     [AspireExport("ParameterResource.setValueAsync", MethodName = "setValueAsync")]
     public Task SetValueAsync(string? value = null, CancellationToken cancellationToken = default)
     {
+        return SetValueAsyncCore(value, expectedVersion: null, cancellationToken);
+    }
+
+    internal Task<bool> SetValueIfVersionAsync(string? value, long expectedVersion, CancellationToken cancellationToken)
+    {
+        return SetValueAsyncCore(value, expectedVersion, cancellationToken);
+    }
+
+    private async Task<bool> SetValueAsyncCore(string? value, long? expectedVersion, CancellationToken cancellationToken)
+    {
         ParameterResourceValueChangedEventArgs eventArgs;
 
         lock (_valueTaskLock)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (expectedVersion is not null && expectedVersion != _valueChangeVersion)
+            {
+                return false;
+            }
+
             var waitForValueTcs = GetOrCreateResettableWaitForValueTcs();
             var missingValueException = CreateMissingValueException(value);
             if (missingValueException is null)
@@ -311,7 +326,8 @@ public class ParameterResource : Resource, IExpressionValue
             }
         }
 
-        return NotifyValueChangedAsync(eventArgs, cancellationToken);
+        await NotifyValueChangedAsync(eventArgs, cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>

@@ -1503,6 +1503,35 @@ public class ParameterProcessorTests
         Assert.Equal("saved-value", stateManager.State[parameter.ConfigurationKey]?.GetValue<string>());
     }
 
+    [Fact]
+    public async Task InitializeParametersAsync_StaleMultiParameterPromptDoesNotOverwriteProgrammaticValue()
+    {
+        var stateManager = new CapturingMockDeploymentStateManager();
+        var interactionService = new TestInteractionService { IsAvailable = true };
+        var processor = CreateParameterProcessor(interactionService: interactionService, deploymentStateManager: stateManager);
+        var firstParameter = CreateParameterWithMissingValue("first");
+        var secondParameter = CreateParameterWithMissingValue("second");
+        var initializeTask = processor.InitializeParametersAsync([firstParameter, secondParameter], waitForResolution: true);
+
+        var notification = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        notification.CompletionTcs.SetResult(InteractionResult.Ok(true));
+        var prompt = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        prompt.Inputs[firstParameter.Name].Value = "stale-form-value";
+        prompt.Inputs[secondParameter.Name].Value = "form-value";
+        prompt.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
+
+        await firstParameter.SetValueAsync("programmatic-value").DefaultTimeout();
+        Assert.False(prompt.CancellationToken.IsCancellationRequested);
+
+        prompt.CompletionTcs.SetResult(InteractionResult.Ok(prompt.Inputs));
+        await initializeTask.DefaultTimeout();
+
+        Assert.Equal("programmatic-value", await firstParameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+        Assert.Equal("form-value", await secondParameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+        Assert.False(stateManager.State.TryGetPropertyValue(firstParameter.ConfigurationKey, out _));
+        Assert.Equal("form-value", stateManager.State[secondParameter.ConfigurationKey]?.GetValue<string>());
+    }
+
     private static InteractionInputCollection CreateSetParameterArguments(string? value, string? saveToUserSecrets = null)
     {
         return new InteractionInputCollection([
