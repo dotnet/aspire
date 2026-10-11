@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Aspire.Hosting.Native.Model;
 
 namespace Aspire.Hosting.Native.CodeGeneration;
 
@@ -16,8 +18,8 @@ internal static class NativeContractCompilation
     public static Assembly Compile(string outputDirectory)
     {
         // The server needs generated dispatch before it can compile, so the generator
-        // cannot reference it. Compile its exact Core/Api sources with the server's
-        // assembly identity instead. BCL-only references also guard that folder boundary.
+        // cannot reference it. Compile its exact API sources against the kernel
+        // with the server's assembly identity, preserving the exported type IDs.
         const string assemblyName = "Aspire.Hosting.Native.Server";
         var tool = typeof(NativeContractCompilation).Assembly;
         var parseOptions = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.Diagnose);
@@ -46,10 +48,15 @@ internal static class NativeContractCompilation
             """, parseOptions, encoding: Encoding.UTF8));
         var references = Directory.EnumerateFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll")
             .Append(typeof(AspireExportAttribute).Assembly.Location)
+            .Append(typeof(ApplicationModel).Assembly.Location)
             .Select(path => MetadataReference.CreateFromFile(path));
         var compilation = CSharpCompilation.Create(assemblyName, sources, references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                nullableContextOptions: NullableContextOptions.Enable,
+                // The declarations use the same friend access as the real server.
+                // Only its public identity is needed for build-time scanning.
+                cryptoPublicKey: ImmutableArray.CreateRange(typeof(ApplicationModel).Assembly.GetName().GetPublicKey()!),
+                delaySign: true));
         var directory = Directory.CreateDirectory(Path.Combine(outputDirectory, "contract"));
         var assemblyPath = Path.Combine(directory.FullName, $"{assemblyName}.dll");
         using (var assembly = File.Create(assemblyPath))

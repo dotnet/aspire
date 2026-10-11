@@ -9,6 +9,21 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class DcpJsonTests
 {
     [Fact]
+    public async Task GenericContainerSupportsMultipleEndpointsEntrypointAndMounts()
+    {
+        var spec = new DcpWorkloadSpec
+        {
+            Image = "example/service:1", Command = "/bin/worker", Env = [],
+            Args = ["--serve"],
+            Ports = [new DcpContainerPort(8080, "127.0.0.1", "TCP"),
+                new DcpContainerPort(8443, "127.0.0.1", "TCP") { HostPort = 5001 }],
+            VolumeMounts = [new DcpVolumeMount("volume", "retained-data", "/data", false),
+                new DcpVolumeMount("bind", "/host/config", "/config", true)]
+        };
+        await Verify(JsonSerializer.Serialize(spec, DcpJsonContext.Default.DcpWorkloadSpec), "json")
+            .UseDirectory("Snapshots");
+    }
+    [Fact]
     public async Task TypedWorkloadEnvelopePreservesTheDcpWireContract()
     {
         var spec = new DcpWorkloadSpec

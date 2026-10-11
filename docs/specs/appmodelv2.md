@@ -54,19 +54,18 @@ No API fetches a notification service, resolves a logger, or imports a server
 service instance. Model/runtime behavior is defined independently of the C#
 bindings so a different implementation could satisfy the same protocol tests.
 
-A local-only independent Rust reference implements the eight composition
-capabilities to vet the C# NativeAOT implementation with the same ATS bundle and
-generated TypeScript consumer. It is not a shipping implementation, repository
-dependency, or proposed second host. It is kept outside commits and the PR.
-The latest reference builds from the current ATS bundle and advertises only
-its eight implemented capabilities. It passes the same generated-SDK
-composition, authority/error, snapshot-shape, and 101-replacement scenario as
-the current C# smoke executable.
+A local-only independent Rust reference vets the C# NativeAOT implementation
+against the same ATS bundle and generated TypeScript consumers. It is not a
+shipping implementation, repository dependency, or proposed second host. It is
+kept outside commits and the PR. The current reference implements all 49 exports,
+including the generic multi-endpoint workload contract, and passes the shared
+neutral baseline with real containers/executables, retained-volume restart, and
+owned-resource cleanup.
 
-On local macOS arm64, the current C# smoke executable was 15,156,352 bytes with
+An earlier composition-only experiment on local macOS arm64 measured a C# smoke executable at 15,156,352 bytes with
 three identical 24,559,616-byte resident-set samples; the Rust reference was
 517,904 bytes with three identical 3,457,024-byte samples. The workload is the
-same, but the binaries are **not feature-equivalent**: C# includes the current
+same, but those binaries were **not feature-equivalent**: C# included the then-current
 45-export server surface while Rust implements only eight composition exports.
 These measurements are not a full AppHost-server size or memory comparison.
 This comparison covers composition only, not execution, Dashboard services,
@@ -110,15 +109,119 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 130 tests,
-CLI launcher coverage passes 88 tests, and Rust passes 25 tests.
+the independent Rust server. The native regression suite passes 173 tests,
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 28 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
 new resource-service requests rejected during shutdown, so a reconnect cannot
-extend the Dashboard's cleanup grace period.
+extend the Dashboard's cleanup grace period. DCP's dependency-aware full cleanup
+starts with owner retirement, rather than after all individual deletion waits.
+The controller is stopped only after cleanup completes; the ordinary CLI
+shutdown budget and owned-resource assertions are unchanged.
 
 ## Architecture and dependency boundary
+
+### Core baseline versus in-process conveniences
+
+The reusable baseline is derived from the contracts exercised by current
+integrations, not from the three-resource demonstration. The resource-specific
+worker, database test data, local tunnel, browser driver, and parent/child IPC
+handshake belong to conformance tests. None is a native server component.
+
+`Aspire.Hosting.Native.Core` is the BCL-only kernel. It owns declaration identity,
+immutable model snapshots, dependency validation, execution ownership, revision
+fencing, resource observations/logs, command and confirmation completion, and
+workload cleanup obligations. It does not reference ATS attributes, Hosting,
+KubernetesClient, gRPC, ASP.NET Core, a language runtime, or integration packages.
+The server owns ATS bindings, authenticated transports, DCP wire adaptation,
+CLI discovery/backchannels, and Dashboard gRPC. Splitting the assemblies makes
+the dependency boundary enforceable; it does not remove those dependencies from
+the complete server or imply that its executable becomes smaller.
+
+The important distinction is the semantic contract, not the current C# helper:
+
+| Existing integration behavior | Portable contract required | In-process convenience that stays outside the kernel |
+| --- | --- | --- |
+| `AddResource`, fluent `Add`/`With`, typed resource classes | Authoritative identity, type applicability, immutable declarations and explicit mutation rules | CLR inheritance, extension methods, builder wrappers, object references |
+| Annotation lookup and final-model transformations | Typed extensible data, replace/append semantics, bounded model-edit phase | `Annotations.OfType<T>()`, mutable annotation instances, arbitrary global model access |
+| `WithEnvironment`, `WithArgs`, connection properties | Structured values, declared references, sensitivity, consumer network context, run/publish resolution | Captured dictionaries, `Task` caching, delegates mutating a shared context |
+| Redis primary/TLS endpoints and database/admin endpoints | Multiple named endpoint declarations and allocations; protocol, scheme, host/target ports and endpoint selection | Convenience properties such as `PrimaryEndpoint`; assuming one URL represents all endpoints |
+| Container image, entrypoint, data mounts and executable launch | Typed launch specification and owned execution/cleanup; named endpoints rather than one implicit port | Concrete DCP classes, Docker CLI argument construction, direct process handles |
+| PostgreSQL database creation after readiness | Ordered, cancellable initialization after authenticated health succeeds; explicit child ownership | A captured `NpgsqlConnection`, access to the parent's CLR dictionary, service-provider lookup |
+| Redis/PostgreSQL health checks | Side-effect-free probe results with health/readiness distinct from process state | `AddHealthChecks`, DI registrations, service-specific client instances |
+| Dev Tunnels pre-start login and endpoint publication | Cancellable pre-start work, interaction requests, allocated endpoint updates, external controller lifetime | Keyed singletons, `IServiceProvider`, notification/logging service objects and callback closures |
+| Commands, status, console logs and interactions | Scoped operations, copied snapshots, ordered delivery, cancellation and exactly-once completion | `ILogger`, `ResourceNotificationService`, `TaskCompletionSource`, command delegates |
+| Manifest/deployment callbacks and pipeline steps | Symbolic model views, preserved expressions, structured artifacts/plans and explicit mode | Shared `Utf8JsonWriter`, CLR publisher callbacks, direct deployment service access |
+
+Sources include `RedisBuilderExtensions.AddRedis`,
+`PostgresBuilderExtensions.AddPostgres`/`AddDatabase`,
+`DevTunnelResourceBuilderExtensions`, and Hosting's `EndpointAnnotation`,
+`ContainerMountAnnotation`, `ReferenceExpression`, lifecycle callback annotations,
+and resource relationships. These are requirements to preserve, not types to
+copy or load into the native process.
+
+In particular, moving a delegate over RPC is not an adequate lifecycle contract.
+The core must define when a provider is invoked, its allowed scope, completion
+barrier, concurrency, cancellation and disconnect behavior. A health probe must
+not initialize a database; an endpoint/value reference must not silently become
+a readiness edge; a visual parent must not imply lifetime ownership. A provider's
+local DI container is its implementation detail, not a remote service locator.
+
+The baseline still needs a general schema/value/secret contract, lifecycle
+registration and initialization barriers, production provider registration and
+dispatch, parent/visual/value relationships, publishing, and the remaining
+interaction surfaces. The string configuration/revision slice and an
+integration's ability to publish health do not implement those broader contracts.
+Measurements below describe the implemented baseline only, not full integration
+parity, and retain the complete server's protocol costs.
+
+### Neutral baseline measurements
+
+`NativeBaselineSmoke.mts` connects independent ATS clients directly to each
+server. There is no three-integration worker or special parent/child handshake.
+It commits an empty graph and a 100-resource graph, then exercises a stock nginx
+container and Node executable, each with two named HTTP allocations. It verifies
+a read-only bind, caller-owned volume data retained through container replacement,
+two executable port variables, and exact owned-resource cleanup.
+
+Local macOS arm64 results use three samples per mode and implementation:
+
+| Measurement | C# NativeAOT | Rust reference |
+| --- | ---: | ---: |
+| Complete server executable | 15.47 MiB | 5.58 MiB |
+| Contract-only empty server RSS | 20.84 MiB | 8.25 MiB |
+| Contract-only 100-resource server RSS | 23.41 MiB | 9.11 MiB |
+| DCP/resource-service empty server RSS | 38.53 MiB | 10.14 MiB |
+| DCP/resource-service 100-resource server RSS | 38.61 MiB | 10.91 MiB |
+| Generic workloads ready server RSS | 39.69 MiB | 11.75 MiB |
+| Contract-only direct launch to readiness | 22.88 ms | 64.66 ms |
+| DCP/resource-service direct launch to readiness | 4.93 s | 3.11 s |
+| Direct launch to generic workload readiness | 6.81 s | 5.16 s |
+| External process tree, empty | 154.44 MiB | 153.81 MiB |
+| External process tree, workloads ready | 553.55 MiB | 547.98 MiB |
+
+Both modes use the same complete executable; contract-only disables DCP and
+resource-service startup, rather than linking a separate minimal kernel binary.
+Readiness uses the actual auxiliary readiness request after a committed graph.
+Timing starts at direct server launch, not `aspire run`. The implementations were
+sampled separately, not in an interleaved randomized benchmark; three samples
+and variable DCP/container startup do not establish a speed advantage.
+
+The neutral scenario does not launch the Dashboard frontend. Server-only RSS
+excludes DCP and workload/helper processes, which are reported separately.
+Driving Node, browser, and Docker VM/container memory are excluded from both.
+RSS sums are not unique physical memory and can double-count shared pages.
+Diagnostic/platform differences remain outside this conformance claim.
+
+The fresh C# lane `bash eng/scripts/test-native-hosting.sh osx-arm64` passed the
+baseline, RPC/runtime, real workloads and revisions with Dashboard browser
+checks, actual CLI server swap, auxiliary commands, and their unchanged cleanup
+assertions. Raw final C# samples are in
+`artifacts/native-hosting/ci/logs/baseline-smoke.log`; the independent Rust samples
+are in `artifacts/native-hosting/rust-baseline-e2e.log`.
+
+### Integration provider direction
 
 ```text
 C# integration host                    TypeScript integration host

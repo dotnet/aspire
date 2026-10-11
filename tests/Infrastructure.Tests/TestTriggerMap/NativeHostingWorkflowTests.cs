@@ -1,0 +1,136 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Xunit;
+using YamlDotNet.RepresentationModel;
+
+namespace Infrastructure.Tests.TestTriggerMap;
+
+public sealed class NativeHostingWorkflowTests
+{
+    [Theory]
+    [InlineData("src/Aspire.Hosting.Native.Server/Core/Runtime/RuntimeGeneration.cs")]
+    [InlineData("src/Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj")]
+    [InlineData("src/Aspire.Hosting.Native.Core/Runtime/RuntimeGeneration.cs")]
+    [InlineData("src/Aspire.Hosting.Native.CodeGeneration/Program.cs")]
+    [InlineData("src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/transport.ts")]
+    [InlineData("src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/package.json")]
+    [InlineData("src/Aspire.Cli/Templating/Templates/ts-starter/tsconfig.apphost.json")]
+    [InlineData("src/Aspire.Cli/Projects/NativeAppHostServerProject.cs")]
+    [InlineData("src/Aspire.Dashboard/Components/Pages/Resources.razor")]
+    [InlineData("src/Aspire.Hosting/Dashboard/proto/dashboard_service.proto")]
+    [InlineData("src/Shared/SocketPermissionHelper.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/Program.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeRevisionSmoke.mts")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/CliAppHost/apphost.mts")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/TestServices/DiagnosticCapture.cs")]
+    [InlineData("tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json")]
+    [InlineData("tests/Directory.Build.props")]
+    [InlineData("tests/Shared/RepoTesting/RepoTesting.csproj")]
+    [InlineData("eng/dcppack/Common.projitems")]
+    [InlineData("eng/scripts/test-native-hosting.sh")]
+    [InlineData("eng/common/tools.sh")]
+    [InlineData("Directory.Build.props")]
+    [InlineData("Directory.Packages.props")]
+    [InlineData(".editorconfig")]
+    [InlineData(".config/dotnet-tools.json")]
+    [InlineData("global.json")]
+    [InlineData("NuGet.config")]
+    [InlineData("Aspire.slnx")]
+    [InlineData("restore.sh")]
+    [InlineData("build.sh")]
+    [InlineData(".github/workflows/native-hosting-validation.yml")]
+    public void NativeHostingRuntimeAndBuildInputsTriggerIndependentLane(string path)
+    {
+        var events = Events();
+
+        foreach (var eventName in new[] { "pull_request", "push" })
+        {
+            var paths = Paths(events, eventName);
+            Assert.Contains(paths, pattern => TestTriggerMap.GlobMatches(pattern, path));
+        }
+    }
+
+    [Theory]
+    [InlineData("docs/ci/test-trigger-map.md")]
+    [InlineData("extension/src/extension.ts")]
+    [InlineData("tests/Infrastructure.Tests/TestTriggerMap/NativeHostingWorkflowTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Redis.Tests/RedisResourceTests.cs")]
+    public void UnrelatedInputsDoNotTriggerNativeHostingLane(string path)
+    {
+        Assert.All(Paths(Events(), "pull_request"),
+            pattern => Assert.False(TestTriggerMap.GlobMatches(pattern, path)));
+    }
+
+    [Fact]
+    public void PushAndPullRequestFiltersStayAligned()
+    {
+        var events = Events();
+
+        Assert.Equal(Paths(events, "pull_request"), Paths(events, "push"));
+        Assert.True(events.Children.ContainsKey(new YamlScalarNode("workflow_dispatch")));
+    }
+
+    [Fact]
+    public void IndependentLaneIsClassifiedWithoutInventingASelectorJob()
+    {
+        var map = TestTriggerMap.Load(RepoRoot.Path);
+        const string workflow = ".github/workflows/native-hosting-validation.yml";
+        const string harness = "eng/scripts/test-native-hosting.sh";
+
+        Assert.Contains(workflow, map.Ignore);
+        foreach (var path in new[] { workflow, harness })
+        {
+            var targets = map.PathRules
+                .Where(rule => rule.Paths.Any(pattern => TestTriggerMap.GlobMatches(pattern, path)))
+                .SelectMany(rule => rule.Targets)
+                .Distinct()
+                .ToArray();
+
+            Assert.Equal(["test:Infrastructure.Tests"], targets);
+        }
+    }
+
+    [Fact]
+    public void NativeHostingJobRunsHarnessAndUploadsEvidenceOnFailure()
+    {
+        var root = Workflow();
+        var permissions = (YamlMappingNode)root.Children[new YamlScalarNode("permissions")];
+        Assert.Equal("read", permissions.Children[new YamlScalarNode("contents")].ToString());
+        var jobs = (YamlMappingNode)root.Children[new YamlScalarNode("jobs")];
+        var job = Assert.IsType<YamlMappingNode>(Assert.Single(jobs.Children).Value);
+        Assert.Equal("ubuntu-latest", job.Children[new YamlScalarNode("runs-on")].ToString());
+        Assert.False(job.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
+        var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
+        var harness = Assert.Single(steps.Cast<YamlMappingNode>(),
+            step => step.Children.ContainsKey(new YamlScalarNode("run")));
+        Assert.Equal("bash eng/scripts/test-native-hosting.sh linux-x64",
+            harness.Children[new YamlScalarNode("run")].ToString());
+        Assert.False(harness.Children.ContainsKey(new YamlScalarNode("if")));
+        Assert.False(harness.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
+        var evidence = Assert.Single(steps.Cast<YamlMappingNode>(),
+            step => step.Children.TryGetValue(new YamlScalarNode("uses"), out var uses)
+                && uses.ToString().StartsWith("actions/upload-artifact@", StringComparison.Ordinal));
+        Assert.Equal("always()", evidence.Children[new YamlScalarNode("if")].ToString());
+    }
+
+    private static string[] Paths(YamlMappingNode events, string eventName)
+    {
+        var trigger = (YamlMappingNode)events.Children[new YamlScalarNode(eventName)];
+
+        return ((YamlSequenceNode)trigger.Children[new YamlScalarNode("paths")])
+            .Select(path => path.ToString()).ToArray();
+    }
+
+    private static YamlMappingNode Events() =>
+        (YamlMappingNode)Workflow().Children[new YamlScalarNode("on")];
+
+    private static YamlMappingNode Workflow()
+    {
+        using var reader = File.OpenText(Path.Combine(RepoRoot.Path, ".github", "workflows", "native-hosting-validation.yml"));
+        var yaml = new YamlStream();
+        yaml.Load(reader);
+
+        return (YamlMappingNode)yaml.Documents[0].RootNode;
+    }
+}

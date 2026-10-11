@@ -17,7 +17,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     private long _version = 1;
     private bool _disposed;
     private readonly Dictionary<Guid, ResourceWorkload> _workloads = [];
-    private readonly List<Task> _retiredWorkloads = [];
+    private readonly List<ResourceWorkload> _retiredWorkloads = [];
     private readonly HashSet<Guid> _replacingWorkloads = [];
 
     public RuntimeGeneration(ApplicationSnapshot declarations) : this(declarations, UnavailableWorkloadExecutor.Instance, new())
@@ -34,7 +34,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             lock (_gate)
             {
-                return Task.WhenAll(_workloads.Values.Select(workload => workload.Completion).Concat(_retiredWorkloads));
+                return Task.WhenAll(_workloads.Values.Concat(_retiredWorkloads).Select(workload => workload.Completion));
             }
         }
     }
@@ -97,16 +97,15 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                     next.Add(updated.Handle.ResourceId, new RuntimeResource(updated));
                 }
             }
-            _retiredWorkloads.RemoveAll(task => task.IsCompletedSuccessfully);
-            var cleanup = new List<Task>();
+            _retiredWorkloads.RemoveAll(workload => workload.Completion.IsCompletedSuccessfully);
+            var cleanup = _retiredWorkloads.Select(workload => workload.StopAsync()).ToList();
             foreach (var removed in _resources.Values.Where(resource => !next.ContainsKey(resource.Declaration.Handle.ResourceId)))
             {
                 CancelRequests(removed);
                 if (_workloads.Remove(removed.Declaration.Handle.ResourceId, out var workload))
                 {
-                    workload.Dispose();
-                    cleanup.Add(workload.Completion);
-                    _retiredWorkloads.Add(workload.Completion);
+                    cleanup.Add(workload.StopAsync());
+                    _retiredWorkloads.Add(workload);
                 }
             }
             _resources.Clear();
@@ -205,6 +204,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
 
     internal Task<WorkloadEndpoint> StartWorkload(Guid resourceId, WorkloadPlan plan)
     {
+        WorkloadDefinition.Validate(plan);
         lock (_gate)
         {
             EnsureAlive();
@@ -251,6 +251,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
 
     internal async Task<WorkloadEndpoint> ReplaceWorkloadAsync(Guid resourceId, long revision, WorkloadPlan plan)
     {
+        WorkloadDefinition.Validate(plan);
         ResourceWorkload previous;
         lock (_gate)
         {
@@ -277,7 +278,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             // Never overlap two leases for one resource. Keep the old workload in
             // the cleanup inventory until its executor confirms actual removal.
-            await previous.Completion.ConfigureAwait(false);
+            await previous.StopAsync().ConfigureAwait(false);
             Task<WorkloadEndpoint> started;
             lock (_gate)
             {
@@ -343,7 +344,8 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             }
             resource.State = state;
             resource.Healthy = false;
-            resource.Urls = endpoint is { Port: > 0 } ? [$"tcp://{endpoint.Host}:{endpoint.Port}"] : [];
+            resource.Urls = endpoint is null ? [] : endpoint.Endpoints.Select(port =>
+                new UriBuilder(port.UriScheme, port.Host, port.Port).Uri.AbsoluteUri.TrimEnd('/')).ToImmutableArray();
             if (state is "Stopped" or "Failed")
             {
                 CancelRequests(resource);
@@ -707,14 +709,11 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     {
         lock (_gate)
         {
-            if (_disposed)
-            {
-                return;
-            }
+            // Repeated retirement is a new cleanup attempt for retained failures.
             _disposed = true;
-            foreach (var workload in _workloads.Values)
+            foreach (var workload in _workloads.Values.Concat(_retiredWorkloads))
             {
-                workload.Dispose();
+                _ = workload.StopAsync();
             }
             foreach (var resource in _resources.Values)
             {

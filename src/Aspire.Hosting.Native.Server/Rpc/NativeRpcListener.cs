@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
+using Aspire.Shared;
 
 namespace Aspire.Hosting.Native.Rpc;
 
@@ -17,7 +18,9 @@ internal sealed class NativeRpcListener : IDisposable
     private readonly NativeLanguageCatalog? _languages;
     private readonly Action<string> _diagnostic;
     private readonly NativeServerOptions _options;
+    private readonly string? _socketPath;
     private int _running;
+    private int _disposed;
 
     public EndPoint EndPoint => _listener.LocalEndPoint!;
 
@@ -56,12 +59,27 @@ internal sealed class NativeRpcListener : IDisposable
         _listener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
         try
         {
-            _listener.Bind(endPoint);
+            if (endPoint is UnixDomainSocketEndPoint unix)
+            {
+                SocketPermissionHelper.Bind(_listener, unix.ToString());
+                _socketPath = unix.ToString();
+            }
+            else
+            {
+                _listener.Bind(endPoint);
+            }
             _listener.Listen(options.MaximumConnections);
         }
         catch
         {
+            // Bind may succeed before permission setup or Listen fails. Never unlink
+            // an endpoint on failed Bind: it may belong to another active listener.
+            var ownedPath = _listener.IsBound && endPoint is UnixDomainSocketEndPoint unix ? unix.ToString() : null;
             _listener.Dispose();
+            if (ownedPath is not null)
+            {
+                File.Delete(ownedPath);
+            }
             throw;
         }
     }
@@ -91,6 +109,9 @@ internal sealed class NativeRpcListener : IDisposable
             }
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (Volatile.Read(ref _disposed) != 0 && exception is ObjectDisposedException or SocketException)
         {
         }
         finally
@@ -132,7 +153,7 @@ internal sealed class NativeRpcListener : IDisposable
                 requests.Add(RespondAsync(payload));
             }
         }
-        catch (Exception exception) when (exception is IOException or SocketException)
+        catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException)
         {
             // A truncated/malformed frame ends only this connection. Report the
             // classification, never payloads, bearer tokens, or peer input.
@@ -184,7 +205,15 @@ internal sealed class NativeRpcListener : IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
         _listener.Dispose();
+        if (_socketPath is not null)
+        {
+            File.Delete(_socketPath);
+        }
         _server.Close();
     }
 }

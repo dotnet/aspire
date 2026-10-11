@@ -12,8 +12,10 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
 {
     private readonly TaskCompletionSource _cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public ConcurrentQueue<WorkloadIdentity> Started { get; } = new();
+    public ConcurrentQueue<WorkloadPlan> Plans { get; } = new();
     public ConcurrentQueue<WorkloadIdentity> Removed { get; } = new();
     public TaskCompletionSource CleanupStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Exception? StartFailure { get; init; }
 
     public void ReleaseCleanup() => _cleanup.TrySetResult();
     public void FailCleanup() => _cleanup.TrySetException(new InvalidOperationException("Test workload cleanup failed."));
@@ -22,14 +24,20 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
     {
         cancellationToken.ThrowIfCancellationRequested();
         Started.Enqueue(identity);
+        Plans.Enqueue(plan);
+        if (StartFailure is not null)
+        {
+            return Task.FromException<IWorkloadLease>(StartFailure);
+        }
 
         return Task.FromResult<IWorkloadLease>(new Lease(this, identity, plan));
     }
 
     private sealed class Lease(WorkloadTestExecutor executor, WorkloadIdentity identity, WorkloadPlan plan) : IWorkloadLease
     {
-        public WorkloadEndpoint Endpoint { get; } = new("127.0.0.1",
-            plan is ContainerWorkload { TargetPort: 0 } ? 0 : 5050, "test-instance");
+        public WorkloadEndpoint Endpoint { get; } = new("test-instance",
+            plan.Endpoints.Select((endpoint, index) => new AllocatedWorkloadPort(
+                endpoint.Name, endpoint.Protocol, endpoint.UriScheme, "127.0.0.1", 5050 + index)).ToImmutableArray());
         public Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken) =>
             Task.FromResult(new WorkloadStatus(true, null));
         public Task<ImmutableArray<WorkloadLog>> ReadLogsAsync(CancellationToken cancellationToken) =>

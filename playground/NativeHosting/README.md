@@ -1,6 +1,52 @@
 # Lean native hosting feasibility spike
 
-This is an isolated experiment for [#20873](https://github.com/microsoft/aspire/issues/20873), not a new supported AppHost runtime. C# hosting remains managed and the default guest server selection stays unchanged. An explicit development-only CLI override now exercises the native server and extends the command's cleanup window. No Nuxt package, dependency version, or generated API baseline is changed. The original handwritten-RPC experiments remain available; the ATS-native server below uses generated ATS APIs instead.
+This is an isolated experiment for [#20873](https://github.com/microsoft/aspire/issues/20873), not a new supported AppHost runtime. C# hosting remains managed and the default guest server selection stays unchanged. An explicit development-only CLI override exercises the native server with the ordinary command-wide shutdown budget. No Nuxt package, dependency version, or generated API baseline is changed. The original handwritten-RPC experiments remain available; the ATS-native server below uses generated ATS APIs instead.
+
+## Reusable core baseline
+
+`src/Aspire.Hosting.Native.Core` contains the BCL-only model and execution kernel.
+It does not load Hosting, integration packages, ATS, ASP.NET Core, gRPC, or DCP
+client libraries. The server references that kernel and supplies generated ATS
+dispatch, authenticated sockets, DCP execution, CLI/auxiliary protocols, and the
+Dashboard resource-service adapter. Integration workers and demonstration-specific
+IPC are test fixtures, not server dependencies.
+
+The generic workload contract supports multiple named TCP/UDP endpoints,
+host/target port declarations, executable port-variable injection, container
+entrypoints, read-only bind mounts, and explicitly caller-owned named volumes.
+Allocations return every named host-facing endpoint. Existing single-endpoint
+exports remain convenience facades, not kernel requirements. The portable
+contracts behind real Redis, PostgreSQL, and Dev Tunnels integration patterns,
+including the still-unimplemented schema/value/lifecycle requirements, are
+documented in [App Model v2](../../docs/specs/appmodelv2.md#core-baseline-versus-in-process-conveniences).
+
+The neutral [baseline driver](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeBaselineSmoke.mts)
+uses independent authenticated ATS connections, not a purpose-built integration
+worker. Three alternating runs cover contract-only startup and DCP plus the
+resource-service adapter, empty and 100-resource graphs, and real generic
+container/executable workloads. Both workloads expose two independently allocated
+HTTP endpoints. The stock nginx container uses a read-only bind and an external
+named volume whose data survives restart; a Node executable receives two distinct
+port variables. Owned processes, containers, and sockets must be removed.
+
+```bash
+bash eng/scripts/test-native-hosting.sh osx-arm64
+```
+
+This prepares fresh AOT binaries, generated SDKs, CLI, Dashboard, DCP, and Chromium
+under `artifacts/native-hosting/ci`, then runs the neutral baseline and the
+RPC/runtime/workload/revision/CLI/auxiliary conformance scenarios. Use `linux-x64`
+on Linux. Individual logs and raw footprint samples are in its `logs` directory.
+The independent Rust reference remains local-only and is not a dependency or PR
+input.
+
+Footprint accounting reports the complete server executable and server-only RSS,
+then its external process tree separately. Contract-only mode disables DCP and
+resource-service startup but uses the same complete executable; it is not a
+separately linked minimal-kernel size measurement. Direct server startup does not
+measure `aspire run`. The neutral scenario excludes the Dashboard frontend,
+driving Node process, browser, and Docker VM/container memory. RSS sums can count
+shared pages more than once.
 
 ## Current native server auxiliary backchannel
 
@@ -66,8 +112,11 @@ eight headless revision scenarios also passed after the transport extraction.
 
 Server shutdown quiesces Dashboard resource-service requests before deleting the
 Dashboard executable: active watches cancel immediately and reconnects receive
-503. Without this ordering, Dashboard termination consumed the entire CLI grace
-window and tree-kill escalation could suspend DCP while cleanup was still pending.
+503. It also starts DCP's dependency-aware full cleanup concurrently with owner
+retirement, rather than serializing every individual API deletion before
+controller cleanup. Both obligations must complete before stopping DCP. Without
+these orderings, termination could consume the CLI grace window and tree-kill
+escalation could suspend DCP while cleanup was still pending.
 The unchanged browser/confirmation smoke scenario passed twice after the fix,
 with DCP shutdown completing within the ordinary CLI grace window. Evidence is in
 `artifacts/native-hosting/csharp-aux/browser-e2e.log` and

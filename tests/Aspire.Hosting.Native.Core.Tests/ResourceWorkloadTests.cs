@@ -12,6 +12,20 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class ResourceWorkloadTests
 {
     [Fact]
+    public async Task StartupFailureDoesNotFenceRetirementWhenNoCleanupRemains()
+    {
+        using var model = new ApplicationModel();
+        var resource = model.AddResource("cache", "example/Redis");
+        using var runtime = new RuntimeGeneration(model.Seal(), UnavailableWorkloadExecutor.Instance);
+        using var owner = runtime.ClaimResource(resource);
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            owner.StartWorkload(new ContainerWorkload("example:1", 6379, [], [])));
+        await Assert.ThrowsAsync<NotSupportedException>(() => runtime.Completion);
+        runtime.Dispose();
+        await runtime.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
     public async Task ContainersCanRunWithoutExposingAnEndpoint()
     {
         var executor = new WorkloadTestExecutor();

@@ -86,7 +86,7 @@ internal static class NativeBackchannelConnection
                 tasks.Add(RespondAsync(request, key, cancellation));
             }
         }
-        catch (Exception exception) when (exception is IOException or SocketException or JsonException or RpcFault)
+        catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException or JsonException or RpcFault)
         {
             Console.Error.WriteLine($"Backchannel disconnected: {exception.GetType().Name}.");
         }
@@ -211,8 +211,11 @@ internal static class NativeBackchannelConnection
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
             {
             }
-            catch (IOException)
+            catch (Exception exception) when (exception is IOException or SocketException)
             {
+                // Handle transport failures inside each response, including responses
+                // still being drained after the reader has observed a disconnect.
+                Console.Error.WriteLine($"Backchannel response failed: {exception.GetType().Name}.");
                 await lifetime.CancelAsync().ConfigureAwait(false);
             }
             finally

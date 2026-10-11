@@ -62,6 +62,7 @@ using var listener = new NativeRpcListener(endPoint, token, Console.Error.WriteL
     NativeLanguageCatalog.LoadEmbedded(), options);
 NativeDashboardHost? dashboard = null;
 Task? dashboardCleanup = null;
+Task? controllerCleanup = null;
 var dashboardPath = Environment.GetEnvironmentVariable("ASPIRE_DASHBOARD_PATH");
 var dashboardRequested = dashboardPath is not null;
 var dashboardState = new DcpDashboard();
@@ -132,6 +133,10 @@ try
                 dashboardCleanup = StopDashboardOnShutdownAsync();
             }
             dcpReady.SetResult();
+            if (dcpExecutable is not null)
+            {
+                controllerCleanup = StopControllerOnShutdownAsync();
+            }
         }
         catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
         {
@@ -159,11 +164,11 @@ try
 finally
 {
     await startup.CancelAsync().ConfigureAwait(false);
-    if (dashboard is not null)
+    try
     {
-        dashboard.BeginShutdown();
-        try
+        if (dashboard is not null)
         {
+            dashboard.BeginShutdown();
             // Watches were quiesced before requesting Dashboard deletion. Remove its DCP
             // process before disposing the resource-service host so reconnects cannot keep
             // either side alive through the CLI's graceful shutdown budget.
@@ -172,12 +177,13 @@ finally
             {
                 await dashboardState.StopAsync(dcp, cleanup.Token).ConfigureAwait(false);
             }
-            else
-            {
-                await dashboardCleanup.ConfigureAwait(false);
-            }
         }
-        finally
+        await Task.WhenAll(controllerCleanup ?? Task.CompletedTask,
+            dashboardCleanup ?? Task.CompletedTask).ConfigureAwait(false);
+    }
+    finally
+    {
+        if (dashboard is not null)
         {
             await dashboard.DisposeAsync().ConfigureAwait(false);
         }
@@ -207,4 +213,21 @@ async Task StopDashboardOnShutdownAsync()
     dashboard?.BeginShutdown();
     using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
     await dashboardState.StopAsync(dcp, cleanup.Token).ConfigureAwait(false);
+}
+
+async Task StopControllerOnShutdownAsync()
+{
+    try
+    {
+        await Task.Delay(Timeout.InfiniteTimeSpan, shutdown.Token).ConfigureAwait(false);
+    }
+    catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
+    {
+    }
+    // DCP owns dependency-aware process and container termination. Initiate it with
+    // owner retirement, rather than waiting for every individual API deletion before
+    // beginning controller cleanup within the CLI's shared graceful-stop window.
+    dashboard?.BeginShutdown();
+    using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
+    await dcp.CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
 }

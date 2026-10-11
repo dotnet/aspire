@@ -21,13 +21,12 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
 
     public async Task<IWorkloadLease> StartAsync(WorkloadIdentity identity, WorkloadPlan plan, CancellationToken cancellationToken)
     {
+        WorkloadDefinition.Validate(plan);
         await startup.WaitAsync(cancellationToken).ConfigureAwait(false);
         var name = "native-" + identity.ResourceId.ToString("N");
         var collection = plan is ContainerWorkload ? "containers" : "executables";
-        var service = name + "-tcp";
-        var exposesPort = plan is ContainerWorkload { TargetPort: > 0 } ||
-            plan is ExecutableWorkload { PortEnvironmentVariable.Length: > 0 };
-        var lease = new Lease(client, collection, name, exposesPort ? service : null, options);
+        var services = plan.Endpoints.Select(endpoint => name + "-" + endpoint.Name.ToLowerInvariant()).ToArray();
+        var lease = new Lease(client, collection, name, services, options);
         try
         {
             var spec = new DcpWorkloadSpec
@@ -36,18 +35,24 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                 Args = plan.Arguments.ToArray()
             };
             Dictionary<string, string>? annotations = null;
-            if (exposesPort)
+            if (!plan.Endpoints.IsEmpty)
             {
-                await client.CreateAsync("services", service, JsonSerializer.SerializeToElement(
-                    new DcpServiceSpec("TCP", plan is ContainerWorkload ? "Proxyless" : "Localhost"),
-                    DcpJsonContext.Default.DcpServiceSpec), null, cancellationToken).ConfigureAwait(false);
+                for (var index = 0; index < plan.Endpoints.Length; index++)
+                {
+                    var endpoint = plan.Endpoints[index];
+                    await client.CreateAsync("services", services[index], JsonSerializer.SerializeToElement(
+                        new DcpServiceSpec(endpoint.Protocol, plan is ContainerWorkload ? "Proxyless" : "Localhost")
+                        {
+                            Port = endpoint.HostPort == 0 ? null : endpoint.HostPort
+                        },
+                        DcpJsonContext.Default.DcpServiceSpec), null, cancellationToken).ConfigureAwait(false);
+                }
                 annotations = new Dictionary<string, string>
                 {
-                    ["service-producer"] = JsonSerializer.Serialize(new[]
-                    {
-                        new DcpServiceProducer(service, System.Net.IPAddress.Loopback.ToString(),
-                            plan is ContainerWorkload containerPort ? containerPort.TargetPort : null)
-                    }, DcpJsonContext.Default.DcpServiceProducerArray)
+                    ["service-producer"] = JsonSerializer.Serialize(plan.Endpoints.Select((endpoint, index) =>
+                        new DcpServiceProducer(services[index], System.Net.IPAddress.Loopback.ToString(),
+                            endpoint.TargetPort == 0 ? null : endpoint.TargetPort)).ToArray(),
+                        DcpJsonContext.Default.DcpServiceProducerArray)
                 };
             }
             if (plan is ContainerWorkload container)
@@ -55,9 +60,14 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                 spec = spec with
                 {
                     Image = container.Image,
-                    Ports = exposesPort
-                        ? [new DcpContainerPort(container.TargetPort, System.Net.IPAddress.Loopback.ToString(), "TCP")]
-                        : null
+                    Command = container.Command,
+                    VolumeMounts = container.Mounts.IsEmpty ? null :
+                        container.Mounts.Select(mount => new DcpVolumeMount(mount.Type, mount.Source, mount.Target, mount.ReadOnly)).ToArray(),
+                    Ports = container.Endpoints.IsEmpty ? null : container.Endpoints.Select(endpoint =>
+                        new DcpContainerPort(endpoint.TargetPort, System.Net.IPAddress.Loopback.ToString(), endpoint.Protocol)
+                        {
+                            HostPort = endpoint.HostPort == 0 ? null : endpoint.HostPort
+                        }).ToArray()
                 };
             }
             else if (plan is ExecutableWorkload executable)
@@ -68,16 +78,16 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                     WorkingDirectory = executable.WorkingDirectory,
                     ExecutionType = "Process"
                 };
-                if (executable.PortEnvironmentVariable.Length > 0)
+                // DCP substitutes "{{- portForServing \"<service>\" -}}" before
+                // launch. Each environment variable names its own allocation,
+                // avoiding reserve/release races for multi-endpoint executables.
+                spec = spec with
                 {
-                    // DCP substitutes the allocation before launch, avoiding a
-                    // reserve/release port race in the executable integration.
-                    spec = spec with
-                    {
-                        Env = [.. spec.Env, new DcpEnvironment(executable.PortEnvironmentVariable,
-                            "{{- portForServing \"" + service + "\" -}}")]
-                    };
-                }
+                    Env = [.. spec.Env, .. executable.Endpoints.Select((endpoint, index) => (endpoint, index))
+                        .Where(entry => entry.endpoint.EnvironmentVariable.Length > 0)
+                        .Select(entry => new DcpEnvironment(entry.endpoint.EnvironmentVariable,
+                            "{{- portForServing \"" + services[entry.index] + "\" -}}"))]
+                };
             }
             else
             {
@@ -104,14 +114,19 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                     {
                         throw new InvalidOperationException("DCP did not report its running workload identity.");
                     }
-                    if (!exposesPort)
+                    if (plan.Endpoints.IsEmpty)
                     {
                         lease.Endpoint = new WorkloadEndpoint(System.Net.IPAddress.Loopback.ToString(), 0, instanceId);
                         return lease;
                     }
-                    var endpoint = await client.GetAsync("services", service, cancellationToken).ConfigureAwait(false);
-                    if (endpoint?.Status is { EffectivePort: > 0 and <= 65535 } status)
+                    var endpoints = ImmutableArray.CreateBuilder<AllocatedWorkloadPort>();
+                    for (var index = 0; index < services.Length; index++)
                     {
+                        var endpoint = await client.GetAsync("services", services[index], cancellationToken).ConfigureAwait(false);
+                        if (endpoint?.Status is not { EffectivePort: > 0 and <= 65535 } status)
+                        {
+                            break;
+                        }
                         var address = status.EffectiveAddress
                             ?? throw new InvalidDataException("DCP did not report an allocated endpoint address.");
                         if (!address.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
@@ -119,8 +134,12 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                         {
                             throw new InvalidOperationException("DCP must allocate a loopback workload endpoint.");
                         }
-                        lease.Endpoint = new WorkloadEndpoint(address, status.EffectivePort.Value, instanceId);
-
+                        var declaration = plan.Endpoints[index];
+                        endpoints.Add(new(declaration.Name, declaration.Protocol, declaration.UriScheme, address, status.EffectivePort.Value));
+                    }
+                    if (endpoints.Count == services.Length)
+                    {
+                        lease.Endpoint = new WorkloadEndpoint(instanceId, endpoints.ToImmutable());
                         return lease;
                     }
                 }
@@ -130,17 +149,25 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         catch
         {
             // A partially submitted workload still has a cleanup obligation.
-            await lease.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                throw new WorkloadCleanupException(lease, exception);
+            }
             throw;
         }
     }
 
-    private sealed class Lease(DcpApiClient client, string collection, string name, string? service,
+    private sealed class Lease(DcpApiClient client, string collection, string name, string[] services,
         NativeServerOptions options) : IWorkloadLease
     {
         private long _stdout;
         private long _stderr;
-        private int _disposed;
+        private readonly SemaphoreSlim _cleanupGate = new(1);
+        private bool _disposed;
         public WorkloadEndpoint Endpoint { get; set; } = new(System.Net.IPAddress.Loopback.ToString(), 0, "");
 
         public async Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken)
@@ -166,15 +193,31 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
 
         public async ValueTask DisposeAsync()
         {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0)
-            {
-                return;
-            }
             using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
-            await client.DeleteAsync(collection, name, cleanup.Token).ConfigureAwait(false);
-            if (service is not null)
+            await _cleanupGate.WaitAsync(cleanup.Token).ConfigureAwait(false);
+            try
             {
-                await client.DeleteAsync("services", service, cleanup.Token).ConfigureAwait(false);
+                if (_disposed)
+                {
+                    return;
+                }
+                // A failed DELETE or disappearance probe retains the obligation.
+                // Repeating deletion after partial success is safe: DCP treats 404 as absent.
+                await client.DeleteAsync(collection, name, cleanup.Token).ConfigureAwait(false);
+                foreach (var service in services)
+                {
+                    await client.DeleteAsync("services", service, cleanup.Token).ConfigureAwait(false);
+                }
+                _disposed = true;
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine($"DCP workload cleanup failed ({exception.GetType().Name}); cleanup remains pending.");
+                throw;
+            }
+            finally
+            {
+                _cleanupGate.Release();
             }
         }
     }

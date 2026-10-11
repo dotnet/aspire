@@ -18,15 +18,24 @@ internal sealed record DcpStatus
     public int? EffectivePort { get; init; }
     public string? EffectiveAddress { get; init; }
 }
-internal sealed record DcpServiceSpec(string Protocol, string AddressAllocationMode);
+internal sealed record DcpServiceSpec(string Protocol, string AddressAllocationMode)
+{
+    public int? Port { get; init; }
+}
 internal sealed record DcpServiceProducer(string ServiceName, string Address, int? Port);
 internal sealed record DcpEnvironment(string Name, string Value);
-internal sealed record DcpContainerPort(int ContainerPort, string HostIP, string Protocol);
+internal sealed record DcpContainerPort(int ContainerPort, string HostIP, string Protocol)
+{
+    public int? HostPort { get; init; }
+}
+internal sealed record DcpVolumeMount(string Type, string Source, string Target, bool ReadOnly);
 internal sealed record DcpWorkloadSpec
 {
     public required DcpEnvironment[] Env { get; init; }
     public required string[] Args { get; init; }
     public string? Image { get; init; }
+    public string? Command { get; init; }
+    public DcpVolumeMount[]? VolumeMounts { get; init; }
     public DcpContainerPort[]? Ports { get; init; }
     public string? ExecutablePath { get; init; }
     public string? WorkingDirectory { get; init; }

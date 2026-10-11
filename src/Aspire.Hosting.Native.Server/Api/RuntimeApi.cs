@@ -101,7 +101,7 @@ internal sealed class ApplicationExecution : ICapabilityLifetime
 
 /// <summary>Supplies resource-scoped runtime capabilities directly to an integration.</summary>
 [AspireExport]
-internal sealed class ResourceExecution(RuntimeResourceOwner owner) : ICapabilityLifetime, ICapabilityOwner
+internal sealed partial class ResourceExecution(RuntimeResourceOwner owner) : ICapabilityLifetime, ICapabilityOwner
 {
     public bool IsRevoked => owner.IsRevoked;
 

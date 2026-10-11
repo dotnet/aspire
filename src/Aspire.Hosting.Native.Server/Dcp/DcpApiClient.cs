@@ -20,6 +20,8 @@ internal sealed class DcpApiClient : IAsyncDisposable
     private HttpClient? _client;
     private DcpConnectionMaterial? _connection;
     private readonly NativeServerOptions _options;
+    private readonly Lock _cleanupGate = new();
+    private Task? _cleanup;
 
     public DcpApiClient() : this(new())
     {
@@ -163,6 +165,32 @@ internal sealed class DcpApiClient : IAsyncDisposable
         return body.ToArray();
     }
 
+    /// <summary>Starts dependency-aware shutdown cleanup while resource owners retire.</summary>
+    internal Task CleanupResourcesAsync(CancellationToken cancellationToken)
+    {
+        lock (_cleanupGate)
+        {
+            if (_cleanup is null || _cleanup.IsFaulted || _cleanup.IsCanceled)
+            {
+                _cleanup = CleanupResourcesCoreAsync(cancellationToken);
+            }
+
+            return _cleanup;
+        }
+    }
+
+    private async Task CleanupResourcesCoreAsync(CancellationToken cancellationToken)
+    {
+        await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
+            new DcpExecutionRequest("CleaningResources", "Full"), DcpJsonContext.Default.DcpExecutionRequest),
+            cancellationToken).ConfigureAwait(false);
+        while ((await SendAsync(HttpMethod.Get, "admin/execution", null, cancellationToken).ConfigureAwait(false))?
+            .Deserialize(DcpJsonContext.Default.DcpExecutionResponse)?.Status != "CleanupComplete")
+        {
+            await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         using var cleanup = new CancellationTokenSource(_options.CleanupTimeout);
@@ -172,14 +200,7 @@ internal sealed class DcpApiClient : IAsyncDisposable
             {
                 // Use DCP's dependency-aware cleanup, not process exit or API
                 // disappearance as a proxy for Docker removal.
-                await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
-                    new DcpExecutionRequest("CleaningResources", "Full"), DcpJsonContext.Default.DcpExecutionRequest),
-                    cleanup.Token).ConfigureAwait(false);
-                while ((await SendAsync(HttpMethod.Get, "admin/execution", null, cleanup.Token).ConfigureAwait(false))?
-                    .Deserialize(DcpJsonContext.Default.DcpExecutionResponse)?.Status != "CleanupComplete")
-                {
-                    await Task.Delay(_options.RetryInterval, cleanup.Token).ConfigureAwait(false);
-                }
+                await CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
                 await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
                     new DcpExecutionRequest("Stopping", "Full"), DcpJsonContext.Default.DcpExecutionRequest),
                     cleanup.Token).ConfigureAwait(false);

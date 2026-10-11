@@ -13,6 +13,7 @@
     <NativeGeneratedDirectory>$(IntermediateOutputPath)native-ats/</NativeGeneratedDirectory>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj" />
     <ProjectReference Include="../Aspire.Hosting.Ats.Abstractions/Aspire.Hosting.Ats.Abstractions.csproj" />
     <ProjectReference Include="../Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj"
                       ReferenceOutputAssembly="false" Private="false"

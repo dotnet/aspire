@@ -22,7 +22,7 @@ internal sealed class NativeCliLogBuffer(int capacity) : IObserver<OperationEven
         {
             var sequence = checked(++_sequence);
             _entries.Enqueue(new NativeCliLogEntry(sequence, _generation, new EventId(0, value.Operation),
-                value.ErrorType is null ? LogLevel.Debug : LogLevel.Error,
+                value.Outcome == "error" || value.ErrorType is not null ? LogLevel.Error : LogLevel.Debug,
                 $"{value.Operation}: {value.Outcome}" + (value.ErrorType is null ? "" : $" ({value.ErrorType})"),
                 value.Timestamp, NativeDiagnostics.SourceName));
             if (_entries.Count > capacity)

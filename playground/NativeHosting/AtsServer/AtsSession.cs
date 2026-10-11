@@ -19,6 +19,7 @@ internal sealed class AtsRegistry : IAsyncDisposable
     private readonly ConcurrentDictionary<(object Value, string Type), JsonObject> _views = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _tokens = new(StringComparer.Ordinal);
     private readonly object _tokenGate = new();
+    private readonly HashSet<CancellationTokenSource> _callbackTokens = [];
     private readonly ConcurrentDictionary<string, RpcPeer> _external = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<RpcPeer, AtsSession> _hosts = new();
     private readonly object _hostGate = new();
@@ -44,6 +45,7 @@ internal sealed class AtsRegistry : IAsyncDisposable
     private bool _resetting;
     public bool Idle => _builder is null && !_resetting;
     public int HandleCount => _handles.Count;
+    internal int TokenCount => _tokens.Count;
     public Action? StopRequested { get; set; }
     public bool IntegrationHostRegistered => !_hosts.IsEmpty;
     public bool Ready => !_resetting && _builder?.Ready == true;
@@ -166,6 +168,32 @@ internal sealed class AtsRegistry : IAsyncDisposable
         lock (_tokenGate)
         {
             return _tokens.TryGetValue(id, out var source) && Cancel(source);
+        }
+
+    }
+
+    internal CancellationTokenSource CreateCallbackToken(string id, CancellationToken token)
+    {
+        lock (_tokenGate)
+        {
+            var source = CancellationTokenSource.CreateLinkedTokenSource(token, _generation.Token);
+            _tokens[id] = source;
+            _callbackTokens.Add(source);
+
+            return source;
+        }
+    }
+
+    internal void ReleaseCallbackToken(string id, CancellationTokenSource source)
+    {
+        lock (_tokenGate)
+        {
+            if (_tokens.TryGetValue(id, out var current) && ReferenceEquals(current, source))
+            {
+                _tokens.TryRemove(id, out _);
+            }
+            _callbackTokens.Remove(source);
+            source.Dispose();
         }
     }
 
@@ -360,13 +388,21 @@ internal sealed class AtsRegistry : IAsyncDisposable
                 foreach (var token in _tokens.Values)
                 {
                     token.Cancel();
-                    token.Dispose();
+                    // A callback can outlive the graph's tracked dispatches. Its
+                    // response finally owns disposal; reset must not race that owner.
+                    if (!_callbackTokens.Contains(token))
+                    {
+                        token.Dispose();
+                    }
                 }
 
                 _tokens.Clear();
             }
-            _generation.Dispose();
-            _generation = new();
+            lock (_tokenGate)
+            {
+                _generation.Dispose();
+                _generation = new();
+            }
             await _dispatchGate.WaitAsync();
             try
             {
@@ -419,11 +455,19 @@ internal sealed class AtsSession(AtsRegistry registry, string authToken)
         // The production ATS callback shape is positional {p0,p1,...}. Include
         // the server token ID so nested generated calls retain cancellation.
         var tokenId = Guid.NewGuid().ToString("N");
-        registry.Token(JsonValue.Create(tokenId), token);
-        args[$"p{args.Count}"] = tokenId;
-        var result = await Peer.RequestAsync("invokeCallback",
-            new JsonArray(JsonValue.Create(id), args), token);
-        return result!.GetValue<bool>();
+        var source = registry.CreateCallbackToken(tokenId, token);
+        try
+        {
+            args[$"p{args.Count}"] = tokenId;
+            var result = await Peer.RequestAsync("invokeCallback",
+                new JsonArray(JsonValue.Create(id), args), source.Token);
+
+            return result!.GetValue<bool>();
+        }
+        finally
+        {
+            registry.ReleaseCallbackToken(tokenId, source);
+        }
     }
 
     public async Task<JsonNode?> InvokeAsync(string method, JsonNode? parameters, CancellationToken token)

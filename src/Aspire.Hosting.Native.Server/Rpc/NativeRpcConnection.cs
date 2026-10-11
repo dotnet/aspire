@@ -216,6 +216,14 @@ internal sealed class NativeRpcConnection : IDisposable
             operation.ErrorType = "EXECUTION_CANCELLED";
             return notification ? null : EncodeFailure(id, method, -32000, "EXECUTION_CANCELLED", "The execution was cancelled.");
         }
+        catch (Exception exception)
+        {
+            // Executors and integration code can fail outside the known capability faults.
+            // Export only the classification: messages and stack traces may contain secrets.
+            operation.ErrorType = exception.GetType().FullName;
+            Console.Error.WriteLine($"Native request failed: {exception.GetType().Name}.");
+            return notification ? null : EncodeFailure(id, method, -32603, "INTERNAL_ERROR", "The request failed internally.");
+        }
         finally
         {
             lock (_gate)

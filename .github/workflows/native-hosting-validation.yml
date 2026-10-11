@@ -1,0 +1,80 @@
+# Native.Core.Tests builds AotSmoke but does not execute it. This independent lane
+# executes the published binaries and generated SDK against real Docker, DCP and Chromium.
+name: Native hosting validation
+
+on:
+  pull_request:
+    paths:
+      # Broad source/build coverage intentionally includes transitive MSBuild dependencies,
+      # linked files and runtime-only CLI/Dashboard/codegen inputs without a second project graph.
+      - 'src/**'
+      - 'eng/**'
+      - 'tests/Aspire.Hosting.Native.Core.Tests/**'
+      - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
+      - 'tests/Directory.Build.*'
+      - 'tests/Shared/**'
+      - 'Directory.*'
+      - '*.props'
+      - '*.targets'
+      - '.editorconfig'
+      - '.config/**'
+      - 'global.json'
+      - 'NuGet.config'
+      - 'Aspire.slnx'
+      - 'restore.sh'
+      - 'build.sh'
+      - '.github/workflows/native-hosting-validation.yml'
+  push:
+    branches: [main, 'release/**']
+    paths:
+      - 'src/**'
+      - 'eng/**'
+      - 'tests/Aspire.Hosting.Native.Core.Tests/**'
+      - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
+      - 'tests/Directory.Build.*'
+      - 'tests/Shared/**'
+      - 'Directory.*'
+      - '*.props'
+      - '*.targets'
+      - '.editorconfig'
+      - '.config/**'
+      - 'global.json'
+      - 'NuGet.config'
+      - 'Aspire.slnx'
+      - 'restore.sh'
+      - 'build.sh'
+      - '.github/workflows/native-hosting-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-hosting-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native_hosting:
+    name: Native AOT, generated SDK, Docker, DCP, CLI and Dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Execute native hosting validation
+        run: bash eng/scripts/test-native-hosting.sh linux-x64
+      - name: Upload native hosting evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-hosting-linux-x64
+          path: |
+            artifacts/native-hosting/ci/logs/
+            artifacts/native-hosting/native-dashboard.png
+            artifacts/native-hosting/ci/cli-apphost/*proof.json
+          if-no-files-found: warn
+          retention-days: 7
