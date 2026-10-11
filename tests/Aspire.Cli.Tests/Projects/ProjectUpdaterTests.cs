@@ -48,14 +48,20 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData(".vbproj", true, "Sdk")]
     [InlineData(".csproj", true, "Project")]
     [InlineData(".csproj", true, "Import")]
-    public async Task UpdateImportedSdkUsesEvaluatedMarkerInsteadOfImplicitPackage(string extension, bool needsUpdate, string sdkForm)
+    [InlineData(".csproj", true, "Sdk", false)]
+    [InlineData(".fsproj", true, "Sdk", false)]
+    [InlineData(".vbproj", true, "Sdk", false)]
+    [InlineData(".csproj", true, "Project", false)]
+    [InlineData(".csproj", true, "Import", false, "MSBuildAllProjects")]
+    [InlineData(".csproj", true, "Sdk", false, "DirectoryBuildPropsPath", "13.6.1")]
+    public async Task UpdateImportedSdkUsesDeclarationInsteadOfImplicitPackage(string extension, bool needsUpdate, string sdkForm, bool hasMarker = true, string importProperty = "DirectoryBuildPropsPath", string? legacyVersion = null)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, $"AppHost{extension}"));
         const string original = "<Project Sdk=\"Microsoft.NET.Sdk\" />";
         await File.WriteAllTextAsync(appHost.FullName, original);
         var importedFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props");
-        var currentVersion = needsUpdate ? "17.0.0-preview.0" : "17.0.0-preview.1";
+        var currentVersion = legacyVersion ?? (!hasMarker ? "8.2.1" : needsUpdate ? "17.0.0-preview.0" : "17.0.0-preview.1");
         var declaration = sdkForm switch
         {
             "Project" => $"<Project Sdk=\"Aspire.AppHost.Sdk/{currentVersion}\" />",
@@ -78,8 +84,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     Assert.Contains("_UsingAspireAppHostSdk", properties);
                     var document = new JsonObject()
                         .WithSdkVersion(currentVersion)
-                        .WithProperty("_UsingAspireAppHostSdk", "true")
-                        .WithProperty("DirectoryBuildPropsPath", importedFile)
+                        .WithProperty("_UsingAspireAppHostSdk", hasMarker ? "true" : "")
+                        .WithProperty("_AspireAppHostPackageVersion", "17.0.0")
+                        .WithProperty(importProperty, importedFile)
                         .WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
                     return (0, JsonDocument.Parse(document.ToJsonString()));
                 },
@@ -129,7 +136,8 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData(false, false, false, false, ".vbproj")]
     [InlineData(false, true, false, false, ".vbproj")]
     [InlineData(false, false, false, true, ".csproj", true)]
-    public async Task UpdatePackageOnlyAppHostPreservesExplicitPackageAndDoesNotAddSdk(bool fileBased, bool fallback, bool centrallyManaged, bool imported, string extension, bool childVersion = false)
+    [InlineData(false, false, false, true, ".csproj", false, true)]
+    public async Task UpdatePackageOnlyAppHostPreservesExplicitPackageAndDoesNotAddSdk(bool fileBased, bool fallback, bool centrallyManaged, bool imported, string extension, bool childVersion = false, bool inactiveSdk = false)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, fileBased ? "apphost.cs" : $"AppHost{extension}"));
@@ -144,7 +152,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         if (imported)
         {
             await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"),
-                centrallyManaged
+                inactiveSdk
+                    ? "<Project><Import Project=\"Sdk.props\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"8.2.1\" Condition=\"'$(MSBuildProjectName)' == 'Legacy.AppHost'\" /><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>"
+                    : centrallyManaged
                     ? "<Project><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" /></ItemGroup></Project>"
                     : childVersion
                     ? "<Project><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\"><Version>17.0.0</Version></PackageReference></ItemGroup></Project>"
@@ -176,9 +186,11 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     }
                     var document = new JsonObject();
                     document.WithSdkVersion("17.0.0");
+                    document.WithProperty("_AspireAppHostPackageVersion", "17.0.0");
                     document.WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
                     if (imported)
                     {
+                        document.WithProperty("DirectoryBuildPropsPath", Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"));
                         document["Items"]!["PackageReference"]!.AsArray()[0]!["DefiningProjectFullPath"] =
                             Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props");
                     }
@@ -224,6 +236,10 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
             if (childVersion)
             {
                 Assert.Null(reference.Attribute("Version"));
+            }
+            if (inactiveSdk)
+            {
+                Assert.Equal("8.2.1", props.Descendants("Import").Single().Attribute("Version")!.Value);
             }
         }
         else

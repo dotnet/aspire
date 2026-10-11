@@ -312,7 +312,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "_UsingAspireAppHostSdk", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -337,7 +337,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "_UsingAspireAppHostSdk", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -422,6 +422,17 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         usesSdk |= propertiesElement.TryGetProperty("_UsingAspireAppHostSdk", out var marker)
             && string.Equals(marker.GetString(), "true", StringComparison.OrdinalIgnoreCase);
+        var sdkVersion = propertiesElement.GetProperty("AspireHostingSDKVersion").GetString();
+        // Package-only targets synthesize this version from their own package. An older SDK
+        // supplies a separate version without the newer marker; locate its imported declaration.
+        var hasLegacySdkVersion = !string.IsNullOrEmpty(sdkVersion)
+            && (!propertiesElement.TryGetProperty("_AspireAppHostPackageVersion", out var packageVersion)
+                || !string.Equals(sdkVersion, packageVersion.GetString(), StringComparison.OrdinalIgnoreCase));
+        var importedSdkFile = sourceRoot.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString() == "true"
+            || (!usesSdk && !hasLegacySdkVersion)
+            ? null
+            : FindImportedSdkDeclaration(context.AppHostProjectFile, propertiesElement, required: usesSdk);
+        usesSdk |= importedSdkFile is not null;
         var items = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
         var hasAppHostPackage = items.TryGetProperty("PackageReference", out var packages)
             && packages.EnumerateArray().Any(package => string.Equals(package.GetProperty("Identity").GetString(),
@@ -433,9 +444,6 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 "Aspire.Hosting.AppHost", cancellationToken: cancellationToken))?.Version;
             return;
         }
-
-        var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
-        var sdkVersion = sdkVersionElement.GetString();
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken: cancellationToken);
         context.TargetSdkVersion = latestSdkPackage?.Version;
@@ -462,9 +470,6 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Detect what migration actions will be performed for .csproj files
         var migrationInfo = DetectMigrationActions(context.AppHostProjectFile);
-        var importedSdkFile = usesSdk && sourceRoot.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString() != "true"
-            ? FindImportedSdkDeclaration(context.AppHostProjectFile, propertiesElement)
-            : null;
 
         var sdkUpdateStep = new PackageUpdateStep(
             string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
@@ -488,7 +493,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
-    private static FileInfo FindImportedSdkDeclaration(FileInfo projectFile, JsonElement properties)
+    private static FileInfo? FindImportedSdkDeclaration(FileInfo projectFile, JsonElement properties, bool required)
     {
         var candidates = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (var property in new[] { "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects" })
@@ -504,11 +509,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var declarations = candidates.Where(path => File.Exists(path)
             && GetSdkDeclarations(XDocument.Load(path)).Any()).ToArray();
-        if (declarations.Length != 1)
+        if (declarations.Length > 1 || (required && declarations.Length == 0))
         {
             throw new ProjectUpdaterException($"Could not uniquely locate the imported Aspire.AppHost.Sdk declaration for '{projectFile.FullName}'. Found {declarations.Length} declaring files; update the imported SDK version explicitly.");
         }
-        return new FileInfo(declarations[0]);
+        return declarations.Length == 0 ? null : new FileInfo(declarations[0]);
     }
 
     private static IEnumerable<XElement> GetSdkDeclarations(XDocument document)

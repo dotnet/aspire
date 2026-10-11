@@ -84,7 +84,9 @@ files and C# file-based AppHosts with an SDK directive.
 For non-central package references declared in imported build files, the updater
 changes the original declaration rather than adding a duplicate to the AppHost.
 Imported SDK versions are updated in place when evaluation identifies one
-declaring file. Ambiguous imported declarations require an explicit SDK version
+declaring file, including older SDKs without the SDK-use marker. Inactive SDK
+imports in shared build files do not turn package-only AppHosts into SDK projects.
+Ambiguous imported declarations require an explicit SDK version
 update instead of guessing which shared file to change.
 
 ## Examples
