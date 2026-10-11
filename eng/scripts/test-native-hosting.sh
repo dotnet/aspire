@@ -37,6 +37,7 @@ run_logged() {
 }
 
 run_logged restore ./restore.sh
+run_logged devtunnel-parser-tests node --test playground/NativeHosting/devtunnel-output.test.mts
 
 # CLI and Dashboard use the repository's default framework (currently net11).
 # Only the AOT server/smoke closure is overridden to the supported net10 runtime.

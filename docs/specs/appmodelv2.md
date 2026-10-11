@@ -109,7 +109,7 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 261 tests,
+the independent Rust server. The native regression suite passes 263 tests,
 CLI launcher coverage passes 88 tests, and the current Rust baseline passes 54 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
@@ -571,6 +571,11 @@ strongly typed settings before constructing consumers. Environment-variable
 compatibility belongs to the configuration provider and boot parser, not to
 individual services. The BCL-only kernel receives explicit settings and does
 not reference configuration providers.
+
+CLI server launches use the CLI-generated `ASPIRE_REMOTE_APPHOST_TOKEN`, not
+an inherited `ASPIRE_NATIVE_RPC_TOKEN`. Direct launches retain the native-token
+priority and remote-token fallback. The CLI fixture exercises an invalid
+inherited native token to guard authentication across this boundary.
 
 Protocol parsers translate external payloads into typed requests and state
 values before execution logic consumes them. Closed lifecycle and operation

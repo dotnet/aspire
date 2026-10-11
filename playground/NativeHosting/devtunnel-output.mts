@@ -21,9 +21,11 @@ export class TunnelOutputParser {
 
     parse(chunk: string): TunnelOutput[] {
         this.pending += chunk;
-        if (this.pending.length > 16384) throw new Error('Dev Tunnels output exceeded the bounded line buffer.');
         const lines = this.pending.split(/\r?\n/);
         this.pending = lines.pop()!;
+        if (this.pending.length > 16384 || lines.some(line => line.length > 16384)) {
+            throw new Error('Dev Tunnels output exceeded the bounded line buffer.');
+        }
         return lines.map(line => this.line(line));
     }
 

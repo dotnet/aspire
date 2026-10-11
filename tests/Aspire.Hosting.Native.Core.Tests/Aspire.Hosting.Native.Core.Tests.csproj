@@ -12,6 +12,7 @@
     <PackageReference Include="ModelContextProtocol" />
     <Compile Include="../../src/Aspire.Hosting/Backchannel/BackchannelDataTypes.cs" Link="Shared/BackchannelDataTypes.cs" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj" />
+    <ProjectReference Include="../../src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" />
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../playground/NativeHosting/AtsServer/NativeHosting.AtsServer.csproj" Aliases="NativeLegacyServer" />
     <ProjectReference Include="../../playground/NativeHosting/Ats/NativeHosting.Ats.csproj" Aliases="NativeLegacy" />

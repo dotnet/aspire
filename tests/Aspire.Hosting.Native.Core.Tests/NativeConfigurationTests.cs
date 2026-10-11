@@ -32,7 +32,7 @@ public class NativeConfigurationTests
             ["ASPIRE_CLI_STARTED_STABLE"] = "1770000000123",
             ["ASPIRE_CLI_LOG_FILE"] = "cli.log"
         });
-        var snapshot = NativeServerConfiguration.Parse(configuration);
+        var snapshot = NativeServerConfiguration.Parse(configuration, launchedByCli: false);
         configuration["ASPIRE_NATIVE_RPC_TOKEN"] = "changed";
         configuration["AppHost:FilePath"] = "changed";
 
@@ -56,7 +56,7 @@ public class NativeConfigurationTests
     {
         using var configuration = new ConfigurationManager();
         configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = new('b', 64);
-        var settings = NativeServerConfiguration.Parse(configuration);
+        var settings = NativeServerConfiguration.Parse(configuration, launchedByCli: false);
         Assert.Equal(new string('b', 64), settings.RpcToken);
         Assert.False(settings.TraceOperations);
         Assert.Null(settings.DashboardPort);
@@ -77,7 +77,7 @@ public class NativeConfigurationTests
         using var configuration = new ConfigurationManager();
         configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = new('b', 64);
         configuration[key] = expected;
-        Assert.Equal(expected, NativeServerConfiguration.Parse(configuration).AppHostPath);
+        Assert.Equal(expected, NativeServerConfiguration.Parse(configuration, launchedByCli: false).AppHostPath);
     }
 
     [Theory]
@@ -90,7 +90,7 @@ public class NativeConfigurationTests
         using var configuration = new ConfigurationManager();
         configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = new('b', 64);
         configuration["ASPIRE_NATIVE_TRACE_OPERATIONS"] = value;
-        Assert.False(NativeServerConfiguration.Parse(configuration).TraceOperations);
+        Assert.False(NativeServerConfiguration.Parse(configuration, launchedByCli: false).TraceOperations);
     }
 
     [Theory]
@@ -102,7 +102,7 @@ public class NativeConfigurationTests
         using var configuration = new ConfigurationManager();
         configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = new('b', 64);
         configuration["ASPIRE_NATIVE_DASHBOARD_PORT"] = value;
-        Assert.Throws<ArgumentException>(() => NativeServerConfiguration.Parse(configuration));
+        Assert.Throws<ArgumentException>(() => NativeServerConfiguration.Parse(configuration, launchedByCli: false));
     }
 
     [Theory]
@@ -115,6 +115,18 @@ public class NativeConfigurationTests
     {
         Assert.Null(NativeCliProcessMetadata.ParseTimestamp(value, milliseconds: false));
         Assert.Null(NativeCliProcessMetadata.ParseTimestamp(value, milliseconds: true));
+    }
+
+    [Fact]
+    public void CliLaunchUsesSessionTokenInsteadOfInheritedNativeToken()
+    {
+        using var configuration = new ConfigurationManager();
+        configuration["ASPIRE_NATIVE_RPC_TOKEN"] = "invalid-inherited-token";
+        configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = new('b', 64);
+        Assert.Equal(new string('b', 64), NativeServerConfiguration.Parse(configuration, launchedByCli: true).RpcToken);
+
+        configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] = null;
+        Assert.Throws<InvalidOperationException>(() => NativeServerConfiguration.Parse(configuration, launchedByCli: true));
     }
 
     [Fact]

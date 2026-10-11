@@ -27,12 +27,17 @@ internal sealed record NativeServerConfiguration(
 {
     public override string ToString() => nameof(NativeServerConfiguration);
 
-    public static NativeServerConfiguration Parse(IConfiguration configuration)
+    public static NativeServerConfiguration Parse(IConfiguration configuration, bool launchedByCli)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         var options = NativeServerOptions.Load(configuration["ASPIRE_NATIVE_SERVER_OPTIONS_PATH"]);
-        var token = configuration["ASPIRE_NATIVE_RPC_TOKEN"] ?? configuration["ASPIRE_REMOTE_APPHOST_TOKEN"]
-            ?? throw new InvalidOperationException("Set ASPIRE_NATIVE_RPC_TOKEN to authenticate native server connections.");
+        // A CLI launch supplies its own session token, regardless of inherited
+        // native-testing configuration in the caller's shell.
+        var token = (launchedByCli ? configuration["ASPIRE_REMOTE_APPHOST_TOKEN"] :
+            configuration["ASPIRE_NATIVE_RPC_TOKEN"] ?? configuration["ASPIRE_REMOTE_APPHOST_TOKEN"])
+            ?? throw new InvalidOperationException(launchedByCli ?
+                "ASPIRE_REMOTE_APPHOST_TOKEN is required for a CLI server launch." :
+                "Set ASPIRE_NATIVE_RPC_TOKEN to authenticate native server connections.");
         NativeRpcProtocol.ValidateAuthenticationToken(token);
         int? port = null;
         if (configuration["ASPIRE_NATIVE_DASHBOARD_PORT"] is { } value)

@@ -10,6 +10,7 @@
     <ShouldBeValidatedAsExecutableReference>false</ShouldBeValidatedAsExecutableReference>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Native.Core.Tests" />
     <ProjectReference Include="../Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj" />
     <ProjectReference Include="../Aspire.Hosting.Ats.Abstractions/Aspire.Hosting.Ats.Abstractions.csproj" />
     <ProjectReference Include="../Aspire.Hosting.CodeGeneration.TypeScript/Aspire.Hosting.CodeGeneration.TypeScript.csproj" />

@@ -46,7 +46,7 @@ internal static class NativeContractCompilation
             global using System.Threading;
             global using System.Threading.Tasks;
             """, parseOptions, encoding: Encoding.UTF8));
-        var references = Directory.EnumerateFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll")
+        var references = GetRuntimeAssemblyPaths()
             .Append(typeof(AspireExportAttribute).Assembly.Location)
             .Append(typeof(ApplicationModel).Assembly.Location)
             .Select(path => MetadataReference.CreateFromFile(path));
@@ -71,5 +71,16 @@ internal static class NativeContractCompilation
         }
 
         return AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+    }
+
+    internal static IEnumerable<string> GetRuntimeAssemblyPaths()
+    {
+        var platformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string
+            ?? throw new InvalidOperationException("The runtime's trusted platform assembly list is missing.");
+        var runtimeDirectory = RuntimeEnvironment.GetRuntimeDirectory();
+        // The Windows runtime directory also contains native DLLs such as coreclr.dll.
+        // The runtime's trusted assembly list contains only managed compiler inputs.
+        return platformAssemblies.Split(Path.PathSeparator)
+            .Where(path => path.StartsWith(runtimeDirectory, StringComparison.Ordinal));
     }
 }

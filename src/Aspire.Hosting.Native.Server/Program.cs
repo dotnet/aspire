@@ -14,7 +14,7 @@ using Microsoft.Extensions.Configuration;
 
 using var configuration = new ConfigurationManager();
 configuration.AddEnvironmentVariables();
-var settings = NativeServerConfiguration.Parse(configuration);
+var settings = NativeServerConfiguration.Parse(configuration, launchedByCli: args is ["server", "--contentRoot", _]);
 var options = settings.Options;
 var token = settings.RpcToken;
 var writer = new NativeDiagnosticWriter(settings.TraceOperations);

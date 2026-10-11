@@ -25,6 +25,8 @@ const cli = spawn(cliPath, ['run', '--apphost', 'apphost.mts', '--non-interactiv
     cwd: workspace,
     env: {
         ...process.env, ASPIRE_CLI_NATIVE_APPHOST_SERVER: serverPath, ASPIRE_NATIVE_CLI_RESULTS_PATH: resultsPath,
+        // The CLI's generated session token must override inherited native-testing configuration.
+        ASPIRE_NATIVE_RPC_TOKEN: 'invalid-inherited-native-token',
         ...(process.env.ASPIRE_NATIVE_DASHBOARD_DLL ? {
             ASPIRE_NATIVE_DASHBOARD_PORT: '0', ASPIRE_NATIVE_DASHBOARD_API_KEY: dashboardKey,
             ASPIRE_DASHBOARD_PATH: process.env.ASPIRE_NATIVE_DASHBOARD_DLL,

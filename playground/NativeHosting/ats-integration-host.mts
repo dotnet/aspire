@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { runIntegrationHost } from './generated/integration-host.mjs';
 import { compatiblePorts, configureTunnel, configureStorage, nativePorts } from './ats-ports.mts';
 
@@ -7,7 +8,7 @@ if (!storage) throw new Error('NATIVE_HOSTING_PORT_DATA_DIRECTORY is required.')
 configureStorage(storage);
 configureTunnel(fixture ? {
     executable: process.execPath,
-    prefix: [new URL('./devtunnel-fixture.mts', import.meta.url).pathname],
+    prefix: [fileURLToPath(new URL('./devtunnel-fixture.mts', import.meta.url))],
     environment: { ASPIRE_TUNNEL_FIXTURE_DIR: fixture },
     localFixture: true,
 } : {
