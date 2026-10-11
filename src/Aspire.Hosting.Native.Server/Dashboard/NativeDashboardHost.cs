@@ -99,7 +99,7 @@ internal sealed class NativeDashboardHost : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         BeginShutdown();
-        using var timeout = new CancellationTokenSource(_options.DashboardShutdownTimeout);
+        using var timeout = new CancellationTokenSource(_options.DashboardShutdownTimeout, _options.TimeProvider);
         try
         {
             await _application.StopAsync(timeout.Token).ConfigureAwait(false);

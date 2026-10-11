@@ -109,8 +109,8 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 181 tests,
-CLI launcher coverage passes 88 tests, and the current Rust baseline passes 37 tests.
+the independent Rust server. The native regression suite passes 261 tests,
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 54 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
@@ -199,17 +199,17 @@ Local macOS arm64 results use three samples per mode and implementation:
 
 | Measurement | C# NativeAOT | Rust reference |
 | --- | ---: | ---: |
-| Complete server executable | 15.47 MiB | 5.61 MiB |
-| Contract-only empty server RSS | 20.84 MiB | 8.25 MiB |
-| Contract-only 100-resource server RSS | 25.92 MiB | 9.27 MiB |
-| DCP/resource-service empty server RSS | 38.69 MiB | 10.20 MiB |
-| DCP/resource-service 100-resource server RSS | 38.78 MiB | 11.02 MiB |
-| Generic workloads ready server RSS | 41.13 MiB | 13.11 MiB |
-| Contract-only direct launch to readiness | 17.82 ms | 45.75 ms |
-| DCP/resource-service direct launch to readiness | 4.03 s | 6.46 s |
-| Direct launch to generic workload readiness | 6.12 s | 9.57 s |
-| External process tree, empty | 154.31 MiB | 153.17 MiB |
-| External process tree, workloads ready | 550.69 MiB | 551.31 MiB |
+| Complete server executable | 15.80 MiB | 5.71 MiB |
+| Contract-only empty server RSS | 20.77 MiB | 8.48 MiB |
+| Contract-only 100-resource server RSS | 26.63 MiB | 9.44 MiB |
+| DCP/resource-service empty server RSS | 38.94 MiB | 10.38 MiB |
+| DCP/resource-service 100-resource server RSS | 39.06 MiB | 11.19 MiB |
+| Generic workloads ready server RSS | 41.34 MiB | 12.16 MiB |
+| Contract-only direct launch to readiness | 21.45 ms | 41.77 ms |
+| DCP/resource-service direct launch to readiness | 8.83 s | 5.12 s |
+| Direct launch to generic workload readiness | 10.78 s | 7.03 s |
+| External process tree, empty | 152.70 MiB | 155.39 MiB |
+| External process tree, workloads ready | 553.17 MiB | 553.88 MiB |
 
 Both modes use the same complete executable; contract-only disables DCP and
 resource-service startup, rather than linking a separate minimal kernel binary.
@@ -224,15 +224,24 @@ Driving Node, browser, and Docker VM/container memory are excluded from both.
 RSS sums are not unique physical memory and can double-count shared pages.
 Diagnostic/platform differences remain outside this conformance claim.
 
-The fresh C# lane `bash eng/scripts/test-native-hosting.sh osx-arm64` passed the
-complete auxiliary-feedback baseline. The subsequent dismissal build passed
+The fresh C# typed-refactor lane `bash eng/scripts/test-native-hosting.sh osx-arm64`
+passed the complete AOT, RPC/runtime, neutral baseline, real workload/revision
+Dashboard browser checks, CLI and auxiliary command scenarios, including exact
+owned-resource cleanup. The earlier dismissal build passed
 AOT, RPC/runtime, neutral baseline, real workloads, revisions and browser dismissal,
 but its CLI shutdown attempt left the native/DCP tree OS-stopped after escalation.
 That attempt remains failed. Rerunning the unchanged CLI and auxiliary scripts
 against those same fresh artifacts passed their owned-resource assertions.
 The intermittent macOS shutdown cause is not claimed fixed. Raw final C# samples are in
 `artifacts/native-hosting/ci/logs/baseline-smoke.log`; the independent Rust samples
-are in `artifacts/native-hosting/rust-baseline-e2e-dismissal-final.log`.
+are in `artifacts/native-hosting/rust-guidance-baseline-final.log`, with computed
+medians in `artifacts/native-hosting/rust-guidance-neutral-medians-final.json`.
+The synchronized Rust implementation passed the same 49-export contract, RPC,
+runtime, neutral baseline, workload/dismissal/browser, revision/browser, actual
+CLI/browser and auxiliary scenarios. An initial Rust workload attempt failed
+executable validation while SDK preparation overlapped; its unchanged retry
+passed after preparation completed. That failed attempt remains documented,
+not counted as a successful run.
 
 ### Integration provider direction
 
@@ -555,6 +564,28 @@ process. Resource console logs travel through the resource-service gRPC protocol
 application telemetry travels to Dashboard OTLP ingestion. Neither is the same
 as the AppHost server's own operational diagnostics.
 
+### Configuration, protocol and time boundaries
+
+The server composition root reads `IConfiguration` and creates validated,
+strongly typed settings before constructing consumers. Environment-variable
+compatibility belongs to the configuration provider and boot parser, not to
+individual services. The BCL-only kernel receives explicit settings and does
+not reference configuration providers.
+
+Protocol parsers translate external payloads into typed requests and state
+values before execution logic consumes them. Closed lifecycle and operation
+states are not compared as raw strings. Extensible integration-supplied labels
+remain extensible; strong internal types must not silently narrow an existing
+wire contract. Parsing failures must remain explicit and independently testable.
+
+Clocks, elapsed-time measurement, delays and timeout scheduling use an injected
+`TimeProvider`. Tests can advance time without sleeping, and cancellation must
+release the associated timers. Clock injection is a local implementation
+dependency, not a new ATS capability or a change to protocol timestamps.
+The Rust reference uses the corresponding injectable clock/scheduler abstraction,
+typed boot configuration and protocol states, and bounded diagnostic queues.
+Both implementations retain existing environment names and wire labels.
+
 ### Diagnostics across component boundaries
 
 Every component needs direct tests and observable failure/lifetime boundaries.
@@ -566,9 +597,12 @@ identities, names and user-supplied values are not.
 
 Kernel operations emit BCL `ActivitySource` spans, `Meter` measurements, and a
 typed event feed that works independently of trace sampling. The typed feed
-avoids reflective `DiagnosticSource.Write` payload discovery. Its subscribers
-are trusted, nonblocking, nonthrowing diagnostic sinks, not integration callbacks;
-they must not reenter host APIs or perform synchronous I/O. Cross-process
+avoids reflective `DiagnosticSource.Write` payload discovery. Subscribers consume
+independent bounded channels asynchronously; producer operations must not invoke
+consumer code synchronously. A full queue detaches only its lagging subscriber,
+which drains its retained prefix before receiving a classified overflow error.
+A slow diagnostic consumer cannot stall model or transport operations.
+Cross-process
 propagation and exporters are still pending.
 
 Failures retain their original exceptions for callers. Operational diagnostics

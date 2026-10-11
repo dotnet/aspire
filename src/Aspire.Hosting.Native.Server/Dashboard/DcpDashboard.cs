@@ -3,11 +3,11 @@
 
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Dashboard;
 
@@ -21,7 +21,7 @@ internal sealed class DcpDashboard
     public string? ApiToken { get; private set; }
 
     public async Task StartAsync(DcpApiClient client, string dashboardPath, Uri resourceService,
-        string apiKey, NativeServerOptions options, CancellationToken cancellationToken)
+        NativeDashboardCredentials credentials, NativeServerOptions options, CancellationToken cancellationToken)
     {
         if (!Path.IsPathFullyQualified(dashboardPath) || !File.Exists(dashboardPath))
         {
@@ -31,15 +31,13 @@ internal sealed class DcpDashboard
         var service = name + "-frontend";
         _name = name;
         _service = service;
-        var browserToken = Environment.GetEnvironmentVariable("AppHost__BrowserToken")
-            ?? Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var browserToken = credentials.BrowserToken;
         ArgumentException.ThrowIfNullOrWhiteSpace(browserToken);
-        var otlpToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var dashboardApiToken = Environment.GetEnvironmentVariable("AppHost__DashboardApiKey")
-            ?? Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var otlpToken = credentials.OtlpApiKey;
+        var dashboardApiToken = credentials.DashboardApiKey;
         ArgumentException.ThrowIfNullOrWhiteSpace(dashboardApiToken);
-        await client.CreateAsync("services", service, JsonSerializer.SerializeToElement(
-            new DcpServiceSpec("TCP", "Localhost"), DcpJsonContext.Default.DcpServiceSpec),
+        await client.CreateAsync(DcpResourceCollection.Services, service, JsonSerializer.SerializeToElement(
+            new DcpServiceSpec(WorkloadProtocol.Tcp, DcpAddressAllocationMode.Localhost), DcpJsonContext.Default.DcpServiceSpec),
             null, cancellationToken).ConfigureAwait(false);
         var assembly = dashboardPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
         var bundled = Path.GetFileNameWithoutExtension(dashboardPath) == "aspire-managed";
@@ -47,7 +45,7 @@ internal sealed class DcpDashboard
         {
             ExecutablePath = assembly ? "dotnet" : dashboardPath,
             WorkingDirectory = Path.GetDirectoryName(dashboardPath)!,
-            ExecutionType = "Process",
+            ExecutionType = DcpExecutionType.Process,
             Args = assembly ? [dashboardPath] : bundled ? ["dashboard"] : [],
             Env =
             [
@@ -57,7 +55,7 @@ internal sealed class DcpDashboard
                 new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://127.0.0.1:0"),
                 new("ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL", resourceService.AbsoluteUri),
                 new("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", "ApiKey"),
-                new("DASHBOARD__RESOURCESERVICECLIENT__APIKEY", apiKey),
+                new("DASHBOARD__RESOURCESERVICECLIENT__APIKEY", credentials.ResourceServiceApiKey),
                 new("DASHBOARD__FRONTEND__AUTHMODE", "BrowserToken"),
                 new("DASHBOARD__FRONTEND__BROWSERTOKEN", browserToken),
                 // Frontend API authentication is separate from the browser and resource-service credentials.
@@ -68,7 +66,7 @@ internal sealed class DcpDashboard
                 new("ASPIRE_DASHBOARD_SUPPRESS_BROWSER_TOKEN_IN_OUTPUT", "true")
             ]
         };
-        await client.CreateAsync("executables", name, JsonSerializer.SerializeToElement(spec, DcpJsonContext.Default.DcpWorkloadSpec),
+        await client.CreateAsync(DcpResourceCollection.Executables, name, JsonSerializer.SerializeToElement(spec, DcpJsonContext.Default.DcpWorkloadSpec),
             new Dictionary<string, string>
             {
                 ["service-producer"] = JsonSerializer.Serialize(
@@ -77,18 +75,18 @@ internal sealed class DcpDashboard
             }, cancellationToken).ConfigureAwait(false);
         using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
         {
-            Timeout = options.ControllerRequestTimeout
+            Timeout = Timeout.InfiniteTimeSpan
         };
         while (true)
         {
-            var process = await client.GetAsync("executables", name, cancellationToken).ConfigureAwait(false)
+            var process = await client.GetAsync(DcpResourceCollection.Executables, name, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("DCP removed the Dashboard during startup.");
-            if (process.Status?.State is "Exited" or "Finished" or "FailedToStart")
+            if ((process.Status?.State ?? DcpProcessState.Unknown).IsTerminal())
             {
                 throw new InvalidOperationException("The DCP-owned Dashboard failed to start.");
             }
-            var allocation = await client.GetAsync("services", service, cancellationToken).ConfigureAwait(false);
-            if (process.Status is { State: "Running", Pid: > 0 } && allocation?.Status is { EffectivePort: > 0 and <= 65535 } endpoint)
+            var allocation = await client.GetAsync(DcpResourceCollection.Services, service, cancellationToken).ConfigureAwait(false);
+            if (process.Status is { State: DcpProcessState.Running, Pid: > 0 } && allocation?.Status is { EffectivePort: > 0 and <= 65535 } endpoint)
             {
                 var address = endpoint.EffectiveAddress ?? throw new InvalidDataException("The Dashboard allocation has no address.");
                 if (!address.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
@@ -99,7 +97,8 @@ internal sealed class DcpDashboard
                 var frontend = new UriBuilder("http", address, endpoint.EffectivePort.Value).Uri;
                 try
                 {
-                    using var response = await http.GetAsync(new Uri(frontend, "health"), cancellationToken).ConfigureAwait(false);
+                    using var requestTimeout = new TimeProviderCancellation(options.ControllerRequestTimeout, options.TimeProvider, cancellationToken);
+                    using var response = await http.GetAsync(new Uri(frontend, "health"), requestTimeout.Token).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
                         ApiToken = dashboardApiToken;
@@ -123,7 +122,7 @@ internal sealed class DcpDashboard
                     Console.Error.WriteLine("Waiting for the DCP-owned Dashboard listener.");
                 }
             }
-            await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(options.RetryInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -132,11 +131,11 @@ internal sealed class DcpDashboard
         Volatile.Write(ref _urls, new NativeCliDashboardUrls { DashboardHealthy = false });
         if (_name is not null)
         {
-            await client.DeleteAsync("executables", _name, cancellationToken).ConfigureAwait(false);
+            await client.DeleteAsync(DcpResourceCollection.Executables, _name, cancellationToken).ConfigureAwait(false);
         }
         if (_service is not null)
         {
-            await client.DeleteAsync("services", _service, cancellationToken).ConfigureAwait(false);
+            await client.DeleteAsync(DcpResourceCollection.Services, _service, cancellationToken).ConfigureAwait(false);
         }
     }
 }

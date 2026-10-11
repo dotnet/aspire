@@ -4,14 +4,14 @@
 namespace Aspire.Hosting.Native.Runtime;
 
 /// <summary>Declares a named endpoint independently of container or executable implementation.</summary>
-internal sealed record WorkloadPort(string Name, string Protocol, string UriScheme, int TargetPort, int HostPort,
+internal sealed record WorkloadPort(string Name, WorkloadProtocol Protocol, string UriScheme, int TargetPort, int HostPort,
     string EnvironmentVariable);
 
 /// <summary>Contains a named host-facing allocation, not a container-network address.</summary>
-internal sealed record AllocatedWorkloadPort(string Name, string Protocol, string UriScheme, string Host, int Port);
+internal sealed record AllocatedWorkloadPort(string Name, WorkloadProtocol Protocol, string UriScheme, string Host, int Port);
 
 /// <summary>Describes a bind mount or an explicitly named externally retained volume.</summary>
-internal sealed record WorkloadMount(string Type, string Source, string Target, bool ReadOnly);
+internal sealed record WorkloadMount(WorkloadMountKind Type, string Source, string Target, bool ReadOnly);
 
 /// <summary>Validates launch declarations before granting an executor a cleanup obligation.</summary>
 internal static class WorkloadDefinition
@@ -35,7 +35,7 @@ internal static class WorkloadDefinition
             if (endpoint is null || string.IsNullOrEmpty(endpoint.Name) || endpoint.Name.Length > 64 ||
                 !char.IsAsciiLetter(endpoint.Name[0]) ||
                 endpoint.Name.Any(character => !(char.IsAsciiLetterOrDigit(character) || character == '-')) ||
-                !names.Add(endpoint.Name) || endpoint.Protocol is not ("TCP" or "UDP") ||
+                !names.Add(endpoint.Name) || endpoint.Protocol is not (WorkloadProtocol.Tcp or WorkloadProtocol.Udp) ||
                 endpoint.UriScheme is null || endpoint.UriScheme.Length > 64 || !Uri.CheckSchemeName(endpoint.UriScheme) ||
                 endpoint.TargetPort is < 0 or > 65535 || endpoint.HostPort is < 0 or > 65535 ||
                 endpoint.EnvironmentVariable is null ||
@@ -67,10 +67,10 @@ internal static class WorkloadDefinition
                     if (mount is null || mount.Source is null || string.IsNullOrWhiteSpace(mount.Target) ||
                         !mount.Target.StartsWith('/') || mount.Target.Length > 4096 || mount.Target.Contains('\0') ||
                         !targets.Add(mount.Target) ||
-                        mount.Type is not ("bind" or "volume") ||
-                        mount.Type == "bind" && (!Path.IsPathFullyQualified(mount.Source) ||
+                        mount.Type is not (WorkloadMountKind.Bind or WorkloadMountKind.Volume) ||
+                        mount.Type == WorkloadMountKind.Bind && (!Path.IsPathFullyQualified(mount.Source) ||
                             !(File.Exists(mount.Source) || Directory.Exists(mount.Source))) ||
-                        mount.Type == "volume" && (mount.Source.Length is < 1 or > 255 ||
+                        mount.Type == WorkloadMountKind.Volume && (mount.Source.Length is < 1 or > 255 ||
                             !char.IsAsciiLetterOrDigit(mount.Source[0]) ||
                             mount.Source.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '_' or '.' or '-'))))
                     {

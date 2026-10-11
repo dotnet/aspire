@@ -1,38 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Dcp;
-using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Dashboard;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Auxiliary;
+using Microsoft.Extensions.Configuration;
 
-var options = NativeServerOptions.Load(Environment.GetEnvironmentVariable("ASPIRE_NATIVE_SERVER_OPTIONS_PATH"));
-var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
-    ?? Environment.GetEnvironmentVariable("ASPIRE_REMOTE_APPHOST_TOKEN")
-    ?? throw new InvalidOperationException("Set ASPIRE_NATIVE_RPC_TOKEN to authenticate native server connections.");
-using var diagnostics = NativeDiagnostics.Events.Subscribe(new NativeDiagnosticWriter(
-    Environment.GetEnvironmentVariable("ASPIRE_NATIVE_TRACE_OPERATIONS") == "1"));
-EndPoint endPoint = args switch
-{
-    ["server", "--contentRoot", var contentRoot] when Directory.Exists(contentRoot) &&
-        Environment.GetEnvironmentVariable("REMOTE_APP_HOST_SOCKET_PATH") is { } path &&
-        Path.IsPathFullyQualified(path) => new UnixDomainSocketEndPoint(path),
-    [] when Environment.GetEnvironmentVariable("REMOTE_APP_HOST_SOCKET_PATH") is { } socketPath &&
-        Path.IsPathFullyQualified(socketPath) => new UnixDomainSocketEndPoint(socketPath),
-    ["--socket", var path] when Path.IsPathFullyQualified(path) => new UnixDomainSocketEndPoint(path),
-    ["--port", var port] when int.TryParse(port, out var number) && number is >= 0 and <= 65535 =>
-        new IPEndPoint(IPAddress.Loopback, number),
-    _ => throw new ArgumentException("Use --socket <absolute-path> or --port <loopback-port>.")
-};
+using var configuration = new ConfigurationManager();
+configuration.AddEnvironmentVariables();
+var settings = NativeServerConfiguration.Parse(configuration);
+var options = settings.Options;
+var token = settings.RpcToken;
+var writer = new NativeDiagnosticWriter(settings.TraceOperations);
+await using var diagnostics = new NativeDiagnosticPump(writer.Write, DiagnosticStreamFailed, options).ConfigureAwait(false);
+var endPoint = NativeStartupArguments.Parse(args, settings.SocketPath);
 using var shutdown = new CancellationTokenSource();
 Console.CancelKeyPress += (_, eventArgs) =>
 {
@@ -46,10 +33,9 @@ using var terminate = OperatingSystem.IsWindows() ? null : PosixSignalRegistrati
 });
 var dcp = new DcpApiClient(options);
 await using var dcpLifetime = dcp.ConfigureAwait(false);
-var dcpExecutable = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_DCP_PATH");
+var dcpExecutable = settings.DcpPath;
 var server = new NativeApplicationServer(UnavailableWorkloadExecutor.Instance, options.Runtime);
-using var startup = CancellationTokenSource.CreateLinkedTokenSource(shutdown.Token);
-startup.CancelAfter(options.ControllerStartupTimeout);
+using var startup = new TimeProviderCancellation(options.ControllerStartupTimeout, options.TimeProvider, shutdown.Token);
 var dcpReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 if (dcpExecutable is not null)
 {
@@ -63,7 +49,7 @@ using var listener = new NativeRpcListener(endPoint, token, Console.Error.WriteL
 NativeDashboardHost? dashboard = null;
 Task? dashboardCleanup = null;
 Task? controllerCleanup = null;
-var dashboardPath = Environment.GetEnvironmentVariable("ASPIRE_DASHBOARD_PATH");
+var dashboardPath = settings.DashboardPath;
 var dashboardRequested = dashboardPath is not null;
 var dashboardState = new DcpDashboard();
 var dashboardReady = new TaskCompletionSource<NativeCliDashboardUrls>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -72,16 +58,12 @@ if (!dashboardRequested)
     dashboardReady.SetResult(new());
 }
 var logs = new NativeCliLogBuffer(options.RetainedAppHostLogEntries);
-using var cliLogging = NativeDiagnostics.Events.Subscribe(logs);
-using var backchannel = Environment.GetEnvironmentVariable("ASPIRE_BACKCHANNEL_PATH") is { } backchannelPath
+await using var cliLogging = new NativeDiagnosticPump(logs.Append, DiagnosticStreamFailed, options).ConfigureAwait(false);
+using var backchannel = settings.BackchannelPath is { } backchannelPath
     ? new NativeCliProtocol(backchannelPath, server, shutdown.Cancel,
         dashboardReady.Task.WaitAsync, logs, options)
     : null;
-var appHostPath = NativeAuxiliaryBackchannel.ResolveAppHostPath(
-    Environment.GetEnvironmentVariable("AppHost__FilePath"),
-    Environment.GetEnvironmentVariable("ASPIRE_APPHOST_FILEPATH"),
-    Environment.GetEnvironmentVariable("AppHost__Path"),
-    Environment.GetEnvironmentVariable("ASPIRE_NATIVE_APPHOST_PATH"));
+var appHostPath = settings.AppHostPath;
 using var auxiliary = new NativeAuxiliaryBackchannel(appHostPath,
     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), server, options,
     exitCode =>
@@ -90,23 +72,17 @@ using var auxiliary = new NativeAuxiliaryBackchannel(appHostPath,
         shutdown.Cancel();
     },
     backchannel is not null ? backchannel.WaitForAppHostReadyAsync : WaitForNativeAppHostReadyAsync,
-    dashboardReady.Task.WaitAsync, () => dashboardState.ApiToken, logs);
+    dashboardReady.Task.WaitAsync, () => dashboardState.ApiToken, logs, settings.CliProcess);
 try
 {
-    var dashboardPort = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_DASHBOARD_PORT");
-    var dashboardApiKey = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_DASHBOARD_API_KEY")
-        ?? Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    var dashboardPort = settings.DashboardPort;
+    var dashboardApiKey = settings.DashboardCredentials.ResourceServiceApiKey;
     if (dashboardPort is not null || dashboardRequested)
     {
-        var number = 0;
-        if (dashboardPort is not null && (!int.TryParse(dashboardPort, out number) || number is < 0 or > 65535))
-        {
-            throw new ArgumentException("ASPIRE_NATIVE_DASHBOARD_PORT must be a local port or zero.");
-        }
         dashboard = await NativeDashboardHost.StartAsync(server,
-            Environment.GetEnvironmentVariable("ASPIRE_NATIVE_APPLICATION_NAME") ?? "Native AppHost",
+            settings.ApplicationName,
             dashboardApiKey,
-            number, options, shutdown.Token).ConfigureAwait(false);
+            dashboardPort ?? 0, options, shutdown.Token).ConfigureAwait(false);
         Console.WriteLine($"Native Dashboard resource service listening on {dashboard.Address}.");
     }
     Console.WriteLine($"Native AppHost server listening on {listener.EndPoint}.");
@@ -128,7 +104,7 @@ try
                     throw new InvalidOperationException("Dashboard launch requires DCP and its resource-service adapter.");
                 }
                 await dashboardState.StartAsync(dcp, dashboardPath, dashboard.Address,
-                    dashboardApiKey, options, startup.Token).ConfigureAwait(false);
+                    settings.DashboardCredentials, options, startup.Token).ConfigureAwait(false);
                 dashboardReady.TrySetResult(dashboardState.Urls);
                 dashboardCleanup = StopDashboardOnShutdownAsync();
             }
@@ -163,7 +139,6 @@ try
 }
 finally
 {
-    await startup.CancelAsync().ConfigureAwait(false);
     try
     {
         if (dashboard is not null)
@@ -172,7 +147,7 @@ finally
             // Watches were quiesced before requesting Dashboard deletion. Remove its DCP
             // process before disposing the resource-service host so reconnects cannot keep
             // either side alive through the CLI's graceful shutdown budget.
-            using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
+            using var cleanup = new CancellationTokenSource(options.CleanupTimeout, options.TimeProvider);
             if (dashboardCleanup is null)
             {
                 await dashboardState.StopAsync(dcp, cleanup.Token).ConfigureAwait(false);
@@ -195,7 +170,7 @@ async Task WaitForNativeAppHostReadyAsync(CancellationToken cancellationToken)
     await dcpReady.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
     while (server.GetApplicationObserver() is null)
     {
-        await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(options.RetryInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -203,7 +178,7 @@ async Task StopDashboardOnShutdownAsync()
 {
     try
     {
-        await Task.Delay(Timeout.InfiniteTimeSpan, shutdown.Token).ConfigureAwait(false);
+        await Task.Delay(Timeout.InfiniteTimeSpan, options.TimeProvider, shutdown.Token).ConfigureAwait(false);
     }
     catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
     {
@@ -211,7 +186,7 @@ async Task StopDashboardOnShutdownAsync()
     // Dashboard and application workloads are independent DCP resources. Start
     // their cleanup together rather than accumulating graceful-stop budgets.
     dashboard?.BeginShutdown();
-    using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
+    using var cleanup = new CancellationTokenSource(options.CleanupTimeout, options.TimeProvider);
     await dashboardState.StopAsync(dcp, cleanup.Token).ConfigureAwait(false);
 }
 
@@ -219,7 +194,7 @@ async Task StopControllerOnShutdownAsync()
 {
     try
     {
-        await Task.Delay(Timeout.InfiniteTimeSpan, shutdown.Token).ConfigureAwait(false);
+        await Task.Delay(Timeout.InfiniteTimeSpan, options.TimeProvider, shutdown.Token).ConfigureAwait(false);
     }
     catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
     {
@@ -228,6 +203,9 @@ async Task StopControllerOnShutdownAsync()
     // owner retirement, rather than waiting for every individual API deletion before
     // beginning controller cleanup within the CLI's shared graceful-stop window.
     dashboard?.BeginShutdown();
-    using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
+    using var cleanup = new CancellationTokenSource(options.CleanupTimeout, options.TimeProvider);
     await dcp.CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
 }
+
+static void DiagnosticStreamFailed(Exception error) =>
+    Console.Error.WriteLine($"Native diagnostic stream failed: {error.GetType().Name}.");

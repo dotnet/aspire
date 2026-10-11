@@ -7,8 +7,11 @@ using Aspire.Hosting.Native.Diagnostics;
 namespace Aspire.Hosting.Native.Sessions;
 
 /// <summary>Serializes ownership of successive declaration generations within an AppHost session.</summary>
-internal sealed class ApplicationSession : IDisposable
+internal sealed class ApplicationSession(TimeProvider timeProvider) : IDisposable
 {
+    public ApplicationSession() : this(TimeProvider.System)
+    {
+    }
     private readonly Lock _gate = new();
     private ApplicationModel? _model;
     private bool _disposed;
@@ -18,7 +21,7 @@ internal sealed class ApplicationSession : IDisposable
 
     /// <summary>Starts a generation only after the previous declaration graph has been retired.</summary>
     public ApplicationModel StartGeneration() =>
-        NativeDiagnostics.Execute("session.generation.start", SessionId, null, operation => StartGenerationCore(operation));
+        NativeDiagnostics.Execute("session.generation.start", SessionId, null, operation => StartGenerationCore(operation), timeProvider);
 
     private ApplicationModel StartGenerationCore(NativeDiagnostics.Operation operation)
     {
@@ -29,7 +32,7 @@ internal sealed class ApplicationSession : IDisposable
             {
                 throw new InvalidOperationException("An application generation is already active.");
             }
-            _model = new ApplicationModel();
+            _model = new ApplicationModel(timeProvider);
             operation.SetGeneration(_model.GenerationId);
 
             return _model;
@@ -38,7 +41,7 @@ internal sealed class ApplicationSession : IDisposable
 
     /// <summary>Retires the named generation without permitting a late owner to retire its replacement.</summary>
     public void RetireGeneration(Guid generationId) =>
-        NativeDiagnostics.Execute("session.generation.retire", SessionId, generationId, _ => RetireGenerationCore(generationId));
+        NativeDiagnostics.Execute("session.generation.retire", SessionId, generationId, _ => RetireGenerationCore(generationId), timeProvider);
 
     private void RetireGenerationCore(Guid generationId)
     {
@@ -56,7 +59,7 @@ internal sealed class ApplicationSession : IDisposable
 
     /// <summary>Closes the session and invalidates its active declaration generation.</summary>
     public void Dispose() =>
-        NativeDiagnostics.Execute("session.close", SessionId, null, _ => DisposeCore());
+        NativeDiagnostics.Execute("session.close", SessionId, null, _ => DisposeCore(), timeProvider);
 
     private void DisposeCore()
     {

@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Net;
-using System.Reflection;
 using System.Text;
 using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Server;
@@ -18,20 +17,19 @@ internal sealed class DcpCleanupTestHandler : HttpMessageHandler
     public bool Exited { get; set; }
     public ConcurrentQueue<string> AdministrativeRequests { get; } = new();
     public Func<CancellationToken, Task>? BeforeCleanup { get; set; }
+    public Func<CancellationToken, Task>? BeforeResponse { get; set; }
 
     public DcpApiClient CreateClient(NativeServerOptions options)
     {
-        var client = new DcpApiClient(options);
-        // Exercise the real API client's 404 and disappearance semantics without
-        // launching DCP. The production client otherwise obtains HTTP from kubeconfig.
-        typeof(DcpApiClient).GetField("_client", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(client, new HttpClient(this) { BaseAddress = new Uri("http://localhost") });
-
-        return client;
+        return new DcpApiClient(options, new HttpClient(this) { BaseAddress = new Uri("http://localhost") });
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (BeforeResponse is { } beforeResponse)
+        {
+            await beforeResponse(cancellationToken);
+        }
         var path = request.RequestUri!.AbsolutePath;
         var key = string.Join('/', path.Split('/')[^2..]);
         if (key == "admin/execution")

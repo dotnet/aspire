@@ -31,10 +31,10 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
         while (!context.CancellationToken.IsCancellationRequested)
         {
             var observer = server.GetApplicationObserver();
-            ApplicationObservations? observations = null;
+            RuntimeSnapshot? observations = null;
             try
             {
-                observations = observer?.ReadResourceObservations();
+                observations = observer?.ReadNativeObservations();
             }
             catch (ObjectDisposedException)
             {
@@ -80,7 +80,7 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
                 previousObserver = observer;
                 version = observations?.Version ?? -1;
             }
-            await Task.Delay(options.ObservationInterval, context.CancellationToken).ConfigureAwait(false);
+            await Task.Delay(options.ObservationInterval, options.TimeProvider, context.CancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -88,7 +88,7 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
         IServerStreamWriter<WatchResourceConsoleLogsUpdate> responseStream, ServerCallContext context)
     {
         var observer = RequireObserver();
-        var resource = observer.ReadResourceObservations().Resources.SingleOrDefault(resource => resource.Name == request.ResourceName)
+        var resource = observer.ReadNativeObservations().Resources.SingleOrDefault(resource => resource.Name == request.ResourceName)
             ?? throw new RpcException(new Status(StatusCode.NotFound, "The resource does not exist."));
         long sequence = 0;
         while (!context.CancellationToken.IsCancellationRequested)
@@ -97,10 +97,10 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
             {
                 return;
             }
-            ResourceLogs batch;
+            RuntimeLogBatch batch;
             try
             {
-                batch = observer.ReadResourceLogs(resource.ResourceId, sequence);
+                batch = observer.ReadNativeLogs(resource.ResourceId, sequence);
             }
             catch (ObjectDisposedException)
             {
@@ -115,7 +115,7 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
                 {
                     update.LogLines.Add(new ConsoleLogLine
                     {
-                        Text = line.Message, IsStdErr = line.Stream == "stderr",
+                        Text = line.Message, IsStdErr = line.Stream == LogStream.Stderr,
                         LineNumber = checked((int)line.Sequence)
                     });
                     await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
@@ -127,7 +127,7 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
             {
                 return;
             }
-            await Task.Delay(options.ObservationInterval, context.CancellationToken).ConfigureAwait(false);
+            await Task.Delay(options.ObservationInterval, options.TimeProvider, context.CancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -142,22 +142,22 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
             };
         }
         var observer = RequireObserver();
-        var resource = observer.ReadResourceObservations().Resources.SingleOrDefault(resource =>
+        var resource = observer.ReadNativeObservations().Resources.SingleOrDefault(resource =>
             resource.Name == request.ResourceName && resource.TypeId == request.ResourceType);
         if (resource is null || !resource.Commands.Any(command => command.Name == request.CommandName))
         {
             throw new RpcException(new Status(StatusCode.NotFound, "The resource command does not exist."));
         }
         var operation = observer.InvokeResourceCommand(request.ResourceName, request.CommandName);
-        var result = await operation.AwaitRuntimeOperation().WaitAsync(context.CancellationToken).ConfigureAwait(false);
+        var result = await operation.AwaitNativeOperation().WaitAsync(context.CancellationToken).ConfigureAwait(false);
 
         return new ResourceCommandResponse
         {
             Kind = result.Status switch
             {
-                "succeeded" => ResourceCommandResponseKind.Succeeded,
-                "failed" => ResourceCommandResponseKind.Failed,
-                "cancelled" => ResourceCommandResponseKind.Cancelled,
+                RequestOutcome.Succeeded => ResourceCommandResponseKind.Succeeded,
+                RequestOutcome.Failed => ResourceCommandResponseKind.Failed,
+                RequestOutcome.Cancelled => ResourceCommandResponseKind.Cancelled,
                 _ => throw new InvalidOperationException("Unknown native command outcome.")
             },
             Message = result.Message
@@ -267,7 +267,7 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
                     {
                         await responseStream.WriteAsync(update, lifetime.Token).ConfigureAwait(false);
                     }
-                    await Task.Delay(options.ObservationInterval, lifetime.Token).ConfigureAwait(false);
+                    await Task.Delay(options.ObservationInterval, options.TimeProvider, lifetime.Token).ConfigureAwait(false);
                 }
             }
             finally
@@ -284,19 +284,19 @@ internal sealed class NativeDashboardService(NativeApplicationServer server, str
         // is truthful for this runtime slice; attach/close remain Unimplemented.
         await responseStream.WriteAsync(new WatchTerminalsUpdate { Snapshot = new TerminalDescriptorList() },
             context.CancellationToken).ConfigureAwait(false);
-        await Task.Delay(Timeout.InfiniteTimeSpan, context.CancellationToken).ConfigureAwait(false);
+        await Task.Delay(Timeout.InfiniteTimeSpan, options.TimeProvider, context.CancellationToken).ConfigureAwait(false);
     }
 
     private ApplicationObserver RequireObserver() => server.GetApplicationObserver()
         ?? throw new RpcException(new Status(StatusCode.Unavailable, "No native application execution is active."));
 
-    private static Resource MapResource(ResourceObservationSnapshot snapshot, DateTimeOffset createdAt)
+    private static Resource MapResource(RuntimeResourceSnapshot snapshot, DateTimeOffset createdAt)
     {
         var resource = new Resource
         {
-            Name = snapshot.Name, DisplayName = snapshot.Name, Uid = snapshot.ResourceId,
-            ResourceType = snapshot.TypeId, State = snapshot.State, CreatedAt = Timestamp.FromDateTimeOffset(createdAt),
-            StateStyle = snapshot.State switch { "Running" => "success", "Failed" => "error", _ => "info" }
+            Name = snapshot.Name, DisplayName = snapshot.Name, Uid = snapshot.ResourceId.ToString(),
+            ResourceType = snapshot.TypeId, State = snapshot.State.ToWire(), CreatedAt = Timestamp.FromDateTimeOffset(createdAt),
+            StateStyle = snapshot.State switch { ResourceState.Running => "success", ResourceState.Failed => "error", _ => "info" }
         };
         resource.Urls.AddRange(snapshot.Urls.Select(url => new Url
         {

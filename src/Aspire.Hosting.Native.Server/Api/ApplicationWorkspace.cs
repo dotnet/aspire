@@ -36,7 +36,7 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
             {
                 throw new InvalidOperationException("An application revision is already being composed.");
             }
-            _pending = new Composition(_owner, new ApplicationModel()) { Workspace = this };
+            _pending = new Composition(_owner, new ApplicationModel(invitations.Options.TimeProvider)) { Workspace = this };
 
             return _pending;
         }
@@ -73,7 +73,7 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
     public async Task CommitRevision(Composition revision)
     {
         Task cleanup;
-        using var operation = new NativeDiagnostics.Operation("runtime.revision.commit", null, revision.Model.GenerationId);
+        using var operation = new NativeDiagnostics.Operation("runtime.revision.commit", null, revision.Model.GenerationId, invitations.Options.TimeProvider);
         lock (_gate)
         {
             EnsureAvailable();

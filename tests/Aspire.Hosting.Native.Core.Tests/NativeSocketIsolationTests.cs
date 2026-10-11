@@ -43,8 +43,8 @@ public class NativeSocketIsolationTests
         }
         using var subsequent = new NativeSocketTestClient(host.EndPoint);
         Assert.Equal("ok", (await subsequent.CallAsync("Succeed", null, TestContext.Current.CancellationToken))["result"]!.GetValue<string>());
-        var diagnostic = Assert.Single(capture.Events, value => value.Operation == "backchannel.request" && value.Outcome == "error");
-        Assert.Equal("error", diagnostic.Outcome);
+        var diagnostic = Assert.Single(capture.Events, value => value.Operation == "backchannel.request" && value.Outcome == OperationOutcome.Error);
+        Assert.Equal(OperationOutcome.Error, diagnostic.Outcome);
         Assert.Equal(exception.GetType().FullName, diagnostic.ErrorType);
         Assert.False(host.Completion.IsCompleted);
     }
@@ -123,7 +123,7 @@ public class NativeSocketIsolationTests
             Assert.True((await subsequent.CallAsync("authenticate", new JsonArray(Token), timeout.Token))["result"]!.GetValue<bool>());
             var failure = Assert.Single(capture.Events, value => value.Operation == "rpc.request" &&
                 value.ErrorType == typeof(HttpRequestException).FullName);
-            Assert.Equal("error", failure.Outcome);
+            Assert.Equal(OperationOutcome.Error, failure.Outcome);
             var activity = Assert.Single(capture.Activities, value => value.OperationName == "rpc.request" &&
                 value.GetTagItem("error.type") as string == typeof(HttpRequestException).FullName);
             Assert.Null(activity.StatusDescription);
@@ -291,7 +291,7 @@ public class NativeSocketIsolationTests
     public async Task ErrorOutcomeWithoutErrorTypeHasErrorLogSeverity()
     {
         var logs = new NativeCliLogBuffer(2);
-        logs.OnNext(new OperationEvent(Guid.NewGuid(), "rpc.request", "error", null, null, null, null, null,
+        logs.Append(new OperationEvent(Guid.NewGuid(), "rpc.request", OperationOutcome.Error, null, null, null, null, null,
             DateTimeOffset.UtcNow, 0, null));
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await using var entries = logs.ReadAsync(timeout.Token).GetAsyncEnumerator();

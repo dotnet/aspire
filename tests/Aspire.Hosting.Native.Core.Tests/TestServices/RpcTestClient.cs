@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Api;
+using Aspire.Hosting.Native.Server;
 
 namespace Aspire.Hosting.Native.Core.Tests.TestServices;
 
@@ -19,6 +20,11 @@ internal sealed class RpcTestClient : IDisposable
     }
 
     public RpcTestClient(NativeApplicationServer server) : this(new NativeRpcConnection(Token, server), authenticate: true)
+    {
+    }
+
+    public RpcTestClient(NativeApplicationServer server, NativeServerOptions options)
+        : this(new NativeRpcConnection(Token, server, languages: null, options), authenticate: true)
     {
     }
 

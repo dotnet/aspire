@@ -14,9 +14,16 @@ internal sealed class ApplicationModel : IDisposable
     private readonly HashSet<string> _names = new(StringComparer.OrdinalIgnoreCase);
     private ApplicationSnapshot? _snapshot;
     private bool _disposed;
+    private readonly TimeProvider _timeProvider;
 
-    internal ApplicationModel()
+    internal ApplicationModel() : this(TimeProvider.System)
     {
+    }
+
+    internal ApplicationModel(TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        _timeProvider = timeProvider;
         GenerationId = Guid.NewGuid();
     }
 
@@ -25,7 +32,7 @@ internal sealed class ApplicationModel : IDisposable
 
     /// <summary>Adds a named resource with a declared ATS type identity.</summary>
     public ResourceHandle AddResource(string name, string typeId) =>
-        NativeDiagnostics.Execute("model.resource.add", null, GenerationId, operation => AddResourceCore(name, typeId, operation));
+        NativeDiagnostics.Execute("model.resource.add", null, GenerationId, operation => AddResourceCore(name, typeId, operation), _timeProvider);
 
     private ResourceHandle AddResourceCore(string name, string typeId, NativeDiagnostics.Operation operation)
     {
@@ -64,7 +71,7 @@ internal sealed class ApplicationModel : IDisposable
         {
             operation.SetResource(resource.ResourceId);
             AddDependencyCore(resource, dependency);
-        });
+        }, _timeProvider);
 
     private void AddDependencyCore(ResourceHandle resource, ResourceHandle dependency)
     {
@@ -87,7 +94,7 @@ internal sealed class ApplicationModel : IDisposable
         {
             operation.SetResource(handle.ResourceId);
             return ReadResourceCore(handle);
-        });
+        }, _timeProvider);
 
     /// <summary>Captures bounded integration configuration without executing integration code.</summary>
     public void SetConfiguration(ResourceHandle handle, ImmutableArray<ResourceConfigurationEntry> configuration)
@@ -118,7 +125,7 @@ internal sealed class ApplicationModel : IDisposable
 
     /// <summary>Reads an immutable view while preserving composition until sealing.</summary>
     public ApplicationSnapshot Inspect() =>
-        NativeDiagnostics.Execute("model.inspect", null, GenerationId, _ => InspectCore());
+        NativeDiagnostics.Execute("model.inspect", null, GenerationId, _ => InspectCore(), _timeProvider);
 
     private ApplicationSnapshot InspectCore()
     {
@@ -132,7 +139,7 @@ internal sealed class ApplicationModel : IDisposable
 
     /// <summary>Atomically seals composition and returns the same immutable snapshot on subsequent calls.</summary>
     public ApplicationSnapshot Seal() =>
-        NativeDiagnostics.Execute("model.seal", null, GenerationId, _ => SealCore());
+        NativeDiagnostics.Execute("model.seal", null, GenerationId, _ => SealCore(), _timeProvider);
 
     private ApplicationSnapshot SealCore()
     {
@@ -146,7 +153,7 @@ internal sealed class ApplicationModel : IDisposable
 
     /// <summary>Retires the generation and rejects all subsequent model access.</summary>
     public void Dispose() =>
-        NativeDiagnostics.Execute("model.retire", null, GenerationId, _ => DisposeCore());
+        NativeDiagnostics.Execute("model.retire", null, GenerationId, _ => DisposeCore(), _timeProvider);
 
     private void DisposeCore()
     {

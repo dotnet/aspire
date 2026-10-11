@@ -39,7 +39,7 @@ var code = new StringBuilder("""
     namespace Aspire.Hosting.Native.Rpc;
     internal static class NativeDispatch
     {
-        public static async Task<JsonNode?> InvokeAsync(NativeHandles handles, string capability, JsonObject arguments)
+        public static async Task<JsonNode?> InvokeAsync(NativeApplicationServer server, NativeHandles handles, string capability, JsonObject arguments)
         {
             switch (capability)
             {
@@ -77,6 +77,12 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
     }
     var parameters = method.GetParameters().Select(parameter => Read(parameter.ParameterType, parameter.Name!));
     var invocation = $"{(method.IsStatic ? method.DeclaringType!.Name : "target")}.{method.Name}({string.Join(", ", parameters)})";
+    if (capability.CapabilityId == $"{contractAssembly.GetName().Name}/createSession")
+    {
+        // Keep the legacy parameterless wire factory, but give its session the
+        // current server's executor and clock rather than isolated System defaults.
+        invocation = "server.OpenApplication()";
+    }
     if (returnType == typeof(void))
     {
         code.AppendLine(CultureInfo.InvariantCulture,

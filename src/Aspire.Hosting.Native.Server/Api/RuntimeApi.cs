@@ -194,12 +194,12 @@ internal sealed partial class ResourceExecution(RuntimeResourceOwner owner) : IC
         ArgumentNullException.ThrowIfNull(observation);
         ArgumentNullException.ThrowIfNull(observation.State);
         ArgumentNullException.ThrowIfNull(observation.Urls);
-        owner.Publish(observation.State, observation.Healthy, observation.Urls.ToImmutableArray());
+        owner.Publish(RuntimeStates.ParseObservation(observation.State), observation.Healthy, observation.Urls.ToImmutableArray());
     }
 
     /// <summary>Appends an ordered resource console log entry.</summary>
     [AspireExport]
-    public void AppendResourceLog(string stream, string message) => owner.AppendLog(stream, message);
+    public void AppendResourceLog(string stream, string message) => owner.AppendLog(RuntimeStates.ParseLogStream(stream), message);
 
     /// <summary>Reads the desired configuration revision, dependencies, and application status for this execution.</summary>
     [AspireExport]
@@ -219,14 +219,14 @@ internal sealed partial class ResourceExecution(RuntimeResourceOwner owner) : IC
     public void CompleteResourceConfiguration(long revision, RuntimeOperationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        owner.CompleteConfiguration(revision, result.Status, result.Message);
+        owner.CompleteConfiguration(revision, RuntimeStates.ParseConfigurationResult(result.Status), result.Message);
     }
 
     private static ResourceConfigurationRevision CopyConfiguration(RuntimeConfigurationRevision configuration) => new()
     {
         Revision = configuration.Revision,
         AppliedRevision = configuration.AppliedRevision,
-        Status = configuration.Status,
+        Status = configuration.Status.ToWire(),
         Message = configuration.Message,
         Properties = configuration.Properties.Select(entry =>
             new ResourceConfigurationProperty { Name = entry.Name, Value = entry.Value }).ToArray(),
@@ -266,7 +266,7 @@ internal sealed partial class ResourceExecution(RuntimeResourceOwner owner) : IC
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(result.Status);
         ArgumentNullException.ThrowIfNull(result.Message);
-        owner.CompleteCommand(Guid.Parse(requestId), result.Status, result.Message);
+        owner.CompleteCommand(Guid.Parse(requestId), RuntimeStates.ParseCommandResult(result.Status), result.Message);
     }
 
     /// <summary>Requests user confirmation without holding the resource execution or RPC dispatch gate.</summary>
@@ -282,6 +282,8 @@ internal sealed class ApplicationObserver(RuntimeGeneration runtime) : ICapabili
 {
     public bool IsRevoked => runtime.IsRetired;
     internal DateTimeOffset CreatedAt => runtime.CreatedAt;
+    internal RuntimeSnapshot ReadNativeObservations() => runtime.Read();
+    internal RuntimeLogBatch ReadNativeLogs(Guid resourceId, long afterSequence) => runtime.ReadLogs(resourceId, afterSequence);
 
     /// <summary>Reads the current immutable resource observation view.</summary>
     [AspireExport]
@@ -306,7 +308,7 @@ internal sealed class ApplicationObserver(RuntimeGeneration runtime) : ICapabili
             {
                 Sequence = line.Sequence,
                 Timestamp = line.Timestamp.ToString("O"),
-                Stream = line.Stream,
+                Stream = line.Stream.ToWire(),
                 Message = line.Message
             }).ToArray()
         };
@@ -342,12 +344,12 @@ internal sealed class ApplicationObserver(RuntimeGeneration runtime) : ICapabili
             ResourceId = resource.ResourceId.ToString(),
             Name = resource.Name,
             TypeId = resource.TypeId,
-            State = resource.State,
+            State = resource.State.ToWire(),
             Healthy = resource.Healthy,
             Urls = resource.Urls.ToArray(),
             ConfigurationRevision = resource.ConfigurationRevision,
             AppliedConfigurationRevision = resource.AppliedConfigurationRevision,
-            ConfigurationStatus = resource.ConfigurationStatus,
+            ConfigurationStatus = resource.ConfigurationStatus.ToWire(),
             Commands = resource.Commands.Select(command => new ResourceCommandDefinition
             {
                 Name = command.Name,
@@ -362,13 +364,14 @@ internal sealed class ApplicationObserver(RuntimeGeneration runtime) : ICapabili
 internal sealed class RuntimeOperation(RuntimeRequest request, ICapabilityLifetime owner) : ICapabilityLifetime
 {
     public bool IsRevoked => owner.IsRevoked;
+    internal Task<RuntimeRequestResult> AwaitNativeOperation() => request.Completion;
     /// <summary>Awaits command or interaction completion, including cancellation on execution retirement.</summary>
     [AspireExport]
     public async Task<RuntimeOperationResult> AwaitRuntimeOperation()
     {
         var result = await request.Completion.ConfigureAwait(false);
 
-        return new RuntimeOperationResult { Status = result.Status, Message = result.Message };
+        return new RuntimeOperationResult { Status = result.Status.ToWire(), Message = result.Message };
     }
 }
 
@@ -458,7 +461,7 @@ internal sealed class RuntimeInvitations
                 throw new InvalidOperationException("The invitation capacity was reached.");
             }
             var token = RandomNumberGenerator.GetHexString(64, lowercase: true);
-            _pending.Add(token, new Invitation(execution, typeof(T), () => create(), DateTimeOffset.UtcNow.AddMinutes(1)));
+            _pending.Add(token, new Invitation<T>(execution, create, Options.TimeProvider.GetTimestamp()));
 
             return token;
         }
@@ -470,13 +473,13 @@ internal sealed class RuntimeInvitations
         {
             ObjectDisposedException.ThrowIf(_closed, this);
             RemoveExpired();
-            if (!_pending.TryGetValue(token, out var invitation) || invitation.Type != typeof(T))
+            if (!_pending.TryGetValue(token, out var invitation) || invitation is not Invitation<T> typed)
             {
                 throw new ArgumentException("The invitation is unknown, expired, or not applicable.", nameof(token));
             }
             _pending.Remove(token);
 
-            return (T)invitation.Create();
+            return typed.Create();
         }
     }
 
@@ -506,17 +509,18 @@ internal sealed class RuntimeInvitations
 
     private void RemoveExpired()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = Options.TimeProvider.GetTimestamp();
         foreach (var (token, invitation) in _pending.ToArray())
         {
-            if (invitation.Execution.IsRevoked || invitation.Expires <= now)
+            if (invitation.Execution.IsRevoked || Options.TimeProvider.GetElapsedTime(invitation.Created, now) >= TimeSpan.FromMinutes(1))
             {
                 _pending.Remove(token);
             }
         }
     }
 
-    private sealed record Invitation(ICapabilityLifetime Execution, Type Type, Func<object> Create, DateTimeOffset Expires);
+    private abstract record Invitation(ICapabilityLifetime Execution, long Created);
+    private sealed record Invitation<T>(ICapabilityLifetime Execution, Func<T> Create, long Created) : Invitation(Execution, Created);
 }
 
 [AspireDto]

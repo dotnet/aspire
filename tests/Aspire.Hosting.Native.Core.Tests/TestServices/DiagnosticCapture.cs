@@ -4,16 +4,16 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Runtime.ExceptionServices;
 using Aspire.Hosting.Native.Diagnostics;
 
 namespace Aspire.Hosting.Native.Core.Tests.TestServices;
 
-internal sealed class DiagnosticCapture : IDisposable, IObserver<OperationEvent>
+internal sealed class DiagnosticCapture : IDisposable
 {
     private readonly ActivityListener _activities;
     private readonly MeterListener _meters;
-    private readonly IDisposable _subscription;
+    private readonly OperationEventSubscription _subscription;
+    private readonly ConcurrentQueue<OperationEvent> _events = [];
 
     public DiagnosticCapture(bool sampleActivities)
     {
@@ -47,24 +47,37 @@ internal sealed class DiagnosticCapture : IDisposable, IObserver<OperationEvent>
         _meters.SetMeasurementEventCallback<long>((instrument, value, tags, _) => Record(instrument, value, tags));
         _meters.SetMeasurementEventCallback<double>((instrument, value, tags, _) => Record(instrument, value, tags));
         _meters.Start();
-        _subscription = NativeDiagnostics.Events.Subscribe(this);
+        // Captures drain at assertion boundaries rather than on a scheduler.
+        // A value filter isolates parallel traces without installing a producer
+        // callback. Retained capture history still has an explicit upper bound.
+        _subscription = NativeDiagnostics.Events.Subscribe(capacity: 65536, traceId: Root.TraceId);
     }
 
     public Activity Root { get; }
     public ConcurrentQueue<Activity> Activities { get; } = [];
-    public ConcurrentQueue<OperationEvent> Events { get; } = [];
-    public ConcurrentQueue<Measurement> Measurements { get; } = [];
-
-    public void OnNext(OperationEvent value)
+    public ConcurrentQueue<OperationEvent> Events
     {
-        if (value.TraceId == Root.TraceId.ToString())
+        get
         {
-            Events.Enqueue(value);
+            // Producer writes are complete when a synchronous operation returns.
+            // Drain the channel directly for deterministic assertions, not a
+            // background consumer that might not yet have been scheduled.
+            while (_subscription.Reader.TryRead(out var value))
+            {
+                if (value.TraceId == Root.TraceId.ToString())
+                {
+                    _events.Enqueue(value);
+                }
+            }
+            if (_subscription.Reader.Completion.IsCompleted)
+            {
+                _subscription.Reader.Completion.GetAwaiter().GetResult();
+            }
+
+            return _events;
         }
     }
-
-    public void OnCompleted() { }
-    public void OnError(Exception error) => ExceptionDispatchInfo.Throw(error);
+    public ConcurrentQueue<Measurement> Measurements { get; } = [];
 
     public void Dispose()
     {

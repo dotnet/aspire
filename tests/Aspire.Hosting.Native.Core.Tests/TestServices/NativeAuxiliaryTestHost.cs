@@ -42,7 +42,7 @@ internal sealed class NativeAuxiliaryTestHost : IAsyncDisposable
             ExitCode = code;
             Stopped.TrySetResult();
             _lifetime.Cancel();
-        }, Ready.Task.WaitAsync, _ => Task.FromResult(new NativeCliDashboardUrls()), () => null, Logs);
+        }, Ready.Task.WaitAsync, _ => Task.FromResult(new NativeCliDashboardUrls()), () => null, Logs, new(null, null, null, null));
         _run = _protocol.RunAsync(_lifetime.Token);
     }
 

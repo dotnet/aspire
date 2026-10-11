@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Native.Cli;
 
 /// <summary>Retains bounded, classified AppHost diagnostic logs independently of CLI connections.</summary>
-internal sealed class NativeCliLogBuffer(int capacity) : IObserver<OperationEvent>
+internal sealed class NativeCliLogBuffer(int capacity)
 {
     private readonly Lock _gate = new();
     private readonly Queue<NativeCliLogEntry> _entries = [];
@@ -16,14 +16,14 @@ internal sealed class NativeCliLogBuffer(int capacity) : IObserver<OperationEven
     private long _sequence;
     private readonly Guid _generation = Guid.NewGuid();
 
-    public void OnNext(OperationEvent value)
+    public void Append(OperationEvent value)
     {
         lock (_gate)
         {
             var sequence = checked(++_sequence);
             _entries.Enqueue(new NativeCliLogEntry(sequence, _generation, new EventId(0, value.Operation),
-                value.Outcome == "error" || value.ErrorType is not null ? LogLevel.Error : LogLevel.Debug,
-                $"{value.Operation}: {value.Outcome}" + (value.ErrorType is null ? "" : $" ({value.ErrorType})"),
+                value.Outcome == OperationOutcome.Error || value.ErrorType is not null ? LogLevel.Error : LogLevel.Debug,
+                $"{value.Operation}: {value.Outcome.ToWire()}" + (value.ErrorType is null ? "" : $" ({value.ErrorType})"),
                 value.Timestamp, NativeDiagnostics.SourceName));
             if (_entries.Count > capacity)
             {
@@ -57,7 +57,4 @@ internal sealed class NativeCliLogBuffer(int capacity) : IObserver<OperationEven
         }
     }
 
-    public void OnCompleted() { }
-
-    public void OnError(Exception error) => throw new InvalidOperationException("Native diagnostic logging failed.", error);
 }

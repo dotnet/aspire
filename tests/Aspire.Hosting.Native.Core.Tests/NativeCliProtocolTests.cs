@@ -62,7 +62,7 @@ public class NativeCliProtocolTests
         var generation = Guid.NewGuid();
         for (var i = 0; i < 3; i++)
         {
-            host.Logs.OnNext(new OperationEvent(Guid.NewGuid(), "test.operation", "failed", null, generation,
+            host.Logs.Append(new OperationEvent(Guid.NewGuid(), "test.operation", OperationOutcome.Error, null, generation,
                 null, null, null, DateTimeOffset.UtcNow, 0, "TestFailure"));
         }
         var stream = await host.Rpc.InvokeAsync<IAsyncEnumerable<NativeCliLogEntry>>("GetAppHostLogEntriesAsync");
@@ -71,7 +71,7 @@ public class NativeCliProtocolTests
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal(2, enumerator.Current.SequenceNumber);
         Assert.Equal(LogLevel.Error, enumerator.Current.LogLevel);
-        Assert.Equal("test.operation: failed (TestFailure)", enumerator.Current.Message);
+        Assert.Equal("test.operation: error (TestFailure)", enumerator.Current.Message);
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal(3, enumerator.Current.SequenceNumber);
         var pending = enumerator.MoveNextAsync().AsTask();

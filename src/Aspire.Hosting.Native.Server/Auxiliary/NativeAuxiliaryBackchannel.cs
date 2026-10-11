@@ -6,12 +6,13 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Runtime;
 using Microsoft.Extensions.Logging.Abstractions;
+using static Aspire.Hosting.Native.Auxiliary.NativeAuxiliaryProtocol;
 
 namespace Aspire.Hosting.Native.Auxiliary;
 
@@ -27,6 +28,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
     private readonly Func<CancellationToken, Task<NativeCliDashboardUrls>> _dashboard;
     private readonly Func<string?> _dashboardApiToken;
     private readonly NativeCliLogBuffer _logs;
+    private readonly NativeCliProcessMetadata _cliProcess;
     private readonly Lock _snapshotGate = new();
     private ApplicationObserver? _snapshotObserver;
     private long _observationVersion = -1;
@@ -43,7 +45,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
     public NativeAuxiliaryBackchannel(string? appHostPath, string homeDirectory, NativeApplicationServer server,
         NativeServerOptions options, Action<int?> stop, Func<CancellationToken, Task> ready,
         Func<CancellationToken, Task<NativeCliDashboardUrls>> dashboard, Func<string?> dashboardApiToken,
-        NativeCliLogBuffer logs)
+        NativeCliLogBuffer logs, NativeCliProcessMetadata cliProcess)
     {
         options.Validate();
         _appHostPath = appHostPath;
@@ -54,6 +56,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         _dashboard = dashboard;
         _dashboardApiToken = dashboardApiToken;
         _logs = logs;
+        _cliProcess = cliProcess;
         _listener = AppHostSocketManager.CreateSocket(appHostPath, homeDirectory, Environment.ProcessId, NullLogger.Instance);
     }
 
@@ -198,60 +201,6 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         }
     }
 
-    private static T? ReadRequest<T>(NativeCliRequest request, JsonTypeInfo<T> typeInfo, bool required) where T : class
-    {
-        JsonElement? value = null;
-        // StreamJsonRpc sends either positional [{...}] or named {"request":{...}} parameters.
-        // Optional v2 requests can also arrive as [], [null], or absent parameters.
-        if (request.Params is { ValueKind: not JsonValueKind.Null } parameters)
-        {
-            if (parameters.ValueKind == JsonValueKind.Array && parameters.GetArrayLength() <= 1)
-            {
-                value = parameters.GetArrayLength() == 1 ? parameters[0] : null;
-            }
-            else if (parameters.ValueKind == JsonValueKind.Object)
-            {
-                if (parameters.TryGetProperty("request", out var named))
-                {
-                    if (parameters.EnumerateObject().Count() != 1)
-                    {
-                        throw new ArgumentException("Expected one request object.");
-                    }
-                    value = named;
-                }
-                else
-                {
-                    // vscode-jsonrpc can send the request itself as named parameters.
-                    value = parameters;
-                }
-            }
-            else
-            {
-                throw new ArgumentException("Expected one request object.");
-            }
-        }
-        if (value is null || value.Value.ValueKind == JsonValueKind.Null)
-        {
-            return required ? throw new ArgumentException("A request is required.") : null;
-        }
-
-        return value.Value.Deserialize(typeInfo) ?? throw new ArgumentException("A request is required.");
-    }
-
-    private static JsonElement[] LegacyArguments(NativeCliRequest request, int maximum)
-    {
-        if (request.Params is null || request.Params.Value.ValueKind == JsonValueKind.Null)
-        {
-            return [];
-        }
-        if (request.Params.Value.ValueKind != JsonValueKind.Array || request.Params.Value.GetArrayLength() > maximum)
-        {
-            throw new ArgumentException("Invalid legacy arguments.");
-        }
-
-        return request.Params.Value.EnumerateArray().ToArray();
-    }
-
     private NativeAuxiliaryAppHostInformation GetAppHostInformation()
     {
         if (string.IsNullOrEmpty(_appHostPath))
@@ -266,27 +215,11 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             ProcessId = Environment.ProcessId,
             StartedAt = new DateTimeOffset(process.StartTime),
             StableStartedAt = ProcessStartTimeHelper.TryGetProcessStartTime(Environment.ProcessId),
-            CliProcessId = int.TryParse(Environment.GetEnvironmentVariable("ASPIRE_CLI_PID"), out var pid) ? pid : null,
-            CliStartedAt = ReadProcessDate("ASPIRE_CLI_STARTED", milliseconds: false),
-            CliStableStartedAt = ReadProcessDate("ASPIRE_CLI_STARTED_STABLE", milliseconds: true),
-            CliLogFilePath = Environment.GetEnvironmentVariable("ASPIRE_CLI_LOG_FILE")
+            CliProcessId = _cliProcess.ProcessId,
+            CliStartedAt = _cliProcess.StartedAt,
+            CliStableStartedAt = _cliProcess.StableStartedAt,
+            CliLogFilePath = _cliProcess.LogFilePath
         };
-    }
-
-    private static DateTimeOffset? ReadProcessDate(string name, bool milliseconds)
-    {
-        if (!long.TryParse(Environment.GetEnvironmentVariable(name), out var value))
-        {
-            return null;
-        }
-        try
-        {
-            return milliseconds ? DateTimeOffset.FromUnixTimeMilliseconds(value) : DateTimeOffset.FromUnixTimeSeconds(value);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            return null;
-        }
     }
 
     private NativeAuxiliaryResourceSnapshot[] ReadSnapshots(NativeAuxiliaryResourcesRequest request)
@@ -294,7 +227,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         lock (_snapshotGate)
         {
             var observer = _server.GetApplicationObserver();
-            var observation = observer?.ReadResourceObservations();
+            var observation = observer?.ReadNativeObservations();
             if (!ReferenceEquals(observer, _snapshotObserver) || (observation?.Version ?? -1) != _observationVersion)
             {
                 _snapshotObserver = observer;
@@ -306,11 +239,11 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
                     DisplayName = resource.Name,
                     Version = version,
                     ResourceType = resource.TypeId,
-                    State = resource.State,
-                    StateStyle = resource.State is "Failed" or "FailedToStart" ? "error" : null,
+                    State = resource.State.ToWire(),
+                    StateStyle = resource.State == ResourceState.Failed ? "error" : null,
                     HealthStatus = resource.Healthy ? "Healthy" : "Unhealthy",
                     CreatedAt = observer!.CreatedAt,
-                    IsHidden = resource.State == "Hidden",
+                    IsHidden = false,
                     Urls = resource.Urls.Select((url, index) => new NativeAuxiliaryUrl(
                         index == 0 ? "default" : $"endpoint-{index}", url)).ToArray(),
                     Commands = resource.Commands.Select(command => new NativeAuxiliaryCommand
@@ -321,10 +254,10 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
                     // material. These safe observation-only properties contain no parameter/secret values.
                     Properties = new()
                     {
-                        ["resourceId"] = JsonSerializer.SerializeToElement(resource.ResourceId, NativeAuxiliaryJsonContext.Default.String),
+                        ["resourceId"] = JsonSerializer.SerializeToElement(resource.ResourceId.ToString(), NativeAuxiliaryJsonContext.Default.String),
                         ["configurationRevision"] = JsonSerializer.SerializeToElement(resource.ConfigurationRevision, NativeAuxiliaryJsonContext.Default.Int64),
                         ["appliedConfigurationRevision"] = JsonSerializer.SerializeToElement(resource.AppliedConfigurationRevision, NativeAuxiliaryJsonContext.Default.Int64),
-                        ["configurationStatus"] = JsonSerializer.SerializeToElement(resource.ConfigurationStatus, NativeAuxiliaryJsonContext.Default.String)
+                        ["configurationStatus"] = JsonSerializer.SerializeToElement(resource.ConfigurationStatus.ToWire(), NativeAuxiliaryJsonContext.Default.String)
                     }
                 }).ToArray() ?? [];
             }
@@ -361,7 +294,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             }
             catch (ObjectDisposedException)
             {
-                await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
                 continue;
             }
             if (version > previous)
@@ -385,34 +318,32 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
                 previousSnapshots = current;
                 previous = version;
             }
-            await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async IAsyncEnumerable<NativeAuxiliaryLogLine> ReadLogsAsync(NativeAuxiliaryLogsRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var sequences = new Dictionary<string, long>(StringComparer.Ordinal);
+        var sequences = new Dictionary<Guid, long>();
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var observer = _server.GetApplicationObserver();
-            var entries = new List<(string Timestamp, long Sequence, NativeAuxiliaryLogLine Line)>();
+            var entries = new List<(DateTimeOffset Timestamp, long Sequence, NativeAuxiliaryLogLine Line)>();
             var resourceCount = 0;
             try
             {
-                var resources = observer?.ReadResourceObservations().Resources ?? [];
+                var resources = observer?.ReadNativeObservations().Resources ?? [];
                 foreach (var resource in resources.Where(resource =>
-                    request.ResourceName is not null
-                        ? MatchesResource(resource, request.ResourceName)
-                        : request.IncludeHidden || resource.State != "Hidden"))
+                    request.ResourceName is null || MatchesResource(resource, request.ResourceName)))
                 {
                     resourceCount++;
-                    var logs = observer!.ReadResourceLogs(resource.ResourceId, sequences.GetValueOrDefault(resource.ResourceId));
+                    var logs = observer!.ReadNativeLogs(resource.ResourceId, sequences.GetValueOrDefault(resource.ResourceId));
                     sequences[resource.ResourceId] = logs.LastSequence;
                     foreach (var log in logs.Entries)
                     {
-                        var line = new NativeAuxiliaryLogLine(resource.Name, checked((int)log.Sequence), log.Message, log.Stream == "stderr");
+                        var line = new NativeAuxiliaryLogLine(resource.Name, checked((int)log.Sequence), log.Message, log.Stream == LogStream.Stderr);
                         if (string.IsNullOrEmpty(request.Search) ||
                             line.Content.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ||
                             line.ResourceName.Contains(request.Search, StringComparison.OrdinalIgnoreCase))
@@ -431,7 +362,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             }
             // ResourceLoggerService.WatchAsync delivers its retained in-memory backlog before live
             // lines. Tail is only applied to finite single-resource snapshots, never follow streams.
-            var ordered = entries.OrderBy(entry => entry.Timestamp, StringComparer.Ordinal)
+            var ordered = entries.OrderBy(entry => entry.Timestamp)
                 .ThenBy(entry => entry.Sequence).Select(entry => entry.Line);
             if (!request.Follow && request.Tail is > 0 && resourceCount == 1)
             {
@@ -445,7 +376,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             {
                 yield break;
             }
-            await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -469,12 +400,12 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         }
     }
 
-    private static bool MatchesResource(ResourceObservationSnapshot resource, string name) =>
-        resource.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || resource.ResourceId.Equals(name, StringComparison.OrdinalIgnoreCase);
+    private static bool MatchesResource(RuntimeResourceSnapshot resource, string name) =>
+        resource.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || resource.ResourceId.ToString().Equals(name, StringComparison.OrdinalIgnoreCase);
 
     private InvalidOperationException McpUnavailable(string resourceName)
     {
-        var resource = _server.GetApplicationObserver()?.ReadResourceObservations().Resources
+        var resource = _server.GetApplicationObserver()?.ReadNativeObservations().Resources
             .FirstOrDefault(resource => MatchesResource(resource, resourceName));
 
         return new(resource is null ? $"Resource '{resourceName}' not found." :
@@ -484,7 +415,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
     private async Task<NativeAuxiliaryCommandResponse> ExecuteCommandAsync(NativeAuxiliaryCommandRequest request, CancellationToken cancellationToken)
     {
         var observer = _server.GetApplicationObserver();
-        var resource = observer?.ReadResourceObservations().Resources.FirstOrDefault(resource => MatchesResource(resource, request.ResourceName));
+        var resource = observer?.ReadNativeObservations().Resources.FirstOrDefault(resource => MatchesResource(resource, request.ResourceName));
         if (resource is null)
         {
             return CommandResponse(false, $"Resource '{request.ResourceName}' not found.");
@@ -506,9 +437,9 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             return CommandResponse(true, null, argumentInputs: request.ReturnArgumentInputs ? [] : null);
         }
         var operation = observer!.InvokeResourceCommand(resource.Name, request.CommandName);
-        var result = await operation.AwaitRuntimeOperation().WaitAsync(cancellationToken).ConfigureAwait(false);
+        var result = await operation.AwaitNativeOperation().WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        return CommandResponse(result.Status == "succeeded", result.Message, result.Status == "cancelled",
+        return CommandResponse(result.Status == RequestOutcome.Succeeded, result.Message, result.Status == RequestOutcome.Cancelled,
             request.ReturnArgumentInputs ? [] : null);
     }
 
@@ -525,44 +456,44 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
             throw new ArgumentException("The timeout must be non-negative.");
         }
         var observer = _server.GetApplicationObserver();
-        var initial = observer?.ReadResourceObservations().Resources.FirstOrDefault(resource => MatchesResource(resource, request.ResourceName));
+        var initial = observer?.ReadNativeObservations().Resources.FirstOrDefault(resource => MatchesResource(resource, request.ResourceName));
         if (initial is null)
         {
             return new() { Success = false, ResourceNotFound = true, ErrorMessage = $"Resource '{request.ResourceName}' not found." };
         }
-        if (request.Status is not ("up" or "healthy" or "down"))
+        if (!NativeAuxiliaryProtocol.TryParseWaitTarget(request.Status, out var target))
         {
             return new() { Success = false, ErrorMessage = $"Unknown status: {request.Status}" };
         }
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(request.TimeoutSeconds));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(request.TimeoutSeconds), _options.TimeProvider);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, cancellationToken);
         try
         {
             while (true)
             {
                 lifetime.Token.ThrowIfCancellationRequested();
-                var resource = observer!.ReadResourceObservations().Resources.FirstOrDefault(resource => resource.ResourceId == initial.ResourceId);
+                var resource = observer!.ReadNativeObservations().Resources.FirstOrDefault(resource => resource.ResourceId == initial.ResourceId);
                 if (resource is null)
                 {
                     return new() { Success = false, ResourceNotFound = true, ErrorMessage = $"Resource '{request.ResourceName}' not found." };
                 }
-                var terminal = resource.State is "Exited" or "Finished" or "FailedToStart" or "Failed" or "Stopped";
-                var success = request.Status switch
+                var terminal = resource.State.IsTerminal();
+                var success = target switch
                 {
-                    "up" => resource.State == "Running",
-                    "healthy" => resource.State == "Running" && resource.Healthy,
-                    "down" => terminal,
+                    NativeWaitTarget.Up => resource.State == ResourceState.Running,
+                    NativeWaitTarget.Healthy => resource.State == ResourceState.Running && resource.Healthy,
+                    NativeWaitTarget.Down => terminal,
                     _ => false
                 };
                 if (success || terminal)
                 {
                     return new()
                     {
-                        Success = success, State = resource.State, HealthStatus = resource.Healthy ? "Healthy" : "Unhealthy",
-                        ErrorMessage = success ? null : $"Resource '{request.ResourceName}' failed to reach the target status. Current state: {resource.State}."
+                        Success = success, State = resource.State.ToWire(), HealthStatus = resource.Healthy ? "Healthy" : "Unhealthy",
+                        ErrorMessage = success ? null : $"Resource '{request.ResourceName}' failed to reach the target status. Current state: {resource.State.ToWire()}."
                     };
                 }
-                await Task.Delay(_options.RetryInterval, lifetime.Token).ConfigureAwait(false);
+                await Task.Delay(_options.RetryInterval, _options.TimeProvider, lifetime.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)

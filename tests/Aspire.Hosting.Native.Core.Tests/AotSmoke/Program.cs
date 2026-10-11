@@ -6,6 +6,7 @@ using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Sessions;
 using Aspire.Hosting.Native.Rpc;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 if (RuntimeFeature.IsDynamicCodeSupported)
 {
@@ -14,7 +15,9 @@ if (RuntimeFeature.IsDynamicCodeSupported)
 
 if (args is ["--rpc"])
 {
-    var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
+    using var configuration = new ConfigurationManager();
+    configuration.AddEnvironmentVariables();
+    var token = configuration["ASPIRE_NATIVE_RPC_TOKEN"]
         ?? throw new InvalidOperationException("Set ASPIRE_NATIVE_RPC_TOKEN for the native RPC smoke process.");
     using var connection = new NativeRpcConnection(token);
     while (Console.ReadLine() is { } line)

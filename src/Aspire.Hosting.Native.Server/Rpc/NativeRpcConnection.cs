@@ -58,15 +58,11 @@ internal sealed class NativeRpcConnection : IDisposable
         options.Validate();
         _options = options;
         _handles = new(options.MaximumHandlesPerConnection);
-        ArgumentException.ThrowIfNullOrEmpty(token);
+        NativeRpcProtocol.ValidateAuthenticationToken(token);
         _token = Encoding.UTF8.GetBytes(token);
         _server = server;
         _ownsServer = ownsServer;
         _languages = languages;
-        if (_token.Length is < 32 or > 256)
-        {
-            throw new ArgumentException("RPC authentication tokens must contain 32 to 256 UTF-8 bytes.", nameof(token));
-        }
     }
 
     internal int HandleCount
@@ -98,7 +94,7 @@ internal sealed class NativeRpcConnection : IDisposable
     public async Task<byte[]?> ProcessAsync(ReadOnlyMemory<byte> payload)
     {
         using var incomingTrace = StartIncomingTrace(payload);
-        using var operation = new NativeDiagnostics.Operation("rpc.request", null, null);
+        using var operation = new NativeDiagnostics.Operation("rpc.request", null, null, _options.TimeProvider);
         JsonNode? id;
         string method;
         bool notification;
@@ -111,16 +107,10 @@ internal sealed class NativeRpcConnection : IDisposable
             {
                 return EncodeError(null, -32600, "REQUEST_TOO_LARGE", "The request exceeds the size limit.");
             }
-            JsonObject request;
+            NativeRpcRequest request;
             try
             {
-                // JSON-RPC uses {"jsonrpc":"2.0","id":1,"method":"invokeCapability",
-                // "params":["assembly/capability",{"context":{"$handle":"...","$type":"..."}}]}.
-                // Duplicate keys, including nested arguments, cannot be last-write-wins.
-                using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-                ValidateUniqueProperties(document.RootElement);
-                request = JsonNode.Parse(document.RootElement.GetRawText()) as JsonObject
-                    ?? throw new RpcFault("INVALID_REQUEST", "A JSON-RPC object is required.");
+                request = NativeRpcProtocol.ParseRequest(payload);
             }
             catch (JsonException)
             {
@@ -128,27 +118,13 @@ internal sealed class NativeRpcConnection : IDisposable
             }
             catch (RpcFault)
             {
-                return EncodeError(null, -32600, "INVALID_REQUEST", "The request shape is invalid.");
-            }
-
-            id = request["id"];
-            if (request["jsonrpc"]?.ToJsonString() != "\"2.0\"" ||
-                request["method"] is not JsonValue methodValue || !methodValue.TryGetValue<string>(out var parsedMethod) ||
-                !IsValidId(id) || request.Any(property => property.Key is not ("jsonrpc" or "id" or "method" or "params" or "traceparent" or "tracestate")) ||
-                request["traceparent"] is not null && (request["traceparent"] is not JsonValue traceParent ||
-                    !traceParent.TryGetValue<string>(out var parent) || parent.Length > 512) ||
-                request["tracestate"] is not null && (request["tracestate"] is not JsonValue traceState ||
-                    !traceState.TryGetValue<string>(out var state) || state.Length > 512))
-            {
                 operation.ErrorType = "INVALID_REQUEST";
                 return EncodeError(null, -32600, "INVALID_REQUEST", "The request shape is invalid.");
             }
-            // StreamJsonRpc adds bounded top-level trace context to requests:
-            // {"jsonrpc":"2.0","method":"authenticate","params":[...],"id":1,
-            //  "traceparent":"00-<trace-id>-<span-id>-01","tracestate":"vendor=value"}
-            // See https://github.com/microsoft/vs-streamjsonrpc/blob/main/doc/tracecontext.md.
-            method = parsedMethod;
-            notification = !request.ContainsKey("id");
+
+            id = request.Id;
+            method = request.Method;
+            notification = request.IsNotification;
             if (_inFlight >= _options.MaximumConcurrentRequests)
             {
                 return notification ? null : EncodeFailure(id, method, -32000, "RPC_BUSY", "The connection request limit was reached.");
@@ -158,7 +134,7 @@ internal sealed class NativeRpcConnection : IDisposable
             // Resolve arguments and authoritative handles under the gate, but
             // await completion outside it. A confirmation response on this same
             // connection must be able to unblock its outstanding request.
-            invocation = InvokeAsync(method, request["params"]);
+            invocation = InvokeAsync(method, request.Parameters);
         }
         try
         {
@@ -297,43 +273,21 @@ internal sealed class NativeRpcConnection : IDisposable
             throw new RpcFault("INVALID_ARGUMENT", "Capability invocation requires an ID and an argument object.");
         }
 
-        return await NativeDispatch.InvokeAsync(_handles, RpcArguments.String(arguments[0]), capabilityArguments).ConfigureAwait(false);
+        return await NativeDispatch.InvokeAsync(_server, _handles, RpcArguments.String(arguments[0]), capabilityArguments).ConfigureAwait(false);
     }
 
     private Activity? StartIncomingTrace(ReadOnlyMemory<byte> payload)
     {
-        if (payload.Length > _options.MaximumRequestBytes || payload.Span.IndexOf("\"traceparent\""u8) < 0)
+        if (NativeRpcProtocol.ReadTraceContext(payload, _options.MaximumRequestBytes) is { } context)
         {
-            return null;
-        }
-        try
-        {
-            using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-            if (document.RootElement.ValueKind != JsonValueKind.Object ||
-                !document.RootElement.TryGetProperty("traceparent", out var parent) || parent.ValueKind != JsonValueKind.String)
-            {
-                return null;
-            }
-            var state = document.RootElement.TryGetProperty("tracestate", out var value) && value.ValueKind == JsonValueKind.String
-                ? value.GetString() : null;
-            if (parent.GetString() is not { Length: <= 512 } parentValue || state is { Length: > 512 } ||
-                !ActivityContext.TryParse(parentValue, state, out var context))
-            {
-                return null;
-            }
-
             var activity = new Activity("native.rpc.incoming")
                 .SetParentId(context.TraceId, context.SpanId, context.TraceFlags);
-            activity.TraceStateString = state;
+            activity.TraceStateString = context.TraceState;
 
             return activity.Start();
         }
-        catch (JsonException)
-        {
-            // This preliminary read is only for trace propagation. The normal
-            // envelope parser still reports malformed input as a protocol error.
-            return null;
-        }
+
+        return null;
     }
 
     public void Dispose()
@@ -353,32 +307,6 @@ internal sealed class NativeRpcConnection : IDisposable
                 _server.Close();
             }
             CryptographicOperations.ZeroMemory(_token);
-        }
-    }
-
-    private static bool IsValidId(JsonNode? id) => id is null ||
-        id is JsonValue value && (value.TryGetValue<string>(out _) || value.TryGetValue<long>(out _));
-
-    internal static void ValidateUniqueProperties(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in element.EnumerateObject())
-            {
-                if (!names.Add(property.Name))
-                {
-                    throw new RpcFault("INVALID_REQUEST", "Duplicate JSON properties are not allowed.");
-                }
-                ValidateUniqueProperties(property.Value);
-            }
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in element.EnumerateArray())
-            {
-                ValidateUniqueProperties(item);
-            }
         }
     }
 

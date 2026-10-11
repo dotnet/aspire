@@ -24,7 +24,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         WorkloadDefinition.Validate(plan);
         await startup.WaitAsync(cancellationToken).ConfigureAwait(false);
         var name = "native-" + identity.ResourceId.ToString("N");
-        var collection = plan is ContainerWorkload ? "containers" : "executables";
+        var collection = plan is ContainerWorkload ? DcpResourceCollection.Containers : DcpResourceCollection.Executables;
         var services = plan.Endpoints.Select(endpoint => name + "-" + endpoint.Name.ToLowerInvariant()).ToArray();
         var lease = new Lease(client, collection, name, services, options);
         try
@@ -40,8 +40,8 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                 for (var index = 0; index < plan.Endpoints.Length; index++)
                 {
                     var endpoint = plan.Endpoints[index];
-                    await client.CreateAsync("services", services[index], JsonSerializer.SerializeToElement(
-                        new DcpServiceSpec(endpoint.Protocol, plan is ContainerWorkload ? "Proxyless" : "Localhost")
+                    await client.CreateAsync(DcpResourceCollection.Services, services[index], JsonSerializer.SerializeToElement(
+                        new DcpServiceSpec(endpoint.Protocol, plan is ContainerWorkload ? DcpAddressAllocationMode.Proxyless : DcpAddressAllocationMode.Localhost)
                         {
                             Port = endpoint.HostPort == 0 ? null : endpoint.HostPort
                         },
@@ -76,7 +76,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                 {
                     ExecutablePath = executable.ExecutablePath,
                     WorkingDirectory = executable.WorkingDirectory,
-                    ExecutionType = "Process"
+                    ExecutionType = DcpExecutionType.Process
                 };
                 // DCP substitutes "{{- portForServing \"<service>\" -}}" before
                 // launch. Each environment variable names its own allocation,
@@ -99,13 +99,13 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
             {
                 var resource = await client.GetAsync(collection, name, cancellationToken).ConfigureAwait(false)
                     ?? throw new InvalidOperationException("DCP removed the workload during startup.");
-                var state = resource.Status?.State;
-                if (state is "Exited" or "Finished" or "FailedToStart")
+                var state = resource.Status?.State ?? DcpProcessState.Unknown;
+                if (state.IsTerminal())
                 {
                     throw new WorkloadStartupException("DCP could not start the workload.",
                         await lease.ReadLogsAsync(cancellationToken).ConfigureAwait(false));
                 }
-                if (state == "Running")
+                if (state == DcpProcessState.Running)
                 {
                     var instanceId = plan is ContainerWorkload
                         ? resource.Status?.ContainerId
@@ -122,7 +122,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                     var endpoints = ImmutableArray.CreateBuilder<AllocatedWorkloadPort>();
                     for (var index = 0; index < services.Length; index++)
                     {
-                        var endpoint = await client.GetAsync("services", services[index], cancellationToken).ConfigureAwait(false);
+                        var endpoint = await client.GetAsync(DcpResourceCollection.Services, services[index], cancellationToken).ConfigureAwait(false);
                         if (endpoint?.Status is not { EffectivePort: > 0 and <= 65535 } status)
                         {
                             break;
@@ -143,7 +143,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                         return lease;
                     }
                 }
-                await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(options.RetryInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
             }
         }
         catch
@@ -161,7 +161,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         }
     }
 
-    private sealed class Lease(DcpApiClient client, string collection, string name, string[] services,
+    private sealed class Lease(DcpApiClient client, DcpResourceCollection collection, string name, string[] services,
         NativeServerOptions options) : IWorkloadLease
     {
         private long _stdout;
@@ -174,26 +174,23 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         {
             var resource = await client.GetAsync(collection, name, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The DCP workload disappeared before cleanup.");
-            var state = resource.Status?.State;
-            var exitCode = resource.Status?.ExitCode;
-
-            return new WorkloadStatus(state == "Running", exitCode);
+            return DcpStates.Observe(resource.Status);
         }
 
         public async Task<ImmutableArray<WorkloadLog>> ReadLogsAsync(CancellationToken cancellationToken)
         {
-            var stdout = await client.ReadLogsAsync(collection, name, "stdout", _stdout, cancellationToken).ConfigureAwait(false);
-            var stderr = await client.ReadLogsAsync(collection, name, "stderr", _stderr, cancellationToken).ConfigureAwait(false);
+            var stdout = await client.ReadLogsAsync(collection, name, LogStream.Stdout, _stdout, cancellationToken).ConfigureAwait(false);
+            var stderr = await client.ReadLogsAsync(collection, name, LogStream.Stderr, _stderr, cancellationToken).ConfigureAwait(false);
             _stdout += stdout.Length;
             _stderr += stderr.Length;
 
-            return stdout.Select(message => new WorkloadLog("stdout", message.TrimEnd('\r')))
-                .Concat(stderr.Select(message => new WorkloadLog("stderr", message.TrimEnd('\r')))).ToImmutableArray();
+            return stdout.Select(message => new WorkloadLog(LogStream.Stdout, message.TrimEnd('\r')))
+                .Concat(stderr.Select(message => new WorkloadLog(LogStream.Stderr, message.TrimEnd('\r')))).ToImmutableArray();
         }
 
         public async ValueTask DisposeAsync()
         {
-            using var cleanup = new CancellationTokenSource(options.CleanupTimeout);
+            using var cleanup = new CancellationTokenSource(options.CleanupTimeout, options.TimeProvider);
             await _cleanupGate.WaitAsync(cleanup.Token).ConfigureAwait(false);
             try
             {
@@ -206,7 +203,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                 await client.DeleteAsync(collection, name, cleanup.Token).ConfigureAwait(false);
                 foreach (var service in services)
                 {
-                    await client.DeleteAsync("services", service, cleanup.Token).ConfigureAwait(false);
+                    await client.DeleteAsync(DcpResourceCollection.Services, service, cleanup.Token).ConfigureAwait(false);
                 }
                 _disposed = true;
             }

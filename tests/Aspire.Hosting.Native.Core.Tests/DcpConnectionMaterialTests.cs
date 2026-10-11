@@ -2,11 +2,38 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Shared;
+using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class DcpConnectionMaterialTests
 {
+    [Fact]
+    public async Task SuccessfulLegacyReadinessPreservesClientTimeoutBeforeAndAfterRequests()
+    {
+        await using var host = await DcpReadyTestHost.StartAsync(TestContext.Current.CancellationToken);
+        var timeout = TimeSpan.FromSeconds(10);
+        using var material = await DcpConnectionMaterial.WaitAsync(host.KubeconfigPath, () => false,
+            timeout, TimeSpan.FromMilliseconds(10), _ => { }, TestContext.Current.CancellationToken);
+        Assert.Equal(timeout, material.Client.Timeout);
+        using var response = await material.Client.GetAsync("/readyz", TestContext.Current.CancellationToken);
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal(timeout, material.Client.Timeout);
+    }
+
+    [Fact]
+    public async Task SuccessfulProviderReadinessLeavesHttpTimeoutDisabledForNativeRequestBudgets()
+    {
+        await using var host = await DcpReadyTestHost.StartAsync(TestContext.Current.CancellationToken);
+        using var material = await DcpConnectionMaterial.WaitAsync(host.KubeconfigPath, () => false,
+            TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(10), _ => { }, new FakeTimeProvider(),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(Timeout.InfiniteTimeSpan, material.Client.Timeout);
+        using var response = await material.Client.GetAsync("/readyz", TestContext.Current.CancellationToken);
+        Assert.True(response.IsSuccessStatusCode);
+    }
+
     [Theory]
     [InlineData("not-base64")]
     [InlineData("YQ==")]

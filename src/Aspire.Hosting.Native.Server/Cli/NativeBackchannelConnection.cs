@@ -49,7 +49,7 @@ internal static class NativeBackchannelConnection
                 await Task.WhenAll(tasks.Where(task => task.IsCompleted)).ConfigureAwait(false);
                 tasks.RemoveAll(task => task.IsCompletedSuccessfully);
                 using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-                NativeRpcConnection.ValidateUniqueProperties(document.RootElement);
+                NativeRpcProtocol.ValidateUniqueProperties(document.RootElement);
                 var request = JsonSerializer.Deserialize(payload, NativeCliJsonContext.Default.NativeCliRequest)
                     ?? throw new InvalidDataException("Invalid backchannel request.");
                 if (request.Jsonrpc != "2.0" ||
@@ -182,7 +182,7 @@ internal static class NativeBackchannelConnection
                 {
                     // Dispatch and iterator failures are request failures, not transport
                     // failures. Log only classification: controller exceptions can carry secrets.
-                    using var operation = new NativeDiagnostics.Operation("backchannel.request", null, null)
+                    using var operation = new NativeDiagnostics.Operation("backchannel.request", null, null, options.TimeProvider)
                     {
                         ErrorType = exception.GetType().FullName
                     };

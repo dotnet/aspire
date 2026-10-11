@@ -16,11 +16,12 @@ internal static class NativeDiagnostics
     private static readonly Counter<long> s_operations = s_meter.CreateCounter<long>("aspire.native.operations", "{operation}");
     private static readonly Histogram<double> s_duration = s_meter.CreateHistogram<double>("aspire.native.operation.duration", "s");
 
-    public static IObservable<OperationEvent> Events => s_events;
+    public static OperationEventSource Events => s_events;
 
-    public static T Execute<T>(string name, Guid? sessionId, Guid? generationId, Func<Operation, T> action)
+    public static T Execute<T>(string name, Guid? sessionId, Guid? generationId, Func<Operation, T> action,
+        TimeProvider? timeProvider = null)
     {
-        using var operation = new Operation(name, sessionId, generationId);
+        using var operation = new Operation(name, sessionId, generationId, timeProvider);
         try
         {
             var result = action(operation);
@@ -37,26 +38,30 @@ internal static class NativeDiagnostics
         }
     }
 
-    public static void Execute(string name, Guid? sessionId, Guid? generationId, Action<Operation> action) =>
+    public static void Execute(string name, Guid? sessionId, Guid? generationId, Action<Operation> action,
+        TimeProvider? timeProvider = null) =>
         Execute(name, sessionId, generationId, operation =>
         {
             action(operation);
             return true;
-        });
+        }, timeProvider);
 
     /// <summary>Correlates one operation without recording arguments, configuration, or exception messages.</summary>
     internal sealed class Operation : IDisposable
     {
         private readonly Activity? _activity;
-        private readonly long _started = Stopwatch.GetTimestamp();
+        private readonly TimeProvider _timeProvider;
+        private readonly long _started;
         private readonly string _name;
         private readonly Guid _operationId;
         private readonly Guid? _sessionId;
         private Guid? _generationId;
         private Guid? _resourceId;
 
-        internal Operation(string name, Guid? sessionId, Guid? generationId)
+        internal Operation(string name, Guid? sessionId, Guid? generationId, TimeProvider? timeProvider = null)
         {
+            _timeProvider = timeProvider ?? TimeProvider.System;
+            _started = _timeProvider.GetTimestamp();
             _name = name;
             _sessionId = sessionId;
             _generationId = generationId;
@@ -64,7 +69,7 @@ internal static class NativeDiagnostics
             _activity = s_activities.StartActivity(name, ActivityKind.Internal);
             _activity?.SetTag("aspire.session.id", sessionId);
             _activity?.SetTag("aspire.generation.id", generationId);
-            Publish("started", 0);
+            Publish(OperationOutcome.Started, 0);
         }
 
         internal bool Succeeded { get; set; }
@@ -84,8 +89,8 @@ internal static class NativeDiagnostics
 
         public void Dispose()
         {
-            var outcome = Succeeded ? "ok" : "error";
-            var elapsed = Stopwatch.GetElapsedTime(_started).TotalSeconds;
+            var outcome = Succeeded ? OperationOutcome.Ok : OperationOutcome.Error;
+            var elapsed = _timeProvider.GetElapsedTime(_started).TotalSeconds;
             _activity?.SetStatus(Succeeded ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
             if (ErrorType is not null)
             {
@@ -94,7 +99,7 @@ internal static class NativeDiagnostics
 
             // Resource, session, generation, and trace identities belong in
             // events/spans, never metric dimensions with unbounded cardinality.
-            var tags = new TagList { { "operation", _name }, { "outcome", outcome } };
+            var tags = new TagList { { "operation", _name }, { "outcome", outcome.ToWire() } };
             s_operations.Add(1, tags);
             s_duration.Record(elapsed, tags);
             try
@@ -107,21 +112,30 @@ internal static class NativeDiagnostics
             }
         }
 
-        private void Publish(string outcome, double elapsed)
+        private void Publish(OperationOutcome outcome, double elapsed)
         {
-            if (!s_events.HasObservers)
-            {
-                return;
-            }
             var activity = _activity ?? Activity.Current;
             s_events.Publish(new OperationEvent(
                 _operationId, _name, outcome, _sessionId, _generationId, _resourceId,
-                activity?.TraceId.ToString(), activity?.SpanId.ToString(), DateTimeOffset.UtcNow, elapsed, ErrorType));
+                activity?.TraceId.ToString(), activity?.SpanId.ToString(), _timeProvider.GetUtcNow(), elapsed, ErrorType));
         }
     }
 }
 
 /// <summary>Describes a local diagnostic operation independently of trace sampling.</summary>
 internal sealed record OperationEvent(
-    Guid OperationId, string Operation, string Outcome, Guid? SessionId, Guid? GenerationId,
+    Guid OperationId, string Operation, OperationOutcome Outcome, Guid? SessionId, Guid? GenerationId,
     Guid? ResourceId, string? TraceId, string? SpanId, DateTimeOffset Timestamp, double DurationSeconds, string? ErrorType);
+
+internal enum OperationOutcome { Started, Ok, Error }
+
+internal static class OperationOutcomeExtensions
+{
+    public static string ToWire(this OperationOutcome outcome) => outcome switch
+    {
+        OperationOutcome.Started => "started",
+        OperationOutcome.Ok => "ok",
+        OperationOutcome.Error => "error",
+        _ => throw new ArgumentOutOfRangeException(nameof(outcome))
+    };
+}

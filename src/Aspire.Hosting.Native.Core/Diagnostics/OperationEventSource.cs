@@ -1,41 +1,99 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
+using System.Threading.Channels;
+using System.Diagnostics;
 
 namespace Aspire.Hosting.Native.Diagnostics;
 
-/// <summary>Publishes typed diagnostic events without reflection-based payload discovery.</summary>
-internal sealed class OperationEventSource : IObservable<OperationEvent>
+/// <summary>Fans out diagnostics without running consumer code on the producer.</summary>
+internal sealed class OperationEventSource : IDisposable
 {
-    private ImmutableArray<Subscription> _subscriptions = [];
+    private readonly Lock _gate = new();
+    private readonly HashSet<OperationEventSubscription> _subscriptions = [];
+    private bool _disposed;
 
-    public bool HasObservers => !_subscriptions.IsEmpty;
-
-    public IDisposable Subscribe(IObserver<OperationEvent> observer)
+    public OperationEventSubscription Subscribe(int capacity = 1024, ActivityTraceId? traceId = null)
     {
-        ArgumentNullException.ThrowIfNull(observer);
-        var subscription = new Subscription(this, observer);
-        ImmutableInterlocked.Update(ref _subscriptions, subscriptions => subscriptions.Add(subscription));
+        ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(capacity, 65536);
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var subscription = new OperationEventSubscription(this, capacity, traceId);
+            _subscriptions.Add(subscription);
 
-        return subscription;
+            return subscription;
+        }
     }
 
     public void Publish(OperationEvent value)
     {
-        // DiagnosticSource.Write discovers payload properties reflectively and
-        // is annotated for trimming. Keep this feed typed for native consumers:
-        // https://learn.microsoft.com/dotnet/api/system.diagnostics.diagnosticsource.write
-        foreach (var subscription in _subscriptions)
+        lock (_gate)
         {
-            subscription.Observer.OnNext(value);
+            foreach (var subscription in _subscriptions.ToArray())
+            {
+                if (subscription.TraceId is { } traceId && !string.Equals(value.TraceId, traceId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                // Wait mode makes TryWrite report overflow instead of silently
+                // dropping events. Only the lagging subscriber loses the feed;
+                // its retained prefix drains before the classified error.
+                if (!subscription.Writer.TryWrite(value))
+                {
+                    _subscriptions.Remove(subscription);
+                    subscription.Writer.TryComplete(new DiagnosticOverflowException());
+                }
+            }
         }
     }
 
-    private sealed class Subscription(OperationEventSource owner, IObserver<OperationEvent> observer) : IDisposable
+    internal void Unsubscribe(OperationEventSubscription subscription)
     {
-        public IObserver<OperationEvent> Observer { get; } = observer;
+        lock (_gate)
+        {
+            _subscriptions.Remove(subscription);
+            subscription.Writer.TryComplete();
+        }
+    }
 
-        public void Dispose() => ImmutableInterlocked.Update(ref owner._subscriptions, subscriptions => subscriptions.Remove(this));
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            _disposed = true;
+            foreach (var subscription in _subscriptions)
+            {
+                subscription.Writer.TryComplete();
+            }
+            _subscriptions.Clear();
+        }
     }
 }
+
+/// <summary>Owns one bounded diagnostic queue; disposal completes its retained prefix.</summary>
+internal sealed class OperationEventSubscription : IDisposable
+{
+    private readonly OperationEventSource _owner;
+    private readonly Channel<OperationEvent> _channel;
+
+    internal OperationEventSubscription(OperationEventSource owner, int capacity, ActivityTraceId? traceId)
+    {
+        _owner = owner;
+        TraceId = traceId?.ToString();
+        _channel = Channel.CreateBounded<OperationEvent>(new BoundedChannelOptions(capacity)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            AllowSynchronousContinuations = false
+        });
+    }
+
+    public ChannelReader<OperationEvent> Reader => _channel.Reader;
+    internal string? TraceId { get; }
+    internal ChannelWriter<OperationEvent> Writer => _channel.Writer;
+    public void Dispose() => _owner.Unsubscribe(this);
+}
+
+/// <summary>Reports a diagnostic subscriber exceeding its independent queue capacity.</summary>
+internal sealed class DiagnosticOverflowException() : InvalidOperationException("The diagnostic subscriber exceeded its queue capacity.");

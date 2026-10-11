@@ -85,7 +85,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                         !retained.Declaration.Dependencies.SequenceEqual(updated.Dependencies))
                     {
                         retained.ConfigurationRevision++;
-                        retained.ConfigurationStatus = "pending";
+                        retained.ConfigurationStatus = ConfigurationStatus.Pending;
                         retained.ConfigurationMessage = "";
                         retained.Healthy = false;
                     }
@@ -145,7 +145,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         ArgumentOutOfRangeException.ThrowIfLessThan(timeoutMilliseconds, 1);
         // Other publications share this wake signal. Re-check the desired revision
         // instead of treating an unrelated log/health update as configuration work.
-        using var timeout = new CancellationTokenSource(timeoutMilliseconds);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMilliseconds), options.TimeProvider);
         while (true)
         {
             Task changed;
@@ -173,10 +173,10 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    internal void CompleteConfiguration(Guid resourceId, long revision, string status, string message)
+    internal void CompleteConfiguration(Guid resourceId, long revision, ConfigurationStatus status, string message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        if (status is not ("succeeded" or "failed") || message.Length > 8192)
+        if (status is not (ConfigurationStatus.Succeeded or ConfigurationStatus.Failed) || message.Length > 8192)
         {
             throw new ArgumentException("Invalid configuration result.");
         }
@@ -184,13 +184,13 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             EnsureAlive();
             var resource = GetOwnedResource(resourceId);
-            if (revision != resource.ConfigurationRevision || resource.ConfigurationStatus != "pending")
+            if (revision != resource.ConfigurationRevision || resource.ConfigurationStatus != ConfigurationStatus.Pending)
             {
                 throw new InvalidOperationException("The configuration revision is stale or already completed.");
             }
             resource.ConfigurationStatus = status;
             resource.ConfigurationMessage = message;
-            if (status == "succeeded")
+            if (status == ConfigurationStatus.Succeeded)
             {
                 resource.AppliedConfigurationRevision = revision;
             }
@@ -209,7 +209,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             EnsureAlive();
             var resource = GetOwnedResource(resourceId);
-            if (resource.State is "Stopped" or "Failed" || _workloads.ContainsKey(resourceId) || _replacingWorkloads.Contains(resourceId))
+            if (resource.State.IsTerminal() || _workloads.ContainsKey(resourceId) || _replacingWorkloads.Contains(resourceId))
             {
                 throw new InvalidOperationException("The resource workload cannot start in the current state.");
             }
@@ -218,7 +218,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 (state, endpoint) => PublishWorkload(resourceId, state, endpoint),
                 (stream, message) => AppendWorkloadLog(resourceId, stream, message));
             _workloads.Add(resourceId, workload);
-            resource.State = "Starting";
+            resource.State = ResourceState.Starting;
             Changed();
 
             return workload.Start();
@@ -235,7 +235,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 EnsureAlive();
                 var dependencies = GetOwnedResource(resourceId).Declaration.Dependencies
                     .Select(handle => GetResource(handle.ResourceId)).ToArray();
-                if (dependencies.Any(dependency => dependency.State is "Failed" or "Stopped"))
+                if (dependencies.Any(dependency => dependency.State.IsTerminal()))
                 {
                     throw new InvalidOperationException("A workload dependency has terminated.");
                 }
@@ -265,7 +265,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 throw new InvalidOperationException("The resource has no workload or a replacement is already pending.");
             }
-            resource.State = "Starting";
+            resource.State = ResourceState.Starting;
             resource.Healthy = false;
             resource.Urls = [];
             resource.Commands.Clear();
@@ -286,7 +286,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 var resource = GetOwnedResource(resourceId);
                 _workloads.Remove(resourceId);
                 _replacingWorkloads.Remove(resourceId);
-                resource.State = "Unknown";
+                resource.State = ResourceState.Unknown;
                 started = StartWorkload(resourceId, plan);
                 _replacingWorkloads.Add(resourceId);
             }
@@ -316,7 +316,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 {
                     affected.Add(id);
                     resource.ConfigurationRevision++;
-                    resource.ConfigurationStatus = "pending";
+                    resource.ConfigurationStatus = ConfigurationStatus.Pending;
                     resource.ConfigurationMessage = "";
                     resource.Healthy = false;
                     changed = true;
@@ -326,7 +326,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         Changed();
     }
 
-    private void PublishWorkload(Guid resourceId, string state, WorkloadEndpoint? endpoint)
+    private void PublishWorkload(Guid resourceId, ResourceState state, WorkloadEndpoint? endpoint)
     {
         lock (_gate)
         {
@@ -346,7 +346,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             resource.Healthy = false;
             resource.Urls = endpoint is null ? [] : endpoint.Endpoints.Select(port =>
                 new UriBuilder(port.UriScheme, port.Host, port.Port).Uri.AbsoluteUri.TrimEnd('/')).ToImmutableArray();
-            if (state is "Stopped" or "Failed")
+            if (state.IsTerminal())
             {
                 CancelRequests(resource);
                 resource.Commands.Clear();
@@ -355,12 +355,12 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    private void AppendWorkloadLog(Guid resourceId, string stream, string message)
+    private void AppendWorkloadLog(Guid resourceId, LogStream stream, string message)
     {
         lock (_gate)
         {
             if (!_disposed && _resources.TryGetValue(resourceId, out var resource) && !resource.OwnerDisconnected &&
-                resource.State is not ("Stopped" or "Failed"))
+                !resource.State.IsTerminal())
             {
                 AppendLog(resourceId, stream, message);
             }
@@ -368,7 +368,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     }
 
     public Guid GenerationId => declarations.GenerationId;
-    public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; } = options.TimeProvider.GetUtcNow();
     public bool IsRetired
     {
         get
@@ -442,7 +442,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             changed = _changed.Task;
         }
         using var delayCancellation = new CancellationTokenSource();
-        await Task.WhenAny(changed, Task.Delay(timeoutMilliseconds, delayCancellation.Token)).ConfigureAwait(false);
+        await Task.WhenAny(changed, Task.Delay(TimeSpan.FromMilliseconds(timeoutMilliseconds), options.TimeProvider, delayCancellation.Token)).ConfigureAwait(false);
         await delayCancellation.CancelAsync().ConfigureAwait(false);
 
         return Read();
@@ -474,7 +474,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 string.Equals(resource.Declaration.Name, resourceName, StringComparison.OrdinalIgnoreCase))
                 ?? throw new ArgumentException("The resource is not in this execution.", nameof(resourceName));
             if (!resource.Commands.ContainsKey(commandName) || resource.OwnerDisconnected ||
-                resource.ConfigurationStatus != "succeeded")
+                resource.ConfigurationStatus != ConfigurationStatus.Succeeded)
             {
                 throw new InvalidOperationException("The resource command is unavailable.");
             }
@@ -508,7 +508,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 if (resource.Interactions.Remove(requestId, out var request))
                 {
-                    request.Complete(new RuntimeRequestResult(accepted ? "accepted" : "rejected", ""));
+                    request.Complete(new RuntimeRequestResult(accepted ? RequestOutcome.Accepted : RequestOutcome.Rejected, ""));
                     Changed();
                     return;
                 }
@@ -517,12 +517,12 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    internal void Publish(Guid resourceId, string state, bool healthy, ImmutableArray<string> urls) =>
+    internal void Publish(Guid resourceId, ResourceState state, bool healthy, ImmutableArray<string> urls) =>
         NativeDiagnostics.Execute("runtime.resource.publish", null, GenerationId, operation =>
         {
             operation.SetResource(resourceId);
-            if (state is not ("Starting" or "Running" or "Failed" or "Stopped") ||
-                (healthy && state != "Running") || urls.Length > 32 ||
+            if (state is not (ResourceState.Starting or ResourceState.Running or ResourceState.Failed or ResourceState.Stopped) ||
+                (healthy && state != ResourceState.Running) || urls.Length > 32 ||
                 urls.Any(url => url is null || url.Length > 2048 || !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
                     !string.IsNullOrEmpty(uri.UserInfo)))
             {
@@ -536,25 +536,25 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 {
                     throw new InvalidOperationException("Apply the desired configuration before publishing healthy.");
                 }
-                if (resource.State is "Stopped" or "Failed")
+                if (resource.State.IsTerminal())
                 {
                     throw new InvalidOperationException("A terminal resource execution cannot publish another observation.");
                 }
                 resource.State = state;
                 resource.Healthy = healthy;
-                resource.Urls = state is "Stopped" or "Failed" ? [] : urls;
-                if (state is "Stopped" or "Failed")
+                resource.Urls = state.IsTerminal() ? [] : urls;
+                if (state.IsTerminal())
                 {
                     CancelRequests(resource);
                     resource.Commands.Clear();
                 }
                 Changed();
             }
-        });
+        }, options.TimeProvider);
 
-    internal void AppendLog(Guid resourceId, string stream, string message)
+    internal void AppendLog(Guid resourceId, LogStream stream, string message)
     {
-        if (stream is not ("stdout" or "stderr") || message.Length > 8192)
+        if (stream is not (LogStream.Stdout or LogStream.Stderr) || message.Length > 8192)
         {
             throw new ArgumentException("Invalid resource log entry.");
         }
@@ -562,7 +562,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             EnsureAlive();
             var resource = GetOwnedResource(resourceId);
-            if (resource.State is "Stopped" or "Failed")
+            if (resource.State.IsTerminal())
             {
                 throw new InvalidOperationException("The resource log stream is complete.");
             }
@@ -570,7 +570,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 resource.Logs.Dequeue();
             }
-            resource.Logs.Enqueue(new RuntimeLogEntry(++resource.LogSequence, DateTimeOffset.UtcNow, stream, message));
+            resource.Logs.Enqueue(new RuntimeLogEntry(++resource.LogSequence, options.TimeProvider.GetUtcNow(), stream, message));
             Changed();
         }
     }
@@ -587,7 +587,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             EnsureAlive();
             var resource = GetOwnedResource(resourceId);
-            if (resource.State is "Stopped" or "Failed" || resource.Commands.Count >= 32)
+            if (resource.State.IsTerminal() || resource.Commands.Count >= 32)
             {
                 throw new InvalidOperationException("Commands cannot be registered in the current state.");
             }
@@ -624,15 +624,15 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             changed = _changed.Task;
         }
         using var delayCancellation = new CancellationTokenSource();
-        await Task.WhenAny(changed, Task.Delay(timeoutMilliseconds, delayCancellation.Token)).ConfigureAwait(false);
+        await Task.WhenAny(changed, Task.Delay(TimeSpan.FromMilliseconds(timeoutMilliseconds), options.TimeProvider, delayCancellation.Token)).ConfigureAwait(false);
         await delayCancellation.CancelAsync().ConfigureAwait(false);
 
         return ReadCommands(resourceId);
     }
 
-    internal void CompleteCommand(Guid resourceId, Guid requestId, string status, string message)
+    internal void CompleteCommand(Guid resourceId, Guid requestId, RequestOutcome status, string message)
     {
-        if (status is not ("succeeded" or "failed" or "cancelled") || message.Length > 8192)
+        if (status is not (RequestOutcome.Succeeded or RequestOutcome.Failed or RequestOutcome.Cancelled) || message.Length > 8192)
         {
             throw new ArgumentException("Invalid command result.");
         }
@@ -659,7 +659,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             EnsureAlive();
             var resource = GetOwnedResource(resourceId);
-            if (resource.State is "Stopped" or "Failed")
+            if (resource.State.IsTerminal())
             {
                 throw new InvalidOperationException("Interactions cannot be requested by a terminal resource.");
             }
@@ -693,9 +693,9 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 workload.Dispose();
             }
-            if (resource.State is not ("Stopped" or "Failed"))
+            if (!resource.State.IsTerminal())
             {
-                resource.State = "Failed";
+                resource.State = ResourceState.Failed;
             }
             resource.Healthy = false;
             resource.Urls = [];
@@ -769,7 +769,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     {
         foreach (var request in resource.PendingCommands.Values.Concat(resource.Interactions.Values))
         {
-            request.Complete(new RuntimeRequestResult("cancelled", ""));
+            request.Complete(new RuntimeRequestResult(RequestOutcome.Cancelled, ""));
         }
         resource.PendingCommands.Clear();
         resource.Interactions.Clear();
@@ -780,11 +780,11 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         public ResourceSnapshot Declaration { get; set; } = declaration;
         public long ConfigurationRevision { get; set; } = 1;
         public long AppliedConfigurationRevision { get; set; } = declaration.Configuration.IsEmpty ? 1 : 0;
-        public string ConfigurationStatus { get; set; } = declaration.Configuration.IsEmpty ? "succeeded" : "pending";
+        public ConfigurationStatus ConfigurationStatus { get; set; } = declaration.Configuration.IsEmpty ? ConfigurationStatus.Succeeded : ConfigurationStatus.Pending;
         public string ConfigurationMessage { get; set; } = "";
         public bool Claimed { get; set; }
         public bool OwnerDisconnected { get; set; }
-        public string State { get; set; } = "Unknown";
+        public ResourceState State { get; set; } = ResourceState.Unknown;
         public bool Healthy { get; set; }
         public ImmutableArray<string> Urls { get; set; } = [];
         public long LogSequence { get; set; }
@@ -819,7 +819,7 @@ internal sealed class RuntimeResourceOwner(RuntimeGeneration generation, Guid re
 
         return generation.WaitConfigurationAsync(resourceId, revision, timeoutMilliseconds);
     }
-    public void CompleteConfiguration(long revision, string status, string message)
+    public void CompleteConfiguration(long revision, ConfigurationStatus status, string message)
     {
         EnsureAlive();
         generation.CompleteConfiguration(resourceId, revision, status, message);
@@ -836,12 +836,12 @@ internal sealed class RuntimeResourceOwner(RuntimeGeneration generation, Guid re
 
         return generation.ReplaceWorkloadAsync(resourceId, revision, plan);
     }
-    public void Publish(string state, bool healthy, ImmutableArray<string> urls)
+    public void Publish(ResourceState state, bool healthy, ImmutableArray<string> urls)
     {
         EnsureAlive();
         generation.Publish(resourceId, state, healthy, urls);
     }
-    public void AppendLog(string stream, string message)
+    public void AppendLog(LogStream stream, string message)
     {
         EnsureAlive();
         generation.AppendLog(resourceId, stream, message);
@@ -863,7 +863,7 @@ internal sealed class RuntimeResourceOwner(RuntimeGeneration generation, Guid re
 
         return generation.WaitCommandsAsync(resourceId, timeoutMilliseconds);
     }
-    public void CompleteCommand(Guid id, string status, string message)
+    public void CompleteCommand(Guid id, RequestOutcome status, string message)
     {
         EnsureAlive();
         generation.CompleteCommand(resourceId, id, status, message);
@@ -895,14 +895,14 @@ internal sealed class RuntimeRequest(string name)
 }
 
 internal sealed record RuntimeSnapshot(long Version, Guid GenerationId, ImmutableArray<RuntimeResourceSnapshot> Resources);
-internal sealed record RuntimeResourceSnapshot(Guid ResourceId, string Name, string TypeId, string State, bool Healthy,
+internal sealed record RuntimeResourceSnapshot(Guid ResourceId, string Name, string TypeId, ResourceState State, bool Healthy,
     ImmutableArray<string> Urls, ImmutableArray<RuntimeCommandDefinition> Commands,
-    long ConfigurationRevision, long AppliedConfigurationRevision, string ConfigurationStatus);
+    long ConfigurationRevision, long AppliedConfigurationRevision, ConfigurationStatus ConfigurationStatus);
 internal sealed record RuntimeCommandDefinition(string Name, string DisplayName);
-internal sealed record RuntimeLogEntry(long Sequence, DateTimeOffset Timestamp, string Stream, string Message);
+internal sealed record RuntimeLogEntry(long Sequence, DateTimeOffset Timestamp, LogStream Stream, string Message);
 internal sealed record RuntimeLogBatch(long LastSequence, bool Truncated, ImmutableArray<RuntimeLogEntry> Entries);
 internal sealed record RuntimeCommand(Guid Id, string Name);
 internal sealed record RuntimePrompt(Guid Id, string ResourceName, string Message);
-internal sealed record RuntimeRequestResult(string Status, string Message);
-internal sealed record RuntimeConfigurationRevision(long Revision, long AppliedRevision, string Status, string Message,
+internal sealed record RuntimeRequestResult(RequestOutcome Status, string Message);
+internal sealed record RuntimeConfigurationRevision(long Revision, long AppliedRevision, ConfigurationStatus Status, string Message,
     ImmutableArray<ResourceConfigurationEntry> Properties, ImmutableArray<ResourceHandle> Dependencies);

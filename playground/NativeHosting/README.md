@@ -11,6 +11,13 @@ dispatch, authenticated sockets, DCP execution, CLI/auxiliary protocols, and the
 Dashboard resource-service adapter. Integration workers and demonstration-specific
 IPC are test fixtures, not server dependencies.
 
+Configuration providers and protocol parsers belong to the server boundary.
+Consumers receive validated typed settings and protocol state, rather than
+reading environment variables or comparing wire strings throughout the runtime.
+The kernel receives an explicit `TimeProvider` for clocks and scheduling without
+loading configuration packages. Diagnostic consumers use independent bounded
+channels instead of synchronous observable callbacks.
+
 The generic workload contract supports multiple named TCP/UDP endpoints,
 host/target port declarations, executable port-variable injection, container
 entrypoints, read-only bind mounts, and explicitly caller-owned named volumes.

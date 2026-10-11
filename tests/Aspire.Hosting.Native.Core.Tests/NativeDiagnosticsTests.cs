@@ -30,7 +30,7 @@ public class NativeDiagnosticsTests
         });
         Assert.Equal(resource.ResourceId, activities[0].GetTagItem("aspire.resource.id"));
         var events = capture.Events.ToArray();
-        Assert.Equal(["started", "ok", "started", "ok"], events.Select(value => value.Outcome));
+        Assert.Equal([OperationOutcome.Started, OperationOutcome.Ok, OperationOutcome.Started, OperationOutcome.Ok], events.Select(value => value.Outcome));
         Assert.Equal(events[0].OperationId, events[1].OperationId);
         Assert.NotEqual(Guid.Empty, events[0].OperationId);
         Assert.NotEqual(events[0].OperationId, events[2].OperationId);
@@ -53,7 +53,7 @@ public class NativeDiagnosticsTests
         Assert.Null(activity.StatusDescription);
         Assert.Equal(typeof(InvalidOperationException).FullName, activity.GetTagItem("error.type"));
         Assert.Equal(["aspire.generation.id", "error.type"], activity.TagObjects.Select(tag => tag.Key));
-        var failed = Assert.Single(capture.Events, value => value.Outcome == "error");
+        var failed = Assert.Single(capture.Events, value => value.Outcome == OperationOutcome.Error);
         Assert.Equal(typeof(InvalidOperationException).FullName, failed.ErrorType);
         Assert.Null(failed.ResourceId);
     }
@@ -69,7 +69,7 @@ public class NativeDiagnosticsTests
         Assert.Throws<ArgumentException>(() => model.AddResource("invalid/name", "secret-input"));
         Assert.Throws<InvalidOperationException>(() => model.AddDependency(resource, resource));
 
-        var failed = capture.Events.Where(value => value.Outcome == "error").ToArray();
+        var failed = capture.Events.Where(value => value.Outcome == OperationOutcome.Error).ToArray();
         Assert.Equal(["model.resource.add", "model.dependency.add"], failed.Select(value => value.Operation));
         Assert.Equal([typeof(ArgumentException).FullName, typeof(InvalidOperationException).FullName],
             failed.Select(value => value.ErrorType));
@@ -84,7 +84,7 @@ public class NativeDiagnosticsTests
         model.AddResource("cache", "example/Resource");
 
         Assert.Empty(capture.Activities);
-        Assert.Equal(["started", "ok"], capture.Events.Select(value => value.Outcome));
+        Assert.Equal([OperationOutcome.Started, OperationOutcome.Ok], capture.Events.Select(value => value.Outcome));
         Assert.All(capture.Events, value => Assert.Equal(capture.Root.TraceId.ToString(), value.TraceId));
         Assert.Equal(2, capture.Measurements.Count);
     }
@@ -124,7 +124,7 @@ public class NativeDiagnosticsTests
         Assert.Equal(sessionRetirement.SpanId, modelRetirement.ParentSpanId);
         Assert.Equal(session.SessionId, sessionRetirement.GetTagItem("aspire.session.id"));
         Assert.Equal(model.GenerationId, modelRetirement.GetTagItem("aspire.generation.id"));
-        var start = Assert.Single(capture.Events, value => value.Operation == "session.generation.start" && value.Outcome == "ok");
+        var start = Assert.Single(capture.Events, value => value.Operation == "session.generation.start" && value.Outcome == OperationOutcome.Ok);
         Assert.Equal(session.SessionId, start.SessionId);
         Assert.Equal(model.GenerationId, start.GenerationId);
     }

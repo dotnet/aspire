@@ -10,6 +10,8 @@ namespace Aspire.Hosting.Native.Server;
 /// <summary>Defines validated server policies with named defaults, not scenario-dependent settings.</summary>
 internal sealed class NativeServerOptions
 {
+    [JsonIgnore]
+    public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
     public NativeRuntimeOptions Runtime { get; set; } = new();
     public TimeSpan ControllerStartupTimeout { get; set; } = TimeSpan.FromSeconds(45);
     public TimeSpan ControllerRequestTimeout { get; set; } = TimeSpan.FromSeconds(20);
@@ -46,6 +48,8 @@ internal sealed class NativeServerOptions
     public void Validate()
     {
         ArgumentNullException.ThrowIfNull(Runtime);
+        ArgumentNullException.ThrowIfNull(TimeProvider);
+        Runtime.TimeProvider = TimeProvider;
         Runtime.Validate();
         foreach (var duration in new[] { ControllerStartupTimeout, ControllerRequestTimeout, ControllerLogReadTimeout, CleanupTimeout,
             AuthenticationTimeout, RetryInterval, DashboardShutdownTimeout })

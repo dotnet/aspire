@@ -22,7 +22,7 @@ internal sealed record ContainerWorkload(string Image, string? Command, Immutabl
     public override ImmutableArray<WorkloadPort> Endpoints => Ports;
     public ContainerWorkload(string image, int targetPort, ImmutableArray<WorkloadEnvironment> variables,
         ImmutableArray<string> args) : this(image, null, [], variables, args,
-            targetPort == 0 ? [] : [new("tcp", "TCP", "tcp", targetPort, 0, "")])
+            targetPort == 0 ? [] : [new("tcp", WorkloadProtocol.Tcp, "tcp", targetPort, 0, "")])
     {
     }
 }
@@ -35,7 +35,7 @@ internal sealed record ExecutableWorkload(string ExecutablePath, string WorkingD
     public override ImmutableArray<WorkloadPort> Endpoints => Ports;
     public ExecutableWorkload(string executablePath, string workingDirectory, string portEnvironmentVariable,
         ImmutableArray<WorkloadEnvironment> variables, ImmutableArray<string> args) : this(executablePath, workingDirectory,
-            variables, args, portEnvironmentVariable.Length == 0 ? [] : [new("tcp", "TCP", "tcp", 0, 0, portEnvironmentVariable)])
+            variables, args, portEnvironmentVariable.Length == 0 ? [] : [new("tcp", WorkloadProtocol.Tcp, "tcp", 0, 0, portEnvironmentVariable)])
     {
     }
 }
@@ -47,12 +47,13 @@ internal sealed record WorkloadEndpoint(string InstanceId, ImmutableArray<Alloca
     public int Port => Endpoints.IsEmpty ? 0 : Endpoints[0].Port;
 
     public WorkloadEndpoint(string host, int port, string instanceId) : this(instanceId,
-        port == 0 ? [] : [new("tcp", "TCP", "tcp", host, port)])
+        port == 0 ? [] : [new("tcp", WorkloadProtocol.Tcp, "tcp", host, port)])
     {
     }
 }
-internal sealed record WorkloadStatus(bool Running, int? ExitCode);
-internal sealed record WorkloadLog(string Stream, string Message);
+internal enum WorkloadPhase { Pending, Running, Exited, Failed }
+internal sealed record WorkloadStatus(WorkloadPhase Phase, int? ExitCode);
+internal sealed record WorkloadLog(LogStream Stream, string Message);
 
 /// <summary>Preserves startup console diagnostics separately from classified host errors.</summary>
 internal sealed class WorkloadStartupException(string message, ImmutableArray<WorkloadLog> logs) : InvalidOperationException(message)
@@ -96,8 +97,8 @@ internal sealed class ResourceWorkload(
     IWorkloadExecutor executor,
     NativeRuntimeOptions options,
     Func<CancellationToken, Task> waitForDependencies,
-    Action<string, WorkloadEndpoint?> publish,
-    Action<string, string> log) : IDisposable
+    Action<ResourceState, WorkloadEndpoint?> publish,
+    Action<LogStream, string> log) : IDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TaskCompletionSource<WorkloadEndpoint> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -158,7 +159,7 @@ internal sealed class ResourceWorkload(
         catch (Exception exception)
         {
             _cleanupFailed = true;
-            log("stderr", $"Workload cleanup failed: {exception.GetType().Name}; cleanup remains pending.");
+            log(LogStream.Stderr, $"Workload cleanup failed: {exception.GetType().Name}; cleanup remains pending.");
             throw;
         }
     }
@@ -176,18 +177,17 @@ internal sealed class ResourceWorkload(
 
     private async Task RunAsync()
     {
-        using var operation = new NativeDiagnostics.Operation("runtime.workload", null, identity.GenerationId);
+        using var operation = new NativeDiagnostics.Operation("runtime.workload", null, identity.GenerationId, options.TimeProvider);
         operation.SetResource(identity.ResourceId);
         try
         {
             await waitForDependencies(_lifetime.Token).ConfigureAwait(false);
             // Dependency readiness has its own lifetime. Start this workload's
             // startup budget only after dependencies are ready.
-            using var startup = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-            startup.CancelAfter(options.WorkloadStartupTimeout);
+            using var startup = new TimeProviderCancellation(options.WorkloadStartupTimeout, options.TimeProvider, _lifetime.Token);
             var lease = await executor.StartAsync(identity, plan, startup.Token).ConfigureAwait(false);
             _lease = lease;
-            publish("Running", lease.Endpoint);
+            publish(ResourceState.Running, lease.Endpoint);
             _ready.TrySetResult(lease.Endpoint);
             while (true)
             {
@@ -196,12 +196,12 @@ internal sealed class ResourceWorkload(
                     log(line.Stream, line.Message);
                 }
                 var status = await lease.ReadStatusAsync(_lifetime.Token).ConfigureAwait(false);
-                if (!status.Running)
+                if (status.Phase is WorkloadPhase.Exited or WorkloadPhase.Failed)
                 {
-                    publish(status.ExitCode == 0 ? "Stopped" : "Failed", null);
+                    publish(status.Phase == WorkloadPhase.Exited && status.ExitCode == 0 ? ResourceState.Stopped : ResourceState.Failed, null);
                     break;
                 }
-                await Task.Delay(options.ObservationInterval, _lifetime.Token).ConfigureAwait(false);
+                await Task.Delay(options.ObservationInterval, options.TimeProvider, _lifetime.Token).ConfigureAwait(false);
             }
             operation.Succeeded = true;
         }
@@ -227,8 +227,8 @@ internal sealed class ResourceWorkload(
                     log(line.Stream, line.Message);
                 }
             }
-            log("stderr", $"Workload failed: {exception.GetType().Name}.");
-            publish("Failed", null);
+            log(LogStream.Stderr, $"Workload failed: {exception.GetType().Name}.");
+            publish(ResourceState.Failed, null);
             _ready.TrySetException(exception);
             throw;
         }

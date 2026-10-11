@@ -67,8 +67,20 @@ internal sealed class DcpConnectionMaterial : IDisposable
         }
     }
 
-    public static async Task<DcpConnectionMaterial> WaitAsync(string kubeconfig, Func<bool> hasExited,
+    public static Task<DcpConnectionMaterial> WaitAsync(string kubeconfig, Func<bool> hasExited,
         TimeSpan requestTimeout, TimeSpan retryInterval, Action<string> diagnostic, CancellationToken cancellationToken)
+        => WaitCoreAsync(kubeconfig, hasExited, requestTimeout, retryInterval, diagnostic,
+            TimeProvider.System, requestTimeout, cancellationToken);
+
+    public static Task<DcpConnectionMaterial> WaitAsync(string kubeconfig, Func<bool> hasExited,
+        TimeSpan requestTimeout, TimeSpan retryInterval, Action<string> diagnostic, TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+        => WaitCoreAsync(kubeconfig, hasExited, requestTimeout, retryInterval, diagnostic,
+            timeProvider, Timeout.InfiniteTimeSpan, cancellationToken);
+
+    private static async Task<DcpConnectionMaterial> WaitCoreAsync(string kubeconfig, Func<bool> hasExited,
+        TimeSpan requestTimeout, TimeSpan retryInterval, Action<string> diagnostic, TimeProvider timeProvider,
+        TimeSpan clientTimeout, CancellationToken cancellationToken)
     {
         while (true)
         {
@@ -92,8 +104,13 @@ internal sealed class DcpConnectionMaterial : IDisposable
                         (configuration.Token is not null ||
                          configuration.ClientCertificateData is not null && configuration.ClientKeyData is not null))
                     {
-                        material = new DcpConnectionMaterial(configuration, requestTimeout);
-                        using var response = await material.Client.GetAsync("/readyz", cancellationToken).ConfigureAwait(false);
+                        // HttpClient.Timeout cannot change after the first request.
+                        // Legacy consumers retain their configured client budget;
+                        // provider-aware consumers own each request deadline.
+                        material = new DcpConnectionMaterial(configuration, clientTimeout);
+                        using var timeout = new CancellationTokenSource(requestTimeout, timeProvider);
+                        using var request = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, cancellationToken);
+                        using var response = await material.Client.GetAsync("/readyz", request.Token).ConfigureAwait(false);
                         if (response.IsSuccessStatusCode)
                         {
                             return material;
@@ -125,7 +142,7 @@ internal sealed class DcpConnectionMaterial : IDisposable
             }
             material?.Dispose();
             diagnostic("Waiting for authenticated DCP readiness.");
-            await Task.Delay(retryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(retryInterval, timeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 

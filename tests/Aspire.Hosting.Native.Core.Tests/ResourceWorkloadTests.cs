@@ -93,7 +93,7 @@ public class ResourceWorkloadTests
             Assert.Empty(executor.Started);
             await cacheOwner.StartWorkload(new ContainerWorkload("example:1", 6379, [], []));
             Assert.False(webStart.IsCompleted);
-            cacheOwner.Publish("Running", healthy: true, []);
+            cacheOwner.Publish(ResourceState.Running, healthy: true, []);
             await webStart.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal([cache.ResourceId, web.ResourceId], executor.Started.Select(start => start.ResourceId));
         }

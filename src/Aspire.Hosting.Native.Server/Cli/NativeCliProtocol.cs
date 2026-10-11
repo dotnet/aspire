@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Cli;
 
@@ -110,13 +111,13 @@ internal sealed class NativeCliProtocol : IDisposable
             {
                 previous = null;
                 version = -1;
-                await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
                 continue;
             }
-            ApplicationObservations snapshot;
+            RuntimeSnapshot snapshot;
             try
             {
-                snapshot = observer.ReadResourceObservations();
+                snapshot = observer.ReadNativeObservations();
                 if (ReferenceEquals(previous, observer) && snapshot.Version == version)
                 {
                     var interval = Math.Max((int)_options.Runtime.ObservationInterval.TotalMilliseconds, 1);
@@ -132,8 +133,8 @@ internal sealed class NativeCliProtocol : IDisposable
             version = snapshot.Version;
             foreach (var resource in snapshot.Resources)
             {
-                yield return new NativeCliResourceState(resource.Name, resource.TypeId, resource.State,
-                    resource.Urls, resource.Healthy ? "Healthy" : "Unhealthy");
+                yield return new NativeCliResourceState(resource.Name, resource.TypeId, resource.State.ToWire(),
+                    resource.Urls.ToArray(), resource.Healthy ? "Healthy" : "Unhealthy");
             }
         }
     }

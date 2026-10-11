@@ -53,7 +53,7 @@ internal sealed class NativeRpcListener : IDisposable
             throw new ArgumentException("The native server requires a local endpoint.", nameof(endPoint));
         }
         // Validate the token before publishing a listener.
-        using var validation = new NativeRpcConnection(token, _server);
+        NativeRpcProtocol.ValidateAuthenticationToken(token);
         _token = token;
         _diagnostic = diagnostic;
         _listener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
@@ -135,8 +135,8 @@ internal sealed class NativeRpcListener : IDisposable
     {
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var connection = new NativeRpcConnection(_token, _server, _languages, _options);
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        lifetime.CancelAfter(_options.AuthenticationTimeout);
+        using var lifetime = new Aspire.Hosting.Native.Runtime.TimeProviderCancellation(
+            _options.AuthenticationTimeout, _options.TimeProvider, cancellationToken);
         using var writes = new SemaphoreSlim(1);
         var framing = new NativeRpcFraming(stream, _options.MaximumRequestBytes);
         var requests = new List<Task>();
@@ -174,7 +174,7 @@ internal sealed class NativeRpcListener : IDisposable
             var response = await connection.ProcessAsync(payload).ConfigureAwait(false);
             if (connection.IsAuthenticated)
             {
-                lifetime.CancelAfter(Timeout.InfiniteTimeSpan);
+                lifetime.StopTimeout();
             }
             if (response is null || lifetime.IsCancellationRequested)
             {

@@ -20,7 +20,7 @@ internal static class CompositionApi
 internal sealed class CompositionSession : ICapabilityOwner
 {
     private readonly Lock _gate = new();
-    private readonly ApplicationSession _session = new();
+    private readonly ApplicationSession _session;
     private Composition? _composition;
     private bool _retiring;
     internal RuntimeInvitations Invitations { get; }
@@ -32,6 +32,7 @@ internal sealed class CompositionSession : ICapabilityOwner
     internal CompositionSession(RuntimeInvitations invitations)
     {
         Invitations = invitations;
+        _session = new ApplicationSession(invitations.Options.TimeProvider);
     }
 
     /// <summary>Starts composition after the previous generation has been retired.</summary>

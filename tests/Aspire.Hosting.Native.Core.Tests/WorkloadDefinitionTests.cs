@@ -22,9 +22,9 @@ public class WorkloadDefinitionTests
         var plan = Assert.IsType<ContainerWorkload>(Assert.Single(executor.Plans));
 
         Assert.Equal("/bin/worker", plan.Command);
-        Assert.Equal([new WorkloadMount("volume", "retained-data", "/data", false)], plan.Mounts);
-        Assert.Equal([new WorkloadPort("http", "TCP", "http", 8080, 0, ""),
-            new WorkloadPort("management", "TCP", "https", 8443, 0, "")], plan.Endpoints);
+        Assert.Equal([new WorkloadMount(WorkloadMountKind.Volume, "retained-data", "/data", false)], plan.Mounts);
+        Assert.Equal([new WorkloadPort("http", WorkloadProtocol.Tcp, "http", 8080, 0, ""),
+            new WorkloadPort("management", WorkloadProtocol.Tcp, "https", 8443, 0, "")], plan.Endpoints);
         await Verify(allocation.ToJsonString(), "json").UseDirectory("Snapshots");
         Assert.Equal(["http://127.0.0.1:5050", "https://127.0.0.1:5051"],
             context.Read()["resources"]![0]!["urls"]!.AsArray().Select(url => url!.GetValue<string>()));
@@ -79,12 +79,12 @@ public class WorkloadDefinitionTests
         var executable = Environment.ProcessPath!;
         var directory = Path.GetDirectoryName(executable)!;
         var plan = new ExecutableWorkload(executable, directory, [], [],
-            [new("http", "TCP", "http", 0, 0, "HTTP_PORT"), new("metrics", "TCP", "http", 0, 0, "METRICS_PORT")]);
+            [new("http", WorkloadProtocol.Tcp, "http", 0, 0, "HTTP_PORT"), new("metrics", WorkloadProtocol.Tcp, "http", 0, 0, "METRICS_PORT")]);
         WorkloadDefinition.Validate(plan);
 
         Assert.Throws<ArgumentException>(() => WorkloadDefinition.Validate(plan with
         {
-            Ports = [new("http", "TCP", "http", 0, 0, "PORT"), new("metrics", "TCP", "http", 0, 0, "PORT")]
+            Ports = [new("http", WorkloadProtocol.Tcp, "http", 0, 0, "PORT"), new("metrics", WorkloadProtocol.Tcp, "http", 0, 0, "PORT")]
         }));
         Assert.Throws<ArgumentException>(() => WorkloadDefinition.Validate(new ExecutableWorkload(executable, directory,
             [new("HTTP_PORT", "configured")], [], plan.Endpoints)));
@@ -94,14 +94,14 @@ public class WorkloadDefinitionTests
     public void EndpointCapacityAndPortLimitsAreExact()
     {
         var endpoints = Enumerable.Range(0, 32)
-            .Select(index => new WorkloadPort($"port-{index}", "TCP", "tcp", index + 1, 0, "")).ToImmutableArray();
+            .Select(index => new WorkloadPort($"port-{index}", WorkloadProtocol.Tcp, "tcp", index + 1, 0, "")).ToImmutableArray();
         WorkloadDefinition.Validate(new ContainerWorkload("example:1", null, [], [], [], endpoints));
-        WorkloadDefinition.Validate(new ContainerWorkload("example:1", null, [], [], [], [new("tcp", "TCP", "tcp", 65535, 65535, "")]));
+        WorkloadDefinition.Validate(new ContainerWorkload("example:1", null, [], [], [], [new("tcp", WorkloadProtocol.Tcp, "tcp", 65535, 65535, "")]));
 
         Assert.Throws<ArgumentException>(() => WorkloadDefinition.Validate(
-            new ContainerWorkload("example:1", null, [], [], [], endpoints.Add(new("overflow", "TCP", "tcp", 33, 0, "")))));
+            new ContainerWorkload("example:1", null, [], [], [], endpoints.Add(new("overflow", WorkloadProtocol.Tcp, "tcp", 33, 0, "")))));
         Assert.Throws<ArgumentException>(() => WorkloadDefinition.Validate(
-            new ContainerWorkload("example:1", null, [], [], [], [new("tcp", "TCP", "tcp", 65535, 65536, "")])));
+            new ContainerWorkload("example:1", null, [], [], [], [new("tcp", WorkloadProtocol.Tcp, "tcp", 65535, 65536, "")])));
     }
 
     private static JsonObject Launch() => new()

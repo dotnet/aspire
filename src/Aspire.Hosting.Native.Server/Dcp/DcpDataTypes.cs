@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Dcp;
 
@@ -11,24 +12,28 @@ internal sealed record DcpMetadata(string Name, Dictionary<string, string>? Anno
 internal sealed record DcpResource(DcpStatus? Status);
 internal sealed record DcpStatus
 {
-    public string? State { get; init; }
+    public DcpProcessState State { get; init; }
     public string? ContainerId { get; init; }
     public long? Pid { get; init; }
     public int? ExitCode { get; init; }
     public int? EffectivePort { get; init; }
     public string? EffectiveAddress { get; init; }
 }
-internal sealed record DcpServiceSpec(string Protocol, string AddressAllocationMode)
+internal sealed record DcpServiceSpec(
+    [property: JsonConverter(typeof(WorkloadProtocolConverter))] WorkloadProtocol Protocol,
+    DcpAddressAllocationMode AddressAllocationMode)
 {
     public int? Port { get; init; }
 }
 internal sealed record DcpServiceProducer(string ServiceName, string Address, int? Port);
 internal sealed record DcpEnvironment(string Name, string Value);
-internal sealed record DcpContainerPort(int ContainerPort, string HostIP, string Protocol)
+internal sealed record DcpContainerPort(int ContainerPort, string HostIP,
+    [property: JsonConverter(typeof(WorkloadProtocolConverter))] WorkloadProtocol Protocol)
 {
     public int? HostPort { get; init; }
 }
-internal sealed record DcpVolumeMount(string Type, string Source, string Target, bool ReadOnly);
+internal sealed record DcpVolumeMount(
+    [property: JsonConverter(typeof(WorkloadMountKindConverter))] WorkloadMountKind Type, string Source, string Target, bool ReadOnly);
 internal sealed record DcpWorkloadSpec
 {
     public required DcpEnvironment[] Env { get; init; }
@@ -39,10 +44,10 @@ internal sealed record DcpWorkloadSpec
     public DcpContainerPort[]? Ports { get; init; }
     public string? ExecutablePath { get; init; }
     public string? WorkingDirectory { get; init; }
-    public string? ExecutionType { get; init; }
+    public DcpExecutionType? ExecutionType { get; init; }
 }
-internal sealed record DcpExecutionRequest(string Status, string ShutdownResourceCleanup);
-internal sealed record DcpExecutionResponse(string Status);
+internal sealed record DcpExecutionRequest(DcpExecutionState Status, DcpResourceCleanup ShutdownResourceCleanup);
+internal sealed record DcpExecutionResponse(DcpExecutionState Status);
 
 [JsonSerializable(typeof(DcpResourceEnvelope))]
 [JsonSerializable(typeof(DcpResource))]

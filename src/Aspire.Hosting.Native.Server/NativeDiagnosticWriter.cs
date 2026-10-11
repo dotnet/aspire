@@ -8,11 +8,11 @@ using Aspire.Hosting.Native.Diagnostics;
 namespace Aspire.Hosting.Native.Server;
 
 /// <summary>Writes classified host failures and opt-in correlated operation traces without caller data.</summary>
-internal sealed class NativeDiagnosticWriter(bool verbose) : IObserver<OperationEvent>
+internal sealed class NativeDiagnosticWriter(bool verbose)
 {
-    public void OnNext(OperationEvent operation)
+    public void Write(OperationEvent operation)
     {
-        if (!verbose && operation.Outcome != "error")
+        if (!verbose && operation.Outcome != OperationOutcome.Error)
         {
             return;
         }
@@ -23,7 +23,7 @@ internal sealed class NativeDiagnosticWriter(bool verbose) : IObserver<Operation
             writer.WriteString("timestamp", operation.Timestamp);
             writer.WriteString("operationId", operation.OperationId);
             writer.WriteString("operation", operation.Operation);
-            writer.WriteString("outcome", operation.Outcome);
+            writer.WriteString("outcome", operation.Outcome.ToWire());
             writer.WriteString("sessionId", operation.SessionId?.ToString());
             writer.WriteString("generationId", operation.GenerationId?.ToString());
             writer.WriteString("resourceId", operation.ResourceId?.ToString());
@@ -35,8 +35,4 @@ internal sealed class NativeDiagnosticWriter(bool verbose) : IObserver<Operation
         Console.Error.WriteLine(Encoding.UTF8.GetString(buffer.ToArray()));
     }
 
-    public void OnError(Exception error) => Console.Error.WriteLine($"Native diagnostic stream failed: {error.GetType().Name}.");
-    public void OnCompleted()
-    {
-    }
 }

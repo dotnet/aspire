@@ -38,7 +38,7 @@ internal sealed partial class ResourceExecution
             throw new ArgumentException("Container mounts cannot contain null.", nameof(launch));
         }
         var plan = new ContainerWorkload(launch.Image, launch.Entrypoint.Length == 0 ? null : launch.Entrypoint,
-            launch.Mounts.Select(mount => new WorkloadMount(mount.Type, mount.Source, mount.Target, mount.ReadOnly)).ToImmutableArray(),
+            launch.Mounts.Select(mount => new WorkloadMount(RuntimeStates.ParseMountKind(mount.Type), mount.Source, mount.Target, mount.ReadOnly)).ToImmutableArray(),
             CopyEnvironment(launch.Environment), CopyArguments(launch.Arguments), CopyEndpoints(launch.Endpoints));
         WorkloadDefinition.Validate(plan);
 
@@ -81,7 +81,7 @@ internal sealed partial class ResourceExecution
             throw new ArgumentException("Workload endpoints cannot contain null.", nameof(endpoints));
         }
 
-        return endpoints.Select(endpoint => new WorkloadPort(endpoint.Name, endpoint.Protocol, endpoint.UriScheme,
+        return endpoints.Select(endpoint => new WorkloadPort(endpoint.Name, RuntimeStates.ParseProtocol(endpoint.Protocol), endpoint.UriScheme,
             endpoint.TargetPort, endpoint.HostPort, endpoint.EnvironmentVariable)).ToImmutableArray();
     }
 
@@ -90,7 +90,7 @@ internal sealed partial class ResourceExecution
         InstanceId = allocation.InstanceId,
         Endpoints = allocation.Endpoints.Select(endpoint => new WorkloadEndpointAllocation
         {
-            Name = endpoint.Name, Protocol = endpoint.Protocol, UriScheme = endpoint.UriScheme,
+            Name = endpoint.Name, Protocol = endpoint.Protocol.ToWire(), UriScheme = endpoint.UriScheme,
             Host = endpoint.Host, Port = endpoint.Port
         }).ToArray()
     };

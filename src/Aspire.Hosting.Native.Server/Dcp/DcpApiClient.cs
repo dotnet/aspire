@@ -4,10 +4,10 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Aspire.Shared;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Dcp;
 
@@ -31,6 +31,12 @@ internal sealed class DcpApiClient : IAsyncDisposable
     {
         options.Validate();
         _options = options;
+    }
+
+    internal DcpApiClient(NativeServerOptions options, HttpClient client) : this(options)
+    {
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        _client = client;
     }
 
     public async Task StartAsync(string executable, CancellationToken cancellationToken)
@@ -58,60 +64,52 @@ internal sealed class DcpApiClient : IAsyncDisposable
 
         _connection = await DcpConnectionMaterial.WaitAsync(kubeconfig, () => _process.HasExited,
             _options.ControllerRequestTimeout, _options.RetryInterval, Console.Error.WriteLine,
-            cancellationToken).ConfigureAwait(false);
+            _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         _client = _connection.Client;
     }
 
-    public async Task<DcpResource?> GetAsync(string collection, string name, CancellationToken cancellationToken)
+    public async Task<DcpResource?> GetAsync(DcpResourceCollection collection, string name, CancellationToken cancellationToken)
     {
-        var response = await SendAsync(HttpMethod.Get, Api + collection + "/" + name, null, cancellationToken).ConfigureAwait(false);
+        var response = await SendAsync(HttpMethod.Get, Api + collection.ToPath() + "/" + name, null, cancellationToken).ConfigureAwait(false);
 
         return response?.Deserialize(DcpJsonContext.Default.DcpResource);
     }
 
-    public async Task CreateAsync(string collection, string name, JsonElement spec, Dictionary<string, string>? annotations,
+    public async Task CreateAsync(DcpResourceCollection collection, string name, JsonElement spec, Dictionary<string, string>? annotations,
         CancellationToken cancellationToken)
     {
-        var kind = collection switch
-        {
-            "containers" => "Container", "executables" => "Executable", "services" => "Service",
-            _ => throw new ArgumentException("Unsupported DCP resource collection.", nameof(collection))
-        };
+        var kind = collection.ToKind();
         var envelope = new DcpResourceEnvelope("usvc-dev.developer.microsoft.com/v1", kind, new DcpMetadata(name, annotations), spec);
-        await SendAsync(HttpMethod.Post, Api + collection,
+        await SendAsync(HttpMethod.Post, Api + collection.ToPath(),
             JsonSerializer.SerializeToElement(envelope, DcpJsonContext.Default.DcpResourceEnvelope), cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DeleteAsync(string collection, string name, CancellationToken cancellationToken)
+    public async Task DeleteAsync(DcpResourceCollection collection, string name, CancellationToken cancellationToken)
     {
-        await SendAsync(HttpMethod.Delete, Api + collection + "/" + name, null, cancellationToken).ConfigureAwait(false);
+        await SendAsync(HttpMethod.Delete, Api + collection.ToPath() + "/" + name, null, cancellationToken).ConfigureAwait(false);
         while (await GetAsync(collection, name, cancellationToken).ConfigureAwait(false) is not null)
         {
-            await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public async Task<string[]> ReadLogsAsync(string collection, string name, string source, long offset, CancellationToken cancellationToken)
+    public async Task<string[]> ReadLogsAsync(DcpResourceCollection collection, string name, LogStream source, long offset, CancellationToken cancellationToken)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(_options.ControllerLogReadTimeout);
-        var path = $"{Api}{collection}/{name}/log?source={source}&follow=false&timestamps=false&line_numbers=false&limit=128&skip={offset}";
+        using var timeout = new TimeProviderCancellation(_options.ControllerLogReadTimeout, _options.TimeProvider, cancellationToken);
+        var path = $"{Api}{collection.ToPath()}/{name}/log?source={source.ToWire()}&follow=false&timestamps=false&line_numbers=false&limit=128&skip={offset}";
         using var response = await Client.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException($"DCP log read failed ({(int)response.StatusCode}).");
         }
         var bytes = await ReadBoundedBodyAsync(response, 65536, timeout.Token).ConfigureAwait(false);
-        // Log cursors count complete lines, not file offsets. For "ready\npart",
-        // retain the unfinished tail at the same cursor instead of duplicating it.
-        var completeLength = Array.LastIndexOf(bytes, (byte)'\n') + 1;
-
-        return Encoding.UTF8.GetString(bytes, 0, completeLength).Split('\n', StringSplitOptions.None)[..^1];
+        return DcpProtocol.ParseCompleteLogLines(bytes);
     }
 
     private HttpClient Client => _client ?? throw new InvalidOperationException("DCP is not ready.");
 
-    private async Task<JsonElement?> SendAsync(HttpMethod method, string path, JsonElement? body, CancellationToken cancellationToken)
+    private async Task<JsonElement?> SendAsync(HttpMethod method, string path, JsonElement? body, CancellationToken cancellationToken,
+        DcpResponseMode responseMode = DcpResponseMode.Json)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
@@ -125,7 +123,8 @@ internal sealed class DcpApiClient : IAsyncDisposable
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(
                 method == HttpMethod.Patch ? "application/merge-patch+json" : "application/json");
         }
-        using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var timeout = new TimeProviderCancellation(_options.ControllerRequestTimeout, _options.TimeProvider, cancellationToken);
+        using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound && method != HttpMethod.Post)
         {
             return null;
@@ -135,12 +134,11 @@ internal sealed class DcpApiClient : IAsyncDisposable
             // DCP error payloads may echo environment variables or arguments.
             throw new InvalidOperationException($"DCP {method} failed ({(int)response.StatusCode}).");
         }
-        if (response.StatusCode == HttpStatusCode.NoContent || body is { } requestBody &&
-            requestBody.TryGetProperty("status", out var requestStatus) && requestStatus.GetString() == "Stopping")
+        if (response.StatusCode == HttpStatusCode.NoContent || responseMode == DcpResponseMode.Empty)
         {
             return null;
         }
-        var payload = await ReadBoundedBodyAsync(response, 1024 * 1024, cancellationToken).ConfigureAwait(false);
+        var payload = await ReadBoundedBodyAsync(response, 1024 * 1024, timeout.Token).ConfigureAwait(false);
 
         using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
 
@@ -182,18 +180,18 @@ internal sealed class DcpApiClient : IAsyncDisposable
     private async Task CleanupResourcesCoreAsync(CancellationToken cancellationToken)
     {
         await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
-            new DcpExecutionRequest("CleaningResources", "Full"), DcpJsonContext.Default.DcpExecutionRequest),
+            new DcpExecutionRequest(DcpExecutionState.CleaningResources, DcpResourceCleanup.Full), DcpJsonContext.Default.DcpExecutionRequest),
             cancellationToken).ConfigureAwait(false);
         while ((await SendAsync(HttpMethod.Get, "admin/execution", null, cancellationToken).ConfigureAwait(false))?
-            .Deserialize(DcpJsonContext.Default.DcpExecutionResponse)?.Status != "CleanupComplete")
+            .Deserialize(DcpJsonContext.Default.DcpExecutionResponse)?.Status != DcpExecutionState.CleanupComplete)
         {
-            await Task.Delay(_options.RetryInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        using var cleanup = new CancellationTokenSource(_options.CleanupTimeout);
+        using var cleanup = new CancellationTokenSource(_options.CleanupTimeout, _options.TimeProvider);
         try
         {
             if (_client is not null && _process is { HasExited: false })
@@ -202,8 +200,8 @@ internal sealed class DcpApiClient : IAsyncDisposable
                 // disappearance as a proxy for Docker removal.
                 await CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
                 await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
-                    new DcpExecutionRequest("Stopping", "Full"), DcpJsonContext.Default.DcpExecutionRequest),
-                    cleanup.Token).ConfigureAwait(false);
+                    new DcpExecutionRequest(DcpExecutionState.Stopping, DcpResourceCleanup.Full), DcpJsonContext.Default.DcpExecutionRequest),
+                    cleanup.Token, DcpResponseMode.Empty).ConfigureAwait(false);
                 await _process.WaitForExitAsync(cleanup.Token).ConfigureAwait(false);
             }
         }
@@ -212,10 +210,15 @@ internal sealed class DcpApiClient : IAsyncDisposable
             if (_process is { HasExited: false })
             {
                 _process.Kill(entireProcessTree: true);
-                await _process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+                using var forcedExit = new CancellationTokenSource(_options.CleanupTimeout, _options.TimeProvider);
+                await _process.WaitForExitAsync(forcedExit.Token).ConfigureAwait(false);
             }
             _process?.Dispose();
             _connection?.Dispose();
+            if (_connection is null)
+            {
+                _client?.Dispose();
+            }
             if (Directory.Exists(_directory.FullName))
             {
                 _directory.Delete(recursive: true);
