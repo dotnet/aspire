@@ -1168,16 +1168,23 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Startup_RecordsLaunchContextFromOptions(bool validOptions)
+    [InlineData(true, DashboardPersistenceMode.None, "none")]
+    [InlineData(true, DashboardPersistenceMode.Run, "run")]
+    [InlineData(true, DashboardPersistenceMode.Resume, "resume")]
+    [InlineData(false, DashboardPersistenceMode.None, "none")]
+    [InlineData(false, DashboardPersistenceMode.Run, "run")]
+    [InlineData(false, DashboardPersistenceMode.Resume, "resume")]
+    public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
             testOutputHelper,
             additionalConfiguration: data =>
             {
                 data[DashboardConfigNames.DashboardLaunchContextName.ConfigKey] = " CLI ";
+                data[DashboardConfigNames.DashboardPersistenceModeName.ConfigKey] = persistenceMode.ToString();
+                data[DashboardConfigNames.DashboardDataDirectoryName.ConfigKey] = workspace.Path;
                 if (!validOptions)
                 {
                     data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = null;
@@ -1202,6 +1209,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(TelemetryEventKeys.Startup, log.Message);
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
+        Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
         Assert.Equal(validOptions, attributes[TelemetryPropertyKeys.StartupSuccess]);
         if (!validOptions)
         {

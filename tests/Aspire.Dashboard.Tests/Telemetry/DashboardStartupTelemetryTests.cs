@@ -12,12 +12,20 @@ namespace Aspire.Dashboard.Tests.Telemetry;
 public class DashboardStartupTelemetryTests
 {
     [Theory]
-    [InlineData(true, null)]
-    [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse)]
-    public void Record_RecordsStartupResultOnce(bool success, string? errorType)
+    [InlineData(true, null, DashboardPersistenceMode.None, "none")]
+    [InlineData(true, null, DashboardPersistenceMode.Run, "run")]
+    [InlineData(true, null, DashboardPersistenceMode.Resume, "resume")]
+    [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.None, "none")]
+    [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.Run, "run")]
+    [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.Resume, "resume")]
+    public void Record_RecordsStartupResultOnce(bool success, string? errorType, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();
-        var options = new DashboardOptions { LaunchContext = "AppHost" };
+        var options = new DashboardOptions
+        {
+            LaunchContext = "AppHost",
+            Data = new DashboardDataOptions { PersistenceMode = persistenceMode }
+        };
         var startupTimestamp = Stopwatch.GetTimestamp() - Stopwatch.Frequency;
         var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, startupTimestamp);
 
@@ -37,6 +45,7 @@ public class DashboardStartupTelemetryTests
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(success, attributes[TelemetryPropertyKeys.StartupSuccess]);
         Assert.Equal(KnownDashboardLaunchContexts.AppHost, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
+        Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
         Assert.True(Assert.IsType<double>(attributes[TelemetryPropertyKeys.StartupDurationMilliseconds]) >= 900);
         if (errorType is null)
         {
@@ -69,5 +78,6 @@ public class DashboardStartupTelemetryTests
         Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(expected, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
+        Assert.Equal("none", attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
     }
 }

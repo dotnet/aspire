@@ -11,6 +11,7 @@ internal sealed class DashboardStartupTelemetry
 {
     private readonly DashboardTelemetryService _telemetry;
     private readonly string _launchContext;
+    private readonly string _persistenceMode;
     private readonly long _startTimestamp;
     private int _recorded;
 
@@ -18,6 +19,7 @@ internal sealed class DashboardStartupTelemetry
     {
         _telemetry = telemetry;
         _startTimestamp = startTimestamp;
+        _persistenceMode = options.Data.PersistenceMode.ToString().ToLowerInvariant();
         _launchContext = options.LaunchContext?.Trim().ToLowerInvariant() switch
         {
             KnownDashboardLaunchContexts.AppHost => KnownDashboardLaunchContexts.AppHost,
@@ -42,6 +44,7 @@ internal sealed class DashboardStartupTelemetry
         {
             [TelemetryPropertyKeys.StartupSuccess] = new(success),
             [TelemetryPropertyKeys.StartupLaunchContext] = new(_launchContext),
+            [TelemetryPropertyKeys.StartupPersistenceMode] = new(_persistenceMode),
             [TelemetryPropertyKeys.StartupDurationMilliseconds] = new(
                 Stopwatch.GetElapsedTime(_startTimestamp).TotalMilliseconds,
                 AspireTelemetryPropertyType.Metric)
