@@ -33586,6 +33586,7 @@ export interface ParameterResource {
      *
      * Optional parameters that do not have values are not prompted for during run or publish operations.
      * When referenced as environment variables or other value providers, unset optional parameters resolve to `null`.
+     * The manifest publisher does not currently support optional parameters and throws a `DistributedApplicationException`.
      * @returns The configured resource builder.
      */
     withOptional(): ParameterResourcePromise;
@@ -33869,6 +33870,8 @@ export interface ParameterResource {
      * Setting a value directly on the resource updates dashboard state after the resource has been observed by the host.
      * It does not save the value to deployment state. Required parameters set to `null` or an empty string
      * are faulted with `MissingParameterValueException`, while optional parameters can be cleared to `null`.
+     * Cancellation is checked before assignment. After assignment, cancellation does not roll back the value or
+     * prevent the host from synchronizing dashboard and parameter-resolution state, even if another observer reports cancellation.
      * @param options Additional options.
      */
     setValueAsync(options?: SetValueAsyncOptions): Promise<void>;
@@ -33969,6 +33972,7 @@ export interface ParameterResourcePromise extends PromiseLike<ParameterResource>
      *
      * Optional parameters that do not have values are not prompted for during run or publish operations.
      * When referenced as environment variables or other value providers, unset optional parameters resolve to `null`.
+     * The manifest publisher does not currently support optional parameters and throws a `DistributedApplicationException`.
      * @returns The configured resource builder.
      */
     withOptional(): ParameterResourcePromise;
@@ -34252,6 +34256,8 @@ export interface ParameterResourcePromise extends PromiseLike<ParameterResource>
      * Setting a value directly on the resource updates dashboard state after the resource has been observed by the host.
      * It does not save the value to deployment state. Required parameters set to `null` or an empty string
      * are faulted with `MissingParameterValueException`, while optional parameters can be cleared to `null`.
+     * Cancellation is checked before assignment. After assignment, cancellation does not roll back the value or
+     * prevent the host from synchronizing dashboard and parameter-resolution state, even if another observer reports cancellation.
      * @param options Additional options.
      */
     setValueAsync(options?: SetValueAsyncOptions): Promise<void>;
@@ -34417,6 +34423,7 @@ class ParameterResourceImpl extends ResourceBuilderBase<ParameterResourceHandle>
      *
      * Optional parameters that do not have values are not prompted for during run or publish operations.
      * When referenced as environment variables or other value providers, unset optional parameters resolve to `null`.
+     * The manifest publisher does not currently support optional parameters and throws a `DistributedApplicationException`.
      * @returns The configured resource builder.
      */
     withOptional(): ParameterResourcePromise {
@@ -35344,6 +35351,8 @@ class ParameterResourceImpl extends ResourceBuilderBase<ParameterResourceHandle>
      * Setting a value directly on the resource updates dashboard state after the resource has been observed by the host.
      * It does not save the value to deployment state. Required parameters set to `null` or an empty string
      * are faulted with `MissingParameterValueException`, while optional parameters can be cleared to `null`.
+     * Cancellation is checked before assignment. After assignment, cancellation does not roll back the value or
+     * prevent the host from synchronizing dashboard and parameter-resolution state, even if another observer reports cancellation.
      * @param options Additional options.
      */
     async setValueAsync(options?: SetValueAsyncOptions): Promise<void> {
