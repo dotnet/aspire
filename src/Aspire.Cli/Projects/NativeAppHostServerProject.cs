@@ -61,6 +61,9 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             throw new NotSupportedException("The native AppHost exploration supports run, not publishing command-line modes.");
         }
         var startInfo = new ProcessStartInfo(_executable) { WorkingDirectory = AppDirectoryPath, UseShellExecute = false };
+        startInfo.ArgumentList.Add("server");
+        startInfo.ArgumentList.Add("--contentRoot");
+        startInfo.ArgumentList.Add(AppDirectoryPath);
         if (environmentVariables is not null)
         {
             foreach (var (key, value) in environmentVariables)

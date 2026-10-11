@@ -60,6 +60,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         {
             Assert.Equal(executable, start.FileName);
             Assert.Equal(workspace.Path, start.WorkingDirectory);
+            Assert.Equal(["server", "--contentRoot", workspace.Path], start.ArgumentList);
             Assert.Equal("test-token", start.Environment["ASPIRE_REMOTE_APPHOST_TOKEN"]);
             directory = Path.GetDirectoryName(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"])!;
             if (!OperatingSystem.IsWindows())
