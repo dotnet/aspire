@@ -62,6 +62,16 @@
         <target state="translated">Updates werden gesucht...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConditionalSdkEvaluationRequiredFormat">
+        <source>Cannot determine active conditional Aspire.AppHost.Sdk declarations for '{0}' without successful MSBuild evaluation; update the conditional SDK version explicitly.</source>
+        <target state="new">Cannot determine active conditional Aspire.AppHost.Sdk declarations for '{0}' without successful MSBuild evaluation; update the conditional SDK version explicitly.</target>
+        <note>{0} = AppHost project path.</note>
+      </trans-unit>
+      <trans-unit id="ConditionalSdkExplicitEditRequiredFormat">
+        <source>Cannot safely update conditional Aspire.AppHost.Sdk declarations for '{0}'; update the conditional SDK version explicitly.</source>
+        <target state="new">Cannot safely update conditional Aspire.AppHost.Sdk declarations for '{0}'; update the conditional SDK version explicitly.</target>
+        <note>{0} = AppHost project path.</note>
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">Das PackageVersion-Element für „{0}“ wurde in {1} nicht gefunden.</target>
