@@ -28,14 +28,15 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var file = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         const string example = "/*\n#:sdk Aspire.AppHost.Sdk@8.0.0\n#:package Aspire.Hosting.AppHost@8.0.0\n*/\n";
+        const string invalidDirective = "#:package Aspire.Hosting.AppHost@17.0.0 unexpected\n";
         const string code = "var example = \"\"\"\n#:sdk Aspire.AppHost.Sdk@8.0.0\n#:package Aspire.Hosting.AppHost@8.0.0\n\"\"\";\n";
-        await File.WriteAllTextAsync(file.FullName, example + $"/* keep */ #:sdk Aspire.AppHost.Sdk{version}\n#:package Aspire.Hosting.AppHost@17.0.0\n" + code);
+        await File.WriteAllTextAsync(file.FullName, example + $"/* keep */ #:sdk Aspire.AppHost.Sdk{version}\n#:package Aspire.Hosting.AppHost@17.0.0\n" + invalidDirective + code);
 
         await ProjectUpdater.UpdateSdkVersionInAppHostAsync(file,
             new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "17.0.1", Source = "daily" },
             new TestInteractionService(), new SdkMigrationInfo(false, false));
 
-        Assert.Equal(example + "/* keep */ #:sdk Aspire.AppHost.Sdk@17.0.1\n" + code, await File.ReadAllTextAsync(file.FullName));
+        Assert.Equal(example + "/* keep */ #:sdk Aspire.AppHost.Sdk@17.0.1\n" + invalidDirective + code, await File.ReadAllTextAsync(file.FullName));
     }
 
     [Theory]
@@ -3536,6 +3537,12 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData("#:package aspire.hosting.apphost@13.2.1", true)]
     [InlineData("#:package Aspire.Hosting.AppHost@*", true)]
     [InlineData("#:package Aspire.Hosting.AppHost@10.0.0-preview.1.26264.14", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0+build.1 \r\n", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0\nvar builder = 1;", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0 unexpected", false)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0 unexpected\r\n", false)]
+    [InlineData("#:package\nAspire.Hosting.AppHost@17.0.0", false)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0!", false)]
     [InlineData("#:package Aspire.Hosting.Redis@13.2.1", false)]
     [InlineData("#:sdk Aspire.AppHost.Sdk@13.2.1", false)]
     [InlineData("// #:package Aspire.Hosting.AppHost@13.2.1", false)]
