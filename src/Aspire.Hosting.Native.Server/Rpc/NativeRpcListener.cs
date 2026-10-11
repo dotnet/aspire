@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
 using Aspire.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Rpc;
 
@@ -16,7 +17,7 @@ internal sealed class NativeRpcListener : IDisposable
     private readonly string _token;
     private readonly NativeApplicationServer _server;
     private readonly NativeLanguageCatalog? _languages;
-    private readonly Action<string> _diagnostic;
+    private readonly ILogger _logger;
     private readonly NativeServerOptions _options;
     private readonly string? _socketPath;
     private int _running;
@@ -24,23 +25,23 @@ internal sealed class NativeRpcListener : IDisposable
 
     public EndPoint EndPoint => _listener.LocalEndPoint!;
 
-    public NativeRpcListener(EndPoint endPoint, string token, Action<string> diagnostic)
-        : this(endPoint, token, diagnostic, new NativeApplicationServer())
+    public NativeRpcListener(EndPoint endPoint, string token, ILogger logger)
+        : this(endPoint, token, logger, new NativeApplicationServer())
     {
     }
 
-    public NativeRpcListener(EndPoint endPoint, string token, Action<string> diagnostic, NativeApplicationServer server)
-        : this(endPoint, token, diagnostic, server, null)
+    public NativeRpcListener(EndPoint endPoint, string token, ILogger logger, NativeApplicationServer server)
+        : this(endPoint, token, logger, server, null)
     {
     }
 
-    public NativeRpcListener(EndPoint endPoint, string token, Action<string> diagnostic, NativeApplicationServer server,
+    public NativeRpcListener(EndPoint endPoint, string token, ILogger logger, NativeApplicationServer server,
         NativeLanguageCatalog? languages)
-        : this(endPoint, token, diagnostic, server, languages, new())
+        : this(endPoint, token, logger, server, languages, new())
     {
     }
 
-    public NativeRpcListener(EndPoint endPoint, string token, Action<string> diagnostic, NativeApplicationServer server,
+    public NativeRpcListener(EndPoint endPoint, string token, ILogger logger, NativeApplicationServer server,
         NativeLanguageCatalog? languages, NativeServerOptions options)
     {
         options.Validate();
@@ -55,7 +56,7 @@ internal sealed class NativeRpcListener : IDisposable
         // Validate the token before publishing a listener.
         NativeRpcProtocol.ValidateAuthenticationToken(token);
         _token = token;
-        _diagnostic = diagnostic;
+        _logger = logger;
         _listener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
         try
         {
@@ -101,7 +102,7 @@ internal sealed class NativeRpcListener : IDisposable
                 var socket = await _listener.AcceptAsync(lifetime.Token).ConfigureAwait(false);
                 if (connections.Count >= _options.MaximumConnections)
                 {
-                    _diagnostic("Native connection rejected: connection capacity reached.");
+                    _logger.LogWarning("Native connection rejected: connection capacity reached.");
                     socket.Dispose();
                     continue;
                 }
@@ -123,10 +124,10 @@ internal sealed class NativeRpcListener : IDisposable
             }
             finally
             {
-                _diagnostic("Native connections drained; retiring workloads.");
+                _logger.LogDebug("Native connections drained; retiring workloads.");
                 _server.Close();
                 await _server.DrainAsync().ConfigureAwait(false);
-                _diagnostic("Native workloads drained.");
+                _logger.LogDebug("Native workloads drained.");
             }
         }
     }
@@ -134,7 +135,7 @@ internal sealed class NativeRpcListener : IDisposable
     private async Task RunConnectionAsync(Socket socket, CancellationToken cancellationToken)
     {
         using var stream = new NetworkStream(socket, ownsSocket: true);
-        using var connection = new NativeRpcConnection(_token, _server, _languages, _options);
+        using var connection = new NativeRpcConnection(_token, _server, _languages, _options, _logger);
         using var lifetime = new Aspire.Hosting.Native.Runtime.TimeProviderCancellation(
             _options.AuthenticationTimeout, _options.TimeProvider, cancellationToken);
         using var writes = new SemaphoreSlim(1);
@@ -157,7 +158,7 @@ internal sealed class NativeRpcListener : IDisposable
         {
             // A truncated/malformed frame ends only this connection. Report the
             // classification, never payloads, bearer tokens, or peer input.
-            _diagnostic($"Native connection closed: {exception.GetType().Name}.");
+            _logger.LogWarning("Native connection closed: {ErrorType}.", exception.GetType().Name);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
         {
@@ -197,7 +198,7 @@ internal sealed class NativeRpcListener : IDisposable
             }
             catch (Exception exception) when (exception is IOException or SocketException)
             {
-                _diagnostic($"Native response failed: {exception.GetType().Name}.");
+                _logger.LogWarning("Native response failed: {ErrorType}.", exception.GetType().Name);
                 await lifetime.CancelAsync().ConfigureAwait(false);
             }
         }

@@ -11,7 +11,8 @@ using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
-using Microsoft.Extensions.Logging.Abstractions;
+using Aspire.Hosting.Native.Rpc;
+using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Native.Auxiliary.NativeAuxiliaryProtocol;
 
 namespace Aspire.Hosting.Native.Auxiliary;
@@ -22,6 +23,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
     private readonly AppHostSocketManager.AppHostSocketListener _listener;
     private readonly NativeApplicationServer _server;
     private readonly NativeServerOptions _options;
+    private readonly INativeBackchannelRpc _rpc;
     private readonly string? _appHostPath;
     private readonly Action<int?> _stop;
     private readonly Func<CancellationToken, Task> _ready;
@@ -45,7 +47,7 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
     public NativeAuxiliaryBackchannel(string? appHostPath, string homeDirectory, NativeApplicationServer server,
         NativeServerOptions options, Action<int?> stop, Func<CancellationToken, Task> ready,
         Func<CancellationToken, Task<NativeCliDashboardUrls>> dashboard, Func<string?> dashboardApiToken,
-        NativeCliLogBuffer logs, NativeCliProcessMetadata cliProcess)
+        NativeCliLogBuffer logs, NativeCliProcessMetadata cliProcess, INativeBackchannelRpc rpc, ILogger logger)
     {
         options.Validate();
         _appHostPath = appHostPath;
@@ -57,7 +59,8 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         _dashboardApiToken = dashboardApiToken;
         _logs = logs;
         _cliProcess = cliProcess;
-        _listener = AppHostSocketManager.CreateSocket(appHostPath, homeDirectory, Environment.ProcessId, NullLogger.Instance);
+        _rpc = rpc;
+        _listener = AppHostSocketManager.CreateSocket(appHostPath, homeDirectory, Environment.ProcessId, logger);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -89,74 +92,75 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         async Task ServeAsync(Socket socket)
         {
             using var owned = socket;
-            await NativeBackchannelConnection.ServeAsync(socket, _options, DispatchAsync, cancellationToken).ConfigureAwait(false);
+            using var stream = new NetworkStream(socket, ownsSocket: false);
+            await _rpc.ServeAsync(stream, DispatchAsync, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task<NativeBackchannelConnection.Reply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
+    private async Task<NativeBackchannelReply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
     {
         var json = NativeAuxiliaryJsonContext.Default;
         switch (request.Method)
         {
             case "GetCapabilitiesAsync":
                 ReadRequest(request, json.NativeAuxiliaryEmptyRequest, required: false);
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryCapabilities(
+                return NativeBackchannelReply.Value(new NativeAuxiliaryCapabilities(
                     ["aux.v1", "aux.v2", "aux.v3", "resource-snapshot-versions.v1"]), json.NativeAuxiliaryCapabilities);
             case "GetAppHostInformationAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Value(GetAppHostInformation(), json.NativeAuxiliaryAppHostInformation);
+                return NativeBackchannelReply.Value(GetAppHostInformation(), json.NativeAuxiliaryAppHostInformation);
             case "GetAppHostInfoAsync":
                 ReadRequest(request, json.NativeAuxiliaryEmptyRequest, required: false);
                 var info = GetAppHostInformation();
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryAppHostInfo(
+                return NativeBackchannelReply.Value(new NativeAuxiliaryAppHostInfo(
                     info.ProcessId.ToString(CultureInfo.InvariantCulture),
                     typeof(NativeAuxiliaryBackchannel).Assembly.GetName().Version?.ToString() ?? "unknown",
                     info.AppHostPath, info.CliProcessId, info.StartedAt, info.CliLogFilePath), json.NativeAuxiliaryAppHostInfo);
             case "GetDashboardUrlsAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Value(await _dashboard(cancellationToken).ConfigureAwait(false),
+                return NativeBackchannelReply.Value(await _dashboard(cancellationToken).ConfigureAwait(false),
                     NativeCliJsonContext.Default.NativeCliDashboardUrls);
             case "GetDashboardInfoAsync":
                 ReadRequest(request, json.NativeAuxiliaryEmptyRequest, required: false);
                 var urls = await _dashboard(cancellationToken).ConfigureAwait(false);
                 var apiBaseUrl = urls.BaseUrlWithLoginToken is { } url
                     ? new Uri(url).GetLeftPart(UriPartial.Authority) : null;
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryDashboardInfo(
+                return NativeBackchannelReply.Value(new NativeAuxiliaryDashboardInfo(
                     apiBaseUrl, _dashboardApiToken(),
                     new[] { urls.BaseUrlWithLoginToken, urls.CodespacesUrlWithLoginToken }.OfType<string>().ToArray(),
                     urls.DashboardHealthy), json.NativeAuxiliaryDashboardInfo);
             case "GetDashboardMcpConnectionInfoAsync":
                 LegacyArguments(request, 0);
                 // Managed Hosting retains this v1 method but always returns null after removing Dashboard MCP.
-                return NativeBackchannelConnection.Value((string?)null, NativeCliJsonContext.Default.String);
+                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String);
             case "WaitForAppHostReadyAsync":
                 ReadRequest(request, json.NativeAuxiliaryEmptyRequest, required: false);
                 await _ready(cancellationToken).ConfigureAwait(false);
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryReady(true), json.NativeAuxiliaryReady);
+                return NativeBackchannelReply.Value(new NativeAuxiliaryReady(true), json.NativeAuxiliaryReady);
             case "GetResourcesAsync":
                 var resourcesRequest = ReadRequest(request, json.NativeAuxiliaryResourcesRequest, required: false) ?? new();
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryResources(ReadSnapshots(resourcesRequest)),
+                return NativeBackchannelReply.Value(new NativeAuxiliaryResources(ReadSnapshots(resourcesRequest)),
                     json.NativeAuxiliaryResources);
             case "GetResourceSnapshotsAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Value(ReadSnapshots(new()), json.NativeAuxiliaryResourceSnapshotArray);
+                return NativeBackchannelReply.Value(ReadSnapshots(new()), json.NativeAuxiliaryResourceSnapshotArray);
             case "WatchResourcesAsync":
                 var watchRequest = ReadRequest(request, json.NativeAuxiliaryResourcesRequest, required: false) ?? new();
-                return NativeBackchannelConnection.Streaming(WatchSnapshotsAsync(watchRequest, CancellationToken.None), json.NativeAuxiliaryResourceSnapshot);
+                return NativeBackchannelReply.Streaming(WatchSnapshotsAsync(watchRequest, CancellationToken.None), json.NativeAuxiliaryResourceSnapshot);
             case "WatchResourceSnapshotsAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Streaming(WatchSnapshotsAsync(new(), CancellationToken.None), json.NativeAuxiliaryResourceSnapshot);
+                return NativeBackchannelReply.Streaming(WatchSnapshotsAsync(new(), CancellationToken.None), json.NativeAuxiliaryResourceSnapshot);
             case "GetConsoleLogsAsync":
-                return NativeBackchannelConnection.Streaming(
+                return NativeBackchannelReply.Streaming(
                     ReadLogsAsync(ReadRequest(request, json.NativeAuxiliaryLogsRequest, required: true)!, CancellationToken.None),
                     json.NativeAuxiliaryLogLine);
             case "GetConsoleLogBatchesAsync":
-                return NativeBackchannelConnection.Streaming(
+                return NativeBackchannelReply.Streaming(
                     ReadLogBatchesAsync(ReadRequest(request, json.NativeAuxiliaryLogsRequest, required: true)!, CancellationToken.None),
                     json.NativeAuxiliaryLogBatch);
             case "GetResourceLogsAsync":
                 var legacyLogs = LegacyArguments(request, 2);
-                return NativeBackchannelConnection.Streaming(ReadLogsAsync(new()
+                return NativeBackchannelReply.Streaming(ReadLogsAsync(new()
                 {
                     ResourceName = legacyLogs.Length > 0 && legacyLogs[0].ValueKind != JsonValueKind.Null ? legacyLogs[0].GetString() : null,
                     Follow = legacyLogs.Length > 1 && legacyLogs[1].GetBoolean(),
@@ -164,29 +168,29 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
                 }, CancellationToken.None), json.NativeAuxiliaryLogLine);
             case "GetAppHostLogEntriesAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Streaming(_logs.ReadAsync(CancellationToken.None), NativeCliJsonContext.Default.NativeCliLogEntry);
+                return NativeBackchannelReply.Streaming(_logs.ReadAsync(CancellationToken.None), NativeCliJsonContext.Default.NativeCliLogEntry);
             case "ExecuteResourceCommandAsync":
-                return NativeBackchannelConnection.Value(await ExecuteCommandAsync(
+                return NativeBackchannelReply.Value(await ExecuteCommandAsync(
                     ReadRequest(request, json.NativeAuxiliaryCommandRequest, required: true)!, cancellationToken).ConfigureAwait(false),
                     json.NativeAuxiliaryCommandResponse);
             case "WaitForResourceAsync":
-                return NativeBackchannelConnection.Value(await WaitForResourceAsync(
+                return NativeBackchannelReply.Value(await WaitForResourceAsync(
                     ReadRequest(request, json.NativeAuxiliaryWaitRequest, required: true)!, cancellationToken).ConfigureAwait(false),
                     json.NativeAuxiliaryWaitResponse);
             case "StopAsync":
                 var stop = ReadRequest(request, json.NativeAuxiliaryStopRequest, required: false);
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryEmptyResponse(), json.NativeAuxiliaryEmptyResponse)
+                return NativeBackchannelReply.Value(new NativeAuxiliaryEmptyResponse(), json.NativeAuxiliaryEmptyResponse)
                     with { AfterResponse = () => _stop(stop?.ExitCode) };
             case "StopAppHostAsync":
                 LegacyArguments(request, 0);
-                return NativeBackchannelConnection.Value((string?)null, NativeCliJsonContext.Default.String)
+                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String)
                     with { AfterResponse = () => _stop(null) };
             case "GetTerminalInfoAsync":
                 ReadRequest(request, json.NativeAuxiliaryTerminalRequest, required: true);
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryTerminalInfo(), json.NativeAuxiliaryTerminalInfo);
+                return NativeBackchannelReply.Value(new NativeAuxiliaryTerminalInfo(), json.NativeAuxiliaryTerminalInfo);
             case "ListTerminalsAsync":
                 ReadRequest(request, json.NativeAuxiliaryEmptyRequest, required: false);
-                return NativeBackchannelConnection.Value(new NativeAuxiliaryTerminals(), json.NativeAuxiliaryTerminals);
+                return NativeBackchannelReply.Value(new NativeAuxiliaryTerminals(), json.NativeAuxiliaryTerminals);
             case "CallMcpToolAsync":
                 throw McpUnavailable(ReadRequest(request, json.NativeAuxiliaryMcpRequest, required: true)!.ResourceName);
             case "CallResourceMcpToolAsync":

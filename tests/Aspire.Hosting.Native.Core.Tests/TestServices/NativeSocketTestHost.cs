@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Server;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Core.Tests.TestServices;
 
@@ -18,7 +19,7 @@ internal sealed class NativeSocketTestHost : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Task _run;
 
-    public NativeSocketTestHost(Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelConnection.Reply>> dispatch)
+    public NativeSocketTestHost(Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelReply>> dispatch)
     {
         _listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
         _listener.Listen(4);
@@ -28,14 +29,16 @@ internal sealed class NativeSocketTestHost : IAsyncDisposable
     public Task Completion => _run;
     public EndPoint EndPoint => _listener.LocalEndPoint!;
 
-    private async Task RunAsync(Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelConnection.Reply>> dispatch)
+    private async Task RunAsync(Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelReply>> dispatch)
     {
         try
         {
             while (!_lifetime.IsCancellationRequested)
             {
                 using var socket = await _listener.AcceptAsync(_lifetime.Token);
-                await NativeBackchannelConnection.ServeAsync(socket, new NativeServerOptions(), dispatch, _lifetime.Token);
+                using var stream = new NetworkStream(socket, ownsSocket: false);
+                await new NativeBackchannelRpc(new NativeServerOptions(), NullLogger.Instance)
+                    .ServeAsync(stream, dispatch, _lifetime.Token);
             }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)

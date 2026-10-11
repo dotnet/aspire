@@ -6,13 +6,27 @@ using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Rpc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeCliProtocolTests
 {
+    [Fact]
+    public async Task RpcImplementationCanBeReplacedWithoutChangingProtocolDependencies()
+    {
+        var options = new NativeServerOptions();
+        var rpc = new RecordingBackchannelRpc(new NativeBackchannelRpc(options, NullLogger.Instance));
+        await using var host = NativeCliTestHost.Start(new NativeApplicationServer(), options, () => new(), rpc);
+        Assert.Equal(["baseline.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        await host.Rpc.InvokeAsync("NotifyAppHostReadyAsync");
+        Assert.True(host.IsReady);
+        Assert.Equal(["GetCapabilitiesAsync", "NotifyAppHostReadyAsync"], rpc.Methods);
+    }
+
     [Fact]
     public async Task ExistingRpcNamesNegotiateBeforeCompositionAndReportRealReadinessAndDashboardState()
     {

@@ -7,6 +7,7 @@ using System.Text.Json;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
+using Aspire.Hosting.Native.Rpc;
 
 namespace Aspire.Hosting.Native.Cli;
 
@@ -20,10 +21,12 @@ internal sealed class NativeCliProtocol : IDisposable
     private readonly Func<CancellationToken, Task<NativeCliDashboardUrls>> _dashboard;
     private readonly NativeCliLogBuffer _logs;
     private readonly NativeServerOptions _options;
+    private readonly INativeBackchannelRpc _rpc;
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public NativeCliProtocol(string path, NativeApplicationServer server, Action stop,
-        Func<CancellationToken, Task<NativeCliDashboardUrls>> dashboard, NativeCliLogBuffer logs, NativeServerOptions options)
+        Func<CancellationToken, Task<NativeCliDashboardUrls>> dashboard, NativeCliLogBuffer logs, NativeServerOptions options,
+        INativeBackchannelRpc rpc)
     {
         if (!Path.IsPathFullyQualified(path) || File.Exists(path))
         {
@@ -36,6 +39,7 @@ internal sealed class NativeCliProtocol : IDisposable
         _logs = logs;
         options.Validate();
         _options = options;
+        _rpc = rpc;
         _listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         try
         {
@@ -63,7 +67,8 @@ internal sealed class NativeCliProtocol : IDisposable
             while (!cancellationToken.IsCancellationRequested)
             {
                 using var socket = await _listener.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                await NativeBackchannelConnection.ServeAsync(socket, _options, DispatchAsync, cancellationToken).ConfigureAwait(false);
+                using var stream = new NetworkStream(socket, ownsSocket: false);
+                await _rpc.ServeAsync(stream, DispatchAsync, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -71,7 +76,7 @@ internal sealed class NativeCliProtocol : IDisposable
         }
     }
 
-    private async Task<NativeBackchannelConnection.Reply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
+    private async Task<NativeBackchannelReply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
     {
         if (request.Params is { ValueKind: not JsonValueKind.Null } parameters &&
             (parameters.ValueKind != JsonValueKind.Array || parameters.GetArrayLength() != 0))
@@ -81,19 +86,19 @@ internal sealed class NativeCliProtocol : IDisposable
         switch (request.Method)
         {
             case "GetCapabilitiesAsync":
-                return NativeBackchannelConnection.Value(new[] { "baseline.v2" }, NativeCliJsonContext.Default.StringArray);
+                return NativeBackchannelReply.Value(new[] { "baseline.v2" }, NativeCliJsonContext.Default.StringArray);
             case "NotifyAppHostReadyAsync":
                 _ready.TrySetResult();
-                return NativeBackchannelConnection.Value((string?)null, NativeCliJsonContext.Default.String);
+                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String);
             case "RequestStopAsync":
-                return NativeBackchannelConnection.Value((string?)null, NativeCliJsonContext.Default.String) with { AfterResponse = _stop };
+                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String) with { AfterResponse = _stop };
             case "GetDashboardUrlsAsync":
-                return NativeBackchannelConnection.Value(await _dashboard(cancellationToken).ConfigureAwait(false),
+                return NativeBackchannelReply.Value(await _dashboard(cancellationToken).ConfigureAwait(false),
                     NativeCliJsonContext.Default.NativeCliDashboardUrls);
             case "GetResourceStatesAsync":
-                return NativeBackchannelConnection.Streaming(ResourceStatesAsync(cancellationToken), NativeCliJsonContext.Default.NativeCliResourceState);
+                return NativeBackchannelReply.Streaming(ResourceStatesAsync(cancellationToken), NativeCliJsonContext.Default.NativeCliResourceState);
             case "GetAppHostLogEntriesAsync":
-                return NativeBackchannelConnection.Streaming(_logs.ReadAsync(cancellationToken), NativeCliJsonContext.Default.NativeCliLogEntry);
+                return NativeBackchannelReply.Streaming(_logs.ReadAsync(cancellationToken), NativeCliJsonContext.Default.NativeCliLogEntry);
             default:
                 throw new MissingMethodException();
         }

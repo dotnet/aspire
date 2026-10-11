@@ -8,6 +8,7 @@ using Aspire.Hosting.Native.Auxiliary;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Rpc;
 using Microsoft.Extensions.Logging.Abstractions;
 using StreamJsonRpc;
 
@@ -15,6 +16,19 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeAuxiliaryBackchannelTests
 {
+    [Fact]
+    public async Task RpcImplementationCanBeReplacedWithoutChangingAuxiliaryDependencies()
+    {
+        var options = new NativeServerOptions();
+        var implementation = new RecordingBackchannelRpc(new NativeBackchannelRpc(options, NullLogger.Instance));
+        await using var host = new NativeAuxiliaryTestHost(new NativeApplicationServer(), options, implementation);
+        var rpc = host.Connect();
+        Assert.Equal(["aux.v1", "aux.v2", "aux.v3", "resource-snapshot-versions.v1"],
+            (await rpc.InvokeAsync<GetCapabilitiesResponse>("GetCapabilitiesAsync")).Capabilities);
+        Assert.Empty((await rpc.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources);
+        Assert.Equal(["GetCapabilitiesAsync", "GetResourcesAsync"], implementation.Methods);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

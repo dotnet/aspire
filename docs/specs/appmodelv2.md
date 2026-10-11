@@ -109,8 +109,8 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 264 tests,
-CLI launcher coverage passes 88 tests, and the current Rust baseline passes 54 tests.
+the independent Rust server. The native regression suite passes 266 tests,
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 63 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
@@ -195,7 +195,8 @@ container and Node executable, each with two named HTTP allocations. It verifies
 a read-only bind, caller-owned volume data retained through container replacement,
 two executable port variables, and exact owned-resource cleanup.
 
-Local macOS arm64 results use three samples per mode and implementation:
+The following historical macOS arm64 results used .NET 10 and three samples per
+mode and implementation:
 
 | Measurement | C# NativeAOT | Rust reference |
 | --- | ---: | ---: |
@@ -242,6 +243,19 @@ CLI/browser and auxiliary scenarios. An initial Rust workload attempt failed
 executable validation while SDK preparation overlapped; its unchanged retry
 passed after preparation completed. That failed attempt remains documented,
 not counted as a successful run.
+
+The new native core, server, build-time generator, regression suite and AOT smoke
+host now target `net11.0` explicitly. Existing shared ATS libraries retain their
+own target frameworks; the native runtime does not load managed Aspire.Hosting.
+The .NET 11 regression suite passes all 266 tests. Fresh AOT publication, RPC,
+runtime, six neutral-baseline cases, workload/browser and revision/browser checks
+pass. Two full macOS attempts failed the existing immediate CLI cleanup assertion
+with an OS-stopped native process after shutdown escalation. An unchanged CLI
+retry passed the exact workload/process assertions but logged a shutdown timeout;
+the auxiliary scenario passed independently. This is not a clean full-lane pass.
+The published .NET 11 executable is 16,654,656 bytes; one CLI/browser workload
+sample measured 48,185,344 bytes of native-server RSS. These are single observations,
+not replacements for the historical medians or evidence of a performance change.
 
 ### Integration provider direction
 
@@ -566,6 +580,10 @@ as the AppHost server's own operational diagnostics.
 
 ### Configuration, protocol and time boundaries
 
+The new native core, server, build-time generator, regression suite and AOT
+smoke host target .NET 11. Earlier measurements describe the binaries
+produced at their recorded milestones, not a .NET 11 footprint estimate.
+
 The server composition root reads `IConfiguration` and creates validated,
 strongly typed settings before constructing consumers. Environment-variable
 compatibility belongs to the configuration provider and boot parser, not to
@@ -591,6 +609,27 @@ The Rust reference uses the corresponding injectable clock/scheduler abstraction
 typed boot configuration and protocol states, and bounded diagnostic queues.
 Both implementations retain existing environment names and wire labels.
 
+### Replaceable component implementations
+
+Implementation dependencies are supplied at the composition root. A component
+contract defines data, authority, cancellation and lifetime ownership, not just
+method names. Replacing an implementation must not require rebuilding its
+consumers' dependency graph.
+
+The CLI and auxiliary protocol adapters receive `INativeBackchannelRpc`; they
+do not construct or select an RPC implementation. That contract accepts a
+caller-owned duplex stream, a typed request dispatcher and cancellation.
+`NativeBackchannelReply` carries copied results, streamed results and optional
+post-flush lifecycle work. The RPC implementation owns request scheduling,
+framing, cancellation and stream-cursor cleanup; it drains its connection-owned
+work before returning and never disposes the caller's stream. Socket discovery
+and endpoint ownership remain outside this RPC component. Substitution tests
+exercise both protocol adapters with a replacement implementation.
+
+This contract is the existing Hosting backchannel protocol, not the ATS
+integration-authoring API. ATS authentication and handle authority remain
+protocol-specific; neither adapter belongs in the BCL-only model kernel.
+
 ### Diagnostics across component boundaries
 
 Every component needs direct tests and observable failure/lifetime boundaries.
@@ -609,6 +648,12 @@ which drains its retained prefix before receiving a classified overflow error.
 A slow diagnostic consumer cannot stall model or transport operations.
 Cross-process
 propagation and exporters are still pending.
+
+Server components use injected `ILogger` instances. The composition root
+chooses logger providers; a component must not choose a console or exporter.
+The kernel retains its BCL-only diagnostic event contract rather than acquiring
+a logging dependency. Direct-launch endpoint announcements remain on stdout
+for existing clients; operational logs use the configured stderr provider.
 
 Failures retain their original exceptions for callers. Operational diagnostics
 record classifications rather than configuration, authentication tokens,

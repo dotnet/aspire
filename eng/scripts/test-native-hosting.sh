@@ -16,6 +16,11 @@ if [[ "$(node -p 'Number(process.versions.node.split(".")[0])')" -lt 24 ]]; then
     exit 1
 fi
 docker info >/dev/null
+if [[ "$rid" == osx-* && "$(xcode-select -p)" == */CommandLineTools ]]; then
+    # NativeAOT otherwise probes xcodebuild to choose a linker. Command Line Tools
+    # provide clang and the SDK but not xcodebuild; select their modern linker explicitly.
+    export UseLdClassicXCodeLinker=false
+fi
 
 # All preparation is confined to this lane's artifacts. Never borrow an existing
 # published server, SDK or AppHost fixture: stale local artifacts can hide regressions.
@@ -39,15 +44,15 @@ run_logged() {
 run_logged restore ./restore.sh
 run_logged devtunnel-parser-tests node --test playground/NativeHosting/devtunnel-output.test.mts
 
-# CLI and Dashboard use the repository's default framework (currently net11).
-# Only the AOT server/smoke closure is overridden to the supported net10 runtime.
+# The native core, server, build-time generator and AOT smoke host target net11.
+# Keep the published executable on the same runtime as its regression suite.
 run_logged cli-build dotnet build src/Aspire.Cli/Aspire.Cli.csproj -c Debug
 run_logged dashboard-build dotnet build src/Aspire.Dashboard/Aspire.Dashboard.csproj -c Debug
 run_logged dcp-build dotnet build "eng/dcppack/Aspire.Hosting.Orchestration.$rid.csproj" -c Debug
 run_logged server-publish dotnet publish src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj \
-    -c Release -r "$rid" -p:DefaultTargetFramework=net10.0 -o "$work/server"
+    -c Release -r "$rid" -o "$work/server"
 run_logged smoke-publish dotnet publish tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj \
-    -c Release -r "$rid" -p:DefaultTargetFramework=net10.0 -o "$work/smoke"
+    -c Release -r "$rid" -o "$work/smoke"
 run_logged aot-smoke "$work/smoke/Aspire.Hosting.Native.Core.AotSmoke"
 
 cli_dll="$(dotnet msbuild src/Aspire.Cli/Aspire.Cli.csproj -nologo -getProperty:TargetPath)"

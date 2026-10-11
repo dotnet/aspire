@@ -6,6 +6,8 @@ using System.Text.Json;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Rpc;
+using Microsoft.Extensions.Logging.Abstractions;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Native.Core.Tests.TestServices;
@@ -22,11 +24,11 @@ internal sealed class NativeCliTestHost : IAsyncDisposable
     public JsonRpc Rpc { get; }
 
     private NativeCliTestHost(NativeApplicationServer server, NativeServerOptions options,
-        Func<NativeCliDashboardUrls> dashboard)
+        Func<NativeCliDashboardUrls> dashboard, INativeBackchannelRpc rpc)
     {
         Logs = new NativeCliLogBuffer(options.RetainedAppHostLogEntries);
         var path = Path.Combine(_directory.FullName, "cli.sock");
-        _protocol = new(path, server, _lifetime.Cancel, _ => Task.FromResult(dashboard()), Logs, options);
+        _protocol = new(path, server, _lifetime.Cancel, _ => Task.FromResult(dashboard()), Logs, options, rpc);
         _run = _protocol.RunAsync(_lifetime.Token);
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         socket.Connect(new UnixDomainSocketEndPoint(path));
@@ -40,7 +42,11 @@ internal sealed class NativeCliTestHost : IAsyncDisposable
     }
 
     public static NativeCliTestHost Start(NativeApplicationServer server, NativeServerOptions options,
-        Func<NativeCliDashboardUrls> dashboard) => new(server, options, dashboard);
+        Func<NativeCliDashboardUrls> dashboard) => new(server, options, dashboard,
+            new NativeBackchannelRpc(options, NullLogger.Instance));
+
+    public static NativeCliTestHost Start(NativeApplicationServer server, NativeServerOptions options,
+        Func<NativeCliDashboardUrls> dashboard, INativeBackchannelRpc rpc) => new(server, options, dashboard, rpc);
 
     public async ValueTask DisposeAsync()
     {

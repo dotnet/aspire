@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <!-- Linked Hosting DTOs retain their production inheritance shape. -->
     <NoWarn>$(NoWarn);CA1852</NoWarn>
   </PropertyGroup>
@@ -11,6 +11,7 @@
     <PackageReference Include="StreamJsonRpc" />
     <PackageReference Include="ModelContextProtocol" />
     <Compile Include="../../src/Aspire.Hosting/Backchannel/BackchannelDataTypes.cs" Link="Shared/BackchannelDataTypes.cs" />
+    <Compile Include="$(TestsSharedDir)Logging/*.cs" LinkBase="shared/Logging" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" />
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />

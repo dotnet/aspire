@@ -8,11 +8,12 @@ using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Dashboard;
 
 /// <summary>Launches the Dashboard as a DCP executable and reports authenticated frontend readiness.</summary>
-internal sealed class DcpDashboard
+internal sealed class DcpDashboard(ILogger logger)
 {
     private NativeCliDashboardUrls _urls = new() { DashboardHealthy = false };
     private string? _name;
@@ -107,7 +108,7 @@ internal sealed class DcpDashboard
                             DashboardHealthy = true,
                             BaseUrlWithLoginToken = new Uri(frontend, "login?t=" + Uri.EscapeDataString(browserToken)).AbsoluteUri
                         });
-                        Console.WriteLine($"DCP-owned Dashboard ({process.Status.Pid}) listening on {frontend}.");
+                        logger.LogInformation("DCP-owned Dashboard ({ProcessId}) listening on {Address}.", process.Status.Pid, frontend);
 
                         return;
                     }
@@ -119,7 +120,7 @@ internal sealed class DcpDashboard
                 catch (HttpRequestException exception) when (exception.InnerException is
                     SocketException { SocketErrorCode: SocketError.ConnectionRefused })
                 {
-                    Console.Error.WriteLine("Waiting for the DCP-owned Dashboard listener.");
+                    logger.LogDebug("Waiting for the DCP-owned Dashboard listener.");
                 }
             }
             await Task.Delay(options.RetryInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);

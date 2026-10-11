@@ -4,11 +4,12 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.Native.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Server;
 
 /// <summary>Writes classified host failures and opt-in correlated operation traces without caller data.</summary>
-internal sealed class NativeDiagnosticWriter(bool verbose)
+internal sealed class NativeDiagnosticWriter(bool verbose, ILogger logger)
 {
     public void Write(OperationEvent operation)
     {
@@ -32,7 +33,8 @@ internal sealed class NativeDiagnosticWriter(bool verbose)
             writer.WriteNumber("durationSeconds", operation.DurationSeconds);
             writer.WriteEndObject();
         }
-        Console.Error.WriteLine(Encoding.UTF8.GetString(buffer.ToArray()));
+        logger.Log(operation.Outcome == OperationOutcome.Error ? LogLevel.Error : LogLevel.Information,
+            "{OperationEvent}", Encoding.UTF8.GetString(buffer.ToArray()));
     }
 
 }

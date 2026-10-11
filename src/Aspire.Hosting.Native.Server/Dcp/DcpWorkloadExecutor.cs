@@ -5,12 +5,19 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Server;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Dcp;
 
 /// <summary>Projects standard native execution primitives to DCP-owned workloads.</summary>
-internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options) : IWorkloadExecutor
+internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options, ILogger logger) : IWorkloadExecutor
 {
+    public DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options)
+        : this(client, startup, options, NullLogger.Instance)
+    {
+    }
+
     public DcpWorkloadExecutor(DcpApiClient client) : this(client, Task.CompletedTask, new())
     {
     }
@@ -26,7 +33,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         var name = "native-" + identity.ResourceId.ToString("N");
         var collection = plan is ContainerWorkload ? DcpResourceCollection.Containers : DcpResourceCollection.Executables;
         var services = plan.Endpoints.Select(endpoint => name + "-" + endpoint.Name.ToLowerInvariant()).ToArray();
-        var lease = new Lease(client, collection, name, services, options);
+        var lease = new Lease(client, collection, name, services, options, logger);
         try
         {
             var spec = new DcpWorkloadSpec
@@ -162,7 +169,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
     }
 
     private sealed class Lease(DcpApiClient client, DcpResourceCollection collection, string name, string[] services,
-        NativeServerOptions options) : IWorkloadLease
+        NativeServerOptions options, ILogger logger) : IWorkloadLease
     {
         private long _stdout;
         private long _stderr;
@@ -209,7 +216,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
             }
             catch (Exception exception)
             {
-                Console.Error.WriteLine($"DCP workload cleanup failed ({exception.GetType().Name}); cleanup remains pending.");
+                logger.LogWarning("DCP workload cleanup failed ({ErrorType}); cleanup remains pending.", exception.GetType().Name);
                 throw;
             }
             finally

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
@@ -10,6 +9,8 @@ using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Rpc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using static Aspire.Hosting.Native.Core.Tests.TestServices.RpcTestClient;
 
 namespace Aspire.Hosting.Native.Core.Tests;
@@ -30,8 +31,8 @@ public class NativeSocketIsolationTests
             _ => new OperationCanceledException("secret-controller-token")
         };
         await using var host = new NativeSocketTestHost((request, _) => request.Method == "Fail"
-            ? Task.FromException<NativeBackchannelConnection.Reply>(exception)
-            : Task.FromResult(NativeBackchannelConnection.Value("ok", NativeCliJsonContext.Default.String)));
+            ? Task.FromException<NativeBackchannelReply>(exception)
+            : Task.FromResult(NativeBackchannelReply.Value("ok", NativeCliJsonContext.Default.String)));
         using (var client = new NativeSocketTestClient(host.EndPoint))
         {
             var response = await client.CallAsync("Fail", null, TestContext.Current.CancellationToken);
@@ -57,8 +58,9 @@ public class NativeSocketIsolationTests
     public async Task MalformedRpcPeerDoesNotStopExistingOrSubsequentConnections(string frame)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var diagnostics = new ConcurrentQueue<string>();
-        using var listener = new NativeRpcListener(new IPEndPoint(IPAddress.Loopback, 0), Token, diagnostics.Enqueue);
+        var diagnostics = new TestSink();
+        using var listener = new NativeRpcListener(new IPEndPoint(IPAddress.Loopback, 0), Token,
+            new TestLogger(nameof(NativeRpcListener), diagnostics, enabled: true));
         var run = listener.RunAsync(timeout.Token);
         try
         {
@@ -73,7 +75,7 @@ public class NativeSocketIsolationTests
             Assert.NotNull((await existing.CallAsync("getCapabilities", null, timeout.Token))["result"]);
             using var subsequent = new NativeSocketTestClient(listener.EndPoint);
             Assert.True((await subsequent.CallAsync("authenticate", new JsonArray(Token), timeout.Token))["result"]!.GetValue<bool>());
-            Assert.Contains(diagnostics, value => value is "Native connection closed: InvalidDataException." or
+            Assert.Contains(diagnostics.Writes, value => value.Message is "Native connection closed: InvalidDataException." or
                 "Native connection closed: EndOfStreamException.");
         }
         finally
@@ -92,7 +94,9 @@ public class NativeSocketIsolationTests
             StartFailure = new HttpRequestException("secret-token-and-controller-address")
         });
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        using var listener = new NativeRpcListener(new IPEndPoint(IPAddress.Loopback, 0), Token, _ => { }, context.Server);
+        var logSink = new TestSink();
+        using var listener = new NativeRpcListener(new IPEndPoint(IPAddress.Loopback, 0), Token,
+            new TestLogger(nameof(NativeRpcListener), logSink, enabled: true), context.Server);
         var run = listener.RunAsync(timeout.Token);
         try
         {
@@ -127,6 +131,9 @@ public class NativeSocketIsolationTests
             var activity = Assert.Single(capture.Activities, value => value.OperationName == "rpc.request" &&
                 value.GetTagItem("error.type") as string == typeof(HttpRequestException).FullName);
             Assert.Null(activity.StatusDescription);
+            var loggedFailure = Assert.Single(logSink.Writes, value => value.LogLevel == LogLevel.Error);
+            Assert.Equal("Native request failed: HttpRequestException.", loggedFailure.Message);
+            Assert.Null(loggedFailure.Exception);
         }
         finally
         {
@@ -145,7 +152,7 @@ public class NativeSocketIsolationTests
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await using var host = new NativeSocketTestHost((_, _) => Task.FromResult(
-            NativeBackchannelConnection.Value(new[] { "baseline.v2" }, NativeCliJsonContext.Default.StringArray)));
+            NativeBackchannelReply.Value(new[] { "baseline.v2" }, NativeCliJsonContext.Default.StringArray)));
         using (var malformed = new NativeSocketTestClient(host.EndPoint))
         {
             await malformed.SendRawAsync(frame, timeout.Token);
@@ -181,7 +188,7 @@ public class NativeSocketIsolationTests
                     throw new SocketException((int)SocketError.ConnectionReset);
                 }
             }
-            return NativeBackchannelConnection.Value("ready", NativeCliJsonContext.Default.String);
+            return NativeBackchannelReply.Value("ready", NativeCliJsonContext.Default.String);
         });
         using (var client = new NativeSocketTestClient(host.EndPoint))
         {
@@ -200,7 +207,7 @@ public class NativeSocketIsolationTests
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await using var host = new NativeSocketTestHost((request, _) => Task.FromResult(
-            NativeBackchannelConnection.Value(request.Method == "large" ? new string('x', 4 * 1024 * 1024) : "ready",
+            NativeBackchannelReply.Value(request.Method == "large" ? new string('x', 4 * 1024 * 1024) : "ready",
                 NativeCliJsonContext.Default.String)));
         using (var client = new NativeSocketTestClient(host.EndPoint))
         {
@@ -226,7 +233,7 @@ public class NativeSocketIsolationTests
         var permissive = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
             UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
         File.SetUnixFileMode(parent, permissive);
-        Assert.Throws<IOException>(() => new NativeRpcListener(new UnixDomainSocketEndPoint(directory.SocketPath), Token, _ => { }));
+        Assert.Throws<IOException>(() => new NativeRpcListener(new UnixDomainSocketEndPoint(directory.SocketPath), Token, NullLogger.Instance));
         Assert.Equal(permissive, File.GetUnixFileMode(parent));
         Assert.False(File.Exists(directory.SocketPath));
     }
@@ -240,11 +247,11 @@ public class NativeSocketIsolationTests
         }
         using var directory = new NativeSocketTestDirectory();
         var endPoint = new UnixDomainSocketEndPoint(directory.SocketPath);
-        var first = new NativeRpcListener(endPoint, Token, _ => { });
+        var first = new NativeRpcListener(endPoint, Token, NullLogger.Instance);
         try
         {
             Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(directory.SocketPath));
-            Assert.Throws<SocketException>(() => new NativeRpcListener(endPoint, Token, _ => { }));
+            Assert.Throws<SocketException>(() => new NativeRpcListener(endPoint, Token, NullLogger.Instance));
             Assert.True(File.Exists(directory.SocketPath));
         }
         finally
@@ -252,7 +259,7 @@ public class NativeSocketIsolationTests
             first.Dispose();
         }
         Assert.False(File.Exists(directory.SocketPath));
-        using var replacement = new NativeRpcListener(endPoint, Token, _ => { });
+        using var replacement = new NativeRpcListener(endPoint, Token, NullLogger.Instance);
         first.Dispose();
         Assert.True(File.Exists(directory.SocketPath));
         using var client = new NativeSocketTestClient(endPoint);
@@ -268,7 +275,7 @@ public class NativeSocketIsolationTests
         using var directory = new NativeSocketTestDirectory();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var endPoint = new UnixDomainSocketEndPoint(directory.SocketPath);
-        using var listener = new NativeRpcListener(endPoint, Token, _ => { });
+        using var listener = new NativeRpcListener(endPoint, Token, NullLogger.Instance);
         var run = listener.RunAsync(timeout.Token);
         using var client = new NativeSocketTestClient(endPoint);
         try
@@ -277,7 +284,7 @@ public class NativeSocketIsolationTests
             listener.Dispose();
             await run.WaitAsync(timeout.Token);
             Assert.Null(await client.ReadAsync(timeout.Token));
-            using var replacement = new NativeRpcListener(endPoint, Token, _ => { });
+            using var replacement = new NativeRpcListener(endPoint, Token, NullLogger.Instance);
             using var next = new NativeSocketTestClient(endPoint);
         }
         finally

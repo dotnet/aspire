@@ -44,7 +44,10 @@ internal sealed class DcpReadyTestHost(
         names.AddIpAddress(IPAddress.Loopback);
         serverRequest.CertificateExtensions.Add(names.Build());
         using var signed = serverRequest.Create(authority, now.AddMinutes(-1), now.AddHours(1), RandomNumberGenerator.GetBytes(16));
-        var certificate = signed.CopyWithPrivateKey(serverKey);
+        using var keyedCertificate = signed.CopyWithPrivateKey(serverKey);
+        // Schannel needs an imported private key rather than the ephemeral key
+        // attached by CopyWithPrivateKey. Default key storage is cleaned up on disposal.
+        var certificate = X509CertificateLoader.LoadPkcs12(keyedCertificate.Export(X509ContentType.Pfx), password: null);
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { Args = [] });
         builder.WebHost.ConfigureKestrel(options =>
             options.Listen(IPAddress.Loopback, 0, listen => listen.UseHttps(certificate)));

@@ -8,6 +8,8 @@ using System.Text.Json;
 using Aspire.Shared;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Dcp;
 
@@ -20,6 +22,7 @@ internal sealed class DcpApiClient : IAsyncDisposable
     private HttpClient? _client;
     private DcpConnectionMaterial? _connection;
     private readonly NativeServerOptions _options;
+    private readonly ILogger _logger;
     private readonly Lock _cleanupGate = new();
     private Task? _cleanup;
 
@@ -27,10 +30,15 @@ internal sealed class DcpApiClient : IAsyncDisposable
     {
     }
 
-    public DcpApiClient(NativeServerOptions options)
+    public DcpApiClient(NativeServerOptions options) : this(options, NullLogger.Instance)
+    {
+    }
+
+    public DcpApiClient(NativeServerOptions options, ILogger logger)
     {
         options.Validate();
         _options = options;
+        _logger = logger;
     }
 
     internal DcpApiClient(NativeServerOptions options, HttpClient client) : this(options)
@@ -57,13 +65,13 @@ internal sealed class DcpApiClient : IAsyncDisposable
         }
         start.Environment["DCP_SESSION_FOLDER"] = _directory.FullName;
         _process = Process.Start(start) ?? throw new InvalidOperationException("DCP did not start.");
-        _process.OutputDataReceived += (_, line) => { if (line.Data is not null) { Console.Error.WriteLine(line.Data); } };
-        _process.ErrorDataReceived += (_, line) => { if (line.Data is not null) { Console.Error.WriteLine(line.Data); } };
+        _process.OutputDataReceived += (_, line) => { if (line.Data is not null) { _logger.LogDebug("{DcpOutput}", line.Data); } };
+        _process.ErrorDataReceived += (_, line) => { if (line.Data is not null) { _logger.LogDebug("{DcpOutput}", line.Data); } };
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
 
         _connection = await DcpConnectionMaterial.WaitAsync(kubeconfig, () => _process.HasExited,
-            _options.ControllerRequestTimeout, _options.RetryInterval, Console.Error.WriteLine,
+            _options.ControllerRequestTimeout, _options.RetryInterval, message => _logger.LogDebug("{DcpReadiness}", message),
             _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         _client = _connection.Client;
     }

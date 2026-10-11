@@ -2,38 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Aspire.Hosting.Native.Diagnostics;
-using Aspire.Hosting.Native.Rpc;
+using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
+using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Native.Cli;
+namespace Aspire.Hosting.Native.Rpc;
 
 /// <summary>Shares header framing, cancellation and StreamJsonRpc enumeration between backchannels.</summary>
-internal static class NativeBackchannelConnection
+internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger logger) : INativeBackchannelRpc
 {
-    internal sealed record Reply(JsonElement Result, IAsyncEnumerable<JsonElement>? Stream = null, Action? AfterResponse = null);
-
-    internal static Reply Value<T>(T value, JsonTypeInfo<T> typeInfo) => new(JsonSerializer.SerializeToElement(value, typeInfo));
-
-    internal static Reply Streaming<T>(IAsyncEnumerable<T> source, JsonTypeInfo<T> typeInfo) =>
-        new(default, EncodeAsync(source, typeInfo));
-
-    private static async IAsyncEnumerable<JsonElement> EncodeAsync<T>(IAsyncEnumerable<T> source, JsonTypeInfo<T> typeInfo,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async Task ServeAsync(Stream stream,
+        Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelReply>> dispatch, CancellationToken cancellationToken)
     {
-        await foreach (var value in source.WithCancellation(cancellationToken).ConfigureAwait(false))
-        {
-            yield return JsonSerializer.SerializeToElement(value, typeInfo);
-        }
-    }
-
-    internal static async Task ServeAsync(Socket socket, NativeServerOptions options,
-        Func<NativeCliRequest, CancellationToken, Task<Reply>> dispatch, CancellationToken cancellationToken)
-    {
-        using var stream = new NetworkStream(socket, ownsSocket: false);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         using var writes = new SemaphoreSlim(1);
         var framing = new NativeRpcFraming(stream, options.MaximumRequestBytes);
@@ -89,7 +71,7 @@ internal static class NativeBackchannelConnection
         }
         catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException or JsonException or RpcFault)
         {
-            Console.Error.WriteLine($"Backchannel disconnected: {exception.GetType().Name}.");
+            logger.LogWarning("Backchannel disconnected: {ErrorType}.", exception.GetType().Name);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
         {
@@ -106,7 +88,7 @@ internal static class NativeBackchannelConnection
 
         async Task RespondAsync(NativeCliRequest request, string? key, CancellationTokenSource cancellation)
         {
-            Reply? reply = null;
+            NativeBackchannelReply? reply = null;
             NativeCliError? error = null;
             var result = JsonSerializer.SerializeToElement((string?)null, NativeCliJsonContext.Default.String);
             try
@@ -235,7 +217,7 @@ internal static class NativeBackchannelConnection
             {
                 // Handle transport failures inside each response, including responses
                 // still being drained after the reader has observed a disconnect.
-                Console.Error.WriteLine($"Backchannel response failed: {exception.GetType().Name}.");
+                logger.LogWarning("Backchannel response failed: {ErrorType}.", exception.GetType().Name);
                 await lifetime.CancelAsync().ConfigureAwait(false);
             }
             finally

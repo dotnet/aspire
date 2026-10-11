@@ -11,13 +11,19 @@ using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Auxiliary;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 using var configuration = new ConfigurationManager();
 configuration.AddEnvironmentVariables();
 var settings = NativeServerConfiguration.Parse(configuration, launchedByCli: args is ["server", "--contentRoot", _]);
+using var loggerFactory = LoggerFactory.Create(builder => builder
+    .SetMinimumLevel(settings.TraceOperations ? LogLevel.Debug : LogLevel.Information)
+    .AddSimpleConsole(options => options.SingleLine = true)
+    .AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace));
+var logger = loggerFactory.CreateLogger("Aspire.Hosting.Native.Server");
 var options = settings.Options;
 var token = settings.RpcToken;
-var writer = new NativeDiagnosticWriter(settings.TraceOperations);
+var writer = new NativeDiagnosticWriter(settings.TraceOperations, loggerFactory.CreateLogger<NativeDiagnosticWriter>());
 await using var diagnostics = new NativeDiagnosticPump(writer.Write, DiagnosticStreamFailed, options).ConfigureAwait(false);
 var endPoint = NativeStartupArguments.Parse(args, settings.SocketPath);
 using var shutdown = new CancellationTokenSource();
@@ -31,7 +37,7 @@ using var terminate = OperatingSystem.IsWindows() ? null : PosixSignalRegistrati
     context.Cancel = true;
     shutdown.Cancel();
 });
-var dcp = new DcpApiClient(options);
+var dcp = new DcpApiClient(options, loggerFactory.CreateLogger<DcpApiClient>());
 await using var dcpLifetime = dcp.ConfigureAwait(false);
 var dcpExecutable = settings.DcpPath;
 var server = new NativeApplicationServer(UnavailableWorkloadExecutor.Instance, options.Runtime);
@@ -42,16 +48,17 @@ if (dcpExecutable is not null)
     // Publish the RPC socket independently of DCP startup. The CLI must be able
     // to authenticate and fetch its SDK while the controller host is warming up;
     // workload launches still await successful DCP readiness.
-    server = new NativeApplicationServer(new DcpWorkloadExecutor(dcp, dcpReady.Task, options), options.Runtime);
+    server = new NativeApplicationServer(new DcpWorkloadExecutor(dcp, dcpReady.Task, options,
+        loggerFactory.CreateLogger<DcpWorkloadExecutor>()), options.Runtime);
 }
-using var listener = new NativeRpcListener(endPoint, token, Console.Error.WriteLine, server,
+using var listener = new NativeRpcListener(endPoint, token, loggerFactory.CreateLogger<NativeRpcListener>(), server,
     NativeLanguageCatalog.LoadEmbedded(), options);
 NativeDashboardHost? dashboard = null;
 Task? dashboardCleanup = null;
 Task? controllerCleanup = null;
 var dashboardPath = settings.DashboardPath;
 var dashboardRequested = dashboardPath is not null;
-var dashboardState = new DcpDashboard();
+var dashboardState = new DcpDashboard(loggerFactory.CreateLogger<DcpDashboard>());
 var dashboardReady = new TaskCompletionSource<NativeCliDashboardUrls>(TaskCreationOptions.RunContinuationsAsynchronously);
 if (!dashboardRequested)
 {
@@ -59,9 +66,11 @@ if (!dashboardRequested)
 }
 var logs = new NativeCliLogBuffer(options.RetainedAppHostLogEntries);
 await using var cliLogging = new NativeDiagnosticPump(logs.Append, DiagnosticStreamFailed, options).ConfigureAwait(false);
+INativeBackchannelRpc backchannelRpc = new NativeBackchannelRpc(options,
+    loggerFactory.CreateLogger<NativeBackchannelRpc>());
 using var backchannel = settings.BackchannelPath is { } backchannelPath
     ? new NativeCliProtocol(backchannelPath, server, shutdown.Cancel,
-        dashboardReady.Task.WaitAsync, logs, options)
+        dashboardReady.Task.WaitAsync, logs, options, backchannelRpc)
     : null;
 var appHostPath = settings.AppHostPath;
 using var auxiliary = new NativeAuxiliaryBackchannel(appHostPath,
@@ -72,7 +81,8 @@ using var auxiliary = new NativeAuxiliaryBackchannel(appHostPath,
         shutdown.Cancel();
     },
     backchannel is not null ? backchannel.WaitForAppHostReadyAsync : WaitForNativeAppHostReadyAsync,
-    dashboardReady.Task.WaitAsync, () => dashboardState.ApiToken, logs, settings.CliProcess);
+    dashboardReady.Task.WaitAsync, () => dashboardState.ApiToken, logs, settings.CliProcess, backchannelRpc,
+    loggerFactory.CreateLogger<NativeAuxiliaryBackchannel>());
 try
 {
     var dashboardPort = settings.DashboardPort;
@@ -83,6 +93,8 @@ try
             settings.ApplicationName,
             dashboardApiKey,
             dashboardPort ?? 0, options, shutdown.Token).ConfigureAwait(false);
+        // Direct-launch clients discover endpoints from these stdout announcements.
+        // Component diagnostics go through ILogger and its root-configured stderr provider.
         Console.WriteLine($"Native Dashboard resource service listening on {dashboard.Address}.");
     }
     Console.WriteLine($"Native AppHost server listening on {listener.EndPoint}.");
@@ -207,5 +219,5 @@ async Task StopControllerOnShutdownAsync()
     await dcp.CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
 }
 
-static void DiagnosticStreamFailed(Exception error) =>
-    Console.Error.WriteLine($"Native diagnostic stream failed: {error.GetType().Name}.");
+void DiagnosticStreamFailed(Exception error) =>
+    logger.LogError("Native diagnostic stream failed: {ErrorType}.", error.GetType().Name);

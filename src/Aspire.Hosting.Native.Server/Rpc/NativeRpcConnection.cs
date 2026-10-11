@@ -9,6 +9,8 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Rpc;
 
@@ -20,6 +22,7 @@ internal sealed class NativeRpcConnection : IDisposable
     private readonly Lock _gate = new();
     private readonly NativeHandles _handles;
     private readonly NativeServerOptions _options;
+    private readonly ILogger _logger;
     private readonly byte[] _token;
     private readonly NativeApplicationServer _server;
     private readonly bool _ownsServer;
@@ -48,15 +51,27 @@ internal sealed class NativeRpcConnection : IDisposable
     }
 
     public NativeRpcConnection(string token, NativeApplicationServer server, NativeLanguageCatalog? languages, NativeServerOptions options)
-        : this(token, server, ownsServer: false, languages, options)
+        : this(token, server, ownsServer: false, languages, options, NullLogger.Instance)
+    {
+    }
+
+    public NativeRpcConnection(string token, NativeApplicationServer server, NativeLanguageCatalog? languages, NativeServerOptions options,
+        ILogger logger)
+        : this(token, server, ownsServer: false, languages, options, logger)
     {
     }
 
     private NativeRpcConnection(string token, NativeApplicationServer server, bool ownsServer, NativeLanguageCatalog? languages,
-        NativeServerOptions options)
+        NativeServerOptions options) : this(token, server, ownsServer, languages, options, NullLogger.Instance)
+    {
+    }
+
+    private NativeRpcConnection(string token, NativeApplicationServer server, bool ownsServer, NativeLanguageCatalog? languages,
+        NativeServerOptions options, ILogger logger)
     {
         options.Validate();
         _options = options;
+        _logger = logger;
         _handles = new(options.MaximumHandlesPerConnection);
         NativeRpcProtocol.ValidateAuthenticationToken(token);
         _token = Encoding.UTF8.GetBytes(token);
@@ -197,7 +212,7 @@ internal sealed class NativeRpcConnection : IDisposable
             // Executors and integration code can fail outside the known capability faults.
             // Export only the classification: messages and stack traces may contain secrets.
             operation.ErrorType = exception.GetType().FullName;
-            Console.Error.WriteLine($"Native request failed: {exception.GetType().Name}.");
+            _logger.LogError("Native request failed: {ErrorType}.", exception.GetType().Name);
             return notification ? null : EncodeFailure(id, method, -32603, "INTERNAL_ERROR", "The request failed internally.");
         }
         finally
