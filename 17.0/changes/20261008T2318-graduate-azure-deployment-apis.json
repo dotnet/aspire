@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Consumers can now use the core Azure deployment APIs (`AzurePublishingContext`, `AzureEnvironmentResource`, `AddAzureEnvironment`, `WithLocation`, `WithResourceGroup`) without suppressing the `ASPIREAZURE001` experimental-API warning. Signatures, defaults, and provisioning/deployment behavior are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-08T23:18:00Z",
+  "lastMergedAt": "2026-10-08T23:18:00Z",
+  "name": "Graduate core Azure deployment APIs to stable",
+  "owner": "mitchdenny",
+  "prs": [
+    20820
+  ]
+}

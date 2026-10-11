@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Hardened Sigstore cache configuration",
+  "mergedAt": "2026-10-09T05:31:37Z",
+  "number": 20538,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "Use hardened Sigstore cache configuration"
+}

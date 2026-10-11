@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Graduate Azure role-assignment APIs to stable",
+  "mergedAt": "2026-10-09T20:42:47Z",
+  "number": 20857,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "Remove ASPIREAZURE003 from Azure role-assignment APIs"
+}

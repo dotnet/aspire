@@ -1,0 +1,9 @@
+{
+  "author": "app/aspire-repo-bot",
+  "comment": "Documents #20608 (removed legacy RabbitMQ.Client v6 / MongoDB.Driver v2 packages); matched by explicit PR reference",
+  "mergedAt": "2026-10-08T17:00:15Z",
+  "number": 1800,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "[docs] Remove stale Aspire.RabbitMQ.Client.v6 / Aspire.MongoDB.Driver.v2 guidance"
+}

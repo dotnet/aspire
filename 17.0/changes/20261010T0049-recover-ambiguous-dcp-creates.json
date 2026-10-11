@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Resources no longer fail to start after a timed-out or HTTP 504 DCP create that the server actually committed. AppHost now checks for an existing resource before retrying, with configurable `KubernetesApiTimeout`, `KubernetesInitializationAdditionalTimeout`, and `KubernetesCreateRecoveryTimeout` settings for slower environments.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🧯",
+  "firstMergedAt": "2026-10-10T00:49:21Z",
+  "lastMergedAt": "2026-10-10T00:49:21Z",
+  "name": "Recover ambiguous DCP creates with configurable timeouts",
+  "owner": "danegsta",
+  "prs": [
+    20752
+  ]
+}

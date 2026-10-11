@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Consumers can now use the Dockerfile builder API family without suppressing the `ASPIREDOCKERFILEBUILDER001` experimental-API warning. Signatures, defaults, and runtime behavior are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-09T13:54:54Z",
+  "lastMergedAt": "2026-10-09T13:54:54Z",
+  "name": "Graduate Dockerfile builder APIs to stable",
+  "owner": "mitchdenny",
+  "prs": [
+    20823
+  ]
+}

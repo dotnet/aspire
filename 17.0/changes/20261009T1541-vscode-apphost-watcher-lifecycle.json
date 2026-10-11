@@ -1,0 +1,19 @@
+{
+  "area": "Extensions",
+  "areaEmoji": "🧩",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Fixed the VS Code extension leaving `aspire ps --follow` processes running across polling restarts and deactivation, and eliminated duplicate AppHost detail and dashboard requests when connection snapshots were unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧯",
+  "firstMergedAt": "2026-10-09T15:41:31Z",
+  "lastMergedAt": "2026-10-09T15:41:31Z",
+  "name": "Fix VS Code AppHost watcher lifecycle and duplicate startup requests",
+  "owner": "ellahathaway",
+  "prs": [
+    20763
+  ]
+}

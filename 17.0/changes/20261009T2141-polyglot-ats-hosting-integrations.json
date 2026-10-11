@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Hosting integrations can now be authored outside .NET through Aspire's ATS metadata, SDK generation, and runtime dispatch pipeline. A consuming AppHost gets normal generated builder methods while the integration runs in its own runtime and configures the same .NET resource model as a managed integration. TypeScript-authored examples ship today, including Kafka, Deno, and a real `@aspire/nuxt` preview integration.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🌐",
+  "firstMergedAt": "2026-10-09T21:41:12Z",
+  "lastMergedAt": "2026-10-09T21:41:12Z",
+  "name": "Polyglot hosting integrations through ATS projection",
+  "owner": "davidfowl",
+  "prs": [
+    16110
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "author": "sebastienros",
+  "comment": "Fix TypeScript Bicep parameter expressions on enum Azure properties",
+  "mergedAt": "2026-10-09T18:59:06Z",
+  "number": 20557,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "Fix TypeScript Bicep parameter expressions on enum Azure properties"
+}

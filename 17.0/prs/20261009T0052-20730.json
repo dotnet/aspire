@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Migrate Dashboard product telemetry and add CLI Azure Monitor log export (2 entries)",
+  "mergedAt": "2026-10-09T00:52:27Z",
+  "number": 20730,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "Migrate Dashboard product telemetry and add CLI Azure Monitor log export"
+}

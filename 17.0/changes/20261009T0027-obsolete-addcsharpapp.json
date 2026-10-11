@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": true,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "`AddCSharpApp` is now marked `[Obsolete]` with a warning directing consumers to `AddDotnetProject` from `Aspire.Hosting.Dotnet`. Signatures, defaults, and behavior are otherwise unchanged; existing callers should migrate to `AddDotnetProject`.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "⚠️",
+  "firstMergedAt": "2026-10-09T00:27:36Z",
+  "lastMergedAt": "2026-10-09T00:27:36Z",
+  "name": "Obsolete AddCSharpApp in favor of AddDotnetProject",
+  "owner": "mitchdenny",
+  "prs": [
+    20825
+  ]
+}

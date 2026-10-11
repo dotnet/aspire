@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Consumers can now use the core pipeline API family (including `IDistributedApplicationBuilder.Pipeline`) without suppressing the `ASPIREPIPELINES001` experimental-API warning. This is an attribute-only graduation; signatures, defaults, and runtime behavior are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-08T22:40:01Z",
+  "lastMergedAt": "2026-10-08T22:40:01Z",
+  "name": "Graduate core pipeline APIs to stable",
+  "owner": "mitchdenny",
+  "prs": [
+    20809
+  ]
+}

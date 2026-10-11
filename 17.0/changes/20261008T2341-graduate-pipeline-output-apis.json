@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Consumers can now use `IPipelineOutputService` and related pipeline output-directory APIs without suppressing the `ASPIREPIPELINES004` experimental-API warning. Method signatures, output/temp-directory behavior, and lifecycle semantics are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-08T23:41:45Z",
+  "lastMergedAt": "2026-10-08T23:41:45Z",
+  "name": "Graduate pipeline output service APIs to stable",
+  "owner": "mitchdenny",
+  "prs": [
+    20814
+  ]
+}

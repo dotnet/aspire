@@ -1,6 +1,6 @@
 {
   "area": "CLI",
-  "areaEmoji": "\ud83d\udcbb",
+  "areaEmoji": "💻",
   "backport": false,
   "breaking": false,
   "changeType": "Bug fixes",
@@ -8,7 +8,7 @@
   "description": "The CLI/SDK version-skew warning now appears only when the CLI has lower precedence than the AppHost's SDK, so newer CLIs running AppHosts pinned to older SDKs no longer see a misleading warning. During `aspire update`, the comparison now checks the target SDK version instead of the stale on-disk value.",
   "docsPrs": [],
   "docsRequired": false,
-  "emoji": "\u2696\ufe0f",
+  "emoji": "⚖️",
   "firstMergedAt": "2026-09-28T21:36:01Z",
   "lastMergedAt": "2026-09-28T21:36:01Z",
   "name": "Fix CLI/SDK version-skew warning false positives",

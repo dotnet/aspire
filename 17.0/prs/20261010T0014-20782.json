@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Issue-template-only change; no product/user-facing impact",
+  "mergedAt": "2026-10-10T00:14:12Z",
+  "number": 20782,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "excluded",
+  "title": "Remove obsolete ASP.NET policy links from issue templates"
+}

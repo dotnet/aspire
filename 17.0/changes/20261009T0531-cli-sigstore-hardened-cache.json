@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "The CLI's Sigstore and TUF dependencies are upgraded to stable 1.1.0, using one shared verifier configured via dependency injection with its TUF cache under `~/.aspire/cache/tuf`. This improves attestation verification reliability for npm and GitHub artifacts and respects custom Aspire-home settings.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🔏",
+  "firstMergedAt": "2026-10-09T05:31:37Z",
+  "lastMergedAt": "2026-10-09T05:31:37Z",
+  "name": "Hardened Sigstore cache configuration",
+  "owner": "mitchdenny",
+  "prs": [
+    20538
+  ]
+}

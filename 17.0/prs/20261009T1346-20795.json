@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "CI/engineering-only fix for agentic workflow schedule drift; no user-facing product impact",
+  "mergedAt": "2026-10-09T13:46:42Z",
+  "number": 20795,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "excluded",
+  "title": "ci: prevent checkout-dependent agentic workflow schedule drift"
+}

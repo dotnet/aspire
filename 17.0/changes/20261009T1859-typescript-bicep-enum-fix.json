@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Fixed TypeScript AppHosts failing to publish when `configureInfrastructure` assigned a `bicep().parameter(...)` expression to an enum-valued Azure provisioning property (such as a storage SKU name). String-backed Bicep expressions now flow into enum-valued properties while literal type checking is preserved.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🐛",
+  "firstMergedAt": "2026-10-09T18:59:06Z",
+  "lastMergedAt": "2026-10-09T18:59:06Z",
+  "name": "Fix TypeScript Bicep parameter expressions on enum Azure properties",
+  "owner": "sebastienros",
+  "prs": [
+    20557
+  ]
+}

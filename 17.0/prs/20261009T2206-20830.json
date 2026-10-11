@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "Fix Log4j vulnerability in Java starter template",
+  "mergedAt": "2026-10-09T22:06:46Z",
+  "number": 20830,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "fix(java): update Log4j in Spring Boot samples and starter"
+}

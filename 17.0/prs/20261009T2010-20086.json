@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Fix Go AppHost start timeout error",
+  "mergedAt": "2026-10-09T20:10:35Z",
+  "number": 20086,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "[WIP] Fix Go AppHost start timeout error"
+}

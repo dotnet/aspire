@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Consumers can now use `IDeploymentStateManager` and `DeploymentStateSection` without suppressing the `ASPIREPIPELINES002` experimental-API warning. Signatures, defaults, and behavior are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-09T01:33:46Z",
+  "lastMergedAt": "2026-10-09T01:33:46Z",
+  "name": "Graduate deployment-state APIs to stable",
+  "owner": "mitchdenny",
+  "prs": [
+    20816
+  ]
+}

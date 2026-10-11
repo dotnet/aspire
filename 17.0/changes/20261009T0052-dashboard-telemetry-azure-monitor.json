@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": true,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Dashboard product usage/error reporting moves from the IDE telemetry transport to direct Azure Monitor export, so reporting now works for CLI-launched, standalone, and deployed dashboards without an IDE debug session or OpenTelemetry Collector. Dashboard product telemetry no longer honors IDE telemetry consent; set `ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true` to opt out instead.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "📡",
+  "firstMergedAt": "2026-10-09T00:52:27Z",
+  "lastMergedAt": "2026-10-09T00:52:27Z",
+  "name": "Migrate Dashboard product telemetry to Azure Monitor",
+  "owner": "JamesNK",
+  "prs": [
+    20730
+  ]
+}

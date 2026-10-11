@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "`AzureRoleAssignmentResource` is no longer experimental. Consumers can use Azure role-assignment APIs without suppressing the `ASPIREAZURE003` experimental-API warning. Runtime provisioning and authorization behavior are unchanged.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧹",
+  "firstMergedAt": "2026-10-09T20:42:47Z",
+  "lastMergedAt": "2026-10-09T20:42:47Z",
+  "name": "Graduate Azure role-assignment APIs to stable",
+  "owner": "eerhardt",
+  "prs": [
+    20857
+  ]
+}

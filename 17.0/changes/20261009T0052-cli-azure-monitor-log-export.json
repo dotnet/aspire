@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "The CLI now exports reported usage/error events and errors to Azure Monitor as structured logs, in addition to its existing operation-span trace export. This uses a separate, isolated telemetry pipeline honoring `ASPIRE_CLI_TELEMETRY_OPTOUT`.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "📡",
+  "firstMergedAt": "2026-10-09T00:52:27Z",
+  "lastMergedAt": "2026-10-09T00:52:27Z",
+  "name": "CLI Azure Monitor log export for product events",
+  "owner": "JamesNK",
+  "prs": [
+    20730
+  ]
+}

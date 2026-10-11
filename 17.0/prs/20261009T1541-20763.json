@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Fix VS Code AppHost watcher lifecycle and duplicate startup RPCs",
+  "mergedAt": "2026-10-09T15:41:31Z",
+  "number": 20763,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "included",
+  "title": "Fix VS Code AppHost watcher lifecycle and duplicate startup RPCs"
+}

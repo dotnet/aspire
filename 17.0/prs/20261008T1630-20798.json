@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Bot-authored test-only flaky-test fix (copilot-swe-agent); excluded per bot-PR rule exception list not matched to a code change beyond test infra.",
+  "mergedAt": "2026-10-08T16:30:44Z",
+  "number": 20798,
+  "runDate": "2026-10-11T06:07:00Z",
+  "status": "excluded",
+  "title": "Avoid flaky Blazor test temp-directory cleanup"
+}
