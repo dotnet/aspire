@@ -88,6 +88,9 @@ declaring file, including older SDKs without the SDK-use marker. Inactive SDK
 imports in shared build files do not turn package-only AppHosts into SDK projects.
 Ambiguous imported declarations require an explicit SDK version
 update instead of guessing which shared file to change.
+Automatic SDK rewrites are limited to unconditional declarations. Conditional
+SDK declarations that cannot be safely classified require an explicit version
+edit; source fallback does not guess whether their MSBuild conditions are active.
 
 ## Examples
 

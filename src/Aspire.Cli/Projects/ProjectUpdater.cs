@@ -418,7 +418,21 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         using var sourceDocument = fallbackParser.ParseProject(context.AppHostProjectFile);
         var sourceRoot = sourceDocument.RootElement;
         var usesSdk = sourceRoot.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString() == "true";
+        var hasSourceSdk = usesSdk;
+        XDocument? sourceXml = null;
+        if (!string.Equals(context.AppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            sourceXml = XDocument.Load(context.AppHostProjectFile.FullName);
+            hasSourceSdk = GetUnconditionalSdkDeclarations(sourceXml).Any();
+            usesSdk = hasSourceSdk;
+        }
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
+        if (context.FallbackParsing && sourceXml is not null
+            && GetSdkDeclarations(sourceXml).Any(element => !IsUnconditionalSdkDeclaration(element)))
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                UpdateCommandStrings.ConditionalSdkEvaluationRequiredFormat, context.AppHostProjectFile.FullName));
+        }
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         usesSdk |= propertiesElement.TryGetProperty("_UsingAspireAppHostSdk", out var marker)
             && string.Equals(marker.GetString(), "true", StringComparison.OrdinalIgnoreCase);
@@ -428,7 +442,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var hasLegacySdkVersion = !string.IsNullOrEmpty(sdkVersion)
             && (!propertiesElement.TryGetProperty("_AspireAppHostPackageVersion", out var packageVersion)
                 || !string.Equals(sdkVersion, packageVersion.GetString(), StringComparison.OrdinalIgnoreCase));
-        var importedSdkFile = sourceRoot.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString() == "true"
+        var importedSdkFile = hasSourceSdk
             || (!usesSdk && !hasLegacySdkVersion)
             ? null
             : FindImportedSdkDeclaration(context.AppHostProjectFile, propertiesElement, required: usesSdk);
@@ -496,6 +510,10 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     private static FileInfo? FindImportedSdkDeclaration(FileInfo projectFile, JsonElement properties, bool required)
     {
         var candidates = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        if (!string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            candidates.Add(projectFile.FullName);
+        }
         foreach (var property in new[] { "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects" })
         {
             if (properties.TryGetProperty(property, out var value) && value.GetString() is { } paths)
@@ -507,8 +525,15 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             }
         }
 
-        var declarations = candidates.Where(path => File.Exists(path)
-            && GetSdkDeclarations(XDocument.Load(path)).Any()).ToArray();
+        var documents = candidates.Where(File.Exists)
+            .Select(path => (Path: path, Document: XDocument.Load(path))).ToArray();
+        var declarations = documents.Where(file => GetUnconditionalSdkDeclarations(file.Document).Any())
+            .Select(file => file.Path).ToArray();
+        if (declarations.Length == 0 && documents.Any(file => GetSdkDeclarations(file.Document).Any()))
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                UpdateCommandStrings.ConditionalSdkExplicitEditRequiredFormat, projectFile.FullName));
+        }
         if (declarations.Length > 1 || (required && declarations.Length == 0))
         {
             throw new ProjectUpdaterException($"Could not uniquely locate the imported Aspire.AppHost.Sdk declaration for '{projectFile.FullName}'. Found {declarations.Length} declaring files; update the imported SDK version explicitly.");
@@ -518,13 +543,22 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static IEnumerable<XElement> GetSdkDeclarations(XDocument document)
         => document.Descendants().Where(element =>
-            ((element.Name.LocalName is "Project" or "Import") && ContainsAspireAppHostSdk(element.Attribute("Sdk")?.Value ?? string.Empty))
-            || (element.Name.LocalName == "Sdk" && string.Equals(element.Attribute("Name")?.Value, AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase)));
+            (element == document.Root && element.Name.LocalName == "Project"
+                && ContainsAspireAppHostSdk(element.Attribute("Sdk")?.Value ?? string.Empty))
+            || (element.Parent == document.Root
+                && ((element.Name.LocalName == "Import" && ContainsAspireAppHostSdk(element.Attribute("Sdk")?.Value ?? string.Empty))
+                    || (element.Name.LocalName == "Sdk" && string.Equals(element.Attribute("Name")?.Value, AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase)))));
+
+    private static bool IsUnconditionalSdkDeclaration(XElement element)
+        => element.AncestorsAndSelf().All(node => string.IsNullOrWhiteSpace(node.Attribute("Condition")?.Value));
+
+    private static IEnumerable<XElement> GetUnconditionalSdkDeclarations(XDocument document)
+        => GetSdkDeclarations(document).Where(IsUnconditionalSdkDeclaration);
 
     private static async Task UpdateImportedSdkVersionAsync(FileInfo file, string version)
     {
         var document = XDocument.Load(file.FullName, LoadOptions.PreserveWhitespace);
-        foreach (var element in GetSdkDeclarations(document))
+        foreach (var element in GetUnconditionalSdkDeclarations(document))
         {
             if (element.Name.LocalName == "Project" && element.Attribute("Sdk") is { } sdk && ContainsAspireAppHostSdk(sdk.Value))
             {
@@ -805,11 +839,13 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         {
             // Migrate from old format to new format
             // Old format: <Sdk Name="Aspire.AppHost.Sdk" Version="..." />
-            var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+            var sdkNode = projectNode.SelectNodes("Sdk[@Name='Aspire.AppHost.Sdk']")!.Cast<XmlNode>()
+                .FirstOrDefault(node => string.IsNullOrWhiteSpace(node.Attributes?["Condition"]?.Value));
             if (sdkNode is null)
             {
                 var imports = projectNode.SelectNodes("Import")!.Cast<XmlNode>()
-                    .Where(node => ContainsAspireAppHostSdk(node.Attributes?["Sdk"]?.Value ?? string.Empty)).ToArray();
+                    .Where(node => ContainsAspireAppHostSdk(node.Attributes?["Sdk"]?.Value ?? string.Empty)
+                        && string.IsNullOrWhiteSpace(node.Attributes?["Condition"]?.Value)).ToArray();
                 if (imports.Length == 0)
                 {
                     throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));

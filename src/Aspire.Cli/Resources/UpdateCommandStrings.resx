@@ -250,4 +250,12 @@
   <data name="FailedReadToolManifestFormat" xml:space="preserve">
     <value>Failed to read tool manifest '{0}': {1}</value>
   </data>
+  <data name="ConditionalSdkEvaluationRequiredFormat" xml:space="preserve">
+    <value>Cannot determine active conditional Aspire.AppHost.Sdk declarations for '{0}' without successful MSBuild evaluation; update the conditional SDK version explicitly.</value>
+    <comment>{0} = AppHost project path.</comment>
+  </data>
+  <data name="ConditionalSdkExplicitEditRequiredFormat" xml:space="preserve">
+    <value>Cannot safely update conditional Aspire.AppHost.Sdk declarations for '{0}'; update the conditional SDK version explicitly.</value>
+    <comment>{0} = AppHost project path.</comment>
+  </data>
 </root>
