@@ -76,6 +76,34 @@ public class AddParameterTests
     }
 
     [Fact]
+    public async Task ParameterWithOptional_AfterMissingValueWasProbed_ResolvesToNull()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test");
+
+        Assert.False(parameter.Resource.TryGetCurrentValue(out _));
+
+        parameter.WithOptional();
+
+        Assert.Null(await parameter.Resource.GetValueAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ParameterWithRequired_AfterOptionalMissingValueWasProbed_Throws()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test")
+            .WithOptional();
+
+        Assert.False(parameter.Resource.TryGetCurrentValue(out _));
+
+        parameter.WithRequired();
+
+        await Assert.ThrowsAsync<MissingParameterValueException>(
+            () => parameter.Resource.GetValueAsync(CancellationToken.None).AsTask());
+    }
+
+    [Fact]
     public async Task OptionalParameterWithoutValue_ResolvesToNull()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

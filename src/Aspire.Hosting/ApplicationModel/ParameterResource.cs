@@ -16,10 +16,12 @@ namespace Aspire.Hosting.ApplicationModel;
 [AspireExport]
 public class ParameterResource : Resource, IExpressionValue
 {
-    private readonly Lazy<string?> _lazyValue;
+    private Lazy<string?> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
     private readonly object _valueTaskLock = new();
     private string? _configurationKey;
+    private bool _lazyValueWasMissing;
+    private bool _required = true;
     private long _valueChangeVersion;
 
     /// <summary>
@@ -44,9 +46,15 @@ public class ParameterResource : Resource, IExpressionValue
         {
             return _valueGetter(Default);
         }
-        catch (MissingParameterValueException) when (!Required)
+        catch (MissingParameterValueException)
         {
-            return null;
+            _lazyValueWasMissing = true;
+            if (!Required)
+            {
+                return null;
+            }
+
+            throw;
         }
     }
 
@@ -91,7 +99,24 @@ public class ParameterResource : Resource, IExpressionValue
     /// Optional parameters that do not have values resolve to <see langword="null"/> from <see cref="GetValueAsync(CancellationToken)"/>.
     /// The obsolete <see cref="Value"/> property returns an empty string for unset optional parameters because its signature is non-nullable.
     /// </remarks>
-    public bool Required { get; set; } = true;
+    public bool Required
+    {
+        get => _required;
+        set
+        {
+            if (_required == value)
+            {
+                return;
+            }
+
+            _required = value;
+            if (_lazyValueWasMissing)
+            {
+                _lazyValueWasMissing = false;
+                _lazyValue = new Lazy<string?>(GetValue);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the parameter is a connection string.
