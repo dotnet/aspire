@@ -40,7 +40,16 @@ process.on('message', message => {
     if (message === 'stop') {
         stopped = true;
         client?.disconnect();
-        void Promise.resolve(loop).then(() => { if (process.connected) disconnect(); });
+        let loopsDrained = false;
+        // Resource kinds expose a stuck callback or open socket without logging
+        // connection material. An unreferenced timer cannot keep the fixture alive.
+        setTimeout(() => console.error('Native integration shutdown stalled:', {
+            loopsDrained, ipcConnected: process.connected, resources: process.getActiveResourcesInfo()
+        }), 5000).unref();
+        void Promise.resolve(loop).then(() => {
+            loopsDrained = true;
+            if (process.connected) disconnect();
+        });
     }
 });
 

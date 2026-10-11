@@ -110,7 +110,7 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
 the independent Rust server. The native regression suite passes 173 tests,
-CLI launcher coverage passes 88 tests, and the current Rust baseline passes 28 tests.
+CLI launcher coverage passes 88 tests, and the current Rust baseline passes 29 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.
 Dashboard resource watches are canceled before DCP Dashboard deletion, with
@@ -189,17 +189,17 @@ Local macOS arm64 results use three samples per mode and implementation:
 
 | Measurement | C# NativeAOT | Rust reference |
 | --- | ---: | ---: |
-| Complete server executable | 15.47 MiB | 5.58 MiB |
-| Contract-only empty server RSS | 20.84 MiB | 8.25 MiB |
-| Contract-only 100-resource server RSS | 23.41 MiB | 9.11 MiB |
-| DCP/resource-service empty server RSS | 38.53 MiB | 10.14 MiB |
+| Complete server executable | 15.47 MiB | 5.61 MiB |
+| Contract-only empty server RSS | 20.84 MiB | 8.22 MiB |
+| Contract-only 100-resource server RSS | 23.41 MiB | 9.06 MiB |
+| DCP/resource-service empty server RSS | 38.53 MiB | 10.19 MiB |
 | DCP/resource-service 100-resource server RSS | 38.61 MiB | 10.91 MiB |
-| Generic workloads ready server RSS | 39.69 MiB | 11.75 MiB |
-| Contract-only direct launch to readiness | 22.88 ms | 64.66 ms |
-| DCP/resource-service direct launch to readiness | 4.93 s | 3.11 s |
-| Direct launch to generic workload readiness | 6.81 s | 5.16 s |
-| External process tree, empty | 154.44 MiB | 153.81 MiB |
-| External process tree, workloads ready | 553.55 MiB | 547.98 MiB |
+| Generic workloads ready server RSS | 39.69 MiB | 11.83 MiB |
+| Contract-only direct launch to readiness | 22.88 ms | 44.02 ms |
+| DCP/resource-service direct launch to readiness | 4.93 s | 2.78 s |
+| Direct launch to generic workload readiness | 6.81 s | 4.59 s |
+| External process tree, empty | 154.44 MiB | 155.88 MiB |
+| External process tree, workloads ready | 553.55 MiB | 554.00 MiB |
 
 Both modes use the same complete executable; contract-only disables DCP and
 resource-service startup, rather than linking a separate minimal kernel binary.
@@ -219,7 +219,7 @@ baseline, RPC/runtime, real workloads and revisions with Dashboard browser
 checks, actual CLI server swap, auxiliary commands, and their unchanged cleanup
 assertions. Raw final C# samples are in
 `artifacts/native-hosting/ci/logs/baseline-smoke.log`; the independent Rust samples
-are in `artifacts/native-hosting/rust-baseline-e2e.log`.
+are in `artifacts/native-hosting/rust-baseline-e2e-controller-final.log`.
 
 ### Integration provider direction
 
