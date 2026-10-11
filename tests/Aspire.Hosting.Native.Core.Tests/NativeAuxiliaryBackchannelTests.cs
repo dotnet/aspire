@@ -5,7 +5,9 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Auxiliary;
+using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Aspire.Hosting.Native.Server;
 using Microsoft.Extensions.Logging.Abstractions;
 using StreamJsonRpc;
 
@@ -185,6 +187,36 @@ public class NativeAuxiliaryBackchannelTests
         var latest = Assert.Single((await rpc.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources);
         Assert.True(latest.Version > updated.Version);
         replacement.Close();
+    }
+
+    [Fact]
+    public async Task CompletedLogStreamsReleaseCapacityWithoutClientAbort()
+    {
+        var server = new NativeApplicationServer();
+        var session = server.OpenApplication();
+        var composition = session.StartGeneration();
+        var resource = composition.AddResource("cache", "custom/Cache");
+        var execution = composition.CreateExecution();
+        var writer = server.JoinResourceExecution(execution.InviteResourceExecution(resource));
+        writer.AppendResourceLog("stdout", "retained log");
+        await using var host = new NativeAuxiliaryTestHost(server, new NativeServerOptions { MaximumCliStreams = 1 });
+        var rpc = host.Connect();
+        foreach (var method in new[] { "GetConsoleLogsAsync", "GetConsoleLogBatchesAsync", "GetConsoleLogsAsync" })
+        {
+            var descriptor = await rpc.InvokeAsync<NativeCliStreamDescriptor>(method,
+                new GetConsoleLogsRequest { ResourceName = "cache" });
+            var first = await rpc.InvokeAsync<NativeCliEnumeratorResult>("$/enumerator/next", descriptor.Token);
+            Assert.False(first.Finished);
+            Assert.Single(first.Values);
+            var last = await rpc.InvokeAsync<NativeCliEnumeratorResult>("$/enumerator/next", descriptor.Token);
+            Assert.True(last.Finished);
+            Assert.Empty(last.Values);
+            // Use raw tokens so no client enumerator disposal can send an abort
+            // and accidentally hide a server-side capacity leak.
+        }
+        var watch = await rpc.InvokeAsync<NativeCliStreamDescriptor>("WatchResourcesAsync");
+        await rpc.InvokeAsync("$/enumerator/abort", watch.Token);
+        session.Close();
     }
 
     [Fact]

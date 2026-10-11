@@ -109,7 +109,7 @@ shared `NativeAuxiliarySmoke.mts` scenario exercises actual `aspire describe`,
 `logs`, `resource`, `wait`, and instance-scoped `stop`, along with independent
 connections, streamed snapshots/logs, cancellation, and Dashboard API-key
 authentication. It passes against both the published C# NativeAOT server and
-the independent Rust server. The native regression suite passes 263 tests,
+the independent Rust server. The native regression suite passes 264 tests,
 CLI launcher coverage passes 88 tests, and the current Rust baseline passes 54 tests.
 Instance-scoped stop removes the server and its workloads,
 not the launcher CLI; the test separately cleans up its signal-waiting guest.

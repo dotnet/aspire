@@ -138,7 +138,16 @@ internal static class NativeBackchannelConnection
                         }
                         else
                         {
-                            result = JsonSerializer.SerializeToElement(await cursor.NextAsync(cancellation.Token).ConfigureAwait(false),
+                            var next = await cursor.NextAsync(cancellation.Token).ConfigureAwait(false);
+                            if (next.Finished)
+                            {
+                                lock (gate)
+                                {
+                                    cursors.Remove(token);
+                                }
+                                await cursor.DisposeAsync().ConfigureAwait(false);
+                            }
+                            result = JsonSerializer.SerializeToElement(next,
                                 NativeCliJsonContext.Default.NativeCliEnumeratorResult);
                         }
                     }
