@@ -2183,6 +2183,66 @@ public class ParameterProcessorTests
         Assert.DoesNotContain(updates.Current.Snapshot.Properties, property => property.Name == KnownProperties.Parameter.Value);
     }
 
+    [Fact]
+    public async Task RequiredParameterChangedToOptional_ResolvesPromptAndUpdatesDashboard()
+    {
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var interactionService = new TestInteractionService { IsAvailable = true };
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: interactionService);
+        var parameter = CreateParameterWithMissingValue("testParam");
+        await using var updates = notificationService.WatchAsync().GetAsyncEnumerator();
+
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+        await updates.MoveNextAsync().DefaultTimeout();
+        Assert.Equal(KnownResourceStates.ValueMissing, updates.Current.Snapshot.State?.Text);
+
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        Assert.False(interaction.CancellationToken.IsCancellationRequested);
+        var waitingValue = parameter.GetValueAsync(CancellationToken.None).AsTask();
+        Assert.False(waitingValue.IsCompleted);
+
+        parameter.Required = false;
+
+        Assert.Null(await waitingValue.DefaultTimeout());
+        Assert.Null(await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+        await updates.MoveNextAsync().DefaultTimeout();
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
+        Assert.DoesNotContain(updates.Current.Snapshot.Properties, property => property.Name == KnownProperties.Parameter.Value);
+        Assert.True(interaction.CancellationToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task OptionalParameterChangedToRequired_StartsPromptAndUpdatesDashboard()
+    {
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var interactionService = new TestInteractionService { IsAvailable = true };
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: interactionService);
+        var parameter = CreateParameterWithMissingValue("testParam");
+        parameter.Required = false;
+        await using var updates = notificationService.WatchAsync().GetAsyncEnumerator();
+
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+        await updates.MoveNextAsync().DefaultTimeout();
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
+
+        parameter.Required = true;
+
+        await Assert.ThrowsAsync<MissingParameterValueException>(
+            () => parameter.GetValueAsync(CancellationToken.None).AsTask()).DefaultTimeout();
+        await updates.MoveNextAsync().DefaultTimeout();
+        Assert.Equal(KnownResourceStates.ValueMissing, updates.Current.Snapshot.State?.Text);
+
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        Assert.False(interaction.CancellationToken.IsCancellationRequested);
+
+        await parameter.SetValueAsync("resolvedValue").DefaultTimeout();
+        Assert.True(interaction.CancellationToken.IsCancellationRequested);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

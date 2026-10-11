@@ -104,16 +104,51 @@ public class ParameterResource : Resource, IExpressionValue
         get => _required;
         set
         {
-            if (_required == value)
+            ParameterResourceValueChangedEventArgs? eventArgs = null;
+
+            lock (_valueTaskLock)
             {
-                return;
+                if (_required == value)
+                {
+                    return;
+                }
+
+                _required = value;
+                if (_lazyValueWasMissing)
+                {
+                    _lazyValueWasMissing = false;
+                    _lazyValue = new Lazy<string?>(GetValue);
+                }
+
+                // Once created, WaitForValueTcs is the authoritative value source. Reconcile missing
+                // state here so requiredness changes also update existing waiters, prompts, and dashboard state.
+                if (WaitForValueTcs is { } waitForValueTcs)
+                {
+                    if (!value && !waitForValueTcs.Task.IsCompleted)
+                    {
+                        // Complete the existing source rather than replacing it so current waiters are released.
+                        waitForValueTcs.SetResult(null);
+                        eventArgs = CreateValueChangedEventArgs(value: null);
+                    }
+                    else if (!value && IsMissingValueTask(waitForValueTcs.Task))
+                    {
+                        WaitForValueTcs = waitForValueTcs = CreateWaitForValueTcs();
+                        waitForValueTcs.SetResult(null);
+                        eventArgs = CreateValueChangedEventArgs(value: null);
+                    }
+                    else if (value && waitForValueTcs.Task is { IsCompletedSuccessfully: true, Result: null or "" })
+                    {
+                        WaitForValueTcs = waitForValueTcs = CreateWaitForValueTcs();
+                        var missingValueException = CreateMissingValueException(value: null)!;
+                        waitForValueTcs.SetException(missingValueException);
+                        eventArgs = CreateValueChangedEventArgs(missingValueException);
+                    }
+                }
             }
 
-            _required = value;
-            if (_lazyValueWasMissing)
+            if (eventArgs is not null)
             {
-                _lazyValueWasMissing = false;
-                _lazyValue = new Lazy<string?>(GetValue);
+                NotifyValueChangedInBackground(eventArgs);
             }
         }
     }
@@ -466,6 +501,11 @@ public class ParameterResource : Resource, IExpressionValue
     }
 
     private static TaskCompletionSource<string?> CreateWaitForValueTcs() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private static bool IsMissingValueTask(Task<string?> task)
+    {
+        return task.Exception is { InnerExceptions: [MissingParameterValueException] };
+    }
 
     private MissingParameterValueException? CreateMissingValueException(string? value)
     {

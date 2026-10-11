@@ -104,6 +104,34 @@ public class AddParameterTests
     }
 
     [Fact]
+    public async Task ParameterWithOptional_AfterRequiredValueTaskWasFaulted_ResolvesToNull()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test");
+
+        await parameter.Resource.SetValueAsync(null).DefaultTimeout();
+
+        parameter.WithOptional();
+
+        Assert.Null(await parameter.Resource.GetValueAsync(CancellationToken.None).DefaultTimeout());
+    }
+
+    [Fact]
+    public async Task ParameterWithRequired_AfterOptionalValueTaskResolvedToNull_Throws()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var parameter = appBuilder.AddParameter("test")
+            .WithOptional();
+
+        await parameter.Resource.SetValueAsync(null).DefaultTimeout();
+
+        parameter.WithRequired();
+
+        await Assert.ThrowsAsync<MissingParameterValueException>(
+            () => parameter.Resource.GetValueAsync(CancellationToken.None).AsTask()).DefaultTimeout();
+    }
+
+    [Fact]
     public async Task OptionalParameterWithoutValue_ResolvesToNull()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
