@@ -8,7 +8,7 @@ No removal date has been agreed. It historically did two things for a C# AppHost
    (`IsAspireProjectResource=true` by default), orchestrated by the AppHost.
 2. Added implicit `PackageReference` items for the dashboard and DCP packages for the current RID.
 
-Both behaviors are now obsolete:
+Both responsibilities have supported alternatives:
 
 * **Project Resource v2** (the [`AddDotnetProject`](../src/Aspire.Hosting.Dotnet/DotnetProjectHostingExtensions.cs)
   API) replaces (1) with an explicit, discoverable call in `Program.cs`.
@@ -16,6 +16,14 @@ Both behaviors are now obsolete:
   DCP from the Aspire CLI installation instead of adding RID-specific package references.
 
 This guide walks through migrating a C# AppHost project off `Aspire.AppHost.Sdk`.
+The SDK deprecation does not deprecate `AddProject`; original resource APIs remain
+available with the functional SDK for staged migration.
+
+Agent-assisted migration belongs to the existing
+[`aspire-project-v2-migration` plugin skill](https://github.com/microsoft/aspire-skills/blob/main/skills/aspire-project-v2-migration/SKILL.md),
+not a duplicate repository-local skill. Its capability-gated SDK-removal guidance
+is proposed in [microsoft/aspire-skills#93](https://github.com/microsoft/aspire-skills/pull/93);
+until that companion merges and publishes, do not assume an installed plugin has it.
 
 ## 1. Switch the project SDK
 
