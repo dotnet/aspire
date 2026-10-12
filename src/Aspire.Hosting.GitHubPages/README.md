@@ -94,6 +94,8 @@ Vite's default build-only publishing mode is supported. Server/SSR publishing an
 
 Other container images can supply static content using exactly one `ContainerFilesSourceAnnotation` with an absolute directory path, together with `WithComputeEnvironment(pages)`. Their build must already produce content configured for the declared base path. A supplied image must exist locally; extraction does not pull it. Container-file producers use the same image-build pipeline and file-consumer annotations as other Aspire publishing integrations.
 
+Aspire manifest publishing is not supported for GitHub Pages.
+
 There is no Pages publisher, simulator, backend CORS wiring, late-bound backend build configuration, or provider authentication in this stage. No private-site visibility, DNS, HTTPS readiness, artifact size limits, SPA rewrites, or publication success is inferred from bundle generation.
 
 ## Additional documentation

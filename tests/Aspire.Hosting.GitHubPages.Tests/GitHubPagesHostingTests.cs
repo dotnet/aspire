@@ -96,6 +96,16 @@ public class GitHubPagesHostingTests(ITestOutputHelper outputHelper)
         Assert.Empty(pages.Resource.Annotations.OfType<PipelineStepAnnotation>());
     }
 
+    [Fact]
+    public void PublishModeDoesNotRegisterManifestPublishing()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var pages = builder.AddGitHubPagesEnvironment("pages", "owner/repo");
+
+        Assert.Same(pages.Resource, Assert.Single(builder.Resources.OfType<GitHubPagesEnvironmentResource>()));
+        Assert.Empty(pages.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
+    }
+
     [Theory]
     [InlineData(EndpointProperty.Url, "https://owner.github.io/repo/")]
     [InlineData(EndpointProperty.Host, "owner.github.io")]

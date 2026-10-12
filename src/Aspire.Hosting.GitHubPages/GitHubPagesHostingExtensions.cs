@@ -116,19 +116,6 @@ public static class GitHubPagesHostingExtensions
                 {
                     bundleStep.DependsOn(buildStep.Name);
                 }
-            })
-            .WithManifestPublishingCallback(context =>
-            {
-                context.Writer.WriteString("type", "github-pages.environment.v0");
-                context.Writer.WriteString("repository", environment.Repository);
-                context.Writer.WriteString("url", environment.SiteUrl.AbsoluteUri);
-                context.Writer.WriteString("origin", environment.Origin);
-                context.Writer.WriteString("basePath", environment.BasePath);
-                if (environment.Site is { } site)
-                {
-                    context.Writer.WriteString("source", site.Source.Name);
-                }
-                return Task.CompletedTask;
             });
     }
 
