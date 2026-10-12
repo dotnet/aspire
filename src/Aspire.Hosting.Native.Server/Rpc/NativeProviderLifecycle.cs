@@ -103,7 +103,7 @@ internal sealed partial class NativeProviderRegistry
         {
             // Revocation precedes cancellation acknowledgement: an in-flight
             // callback cannot keep executing native work after its phase ends.
-            authority.Dispose();
+            authority.Revoke();
             if (!peer.Closed.IsCancellationRequested)
             {
                 using var cancelDeadline = new CancellationTokenSource(options.ProviderInvocationTimeout, options.TimeProvider);
@@ -123,7 +123,7 @@ internal sealed partial class NativeProviderRegistry
         }
         finally
         {
-            authority.Dispose();
+            authority.Revoke();
             try
             {
                 await authority.DrainAsync().ConfigureAwait(false);

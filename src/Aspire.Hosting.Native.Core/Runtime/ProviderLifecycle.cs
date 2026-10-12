@@ -23,26 +23,42 @@ internal sealed class UnavailableProviderLifecycleDispatcher : IProviderLifecycl
 }
 
 /// <summary>Grants one phase native execution with captured inputs, never credential inspection or declaration access.</summary>
-internal sealed class ResourceLifecycleAuthority(string phase, ImmutableDictionary<string, string> values,
-    Func<WorkloadPlan, CancellationToken, Task<bool>> execute, Action<LogStream, string> log,
-    CancellationToken cancellationToken) : IDisposable
+internal sealed class ResourceLifecycleAuthority : IDisposable
 {
-    private readonly CancellationTokenSource _lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    private readonly CancellationTokenSource _lifetime;
+    private readonly CancellationToken _token;
+    private readonly ImmutableDictionary<string, string> _values;
+    private readonly Func<WorkloadPlan, CancellationToken, Task<bool>> _execute;
+    private readonly Action<LogStream, string> _log;
     private readonly Lock _gate = new();
     private readonly List<Task<bool>> _executions = [];
-    public string Phase { get; } = phase;
-    public bool IsRevoked => _lifetime.IsCancellationRequested;
+    private bool _disposed;
+
+    public ResourceLifecycleAuthority(string phase, ImmutableDictionary<string, string> values,
+        Func<WorkloadPlan, CancellationToken, Task<bool>> execute, Action<LogStream, string> log,
+        CancellationToken cancellationToken)
+    {
+        Phase = phase;
+        _values = values;
+        _execute = execute;
+        _log = log;
+        _lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _token = _lifetime.Token;
+    }
+
+    public string Phase { get; }
+    public bool IsRevoked => _token.IsCancellationRequested;
     public void AppendLog(LogStream stream, string message)
     {
-        _lifetime.Token.ThrowIfCancellationRequested();
-        log(stream, message);
+        _token.ThrowIfCancellationRequested();
+        _log(stream, message);
     }
 
     public Task<bool> RunExecutable(ExecutableWorkload template, SymbolicWorkloadBindings bindings)
     {
-        _lifetime.Token.ThrowIfCancellationRequested();
+        _token.ThrowIfCancellationRequested();
         bindings.Validate(template);
-        string Resolve(string key) => values.TryGetValue(key, out var value) ? value :
+        string Resolve(string key) => _values.TryGetValue(key, out var value) ? value :
             throw new InvalidOperationException("The lifecycle field is unavailable in this phase.");
         var environment = template.Environment.AddRange(bindings.Environment.Select(binding =>
             new WorkloadEnvironment(binding.Name, Resolve(binding.ConfigurationKey))));
@@ -56,8 +72,8 @@ internal sealed class ResourceLifecycleAuthority(string phase, ImmutableDictiona
 
         lock (_gate)
         {
-            _lifetime.Token.ThrowIfCancellationRequested();
-            var execution = execute(plan, _lifetime.Token);
+            _token.ThrowIfCancellationRequested();
+            var execution = _execute(plan, _token);
             _executions.Add(execution);
             _ = execution.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -84,11 +100,34 @@ internal sealed class ResourceLifecycleAuthority(string phase, ImmutableDictiona
         }
     }
 
+    public void Revoke()
+    {
+        lock (_gate)
+        {
+            if (!_disposed)
+            {
+                _lifetime.Cancel();
+            }
+        }
+    }
+
     public void Dispose()
     {
         lock (_gate)
         {
-            _lifetime.Cancel();
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            try
+            {
+                _lifetime.Cancel();
+            }
+            finally
+            {
+                _lifetime.Dispose();
+            }
         }
     }
 }

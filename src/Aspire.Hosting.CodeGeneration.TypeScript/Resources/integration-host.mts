@@ -121,7 +121,7 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
     });
     connection.onClose(() => {
         log("Connection closed");
-        void shutdown();
+        return shutdown();
     });
 
     const client = AspireClient.fromConnection(connection, socket, log);

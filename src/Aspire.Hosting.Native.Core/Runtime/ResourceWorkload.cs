@@ -230,6 +230,7 @@ internal sealed class ResourceWorkload(
             _lease = lease;
             publish(ResourceState.Running, lease.Endpoint);
             await allocated(lease.Endpoint, startup.Token).ConfigureAwait(false);
+            startup.StopTimeout();
             _ready.TrySetResult(lease.Endpoint);
             while (true)
             {

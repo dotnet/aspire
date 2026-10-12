@@ -53,7 +53,7 @@ export class TunnelOutputParser {
         const uri = new URL(text);
         const local = this.localFixture && uri.protocol === 'http:' && uri.hostname === '127.0.0.1';
         const external = uri.protocol === 'https:' && uri.port === '' && uri.hostname.endsWith('.devtunnels.ms') &&
-            uri.hostname.split('.')[0].endsWith(`-${this.targetPort}`);
+            uri.hostname.split('.')[0] === `${this.tunnelId.split('.')[0]}-${this.targetPort}`;
         if ((!local && !external) || uri.username || uri.password || uri.search || uri.hash || uri.pathname !== '/') {
             throw new Error('Dev Tunnels reported an invalid public endpoint.');
         }

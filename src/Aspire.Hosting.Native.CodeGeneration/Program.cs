@@ -215,7 +215,6 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
     // Generated native server bootstrap from the ATS entry-point declaration.
     import { createConnection } from 'node:net';
     import { spawn } from 'node:child_process';
-    import { once } from 'node:events';
     import * as rpc from 'vscode-jsonrpc/node.js';
     import './aspire.mjs';
     import type { NativeApplicationServer } from './aspire.mjs';
@@ -274,13 +273,40 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                     // Drain both pipes without logging untrusted provider payloads.
                     process.stdout.resume();
                     process.stderr.resume();
-                    const close = async () => {
-                        if (process.exitCode === null && process.signalCode === null) {
-                            const exited = once(process, 'exit');
-                            process.kill('SIGTERM');
-                            await exited;
+                    // 'close' follows exit and stdio release, unlike 'exit' alone.
+                    // https://nodejs.org/api/child_process.html#event-close
+                    const released = new Promise<void>((resolve, reject) => {
+                        process.once('error', reject);
+                        process.once('close', () => resolve());
+                    });
+                    // A spawn/kill error can precede registration completion.
+                    // Observe it now; close still reports the original failure.
+                    void released.catch(() => {});
+                    const waitForRelease = async (): Promise<boolean> => {
+                        let timer: ReturnType<typeof setTimeout> | undefined;
+                        try {
+                            return await Promise.race([
+                                released.then(() => true),
+                                new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), 5000); })
+                            ]);
+                        } finally {
+                            clearTimeout(timer);
                         }
                     };
+                    let closing: Promise<void> | undefined;
+                    const close = (): Promise<void> => closing ??= (async () => {
+                        if (process.exitCode === null && process.signalCode === null) {
+                            process.kill('SIGTERM');
+                        }
+                        if (!await waitForRelease()) {
+                            if (process.exitCode === null && process.signalCode === null && !process.kill('SIGKILL')) {
+                                throw new Error('The provider could not be forcibly stopped.');
+                            }
+                            if (!await waitForRelease()) {
+                                throw new Error('The provider did not release its process and streams after forced shutdown.');
+                            }
+                        }
+                    })();
                     try {
                         await connection.sendRequest('waitIntegrationHostRegistration', authority);
                         if (process.exitCode !== null || process.signalCode !== null) {
@@ -288,7 +314,11 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                         }
                         return { close };
                     } catch (error) {
-                        await close();
+                        try {
+                            await close();
+                        } catch (cleanupError) {
+                            throw new AggregateError([error, cleanupError], 'Provider activation and cleanup failed.');
+                        }
                         throw error;
                     }
                 }

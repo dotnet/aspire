@@ -131,7 +131,7 @@ bash eng/scripts/test-native-hosting.sh osx-arm64
 ```
 
 The harness restores the repository, builds CLI/Dashboard in Debug using the
-default framework, publishes server/smoke in Release for net10, and installs
+default framework, publishes server/smoke in Release for net11, and installs
 isolated npm/browser dependencies under `artifacts/native-hosting/ci` without
 editing repository manifests. It executes RPC, runtime, workloads, revisions,
 CLI, and auxiliary protocol/command scenarios; workload/revision/CLI scenarios

@@ -6,12 +6,40 @@ using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Server;
 using System.Text.Json;
+using System.Collections.Immutable;
 using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderLifecycleTests
 {
+    [Fact]
+    public async Task PhaseRevocationDrainsExecutionBeforeIdempotentCancellationSourceDisposal()
+    {
+        using var parent = new CancellationTokenSource();
+        CancellationToken executionToken = default;
+        using var authority = new ResourceLifecycleAuthority("ready", ImmutableDictionary<string, string>.Empty,
+            async (_, token) =>
+            {
+                executionToken = token;
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+
+                return true;
+            }, (_, _) => { }, parent.Token);
+        var execution = authority.RunExecutable(new ExecutableWorkload(Environment.ProcessPath!, AppContext.BaseDirectory,
+            [], [], []), new SymbolicWorkloadBindings([], []));
+        authority.Revoke();
+        Assert.True(executionToken.IsCancellationRequested);
+        await authority.DrainAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => execution);
+        authority.Dispose();
+        authority.Dispose();
+        Assert.True(authority.IsRevoked);
+        Assert.ThrowsAny<OperationCanceledException>(() => authority.AppendLog(LogStream.Stdout, "late log"));
+        Assert.Throws<ObjectDisposedException>(() => executionToken.WaitHandle);
+        await parent.CancelAsync();
+    }
+
     [Theory]
     [InlineData("phase")]
     [InlineData("scope")]

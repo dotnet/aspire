@@ -136,6 +136,34 @@ public class NativeTimeProviderTests
     }
 
     [Fact]
+    public async Task SuccessfulStartupStopsItsBudgetButRetainsParentCancellation()
+    {
+        var clock = new FakeTimeProvider();
+        CancellationToken startupToken = default;
+        var executor = new WorkloadTestExecutor
+        {
+            BeforeStart = token =>
+            {
+                startupToken = token;
+
+                return Task.CompletedTask;
+            }
+        };
+        executor.ReleaseCleanup();
+        using var model = new ApplicationModel(clock);
+        var handle = model.AddResource("cache", "example/Cache");
+        using var runtime = new RuntimeGeneration(model.Seal(), executor,
+            new NativeRuntimeOptions { TimeProvider = clock, WorkloadStartupTimeout = TimeSpan.FromSeconds(2) });
+        using var owner = runtime.ClaimResource(handle);
+        await owner.StartWorkload(new ContainerWorkload("example:1", 0, [], []));
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.False(startupToken.IsCancellationRequested);
+        runtime.Dispose();
+        await runtime.Completion;
+        Assert.True(startupToken.IsCancellationRequested);
+    }
+
+    [Fact]
     public async Task DependencyReadinessDoesNotConsumeTheWorkloadStartupBudget()
     {
         var clock = new FakeTimeProvider();

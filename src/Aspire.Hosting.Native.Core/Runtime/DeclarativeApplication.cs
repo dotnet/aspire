@@ -199,9 +199,17 @@ internal sealed partial class RuntimeGeneration
                 }
                 finally
                 {
-                    lock (_gate)
+                    try
                     {
-                        provider.ActiveInvocations--;
+                        authority.Revoke();
+                        await authority.DrainAsync().ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        lock (_gate)
+                        {
+                            provider.ActiveInvocations--;
+                        }
                     }
                 }
             }

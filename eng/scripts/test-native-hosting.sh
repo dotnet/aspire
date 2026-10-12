@@ -88,6 +88,7 @@ fi
 run_logged browser-install "$sdk/node_modules/.bin/playwright" "${browser_args[@]}"
 run_logged sdk-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$sdk/out" "$sdk/"*.mts
+run_logged provider-shutdown-smoke node "$sdk/out/NativeProviderShutdownSmoke.mjs"
 
 # Real integration authoring examples are separate from transport/workload fixtures.
 run_logged csharp-provider-build dotnet build playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj -c Debug
