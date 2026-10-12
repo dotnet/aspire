@@ -4,7 +4,10 @@
 #pragma warning disable ASPIREJAVASCRIPT001
 
 using System.Runtime.CompilerServices;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.JavaScript.Tests;
 
@@ -177,6 +180,61 @@ public class WorkspaceValidationTests(ITestOutputHelper outputHelper)
 
         Assert.Contains("web-typo", ex.Message);
         Assert.Contains("not a declared workspace member", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("npm")]
+    [InlineData("yarn")]
+    [InlineData("pnpm")]
+    [InlineData("bun")]
+    public async Task RunModeConfiguresInstallerWithoutLockfile(string packageManager)
+    {
+        using var tempDir = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var root = Path.Combine(tempDir.Path, "ws");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "package.json"), """{ "name": "root", "workspaces": ["packages/*"] }""");
+        if (packageManager == "pnpm")
+        {
+            File.WriteAllText(Path.Combine(root, "pnpm-workspace.yaml"), "packages:\n  - \"packages/*\"\n");
+        }
+        var memberDir = Path.Combine(root, "packages", "web");
+        Directory.CreateDirectory(memberDir);
+        File.WriteAllText(Path.Combine(memberDir, "package.json"), """{ "name": "web", "scripts": { "dev": "vite" } }""");
+
+        IResourceBuilder<JavaScriptWorkspaceResource> workspace = packageManager switch
+        {
+            "npm" => builder.AddNpmWorkspace("ws", root),
+            "yarn" => builder.AddYarnWorkspace("ws", root),
+            "pnpm" => builder.AddPnpmWorkspace("ws", root),
+            "bun" => builder.AddBunWorkspace("ws", root),
+            _ => throw new ArgumentOutOfRangeException(nameof(packageManager))
+        };
+        workspace.AddJavaScriptApp("web", "web", "packages/web");
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var installer = Assert.Single(model.Resources.OfType<JavaScriptInstallerResource>());
+        Assert.Equal(packageManager, installer.Command);
+        Assert.Equal(root, installer.WorkingDirectory);
+        Assert.Equal(["install"], await ArgumentEvaluator.GetArgumentListAsync(installer));
+    }
+
+    [Fact]
+    public async Task PublishStillRequiresLockfile()
+    {
+        using var tempDir = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+        var root = CreatePnpmWorkspace(tempDir.Path);
+        File.Delete(Path.Combine(root, "pnpm-lock.yaml"));
+        var workspace = builder.AddPnpmWorkspace("ws", root);
+        var app = workspace.AddJavaScriptApp("web", "web", "packages/web").WithBuildScript("build");
+
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(() => ManifestUtils.GetManifest(app.Resource, tempDir.Path));
+
+        Assert.Contains("has no recognized lockfile", ex.Message);
     }
 
     private static string CreatePnpmWorkspace(string basePath)

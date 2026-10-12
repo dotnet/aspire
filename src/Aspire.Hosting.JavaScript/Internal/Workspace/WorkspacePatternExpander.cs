@@ -29,11 +29,10 @@
 // matching to Microsoft.Extensions.FileSystemGlobbing's Matcher, which implements
 // the same glob dialect, rather than reimplementing it.
 //
-// Two directory kinds are always pruned during the walk, before patterns are
-// applied, because no package manager ever treats them as members:
-//   - node_modules: installed dependencies carry package.json files; walking
-//     them on a real repo would also be pathologically slow.
-//   - dot-directories (".git", ".turbo", ".cache", ...): hidden tooling state.
+// node_modules is always pruned: installed dependencies carry package.json files,
+// and walking them on a real repo would also be pathologically slow.
+// Dot-directories require an explicitly dot-prefixed pattern segment; ordinary
+// wildcards must not discover hidden tooling state such as ".git" or ".cache".
 
 using Microsoft.Extensions.FileSystemGlobbing;
 
@@ -61,7 +60,7 @@ internal static class WorkspacePatternExpander
         // and directory names are conventionally lowercase, so case folding would only mask
         // mistakes rather than help.
         var matcher = new Matcher(StringComparison.Ordinal);
-        var hasInclude = false;
+        var includePatterns = new List<string>();
         foreach (var rawPattern in patterns)
         {
             var pattern = rawPattern?.Trim() ?? string.Empty;
@@ -92,22 +91,30 @@ internal static class WorkspacePatternExpander
             else
             {
                 matcher.AddInclude(fileGlob);
-                hasInclude = true;
+                includePatterns.Add(normalized);
             }
         }
 
         // A declaration consisting solely of negations (or nothing) selects no members, the
         // same as pnpm/npm would resolve it.
-        if (!hasInclude)
+        if (includePatterns.Count == 0)
         {
             return [];
         }
 
-        // Collect every candidate package directory once (node_modules and dot-dirs pruned),
-        // then let the matcher filter that in-memory list. Matcher.Match operates purely on the
-        // supplied relative paths, so no second filesystem walk happens here.
-        var candidateManifests = new List<string>();
-        CollectPackageManifests(new DirectoryInfo(rootPath), relativePrefix: string.Empty, candidateManifests);
+        // Traverse each include independently so allowing "packages/.cache" does not let
+        // a separate "**" include discover packages beneath that hidden directory.
+        // The final matcher still applies all exclusions to the combined candidates.
+        var candidateManifests = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var pattern in includePatterns)
+        {
+            var segments = pattern.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .Where(segment => segment != ".").ToArray();
+            var segmentMatchers = segments.Select(segment =>
+                new Matcher(StringComparison.Ordinal).AddInclude(segment + PackageJsonSuffix)).ToArray();
+            CollectPackageManifests(new DirectoryInfo(rootPath), string.Empty, segments, segmentMatchers,
+                patternIndex: 0, candidateManifests, []);
+        }
 
         var results = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var match in matcher.Match(candidateManifests).Files)
@@ -139,34 +146,55 @@ internal static class WorkspacePatternExpander
         return normalized;
     }
 
-    private static void CollectPackageManifests(DirectoryInfo directory, string relativePrefix, List<string> manifests)
+    private static void CollectPackageManifests(DirectoryInfo directory, string relativePrefix,
+        string[] segments, Matcher[] segmentMatchers, int patternIndex, HashSet<string> manifests,
+        HashSet<(string RelativePath, int PatternIndex)> visited)
     {
-        if (!directory.Exists)
+        if (!directory.Exists || !visited.Add((relativePrefix, patternIndex)))
         {
             return;
+        }
+
+        if (patternIndex == segments.Length)
+        {
+            if (relativePrefix.Length > 0 && File.Exists(Path.Combine(directory.FullName, PackageJsonFileName)))
+            {
+                manifests.Add(relativePrefix + PackageJsonSuffix);
+            }
+
+            return;
+        }
+
+        var segment = segments[patternIndex];
+        var recursive = segment == "**";
+        if (recursive)
+        {
+            // "**/.workspace/*" may match zero visible ancestors before the explicit
+            // hidden segment. Recursive wildcards themselves never consume hidden names.
+            CollectPackageManifests(directory, relativePrefix, segments, segmentMatchers,
+                patternIndex + 1, manifests, visited);
         }
 
         foreach (var child in directory.EnumerateDirectories())
         {
             var name = child.Name;
 
-            // Prune node_modules and dot-directories before recursing: they never contain
-            // workspace members and node_modules in particular can be enormous.
-            if (name.Length == 0 || name[0] == '.' || string.Equals(name, "node_modules", StringComparison.Ordinal))
+            // Explicit includes cannot opt into installed dependencies. Hidden directories
+            // are only reachable through a dot-prefixed segment in this particular include.
+            if (name.Length == 0 || string.Equals(name, "node_modules", StringComparison.Ordinal)
+                || (name[0] == '.' && !segment.StartsWith('.')))
+            {
+                continue;
+            }
+
+            if (!recursive && !segmentMatchers[patternIndex].Match(name + PackageJsonSuffix).HasMatches)
             {
                 continue;
             }
 
             var relative = relativePrefix.Length == 0 ? name : $"{relativePrefix}/{name}";
-
-            if (File.Exists(Path.Combine(child.FullName, PackageJsonFileName)))
-            {
-                manifests.Add(relative + PackageJsonSuffix);
-            }
-
-            // Recurse even into directories that are themselves members: pnpm "packages/**"
-            // can match packages nested below another package's directory.
-            CollectPackageManifests(child, relative, manifests);
+            CollectPackageManifests(child, relative, segments, segmentMatchers,
+                recursive ? patternIndex : patternIndex + 1, manifests, visited);
         }
     }
 }

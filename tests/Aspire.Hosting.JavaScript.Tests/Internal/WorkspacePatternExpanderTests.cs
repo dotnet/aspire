@@ -61,6 +61,106 @@ public class WorkspacePatternExpanderTests
     }
 
     [Fact]
+    public void LiteralHiddenPathWithPackageJsonIncluded()
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage("packages/.cache");
+
+        var members = WorkspacePatternExpander.Expand(root.Path, ["./packages\\.cache/"]);
+
+        Assert.Equal(["packages/.cache"], members);
+    }
+
+    [Fact]
+    public void WildcardsDoNotIncludeOtherHiddenPathsAlongsideExplicitIncludes()
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage("packages/web");
+        root.CreatePackage("packages/.cache");
+        root.CreatePackage("packages/.cache/nested");
+        root.CreatePackage("packages/.other");
+        root.CreatePackage("apps/.cache");
+
+        var members = WorkspacePatternExpander.Expand(root.Path, ["**", "packages/*", "packages/.cache"]);
+
+        Assert.Equal(["packages/.cache", "packages/web"], members);
+    }
+
+    [Theory]
+    [InlineData(".workspace/apps/web")]
+    [InlineData(".workspace/apps/*")]
+    [InlineData(".workspace/./apps/*")]
+    [InlineData(".work*/apps/*")]
+    [InlineData(".workspace/**")]
+    [InlineData("**/.workspace/apps/*")]
+    [InlineData("**/**/.workspace/apps/*")]
+    public void ExplicitHiddenAncestorAllowsVisibleDescendants(string pattern)
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage(".workspace/apps/web");
+        root.CreatePackage(".workspace/apps/.cache");
+        root.CreatePackage(".workspace/.nested/apps/web");
+
+        var members = WorkspacePatternExpander.Expand(root.Path, [pattern]);
+
+        Assert.Equal([".workspace/apps/web"], members);
+    }
+
+    [Fact]
+    public void EachHiddenAncestorRequiresAnExplicitPatternSegment()
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage(".workspace/.nested/web");
+        root.CreatePackage(".workspace/.nested/other");
+        root.CreatePackage(".workspace/visible/.nested/web");
+
+        var members = WorkspacePatternExpander.Expand(root.Path,
+            ["**", ".workspace/**", ".workspace/.nested/web"]);
+
+        Assert.Equal([".workspace/.nested/web"], members);
+    }
+
+    [Fact]
+    public void RecursiveWildcardReachesExplicitHiddenSegmentBelowVisibleAncestors()
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage("group/.workspace/apps/web");
+        root.CreatePackage("group/.hidden/.workspace/apps/web");
+
+        var members = WorkspacePatternExpander.Expand(root.Path, ["**/.workspace/apps/*"]);
+
+        Assert.Equal(["group/.workspace/apps/web"], members);
+    }
+
+    [Theory]
+    [InlineData("!.workspace/apps/web")]
+    [InlineData("!**/web")]
+    public void NegationExcludesExplicitlyIncludedHiddenPaths(string exclusion)
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage(".workspace/apps/api");
+        root.CreatePackage(".workspace/apps/web");
+
+        var members = WorkspacePatternExpander.Expand(root.Path, [".workspace/apps/*", exclusion]);
+
+        Assert.Equal([".workspace/apps/api"], members);
+    }
+
+    [Fact]
+    public void ExplicitHiddenPathsStillPruneNodeModules()
+    {
+        using var root = new TempWorkspace();
+        root.CreatePackage(".workspace/web");
+        root.CreatePackage(".workspace/node_modules/dep");
+        root.CreatePackage("node_modules/.workspace/dep");
+
+        var members = WorkspacePatternExpander.Expand(root.Path,
+            [".workspace/**", ".workspace/node_modules/dep", "node_modules/.workspace/dep"]);
+
+        Assert.Equal([".workspace/web"], members);
+    }
+
+    [Fact]
     public void LiteralPathWithoutPackageJsonExcluded()
     {
         using var root = new TempWorkspace();

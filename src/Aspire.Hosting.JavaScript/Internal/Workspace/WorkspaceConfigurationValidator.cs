@@ -33,8 +33,8 @@ internal static class WorkspaceConfigurationValidator
     /// <param name="workspace">The workspace resource.</param>
     /// <param name="memberApps">The member apps belonging to this workspace.</param>
     /// <param name="isPublishMode">
-    /// <see langword="true"/> when running in publish/deploy mode. The pnpm-10 <c>injectWorkspacePackages</c>
-    /// check only fires in this mode because it concerns the generated <c>pnpm deploy</c> Dockerfile.
+    /// <see langword="true"/> when running in publish/deploy mode. Lockfile presence and the pnpm-10
+    /// <c>injectWorkspacePackages</c> checks only fire in this mode because they concern the generated Dockerfile.
     /// </param>
     public static void Validate(JavaScriptWorkspaceResource workspace, IReadOnlyList<JavaScriptAppResource> memberApps, bool isPublishMode)
     {
@@ -71,7 +71,8 @@ internal static class WorkspaceConfigurationValidator
         {
             diagnostics.Add($"Workspace root '{root}' is missing package.json.");
         }
-        if (!manifests.HasLockfile)
+        // Mutable run-mode installs can create the first lockfile; publishing needs one for reproducible installs.
+        if (isPublishMode && !manifests.HasLockfile)
         {
             diagnostics.Add(
                 $"Workspace root '{root}' has no recognized lockfile " +

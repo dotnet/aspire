@@ -5,6 +5,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -136,6 +137,55 @@ public class WorkspaceTests(ITestOutputHelper outputHelper)
         var dockerfile = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, "web.Dockerfile"));
 
         await Verify(dockerfile);
+    }
+
+    [Theory]
+    [InlineData("javascript")]
+    [InlineData("node")]
+    [InlineData("vite")]
+    [InlineData("bun")]
+    public async Task VerifyPnpmWorkspaceDockerfileQuotesDependencyBuildScript(string appType)
+    {
+        using var tempDir = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
+        var root = Path.Combine(tempDir.Path, "ws");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "package.json"), """{ "name": "root" }""");
+        File.WriteAllText(Path.Combine(root, "pnpm-workspace.yaml"), "packages:\n  - \"packages/*\"\n");
+        File.WriteAllText(Path.Combine(root, "pnpm-lock.yaml"), string.Empty);
+        var memberDir = Path.Combine(root, "packages", "web");
+        Directory.CreateDirectory(memberDir);
+        File.WriteAllText(Path.Combine(memberDir, "package.json"), """{ "name": "web", "scripts": { "build prod's;$HOME": "vite build", "dev": "vite" } }""");
+
+        var workspace = builder.AddPnpmWorkspace("ws", root);
+        IResourceBuilder<JavaScriptAppResource> app = appType switch
+        {
+            "javascript" => workspace.AddJavaScriptApp("web", "web", "packages/web"),
+            "node" => workspace.AddNodeApp("web", "web", "dist/index.js", "packages/web"),
+            "vite" => workspace.AddViteApp("web", "web", "packages/web"),
+            "bun" => workspace.AddBunApp("web", "web", "dist/index.js", "packages/web"),
+            _ => throw new ArgumentOutOfRangeException(nameof(appType))
+        };
+        app.WithBuildScript("build prod's;$HOME");
+
+        await ManifestUtils.GetManifest(app.Resource, tempDir.Path);
+
+        var dockerfile = await File.ReadAllTextAsync(Path.Combine(tempDir.Path, "web.Dockerfile"));
+        await Verify(dockerfile).UseParameters(appType);
+    }
+
+    [Fact]
+    public async Task WorkspaceNodeDevelopmentScriptDoesNotRequireCompiledEntrypoint()
+    {
+        using var tempDir = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var workspace = builder.AddPnpmWorkspace("ws", tempDir.Path);
+        var nodeApp = workspace.AddNodeApp("api", "api", "dist/index.js", "packages/api")
+            .WithRunScript("dev")
+            .WithBuildScript("build");
+
+        Assert.False(File.Exists(Path.Combine(tempDir.Path, "packages", "api", "dist", "index.js")));
+        Assert.Equal(["pnpm", "--filter", "api", "run", "dev"], await ArgumentEvaluator.GetArgumentListAsync(nodeApp.Resource));
     }
 
     [Fact]
