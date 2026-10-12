@@ -483,6 +483,36 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
     }
 
     [Fact]
+    public async Task WithContainerRegistry_UnscopedExistingRegistryKeepsInlineRole()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var registry = builder.AddAzureContainerRegistry("registry").PublishAsExisting("existingacr", resourceGroup: null);
+        var aks = builder.AddAzureKubernetesEnvironment("aks").WithContainerRegistry(registry);
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Equal(registry.Resource.NameOutputReference.ValueExpression,
+            Assert.IsType<BicepOutputReference>(aks.Resource.Parameters["acrName"]).ValueExpression);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        await Verify(manifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public async Task WithContainerRegistry_RunModePreservesInlineRole()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(
+            outputHelper, workspace, operation: DistributedApplicationOperation.Run);
+        var registry = builder.AddAzureContainerRegistry("registry").RunAsExisting("existingacr", "registry-rg");
+        var aks = builder.AddAzureKubernetesEnvironment("aks").WithContainerRegistry(registry);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        await Verify(manifest.BicepText, "bicep");
+    }
+
+    [Fact]
     public void WithSystemNodePool_CustomVmSize()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
