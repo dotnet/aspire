@@ -103,11 +103,12 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
                     > "$BOOTSTRAP_DIR/cluster-after.json"
                 diff -u "$BOOTSTRAP_DIR/cluster-before.json" "$BOOTSTRAP_DIR/cluster-after.json"
                 test "$(az aks list --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" --query 'length(@)' -o tsv)" = 0
+                # Azure CLI and Bicep can use different casing for the same ARM resource ID.
                 az deployment group list --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" \
                     --query '[].name' -o tsv | while IFS= read -r DEPLOYMENT; do
                     az deployment group show --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" \
                         --name "$DEPLOYMENT" --query properties.outputs.id.value -o tsv
-                done | grep -Fx "$Parameters__aksResourceId"
+                done | grep -Fxi "$Parameters__aksResourceId"
                 az aks get-credentials --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" \
                     --name existing-aks --file "$BOOTSTRAP_DIR/verification-kubeconfig"
                 export KUBECONFIG="$BOOTSTRAP_DIR/verification-kubeconfig"
