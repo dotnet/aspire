@@ -1677,20 +1677,23 @@ builder.Build().Run();
 
 function writeAppHostProject(projectName, resolvedAppHostSdkVersion, includeAzureFunctions, includeWinUi) {
   const projectDirectory = path.join(workspaceRoot, projectName);
+  const includeLanguageSources = matchedTestSpecs.some(specPath => path.basename(specPath) === 'treeActions.e2e.test.js');
   fs.mkdirSync(projectDirectory, { recursive: true });
   fs.mkdirSync(path.join(projectDirectory, 'e2e-source-image'), { recursive: true });
   fs.writeFileSync(path.join(projectDirectory, 'e2e-source-tool'), 'Non-filesystem source collision fixture.');
-  const pythonDirectory = path.join(projectDirectory, 'e2e-python-source');
-  const pythonInterpreter = path.join(pythonDirectory, '.venv', isWindows ? 'Scripts' : 'bin', isWindows ? 'python.exe' : 'python');
-  fs.mkdirSync(path.dirname(pythonInterpreter), { recursive: true });
-  fs.writeFileSync(pythonInterpreter, Buffer.from([0x4d, 0x5a, 0, 0]));
-  fs.writeFileSync(path.join(pythonDirectory, 'main.py'), 'print("Python source navigation fixture")\n');
-  const javaDirectory = path.join(projectDirectory, 'e2e-java-source');
-  const javaLauncher = path.join(projectDirectory, 'e2e-java-launcher', 'cmd.exe');
-  fs.mkdirSync(javaDirectory, { recursive: true });
-  fs.mkdirSync(path.dirname(javaLauncher), { recursive: true });
-  fs.writeFileSync(javaLauncher, Buffer.from([0x4d, 0x5a, 0, 0]));
-  fs.writeFileSync(path.join(javaDirectory, 'App.java'), 'class App {}\n');
+  if (includeLanguageSources) {
+    const pythonDirectory = path.join(projectDirectory, 'e2e-python-source');
+    const pythonInterpreter = path.join(pythonDirectory, '.venv', isWindows ? 'Scripts' : 'bin', isWindows ? 'python.exe' : 'python');
+    fs.mkdirSync(path.dirname(pythonInterpreter), { recursive: true });
+    fs.writeFileSync(pythonInterpreter, Buffer.from([0x4d, 0x5a, 0, 0]));
+    fs.writeFileSync(path.join(pythonDirectory, 'main.py'), 'print("Python source navigation fixture")\n');
+    const javaDirectory = path.join(projectDirectory, 'e2e-java-source');
+    const javaLauncher = path.join(projectDirectory, 'e2e-java-launcher', 'cmd.exe');
+    fs.mkdirSync(javaDirectory, { recursive: true });
+    fs.mkdirSync(path.dirname(javaLauncher), { recursive: true });
+    fs.writeFileSync(javaLauncher, Buffer.from([0x4d, 0x5a, 0, 0]));
+    fs.writeFileSync(path.join(javaDirectory, 'App.java'), 'class App {}\n');
+  }
   const outsideWorkspaceSourcePath = path.join(shortRunRoot, 'e2e-outside-workspace-source');
   fs.mkdirSync(outsideWorkspaceSourcePath, { recursive: true });
   const azureFunctionsPackageReference = includeAzureFunctions
@@ -1720,6 +1723,30 @@ ${winUiProjectReference}${azureFunctionsPackageReference}  </ItemGroup>
     : '';
   const winUiResource = includeWinUi
     ? 'builder.AddProject<Projects.AspireE2E_WinUI>("e2e-winui", launchProfileName: "E2E");\n\n'
+    : '';
+  // Launch metadata also triggers debugger-install notifications; keep those out of unrelated UI scenarios.
+  const languageSourceResources = includeLanguageSources
+    ? `// Match launch metadata with existing binaries without installing or launching Python or Java.
+foreach (var (language, launcher) in new[]
+{
+    ("python", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
+    ("java", Path.Combine(builder.AppHostDirectory, "e2e-java-launcher", "cmd.exe"))
+})
+{
+    builder.AddResource(new NoCommandsResource($"e2e-{language}-source"))
+        .WithInitialState(new CustomResourceSnapshot
+        {
+            ResourceType = "Executable",
+            State = KnownResourceStates.Running,
+            Properties = [
+                new("resource.launchConfigurationType", language),
+                new("executable.path", launcher),
+                new("executable.workDir", Path.Combine(builder.AppHostDirectory, $"e2e-{language}-source"))
+            ]
+        });
+}
+
+`
     : '';
   fs.writeFileSync(path.join(projectDirectory, 'AppHost.cs'), `${csharpFileHeader}#pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPIPELINES001
@@ -1845,27 +1872,7 @@ builder.AddResource(new NoCommandsResource("e2e-directory-source"))
         ]
     });
 
-// Match launch metadata with existing binaries without installing or launching Python or Java.
-foreach (var (language, launcher) in new[]
-{
-    ("python", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
-    ("java", Path.Combine(builder.AppHostDirectory, "e2e-java-launcher", "cmd.exe"))
-})
-{
-    builder.AddResource(new NoCommandsResource($"e2e-{language}-source"))
-        .WithInitialState(new CustomResourceSnapshot
-        {
-            ResourceType = "Executable",
-            State = KnownResourceStates.Running,
-            Properties = [
-                new("resource.launchConfigurationType", language),
-                new("executable.path", launcher),
-                new("executable.workDir", Path.Combine(builder.AppHostDirectory, $"e2e-{language}-source"))
-            ]
-        });
-}
-
-builder.AddResource(new NoCommandsResource("e2e-display-source"))
+${languageSourceResources}builder.AddResource(new NoCommandsResource("e2e-display-source"))
     .WithInitialState(new CustomResourceSnapshot
     {
         ResourceType = "Custom",

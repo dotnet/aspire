@@ -1048,8 +1048,13 @@ builder.Build().Run();
         assert.ok(spec.includes("await waitForResourceState('e2e-winui', ['Running'], 30000);"));
     });
 
-    for (const mode of ['ordinary', 'java']) {
-        test(`cleans the outside-workspace source fixture in ${mode} mode`, () => {
+    for (const [mode, spec] of [
+        ['ordinary', 'treeActions.e2e.test.js'],
+        ['java', 'treeActions.e2e.test.js'],
+        ['ordinary', 'appHostLifecycleTools.e2e.test.js'],
+        ['ordinary', 'diagnosticLogs.e2e.test.js'],
+    ]) {
+        test(`owns resource source fixtures for ${spec} in ${mode} mode`, () => {
             const runner = fs.readFileSync(path.resolve(__dirname, '..', '..', 'scripts', 'run-e2e.js'), 'utf8');
             const source = ts.createSourceFile('run-e2e.js', runner, ts.ScriptTarget.Latest, true);
             const names = new Set(['writeAppHostProject', 'cleanupTemporaryRunRoot']);
@@ -1065,6 +1070,7 @@ builder.Build().Run();
 writeAppHostProject('AspireE2E.AppHost', '13.6.0', false, false);
 cleanupTemporaryRunRoot();`, {
                 path, shortRunRoot, workspaceRoot, javaScratchWorkspaceRoot, Buffer,
+                matchedTestSpecs: [path.resolve(spec)],
                 process: { env: {}, platform: process.platform },
                 isWindows: process.platform === 'win32',
                 enableJavaE2E: mode === 'java',
@@ -1079,8 +1085,16 @@ cleanupTemporaryRunRoot();`, {
             const outsideWorkspaceSourcePath = path.join(shortRunRoot, 'e2e-outside-workspace-source');
             assert.ok(directories.includes(outsideWorkspaceSourcePath));
             assert.deepStrictEqual(removed, mode === 'java' ? [javaScratchWorkspaceRoot, shortRunRoot] : [shortRunRoot]);
-            assert.ok(files.get(path.join(workspaceRoot, 'AspireE2E.AppHost', 'AppHost.cs'))
-                ?.includes(`new("project.path", ${JSON.stringify(outsideWorkspaceSourcePath)})`));
+            const appHostSource = files.get(path.join(workspaceRoot, 'AspireE2E.AppHost', 'AppHost.cs'));
+            assert.ok(appHostSource);
+            assert.ok(appHostSource.includes(`new("project.path", ${JSON.stringify(outsideWorkspaceSourcePath)})`));
+            const includeLanguageSources = spec === 'treeActions.e2e.test.js';
+            assert.deepStrictEqual(
+                [...appHostSource.matchAll(/\("(python|java)", Path.Combine/g)].map(match => match[1]),
+                includeLanguageSources ? ['python', 'java'] : []);
+            assert.deepStrictEqual(
+                [...files.keys()].filter(file => /\.(py|java)$/.test(file)).map(file => path.basename(file)),
+                includeLanguageSources ? ['main.py', 'App.java'] : []);
         });
     }
 
