@@ -21,6 +21,7 @@ import {
     appHostSourceOpenFailed,
     resourceSourceNotFound,
     resourceSourceOpenFailed,
+    resourceSourceOutsideWorkspace,
     logFileOpenFailed,
     logFilePathInvalid,
     dashboardUrlNotFound,
@@ -1499,7 +1500,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 const sourceUri = vscode.Uri.file(sourcePath);
                 if (sourceStat.isDirectory()) {
                     if (!vscode.workspace.getWorkspaceFolder(sourceUri)) {
-                        vscode.window.showWarningMessage(resourceSourceOpenFailed(sourcePath));
+                        vscode.window.showWarningMessage(resourceSourceOutsideWorkspace(sourcePath));
                         return;
                     }
                     await vscode.commands.executeCommand('revealInExplorer', sourceUri);

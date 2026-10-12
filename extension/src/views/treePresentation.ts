@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { ResourceState, ResourceType, HealthStatus, StateStyle } from '../editor/resourceConstants';
+import { ResourceState, HealthStatus, StateStyle } from '../editor/resourceConstants';
 import { compareResourceCommands, getParameterValueDescription, getResourceSource, getResourceStateDescription } from '../utils/resourceDisplay';
 import {
     tooltipType,

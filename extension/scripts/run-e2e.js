@@ -1691,6 +1691,8 @@ function writeAppHostProject(projectName, resolvedAppHostSdkVersion, includeAzur
   fs.mkdirSync(path.dirname(javaLauncher), { recursive: true });
   fs.writeFileSync(javaLauncher, Buffer.from([0x4d, 0x5a, 0, 0]));
   fs.writeFileSync(path.join(javaDirectory, 'App.java'), 'class App {}\n');
+  const outsideWorkspaceSourcePath = path.join(shortRunRoot, 'e2e-outside-workspace-source');
+  fs.mkdirSync(outsideWorkspaceSourcePath, { recursive: true });
   const azureFunctionsPackageReference = includeAzureFunctions
     ? `    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${resolvedAppHostSdkVersion}" />\n`
     : '';
@@ -1880,6 +1882,16 @@ builder.AddResource(new NoCommandsResource("e2e-missing-source"))
         State = KnownResourceStates.Running,
         Properties = [
             new("project.path", Path.ChangeExtension(workerProjectPath, ".missing.csproj"))
+        ]
+    });
+
+builder.AddResource(new NoCommandsResource("e2e-outside-workspace-source"))
+    .WithInitialState(new CustomResourceSnapshot
+    {
+        ResourceType = "Project",
+        State = KnownResourceStates.Running,
+        Properties = [
+            new("project.path", ${JSON.stringify(outsideWorkspaceSourcePath)})
         ]
     });
 

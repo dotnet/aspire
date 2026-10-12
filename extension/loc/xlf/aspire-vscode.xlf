@@ -826,6 +826,9 @@
     <trans-unit id="aspire-vscode.strings.requiredCapability">
       <source xml:lang="en">Required capability: {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.resourceSourceOutsideWorkspace">
+      <source xml:lang="en">Resource source is outside the current workspace: {0}. Add its folder to the workspace to reveal it in Explorer.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.resourcesGroupLabel">
       <source xml:lang="en">Resources</source>
     </trans-unit>

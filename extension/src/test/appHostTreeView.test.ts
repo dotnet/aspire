@@ -24,7 +24,7 @@ import { ResourceState, HealthStatus, StateStyle } from '../editor/resourceConst
 import type { AspireSubcommand } from '../utils/AspireTerminalProvider';
 import { AspireTerminalProvider, shellArg } from '../utils/AspireTerminalProvider';
 import { AppHostLaunchService, type AppHostOperationState } from '../services/AppHostLaunchService';
-import { terminalCommandArgumentControlCharacters, appHostPathCopiedToClipboard, appHostPathInvalid, appHostSourceNotFound, loadingPipelineSteps, resourceSourceNotFound, resourceSourceOpenFailed } from '../loc/strings';
+import { terminalCommandArgumentControlCharacters, appHostPathCopiedToClipboard, appHostPathInvalid, appHostSourceNotFound, loadingPipelineSteps, resourceSourceNotFound, resourceSourceOpenFailed, resourceSourceOutsideWorkspace } from '../loc/strings';
 import { onDidInvokeCommand, withCommandTelemetry } from '../utils/telemetry';
 import type { CandidateAppHostDisplayInfo } from '../utils/appHostDiscovery';
 import {
@@ -2001,6 +2001,16 @@ suite('source navigation', () => {
             assert.deepStrictEqual(api.warning.args, resources.map(() => [resourceSourceNotFound]));
         });
 
+        test(`${viewMode} explains why a source directory outside the workspace cannot be revealed`, async () => {
+            provider = makeTreeProvider([makeAppHost({
+                appHostPath, resources: [makeResource({ properties: { 'project.path': workerDirectory } })],
+            })], viewMode);
+            api.workspaceFolder.returns(undefined);
+            await provider.openResourceSource(getResourceItems(provider)[0]);
+            assert.deepStrictEqual(api.warning.args, [[resourceSourceOutsideWorkspace(workerDirectory)]]);
+            assert.deepStrictEqual([api.open.called, api.show.called, api.reveal.called], [false, false, false]);
+        });
+
         for (const kind of ['executable', 'file', 'outside-workspace-file', 'directory']) {
             test(`${viewMode} opens ${kind} source using its owning AppHost`, async () => {
                 const source = kind === 'directory' ? workerDirectory : kind === 'outside-workspace-file' ? __filename : sourcePath;
@@ -2060,25 +2070,23 @@ suite('source navigation', () => {
         }
     }
 
-    for (const failure of ['missing', 'outside-workspace-directory', 'stat', 'open', 'show', 'reveal'] as const) {
+    for (const failure of ['missing', 'stat', 'open', 'show', 'reveal'] as const) {
         test(`reports source opening failure: ${failure}`, async () => {
             const source = failure === 'missing' ? path.join(workerDirectory, 'missing.cs')
-                : failure === 'reveal' || failure === 'outside-workspace-directory' ? workerDirectory : sourcePath;
+                : failure === 'reveal' ? workerDirectory : sourcePath;
             provider = makeTreeProvider([makeAppHost({ appHostPath, resources: [makeResource({ properties:
-                failure === 'reveal' || failure === 'outside-workspace-directory'
+                failure === 'reveal'
                     ? { 'executable.path': 'dotnet', 'executable.workDir': source } : { 'project.path': source },
             })] })]);
             const error = new Error('Source navigation failed.');
             if (failure === 'stat') {
                 sandbox.stub(fs.promises, 'stat').rejects(error);
-            } else if (failure === 'outside-workspace-directory') {
-                api.workspaceFolder.returns(undefined);
             } else if (failure !== 'missing') {
                 api[failure].rejects(error);
             }
             await provider.openResourceSource(getResourceItems(provider)[0]);
             assert.deepStrictEqual(api.warning.args, [[resourceSourceOpenFailed(source)]]);
-            if (failure === 'missing' || failure === 'stat' || failure === 'outside-workspace-directory') {
+            if (failure === 'missing' || failure === 'stat') {
                 assert.deepStrictEqual([api.open.called, api.show.called, api.reveal.called], [false, false, false]);
             }
         });

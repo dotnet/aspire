@@ -89,9 +89,11 @@ suite('utils/strings tests', () => {
         assert.deepStrictEqual(Object.fromEntries(Object.entries(packageNls).filter(([key]) => key.startsWith('aspire-vscode.strings.resourceSource'))), {
             'aspire-vscode.strings.resourceSourceNotFound': 'Could not determine the resource source to open.',
             'aspire-vscode.strings.resourceSourceOpenFailed': 'Failed to open resource source: {0}',
+            'aspire-vscode.strings.resourceSourceOutsideWorkspace': 'Resource source is outside the current workspace: {0}. Add its folder to the workspace to reveal it in Explorer.',
         });
         assert.strictEqual(locStrings.resourceSourceNotFound, 'Could not determine the resource source to open.');
         assert.strictEqual(locStrings.resourceSourceOpenFailed('frontend.ts'), 'Failed to open resource source: frontend.ts');
+        assert.strictEqual(locStrings.resourceSourceOutsideWorkspace('frontend'), 'Resource source is outside the current workspace: frontend. Add its folder to the workspace to reveal it in Explorer.');
     });
 
     test('editor assistance invocation and confirmation copy is localized and generated into XLF', () => {

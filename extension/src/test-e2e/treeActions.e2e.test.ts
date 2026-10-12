@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import { findResource, getCommandInvocationCount, getDebugLaunchCount, getTerminalCommandCount, getTreeAppHostLabel, isSamePath, waitForAppHostLaunching, waitForCommandOutcome, waitForDashboardUrl, waitForDebugConsoleOutput, waitForDebugLaunch, waitForExtensionState, waitForHttpText, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResource, waitForResourceState, waitForRunningAppHost, waitForTerminalCommand, waitForWorkspaceAppHost, waitForWorkspaceAppHostCandidate } from './helpers/assertions';
 import { assertClipboardMatchesLastExpectationForE2E, clearWorkspaceFolderCliPathsForE2E, createAdditionalAppHostCandidate, executeE2eControlCommand, removeAdditionalAppHostCandidate, restoreClipboardSnapshotForE2E, restoreE2eCliPathForE2E, restoreWorkspaceCliPath, restoreWorkspaceFoldersForE2E, runE2eTeardown, setCliUnavailableForE2E, setDebugLaunchSuppressedForE2E, setE2eCliPathForE2E, setTerminalCommandExecutionSuppressedForE2E, setWorkspaceFolderCliPathForE2E, setWorkspaceFoldersForE2E, snapshotClipboardForE2E, stopPrimaryAppHostIfRunning, writeBaselineActionCliWrapper, writeGatedDeployActionCliWrapper, writeLegacyPipelineActionCliWrapper } from './helpers/fixtures';
-import { getCliPath, getPrimaryAppHostProjectPath, getWorkspaceRoot } from './helpers/paths';
+import { getCliPath, getPrimaryAppHostProjectPath, getRunRoot, getWorkspaceRoot } from './helpers/paths';
 import { readExtensionLogs } from './helpers/logs';
 import { answerActiveInput, answerActiveInputByMessage, cancelActiveInput, chooseActiveQuickPick, executeCommandFromPalette, getActiveQuickPickLabels, openAspireView, waitForChildTreeItem, waitForExplorerSelection, waitForNotificationMessage, waitForTreeItem, waitForTreeItemDescription, waitForWorkbenchText, waitForWorkbenchTextAfterIntegratedBrowserNavigation } from './helpers/vscode';
 import { VSBrowser } from './helpers/extester';
@@ -356,6 +356,20 @@ suite('Aspire tree action command E2E', function () {
         const missingSourceNotification = await waitForNotificationMessage(missingSourceMessage);
         assert.strictEqual(await missingSourceNotification.getMessage(), missingSourceMessage);
         // The toast's hover-only dismiss button is not reliably visible on Linux.
+        await executeCommandFromPalette('Notifications: Clear All Notifications');
+
+        before = getCommandInvocationCount('aspire-vscode.openResourceSource');
+        section = await openAspireView();
+        const outsideWorkspaceSourceItem = await waitForTreeItem(section, 'e2e-outside-workspace-source', 60000);
+        const outsideWorkspaceSourceMenu = await outsideWorkspaceSourceItem.openContextMenu();
+        await outsideWorkspaceSourceMenu.select('Open resource source');
+        await waitForCommandOutcome('aspire-vscode.openResourceSource', 'success', 60000, before);
+        const runRoot = getRunRoot();
+        assert.ok(runRoot, 'Expected the owned E2E runtime directory.');
+        const outsideWorkspaceSourcePath = path.join(runRoot, 'e2e-outside-workspace-source');
+        const outsideWorkspaceSourceMessage = `Resource source is outside the current workspace: ${outsideWorkspaceSourcePath}. Add its folder to the workspace to reveal it in Explorer.`;
+        const outsideWorkspaceSourceNotification = await waitForNotificationMessage(outsideWorkspaceSourceMessage);
+        assert.strictEqual(await outsideWorkspaceSourceNotification.getMessage(), outsideWorkspaceSourceMessage);
         await executeCommandFromPalette('Notifications: Clear All Notifications');
 
         before = getCommandInvocationCount('aspire-vscode.openResourceSource');

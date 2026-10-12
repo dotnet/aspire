@@ -34,7 +34,6 @@ export const ResourceType = {
     Container: 'Container',
     Executable: 'Executable',
     Parameter: 'Parameter',
-    ExternalService: 'ExternalService',
 } as const;
 
 export type ResourceStateValue = typeof ResourceState[keyof typeof ResourceState];
