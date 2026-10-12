@@ -831,6 +831,11 @@ them before disposing local state. Disconnect revokes native authority immediate
 and bounds the caller's cleanup wait; uncooperative local invocations defer object
 disposal rather than allowing it to race integration code.
 
+Workspace retirement closes authoring immediately, but retains its cleanup-only
+capability after a failed deletion. Repeated retirement retries the runtime's
+retained cleanup obligations without replaying provider callbacks or disposal.
+Successful cleanup revokes that final workspace capability.
+
 Clocks, elapsed-time measurement, delays and timeout scheduling use an injected
 `TimeProvider`. Tests can advance time without sleeping, and cancellation must
 release the associated timers. Clock injection is a local implementation

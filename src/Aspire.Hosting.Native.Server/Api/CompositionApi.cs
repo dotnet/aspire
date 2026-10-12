@@ -135,16 +135,12 @@ internal sealed partial class Composition(CompositionSession owner, ApplicationM
 
     private static async Task RetireProviderResourcesAsync(IProviderResourceRetirement[] resources, Task cleanup)
     {
-        try
-        {
-            await cleanup.ConfigureAwait(false);
-        }
-        finally
-        {
-            // Release local objects even when a phase or workload cleanup failed.
-            // Native retirement has revoked all public declaration authorities.
-            await Task.WhenAll(resources.Select(resource => resource.RetireAsync())).ConfigureAwait(false);
-        }
+        // ExecutionCompletion and CommitRevision independently await native
+        // cleanup and report its failure. This wait only orders local release:
+        // retaining the old cleanup fault here would fence a later deletion retry
+        // even after all provider objects had already been released.
+        await cleanup.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        await Task.WhenAll(resources.Select(resource => resource.RetireAsync())).ConfigureAwait(false);
     }
 
     /// <summary>Seals declarations and creates server-owned resource execution scopes.</summary>

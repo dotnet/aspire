@@ -6,11 +6,45 @@ using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Model;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Server;
+using System.Text.Json.Nodes;
+using static Aspire.Hosting.Native.Core.Tests.TestServices.RpcTestClient;
+using static Aspire.Hosting.Native.Core.Tests.TestServices.WorkspaceRpcTestContext;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class DcpWorkloadCleanupTests
 {
+    [Fact]
+    public async Task WorkspaceRetirementRetainsOnlyCleanupAuthorityUntilFailedDeletionIsRetried()
+    {
+        var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromSeconds(10) };
+        using var handler = new DcpCleanupTestHandler();
+        var attempts = 0;
+        // Observation cleanup and the first StopAsync retry must both fail so
+        // the next workspace retirement owns the retained deletion obligation.
+        handler.BeforeDelete = (_, _) => Interlocked.Increment(ref attempts) <= 2
+            ? Task.FromException(new HttpRequestException("Transient failure"))
+            : Task.CompletedTask;
+        await using var client = handler.CreateClient(options);
+        using var context = new WorkspaceRpcTestContext(new DcpWorkloadExecutor(client, Task.CompletedTask, options));
+        EnsureSuccess(await context.Integration.InvokeAsync("startContainer", Arguments(
+            ("context", context.Writer), ("container", new JsonObject
+            {
+                ["image"] = "example:1", ["targetPort"] = 6379,
+                ["environment"] = new JsonArray(),
+                ["arguments"] = new JsonArray()
+            }))));
+        var first = await context.Author.InvokeAsync("retireApplicationWorkspace", Arguments(("context", context.Workspace)));
+        Assert.Equal("INTERNAL_ERROR", Error(first));
+        Assert.Equal(2, handler.Resources.Count);
+        Assert.Equal("HANDLE_NOT_FOUND", Error(context.Author.Invoke("beginRevision", Arguments(("context", context.Workspace)))));
+        Assert.Equal("HANDLE_NOT_FOUND", Error(context.Author.Invoke("inviteApplicationWorkspace", Arguments(("context", context.Workspace)))));
+        EnsureSuccess(await context.Author.InvokeAsync("retireApplicationWorkspace", Arguments(("context", context.Workspace))));
+        Assert.Empty(handler.Resources);
+        Assert.Equal(4, handler.Deletes.Count);
+        Assert.Equal("HANDLE_NOT_FOUND", Error(context.Author.Invoke("retireApplicationWorkspace", Arguments(("context", context.Workspace)))));
+    }
+
     [Fact]
     public async Task ConcurrentControllerCleanupSharesOneObligation()
     {
@@ -168,4 +202,9 @@ public class DcpWorkloadCleanupTests
         Assert.Empty(handler.Resources);
         Assert.Equal(4, handler.Deletes.Count);
     }
+
+    private static string Error(JsonObject response) =>
+        response["error"]?["data"]?["code"]?.GetValue<string>() ??
+        response["result"]?["$error"]?["code"]?.GetValue<string>() ??
+        throw new InvalidOperationException("The test expected an RPC error.");
 }

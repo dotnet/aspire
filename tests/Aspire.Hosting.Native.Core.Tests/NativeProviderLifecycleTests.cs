@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Native.Client;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Server;
 using System.Text.Json;
@@ -13,6 +14,38 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderLifecycleTests
 {
+    [Fact]
+    public async Task WorkspaceCleanupRetryDoesNotReplayProviderRetirementOrRetainItsOldWorkloadFailure()
+    {
+        var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromSeconds(10) };
+        using var handler = new DcpCleanupTestHandler();
+        var attempts = 0;
+        handler.BeforeDelete = (_, _) => Interlocked.Increment(ref attempts) <= 2
+            ? Task.FromException(new HttpRequestException("Transient failure"))
+            : Task.CompletedTask;
+        await using var dcp = handler.CreateClient(options);
+        await using var host = await NativeClientTestHost.StartWithExecutorAsync(
+            new DcpWorkloadExecutor(dcp, Task.CompletedTask, options), options);
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var integration = new LifecycleProviderTestIntegration();
+        await RegisterAsync(app, provider, integration);
+        var workspace = await app.Server.CreateApplicationWorkspaceAsync();
+        var revision = await workspace.BeginRevisionAsync();
+        await LifecycleProviderTestIntegration.AddAsync(revision,
+            await revision.AddSecretParameterAsync("password", "private"), "generic/service:1");
+        await workspace.CommitRevisionAsync(revision);
+        await (await revision.StartApplicationAsync()).WaitApplicationReadyAsync(15000);
+        await Assert.ThrowsAsync<NativeCapabilityException>(() => workspace.RetireApplicationWorkspaceAsync());
+        Assert.Single(handler.Resources);
+        Assert.Equal(1, integration.Resources.Single().DisposeCount);
+        await workspace.RetireApplicationWorkspaceAsync();
+        Assert.Empty(handler.Resources);
+        Assert.Equal(3, handler.Deletes.Count);
+        Assert.Equal(["initialize", "allocated", "ready", "retiring"], integration.Phases.Select(item => item.Phase));
+        Assert.Equal(1, integration.Resources.Single().DisposeCount);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

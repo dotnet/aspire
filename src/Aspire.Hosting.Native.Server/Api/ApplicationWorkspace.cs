@@ -18,12 +18,23 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
     private ApplicationExecution? _execution;
     private bool _applying;
     private bool _closed;
+    private bool _retired;
     private Exception? _applyFailure;
-    public bool IsRevoked => Volatile.Read(ref _closed);
+    // A failed cleanup retains only retirement authority. Other workspace
+    // operations reject the closed state through EnsureAvailable.
+    public bool IsRevoked => Volatile.Read(ref _retired);
 
     /// <summary>Delegates access to a subsequent AppHost connection through a one-use invitation.</summary>
     [AspireExport]
-    public string InviteApplicationWorkspace() => invitations.Issue(this, () => this);
+    public string InviteApplicationWorkspace()
+    {
+        lock (_gate)
+        {
+            EnsureAvailable();
+
+            return invitations.Issue(this, () => this);
+        }
+    }
 
     /// <summary>Begins an isolated desired-model revision while the committed application keeps running.</summary>
     [AspireExport]
@@ -149,6 +160,7 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
             await Task.WhenAll(_execution.Runtime.Completion,
                 _committed?.ProviderRetirement ?? Task.CompletedTask).ConfigureAwait(false);
         }
+        Volatile.Write(ref _retired, true);
     }
 
     internal void Close()
@@ -157,6 +169,9 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
         {
             if (_closed)
             {
+                // Runtime retirement retries retained workload deletions without
+                // replaying provider callbacks or restoring authoring authority.
+                _committed?.MarkRetired();
                 return;
             }
             _closed = true;
