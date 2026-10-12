@@ -6,7 +6,9 @@
   "changeType": "Improvements",
   "communityContributors": [],
   "description": "Dashboard consumers (Docker Compose, Kubernetes, and standalone documentation) now reference the canonical mcr.microsoft.com/aspire image repositories instead of the legacy dotnet/aspire-dashboard repositories. Generated deployments keep their existing pinned tags; only the repository name changes.",
-  "docsPrs": [],
+  "docsPrs": [
+    1679
+  ],
   "docsRequired": false,
   "emoji": "📦",
   "firstMergedAt": "2026-10-12T11:54:38Z",

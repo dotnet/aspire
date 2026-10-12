@@ -1,0 +1,9 @@
+{
+  "author": "SankeerthNara",
+  "comment": "Fixes VS Code extension re-adding a stale configured AppHost path that no longer exists",
+  "mergedAt": "2026-10-12T17:22:15Z",
+  "number": 20112,
+  "runDate": "2026-10-12T18:04:57Z",
+  "status": "included",
+  "title": "Fix VS Code extension re-adding nonexistent configured AppHost path"
+}

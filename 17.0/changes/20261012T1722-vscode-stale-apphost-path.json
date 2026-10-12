@@ -1,0 +1,21 @@
+{
+  "area": "Extensions",
+  "areaEmoji": "🧩",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [
+    "@SankeerthNara"
+  ],
+  "description": "The VS Code extension no longer re-adds a stale or mistyped configured AppHost path as a phantom, buildable candidate. Discovery and selection are now separated, so configuration can only select an AppHost that the CLI actually discovered.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "👻",
+  "firstMergedAt": "2026-10-12T17:22:15Z",
+  "lastMergedAt": "2026-10-12T17:22:15Z",
+  "name": "Fix VS Code extension re-adding stale AppHost paths",
+  "owner": "ellahathaway",
+  "prs": [
+    20112
+  ]
+}

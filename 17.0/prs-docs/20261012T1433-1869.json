@@ -1,0 +1,9 @@
+{
+  "author": "sammychinedu2ky",
+  "comment": "Docs-only fix for a standalone example; no corresponding product PR to document",
+  "mergedAt": "2026-10-12T14:33:13Z",
+  "number": 1869,
+  "runDate": "2026-10-12T18:04:57Z",
+  "status": "excluded",
+  "title": "Fix the dashboard container persistence example: mount the volume where the non-root user can write"
+}

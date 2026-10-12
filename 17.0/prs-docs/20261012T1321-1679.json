@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Documents microsoft/aspire#20177 (migration to canonical Aspire dashboard images)",
+  "mergedAt": "2026-10-12T13:21:20Z",
+  "number": 1679,
+  "runDate": "2026-10-12T18:04:57Z",
+  "status": "included",
+  "title": "docs: migrate standalone dashboard image references"
+}

@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Resource command failure toasts no longer throw a rendering exception when the output contains HTML-like text, such as Playwright assertion diagnostics. The output is now HTML-encoded and truncated to a 250-character preview, so the original diagnostic text is shown literally instead of being interpreted as markup.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧯",
+  "firstMergedAt": "2026-10-12T15:56:18Z",
+  "lastMergedAt": "2026-10-12T15:56:18Z",
+  "name": "Fix dashboard command failure toasts with HTML-like output",
+  "owner": "JamesNK",
+  "prs": [
+    20888
+  ]
+}

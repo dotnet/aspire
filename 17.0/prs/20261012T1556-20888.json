@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Fixes dashboard toast rendering exception and overflow for HTML-like command failure output",
+  "mergedAt": "2026-10-12T15:56:18Z",
+  "number": 20888,
+  "runDate": "2026-10-12T18:04:57Z",
+  "status": "included",
+  "title": "Fix dashboard command failure toasts containing HTML-like output"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test-only fix for a flaky bUnit assertion timing issue; no user-facing change",
+  "mergedAt": "2026-10-12T15:56:42Z",
+  "number": 20916,
+  "runDate": "2026-10-12T18:04:57Z",
+  "status": "excluded",
+  "title": "Fix flaky chart filter popover assertion"
+}
