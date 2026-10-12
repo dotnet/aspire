@@ -418,14 +418,16 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         var command = provider.GetRequiredService<RootCommand>();
         var selection = selectByName ? $" --skills {skill.Name}" : string.Empty;
-        var result = command.Parse($"agent init --workspace-root \"{workspace.WorkspaceRoot.FullName}\" --skill-locations all{selection}");
+        var result = command.Parse($"agent init --workspace-root \"{workspace.WorkspaceRoot.FullName}\" --agent all --scope project{selection}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        var skillDirectories = SkillLocation.All
-            .Select(location => Path.Combine(workspace.WorkspaceRoot.FullName, location.RelativeSkillDirectory, skill.Name))
-            .Append(Path.Combine(homeDirectory.FullName, SkillLocation.Standard.RelativeSkillDirectory, skill.Name));
+        var skillDirectories = new[]
+        {
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", skill.Name),
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".claude", "skills", skill.Name)
+        };
         foreach (var skillDirectory in skillDirectories)
         {
             Assert.Equal(

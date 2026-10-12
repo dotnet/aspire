@@ -22,6 +22,97 @@ public class PlaywrightCliInstallerTests
         return tempDir;
     }
 
+    [Theory]
+    [InlineData("project")]
+    [InlineData("user")]
+    public async Task InstallSelectedAsync_GeneratesOnceAndPreservesUnselectedScope(string scope)
+    {
+        var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
+        try
+        {
+            foreach (var scopeName in new[] { "project", "user" })
+            {
+                foreach (var clientFolder in new[] { ".agents", ".claude" })
+                {
+                    var directory = Path.Combine(root.FullName, scopeName, clientFolder, "skills", PlaywrightCliInstaller.PlaywrightCliSkillName);
+                    Directory.CreateDirectory(directory);
+                    await File.WriteAllTextAsync(Path.Combine(directory, "SKILL.md"), "existing skill");
+                    await File.WriteAllTextAsync(Path.Combine(directory, "stale.md"), "existing reference");
+                }
+            }
+
+            var version = SemVersion.Parse("0.1.3", SemVersionStyles.Strict);
+            var npmRunner = new TestNpmRunner { ResolveResult = new NpmPackageInfo { Version = version } };
+            var playwrightRunner = new TestPlaywrightCliRunner
+            {
+                InstallSkillsResult = true,
+                OnInstallSkills = stagingRoot =>
+                {
+                    var directory = Path.Combine(stagingRoot, PlaywrightCliInstaller.s_primarySkillBaseDirectory, PlaywrightCliInstaller.PlaywrightCliSkillName);
+                    Directory.CreateDirectory(Path.Combine(directory, "references"));
+                    File.WriteAllText(Path.Combine(directory, "SKILL.md"), "generated skill");
+                    File.WriteAllText(Path.Combine(directory, "references", "commands.md"), "generated commands");
+                }
+            };
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
+                new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var sharedDirectory = Path.Combine(root.FullName, scope, ".agents", "skills");
+            var destinations = new HashSet<string>
+            {
+                sharedDirectory,
+                sharedDirectory,
+                Path.Combine(root.FullName, scope, ".claude", "skills")
+            };
+
+            var (status, message) = await installer.InstallSelectedAsync(destinations, CancellationToken.None);
+
+            Assert.Equal(PlaywrightInstallStatus.Installed, status);
+            Assert.Null(message);
+            Assert.Equal(1, npmRunner.PackCallCount);
+            Assert.Equal(1, playwrightRunner.InstallSkillsCallCount);
+            Assert.True(npmRunner.InstallGlobalCalled);
+            Assert.NotNull(playwrightRunner.InstallSkillsWorkingDirectory);
+            Assert.False(Directory.Exists(playwrightRunner.InstallSkillsWorkingDirectory));
+            var files = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (var path in Directory.EnumerateFiles(root.FullName, "*", SearchOption.AllDirectories))
+            {
+                files.Add(Path.GetRelativePath(root.FullName, path).Replace('\\', '/'), await File.ReadAllTextAsync(path));
+            }
+            await Verify(files).UseParameters(scope);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallSelectedAsync_GenerationFailure_RemovesStagingWithoutWritingDestination()
+    {
+        var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
+        try
+        {
+            var version = SemVersion.Parse("0.1.3", SemVersionStyles.Strict);
+            var npmRunner = new TestNpmRunner { ResolveResult = new NpmPackageInfo { Version = version } };
+            var playwrightRunner = new TestPlaywrightCliRunner { InstalledVersion = version, InstallSkillsResult = false };
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
+                new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+            var (status, message) = await installer.InstallSelectedAsync(
+                new HashSet<string> { Path.Combine(root.FullName, ".agents", "skills") }, CancellationToken.None);
+
+            Assert.Equal(PlaywrightInstallStatus.Failed, status);
+            Assert.NotNull(message);
+            Assert.NotNull(playwrightRunner.InstallSkillsWorkingDirectory);
+            Assert.False(Directory.Exists(playwrightRunner.InstallSkillsWorkingDirectory));
+            Assert.Empty(root.GetFileSystemInfos());
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
     [Fact]
     public async Task InstallAsync_WhenNpmResolveReturnsNull_ReturnsErrorMessage()
     {
@@ -1007,6 +1098,7 @@ public class PlaywrightCliInstallerTests
         public bool InstallGlobalResult { get; set; } = true;
 
         public bool PackCalled { get; private set; }
+        public int PackCallCount { get; private set; }
         public bool InstallGlobalCalled { get; private set; }
         public string? ResolvedVersionRange { get; private set; }
 
@@ -1019,6 +1111,7 @@ public class PlaywrightCliInstallerTests
         public Task<string?> PackAsync(string packageName, string version, string outputDirectory, CancellationToken cancellationToken)
         {
             PackCalled = true;
+            PackCallCount++;
             if (PackResult == string.Empty)
             {
                 PackResult = Path.Combine(outputDirectory, "package.tgz");
@@ -1062,6 +1155,7 @@ public class PlaywrightCliInstallerTests
         public SemVersion? InstalledVersion { get; set; }
         public bool InstallSkillsResult { get; set; }
         public bool InstallSkillsCalled { get; private set; }
+        public int InstallSkillsCallCount { get; private set; }
         public string? InstallSkillsWorkingDirectory { get; private set; }
         public Action<string>? OnInstallSkills { get; set; }
 
@@ -1071,6 +1165,7 @@ public class PlaywrightCliInstallerTests
         public Task<bool> InstallSkillsAsync(string workingDirectory, CancellationToken cancellationToken)
         {
             InstallSkillsCalled = true;
+            InstallSkillsCallCount++;
             InstallSkillsWorkingDirectory = workingDirectory;
             OnInstallSkills?.Invoke(workingDirectory);
             return Task.FromResult(InstallSkillsResult);

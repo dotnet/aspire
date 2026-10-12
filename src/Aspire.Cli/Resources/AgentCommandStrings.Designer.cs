@@ -367,7 +367,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Initialize agent environment configuration for detected agents.
+        ///   Looks up a localized string similar to Initialize configuration and skills for selected agent clients.
         /// </summary>
         internal static string InitCommand_Description {
             get {

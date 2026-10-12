@@ -178,7 +178,7 @@ internal sealed class DeprecatedMcpCommandScanner : IAgentEnvironmentScanner
             },
             promptGroup: McpInitPromptGroup.ConfigUpdates)
         {
-            TargetPath = configPath
+            TargetPath = Path.GetFullPath(configPath)
         };
     }
 

@@ -67,7 +67,7 @@
     <value>Start the MCP (Model Context Protocol) server</value>
   </data>
   <data name="InitCommand_Description" xml:space="preserve">
-    <value>Initialize agent environment configuration for detected agents</value>
+    <value>Initialize configuration and skills for selected agent clients</value>
   </data>
   <data name="DeprecatedConfigUpdate_Description" xml:space="preserve">
     <value>Update {0} config to use new 'agent mcp' command</value>

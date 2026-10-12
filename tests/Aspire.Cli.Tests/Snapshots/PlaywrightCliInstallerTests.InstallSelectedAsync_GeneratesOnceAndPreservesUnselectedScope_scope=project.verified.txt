@@ -1,0 +1,10 @@
+﻿{
+  project/.agents/skills/playwright-cli/SKILL.md: generated skill,
+  project/.agents/skills/playwright-cli/references/commands.md: generated commands,
+  project/.claude/skills/playwright-cli/SKILL.md: generated skill,
+  project/.claude/skills/playwright-cli/references/commands.md: generated commands,
+  user/.agents/skills/playwright-cli/SKILL.md: existing skill,
+  user/.agents/skills/playwright-cli/stale.md: existing reference,
+  user/.claude/skills/playwright-cli/SKILL.md: existing skill,
+  user/.claude/skills/playwright-cli/stale.md: existing reference
+}

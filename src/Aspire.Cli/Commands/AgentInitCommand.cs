@@ -114,11 +114,12 @@ internal sealed class AgentInitCommand : BaseCommand
     private static Option<string?> CreateAgentsOption()
     {
         var supportedClients = string.Join(",", AgentClient.All.Select(static client => client.Id));
-        return new Option<string?>("--agent")
+        var option = new Option<string?>("--agent")
         {
             Description = string.Format(CultureInfo.InvariantCulture, AgentCommandStrings.InitCommand_EnvironmentsOptionDescription,
                 supportedClients, ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice),
             Recursive = true,
+            Arity = ArgumentArity.ExactlyOne,
             CustomParser = result =>
             {
                 if (result.Tokens.Count == 0)
@@ -138,6 +139,11 @@ internal sealed class AgentInitCommand : BaseCommand
                 return value;
             }
         };
+        option.CompletionSources.Clear();
+        option.CompletionSources.Add(static _ =>
+            [.. AgentClient.All.Select(static client => new CompletionItem(client.Id)),
+                new CompletionItem(ConsoleInteractionService.AllChoice), new CompletionItem(ConsoleInteractionService.NoneChoice)]);
+        return option;
     }
 
     private static Option<AgentConfigurationScope> CreateScopeOption()
@@ -473,7 +479,7 @@ internal sealed class AgentInitCommand : BaseCommand
         if (configureMcp)
         {
             var mcpPaths = selectedClients
-                .Select(client => client.GetMcpConfigPath(scope, workspaceRoot, ExecutionContext, _environment))
+                .SelectMany(client => client.GetMcpRepairPaths(scope, workspaceRoot, ExecutionContext, _environment))
                 .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             foreach (var update in applicators.Where(applicator =>
                 applicator.PromptGroup == McpInitPromptGroup.ConfigUpdates &&

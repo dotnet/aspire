@@ -138,7 +138,7 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
-        <source>Initialize agent environment configuration for detected agents</source>
+        <source>Initialize configuration and skills for selected agent clients</source>
         <target state="needs-review-translation">為偵測到的代理程式初始化代理程式環境設定。</target>
         <note />
       </trans-unit>

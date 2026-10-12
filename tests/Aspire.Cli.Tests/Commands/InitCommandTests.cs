@@ -794,8 +794,10 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.False(Directory.Exists(agentsDir), $"Expected no agents/skills directory but found {agentsDir}");
     }
 
-    [Fact]
-    public async Task InitCommand_NonInteractive_WithClientAndSkills_InstallsOnlySpecifiedSkills()
+    [Theory]
+    [InlineData("project")]
+    [InlineData("user")]
+    public async Task InitCommand_NonInteractive_WithClientScopeAndSkills_InstallsOnlySpecifiedSkills(string scope)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -803,17 +805,22 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var command = serviceProvider.GetRequiredService<RootCommand>();
 
-        var parseResult = command.Parse($"init --non-interactive --agent copilot --skills {CommonAgentApplicators.AspireSkillName}");
+        var parseResult = command.Parse($"init --non-interactive --agent copilot --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
 
-        var aspireSkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+        var homeDirectory = serviceProvider.GetRequiredService<CliExecutionContext>().HomeDirectory;
+        var selectedRoot = scope == "project" ? workspace.WorkspaceRoot : homeDirectory;
+        var unselectedRoot = scope == "project" ? homeDirectory : workspace.WorkspaceRoot;
+        var aspireSkillPath = Path.Combine(selectedRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
         Assert.True(File.Exists(aspireSkillPath), $"Expected aspire skill file at {aspireSkillPath}");
+        Assert.False(Directory.Exists(Path.Combine(unselectedRoot.FullName, ".agents", "skills")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
 
         // aspireify was not requested, so it should not be installed.
-        var aspireifySkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireifySkillName);
+        var aspireifySkillPath = Path.Combine(selectedRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireifySkillName);
         Assert.False(Directory.Exists(aspireifySkillPath), $"Expected no aspireify skill directory but found {aspireifySkillPath}");
     }
 

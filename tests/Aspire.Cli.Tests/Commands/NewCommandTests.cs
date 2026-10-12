@@ -2422,6 +2422,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var services = CreateServiceCollection(workspace, options =>
         {
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
             options.CliHostEnvironmentFactory = (sp) =>
             {
                 var configuration = sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
@@ -3304,6 +3305,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var services = CreateServiceCollection(workspace, options =>
         {
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
             options.CliHostEnvironmentFactory = (sp) =>
             {
                 var configuration = sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
@@ -3332,6 +3334,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var services = CreateServiceCollection(workspace, options =>
         {
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
             options.CliHostEnvironmentFactory = (sp) =>
             {
                 var configuration = sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
@@ -3352,6 +3355,31 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(skillPath));
         var aspireifySkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, "output", ".agents", "skills", CommonAgentApplicators.AspireifySkillName, "SKILL.md");
         Assert.True(File.Exists(aspireifySkillPath));
+    }
+
+    [Fact]
+    public async Task NewCommand_ExplicitUndetectedClientAndUserScope_AreForwardedWithoutMcp()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var services = CreateServiceCollection(workspace, options =>
+        {
+            options.CliExecutionContextFactory = _ => TestExecutionContextHelper.CreateExecutionContext(
+                workspace.WorkspaceRoot, identityChannel: PackageChannelNames.Stable, homeDirectory: homeDirectory);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var result = provider.GetRequiredService<NewCommand>().Parse(
+            "new aspire-empty --name TestApp --output ./output --agent claude --scope user --skills aspireify");
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(
+            [Path.Combine(homeDirectory.FullName, ".claude", "skills", CommonAgentApplicators.AspireifySkillName, "SKILL.md")],
+            Directory.EnumerateFiles(homeDirectory.FullName, "*", SearchOption.AllDirectories));
+        var outputDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, "output");
+        Assert.False(Directory.Exists(Path.Combine(outputDirectory, ".claude", "skills")));
+        Assert.False(Directory.Exists(Path.Combine(outputDirectory, ".agents", "skills")));
+        Assert.False(File.Exists(Path.Combine(outputDirectory, ".mcp.json")));
+        Assert.False(File.Exists(Path.Combine(outputDirectory, ".vscode", "mcp.json")));
     }
 
     [Fact]

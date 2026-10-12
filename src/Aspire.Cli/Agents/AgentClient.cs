@@ -118,6 +118,18 @@ internal sealed class AgentClient
         };
     }
 
+    public IEnumerable<string> GetMcpRepairPaths(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
+    {
+        yield return GetMcpConfigPath(scope, workspaceRoot, executionContext, environment);
+        if (scope is AgentConfigurationScope.Project && this == Copilot)
+        {
+            // Keep existing editor/CLI repairs, but never let discovery expand the
+            // selected scope or authorize writes for an unselected client.
+            yield return Path.Combine(workspaceRoot.FullName, ".vscode", "mcp.json");
+            yield return Path.Combine(workspaceRoot.FullName, ".github", "copilot", "mcp.json");
+        }
+    }
+
     internal static string GetClaudeConfigDirectory(CliExecutionContext executionContext, IEnvironment environment)
         => GetOverride("CLAUDE_CONFIG_DIR", executionContext, environment) ?? Path.Combine(executionContext.HomeDirectory.FullName, ".claude");
 
