@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Annotations;
@@ -17,6 +16,52 @@ namespace Aspire.Hosting.Kubernetes.Tests;
 
 public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PublishAsync_SupportsFileKeyRef(bool? optional)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, workspace.Path);
+        builder.AddKubernetesEnvironment("env");
+
+        builder.AddContainer("myapp", "nginx:alpine")
+            .PublishAsKubernetesService(resource =>
+            {
+                var pod = resource.Workload!.PodTemplate.Spec;
+                pod.Volumes.Add(new VolumeV1 { Name = "generated-env", EmptyDir = new() });
+                pod.InitContainers.Add(new ContainerV1
+                {
+                    Name = "prepare-env",
+                    Image = "docker.io/library/busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e",
+                    Command = { "sh", "-ec" },
+                    Args = { "printf \"SOURCE_KEY='generated-value'\\nOTHER_KEY='other-value'\\n\" > /out/app.env" },
+                    VolumeMounts = { new VolumeMountV1 { Name = "generated-env", MountPath = "/out" } }
+                });
+                pod.Containers[0].Env.Add(new EnvVarV1
+                {
+                    Name = "APP_VALUE",
+                    ValueFrom = new EnvVarSourceV1
+                    {
+                        FileKeyRef = new FileKeySelectorV1
+                        {
+                            VolumeName = "generated-env",
+                            Path = "app.env",
+                            Key = "SOURCE_KEY",
+                            Optional = optional
+                        }
+                    }
+                });
+            });
+
+        using var app = builder.Build();
+        app.Run();
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "templates/myapp/deployment.yaml")), "yaml")
+            .UseParameters(optional);
+    }
+
     [Fact]
     public async Task PublishAsync_GeneratesValidHelmChart()
     {
@@ -318,7 +363,6 @@ public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
         builder.AddKubernetesEnvironment("env");
 
         // Add a container to the application
-#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var api = builder
             .AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
@@ -331,7 +375,6 @@ public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
             .WithHttpsEndpoint()
             .WithHttpProbe(ProbeType.Readiness, "/ready", initialDelaySeconds: 60)
             .WithHttpProbe(ProbeType.Liveness, "/health");
-#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var app = builder.Build();
 
@@ -978,11 +1021,9 @@ public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, workspace.Path);
         builder.AddKubernetesEnvironment("k8s");
 
-#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.AddContainer("api", "questdb/questdb:9.4.1")
             .WithHttpEndpoint(port: 9002, targetPort: 9000, name: "http")
             .WithHttpProbe(ProbeType.Readiness, "/ready");
-#pragma warning restore ASPIREPROBES001
 
         var app = builder.Build();
         app.Run();

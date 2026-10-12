@@ -30,6 +30,19 @@ public partial class MainLayoutTests : DashboardTestContext
     private IRenderedComponent<FluentMessageBarProvider>? _messageBarProvider;
 
     [Fact]
+    public void OnInitialize_BrowserInfoCircuitDisconnected_DoesNotThrow()
+    {
+        SetupMainLayoutServices();
+        JSInterop.Setup<BrowserInfo>("window.getBrowserInfo").SetException(new JSDisconnectedException("The circuit disconnected."));
+
+        var cut = Render<MainLayout>(builder => builder
+            .Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+
+        cut.WaitForAssertion(() => Assert.Single(JSInterop.Invocations["window.getBrowserInfo"]));
+        Assert.False(Renderer.UnhandledException.IsCompleted);
+    }
+
+    [Fact]
     public async Task OnInitialize_UnsecuredOtlp_NotDismissed_DisplayMessageBar()
     {
         // Arrange
@@ -1283,6 +1296,8 @@ public partial class MainLayoutTests : DashboardTestContext
         FluentUISetupHelpers.SetupAspireMenuButtonModule(this);
 
         var themeModule = JSInterop.SetupModule("/js/app-theme.js");
+        themeModule.Setup<string>("updateTheme", _ => true).SetResult(ThemeManager.ThemeSettingSystem);
+        JSInterop.SetupVoid("Blazor.theme.setThemeMode", _ => true).SetVoidResult();
 
         JSInterop.SetupModule("window.registerGlobalKeydownListener", _ => true);
         JSInterop.SetupModule("window.registerOpenTextVisualizerOnClick", _ => true);

@@ -217,8 +217,8 @@
   <data name="TerminalToolbarOpenInWindowFailed" xml:space="preserve">
     <value>Unable to open the terminal window. Reload the dashboard and try again.</value>
   </data>
-  <data name="TerminalFocusControlsHint" xml:space="preserve">
-    <value>F6: Focus terminal controls</value>
+  <data name="TerminalFocusControlsDescription" xml:space="preserve">
+    <value>Focus terminal controls</value>
   </data>
   <data name="MainLayoutToggleTerminalDock" xml:space="preserve">
     <value>Toggle terminal (`)</value>

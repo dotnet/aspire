@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001 // Pipeline step types used for push/deploy dependency wiring
-#pragma warning disable ASPIREAZURE001 // AzureEnvironmentResource.ProvisionInfrastructureStepName for pipeline ordering
 #pragma warning disable ASPIREAZURE003 // AzureSubnetResource used in WithSubnet extensions
 
 using Aspire.Hosting.ApplicationModel;
@@ -40,6 +38,8 @@ public static class AzureKubernetesEnvironmentExtensions
     /// This method internally creates a Kubernetes environment for Helm-based deployment
     /// and provisions an AKS cluster via Azure Bicep. It combines the functionality of
     /// <c>AddKubernetesEnvironment</c> with Azure-specific provisioning.
+    /// The cluster uses the Standard control-plane tier by default, which includes an uptime SLA
+    /// and a cluster-management charge. Use <c>ConfigureInfrastructure</c> to select a different tier.
     /// </remarks>
     /// <example>
     /// <code>
@@ -521,7 +521,7 @@ public static class AzureKubernetesEnvironmentExtensions
             Sku = new ManagedClusterSku
             {
                 Name = ManagedClusterSkuName.Base,
-                Tier = ManagedClusterSkuTier.Free
+                Tier = ManagedClusterSkuTier.Standard
             },
             DnsPrefix = $"{aksResource.Name}-dns",
             Tags = { { "aspire-resource-name", aksResource.Name } }

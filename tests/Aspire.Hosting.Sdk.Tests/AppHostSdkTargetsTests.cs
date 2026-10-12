@@ -669,6 +669,27 @@ public class AppHostSdkTargetsTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ResolveAspireCliBundleResolvesStandaloneTerminalHost(bool executableExists)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        CreateFakeCliBundle(workspace.Path);
+        var directory = Path.Combine(workspace.Path, "bundle", "terminalhost");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, OperatingSystem.IsWindows() ? "Aspire.TerminalHost.exe" : "Aspire.TerminalHost");
+        if (executableExists)
+        {
+            File.WriteAllText(path, "native-host");
+        }
+
+        var task = new ResolveAspireCliBundle { AspireCliBundlePath = workspace.Path, WarnOnInvalidPaths = false };
+        Assert.True(task.Execute());
+        Assert.Equal(executableExists ? path : null, task.AspireTerminalHostPath);
+        Assert.Equal(executableExists ? string.Empty : null, task.AspireTerminalHostInvocationArgs);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ResolveAspireCliBundleRejectsIncompleteDashboard(bool hasTransitionalDashboard)
@@ -1151,7 +1172,7 @@ public class AppHostSdkTargetsTests(ITestOutputHelper outputHelper)
             <Project Sdk="Microsoft.NET.Sdk">
 
               <PropertyGroup>
-                <TargetFramework>net8.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
                 <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
               </PropertyGroup>
 
@@ -1204,7 +1225,7 @@ public class AppHostSdkTargetsTests(ITestOutputHelper outputHelper)
 
               <PropertyGroup>
                 <OutputType>Exe</OutputType>
-                <TargetFramework>net8.0</TargetFramework>
+                <TargetFramework>net10.0</TargetFramework>
                 <IsAspireHost>true</IsAspireHost>
                 <AspireHostingSDKVersion>{{AspireCliVersion}}</AspireHostingSDKVersion>
                 <AspireUseCliBundle>{{aspireUseCliBundle.ToString().ToLowerInvariant()}}</AspireUseCliBundle>
@@ -1846,7 +1867,7 @@ public class AppHostSdkTargetsTests(ITestOutputHelper outputHelper)
     {
         var executableName = OperatingSystem.IsWindows() ? "AppHost.exe" : "AppHost";
 
-        return Path.Combine(project.ProjectDirectory, "bin", "Debug", "net8.0", executableName);
+        return Path.Combine(project.ProjectDirectory, "bin", "Debug", "net10.0", executableName);
     }
 
     private static string GetPathEnvironmentVariableName() => OperatingSystem.IsWindows() ? "Path" : "PATH";

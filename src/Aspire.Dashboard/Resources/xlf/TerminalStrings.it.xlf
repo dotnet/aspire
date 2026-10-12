@@ -127,9 +127,9 @@
         <target state="new">Terminals</target>
         <note />
       </trans-unit>
-      <trans-unit id="TerminalFocusControlsHint">
-        <source>F6: Focus terminal controls</source>
-        <target state="new">F6: Focus terminal controls</target>
+      <trans-unit id="TerminalFocusControlsDescription">
+        <source>Focus terminal controls</source>
+        <target state="new">Focus terminal controls</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalInputFailed">

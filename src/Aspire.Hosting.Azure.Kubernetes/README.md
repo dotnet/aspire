@@ -41,6 +41,30 @@ const myService = await builder.addNodeApp("myService", "../my-service", "server
     .withComputeEnvironment(aks);
 ```
 
+### Cluster tier
+
+AKS clusters use the **Standard** control-plane tier by default, providing an uptime SLA for production workloads. Standard includes a cluster-management charge in addition to the underlying Azure resource costs. See [AKS pricing tiers](https://learn.microsoft.com/azure/aks/free-standard-pricing-tiers) for current details.
+
+Applying updated infrastructure to an existing Aspire-managed cluster changes its tier to Standard unless explicitly overridden. Upgrading the integration package alone does not change a deployed cluster.
+
+To use the Free tier for development or testing, customize the infrastructure in a C# AppHost:
+
+```csharp
+using Azure.Provisioning.ContainerService;
+
+var aks = builder.AddAzureKubernetesEnvironment("aks")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var cluster = infrastructure.GetProvisionableResources()
+            .OfType<ContainerServiceManagedCluster>()
+            .Single();
+
+        cluster.Sku.Tier = ManagedClusterSkuTier.Free;
+    });
+```
+
+The control-plane tier does not change node VM sizes or provide an application availability guarantee.
+
 ### Persistent volumes
 
 Add a persistent volume to the AKS environment and mount it into a workload:
