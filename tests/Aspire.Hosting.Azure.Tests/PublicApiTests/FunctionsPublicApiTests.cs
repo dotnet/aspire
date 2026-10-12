@@ -10,7 +10,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests.PublicApiTests;
 
-public class FunctionsPublicApiTests
+public class FunctionsPublicApiTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void DirectoryBasedFunctionsApisAreExperimental()
@@ -66,7 +66,7 @@ public class FunctionsPublicApiTests
     [InlineData(true)]
     public void AddAzureFunctionsProjectShouldThrowWhenBuilderIsNullOrEmpty(bool isNull)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddAzureFunctionsProject<TestProject>(name);
@@ -81,7 +81,7 @@ public class FunctionsPublicApiTests
     public void WithHostStorageShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<AzureFunctionsProjectResource> builder = null!;
-        using var hostBuilder = TestDistributedApplicationBuilder.Create();
+        using var hostBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var storage = hostBuilder.AddAzureStorage("funcstorage");
 
         var action = () => builder.WithHostStorage(storage);
@@ -93,7 +93,7 @@ public class FunctionsPublicApiTests
     [Fact]
     public void WithHostStorageShouldThrowWhenStorageIsNull()
     {
-        using var hostBuilder = TestDistributedApplicationBuilder.Create();
+        using var hostBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var builder = hostBuilder.AddAzureFunctionsProject<TestProject>("funcstorage");
         IResourceBuilder<AzureStorageResource> storage = null!;
 
@@ -106,7 +106,7 @@ public class FunctionsPublicApiTests
     [Fact]
     public void WithReferenceShouldThrowWhenSourceIsNull()
     {
-        using var hostBuilder = TestDistributedApplicationBuilder.Create();
+        using var hostBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper);
         var destination = hostBuilder.AddAzureFunctionsProject<TestProject>("funcstorage");
         IResourceBuilder<IResourceWithConnectionString> source = null!;
 

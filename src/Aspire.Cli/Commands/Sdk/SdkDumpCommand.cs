@@ -389,7 +389,7 @@ internal sealed class SdkDumpCommand : BaseCommand
         capabilities.Diagnostics.RemoveAll(d => d.Severity == "Info");
 
         var packageVersions = integrations
-            .Where(i => i.IsPackageReference)
+            .Where(i => i.Source == IntegrationSource.Nuget)
             .Select(i => new PackageInfo { Name = i.Name, Version = i.Version! })
             .ToList();
         if (packageVersions.Count > 0)
@@ -748,6 +748,7 @@ internal sealed class CapabilityInfo
     public string QualifiedMethodName { get; set; } = "";
     public string? Description { get; set; }
     public DocumentationInfo? Documentation { get; set; }
+    public bool IsExperimental { get; set; }
     public string CapabilityKind { get; set; } = "";
     public string? TargetTypeId { get; set; }
     public string? TargetParameterName { get; set; }
