@@ -100,6 +100,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot publishAsExisting overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
@@ -117,6 +118,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="name">The name of the existing resource.</param>
     /// <param name="resourceGroup">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot publishAsExisting overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> PublishAsExisting<T>(this IResourceBuilder<T> builder, string name, string? resourceGroup)
         where T : IAzureResource
@@ -134,6 +136,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="name">The name of the existing resource as a string or parameter resource.</param>
     /// <param name="resourceGroup">The name of the existing resource group as a string or parameter resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExport("publishAsExisting")]
     internal static IResourceBuilder<T> PublishAsExistingForPolyglot<T>(
         this IResourceBuilder<T> builder,
@@ -155,6 +158,21 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <remarks>
+    /// <para>
+    /// Marking a resource as existing controls provisioning, not permissions. During deployment, integrations
+    /// can still create role assignments on the existing resource. Role assignments outside the application's
+    /// resource group are not removed by <c>aspire destroy</c> and must be removed separately when no longer needed.
+    /// </para>
+    /// <para>
+    /// When an existing Azure Container Registry is used by Azure Kubernetes Service (AKS), the kubelet
+    /// managed identity receives <c>AcrPull</c> access to all repositories in the registry, not just the application's
+    /// images. This is the same permission granted for an automatically created registry. The role assignment
+    /// does not prevent workloads from obtaining kubelet identity tokens through the node's Instance Metadata
+    /// Service (IMDS). Workload Identity alone does not block this access; enforce workload isolation as described
+    /// in <see href="https://learn.microsoft.com/azure/aks/imds-restriction">the AKS IMDS restriction guidance</see>.
+    /// </para>
+    /// </remarks>
     [AspireExportIgnore(Reason = "Use the polyglot asExisting overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
@@ -172,6 +190,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="name">The name of the existing resource as a string or parameter resource.</param>
     /// <param name="resourceGroup">The name of the existing resource group as a string or parameter resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExport("asExisting")]
     internal static IResourceBuilder<T> AsExistingForPolyglot<T>(
         this IResourceBuilder<T> builder,
@@ -425,6 +444,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroupParameter">The name of the existing resource group.</param>
     /// <param name="subscriptionParameter">The subscription identifier containing the resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot publishAsExistingInResourceGroup overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> PublishAsExistingInResourceGroup<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter)
         where T : IAzureResource
@@ -443,6 +463,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroup">The name of the existing resource group.</param>
     /// <param name="subscription">The subscription identifier containing the resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot publishAsExistingInResourceGroup overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> PublishAsExistingInResourceGroup<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription)
         where T : IAzureResource
@@ -461,6 +482,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroup">The resource group containing the existing resource as a string or parameter resource.</param>
     /// <param name="subscription">The subscription identifier containing the resource group as a string or parameter resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExport("publishAsExistingInResourceGroup")]
     internal static IResourceBuilder<T> PublishAsExistingInResourceGroupForPolyglot<T>(
         this IResourceBuilder<T> builder,
@@ -485,6 +507,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroupParameter">The name of the existing resource group.</param>
     /// <param name="subscriptionParameter">The subscription identifier containing the resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot asExistingInResourceGroup overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> AsExistingInResourceGroup<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource> resourceGroupParameter, IResourceBuilder<ParameterResource> subscriptionParameter)
         where T : IAzureResource
@@ -503,6 +526,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroup">The name of the existing resource group.</param>
     /// <param name="subscription">The subscription identifier containing the resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExportIgnore(Reason = "Use the polyglot asExistingInResourceGroup overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> AsExistingInResourceGroup<T>(this IResourceBuilder<T> builder, string name, string resourceGroup, string subscription)
         where T : IAzureResource
@@ -521,6 +545,7 @@ public static class ExistingAzureResourceExtensions
     /// <param name="resourceGroup">The resource group containing the existing resource as a string or parameter resource.</param>
     /// <param name="subscription">The subscription identifier containing the resource group as a string or parameter resource.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
+    /// <inheritdoc cref="AsExisting{T}" path="/remarks" />
     [AspireExport("asExistingInResourceGroup")]
     internal static IResourceBuilder<T> AsExistingInResourceGroupForPolyglot<T>(
         this IResourceBuilder<T> builder,

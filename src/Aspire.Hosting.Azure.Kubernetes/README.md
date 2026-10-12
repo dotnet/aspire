@@ -67,6 +67,10 @@ await aks.withContainerRegistry(registry);
 
 Aspire grants the AKS kubelet identity `AcrPull` at the registry's scope. The deployment identity must have permission to create role assignments there, as well as push images to the registry. The existing registry is not deleted by `aspire destroy`.
 
+`AcrPull` permits pulling images from every repository in the registry, including unrelated images in a shared registry. This is the same permission used for an automatically created registry. Workloads can potentially obtain kubelet identity tokens through the node's Instance Metadata Service (IMDS); enabling Workload Identity alone does not prevent this. Enforce workload isolation and review the [AKS IMDS restriction guidance](https://learn.microsoft.com/azure/aks/imds-restriction), including its preview status and host-network and privileged-workload limitations.
+
+`aspire destroy` does not remove role assignments on a registry outside the application's resource group. Remove the kubelet's role assignment separately when it is no longer needed. Leaving it behind can also prevent redeploying a recreated cluster at the same resource ID with a new kubelet identity.
+
 ### Persistent volumes
 
 Add a persistent volume to the AKS environment and mount it into a workload:
