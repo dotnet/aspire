@@ -77,18 +77,18 @@ public sealed class NativeClient : IAsyncDisposable
 
     private async Task<JsonElement> DispatchProviderAsync(string capability, JsonElement arguments, string invocationId)
     {
-        var invocation = new ProviderInvocation(_providerDefinition!.Metadata.GetProperty("capabilities").EnumerateArray()
-            .Any(metadata => metadata.GetProperty("id").GetString() == capability &&
-                metadata.TryGetProperty("lifecyclePhase", out _)));
+        var context = _providerContext ?? throw new InvalidOperationException("This is not a provider connection.");
+        var invocation = new ProviderInvocation();
         if (!_providerInvocations.TryAdd(invocationId, invocation))
         {
+            invocation.Complete();
             throw new InvalidOperationException("An integration invocation cannot be replayed.");
         }
-        _providerContext!.SetInvocationCancellation(invocation.Cancellation.Token);
         try
         {
+            context.SetInvocation(invocation);
             return await (_providerDefinition ?? throw new InvalidOperationException("This is not a provider connection."))
-                .Dispatch(_providerContext!, capability, arguments).ConfigureAwait(false);
+                .Dispatch(context, capability, arguments).ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -98,6 +98,7 @@ public sealed class NativeClient : IAsyncDisposable
         }
         finally
         {
+            context.CompleteInvocation(invocation);
             _providerInvocations.TryRemove(invocationId, out _);
             invocation.Complete();
         }
@@ -271,34 +272,41 @@ public sealed class NativeClient : IAsyncDisposable
         {
             invocation.Cancel();
         }
-        // Lifecycle handlers receive cancellation explicitly. Quiesce them
-        // before disposing their local resource state; ordinary uncooperative
-        // exports cannot hold native authority open after disconnect.
         try
         {
-            await Task.WhenAll(active.Where(invocation => invocation.IsLifecycle).Select(invocation => invocation.Completion.Task))
-                .WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
+            if (_providerContext is { } context)
+            {
+                // Native authority is already revoked. Bound the caller's wait,
+                // but never dispose local state while an invocation still uses it.
+                var cleanup = context.ClearAsync();
+                _ = cleanup.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                await cleanup.WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
+            }
         }
-        catch (TimeoutException)
+        finally
         {
-            // Native scopes are already revoked; local tables still must release.
+            _providerDefinition = null;
+            _callbacks.Clear();
         }
-        if (_providerContext is { } context)
-        {
-            await context.ClearAsync().ConfigureAwait(false);
-        }
-        _providerDefinition = null;
-        _callbacks.Clear();
-
     }
 
-    private sealed class ProviderInvocation(bool isLifecycle)
+    /// <summary>Tracks invocation cancellation, completion and resource leases.</summary>
+    internal sealed class ProviderInvocation
     {
         private readonly Lock _gate = new();
         private bool _completed;
-        public bool IsLifecycle { get; } = isLifecycle;
         public CancellationTokenSource Cancellation { get; } = new();
+        public CancellationToken CancellationToken { get; }
         public TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public HashSet<NativeProviderContext.ResourceEntry> Resources { get; } = [];
+        public bool ResourceAccessClosed { get; set; }
+
+        public ProviderInvocation()
+        {
+            CancellationToken = Cancellation.Token;
+        }
+
         public void Cancel()
         {
             lock (_gate)

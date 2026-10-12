@@ -824,6 +824,13 @@ in `NativeProviderProtocol`. Registration and invocation consume its typed
 projections and retain authority resolution, dispatch and lifetime ownership;
 they do not interpret capability metadata during each invocation.
 
+Provider-local resource lookup leases the object for the entire asynchronous
+invocation, including resource-valued arguments as well as receivers. Retirement
+rejects new leases and republication, cancels the object's invocations, and drains
+them before disposing local state. Disconnect revokes native authority immediately
+and bounds the caller's cleanup wait; uncooperative local invocations defer object
+disposal rather than allowing it to race integration code.
+
 Clocks, elapsed-time measurement, delays and timeout scheduling use an injected
 `TimeProvider`. Tests can advance time without sleeping, and cancellation must
 release the associated timers. Clock injection is a local implementation

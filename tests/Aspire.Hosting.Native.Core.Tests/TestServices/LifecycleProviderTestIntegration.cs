@@ -18,6 +18,7 @@ internal sealed class LifecycleProviderTestIntegration
     public ConcurrentQueue<(LifecycleProviderTestResource Resource, string Phase)> Phases { get; } = new();
     public ConcurrentQueue<ResourceLifecycleScope> Scopes { get; } = new();
     public Func<string, ResourceLifecycleScope, CancellationToken, Task>? OnPhase { get; set; }
+    public Func<LifecycleProviderTestResource, LifecycleProviderTestResource, CancellationToken, Task>? OnInvocation { get; set; }
     public NativeProviderContext? Context { get; private set; }
 
     public NativeProviderDefinition Definition
@@ -49,6 +50,15 @@ internal sealed class LifecycleProviderTestIntegration
                     ["returnType"] = Type("void", "Primitive")
                 });
             }
+            methods.Add(new JsonObject
+            {
+                ["id"] = Package + "/invoke",
+                ["method"] = "invoke",
+                ["targetTypeId"] = ResourceType,
+                ["targetParameterName"] = "context",
+                ["parameters"] = new JsonArray(Parameter("context", Type(ResourceType)), Parameter("other", Type(ResourceType))),
+                ["returnType"] = Type("void", "Primitive")
+            });
             var manifest = new JsonObject { ["protocolVersion"] = 2, ["capabilities"] = methods };
 
             return new(JsonSerializer.SerializeToElement(manifest), DispatchAsync);
@@ -69,6 +79,16 @@ internal sealed class LifecycleProviderTestIntegration
             return context.PublishResource(resource, ResourceType);
         }
         var target = context.ReadResource<LifecycleProviderTestResource>(arguments.GetProperty("context"));
+        if (capability == Package + "/invoke")
+        {
+            var other = context.ReadResource<LifecycleProviderTestResource>(arguments.GetProperty("other"));
+            if (OnInvocation is { } invocation)
+            {
+                await invocation(target, other, context.CancellationToken);
+            }
+
+            return JsonSerializer.SerializeToElement((string?)null);
+        }
         var scope = new ResourceLifecycleScope(context.Client, arguments.GetProperty("scope"));
         var phase = await scope.ReadLifecyclePhaseAsync(context.CancellationToken);
         Phases.Enqueue((target, phase));

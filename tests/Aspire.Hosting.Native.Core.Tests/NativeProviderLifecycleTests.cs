@@ -13,6 +13,150 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderLifecycleTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ResourceRetirementCancelsAndDrainsOrdinaryReceiverAndArgumentInvocations(bool retireArgument)
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var integration = new LifecycleProviderTestIntegration();
+        await RegisterAsync(app, provider, integration);
+        var firstSession = await app.Server.OpenApplicationAsync();
+        var first = await firstSession.StartGenerationAsync();
+        var firstHandle = await LifecycleProviderTestIntegration.AddAsync(first,
+            await first.AddSecretParameterAsync("password", "private"), "generic/service:1");
+        var secondSession = await app.Server.OpenApplicationAsync();
+        var second = await secondSession.StartGenerationAsync();
+        var secondHandle = await LifecycleProviderTestIntegration.AddAsync(second,
+            await second.AddSecretParameterAsync("password", "private"), "generic/service:1");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var unrelatedEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var unrelatedCanceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        integration.OnInvocation = async (receiver, argument, token) =>
+        {
+            var unrelated = ReferenceEquals(receiver, argument);
+            using var registration = token.Register(() => (unrelated ? unrelatedCanceled : canceled).TrySetResult());
+            (unrelated ? unrelatedEntered : entered).TrySetResult();
+            await release.Task;
+            Assert.Equal(0, receiver.DisposeCount);
+            Assert.Equal(0, argument.DisposeCount);
+            token.ThrowIfCancellationRequested();
+        };
+        var invocation = app.InvokeAsync("example.lifecycle/invoke",
+            new() { ["context"] = firstHandle, ["other"] = secondHandle }, TestContext.Current.CancellationToken);
+        var retainedHandle = retireArgument ? firstHandle : secondHandle;
+        var unrelatedInvocation = app.InvokeAsync("example.lifecycle/invoke",
+            new() { ["context"] = retainedHandle, ["other"] = retainedHandle }, TestContext.Current.CancellationToken);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await unrelatedEntered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            var retiring = retireArgument ? secondSession.RetireGenerationAsync(second) : firstSession.RetireGenerationAsync(first);
+            await canceled.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.False(retiring.IsCompleted);
+            Assert.False(unrelatedCanceled.Task.IsCompleted);
+            Assert.All(integration.Resources, resource => Assert.Equal(0, resource.DisposeCount));
+            var retired = retireArgument ? integration.Resources.Last() : integration.Resources.First();
+            Assert.Throws<InvalidOperationException>(() =>
+                integration.Context!.PublishResource(retired, "example.lifecycle/Resource"));
+            release.TrySetResult();
+            await Assert.ThrowsAsync<NativeCapabilityException>(() => invocation);
+            Assert.Equal(JsonValueKind.Null, (await unrelatedInvocation).ValueKind);
+            await retiring.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(1, retired.DisposeCount);
+            var retained = retireArgument ? integration.Resources.First() : integration.Resources.Last();
+            Assert.Equal(0, retained.DisposeCount);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+        if (retireArgument)
+        {
+            await firstSession.RetireGenerationAsync(first);
+        }
+        else
+        {
+            await secondSession.RetireGenerationAsync(second);
+        }
+        Assert.All(integration.Resources, resource => Assert.Equal(1, resource.DisposeCount));
+    }
+
+    [Fact]
+    public async Task DisconnectBoundsItsWaitButDefersDisposalOfUncooperativeResourceInvocation()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        var clock = new AdjustableFakeTimeProvider();
+        var provider = await NativeClient.ConnectAsync(host.Endpoint, host.Token, TimeSpan.FromSeconds(15),
+            clock, TestContext.Current.CancellationToken);
+        var integration = new LifecycleProviderTestIntegration();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task? disposal = null;
+        try
+        {
+            await RegisterAsync(app, provider, integration);
+            var session = await app.Server.OpenApplicationAsync();
+            var composition = await session.StartGenerationAsync();
+            var handle = await LifecycleProviderTestIntegration.AddAsync(composition,
+                await composition.AddSecretParameterAsync("password", "private"), "generic/service:1");
+            integration.OnInvocation = async (receiver, _, token) =>
+            {
+                using var registration = token.Register(() => canceled.TrySetResult());
+                entered.TrySetResult();
+                await release.Task;
+                Assert.Equal(0, receiver.DisposeCount);
+                token.ThrowIfCancellationRequested();
+            };
+            var invocation = app.InvokeAsync("example.lifecycle/invoke",
+                new() { ["context"] = handle, ["other"] = handle }, TestContext.Current.CancellationToken);
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            var timerCreated = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            clock.TimerCreated = dueTime =>
+            {
+                if (dueTime == TimeSpan.FromSeconds(15))
+                {
+                    timerCreated.TrySetResult();
+                }
+            };
+            disposal = provider.DisposeAsync().AsTask();
+            await canceled.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await timerCreated.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            clock.Advance(TimeSpan.FromMilliseconds(14999));
+            Assert.False(disposal.IsCompleted);
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+            await Assert.ThrowsAsync<TimeoutException>(() =>
+                disposal.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            var resource = Assert.Single(integration.Resources);
+            Assert.Equal(0, resource.DisposeCount);
+            Assert.Throws<InvalidOperationException>(() =>
+                integration.Context!.PublishResource(resource, "example.lifecycle/Resource"));
+            await Assert.ThrowsAsync<NativeCapabilityException>(() => invocation);
+            release.TrySetResult();
+            await resource.Disposed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(1, resource.DisposeCount);
+        }
+        finally
+        {
+            release.TrySetResult();
+            if (disposal is null)
+            {
+                await provider.DisposeAsync();
+            }
+            else
+            {
+                var failure = await Record.ExceptionAsync(() => disposal.WaitAsync(TimeSpan.FromSeconds(5)));
+                Assert.True(failure is null or TimeoutException);
+            }
+        }
+    }
+
     [Fact]
     public async Task PhaseRevocationDrainsExecutionBeforeIdempotentCancellationSourceDisposal()
     {
