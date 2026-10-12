@@ -601,12 +601,14 @@ public static class CertManagerExtensions
                     issuer.Name,
                     result.ExitCode,
                     stderr.ToString().Trim());
-                return;
+            }
+            else
+            {
+                context.Logger.LogInformation("ClusterIssuer '{IssuerName}' deleted.", issuer.Name);
             }
         }
 
-        context.Logger.LogInformation("ClusterIssuer '{IssuerName}' deleted.", issuer.Name);
-
+        // A failed issuer deletion must not leave its managed EAB credential behind.
         if (issuer.ExternalAccountBinding is not null)
         {
             await CheckExternalAccountBindingSecretOwnershipAsync(issuer, context.CancellationToken).ConfigureAwait(false);

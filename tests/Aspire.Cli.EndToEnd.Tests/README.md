@@ -140,7 +140,10 @@ AppHosts. Each test creates an isolated KinD cluster, uses `aspire deploy` to in
 cert-manager and configure two issuers, and starts a private Pebble ACME server that
 requires EAB. It checks successful registration, rejection of an incorrect HMAC,
 account-key preservation on redeployment, and issuer/EAB Secret cleanup through
-`aspire destroy`. The fixture uses synthetic credentials and test-only TLS trust;
+`aspire destroy`. A test-only admission policy rejects deletion of one issuer,
+verifying that both managed EAB Secrets are still removed while the ACME account
+key is retained. The other issuer is deleted normally.
+The fixture uses synthetic credentials and test-only TLS trust;
 no Azure subscription or commercial ACME account is needed. This verifies account
 registration, not public certificate issuance.
 

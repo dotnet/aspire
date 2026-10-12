@@ -29,6 +29,10 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
         var fixtureDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, "pebble-eab");
         var containerFixtureDirectory = $"/workspace/{workspace.WorkspaceRoot.Name}/pebble-eab";
         await PebbleAcmeFixture.CreateAsync(fixtureDirectory, TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(fixtureDirectory, "reject-issuer-delete.yaml"),
+            RejectIssuerDeletionPolicy,
+            TestContext.Current.CancellationToken);
 
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
             repoRoot, strategy, output, mountDockerSocket: true, workspace: workspace);
@@ -118,9 +122,21 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 "test \"$EAB_ACCOUNT_UID\" = \"$(kubectl get secret pebble-valid-account-key -n cert-manager-chart -o jsonpath='{.metadata.uid}')\"",
                 counter, TimeSpan.FromMinutes(2));
 
+            // Reject only one issuer's deletion at the API server, leaving Secret cleanup permitted.
+            // Prove rejection is active before destroy so propagation delays cannot hide the regression.
+            await auto.RunCommandAsync(
+                $"kubectl apply -f \"{containerFixtureDirectory}/reject-issuer-delete.yaml\"",
+                counter);
+            await auto.RunCommandAsync(
+                "REJECTED=0; for i in $(seq 1 60); do " +
+                "if kubectl delete clusterissuer pebble-valid --dry-run=server > issuer-delete-result.txt 2>&1; then sleep 1; " +
+                "elif grep -q 'EAB cleanup rejection fixture' issuer-delete-result.txt; then REJECTED=1; break; " +
+                "else cat issuer-delete-result.txt; break; fi; done; test \"$REJECTED\" = 1",
+                counter, TimeSpan.FromMinutes(2));
             await auto.AspireDestroyAsync(counter, TimeSpan.FromMinutes(5));
             await auto.RunCommandAsync(
-                "ISSUERS=$(kubectl get clusterissuer pebble-valid pebble-invalid --ignore-not-found -o name) && test -z \"$ISSUERS\" && " +
+                "ISSUERS=$(kubectl get clusterissuer pebble-valid pebble-invalid --ignore-not-found -o name) && " +
+                "test \"$ISSUERS\" = clusterissuer.cert-manager.io/pebble-valid && " +
                 "SECRETS=$(kubectl get secret pebble-valid-eab pebble-invalid-eab -n cert-manager-chart --ignore-not-found -o name) && test -z \"$SECRETS\" && " +
                 "test \"$EAB_ACCOUNT_UID\" = \"$(kubectl get secret pebble-valid-account-key -n cert-manager-chart -o jsonpath='{.metadata.uid}')\"",
                 counter);
@@ -131,6 +147,32 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
             await KubernetesDeployTestHelpers.CleanupKindClusterOutOfBandAsync(clusterName, output);
         }
     }
+
+    private const string RejectIssuerDeletionPolicy = """
+        apiVersion: admissionregistration.k8s.io/v1
+        kind: ValidatingAdmissionPolicy
+        metadata:
+          name: reject-eab-issuer-deletion
+        spec:
+          failurePolicy: Fail
+          matchConstraints:
+            resourceRules:
+              - apiGroups: ["cert-manager.io"]
+                apiVersions: ["v1"]
+                operations: ["DELETE"]
+                resources: ["clusterissuers"]
+          validations:
+            - expression: "oldObject.metadata.name != 'pebble-valid'"
+              message: EAB cleanup rejection fixture
+        ---
+        apiVersion: admissionregistration.k8s.io/v1
+        kind: ValidatingAdmissionPolicyBinding
+        metadata:
+          name: reject-eab-issuer-deletion
+        spec:
+          policyName: reject-eab-issuer-deletion
+          validationActions: ["Deny"]
+        """;
 
     private const string CSharpIssuers = """
         #pragma warning disable ASPIRECOMPUTE003
