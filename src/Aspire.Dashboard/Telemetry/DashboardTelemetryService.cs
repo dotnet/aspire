@@ -17,7 +17,6 @@ public sealed class DashboardTelemetryService : AspireTelemetryBase
     internal const string ReportedActivitySourceName = "Aspire.Dashboard.Reported";
     internal const string DiagnosticsActivitySourceName = ReportedActivitySourceName + ".Diagnostics";
     internal const string EventLogCategoryName = "Aspire.Dashboard.Reported.Events";
-    internal const string TelemetryOptOutConfigKey = "ASPIRE_DASHBOARD_TELEMETRY_OPTOUT";
     private readonly DashboardTelemetryConfiguration _configuration;
     private readonly IReadOnlyList<KeyValuePair<string, object?>> _defaultTags;
 
