@@ -75,6 +75,7 @@ pnpmWorkspace.AddViteApp("pnpm-workspace-vite", "pnpm-workspace-web", packagePat
     .WithExternalHttpEndpoints();
 
 pnpmWorkspace.AddNodeApp("pnpm-workspace-node", "pnpm-workspace-api", "dist/index.js", "packages/api")
+    .WithRunScript("dev")
     .WithBuildScript("build")
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints();
