@@ -144,7 +144,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                 }
                 finally
                 {
-                    await auto.RunCommandAsync("kill \"$PORT_FORWARD_PID\" && (wait \"$PORT_FORWARD_PID\" || test $? -eq 143)", counter);
+                    await auto.RunCommandAsync("kill \"$PORT_FORWARD_PID\" && { wait \"$PORT_FORWARD_PID\" || test $? -eq 143; }", counter);
                 }
 
                 await auto.AspireDestroyAsync(counter);
