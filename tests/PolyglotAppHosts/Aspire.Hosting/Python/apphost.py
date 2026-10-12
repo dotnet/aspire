@@ -5,6 +5,7 @@ from aspire_app import (
     AfterPublishEvent,
     AfterResourcesCreatedEvent,
     AksNodeVmSizes,
+    AzureResourceInfrastructure,
     AzureServiceTags,
     BeforePublishEvent,
     BeforeResourceStartedEvent,
@@ -174,6 +175,25 @@ ENTRYPOINT ["dotnet", "App.dll"]"""
     # addParameterFromConfiguration
     config_param = builder.add_parameter_from_config("parameter", "Config:Key")
     secret_param = builder.add_parameter_from_config("parameter", "Config:Key")
+    optional_param = builder.add_parameter("optional-parameter").with_optional()
+    optional_param.with_required()
+    optional_param.with_required(required=False)
+    optional_value: str | None = optional_param.try_get_current_value()
+    assert optional_value is None
+    optional_param.set_value(value="configured")
+    assert optional_param.try_get_current_value() == "configured"
+    optional_param.set_value(value="")
+    assert optional_param.try_get_current_value() is None
+    optional_param.set_value(value="replacement")
+    optional_param.set_value()
+    assert optional_param.try_get_current_value() is None
+    container.with_env("OPTIONAL_PARAMETER", optional_param)
+
+    # False is a scalar value for required, unlike the opt-in optional flag.
+    constructor_optional_param = builder.add_parameter("constructor-optional", required=False, description="")
+    constructor_optional_param.set_value()
+    assert constructor_optional_param.try_get_current_value() is None
+    builder.add_parameter("constructor-optional-flag", optional=True)
     custom_input_param = builder.add_parameter("custom-input")
     custom_input_param.with_custom_input(
         {
@@ -246,7 +266,13 @@ ENTRYPOINT ["dotnet", "App.dll"]"""
     subnet = vnet.add_subnet("web", "10.0.1.0/24")
     subnet.allow_inbound(port="443", from_=AzureServiceTags.AzureLoadBalancer)
     subnet.deny_inbound(from_=AzureServiceTags.Internet)
+    def configure_aks(infrastructure: AzureResourceInfrastructure) -> None:
+        cluster = infrastructure.get_container_service_managed_cluster()
+        cluster.is_rbac_enabled = True
+        _rbac_enabled = cluster.is_rbac_enabled
+
     aks = builder.add_azure_kubernetes_env("aks")
+    aks.configure_infrastructure(configure_aks)
     aks.add_node_pool("system", vm_size=AksNodeVmSizes.StandardDSv5.StandardD2sV5)
     # builder-level pipeline APIs
     pipeline = builder.pipeline
