@@ -507,7 +507,7 @@ internal sealed class ContainerNetworkEndpointProvisioner : IDisposable
     }
 
     // The application name is only a suffix of the physical network name, so invalid characters can be omitted.
-    private static string NormalizeApplicationName(string applicationName)
+    internal static string NormalizeApplicationName(string applicationName)
     {
         if (string.IsNullOrEmpty(applicationName))
         {

@@ -51,7 +51,7 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
     [InlineData("AppHost", "AppHost")]
     public void NormalizeApplicationName_StripsAppHostSuffix(string applicationName, string expectedApplicationName)
     {
-        Assert.Equal(expectedApplicationName, DcpExecutor.NormalizeApplicationName(applicationName));
+        Assert.Equal(expectedApplicationName, ContainerNetworkEndpointProvisioner.NormalizeApplicationName(applicationName));
     }
 
     [Fact]
