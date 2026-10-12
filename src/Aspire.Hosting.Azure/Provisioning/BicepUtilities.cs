@@ -165,6 +165,13 @@ internal static class BicepUtilities
             return resource.Scope;
         }
 
+        // Compute environments scope their existing-resource references inside the module.
+        // Supporting infrastructure must still be provisioned in the application's resource group.
+        if (resource is IAzureComputeEnvironmentResource)
+        {
+            return null;
+        }
+
         return resource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingResource)
             ? AzureBicepResourceScope.FromExistingResourceAnnotation(existingResource)
             : null;

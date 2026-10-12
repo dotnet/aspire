@@ -1686,10 +1686,12 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task GetCredentialsStepPrefersExplicitScopeOverExistingResourceAnnotation()
+    public async Task GetCredentialsStepUsesExistingClusterScopeInsteadOfModuleScope()
     {
         const string scopeSubscriptionId = "00000000-0000-0000-0000-000000000003";
         const string scopeResourceGroup = "scope-assigned-rg";
+        const string clusterSubscriptionId = "00000000-0000-0000-0000-000000000002";
+        const string clusterResourceGroup = "annotation-rg";
         const string clusterName = "scoped-aks";
 
         using var workspace = TemporaryWorkspace.Create(output);
@@ -1705,10 +1707,8 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             deploymentStateManager: deploymentStateManager);
 
         var aks = builder.AddAzureKubernetesEnvironment("aks")
-            .AsExistingInResourceGroup(clusterName, "annotation-rg", "00000000-0000-0000-0000-000000000002");
+            .AsExistingInResourceGroup(clusterName, clusterResourceGroup, clusterSubscriptionId);
 
-        // ConfigureInfrastructure can assign Scope directly, and the provisioner gives it precedence
-        // over the annotation, so the credential fetch has to follow the same precedence.
         aks.Resource.Scope = new AzureBicepResourceScope(scopeResourceGroup, scopeSubscriptionId);
         aks.Resource.Outputs["name"] = clusterName;
 
@@ -1753,7 +1753,7 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
         });
 
         Assert.Equal(
-            [$"aks get-credentials --resource-group \"{scopeResourceGroup}\" --name \"{clusterName}\" --file - --subscription \"{scopeSubscriptionId}\""],
+            [$"aks get-credentials --resource-group \"{clusterResourceGroup}\" --name \"{clusterName}\" --file - --subscription \"{clusterSubscriptionId}\""],
             invocations);
     }
 

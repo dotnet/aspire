@@ -736,15 +736,18 @@ public partial class AzureKubernetesEnvironmentResource
     /// Gets the subscription and resource group this resource explicitly targets, if any.
     /// </summary>
     /// <remarks>
-    /// Mirrors the precedence in <c>BicepUtilities.GetExistingResourceScope</c>: an explicitly
-    /// assigned <see cref="AzureBicepResource.Scope"/> (which <c>ConfigureInfrastructure</c> can set)
-    /// wins over the <see cref="ExistingAzureResourceAnnotation"/> that <c>AsExistingInResourceGroup</c>
-    /// and friends attach. The credential fetch has to agree with whatever the provisioner deployed
-    /// against. Values are returned unresolved because they may be a literal string, a
+    /// Existing clusters use their annotation's scope, independently of the module's
+    /// <see cref="AzureBicepResource.Scope"/> for supporting infrastructure. New clusters
+    /// use the module's scope. Values are returned unresolved because they may be a literal string, a
     /// <see cref="ParameterResource"/>, or a <see cref="BicepOutputReference"/>.
     /// </remarks>
     private (object? Subscription, object? ResourceGroup) GetExplicitScopeValues()
     {
+        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) && !existing.IsTenantScope)
+        {
+            return (existing.Subscription, existing.ResourceGroup);
+        }
+
         if (Scope is not null)
         {
             // A tenant-scoped resource pins neither value. HasResourceGroup must be checked first
@@ -752,11 +755,6 @@ public partial class AzureKubernetesEnvironmentResource
             return Scope.IsTenantScope
                 ? (null, null)
                 : (Scope.Subscription, Scope.HasResourceGroup ? Scope.ResourceGroup : null);
-        }
-
-        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) && !existing.IsTenantScope)
-        {
-            return (existing.Subscription, existing.ResourceGroup);
         }
 
         return (null, null);
