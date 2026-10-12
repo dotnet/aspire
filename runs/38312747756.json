@@ -1,0 +1,122 @@
+{
+  "run_id": 38312747756,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38312747756",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-12T22:36:14Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "9bdf34954b85500c41fd2f31d4a7df9b61ce2922",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 115022813076,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38312747756/job/115022813076",
+      "classification": "main-repository-breakage",
+      "reason": "KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay asserts recorded HTTP methods ['POST','GET'] but none recorded; deterministic failure recurring since 2026-10-10, matches prior cause issue #20872.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "id": 115022821721,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38312747756/job/115022821721",
+      "classification": "flaky-test",
+      "reason": "ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees hits a known intermittent exit-code race reading Process.ExitCode on a process not started by this object; matches prior flaky-test cause issue #20871.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.JavaScript.Tests, Hosting.JavaScript, Hosting.JavaScrip... / Hosting.JavaScript (windows-latest)",
+      "id": 115022829723,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38312747756/job/115022829723",
+      "classification": "flaky-test",
+      "reason": "Two DenoFunctionalTests fixture InitializeAsync failures ('denoscript should have valid address at this point') are known intermittent DCP endpoint-allocation races, matching prior flaky-test causes issues #20760 and #20761.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115026017615,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38312747756/job/115026017615",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts pass, but the Nuxt integration's generated 'web' publish image fails deterministically at Docker step 'RUN npm ci' (exit code 1); recurring since 2026-10-09, matches prior main-repository-breakage cause issue #20866.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115029473033,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38312747756/job/115029473033",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails ('TypeScript: failure') solely because the TypeScript SDK Validation job failed at the npm ci Docker build step; same root cause as job 115026017615, matches prior cause issue #20866.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.JavaScript.Tests.DenoFunctionalTests.VerifyDenoAppDirectExecutionWorks",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.JavaScript.Tests, Hosting.JavaScript, Hosting.JavaScrip... / Hosting.JavaScript (windows-latest)",
+      "error": "Class fixture type 'Aspire.Hosting.JavaScript.Tests.DenoAppFixture' threw in InitializeAsync\n---- System.IO.InvalidDataException : Service denoscript should have valid address at this point",
+      "stack_trace": "----- Inner Stack Trace -----\n   at Aspire.Hosting.Dcp.DcpModelUtilities.TryAddLocalhostAllocatedEndpoint(ServiceWithModelResource sp, Boolean allowPending, Nullable`1 fallbackPort) in /_/src/Aspire.Hosting/Dcp/DcpModelUtilities.cs:line 186\n   at Aspire.Hosting.Dcp.DcpModelUtilities.TryAddWorkloadAllocatedEndpoints[TDcpResource](RenderedModelResource`1 resource, Boolean enableAspireContainerTunnel, String containerHostName) in /_/src/Aspire.Hosting/Dcp/DcpModelUtilities.cs:line 129\n   at Aspire.Hosting.Dcp.DcpExecutor.<>c__DisplayClass36_1.<<RunApplicationAsync>b__4>d.MoveNext() in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 220\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.Dcp.DcpExecutor.<>c__DisplayClass36_1.<<RunApplicationAsync>b__6>d.MoveNext() in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 266\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.Dcp.DcpExecutor.RunApplicationAsync(CancellationToken ct) in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 272\n   at Aspire.Hosting.Orchestrator.ApplicationOrchestrator.RunApplicationAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/Orchestrator/ApplicationOrchestrator.cs:line 626\n   at Aspire.Hosting.Orchestrator.OrchestratorHostService.StartAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/Orchestrator/OrchestratorHostService.cs:line 41\n   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)\n   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StartAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/DistributedApplication.cs:line 485\n   at Aspire.Hosting.JavaScript.Tests.",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known intermittent DCP endpoint-allocation race for the denoscript service; same signature observed in prior run 37427038688, tracked as issue #20760."
+    },
+    {
+      "name": "Aspire.Hosting.JavaScript.Tests.DenoFunctionalTests.VerifyDenoAppTaskScriptWorks",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.JavaScript.Tests, Hosting.JavaScript, Hosting.JavaScrip... / Hosting.JavaScript (windows-latest)",
+      "error": "Class fixture type 'Aspire.Hosting.JavaScript.Tests.DenoAppFixture' threw in InitializeAsync\n---- System.IO.InvalidDataException : Service denoscript should have valid address at this point",
+      "stack_trace": "----- Inner Stack Trace -----\n   at Aspire.Hosting.Dcp.DcpModelUtilities.TryAddLocalhostAllocatedEndpoint(ServiceWithModelResource sp, Boolean allowPending, Nullable`1 fallbackPort) in /_/src/Aspire.Hosting/Dcp/DcpModelUtilities.cs:line 186\n   at Aspire.Hosting.Dcp.DcpModelUtilities.TryAddWorkloadAllocatedEndpoints[TDcpResource](RenderedModelResource`1 resource, Boolean enableAspireContainerTunnel, String containerHostName) in /_/src/Aspire.Hosting/Dcp/DcpModelUtilities.cs:line 129\n   at Aspire.Hosting.Dcp.DcpExecutor.<>c__DisplayClass36_1.<<RunApplicationAsync>b__4>d.MoveNext() in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 220\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.Dcp.DcpExecutor.<>c__DisplayClass36_1.<<RunApplicationAsync>b__6>d.MoveNext() in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 266\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.Dcp.DcpExecutor.RunApplicationAsync(CancellationToken ct) in /_/src/Aspire.Hosting/Dcp/DcpExecutor.cs:line 272\n   at Aspire.Hosting.Orchestrator.ApplicationOrchestrator.RunApplicationAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/Orchestrator/ApplicationOrchestrator.cs:line 626\n   at Aspire.Hosting.Orchestrator.OrchestratorHostService.StartAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/Orchestrator/OrchestratorHostService.cs:line 41\n   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)\n   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StartAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/DistributedApplication.cs:line 485\n   at Aspire.Hosting.JavaScript.Tests.",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known intermittent DCP endpoint-allocation race for the denoscript service; same signature observed in prior run 37427038688, tracked as issue #20761."
+    },
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic assertion failure recurring on every main run since 2026-10-10 tied to the merged 'recovery budget with configurable timeouts' feature; not a timing-dependent flake, tracked as issue #20872."
+    },
+    {
+      "name": "Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(dispose: True, ownedTree: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "error": "System.InvalidOperationException : Process was not started by this object, so requested information cannot be determined.",
+      "stack_trace": "at System.Diagnostics.Process.get_ExitCode()\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 382\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 394\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 394\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known intermittent race reading Process.ExitCode on a disposed/not-started-by-this-object process; same signature seen in multiple prior runs, tracked as issue #20871."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "aspire-shared-tests-childprocesstests-windows-gracefultimeout-exitcode-race",
+    "hosting-javascript-denoappfixture-directexecution-invalidaddress",
+    "hosting-javascript-denoappfixture-taskscript-invalidaddress",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
