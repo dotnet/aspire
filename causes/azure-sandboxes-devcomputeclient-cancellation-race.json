@@ -1,0 +1,16 @@
+{
+  "id": "azure-sandboxes-devcomputeclient-cancellation-race",
+  "type": "flaky-test",
+  "title": "Flaky: AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite races a 10ms cancellation against an immediate mocked response",
+  "test_name": "Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite",
+  "error_pattern": "Assert.False() Failure\nExpected: False\nActual:   True\n   at Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite() in AzureSandboxesTests.cs:line 1605",
+  "occurrences": [
+    {
+      "run_id": 38283756224,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38283756224",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T18:04:42Z"
+    }
+  ]
+}

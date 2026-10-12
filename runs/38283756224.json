@@ -1,0 +1,89 @@
+{
+  "run_id": 38283756224,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38283756224",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-12T18:04:42Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "79544fa46ee2fe3671f5d2aba75f490f849a8029",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 114927792446,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38283756224/job/114927792446",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic test failure: KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay expects recorded HTTP methods [POST, GET] but gets none; matches prior tracked main-repository-breakage cause with 9 prior occurrences tied to the DCP retry-budget feature merged into main.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "id": 114927808754,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38283756224/job/114927808754",
+      "classification": "flaky-test",
+      "reason": "AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite uses a 10ms CancellationTokenSource racing an immediately-completing mocked HTTP response; under CI scheduling contention the cancellation and completion can interleave differently, producing an intermittent false assertion.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 114931194802,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38283756224/job/114931194802",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic Docker build failure building the generated Nuxt 'web' publish image: 'RUN npm ci' / 'npm run build' fails with exit code 1 after all 59 TypeScript validation AppHosts pass; matches prior tracked main-repository-breakage cause with 16 prior occurrences.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 114935038693,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38283756224/job/114935038693",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregator job fails deterministically because the TypeScript SDK validation job failed (Nuxt npm ci Docker build issue); Python/Go/Java/Rust all succeeded.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "error": "Assert.False() Failure\nExpected: False\nActual:   True",
+      "stack_trace": "at Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite() in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.Azure.Tests/AzureSandboxesTests.cs:line 1605\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Test races a 10ms CancellationTokenSource against an immediately-returning mocked Forbidden response; CI scheduling jitter can flip whether the response is observed as lost before cancellation, an environmental timing issue unrelated to any code change on main."
+    },
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic failure matching a tracked main-repository-breakage cause already seen 9 times, tied to the DCP retry-budget feature on main, not an environmental or timing issue."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "azure-sandboxes-devcomputeclient-cancellation-race"
+  ]
+}
