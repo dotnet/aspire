@@ -103,7 +103,7 @@ Editor-assistance regressions live in `editorAssistanceTools.test.ts`; shared or
 
 Multi-root lifecycle tests must round-trip returned `appHostPath` selectors through subsequent operations. MCP registration tests must cover ownership changes between nested workspace folders while preserving labels and definitions for unaffected pins.
 
-Resource source navigation uses path-bearing metadata, not the display-only `resource.source`. For `resource.launchConfigurationType: "python"`, `executable.path` identifies the interpreter, so navigation reveals `executable.workDir`. Regression fixtures must include an existing interpreter file so they cannot pass through a missing-file fallback.
+Resource source navigation uses path-bearing metadata, not the display-only `resource.source`. `project.path` takes precedence; resources with a nonempty `resource.launchConfigurationType` reveal `executable.workDir` instead of their runtime/launcher `executable.path`. Regression fixtures must include existing absolute launchers, such as Python's interpreter and Java's Windows `cmd.exe`, so they cannot pass through a missing-file fallback.
 
 Start/stop confirmations expire against monotonic time. Expiry regressions must vary wall time independently, checking just before and exactly at the deadline for both tools.
 

@@ -111,7 +111,7 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
     const hasNonFilesystemSource = Boolean(resource.properties?.['container.image']?.trim() || resource.properties?.['tool.package']?.trim());
     const executablePath = hasNonFilesystemSource ? undefined : resource.properties?.['executable.path']?.trim();
     const executableWorkDir = resource.properties?.['executable.workDir']?.trim();
-    const isPython = resource.properties?.[launchConfigurationTypePropertyName] === 'python';
+    const hasLaunchConfigurationType = Boolean(resource.properties?.[launchConfigurationTypePropertyName]?.trim());
     const executableDirectory = executableWorkDir && path.isAbsolute(executableWorkDir)
         ? executableWorkDir
         : appHostDirectory
@@ -124,8 +124,8 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
     const sourceValues = [
         { source: projectPath, directory: appHostDirectory },
         {
-            // Python's executable is its interpreter, not application source; use its working directory.
-            source: !isPython && executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
+            // Language launch configurations identify runtimes/launchers, not source; use their working directory.
+            source: !hasLaunchConfigurationType && executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
                 ? executablePath
                 : undefined,
             directory: executableDirectory,

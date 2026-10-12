@@ -366,15 +366,18 @@ suite('Aspire tree action command E2E', function () {
         await waitForCommandOutcome('aspire-vscode.openResourceSource', 'success', 60000, before);
         await waitForExplorerSelection(['AspireE2E.Worker']);
 
-        before = getCommandInvocationCount('aspire-vscode.openResourceSource');
-        section = await openAspireView();
-        await waitForResource('e2e-python-source');
-        const pythonSourceItem = await waitForTreeItem(section, 'e2e-python-source', 60000);
-        const pythonSourceMenu = await pythonSourceItem.openContextMenu();
-        await pythonSourceMenu.select('Open resource source');
-        await waitForCommandOutcome('aspire-vscode.openResourceSource', 'success', 60000, before);
-        await waitForExplorerSelection(['AspireE2E.AppHost', 'e2e-python-source']);
-        await VSBrowser.instance.takeScreenshot('resource-python-source-directory');
+        for (const language of ['python', 'java']) {
+            const resourceName = `e2e-${language}-source`;
+            before = getCommandInvocationCount('aspire-vscode.openResourceSource');
+            section = await openAspireView();
+            await waitForResource(resourceName);
+            const languageSourceItem = await waitForTreeItem(section, resourceName, 60000);
+            const languageSourceMenu = await languageSourceItem.openContextMenu();
+            await languageSourceMenu.select('Open resource source');
+            await waitForCommandOutcome('aspire-vscode.openResourceSource', 'success', 60000, before);
+            await waitForExplorerSelection(['AspireE2E.AppHost', resourceName]);
+            await VSBrowser.instance.takeScreenshot(`resource-${language}-source-directory`);
+        }
 
         before = getCommandInvocationCount('aspire-vscode.openResourceSource');
         section = await openAspireView();

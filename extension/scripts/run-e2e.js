@@ -1685,6 +1685,12 @@ function writeAppHostProject(projectName, resolvedAppHostSdkVersion, includeAzur
   fs.mkdirSync(path.dirname(pythonInterpreter), { recursive: true });
   fs.writeFileSync(pythonInterpreter, Buffer.from([0x4d, 0x5a, 0, 0]));
   fs.writeFileSync(path.join(pythonDirectory, 'main.py'), 'print("Python source navigation fixture")\n');
+  const javaDirectory = path.join(projectDirectory, 'e2e-java-source');
+  const javaLauncher = path.join(projectDirectory, 'e2e-java-launcher', 'cmd.exe');
+  fs.mkdirSync(javaDirectory, { recursive: true });
+  fs.mkdirSync(path.dirname(javaLauncher), { recursive: true });
+  fs.writeFileSync(javaLauncher, Buffer.from([0x4d, 0x5a, 0, 0]));
+  fs.writeFileSync(path.join(javaDirectory, 'App.java'), 'class App {}\n');
   const azureFunctionsPackageReference = includeAzureFunctions
     ? `    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${resolvedAppHostSdkVersion}" />\n`
     : '';
@@ -1837,18 +1843,25 @@ builder.AddResource(new NoCommandsResource("e2e-directory-source"))
         ]
     });
 
-// Match Python snapshot metadata with an existing interpreter, without installing or launching Python.
-builder.AddResource(new NoCommandsResource("e2e-python-source"))
-    .WithInitialState(new CustomResourceSnapshot
-    {
-        ResourceType = "Executable",
-        State = KnownResourceStates.Running,
-        Properties = [
-            new("resource.launchConfigurationType", "python"),
-            new("executable.path", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
-            new("executable.workDir", Path.Combine(builder.AppHostDirectory, "e2e-python-source"))
-        ]
-    });
+// Match launch metadata with existing binaries without installing or launching Python or Java.
+foreach (var (language, launcher) in new[]
+{
+    ("python", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
+    ("java", Path.Combine(builder.AppHostDirectory, "e2e-java-launcher", "cmd.exe"))
+})
+{
+    builder.AddResource(new NoCommandsResource($"e2e-{language}-source"))
+        .WithInitialState(new CustomResourceSnapshot
+        {
+            ResourceType = "Executable",
+            State = KnownResourceStates.Running,
+            Properties = [
+                new("resource.launchConfigurationType", language),
+                new("executable.path", launcher),
+                new("executable.workDir", Path.Combine(builder.AppHostDirectory, $"e2e-{language}-source"))
+            ]
+        });
+}
 
 builder.AddResource(new NoCommandsResource("e2e-display-source"))
     .WithInitialState(new CustomResourceSnapshot
