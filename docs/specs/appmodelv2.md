@@ -24,8 +24,20 @@ The examples are executable conformance fixtures, **not a finished integration
 package authoring experience**. They manually launch the integration worker and
 pass invitations over Node IPC. That IPC, the test assertions and the
 `native.testing/*` type names are fixture plumbing, not native APIs. Packaging,
-provider discovery/activation and generated C# integration clients are not
-implemented yet.
+automatic package discovery and installation are not implemented yet.
+[`NativeIntegrations`](../../playground/NativeIntegrations/README.md) now contains
+genuine C# and TypeScript integration libraries, ordinary typed AppHosts and
+explicit framework provider activation. A standalone generated C# client
+projects the same native ATS declarations as TypeScript.
+
+**For current authoring examples, start with `NativeIntegrations`, not the older
+worker fixtures below.** Its Redis integrations build on shared declarative
+`AddContainer`, environment, argument, endpoint, reference and volume primitives.
+The AppHost declares the graph and calls `StartApplication`; the server owns
+activation, dependency ordering, workload replacement and cleanup. Both language
+implementations have exercised real authenticated Redis, password rotation and
+retained-volume persistence against both AOT/DCP and Rust/DCP. The same authored
+libraries and AppHosts exercise both backends, including ATS retirement callbacks.
 
 ### 1. The AppHost declares and delegates
 
@@ -89,8 +101,11 @@ The authoritative declarations are the `[AspireExport]` methods and
 | What an integration needs | Native exports to look at | Source |
 | --- | --- | --- |
 | Declare resources and desired configuration | `AddResource`, `WaitFor`, `SetResourceConfiguration` | [`CompositionApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/CompositionApi.cs) |
+| Declare generic workloads and start the application | `AddContainer`, `AddExecutable`, `WithEnvironment`, `WithArgument`, `WithEndpoint`, `WithReference`, `WithVolume`, `StartApplication` | [`DeclarativeWorkloadApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/DeclarativeWorkloadApi.cs) |
+| Declare secret parameters and structured connection values | `AddSecretParameter`, `CreateLiteralValue`, `CreateEndpointValue`, `ConcatValue`, `EncodeUriValue`, `SetSymbolicConfiguration` | [`CompositionApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/CompositionApi.cs) |
 | Acquire scoped runtime authority | `InviteResourceExecution`, `JoinResourceExecution` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
 | Launch or replace containers/executables with named endpoints | `StartContainerWorkload`, `StartExecutableWorkload`, corresponding `Restart*` methods | [`WorkloadApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/WorkloadApi.cs) |
+| Resolve symbolic environment/argument bindings inside the server | `StartContainerWithValues`, `StartExecutableWithValues`, corresponding `Restart*` methods | [`WorkloadApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/WorkloadApi.cs) |
 | Report state/health/URLs and resource logs | `PublishObservation`, `AppendResourceLog` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
 | Implement resource commands | `DefineResourceCommand`, `WaitResourceCommands`, `CompleteResourceCommand` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
 | Ask for confirmation | `RequestConfirmation`, `AwaitRuntimeOperation` | [`RuntimeApi.cs`](../../src/Aspire.Hosting.Native.Server/Api/RuntimeApi.cs) |
@@ -104,12 +119,41 @@ resource executions across committed model revisions; an integration can apply
 a change in place or request workload replacement. Removing a resource revokes
 its runtime handle and triggers cleanup.
 
-**What is still missing:** a general typed schema/value/secret model,
-connection-expression resolution, general lifecycle/initialization registration,
-production integration provider activation, publishing/deployment, and
+**Shared values now work in the C# runtime:** composition-owned secret parameters,
+endpoint properties and composite values remain symbolic until server-side
+workload launch. References derive dependencies, revisions rebind resource
+identities, and inspection omits secret payloads. The real Redis socket fixture
+proves authenticated consumption and password changes across workload replacement.
+See [`NativeSymbolicWorkloadSocketTests.cs`](../../tests/Aspire.Hosting.Native.Core.Tests/NativeSymbolicWorkloadSocketTests.cs)
+and [`NativeSymbolicValueSmoke.mts`](../../tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeSymbolicValueSmoke.mts).
+These are validation fixtures; the authored Redis libraries are in
+`NativeIntegrations`. Endpoint values
+currently support host consumers only; container-network resolution fails
+explicitly rather than substituting host loopback addresses. Rust parity for
+the symbolic-value contracts is verified, including the same real Redis
+consumer revisions. The declarative workload and provider lifecycle contracts
+have also passed the same real C#/TS Redis AppHosts against Rust.
+
+**ATS lifecycle callbacks now work in the C# runtime:** integration-owned
+initialize, allocated, ready and retiring handlers bind automatically to their
+native declaration. A phase-scoped capability permits native-redacted logging
+and bounded executable operations using that resource's symbolic fields.
+Retirement authority remains valid for cleanup after public handles are revoked;
+provider objects are released deterministically. Both Redis implementations
+exercise authenticated `SAVE` through this authority before container deletion,
+and validation requires the resulting database snapshot file. The same real
+callback and cleanup scenarios also pass against Rust. In-process .NET lifecycle
+tests are not counted as Rust execution evidence.
+
+**What is still missing:** integration-owned typed schemas, automatic package
+discovery/installation, publishing/deployment, and
 interactions beyond confirmation. The current samples prove the runtime
 boundary; they do not yet show how to ship a complete replacement for today's
 hosting integration packages.
+
+Lifecycle ordering supports both integration-owned executable declarations and
+ATS provider callbacks. Ongoing health monitoring remains separate and
+unimplemented; initial authenticated health does not prove continuous health.
 
 ### Acceptance gate: rebuild existing integrations
 

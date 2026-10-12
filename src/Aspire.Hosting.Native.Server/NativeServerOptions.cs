@@ -18,6 +18,8 @@ internal sealed class NativeServerOptions
     public TimeSpan ControllerLogReadTimeout { get; set; } = TimeSpan.FromSeconds(10);
     public TimeSpan CleanupTimeout { get; set; } = TimeSpan.FromSeconds(45);
     public TimeSpan AuthenticationTimeout { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan ProviderInvocationTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan ProviderRegistrationTimeout { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan RetryInterval { get; set; } = TimeSpan.FromMilliseconds(100);
     public TimeSpan DashboardShutdownTimeout { get; set; } = TimeSpan.FromSeconds(10);
     public int MaximumConcurrentRequests { get; set; } = 64;
@@ -52,7 +54,7 @@ internal sealed class NativeServerOptions
         Runtime.TimeProvider = TimeProvider;
         Runtime.Validate();
         foreach (var duration in new[] { ControllerStartupTimeout, ControllerRequestTimeout, ControllerLogReadTimeout, CleanupTimeout,
-            AuthenticationTimeout, RetryInterval, DashboardShutdownTimeout })
+            AuthenticationTimeout, ProviderInvocationTimeout, ProviderRegistrationTimeout, RetryInterval, DashboardShutdownTimeout })
         {
             if (duration <= TimeSpan.Zero || duration.TotalMilliseconds > int.MaxValue)
             {

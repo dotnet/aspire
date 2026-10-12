@@ -74,7 +74,9 @@ internal sealed class NativeSocketTestClient : IDisposable
         Socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
         Socket.Connect(endPoint);
         _stream = new NetworkStream(Socket, ownsSocket: true);
-        _framing = new NativeRpcFraming(_stream);
+        // Bootstrap responses contain the complete offline-generated bundle and
+        // can exceed the server's separate 256 KiB inbound request limit.
+        _framing = new NativeRpcFraming(_stream, 4 * 1024 * 1024);
     }
 
     public Task SendRawAsync(string frame, CancellationToken cancellationToken) =>

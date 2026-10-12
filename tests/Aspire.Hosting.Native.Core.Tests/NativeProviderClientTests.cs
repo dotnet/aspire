@@ -1,0 +1,325 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json;
+using System.Text;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Native.Client;
+using Aspire.Hosting.Native.Core.Tests.TestServices;
+using NativeIntegration.Generated;
+
+namespace Aspire.Hosting.Native.Core.Tests;
+
+public class NativeProviderClientTests
+{
+    [Theory]
+    [InlineData("""{"code":"bad","message":"private-provider-secret"}""")]
+    [InlineData("""{"code":-32603,"message":false}""")]
+    public async Task MalformedProviderFailureClosesOnlyProviderAndFailsActivation(string error)
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15), TimeProvider.System);
+        using var provider = new NativeSocketTestClient(host.Endpoint);
+        await provider.CallAsync("authenticate", new JsonArray(host.Token), deadline.Token);
+        var authority = await app.ExpectIntegrationHostAsync("example.malformed", deadline.Token);
+        await provider.SendAsync("registerAsIntegrationHost", new JsonArray(authority), deadline.Token);
+        var request = JsonNode.Parse((await provider.ReadAsync(deadline.Token))!)!.AsObject();
+        Assert.Equal("getCapabilities", request["method"]!.GetValue<string>());
+        // A provider reply is {"jsonrpc":"2.0","id":"native:<n>","error":...};
+        // malformed code/message kinds must not expose the provider's payload.
+        var response = new JsonObject
+        {
+            ["jsonrpc"] = "2.0",
+            ["id"] = request["id"]!.DeepClone(),
+            ["error"] = JsonNode.Parse(error)
+        }.ToJsonString();
+        await provider.SendRawAsync($"Content-Length: {Encoding.UTF8.GetByteCount(response)}\r\n\r\n{response}", deadline.Token);
+        var failure = await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+            app.WaitIntegrationHostRegistrationAsync(authority, deadline.Token));
+        Assert.Equal("The provider activation failed.", failure.Message);
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Fact]
+    public async Task OfflineGeneratedProviderMetadataMatchesAuthoredCSharpApi() =>
+        await Verifier.Verify(ProviderContract.Create().Metadata.GetRawText(), "json").UseDirectory("Snapshots");
+
+    [Fact]
+    public async Task IntegrationOwnedCSharpApisUseDelegatedCoreAuthorityAndNativeSecretReferences()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var authority = await app.ExpectIntegrationHostAsync("example.csharp.external-api", CancellationToken.None);
+        await provider.RegisterIntegrationHostAsync(authority, ProviderContract.Create(), CancellationToken.None);
+        Assert.True(await app.WaitIntegrationHostRegistrationAsync(authority, CancellationToken.None));
+        var discovery = await app.GetIntegrationCapabilitiesAsync(CancellationToken.None);
+        Assert.Equal(2, discovery.GetProperty("protocolVersion").GetInt32());
+        Assert.Equal(3, discovery.GetProperty("capabilities").GetArrayLength());
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        var secret = await composition.AddSecretParameterAsync("api-key", "provider-must-not-read-this");
+        var catalog = await composition.AddExternalApiAsync("catalog", "https://catalog.example/");
+        var configured = await catalog.WithApiKeyAsync(secret);
+        Assert.True(JsonElement.DeepEquals(catalog.Handle, configured.Handle));
+        Assert.Equal("catalog", await catalog.GetResourceNameAsync());
+        var declaration = Assert.Single((await composition.InspectAsync()).Resources);
+        Assert.Equal("example/external-api", declaration.TypeId);
+        Assert.Equal("https://catalog.example/", Assert.Single(declaration.Configuration).Value);
+        Assert.Empty(declaration.Dependencies);
+        await using var foreign = await ConnectAsync(host);
+        var unauthorized = await Assert.ThrowsAsync<NativeCapabilityException>(() =>
+            foreign.InvokeAsync("example.csharp.external-api/getResourceName",
+                new Dictionary<string, JsonElement> { ["context"] = catalog.Handle }, CancellationToken.None));
+        Assert.Equal("HANDLE_NOT_FOUND", unauthorized.Code);
+        await session.RetireGenerationAsync(composition);
+        var retired = await Assert.ThrowsAsync<NativeCapabilityException>(() => catalog.GetResourceNameAsync());
+        Assert.Equal("HANDLE_NOT_FOUND", retired.Code);
+    }
+
+    [Fact]
+    public async Task OneUseActivationRejectsReplayAndProviderDisconnectDoesNotRetireCallerModel()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        var provider = await ConnectAsync(host);
+        var authority = await app.ExpectIntegrationHostAsync("example.csharp.external-api", CancellationToken.None);
+        await provider.RegisterIntegrationHostAsync(authority, ProviderContract.Create(), CancellationToken.None);
+        await using var replay = await ConnectAsync(host);
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+            replay.RegisterIntegrationHostAsync(authority, ProviderContract.Create(), CancellationToken.None));
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        var catalog = await composition.AddExternalApiAsync("catalog", "https://catalog.example/");
+        await provider.DisposeAsync();
+        // A failed provider call proves server-side disconnect was processed; the
+        // native declaration continues to belong to the original application.
+        await Assert.ThrowsAsync<NativeCapabilityException>(() => catalog.GetResourceNameAsync());
+        Assert.Equal("catalog", Assert.Single((await composition.InspectAsync()).Resources).Name);
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Fact]
+    public async Task IntegrationResourceCannotUseCompositionInsteadOfResourceDeclarationLifetime()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var generated = ProviderContract.Create();
+        var invalid = generated with
+        {
+            Dispatch = async (context, capability, arguments) =>
+            {
+                var result = await generated.Dispatch(context, capability, arguments);
+                var handle = JsonNode.Parse(result.GetRawText())!.AsObject();
+                handle["$lifetime"] = JsonNode.Parse(arguments.GetProperty("composition").GetRawText());
+                return JsonSerializer.SerializeToElement(handle);
+            }
+        };
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.csharp.external-api", CancellationToken.None),
+            invalid, CancellationToken.None);
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        var failure = await Assert.ThrowsAsync<NativeCapabilityException>(() =>
+            composition.AddExternalApiAsync("catalog", "https://catalog.example/"));
+        Assert.Equal("INVALID_HANDLE", failure.Code);
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Fact]
+    public async Task DuplicateProviderCapabilitiesAreRejectedWithoutReplacingTheOriginalProvider()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var first = await ConnectAsync(host);
+        await first.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.csharp.external-api", CancellationToken.None),
+            ProviderContract.Create(), CancellationToken.None);
+        await using var duplicate = await ConnectAsync(host);
+        var duplicateAuthority = await app.ExpectIntegrationHostAsync("example.csharp.external-api", CancellationToken.None);
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() => duplicate.RegisterIntegrationHostAsync(
+            duplicateAuthority,
+            ProviderContract.Create(), CancellationToken.None));
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        Assert.Equal("catalog", await (await composition.AddExternalApiAsync("catalog", "https://catalog.example/")).GetResourceNameAsync());
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Fact]
+    public async Task ProjectedCallbacksRelayToOriginalGuestWithoutChangingConnectionAuthority()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var definition = new NativeProviderDefinition(JsonDocument.Parse("""
+            { "protocolVersion": 2, "capabilities": [{
+              "id":"example.callback/transform","method":"transform",
+              "parameters":[{"name":"callback","type":{"typeId":"callback","category":"Callback"},
+                "isCallback":true,"callbackParameters":[{"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+                "callbackReturnType":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"string","category":"Primitive"}
+            }] }
+            """).RootElement.Clone(), async (context, _, args) =>
+        {
+            return await context.InvokeGuestCallbackAsync(args.GetProperty("callback").GetString()!,
+                new Dictionary<string, JsonElement> { ["p0"] = JsonDocument.Parse("\"hello\"").RootElement.Clone() });
+        });
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.callback", CancellationToken.None), definition, CancellationToken.None);
+        app.RegisterCallback("guest-transform", args => Task.FromResult(JsonDocument.Parse("\"" +
+            args.GetProperty("p0").GetString() + " guest\"").RootElement.Clone()));
+        var result = await app.InvokeAsync("example.callback/transform",
+            new Dictionary<string, JsonElement> { ["callback"] = JsonDocument.Parse("\"guest-transform\"").RootElement.Clone() }, CancellationToken.None);
+        Assert.Equal("hello guest", result.GetString());
+    }
+
+    [Fact]
+    public async Task InvocationDeadlineUsesInjectedClockAndNeverReplaysSideEffects()
+    {
+        var clock = new AdjustableFakeTimeProvider();
+        await using var host = await NativeClientTestHost.StartWithOptionsAsync(new()
+        {
+            TimeProvider = clock,
+            ProviderInvocationTimeout = TimeSpan.FromSeconds(5)
+        });
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var count = 0;
+        var definition = PrimitiveDefinition(async (_, _, _) =>
+        {
+            Interlocked.Increment(ref count);
+            entered.TrySetResult();
+            return await release.Task;
+        });
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.pending", CancellationToken.None), definition, CancellationToken.None);
+        var timerCreated = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        clock.TimerCreated = due =>
+        {
+            if (due == TimeSpan.FromSeconds(5))
+            {
+                timerCreated.TrySetResult();
+            }
+        };
+        var pending = app.InvokeAsync("example.pending/pending", [], CancellationToken.None);
+        await Task.WhenAll(entered.Task, timerCreated.Task).WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
+        clock.Advance(TimeSpan.FromSeconds(5));
+        var error = await Assert.ThrowsAsync<NativeCapabilityException>(() => pending);
+        Assert.Equal("PROVIDER_TIMEOUT", error.Code);
+        Assert.Equal(1, Volatile.Read(ref count));
+        release.TrySetResult(JsonDocument.Parse("\"late\"").RootElement.Clone());
+        var unavailable = await Assert.ThrowsAsync<NativeCapabilityException>(() =>
+            app.InvokeAsync("example.pending/pending", [], CancellationToken.None));
+        Assert.Equal("PROVIDER_DISCONNECTED", unavailable.Code);
+        Assert.Equal(1, Volatile.Read(ref count));
+    }
+
+    [Fact]
+    public async Task ProviderDisconnectFailsPendingInvocationWithoutWaitingForItsDeadline()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        var provider = await ConnectAsync(host);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.pending", CancellationToken.None),
+            PrimitiveDefinition(async (_, _, _) => { entered.TrySetResult(); return await release.Task; }), CancellationToken.None);
+        var pending = app.InvokeAsync("example.pending/pending", [], CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
+        await provider.DisposeAsync();
+        var error = await Assert.ThrowsAsync<NativeCapabilityException>(() => pending);
+        Assert.Equal("PROVIDER_DISCONNECTED", error.Code);
+        release.TrySetResult(JsonDocument.Parse("\"late\"").RootElement.Clone());
+    }
+
+    [Fact]
+    public async Task ProvidersCannotReplaceCoreCapabilities()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var metadata = JsonDocument.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"Aspire.Hosting.Native.Api/addResource","method":"addResource",
+              "parameters":[],"returnType":{"typeId":"void","category":"Primitive"}}]}
+            """).RootElement.Clone();
+        var authority = await app.ExpectIntegrationHostAsync("Aspire.Hosting.Native.Api", CancellationToken.None);
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() => provider.RegisterIntegrationHostAsync(
+            authority,
+            new(metadata, (_, _, _) => Task.FromResult(default(JsonElement))), CancellationToken.None));
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        Assert.Equal("core-still-works", (await (await composition.AddResourceAsync("core-still-works", "example/core")).InspectResourceAsync()).Name);
+        await session.RetireGenerationAsync(composition);
+    }
+
+    private static NativeProviderDefinition PrimitiveDefinition(Func<NativeProviderContext, string, JsonElement, Task<JsonElement>> dispatch) =>
+        new(JsonDocument.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"example.pending/pending","method":"pending","parameters":[],
+             "returnType":{"typeId":"string","category":"Primitive"}}]}
+            """).RootElement.Clone(), dispatch);
+
+    private static Task<NativeClient> ConnectAsync(NativeClientTestHost host) =>
+        NativeClient.ConnectAsync(host.Endpoint, host.Token, TimeSpan.FromSeconds(10), TimeProvider.System);
+
+    [Fact]
+    public async Task CallbackHandleArgumentsAreTranslatedBackToTheirOriginalGuestIdentity()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var definition = new NativeProviderDefinition(JsonDocument.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"example.handlecallback/inspect","method":"inspect",
+              "parameters":[
+                {"name":"declaration","type":{"typeId":"Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource","category":"Handle"}},
+                {"name":"callback","type":{"typeId":"callback","category":"Callback"},"isCallback":true,
+                  "callbackParameters":[{"name":"resource","type":{"typeId":"Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource","category":"Handle"}}],
+                  "callbackReturnType":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"string","category":"Primitive"}}]}
+            """).RootElement.Clone(), async (context, _, arguments) => await context.InvokeGuestCallbackAsync(
+            arguments.GetProperty("callback").GetString()!, new Dictionary<string, JsonElement> { ["p0"] = arguments.GetProperty("declaration") }));
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.handlecallback", CancellationToken.None), definition, CancellationToken.None);
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        var resource = await composition.AddResourceAsync("original", "example/resource");
+        app.RegisterCallback("inspect-original", async arguments =>
+        {
+            Assert.Equal(resource.Handle.GetRawText(), arguments.GetProperty("p0").GetRawText());
+            var original = new DeclaredResource(app, arguments.GetProperty("p0"));
+            return JsonDocument.Parse("\"" + (await original.InspectResourceAsync()).Name + "\"").RootElement.Clone();
+        });
+        var result = await app.InvokeAsync("example.handlecallback/inspect",
+            new Dictionary<string, JsonElement>
+            {
+                ["declaration"] = resource.Handle,
+                ["callback"] = JsonDocument.Parse("\"inspect-original\"").RootElement.Clone()
+            }, CancellationToken.None);
+        Assert.Equal("original", result.GetString());
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Theory]
+    [InlineData("""{"protocolVersion":1,"capabilities":[]}""")]
+    [InlineData("""{"protocolVersion":2,"capabilities":[{"id":"example.invalid/unsupported","method":"unsupported","parameters":[],"returnType":{"typeId":"example.invalid/Dto","category":"Dto"}}]}""")]
+    [InlineData("""{"protocolVersion":2,"capabilities":[{"id":"example.invalid/receiver","method":"receiver","parameters":[],"returnType":{"typeId":"string","category":"Primitive"},"targetTypeId":"example.invalid/Resource","targetParameterName":"context"}]}""")]
+    [InlineData("""{"protocolVersion":2,"capabilities":[{"id":"outside/namespace","method":"invalid","parameters":[],"returnType":{"typeId":"string","category":"Primitive"}}]}""")]
+    public async Task InvalidMetadataRejectsActivationAndUnblocksTheWaitingApplication(string metadata)
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        var authority = await app.ExpectIntegrationHostAsync("example.invalid", CancellationToken.None);
+        var waiting = app.WaitIntegrationHostRegistrationAsync(authority, CancellationToken.None);
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() => provider.RegisterIntegrationHostAsync(
+            authority, new(JsonDocument.Parse(metadata).RootElement.Clone(), (_, _, _) => Task.FromResult(default(JsonElement))), CancellationToken.None));
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() => waiting);
+    }
+}

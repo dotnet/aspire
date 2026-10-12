@@ -54,6 +54,11 @@ run_logged server-publish dotnet publish src/Aspire.Hosting.Native.Server/Aspire
 run_logged smoke-publish dotnet publish tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj \
     -c Release -r "$rid" -o "$work/smoke"
 run_logged aot-smoke "$work/smoke/Aspire.Hosting.Native.Core.AotSmoke"
+run_logged csharp-client-contract-tests env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-launch-profile -- \
+    --filter-class '*.NativeCSharpClientTests' --filter-class '*.NativeSymbolicValueClientTests' \
+    --filter-class '*.NativeProviderClientTests' \
+    --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
 
 cli_dll="$(dotnet msbuild src/Aspire.Cli/Aspire.Cli.csproj -nologo -getProperty:TargetPath)"
 cli="$(dirname "$cli_dll")/aspire"
@@ -84,6 +89,59 @@ run_logged browser-install "$sdk/node_modules/.bin/playwright" "${browser_args[@
 run_logged sdk-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$sdk/out" "$sdk/"*.mts
 
+# Real integration authoring examples are separate from transport/workload fixtures.
+run_logged csharp-provider-build dotnet build playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj -c Debug
+run_logged csharp-apphost-build dotnet build playground/NativeIntegrations/CSharp/AppHost/NativeIntegrations.AppHost.Sample.csproj -c Debug
+integration_sdk="$work/integration-sdk"
+mkdir -p "$integration_sdk"
+cp "$generated/"*.mts "$integration_sdk/"
+cp playground/NativeIntegrations/TypeScript/external-api.mts playground/NativeIntegrations/TypeScript/provider.mts "$integration_sdk/"
+ln -s "$sdk/node_modules" "$integration_sdk/node_modules"
+run_logged typescript-provider-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
+    --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$integration_sdk/out" "$integration_sdk/"*.mts
+run_logged typescript-provider-metadata node "$integration_sdk/out/provider.mjs" --emit-contract "$integration_sdk/provider-contract.json"
+provider_codegen="$(dotnet msbuild src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj -nologo -getProperty:TargetPath)"
+run_logged typescript-provider-projection dotnet "$provider_codegen" --provider-ts "$integration_sdk/provider-contract.json" "$integration_sdk"
+cp playground/NativeIntegrations/TypeScript/apphost.mts "$integration_sdk/"
+run_logged typescript-apphost-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
+    --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$integration_sdk/out" "$integration_sdk/"*.mts
+provider_dll="$(dotnet msbuild playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj -nologo -getProperty:TargetPath)"
+provider_apphost_dll="$(dotnet msbuild playground/NativeIntegrations/CSharp/AppHost/NativeIntegrations.AppHost.Sample.csproj -nologo -getProperty:TargetPath)"
+run_logged genuine-provider-apphosts env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    ASPIRE_NATIVE_PROVIDER_CSHARP="$(dirname "$provider_dll")/NativeIntegrations.Provider" \
+    ASPIRE_NATIVE_PROVIDER_CSHARP_APPHOST="$(dirname "$provider_apphost_dll")/NativeIntegrations.AppHost.Sample" \
+    ASPIRE_NATIVE_PROVIDER_TYPESCRIPT="$integration_sdk/out/provider.mjs" \
+    ASPIRE_NATIVE_PROVIDER_TYPESCRIPT_APPHOST="$integration_sdk/out/apphost.mjs" \
+    ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
+    --filter-class '*.NativeProviderAppHostTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
+
+run_logged csharp-redis-provider-build dotnet build playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj
+run_logged csharp-redis-apphost-build dotnet build playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj
+redis_sdk="$work/redis-integration-sdk"
+mkdir -p "$redis_sdk"
+cp "$generated/"*.mts "$redis_sdk/"
+cp playground/NativeIntegrations/TypeScript/Redis/redis.mts playground/NativeIntegrations/TypeScript/Redis/redis-protocol.mts \
+    playground/NativeIntegrations/TypeScript/Redis/redis-provider.mts "$redis_sdk/"
+ln -s "$sdk/node_modules" "$redis_sdk/node_modules"
+run_logged typescript-redis-provider-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
+    --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$redis_sdk/out" "$redis_sdk/"*.mts
+run_logged typescript-redis-provider-metadata node "$redis_sdk/out/redis-provider.mjs" --emit-contract "$redis_sdk/provider-contract.json"
+run_logged typescript-redis-provider-projection dotnet "$provider_codegen" --provider-ts "$redis_sdk/provider-contract.json" "$redis_sdk"
+cp playground/NativeIntegrations/TypeScript/Redis/redis-apphost.mts "$redis_sdk/"
+run_logged typescript-redis-apphost-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
+    --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$redis_sdk/out" "$redis_sdk/"*.mts
+redis_provider="$(dotnet msbuild playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj -nologo -getProperty:TargetPath)"
+redis_apphost="$(dotnet msbuild playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj -nologo -getProperty:TargetPath)"
+run_logged genuine-redis-apphosts env ASPIRE_NATIVE_SYMBOLIC_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    ASPIRE_NATIVE_SYMBOLIC_TEST_DCP="$ASPIRE_NATIVE_DCP_PATH" ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
+    ASPIRE_NATIVE_REDIS_CSHARP_PROVIDER="$(dirname "$redis_provider")/NativeIntegrations.Redis.Provider" \
+    ASPIRE_NATIVE_REDIS_CSHARP_APPHOST="$(dirname "$redis_apphost")/NativeIntegrations.Redis.AppHost.Sample" \
+    ASPIRE_NATIVE_REDIS_TYPESCRIPT_PROVIDER="$redis_sdk/out/redis-provider.mjs" \
+    ASPIRE_NATIVE_REDIS_TYPESCRIPT_APPHOST="$redis_sdk/out/redis-apphost.mjs" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
+    --filter-class '*.NativeRedisAppHostTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
+
 workspace="$work/cli-apphost"
 cp "$fixtures/CliAppHost/"* "$workspace/"
 cp tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json "$workspace/package.json"
@@ -93,6 +151,12 @@ cp "$generated/"*.mts "$workspace/.aspire/modules/"
 # the SDK workspace so that install cannot prune its pg/playwright smoke dependencies.
 ln -s "$sdk/out" "$workspace/out"
 server="$work/server/Aspire.Hosting.Native.Server"
+run_logged symbolic-value-contract-smoke env ASPIRE_NATIVE_SYMBOLIC_TEST_SERVER="$server" \
+    ASPIRE_NATIVE_SYMBOLIC_TEST_DCP="$ASPIRE_NATIVE_DCP_PATH" ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
+    --filter-class '*.NativeSymbolicWorkloadSocketTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
+run_logged typescript-symbolic-value-contract-smoke env -u ASPIRE_NATIVE_DCP_PATH \
+    node "$sdk/out/NativeSymbolicValueSmoke.mjs" "$server"
 
 # The RPC fixture exercises AotSmoke's line-delimited --rpc host, while the runtime
 # fixture below exercises the production server's authenticated socket transport.

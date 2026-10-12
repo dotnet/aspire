@@ -97,6 +97,24 @@ public class NativeRpcTests
     }
 
     [Fact]
+    public void SymbolicValueParametersRejectForeignAuthorityAndRetirementReleasesTheirHandles()
+    {
+        using var first = new RpcTestClient(authenticate: true);
+        using var second = new RpcTestClient(authenticate: true);
+        var session = first.CreateSession();
+        var composition = first.StartGeneration(session);
+        var value = Result(first.Invoke("addSecretParameter", Arguments(("context", composition),
+            ("name", JsonValue.Create("password")), ("value", JsonValue.Create("rpc-secret")))));
+        var resource = second.AddResource(second.StartGeneration(second.CreateSession()), "consumer");
+        Assert.Equal("HANDLE_NOT_FOUND", Error(second.Invoke("setSymbolicConfiguration",
+            Arguments(("context", resource), ("name", JsonValue.Create("password")), ("value", value)))));
+        Assert.Equal(3, first.Connection.HandleCount);
+        Assert.Null(first.Invoke("retireGeneration", Arguments(("context", session), ("composition", composition)))["error"]);
+        Assert.Equal(1, first.Connection.HandleCount);
+        Assert.Equal("HANDLE_NOT_FOUND", Error(first.Invoke("encodeUriValue", Arguments(("context", value)))));
+    }
+
+    [Fact]
     public void WrongSessionCannotRetireAnotherComposition()
     {
         using var client = new RpcTestClient(authenticate: true);

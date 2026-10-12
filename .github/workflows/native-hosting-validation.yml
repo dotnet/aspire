@@ -9,6 +9,7 @@ on:
       # linked files and runtime-only CLI/Dashboard/codegen inputs without a second project graph.
       - 'src/**'
       - 'playground/NativeHosting/**'
+      - 'playground/NativeIntegrations/**'
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
@@ -30,6 +31,7 @@ on:
     paths:
       - 'src/**'
       - 'playground/NativeHosting/**'
+      - 'playground/NativeIntegrations/**'
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'

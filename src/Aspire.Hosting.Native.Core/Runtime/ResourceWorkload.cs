@@ -93,13 +93,31 @@ internal sealed class UnavailableWorkloadExecutor : IWorkloadExecutor
 /// <summary>Owns startup, observation, cancellation, and cleanup for one resource execution.</summary>
 internal sealed class ResourceWorkload(
     WorkloadIdentity identity,
-    WorkloadPlan plan,
+    Func<WorkloadPlan> resolvePlan,
     IWorkloadExecutor executor,
     NativeRuntimeOptions options,
     Func<CancellationToken, Task> waitForDependencies,
     Action<ResourceState, WorkloadEndpoint?> publish,
-    Action<LogStream, string> log) : IDisposable
+    Action<LogStream, string> log,
+    Func<CancellationToken, Task> initialize,
+    Func<WorkloadEndpoint, CancellationToken, Task> allocated,
+    Func<Task> retire) : IDisposable
 {
+    public ResourceWorkload(WorkloadIdentity identity, Func<WorkloadPlan> resolvePlan, IWorkloadExecutor executor,
+        NativeRuntimeOptions options, Func<CancellationToken, Task> waitForDependencies,
+        Action<ResourceState, WorkloadEndpoint?> publish, Action<LogStream, string> log)
+        : this(identity, resolvePlan, executor, options, waitForDependencies, publish, log,
+            _ => Task.CompletedTask, (_, _) => Task.CompletedTask, () => Task.CompletedTask)
+    {
+    }
+
+    public ResourceWorkload(WorkloadIdentity identity, WorkloadPlan plan, IWorkloadExecutor executor,
+        NativeRuntimeOptions options, Func<CancellationToken, Task> waitForDependencies,
+        Action<ResourceState, WorkloadEndpoint?> publish, Action<LogStream, string> log)
+        : this(identity, () => plan, executor, options, waitForDependencies, publish, log)
+    {
+    }
+
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TaskCompletionSource<WorkloadEndpoint> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task? _completion;
@@ -108,6 +126,8 @@ internal sealed class ResourceWorkload(
     private bool _cleanupFailed;
     private readonly Lock _lifetimeGate = new();
     private bool _finished;
+    private Task? _retirement;
+    private bool _retirementFailureReported;
     public Task Completion => _stop ?? _completion ?? Task.CompletedTask;
 
     /// <summary>Stops execution and retries a cleanup obligation left by a failed attempt.</summary>
@@ -139,6 +159,11 @@ internal sealed class ResourceWorkload(
                 // Retirement must invoke the retained lease rather than reobserve that fault.
                 await CleanupAsync().ConfigureAwait(false);
             }
+            else if (_retirement is { IsFaulted: true } && !_retirementFailureReported)
+            {
+                _retirementFailureReported = true;
+                await _retirement.ConfigureAwait(false);
+            }
             // Startup/observation failures have already been reported to the owner
             // and resource logs. They must not fence retirement once cleanup succeeds.
         }
@@ -146,20 +171,33 @@ internal sealed class ResourceWorkload(
 
     private async Task CleanupAsync()
     {
-        if (_lease is null)
-        {
-            return;
-        }
         try
         {
-            await _lease.DisposeAsync().ConfigureAwait(false);
-            _lease = null;
+            // Retain the original task: a possibly side-effecting retirement
+            // command must never be replayed by a later cleanup attempt.
+            _retirement ??= retire();
+            try
+            {
+                await _retirement.ConfigureAwait(false);
+            }
+            finally
+            {
+                // A failed/disconnected provider cannot fence removal of native
+                // workloads. Report the phase fault, but remove its main lease.
+                if (_lease is not null)
+                {
+                    await _lease.DisposeAsync().ConfigureAwait(false);
+                }
+                _lease = null;
+            }
             _cleanupFailed = false;
         }
         catch (Exception exception)
         {
-            _cleanupFailed = true;
-            log(LogStream.Stderr, $"Workload cleanup failed: {exception.GetType().Name}; cleanup remains pending.");
+            _cleanupFailed = _lease is not null;
+            log(LogStream.Stderr, _cleanupFailed ?
+                $"Workload cleanup failed: {exception.GetType().Name}; cleanup remains pending." :
+                $"Integration retirement failed: {exception.GetType().Name}; native workload removed.");
             throw;
         }
     }
@@ -185,9 +223,13 @@ internal sealed class ResourceWorkload(
             // Dependency readiness has its own lifetime. Start this workload's
             // startup budget only after dependencies are ready.
             using var startup = new TimeProviderCancellation(options.WorkloadStartupTimeout, options.TimeProvider, _lifetime.Token);
+            await initialize(startup.Token).ConfigureAwait(false);
+            var plan = resolvePlan();
+            WorkloadDefinition.Validate(plan);
             var lease = await executor.StartAsync(identity, plan, startup.Token).ConfigureAwait(false);
             _lease = lease;
             publish(ResourceState.Running, lease.Endpoint);
+            await allocated(lease.Endpoint, startup.Token).ConfigureAwait(false);
             _ready.TrySetResult(lease.Endpoint);
             while (true)
             {
@@ -236,7 +278,7 @@ internal sealed class ResourceWorkload(
         {
             try
             {
-                if (_lease is not null && !_cleanupFailed)
+                if (!_cleanupFailed)
                 {
                     try
                     {

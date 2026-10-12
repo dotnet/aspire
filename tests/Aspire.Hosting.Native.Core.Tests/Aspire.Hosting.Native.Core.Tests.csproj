@@ -14,6 +14,8 @@
     <Compile Include="$(TestsSharedDir)Logging/*.cs" LinkBase="shared/Logging" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" />
+    <ProjectReference Include="../../src/Aspire.Hosting.Native.Client/Aspire.Hosting.Native.Client.csproj" />
+    <ProjectReference Include="../../playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../playground/NativeHosting/AtsServer/NativeHosting.AtsServer.csproj" Aliases="NativeLegacyServer" />
     <ProjectReference Include="../../playground/NativeHosting/Ats/NativeHosting.Ats.csproj" Aliases="NativeLegacy" />
@@ -21,5 +23,6 @@
     <ProjectReference Include="../../playground/NativeHosting/AtsCodegen/NativeHosting.AtsCodegen.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../playground/NativeHosting/ManagedAdapter/NativeHosting.ManagedAdapter.csproj" ReferenceOutputAssembly="false" />
     <Compile Remove="AotSmoke/**/*.cs" />
+    <None Update="AotSmoke/SymbolicRedisConsumer.mts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -13,6 +13,7 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("src/Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj")]
     [InlineData("src/Aspire.Hosting.Native.Core/Runtime/RuntimeGeneration.cs")]
     [InlineData("src/Aspire.Hosting.Native.CodeGeneration/Program.cs")]
+    [InlineData("src/Aspire.Hosting.Native.Client/NativeClient.cs")]
     [InlineData("src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/transport.ts")]
     [InlineData("src/Aspire.Hosting.CodeGeneration.TypeScript/Resources/package.json")]
     [InlineData("src/Aspire.Cli/Templating/Templates/ts-starter/tsconfig.apphost.json")]
@@ -22,10 +23,19 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("src/Shared/SocketPermissionHelper.cs")]
     [InlineData("playground/NativeHosting/AtsServer/AtsSession.cs")]
     [InlineData("playground/NativeHosting/ManagedAdapter/NativeHosting.ManagedAdapter.csproj")]
+    [InlineData("playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj")]
+    [InlineData("playground/NativeIntegrations/TypeScript/external-api.mts")]
+    [InlineData("playground/NativeIntegrations/CSharp/Redis/RedisExtensions.cs")]
+    [InlineData("playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj")]
+    [InlineData("playground/NativeIntegrations/TypeScript/Redis/redis.mts")]
+    [InlineData("playground/NativeIntegrations/TypeScript/Redis/redis-protocol.mts")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/Program.cs")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/NativeRevisionSmoke.mts")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/CliAppHost/apphost.mts")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/TestServices/DiagnosticCapture.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/NativeCSharpClientTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/NativeSymbolicWorkloadSocketTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/SymbolicRedisConsumer.mts")]
     [InlineData("tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json")]
     [InlineData("tests/Directory.Build.props")]
     [InlineData("tests/Shared/RepoTesting/RepoTesting.csproj")]
@@ -81,6 +91,7 @@ public sealed class NativeHostingWorkflowTests
         const string harness = "eng/scripts/test-native-hosting.sh";
 
         Assert.Contains(workflow, map.Ignore);
+        Assert.Contains("playground/NativeIntegrations/TypeScript/**", map.Ignore);
         foreach (var path in new[] { workflow, harness })
         {
             var targets = map.PathRules

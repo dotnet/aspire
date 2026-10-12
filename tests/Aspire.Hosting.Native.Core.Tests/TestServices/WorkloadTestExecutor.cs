@@ -19,6 +19,7 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
     public Func<CancellationToken, Task>? BeforeStart { get; init; }
     public WorkloadPhase Phase { get; set; } = WorkloadPhase.Running;
     public int? ExitCode { get; set; }
+    public Func<WorkloadPlan, WorkloadStatus>? StatusForPlan { get; init; }
 
     public void ReleaseCleanup() => _cleanup.TrySetResult();
     public void FailCleanup() => _cleanup.TrySetException(new InvalidOperationException("Test workload cleanup failed."));
@@ -46,7 +47,7 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
             plan.Endpoints.Select((endpoint, index) => new AllocatedWorkloadPort(
                 endpoint.Name, endpoint.Protocol, endpoint.UriScheme, "127.0.0.1", 5050 + index)).ToImmutableArray());
         public Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new WorkloadStatus(executor.Phase, executor.ExitCode));
+            Task.FromResult(executor.StatusForPlan?.Invoke(plan) ?? new WorkloadStatus(executor.Phase, executor.ExitCode));
         public Task<ImmutableArray<WorkloadLog>> ReadLogsAsync(CancellationToken cancellationToken) =>
             Task.FromResult(ImmutableArray<WorkloadLog>.Empty);
         public async ValueTask DisposeAsync()

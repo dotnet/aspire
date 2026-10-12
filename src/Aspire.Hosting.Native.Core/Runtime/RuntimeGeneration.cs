@@ -8,7 +8,7 @@ using Aspire.Hosting.Native.Model;
 namespace Aspire.Hosting.Native.Runtime;
 
 /// <summary>Owns execution observations and requests independently of declaration storage and protocol DTOs.</summary>
-internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkloadExecutor executor, NativeRuntimeOptions options) : IDisposable
+internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations, IWorkloadExecutor executor, NativeRuntimeOptions options) : IDisposable
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<Guid, RuntimeResource> _resources = declarations.Resources.ToDictionary(
@@ -19,6 +19,8 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     private readonly Dictionary<Guid, ResourceWorkload> _workloads = [];
     private readonly List<ResourceWorkload> _retiredWorkloads = [];
     private readonly HashSet<Guid> _replacingWorkloads = [];
+    private readonly HashSet<string> _secretRedactions = declarations.SecretParameters
+        .SelectMany(value => value.SecretRedactions).ToHashSet(StringComparer.Ordinal);
 
     public RuntimeGeneration(ApplicationSnapshot declarations) : this(declarations, UnavailableWorkloadExecutor.Instance, new())
     {
@@ -34,7 +36,8 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             lock (_gate)
             {
-                return Task.WhenAll(_workloads.Values.Concat(_retiredWorkloads).Select(workload => workload.Completion));
+                return Task.WhenAll(_workloads.Values.Concat(_retiredWorkloads).Select(workload => workload.Completion)
+                    .Concat(_declaredRetirement is null ? [] : [_declaredRetirement]));
             }
         }
     }
@@ -60,12 +63,27 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         lock (_gate)
         {
             EnsureAlive();
+            if (_declaredActivation is { IsCompleted: false })
+            {
+                throw new InvalidOperationException("The declared application is still activating.");
+            }
             // A replacement owns a launch plan for the current desired revision.
             // Retry the staged commit after it finishes rather than starting a
             // stale plan or removing a resource while its lease is being replaced.
             if (_replacingWorkloads.Count != 0)
             {
                 throw new InvalidOperationException("A resource workload replacement is still being applied.");
+            }
+            if (_providerLifecycleStates.Values.Any(state => state.ActiveInvocations != 0))
+            {
+                throw new InvalidOperationException("A resource provider lifecycle phase is still active.");
+            }
+            // Keep old credentials while their workload logs can still arrive after
+            // replacement. Reject excess history before mutating the desired graph.
+            var newRedactions = revision.SecretParameters.SelectMany(value => value.SecretRedactions).ToArray();
+            if (_secretRedactions.Concat(newRedactions).Distinct(StringComparer.Ordinal).Count() > 4096)
+            {
+                throw new SymbolicValueException(SymbolicValueFailure.SecretHistoryLimit);
             }
             var previous = _resources.Values.ToDictionary(resource => resource.Declaration.Name, StringComparer.OrdinalIgnoreCase);
             var handles = revision.Resources.ToDictionary(resource => resource.Handle.ResourceId, resource =>
@@ -77,17 +95,29 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 var updated = declaration with
                 {
                     Handle = handles[declaration.Handle.ResourceId],
-                    Dependencies = declaration.Dependencies.Select(handle => handles[handle.ResourceId]).ToImmutableArray()
+                    Dependencies = declaration.Dependencies.Select(handle => handles[handle.ResourceId]).ToImmutableArray(),
+                    SymbolicConfiguration = declaration.SymbolicConfiguration.Select(entry => new SymbolicConfigurationEntry(
+                        entry.Name, entry.Value.Rebind(GenerationId, handle => handles[handle.ResourceId]))).ToImmutableArray()
                 };
                 if (_resources.TryGetValue(updated.Handle.ResourceId, out var retained))
                 {
                     if (!retained.Declaration.Configuration.SequenceEqual(updated.Configuration) ||
-                        !retained.Declaration.Dependencies.SequenceEqual(updated.Dependencies))
+                        !retained.Declaration.Dependencies.SequenceEqual(updated.Dependencies) ||
+                        !EquivalentSymbolic(retained.Declaration.SymbolicConfiguration, updated.SymbolicConfiguration) ||
+                        !DeclaredWorkload.Equivalent(retained.Declaration.Workload, updated.Workload) ||
+                        !retained.Declaration.ProviderLifecycle.Select(binding => (binding.ProviderId, binding.TypeId, binding.Phase, binding.CapabilityId))
+                            .SequenceEqual(updated.ProviderLifecycle.Select(binding => (binding.ProviderId, binding.TypeId, binding.Phase, binding.CapabilityId))))
                     {
                         retained.ConfigurationRevision++;
                         retained.ConfigurationStatus = ConfigurationStatus.Pending;
                         retained.ConfigurationMessage = "";
                         retained.Healthy = false;
+                    }
+                    else if (_providerLifecycleStates.TryGetValue(updated.Handle.ResourceId, out var providerState))
+                    {
+                        // A retained physical workload adopts the new authoring
+                        // object without replaying initialization or restarting.
+                        providerState.Bindings = updated.ProviderLifecycle;
                     }
                     retained.Declaration = updated;
                     next.Add(updated.Handle.ResourceId, retained);
@@ -109,13 +139,17 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 }
             }
             _resources.Clear();
+            foreach (var secret in newRedactions)
+            {
+                _secretRedactions.Add(secret);
+            }
             foreach (var (id, resource) in next)
             {
                 _resources.Add(id, resource);
             }
             Changed();
 
-            return Task.WhenAll(cleanup);
+            return ApplyDeclaredRevisionAsync(Task.WhenAll(cleanup));
         }
     }
 
@@ -140,6 +174,15 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
+    internal ImmutableArray<SymbolicConfigurationEntry> ReadSymbolicConfiguration(Guid resourceId)
+    {
+        lock (_gate)
+        {
+            EnsureAlive();
+
+            return GetOwnedResource(resourceId).Declaration.SymbolicConfiguration;
+        }
+    }
     internal async Task<RuntimeConfigurationRevision> WaitConfigurationAsync(Guid resourceId, long revision, int timeoutMilliseconds)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(timeoutMilliseconds, 1);
@@ -189,7 +232,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 throw new InvalidOperationException("The configuration revision is stale or already completed.");
             }
             resource.ConfigurationStatus = status;
-            resource.ConfigurationMessage = message;
+            resource.ConfigurationMessage = Redact(message);
             if (status == ConfigurationStatus.Succeeded)
             {
                 resource.AppliedConfigurationRevision = revision;
@@ -202,7 +245,111 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    internal Task<WorkloadEndpoint> StartWorkload(Guid resourceId, WorkloadPlan plan)
+    internal Task<WorkloadEndpoint> StartWorkload(Guid resourceId, WorkloadPlan plan) =>
+        StartWorkloadCore(resourceId, plan, () => plan);
+
+    internal Task<WorkloadEndpoint> StartSymbolicWorkload(Guid resourceId, long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
+    {
+        WorkloadDefinition.Validate(template);
+        bindings.Validate(template);
+        lock (_gate)
+        {
+            ValidateSymbolicBindings(resourceId, revision, template, context, bindings);
+
+            return StartWorkloadCore(resourceId, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings, false));
+        }
+    }
+
+    private void ValidateSymbolicBindings(Guid resourceId, long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
+    {
+        EnsureAlive();
+        var resource = GetOwnedResource(resourceId);
+        if (revision != resource.ConfigurationRevision)
+        {
+            throw new SymbolicValueException(SymbolicValueFailure.StaleRevision);
+        }
+        var expectedContext = template is ContainerWorkload ? ValueNetworkContext.Container : ValueNetworkContext.Host;
+        if (context != expectedContext)
+        {
+            throw new SymbolicValueException(SymbolicValueFailure.UnsupportedNetworkContext);
+        }
+        foreach (var key in bindings.Environment.Select(binding => binding.ConfigurationKey)
+            .Concat(bindings.Arguments.Select(binding => binding.ConfigurationKey)))
+        {
+            var value = resource.Declaration.SymbolicConfiguration.SingleOrDefault(entry => entry.Name == key)?.Value
+                ?? throw new SymbolicValueException(SymbolicValueFailure.ConfigurationUnavailable);
+            // DCP currently allocates host-facing addresses only. Do not reuse a
+            // loopback allocation for a container consumer, even for port-only values.
+            if (context == ValueNetworkContext.Container && value.References.Any())
+            {
+                throw new SymbolicValueException(SymbolicValueFailure.UnsupportedNetworkContext);
+            }
+        }
+    }
+
+    private WorkloadPlan ResolveSymbolicWorkload(Guid resourceId, long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings, bool allowOwnAllocatedEndpoint)
+    {
+        lock (_gate)
+        {
+            ValidateSymbolicBindings(resourceId, revision, template, context, bindings);
+            var values = GetOwnedResource(resourceId).Declaration.SymbolicConfiguration.ToDictionary(entry => entry.Name, entry => entry.Value);
+            string Resolve(string key)
+            {
+                var symbolic = values[key];
+                var value = symbolic.Resolve(context, (handle, name, property) =>
+                    ResolveEndpointValue(handle, name, property, allowOwnAllocatedEndpoint ? resourceId : null));
+                if (symbolic.IsSecret)
+                {
+                    if (!_secretRedactions.Contains(value) && _secretRedactions.Count >= 4096)
+                    {
+                        throw new SymbolicValueException(SymbolicValueFailure.SecretHistoryLimit);
+                    }
+                    _secretRedactions.Add(value);
+                }
+
+                return value;
+            }
+            var environment = template.Environment.AddRange(bindings.Environment
+                .Select(binding => new WorkloadEnvironment(binding.Name, Resolve(binding.ConfigurationKey))));
+            var arguments = template.Arguments.ToBuilder();
+            foreach (var binding in bindings.Arguments)
+            {
+                arguments[binding.Index] = Resolve(binding.ConfigurationKey);
+            }
+            var plan = SymbolicWorkloadBindings.Copy(template, environment, arguments.ToImmutable());
+            WorkloadDefinition.Validate(plan);
+
+            return plan;
+        }
+    }
+
+    private string ResolveEndpointValue(ResourceHandle handle, string name, EndpointValueProperty property, Guid? allocatedOwner)
+    {
+        if (handle.GenerationId != GenerationId ||
+            !_resources.TryGetValue(handle.ResourceId, out var resource) || resource.Allocation is null ||
+            !resource.Healthy && handle.ResourceId != allocatedOwner || resource.State != ResourceState.Running)
+        {
+            throw new SymbolicValueException(SymbolicValueFailure.EndpointUnavailable);
+        }
+        var endpoint = resource.Allocation.Endpoints.SingleOrDefault(endpoint => endpoint.Name == name)
+            ?? throw new SymbolicValueException(SymbolicValueFailure.EndpointUnavailable);
+        var host = endpoint.Host.Contains(':') ? $"[{endpoint.Host}]" : endpoint.Host;
+
+        return property switch
+        {
+            EndpointValueProperty.Host => endpoint.Host,
+            EndpointValueProperty.Port => endpoint.Port.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            EndpointValueProperty.HostAndPort => $"{host}:{endpoint.Port}",
+            EndpointValueProperty.Scheme => endpoint.UriScheme,
+            EndpointValueProperty.Url => new UriBuilder(endpoint.UriScheme, endpoint.Host, endpoint.Port).Uri.AbsoluteUri.TrimEnd('/'),
+            _ => throw new ArgumentException("Unsupported symbolic endpoint property.")
+        };
+    }
+
+    private Task<WorkloadEndpoint> StartWorkloadCore(Guid resourceId, WorkloadPlan plan, Func<WorkloadPlan> resolvePlan)
     {
         WorkloadDefinition.Validate(plan);
         lock (_gate)
@@ -213,12 +360,17 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 throw new InvalidOperationException("The resource workload cannot start in the current state.");
             }
-            var workload = new ResourceWorkload(new WorkloadIdentity(GenerationId, resourceId), plan, executor, options,
+            var lifecycle = CreateLifecycle(resourceId);
+            var workload = new ResourceWorkload(new WorkloadIdentity(GenerationId, resourceId), resolvePlan, executor, options,
                 token => WaitForDependenciesAsync(resourceId, token),
                 (state, endpoint) => PublishWorkload(resourceId, state, endpoint),
-                (stream, message) => AppendWorkloadLog(resourceId, stream, message));
+                (stream, message) => AppendWorkloadLog(resourceId, stream, message),
+                resource.Declaration.Workload is null ? _ => Task.CompletedTask : lifecycle.Initialize,
+                resource.Declaration.Workload is null ? (_, _) => Task.CompletedTask : lifecycle.Allocated,
+                resource.Declaration.Workload is null ? () => Task.CompletedTask : lifecycle.Retire);
             _workloads.Add(resourceId, workload);
             resource.State = ResourceState.Starting;
+            resource.Allocation = null;
             Changed();
 
             return workload.Start();
@@ -249,7 +401,23 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    internal async Task<WorkloadEndpoint> ReplaceWorkloadAsync(Guid resourceId, long revision, WorkloadPlan plan)
+    internal Task<WorkloadEndpoint> ReplaceWorkloadAsync(Guid resourceId, long revision, WorkloadPlan plan) =>
+        ReplaceWorkloadCoreAsync(resourceId, revision, plan, () => plan);
+
+    internal Task<WorkloadEndpoint> ReplaceSymbolicWorkloadAsync(Guid resourceId, long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
+    {
+        WorkloadDefinition.Validate(template);
+        bindings.Validate(template);
+        lock (_gate)
+        {
+            ValidateSymbolicBindings(resourceId, revision, template, context, bindings);
+
+            return ReplaceWorkloadCoreAsync(resourceId, revision, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings, false));
+        }
+    }
+
+    private async Task<WorkloadEndpoint> ReplaceWorkloadCoreAsync(Guid resourceId, long revision, WorkloadPlan plan, Func<WorkloadPlan> resolvePlan)
     {
         WorkloadDefinition.Validate(plan);
         ResourceWorkload previous;
@@ -270,7 +438,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             resource.Urls = [];
             resource.Commands.Clear();
             CancelRequests(resource);
-            InvalidateDependents(resourceId);
+            InvalidateDependents(resourceId, _declaredOwners.Contains(resourceId));
             previous.Dispose();
             Changed();
         }
@@ -287,7 +455,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 _workloads.Remove(resourceId);
                 _replacingWorkloads.Remove(resourceId);
                 resource.State = ResourceState.Unknown;
-                started = StartWorkload(resourceId, plan);
+                started = StartWorkloadCore(resourceId, plan, resolvePlan);
                 _replacingWorkloads.Add(resourceId);
             }
 
@@ -302,7 +470,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    private void InvalidateDependents(Guid resourceId)
+    private void InvalidateDependents(Guid resourceId, bool skipPendingRevisions)
     {
         var affected = new HashSet<Guid> { resourceId };
         var changed = true;
@@ -315,7 +483,10 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 if (!affected.Contains(id) && resource.Declaration.Dependencies.Any(handle => affected.Contains(handle.ResourceId)))
                 {
                     affected.Add(id);
-                    resource.ConfigurationRevision++;
+                    if (!skipPendingRevisions || resource.ConfigurationStatus != ConfigurationStatus.Pending)
+                    {
+                        resource.ConfigurationRevision++;
+                    }
                     resource.ConfigurationStatus = ConfigurationStatus.Pending;
                     resource.ConfigurationMessage = "";
                     resource.Healthy = false;
@@ -343,6 +514,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 return;
             }
             resource.State = state;
+            resource.Allocation = endpoint;
             resource.Healthy = false;
             resource.Urls = endpoint is null ? [] : endpoint.Endpoints.Select(port =>
                 new UriBuilder(port.UriScheme, port.Host, port.Port).Uri.AbsoluteUri.TrimEnd('/')).ToImmutableArray();
@@ -367,7 +539,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         }
     }
 
-    public Guid GenerationId => declarations.GenerationId;
+    public Guid GenerationId { get; } = declarations.GenerationId;
     public DateTimeOffset CreatedAt { get; } = options.TimeProvider.GetUtcNow();
     public bool IsRetired
     {
@@ -532,6 +704,10 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 EnsureAlive();
                 var resource = GetOwnedResource(resourceId);
+                if (urls.Any(url => Redact(url) != url))
+                {
+                    throw new ArgumentException("Resource observation URLs cannot contain declared secrets.");
+                }
                 if (healthy && resource.AppliedConfigurationRevision != resource.ConfigurationRevision)
                 {
                     throw new InvalidOperationException("Apply the desired configuration before publishing healthy.");
@@ -570,7 +746,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 resource.Logs.Dequeue();
             }
-            resource.Logs.Enqueue(new RuntimeLogEntry(++resource.LogSequence, options.TimeProvider.GetUtcNow(), stream, message));
+            resource.Logs.Enqueue(new RuntimeLogEntry(++resource.LogSequence, options.TimeProvider.GetUtcNow(), stream, Redact(message)));
             Changed();
         }
     }
@@ -586,6 +762,10 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         lock (_gate)
         {
             EnsureAlive();
+            if (Redact(name) != name)
+            {
+                throw new ArgumentException("Resource command identities cannot contain declared secrets.");
+            }
             var resource = GetOwnedResource(resourceId);
             if (resource.State.IsTerminal() || resource.Commands.Count >= 32)
             {
@@ -643,7 +823,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
             {
                 throw new ArgumentException("The command is unknown or already completed.", nameof(requestId));
             }
-            request.Complete(new RuntimeRequestResult(status, message));
+            request.Complete(new RuntimeRequestResult(status, Redact(message)));
             Changed();
         }
     }
@@ -664,7 +844,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 throw new InvalidOperationException("Interactions cannot be requested by a terminal resource.");
             }
             EnsureRequestCapacity(resource);
-            var request = new RuntimeRequest(message);
+            var request = new RuntimeRequest(Redact(message));
             resource.Interactions.Add(request.Id, request);
             Changed();
 
@@ -711,7 +891,22 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         {
             // Repeated retirement is a new cleanup attempt for retained failures.
             _disposed = true;
-            foreach (var workload in _workloads.Values.Concat(_retiredWorkloads))
+            var declared = _workloads.Where(pair => _declaredOwners.Contains(pair.Key)).ToDictionary();
+            if (_declaredRetirement is null || _declaredRetirement.IsFaulted)
+            {
+                var resources = _resources.ToDictionary(pair => pair.Key,
+                    pair => pair.Value.Declaration.Dependencies.Select(dependency => dependency.ResourceId).ToImmutableArray());
+                // Keep the immutable retirement DAG across cleanup retries.
+                foreach (var (id, dependencies) in _retirementDependencies)
+                {
+                    resources.TryAdd(id, dependencies);
+                }
+                _retirementDependencies = resources;
+                _declaredRetirement = RetireDeclaredWorkloadsAsync(declared, resources);
+                _ = _declaredRetirement.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+            foreach (var workload in _workloads.Where(pair => !_declaredOwners.Contains(pair.Key)).Select(pair => pair.Value).Concat(_retiredWorkloads))
             {
                 _ = workload.StopAsync();
             }
@@ -720,6 +915,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
                 CancelRequests(resource);
             }
             _resources.Clear();
+            _secretRedactions.Clear();
             _changed.TrySetResult();
         }
     }
@@ -745,7 +941,7 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         .Select(resource => new RuntimeResourceSnapshot(resource.Declaration.Handle.ResourceId,
             resource.Declaration.Name, resource.Declaration.TypeId, resource.State, resource.Healthy, resource.Urls,
             resource.Commands.OrderBy(command => command.Key, StringComparer.Ordinal)
-                .Select(command => new RuntimeCommandDefinition(command.Key, command.Value)).ToImmutableArray(),
+                .Select(command => new RuntimeCommandDefinition(command.Key, Redact(command.Value))).ToImmutableArray(),
             resource.ConfigurationRevision, resource.AppliedConfigurationRevision, resource.ConfigurationStatus))
         .ToImmutableArray());
 
@@ -756,6 +952,23 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
         _changed = CreateSignal();
         changed.TrySetResult();
     }
+
+    private string Redact(string message)
+    {
+        foreach (var secret in _secretRedactions.OrderByDescending(secret => secret.Length))
+        {
+            if (secret.Length > 0)
+            {
+                message = message.Replace(secret, "[REDACTED]", StringComparison.Ordinal);
+            }
+        }
+
+        return message;
+    }
+
+    private static bool EquivalentSymbolic(ImmutableArray<SymbolicConfigurationEntry> first,
+        ImmutableArray<SymbolicConfigurationEntry> second) => first.Length == second.Length &&
+        first.Zip(second).All(pair => pair.First.Name == pair.Second.Name && pair.First.Value.EquivalentTo(pair.Second.Value));
 
     private static TaskCompletionSource CreateSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private void EnsureRequestCapacity(RuntimeResource resource)
@@ -779,14 +992,15 @@ internal sealed class RuntimeGeneration(ApplicationSnapshot declarations, IWorkl
     {
         public ResourceSnapshot Declaration { get; set; } = declaration;
         public long ConfigurationRevision { get; set; } = 1;
-        public long AppliedConfigurationRevision { get; set; } = declaration.Configuration.IsEmpty ? 1 : 0;
-        public ConfigurationStatus ConfigurationStatus { get; set; } = declaration.Configuration.IsEmpty ? ConfigurationStatus.Succeeded : ConfigurationStatus.Pending;
+        public long AppliedConfigurationRevision { get; set; } = declaration.Configuration.IsEmpty && declaration.SymbolicConfiguration.IsEmpty ? 1 : 0;
+        public ConfigurationStatus ConfigurationStatus { get; set; } = declaration.Configuration.IsEmpty && declaration.SymbolicConfiguration.IsEmpty ? ConfigurationStatus.Succeeded : ConfigurationStatus.Pending;
         public string ConfigurationMessage { get; set; } = "";
         public bool Claimed { get; set; }
         public bool OwnerDisconnected { get; set; }
         public ResourceState State { get; set; } = ResourceState.Unknown;
         public bool Healthy { get; set; }
         public ImmutableArray<string> Urls { get; set; } = [];
+        public WorkloadEndpoint? Allocation { get; set; }
         public long LogSequence { get; set; }
         public Queue<RuntimeLogEntry> Logs { get; } = [];
         public Dictionary<string, string> Commands { get; } = new(StringComparer.Ordinal);
@@ -829,6 +1043,27 @@ internal sealed class RuntimeResourceOwner(RuntimeGeneration generation, Guid re
         EnsureAlive();
 
         return generation.StartWorkload(resourceId, plan);
+    }
+    public Task<WorkloadEndpoint> StartSymbolicWorkload(long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
+    {
+        EnsureAlive();
+
+        return generation.StartSymbolicWorkload(resourceId, revision, template, context, bindings);
+    }
+    public Task<WorkloadEndpoint> ReplaceSymbolicWorkloadAsync(long revision, WorkloadPlan template,
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
+    {
+        EnsureAlive();
+
+        return generation.ReplaceSymbolicWorkloadAsync(resourceId, revision, template, context, bindings);
+    }
+
+    public ImmutableArray<SymbolicConfigurationEntry> ReadSymbolicConfiguration()
+    {
+        EnsureAlive();
+
+        return generation.ReadSymbolicConfiguration(resourceId);
     }
     public Task<WorkloadEndpoint> ReplaceWorkloadAsync(long revision, WorkloadPlan plan)
     {

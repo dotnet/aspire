@@ -92,7 +92,11 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
                 cleanup = runtime.ApplyRevision(declarations);
             }
             _applying = true;
-            _committed?.MarkRetired(retireExecution: false);
+            _committed?.MarkRetired(retireExecution: false, providerCleanup: cleanup);
+            if (_committed is { } previous)
+            {
+                cleanup = Task.WhenAll(cleanup, previous.ProviderRetirement);
+            }
             _committed?.Model.Dispose();
             _committed = revision;
             _pending = null;
@@ -142,7 +146,8 @@ internal sealed class ApplicationWorkspace(RuntimeInvitations invitations) : ICa
         Close();
         if (_execution is not null)
         {
-            await _execution.Runtime.Completion.ConfigureAwait(false);
+            await Task.WhenAll(_execution.Runtime.Completion,
+                _committed?.ProviderRetirement ?? Task.CompletedTask).ConfigureAwait(false);
         }
     }
 

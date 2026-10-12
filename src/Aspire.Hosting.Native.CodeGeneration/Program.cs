@@ -12,11 +12,23 @@ using Aspire.Hosting.Native.CodeGeneration;
 using Aspire.Hosting.RemoteHost;
 using Aspire.TypeSystem;
 
-var output = Path.GetFullPath(args.Single());
+if (args is ["--provider-ts", var manifestPath, var projectionOutput])
+{
+    await NativeProviderTypeScriptProjection.GenerateAsync(manifestPath, projectionOutput).ConfigureAwait(false);
+    return;
+}
+var csharpOnly = args is [_, "--csharp"];
+var providerOnly = args is ["--provider", _, _, _];
+var output = Path.GetFullPath(providerOnly ? args[3] : csharpOnly ? args[0] : args.Single());
 Directory.CreateDirectory(output);
 var contractAssembly = NativeContractCompilation.Compile(output);
 var scan = AtsCapabilityScanner.ScanAssemblies([contractAssembly]);
 var context = scan.ToAtsContext();
+if (providerOnly)
+{
+    await NativeProviderProjection.GenerateAsync(args[1], args[2], output, context).ConfigureAwait(false);
+    return;
+}
 if (context.Diagnostics.Any(diagnostic => diagnostic.Severity != AtsDiagnosticSeverity.Info))
 {
     throw new InvalidOperationException(string.Join(Environment.NewLine,
@@ -25,6 +37,13 @@ if (context.Diagnostics.Any(diagnostic => diagnostic.Severity != AtsDiagnosticSe
 if (context.Properties.Count != 0 || context.EnumTypes.Count != 0)
 {
     throw new NotSupportedException("Native dispatch generation does not yet support exported properties or enums.");
+}
+if (csharpOnly)
+{
+    await File.WriteAllTextAsync(Path.Combine(output, "NativeClient.g.cs"),
+        NativeCSharpProjection.Generate(context)).ConfigureAwait(false);
+    Console.WriteLine($"Generated C# projection for {context.Capabilities.Count} native ATS capabilities.");
+    return;
 }
 
 var handles = context.HandleTypes.Select(handle => handle.AtsTypeId).ToHashSet(StringComparer.Ordinal);
@@ -36,11 +55,14 @@ var code = new StringBuilder("""
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
     using Aspire.Hosting.Native.Api;
+    using Aspire.Hosting.Native.Model;
     namespace Aspire.Hosting.Native.Rpc;
     internal static class NativeDispatch
     {
         public static async Task<JsonNode?> InvokeAsync(NativeApplicationServer server, NativeHandles handles, string capability, JsonObject arguments)
         {
+            try
+            {
             switch (capability)
             {
 
@@ -103,7 +125,7 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
             code.AppendLine(CultureInfo.InvariantCulture,
                 $"                return JsonSerializer.SerializeToNode(result, NativeRpcJsonContext.Default.{returnType.Name});");
         }
-        else if (returnType == typeof(string))
+        else if (returnType == typeof(string) || returnType == typeof(bool) || returnType == typeof(int) || returnType == typeof(long))
         {
             code.AppendLine("                return JsonValue.Create(result);");
         }
@@ -116,6 +138,11 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
 }
 code.AppendLine("""
                 default: throw new RpcFault("CAPABILITY_NOT_FOUND", "The capability is not implemented.");
+            }
+            }
+            catch (SymbolicValueException exception)
+            {
+                throw new RpcFault(exception.Code, exception.Message);
             }
         }
     }
@@ -168,6 +195,10 @@ foreach (var (name, content) in sdk)
 {
     await File.WriteAllTextAsync(Path.Combine(output, name), content).ConfigureAwait(false);
 }
+await File.WriteAllTextAsync(Path.Combine(output, "native-types.mts"),
+    "export const nativeTypes = " + new JsonObject(context.HandleTypes.Select(handle => KeyValuePair.Create(
+        handle.ClrType!.Name, (JsonNode?)new JsonObject { ["typeId"] = handle.AtsTypeId, ["category"] = "Handle" }))).ToJsonString() +
+    " as const;\n").ConfigureAwait(false);
 var rootTypeId = $"{contractAssembly.GetName().Name}/Aspire.Hosting.Native.Api.NativeApplicationServer";
 if (!handles.Contains(rootTypeId))
 {
@@ -176,6 +207,8 @@ if (!handles.Contains(rootTypeId))
 await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
     // Generated native server bootstrap from the ATS entry-point declaration.
     import { createConnection } from 'node:net';
+    import { spawn } from 'node:child_process';
+    import { once } from 'node:events';
     import * as rpc from 'vscode-jsonrpc/node.js';
     import './aspire.mjs';
     import type { NativeApplicationServer } from './aspire.mjs';
@@ -188,7 +221,8 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
     }
 
     export async function connectNativeAppHost(options: NativeConnectionOptions):
-        Promise<{ client: AspireClient; server: NativeApplicationServer }> {
+        Promise<{ client: AspireClient; server: NativeApplicationServer;
+            activateProvider(packageName: string, executable: string, args: readonly string[]): Promise<{ close(): Promise<void> }> }> {
         if (!Number.isSafeInteger(options.authenticationTimeoutMilliseconds) ||
             options.authenticationTimeoutMilliseconds < 1 || options.authenticationTimeoutMilliseconds > 2147483647) {
             throw new RangeError('An explicit bounded authentication timeout is required.');
@@ -215,7 +249,43 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
             const client = AspireClient.fromConnection(connection, socket, message => {
                 if (process.env.ASPIRE_NATIVE_TRACE_RPC === '1') console.error(message);
             });
-            return { client, server: wrapIfHandle(root, client) as NativeApplicationServer };
+            return {
+                client,
+                server: wrapIfHandle(root, client) as NativeApplicationServer,
+                async activateProvider(packageName: string, executable: string, args: readonly string[]) {
+                    if (typeof options.endpoint === 'string') {
+                        throw new Error('This explicit activation entry point requires loopback TCP.');
+                    }
+                    const authority = await connection.sendRequest<string>('expectIntegrationHost', packageName);
+                    const process = spawn(executable, [...args], {
+                        env: { ...globalThis.process.env,
+                            ASPIRE_NATIVE_RPC_ENDPOINT: `${options.endpoint.host}:${options.endpoint.port}`,
+                            ASPIRE_NATIVE_RPC_TOKEN: options.authenticationToken,
+                            ASPIRE_INTEGRATION_HOST_REGISTRATION_ID: authority },
+                        stdio: ['ignore', 'pipe', 'pipe']
+                    });
+                    // Drain both pipes without logging untrusted provider payloads.
+                    process.stdout.resume();
+                    process.stderr.resume();
+                    const close = async () => {
+                        if (process.exitCode === null && process.signalCode === null) {
+                            const exited = once(process, 'exit');
+                            process.kill('SIGTERM');
+                            await exited;
+                        }
+                    };
+                    try {
+                        await connection.sendRequest('waitIntegrationHostRegistration', authority);
+                        if (process.exitCode !== null || process.signalCode !== null) {
+                            throw new Error('The provider disconnected during activation.');
+                        }
+                        return { close };
+                    } catch (error) {
+                        await close();
+                        throw error;
+                    }
+                }
+            };
         } catch (error) {
             connection.dispose();
             socket.destroy();

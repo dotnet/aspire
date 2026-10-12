@@ -122,6 +122,323 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/addContainer",
+      "MethodName": "addContainer",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.addContainer",
+      "Description": "Declares a container without launching it or acquiring execution ownership.",
+      "Documentation": {
+        "Summary": "Declares a container without launching it or acquiring execution ownership.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "image",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.AddContainer",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/addExecutable",
+      "MethodName": "addExecutable",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.addExecutable",
+      "Description": "Declares a host executable without launching it.",
+      "Documentation": {
+        "Summary": "Declares a host executable without launching it.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "executablePath",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "workingDirectory",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.AddExecutable",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/addResource",
       "MethodName": "addResource",
       "OwningTypeName": "Composition",
@@ -265,6 +582,171 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.Composition.AddResource",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/addSecretParameter",
+      "MethodName": "addSecretParameter",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.addSecretParameter",
+      "Description": "Declares a named secret whose payload never appears in model inspection.",
+      "Documentation": {
+        "Summary": "Declares a named secret whose payload never appears in model inspection.",
+        "Remarks": null,
+        "Returns": "A secret-classified composition-scoped value.",
+        "Parameters": [
+          {
+            "Name": "name",
+            "Description": "The unique parameter name within this composition."
+          },
+          {
+            "Name": "value",
+            "Description": "The secret supplied to the server; it is substituted only during workload launch."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The unique parameter name within this composition.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The secret supplied to the server; it is substituted only during workload launch.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.AddSecretParameter",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -1019,6 +1501,137 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/concatValue",
+      "MethodName": "concatValue",
+      "OwningTypeName": "DeclaredValue",
+      "QualifiedMethodName": "DeclaredValue.concatValue",
+      "Description": "Concatenates values while retaining their resource references and secret classification.",
+      "Documentation": {
+        "Summary": "Concatenates values while retaining their resource references and secret classification.",
+        "Remarks": null,
+        "Returns": "A new immutable composition-scoped value.",
+        "Parameters": [
+          {
+            "Name": "suffix",
+            "Description": "The following value in the same composition."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "suffix",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The following value in the same composition.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredValue.ConcatValue",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/createApplicationWorkspace",
       "MethodName": "createApplicationWorkspace",
       "OwningTypeName": "NativeApplicationServer",
@@ -1115,6 +1728,205 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/createEndpointValue",
+      "MethodName": "createEndpointValue",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.createEndpointValue",
+      "Description": "References a named workload endpoint property without resolving its address during composition.",
+      "Documentation": {
+        "Summary": "References a named workload endpoint property without resolving its address during composition.",
+        "Remarks": null,
+        "Returns": "A late-bound resource-reference value.",
+        "Parameters": [
+          {
+            "Name": "resource",
+            "Description": "The endpoint\u0027s resource in this composition."
+          },
+          {
+            "Name": "endpointName",
+            "Description": "The declared workload endpoint name."
+          },
+          {
+            "Name": "property",
+            "Description": "One of host, port, hostAndPort, scheme, or url."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "resource",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The endpoint\u0027s resource in this composition.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "endpointName",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The declared workload endpoint name.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "property",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "One of host, port, hostAndPort, scheme, or url.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.CreateEndpointValue",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/createExecution",
       "MethodName": "createExecution",
       "OwningTypeName": "Composition",
@@ -1208,6 +2020,137 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.Composition.CreateExecution",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/createLiteralValue",
+      "MethodName": "createLiteralValue",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.createLiteralValue",
+      "Description": "Creates a literal value that remains owned by this composition.",
+      "Documentation": {
+        "Summary": "Creates a literal value that remains owned by this composition.",
+        "Remarks": null,
+        "Returns": "A composition-scoped symbolic value.",
+        "Parameters": [
+          {
+            "Name": "value",
+            "Description": "The literal launch data; use a secret parameter for credentials."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The literal launch data; use a secret parameter for credentials.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.CreateLiteralValue",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -1354,6 +2297,102 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.DefineResourceCommand",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/encodeUriValue",
+      "MethodName": "encodeUriValue",
+      "OwningTypeName": "DeclaredValue",
+      "QualifiedMethodName": "DeclaredValue.encodeUriValue",
+      "Description": "Escapes this value as a URI data segment during server-side resolution.",
+      "Documentation": {
+        "Summary": "Escapes this value as a URI data segment during server-side resolution.",
+        "Remarks": null,
+        "Returns": "A new value retaining the original references and secret classification.",
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredValue.EncodeUriValue",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -1549,6 +2588,102 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/inspectExecutionSymbolicConfiguration",
+      "MethodName": "inspectExecutionSymbolicConfiguration",
+      "OwningTypeName": "ResourceExecution",
+      "QualifiedMethodName": "ResourceExecution.inspectExecutionSymbolicConfiguration",
+      "Description": "Reads metadata for this execution\u0027s current symbolic fields, never their resolved contents.",
+      "Documentation": {
+        "Summary": "Reads metadata for this execution\u0027s current symbolic fields, never their resolved contents.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationSnapshot",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.InspectExecutionSymbolicConfiguration",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/inspectResource",
       "MethodName": "inspectResource",
       "OwningTypeName": "DeclaredResource",
@@ -1642,6 +2777,102 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.InspectResource",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/inspectSymbolicConfiguration",
+      "MethodName": "inspectSymbolicConfiguration",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.inspectSymbolicConfiguration",
+      "Description": "Inspects symbolic metadata without returning literal data, secret payloads or resolved addresses.",
+      "Documentation": {
+        "Summary": "Inspects symbolic metadata without returning literal data, secret payloads or resolved addresses.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationSnapshot",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.InspectSymbolicConfiguration",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -2684,6 +3915,102 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/readApplicationState",
+      "MethodName": "readApplicationState",
+      "OwningTypeName": "ApplicationExecution",
+      "QualifiedMethodName": "ApplicationExecution.readApplicationState",
+      "Description": "Reads the started application\u0027s authoritative readiness without issuing an observer invitation.",
+      "Documentation": {
+        "Summary": "Reads the started application\u0027s authoritative readiness without issuing an observer invitation.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationObservations",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ApplicationExecution.ReadApplicationState",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/readConfirmations",
       "MethodName": "readConfirmations",
       "OwningTypeName": "ApplicationObserver",
@@ -2777,6 +4104,102 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.ApplicationObserver.ReadConfirmations",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/readLifecyclePhase",
+      "MethodName": "readLifecyclePhase",
+      "OwningTypeName": "ResourceLifecycleScope",
+      "QualifiedMethodName": "ResourceLifecycleScope.readLifecyclePhase",
+      "Description": "Reads the currently authorized lifecycle phase.",
+      "Documentation": {
+        "Summary": "Reads the currently authorized lifecycle phase.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "string",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceLifecycleScope.ReadLifecyclePhase",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -3310,6 +4733,127 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/removeSymbolicConfiguration",
+      "MethodName": "removeSymbolicConfiguration",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.removeSymbolicConfiguration",
+      "Description": "Removes a symbolic field and any value dependencies no longer referenced by the resource.",
+      "Documentation": {
+        "Summary": "Removes a symbolic field and any value dependencies no longer referenced by the resource.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "void",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.RemoveSymbolicConfiguration",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/requestConfirmation",
       "MethodName": "requestConfirmation",
       "OwningTypeName": "ResourceExecution",
@@ -3723,6 +5267,202 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/restartContainerWithValues",
+      "MethodName": "restartContainerWithValues",
+      "OwningTypeName": "ResourceExecution",
+      "QualifiedMethodName": "ResourceExecution.restartContainerWithValues",
+      "Description": "Replaces a container using its current symbolic configuration after previous workload cleanup.",
+      "Documentation": {
+        "Summary": "Replaces a container using its current symbolic configuration after previous workload cleanup.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "revision",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "networkContext",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ContainerWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.WorkloadAllocation",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.RestartContainerWithValues",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/restartContainerWorkload",
       "MethodName": "restartContainerWorkload",
       "OwningTypeName": "ResourceExecution",
@@ -4012,6 +5752,202 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.RestartExecutable",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/restartExecutableWithValues",
+      "MethodName": "restartExecutableWithValues",
+      "OwningTypeName": "ResourceExecution",
+      "QualifiedMethodName": "ResourceExecution.restartExecutableWithValues",
+      "Description": "Replaces a host executable using late-bound values and current dependency allocations.",
+      "Documentation": {
+        "Summary": "Replaces a host executable using late-bound values and current dependency allocations.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "revision",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "networkContext",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ExecutableWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.WorkloadAllocation",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.RestartExecutableWithValues",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -4378,6 +6314,152 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/runLifecycleExecutable",
+      "MethodName": "runLifecycleExecutable",
+      "OwningTypeName": "ResourceLifecycleScope",
+      "QualifiedMethodName": "ResourceLifecycleScope.runLifecycleExecutable",
+      "Description": "Runs a bounded one-shot executable with this resource\u0027s captured native symbolic inputs.",
+      "Documentation": {
+        "Summary": "Runs a bounded one-shot executable with this resource\u0027s captured native symbolic inputs.",
+        "Remarks": "Returns only exit success. Resolved credentials, references and command output stay native-owned.",
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ExecutableWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "boolean",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceLifecycleScope.RunLifecycleExecutable",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/seal",
       "MethodName": "seal",
       "OwningTypeName": "Composition",
@@ -4595,6 +6677,267 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/setSymbolicConfiguration",
+      "MethodName": "setSymbolicConfiguration",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.setSymbolicConfiguration",
+      "Description": "Stores one symbolic configuration field and automatically tracks its referenced resources.",
+      "Documentation": {
+        "Summary": "Stores one symbolic configuration field and automatically tracks its referenced resources.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": [
+          {
+            "Name": "name",
+            "Description": "The integration-owned field name used by symbolic workload bindings."
+          },
+          {
+            "Name": "value",
+            "Description": "A value from this composition, never a resolved secret or endpoint string."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The integration-owned field name used by symbolic workload bindings.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "A value from this composition, never a resolved secret or endpoint string.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "void",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.SetSymbolicConfiguration",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/startApplication",
+      "MethodName": "startApplication",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.startApplication",
+      "Description": "Seals the desired graph and starts all declared workloads with native readiness ordering.",
+      "Documentation": {
+        "Summary": "Seals the desired graph and starts all declared workloads with native readiness ordering.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.StartApplication",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/startContainer",
       "MethodName": "startContainer",
       "OwningTypeName": "ResourceExecution",
@@ -4713,6 +7056,239 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.StartContainer",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/startContainerWithValues",
+      "MethodName": "startContainerWithValues",
+      "OwningTypeName": "ResourceExecution",
+      "QualifiedMethodName": "ResourceExecution.startContainerWithValues",
+      "Description": "Starts a container after server-side symbolic environment and argument resolution.",
+      "Documentation": {
+        "Summary": "Starts a container after server-side symbolic environment and argument resolution.",
+        "Remarks": null,
+        "Returns": "The actual server-owned workload allocation, without resolved credentials.",
+        "Parameters": [
+          {
+            "Name": "revision",
+            "Description": "The current desired resource configuration revision."
+          },
+          {
+            "Name": "networkContext",
+            "Description": "Must be container; endpoint references fail until container-network addressing exists."
+          },
+          {
+            "Name": "launch",
+            "Description": "Literal workload metadata and unbound launch slots."
+          },
+          {
+            "Name": "bindings",
+            "Description": "Mappings from environment/argument slots to this resource\u0027s symbolic configuration keys."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "revision",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The current desired resource configuration revision.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "networkContext",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Must be container; endpoint references fail until container-network addressing exists.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ContainerWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Literal workload metadata and unbound launch slots.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Mappings from environment/argument slots to this resource\u0027s symbolic configuration keys.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.WorkloadAllocation",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.StartContainerWithValues",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -4958,6 +7534,239 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/startExecutableWithValues",
+      "MethodName": "startExecutableWithValues",
+      "OwningTypeName": "ResourceExecution",
+      "QualifiedMethodName": "ResourceExecution.startExecutableWithValues",
+      "Description": "Starts a host executable with references resolved only after its dependencies are ready.",
+      "Documentation": {
+        "Summary": "Starts a host executable with references resolved only after its dependencies are ready.",
+        "Remarks": null,
+        "Returns": "The actual server-owned workload allocation, without resolved credentials.",
+        "Parameters": [
+          {
+            "Name": "revision",
+            "Description": "The current desired resource configuration revision."
+          },
+          {
+            "Name": "networkContext",
+            "Description": "Must be host for an executable workload."
+          },
+          {
+            "Name": "launch",
+            "Description": "Literal workload metadata and unbound launch slots."
+          },
+          {
+            "Name": "bindings",
+            "Description": "Mappings to this resource\u0027s server-owned symbolic configuration."
+          }
+        ]
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "revision",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "The current desired resource configuration revision.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "networkContext",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Must be host for an executable workload.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ExecutableWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Literal workload metadata and unbound launch slots.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": {
+            "Summary": "Mappings to this resource\u0027s server-owned symbolic configuration.",
+            "Remarks": null,
+            "Returns": null,
+            "Parameters": []
+          }
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.WorkloadAllocation",
+        "Category": 3,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.StartExecutableWithValues",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/startExecutableWorkload",
       "MethodName": "startExecutableWorkload",
       "OwningTypeName": "ResourceExecution",
@@ -5172,6 +7981,127 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.CompositionSession.StartGeneration",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/waitApplicationReady",
+      "MethodName": "waitApplicationReady",
+      "OwningTypeName": "ApplicationExecution",
+      "QualifiedMethodName": "ApplicationExecution.waitApplicationReady",
+      "Description": "Awaits native dependency and protocol readiness with an explicit bounded deadline.",
+      "Documentation": {
+        "Summary": "Awaits native dependency and protocol readiness with an explicit bounded deadline.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "timeoutMilliseconds",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "void",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ApplicationExecution.WaitApplicationReady",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -5414,6 +8344,152 @@
       "ReturnsBuilder": false,
       "CapabilityKind": 3,
       "SourceLocation": "Aspire.Hosting.Native.Api.ResourceExecution.WaitResourceCommands",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/waitResourceCompletion",
+      "MethodName": "waitResourceCompletion",
+      "OwningTypeName": "ApplicationExecution",
+      "QualifiedMethodName": "ApplicationExecution.waitResourceCompletion",
+      "Description": "Awaits a declared one-shot resource\u0027s terminal state; false explicitly reports failure.",
+      "Documentation": {
+        "Summary": "Awaits a declared one-shot resource\u0027s terminal state; false explicitly reports failure.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "resource",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "timeoutMilliseconds",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "boolean",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationExecution",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ApplicationExecution.WaitResourceCompletion",
       "RunSyncOnBackgroundThread": false
     },
     {
@@ -5709,6 +8785,1149 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withArgument",
+      "MethodName": "withArgument",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withArgument",
+      "Description": "Appends a late-bound argument to the declared workload.",
+      "Documentation": {
+        "Summary": "Appends a late-bound argument to the declared workload.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithArgument",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withEndpoint",
+      "MethodName": "withEndpoint",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withEndpoint",
+      "Description": "Declares a named endpoint; host ports are allocated when the application starts.",
+      "Documentation": {
+        "Summary": "Declares a named endpoint; host ports are allocated when the application starts.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "endpoint",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.WorkloadEndpointDeclaration",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithEndpoint",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withEntrypoint",
+      "MethodName": "withEntrypoint",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withEntrypoint",
+      "Description": "Configures the container entrypoint without interpreting shell syntax.",
+      "Documentation": {
+        "Summary": "Configures the container entrypoint without interpreting shell syntax.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "entrypoint",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithEntrypoint",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withEnvironment",
+      "MethodName": "withEnvironment",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withEnvironment",
+      "Description": "Assigns a late-bound environment value and derives its readiness dependencies.",
+      "Documentation": {
+        "Summary": "Assigns a late-bound environment value and derives its readiness dependencies.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithEnvironment",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withLifecycleExecutable",
+      "MethodName": "withLifecycleExecutable",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withLifecycleExecutable",
+      "Description": "Declares an integration-owned executable hook for initialize, health, ready, or retire.",
+      "Documentation": {
+        "Summary": "Declares an integration-owned executable hook for initialize, health, ready, or retire.",
+        "Remarks": "Health commands must be side-effect-free and return zero only after authentic protocol readiness.\nInputs reference native symbolic fields; no resolved credentials are returned to integration authors.",
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "phase",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "launch",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ExecutableWorkloadLaunch",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "bindings",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+            "Category": 3,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithLifecycleExecutable",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withReference",
+      "MethodName": "withReference",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withReference",
+      "Description": "References a symbolic connection value through an environment slot without resolving it.",
+      "Documentation": {
+        "Summary": "References a symbolic connection value through an environment slot without resolving it.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "environmentName",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "value",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithReference",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/withVolume",
+      "MethodName": "withVolume",
+      "OwningTypeName": "DeclaredResource",
+      "QualifiedMethodName": "DeclaredResource.withVolume",
+      "Description": "Mounts a named retained data volume; application retirement removes the container, not the volume.",
+      "Documentation": {
+        "Summary": "Mounts a named retained data volume; application retirement removes the container, not the volume.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "target",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "readOnly",
+          "Type": {
+            "TypeId": "boolean",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredResource",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.DeclaredResource.WithVolume",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
+      "CapabilityId": "Aspire.Hosting.Native.Api/writeLifecycleLog",
+      "MethodName": "writeLifecycleLog",
+      "OwningTypeName": "ResourceLifecycleScope",
+      "QualifiedMethodName": "ResourceLifecycleScope.writeLifecycleLog",
+      "Description": "Appends a resource log through native redaction and retention.",
+      "Documentation": {
+        "Summary": "Appends a resource log through native redaction and retention.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "stream",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "message",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "void",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ResourceLifecycleScope.WriteLifecycleLog",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Server/createSession",
       "MethodName": "createSession",
       "OwningTypeName": null,
@@ -5841,6 +10060,21 @@
       }
     },
     {
+      "AtsTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+      "IsInterface": false,
+      "ImplementedInterfaces": [],
+      "BaseTypeHierarchy": [],
+      "HasExposeProperties": false,
+      "HasExposeMethods": false,
+      "IsResourceBuilder": false,
+      "Documentation": {
+        "Summary": "Owns immutable symbolic data under the same authority and retirement boundary as its composition.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      }
+    },
+    {
       "AtsTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer",
       "IsInterface": false,
       "ImplementedInterfaces": [],
@@ -5871,6 +10105,21 @@
       }
     },
     {
+      "AtsTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope",
+      "IsInterface": false,
+      "ImplementedInterfaces": [],
+      "BaseTypeHierarchy": [],
+      "HasExposeProperties": false,
+      "HasExposeMethods": false,
+      "IsResourceBuilder": false,
+      "Documentation": {
+        "Summary": "Exposes one native-authorized provider phase, never general declaration or credential access.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      }
+    },
+    {
       "AtsTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.RuntimeOperation",
       "IsInterface": false,
       "ImplementedInterfaces": [],
@@ -5887,6 +10136,194 @@
     }
   ],
   "DtoTypes": [
+    {
+      "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationSnapshot",
+      "Name": "SymbolicConfigurationSnapshot",
+      "Description": "Contains symbolic metadata only; no credential payloads or live capability handles.",
+      "Documentation": {
+        "Summary": "Contains symbolic metadata only; no credential payloads or live capability handles.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "Properties": [
+        {
+          "Name": "Properties",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationProperty[]",
+            "Category": 5,
+            "IsInterface": false,
+            "ElementType": {
+              "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationProperty",
+              "Category": 3,
+              "IsInterface": false,
+              "ElementType": null,
+              "KeyType": null,
+              "ValueType": null,
+              "IsReadOnly": false,
+              "IsResourceBuilder": false,
+              "IsDistributedApplicationBuilder": false,
+              "IsDistributedApplication": false,
+              "UnionTypes": null,
+              "ImplementedInterfaces": [],
+              "BaseType": null
+            },
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": true,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        }
+      ]
+    },
+    {
+      "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicConfigurationProperty",
+      "Name": "SymbolicConfigurationProperty",
+      "Description": "Describes one value\u0027s secret classification and dependency identities without resolving it.",
+      "Documentation": {
+        "Summary": "Describes one value\u0027s secret classification and dependency identities without resolving it.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "Properties": [
+        {
+          "Name": "Name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "IsSecret",
+          "Type": {
+            "TypeId": "boolean",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "References",
+          "Type": {
+            "TypeId": "string[]",
+            "Category": 5,
+            "IsInterface": false,
+            "ElementType": {
+              "TypeId": "string",
+              "Category": 0,
+              "IsInterface": false,
+              "ElementType": null,
+              "KeyType": null,
+              "ValueType": null,
+              "IsReadOnly": false,
+              "IsResourceBuilder": false,
+              "IsDistributedApplicationBuilder": false,
+              "IsDistributedApplication": false,
+              "UnionTypes": null,
+              "ImplementedInterfaces": [],
+              "BaseType": null
+            },
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": true,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "ParameterReferences",
+          "Type": {
+            "TypeId": "string[]",
+            "Category": 5,
+            "IsInterface": false,
+            "ElementType": {
+              "TypeId": "string",
+              "Category": 0,
+              "IsInterface": false,
+              "ElementType": null,
+              "KeyType": null,
+              "ValueType": null,
+              "IsReadOnly": false,
+              "IsResourceBuilder": false,
+              "IsDistributedApplicationBuilder": false,
+              "IsDistributedApplication": false,
+              "UnionTypes": null,
+              "ImplementedInterfaces": [],
+              "BaseType": null
+            },
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": true,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        }
+      ]
+    },
     {
       "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.CompositionSnapshot",
       "Name": "CompositionSnapshot",
@@ -7817,6 +12254,217 @@
         },
         {
           "Name": "InstanceId",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        }
+      ]
+    },
+    {
+      "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchBindings",
+      "Name": "SymbolicLaunchBindings",
+      "Description": "References resource-owned symbolic fields by configuration key; contains no capability handles.",
+      "Documentation": {
+        "Summary": "References resource-owned symbolic fields by configuration key; contains no capability handles.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "Properties": [
+        {
+          "Name": "Environment",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchEnvironment[]",
+            "Category": 5,
+            "IsInterface": false,
+            "ElementType": {
+              "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchEnvironment",
+              "Category": 3,
+              "IsInterface": false,
+              "ElementType": null,
+              "KeyType": null,
+              "ValueType": null,
+              "IsReadOnly": false,
+              "IsResourceBuilder": false,
+              "IsDistributedApplicationBuilder": false,
+              "IsDistributedApplication": false,
+              "UnionTypes": null,
+              "ImplementedInterfaces": [],
+              "BaseType": null
+            },
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": true,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "Arguments",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchArgument[]",
+            "Category": 5,
+            "IsInterface": false,
+            "ElementType": {
+              "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchArgument",
+              "Category": 3,
+              "IsInterface": false,
+              "ElementType": null,
+              "KeyType": null,
+              "ValueType": null,
+              "IsReadOnly": false,
+              "IsResourceBuilder": false,
+              "IsDistributedApplicationBuilder": false,
+              "IsDistributedApplication": false,
+              "UnionTypes": null,
+              "ImplementedInterfaces": [],
+              "BaseType": null
+            },
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": true,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        }
+      ]
+    },
+    {
+      "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchEnvironment",
+      "Name": "SymbolicLaunchEnvironment",
+      "Description": "Maps one environment variable to a server-owned symbolic configuration field.",
+      "Documentation": {
+        "Summary": "Maps one environment variable to a server-owned symbolic configuration field.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "Properties": [
+        {
+          "Name": "Name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "ConfigurationKey",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        }
+      ]
+    },
+    {
+      "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.SymbolicLaunchArgument",
+      "Name": "SymbolicLaunchArgument",
+      "Description": "Replaces one argument slot with a server-resolved symbolic field.",
+      "Documentation": {
+        "Summary": "Replaces one argument slot with a server-resolved symbolic field.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "Properties": [
+        {
+          "Name": "Index",
+          "Type": {
+            "TypeId": "number",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "Description": null,
+          "Documentation": null,
+          "IsOptional": false
+        },
+        {
+          "Name": "ConfigurationKey",
           "Type": {
             "TypeId": "string",
             "Category": 0,

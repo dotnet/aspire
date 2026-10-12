@@ -11,28 +11,28 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Native.Rpc;
 
 /// <summary>Shares header framing, cancellation and StreamJsonRpc enumeration between backchannels.</summary>
-internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger logger) : INativeBackchannelRpc
+internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger logger, INativeRpcPeerFactory peers) : INativeBackchannelRpc
 {
+    public NativeBackchannelRpc(NativeServerOptions options, ILogger logger)
+        : this(options, logger, new NativeRpcPeerFactory(options, logger))
+    {
+    }
+
     public async Task ServeAsync(Stream stream,
         Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelReply>> dispatch, CancellationToken cancellationToken)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        using var writes = new SemaphoreSlim(1);
-        var framing = new NativeRpcFraming(stream, options.MaximumRequestBytes);
+        using var peer = peers.Create(stream);
+        using var disconnected = peer.Closed.Register(lifetime.Cancel);
         var requests = new Dictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
-        var tasks = new List<Task>();
         var cursors = new Dictionary<long, Cursor>();
         var gate = new Lock();
         long nextToken = 0;
         try
         {
-            while (await framing.ReadAsync(lifetime.Token).ConfigureAwait(false) is { } payload)
+            await peer.RunAsync(async payload =>
             {
-                await Task.WhenAll(tasks.Where(task => task.IsCompleted)).ConfigureAwait(false);
-                tasks.RemoveAll(task => task.IsCompletedSuccessfully);
-                using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-                NativeRpcProtocol.ValidateUniqueProperties(document.RootElement);
-                var request = JsonSerializer.Deserialize(payload, NativeCliJsonContext.Default.NativeCliRequest)
+                var request = JsonSerializer.Deserialize(payload.Span, NativeCliJsonContext.Default.NativeCliRequest)
                     ?? throw new InvalidDataException("Invalid backchannel request.");
                 if (request.Jsonrpc != "2.0" ||
                     request.Id is { ValueKind: not (JsonValueKind.String or JsonValueKind.Number) })
@@ -50,13 +50,13 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                             pending.Cancel();
                         }
                     }
-                    continue;
+                    return null;
                 }
                 var key = request.Id?.GetRawText();
                 var cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 lock (gate)
                 {
-                    if (tasks.Count >= options.MaximumConcurrentRequests || key is not null && requests.ContainsKey(key))
+                    if (requests.Count >= options.MaximumConcurrentRequests || key is not null && requests.ContainsKey(key))
                     {
                         cancellation.Dispose();
                         throw new InvalidDataException("The request limit was reached or an ID was reused.");
@@ -66,8 +66,9 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                         requests.Add(key, cancellation);
                     }
                 }
-                tasks.Add(RespondAsync(request, key, cancellation));
-            }
+                await RespondAsync(request, key, cancellation).ConfigureAwait(false);
+                return null;
+            }, lifetime.Token).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException or JsonException or RpcFault)
         {
@@ -79,7 +80,6 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
         finally
         {
             await lifetime.CancelAsync().ConfigureAwait(false);
-            await Task.WhenAll(tasks).ConfigureAwait(false);
             foreach (var cursor in cursors.Values)
             {
                 await cursor.DisposeAsync().ConfigureAwait(false);
@@ -192,22 +192,16 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                 {
                     return;
                 }
-                await writes.WaitAsync(lifetime.Token).ConfigureAwait(false);
-                try
+                await peer.SendAsync(JsonSerializer.SerializeToUtf8Bytes(new NativeCliResponse
                 {
-                    await NativeRpcFraming.WriteAsync(stream, JsonSerializer.SerializeToUtf8Bytes(new NativeCliResponse
-                    {
-                        Id = request.Id.Value, Result = error is null ? result : null, Error = error
-                    }, NativeCliJsonContext.Default.NativeCliResponse), lifetime.Token).ConfigureAwait(false);
-                    // A stop response must be flushed before cancellation closes either backchannel.
-                    if (error is null)
-                    {
-                        reply?.AfterResponse?.Invoke();
-                    }
-                }
-                finally
+                    Id = request.Id.Value,
+                    Result = error is null ? result : null,
+                    Error = error
+                }, NativeCliJsonContext.Default.NativeCliResponse), lifetime.Token).ConfigureAwait(false);
+                // A stop response must be flushed before cancellation closes either backchannel.
+                if (error is null)
                 {
-                    writes.Release();
+                    reply?.AfterResponse?.Invoke();
                 }
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested)

@@ -31,6 +31,133 @@ internal sealed class NativeRpcConnection : IDisposable
     private bool _authenticated;
     private bool _disposed;
     private int _inFlight;
+    private INativeProviderRegistry? _providers;
+    private INativeRpcPeer? _peer;
+    private readonly Dictionary<string, ProviderCallback> _callbacks = new(StringComparer.Ordinal);
+    private readonly Dictionary<(NativeRpcConnection, string, string), object> _proxyReferences = [];
+    internal bool IsClosed => Volatile.Read(ref _disposed);
+    internal CancellationToken Closed => _lifetime.Token;
+    internal static JsonObject CoreContract => s_contract.DeepClone().AsObject();
+
+    internal void AttachProviderTransport(INativeProviderRegistry providers, INativeRpcPeer peer)
+    {
+        _providers = providers;
+        _peer = peer;
+        _server.AttachProviderLifecycleDispatcher(providers);
+    }
+
+    internal JsonObject AddLifecycleScope(ResourceLifecycleScope scope)
+    {
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _handles.RemoveRevoked();
+
+            return _handles.Add(scope, "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope");
+        }
+    }
+
+    internal void RemoveLifecycleScopes()
+    {
+        lock (_gate)
+        {
+            _handles.RemoveRevoked();
+        }
+    }
+
+    internal JsonObject AddReference(object value, string typeId)
+    {
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var identity = value switch
+            {
+                DelegatedCoreReference delegated => (delegated.Owner, RpcArguments.String(delegated.Handle["$handle"]), typeId),
+                ProviderResourceReference resource => (resource.Provider.Connection, RpcArguments.String(resource.Handle["$handle"]), typeId),
+                _ => throw new InvalidOperationException("Only delegated references are published through this boundary.")
+            };
+            foreach (var (key, reference) in _proxyReferences.ToArray())
+            {
+                if (reference is ICapabilityLifetime { IsRevoked: true })
+                {
+                    _proxyReferences.Remove(key);
+                }
+            }
+            if (_proxyReferences.TryGetValue(identity, out var existing))
+            {
+                if (value is ProviderResourceReference next && existing is ProviderResourceReference previous &&
+                    !JsonNode.DeepEquals(next.Lifetime, previous.Lifetime))
+                {
+                    throw new RpcFault("INVALID_HANDLE", "The provider resource lifetime cannot change.");
+                }
+                value = existing;
+            }
+            else
+            {
+                _handles.RemoveRevoked();
+                _handles.EnsureCapacity();
+                _proxyReferences.Add(identity, value);
+            }
+            return _handles.Add(value, typeId);
+        }
+    }
+
+    internal object ReadReference(JsonObject handle, string? typeId = null)
+    {
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return _handles.ReadReference(handle, typeId);
+        }
+    }
+
+    internal bool IsReferenceAlive(JsonObject handle)
+    {
+        try { _ = ReadReference(handle); return true; }
+        catch (Exception exception) when (exception is RpcFault or ObjectDisposedException) { return false; }
+    }
+
+    internal string AddCallback(ProviderCallback callback)
+    {
+        lock (_gate)
+        {
+            if (_callbacks.Count >= _options.MaximumHandlesPerConnection)
+            {
+                throw new RpcFault("HANDLE_LIMIT", "The callback authority limit was reached.");
+            }
+            var id = RandomNumberGenerator.GetHexString(32);
+            _callbacks.Add(id, callback);
+            return id;
+        }
+    }
+
+    internal ProviderCallback ReadCallback(string id)
+    {
+        lock (_gate)
+        {
+            if (!_callbacks.TryGetValue(id, out var callback) || callback.Owner.IsClosed)
+            {
+                throw new RpcFault("HANDLE_NOT_FOUND", "The callback authority is unknown or retired.");
+            }
+            return callback;
+        }
+    }
+
+    internal Task<JsonNode?> RequestAsync(string method, JsonArray arguments) =>
+        (_peer ?? throw new RpcFault("NOT_SUPPORTED", "Bidirectional RPC is not configured."))
+        .RequestAsync(method, arguments, Closed);
+
+    internal async Task<JsonNode?> InvokeCoreAsync(string capability, JsonObject arguments)
+    {
+        Task<JsonNode?> invocation;
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            invocation = NativeDispatch.InvokeAsync(_server, _handles, capability, arguments);
+            ObserveFault(invocation);
+        }
+        return await invocation.WaitAsync(Closed).ConfigureAwait(false);
+    }
 
     public NativeRpcConnection(string token) : this(token, new NativeApplicationServer(), ownsServer: true, null)
     {
@@ -150,6 +277,7 @@ internal sealed class NativeRpcConnection : IDisposable
             // await completion outside it. A confirmation response on this same
             // connection must be able to unblock its outstanding request.
             invocation = InvokeAsync(method, request.Parameters);
+            ObserveFault(invocation);
         }
         try
         {
@@ -249,6 +377,45 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             throw new RpcFault("UNAUTHENTICATED", "Authenticate before using capabilities.");
         }
+        if (method == "ping")
+        {
+            return JsonValue.Create("pong");
+        }
+        if (method == "expectIntegrationHost")
+        {
+            if (_providers is null || parameters is not JsonArray { Count: 1 } expectation ||
+                _providers.IsProvider(this))
+            {
+                throw new RpcFault("INVALID_ARGUMENT", "Expected registration requires an application connection and one package identity.");
+            }
+            return JsonValue.Create(_providers.Expect(this, RpcArguments.String(expectation[0])));
+        }
+        if (method == "registerAsIntegrationHost")
+        {
+            if (_providers is null || _peer is null || parameters is not JsonArray { Count: 1 } registration)
+            {
+                throw new RpcFault("INVALID_ARGUMENT", "Provider registration requires one expected authority.");
+            }
+            await _providers.RegisterAsync(this, RpcArguments.String(registration[0]), _peer).ConfigureAwait(false);
+            return JsonValue.Create(true);
+        }
+        if (method == "waitIntegrationHostRegistration")
+        {
+            if (_providers is null || parameters is not JsonArray { Count: 1 } activation)
+            {
+                throw new RpcFault("INVALID_ARGUMENT", "Provider activation requires one expected authority.");
+            }
+            await _providers.WaitRegistrationAsync(this, RpcArguments.String(activation[0])).ConfigureAwait(false);
+            return JsonValue.Create(true);
+        }
+        if (method == "invokeGuestCallback")
+        {
+            if (_providers is null || parameters is not JsonArray { Count: 2 } callback || callback[1] is not JsonObject callbackArguments)
+            {
+                throw new RpcFault("INVALID_ARGUMENT", "Callback invocation requires its authority and arguments.");
+            }
+            return await _providers.InvokeCallbackAsync(this, RpcArguments.String(callback[0]), callbackArguments).ConfigureAwait(false);
+        }
         if (_languages is not null && method is "getRuntimeSpec" or "generateCode")
         {
             if (parameters is not JsonArray { Count: > 0 and <= 2 } bootstrapArgs ||
@@ -270,6 +437,14 @@ internal sealed class NativeRpcConnection : IDisposable
 
             return s_contract.DeepClone();
         }
+        if (method == "getIntegrationCapabilities")
+        {
+            if (_providers is null || parameters is not null and not JsonArray { Count: 0 })
+            {
+                throw new RpcFault("INVALID_ARGUMENT", "Provider discovery takes no arguments.");
+            }
+            return _providers.InspectCapabilities();
+        }
         if (method == "getApplicationServer")
         {
             if (parameters is not null and not JsonArray { Count: 0 })
@@ -288,7 +463,19 @@ internal sealed class NativeRpcConnection : IDisposable
             throw new RpcFault("INVALID_ARGUMENT", "Capability invocation requires an ID and an argument object.");
         }
 
-        return await NativeDispatch.InvokeAsync(_server, _handles, RpcArguments.String(arguments[0]), capabilityArguments).ConfigureAwait(false);
+        var capabilityId = RpcArguments.String(arguments[0]);
+        if (_providers is not null)
+        {
+            if (_providers.IsProvider(this))
+            {
+                return await _providers.InvokeCoreAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
+            }
+            if (!s_contract["Capabilities"]!.AsArray().Any(value => value!["CapabilityId"]!.GetValue<string>() == capabilityId))
+            {
+                return await _providers.InvokeAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
+            }
+        }
+        return await NativeDispatch.InvokeAsync(_server, _handles, capabilityId, capabilityArguments).ConfigureAwait(false);
     }
 
     private Activity? StartIncomingTrace(ReadOnlyMemory<byte> payload)
@@ -305,6 +492,10 @@ internal sealed class NativeRpcConnection : IDisposable
         return null;
     }
 
+    private static void ObserveFault(Task task) =>
+        _ = task.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
     public void Dispose()
     {
         lock (_gate)
@@ -315,7 +506,9 @@ internal sealed class NativeRpcConnection : IDisposable
             }
             _disposed = true;
             _lifetime.Cancel();
-            _lifetime.Dispose();
+            _providers?.Disconnect(this);
+            _callbacks.Clear();
+            _proxyReferences.Clear();
             _handles.Dispose();
             if (_ownsServer)
             {

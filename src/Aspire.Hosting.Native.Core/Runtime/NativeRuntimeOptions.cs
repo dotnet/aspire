@@ -7,6 +7,7 @@ namespace Aspire.Hosting.Native.Runtime;
 internal sealed class NativeRuntimeOptions
 {
     internal TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+    internal IProviderLifecycleDispatcher ProviderLifecycleDispatcher { get; set; } = UnavailableProviderLifecycleDispatcher.Instance;
     public TimeSpan WorkloadStartupTimeout { get; set; } = TimeSpan.FromMinutes(2);
     public TimeSpan ObservationInterval { get; set; } = TimeSpan.FromMilliseconds(250);
     public int RetainedResourceLogEntries { get; set; } = 256;

@@ -89,7 +89,7 @@ internal sealed class CompositionSession : ICapabilityOwner
 
 /// <summary>Declares and inspects resources within one server-owned generation.</summary>
 [AspireExport]
-internal sealed class Composition(CompositionSession owner, ApplicationModel model) : ICapabilityLifetime, ICapabilityOwner
+internal sealed partial class Composition(CompositionSession owner, ApplicationModel model) : ICapabilityLifetime, ICapabilityOwner
 {
     private int _retired;
     internal CompositionSession Owner { get; } = owner;
@@ -99,8 +99,20 @@ internal sealed class Composition(CompositionSession owner, ApplicationModel mod
     private ApplicationExecution? _execution;
     private readonly Lock _runtimeGate = new();
     internal ApplicationWorkspace? Workspace { get; set; }
-    internal Task ExecutionCompletion => _execution?.Runtime.Completion ?? Task.CompletedTask;
-    internal void MarkRetired(bool retireExecution = true)
+    private readonly List<IProviderResourceRetirement> _providerResources = [];
+    private Task _providerRetirement = Task.CompletedTask;
+    internal Task ExecutionCompletion => Task.WhenAll(_execution?.Runtime.Completion ?? Task.CompletedTask, _providerRetirement);
+    internal Task ProviderRetirement => _providerRetirement;
+    internal void TrackProviderResource(IProviderResourceRetirement resource)
+    {
+        lock (_runtimeGate)
+        {
+            ObjectDisposedException.ThrowIf(IsRetired, this);
+            _providerResources.Add(resource);
+        }
+    }
+
+    internal void MarkRetired(bool retireExecution = true, Task? providerCleanup = null)
     {
         lock (_runtimeGate)
         {
@@ -109,6 +121,29 @@ internal sealed class Composition(CompositionSession owner, ApplicationModel mod
             {
                 _execution?.Retire();
             }
+            if (_providerResources.Count > 0)
+            {
+                var resources = _providerResources.ToArray();
+                _providerResources.Clear();
+                _providerRetirement = RetireProviderResourcesAsync(resources,
+                    providerCleanup ?? _execution?.Runtime.Completion ?? Task.CompletedTask);
+                _ = _providerRetirement.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+        }
+    }
+
+    private static async Task RetireProviderResourcesAsync(IProviderResourceRetirement[] resources, Task cleanup)
+    {
+        try
+        {
+            await cleanup.ConfigureAwait(false);
+        }
+        finally
+        {
+            // Release local objects even when a phase or workload cleanup failed.
+            // Native retirement has revoked all public declaration authorities.
+            await Task.WhenAll(resources.Select(resource => resource.RetireAsync())).ConfigureAwait(false);
         }
     }
 
@@ -150,6 +185,44 @@ internal sealed class Composition(CompositionSession owner, ApplicationModel mod
     [AspireExport]
     public DeclaredResource AddResource(string name, string typeId) => new(this, Model.AddResource(name, typeId));
 
+    /// <summary>Creates a literal value that remains owned by this composition.</summary>
+    /// <param name="value">The literal launch data; use a secret parameter for credentials.</param>
+    /// <returns>A composition-scoped symbolic value.</returns>
+    [AspireExport]
+    public DeclaredValue CreateLiteralValue(string value) => new(this, SymbolicValue.Literal(Model.GenerationId, value));
+
+    /// <summary>Declares a named secret whose payload never appears in model inspection.</summary>
+    /// <param name="name">The unique parameter name within this composition.</param>
+    /// <param name="value">The secret supplied to the server; it is substituted only during workload launch.</param>
+    /// <returns>A secret-classified composition-scoped value.</returns>
+    [AspireExport]
+    public DeclaredValue AddSecretParameter(string name, string value) => new(this, Model.AddSecretParameter(name, value));
+
+    /// <summary>References a named workload endpoint property without resolving its address during composition.</summary>
+    /// <param name="resource">The endpoint's resource in this composition.</param>
+    /// <param name="endpointName">The declared workload endpoint name.</param>
+    /// <param name="property">One of host, port, hostAndPort, scheme, or url.</param>
+    /// <returns>A late-bound resource-reference value.</returns>
+    [AspireExport]
+    public DeclaredValue CreateEndpointValue(DeclaredResource resource, string endpointName, string property)
+    {
+        if (!ReferenceEquals(this, resource.Composition))
+        {
+            throw new ArgumentException("The endpoint resource belongs to another composition.", nameof(resource));
+        }
+        var parsed = property switch
+        {
+            "host" => EndpointValueProperty.Host,
+            "port" => EndpointValueProperty.Port,
+            "hostAndPort" => EndpointValueProperty.HostAndPort,
+            "scheme" => EndpointValueProperty.Scheme,
+            "url" => EndpointValueProperty.Url,
+            _ => throw new ArgumentException("Unsupported endpoint value property.", nameof(property))
+        };
+
+        return new(this, SymbolicValue.Endpoint(resource.Handle, endpointName, parsed));
+    }
+
     /// <summary>Reads a copied declaration snapshot without sealing composition.</summary>
     [AspireExport]
     public CompositionSnapshot Inspect() => Copy(Model.Inspect());
@@ -167,7 +240,7 @@ internal sealed class Composition(CompositionSession owner, ApplicationModel mod
 
 /// <summary>Provides declaration operations on an authoritative resource identity.</summary>
 [AspireExport]
-internal sealed class DeclaredResource(Composition composition, ResourceHandle handle) : ICapabilityLifetime
+internal sealed partial class DeclaredResource(Composition composition, ResourceHandle handle) : ICapabilityLifetime
 {
     internal Composition Composition { get; } = composition;
     internal ResourceHandle Handle { get; } = handle;
@@ -203,6 +276,39 @@ internal sealed class DeclaredResource(Composition composition, ResourceHandle h
             new ResourceConfigurationEntry(property.Name, property.Value)).ToImmutableArray());
     }
 
+    /// <summary>Stores one symbolic configuration field and automatically tracks its referenced resources.</summary>
+    /// <param name="name">The integration-owned field name used by symbolic workload bindings.</param>
+    /// <param name="value">A value from this composition, never a resolved secret or endpoint string.</param>
+    [AspireExport]
+    public void SetSymbolicConfiguration(string name, DeclaredValue value)
+    {
+        if (!ReferenceEquals(Composition, value.Composition))
+        {
+            throw new ArgumentException("The value belongs to another composition.", nameof(value));
+        }
+        Composition.Model.SetSymbolicConfiguration(Handle, name, value.Value);
+    }
+
+    /// <summary>Removes a symbolic field and any value dependencies no longer referenced by the resource.</summary>
+    [AspireExport]
+    public void RemoveSymbolicConfiguration(string name) => Composition.Model.RemoveSymbolicConfiguration(Handle, name);
+
+    /// <summary>Inspects symbolic metadata without returning literal data, secret payloads or resolved addresses.</summary>
+    [AspireExport]
+    public SymbolicConfigurationSnapshot InspectSymbolicConfiguration() =>
+        CopySymbolic(Composition.Model.ReadResource(Handle).SymbolicConfiguration);
+
+    internal static SymbolicConfigurationSnapshot CopySymbolic(ImmutableArray<SymbolicConfigurationEntry> configuration) => new()
+    {
+        Properties = configuration.Select(entry => new SymbolicConfigurationProperty
+        {
+            Name = entry.Name,
+            IsSecret = entry.Value.IsSecret,
+            References = entry.Value.References.Select(reference => reference.ResourceId.ToString()).ToArray(),
+            ParameterReferences = entry.Value.ParameterReferences.ToArray()
+        }).ToArray()
+    };
+
     internal static DeclarationSnapshot Copy(ResourceSnapshot snapshot) => new()
     {
         ResourceId = snapshot.Handle.ResourceId.ToString(),
@@ -212,6 +318,58 @@ internal sealed class DeclaredResource(Composition composition, ResourceHandle h
         Configuration = snapshot.Configuration.Select(entry =>
             new ResourceConfigurationProperty { Name = entry.Name, Value = entry.Value }).ToArray()
     };
+}
+
+/// <summary>Owns immutable symbolic data under the same authority and retirement boundary as its composition.</summary>
+[AspireExport]
+internal sealed class DeclaredValue : ICapabilityLifetime
+{
+    internal Composition Composition { get; }
+    internal SymbolicValue Value { get; }
+    public bool IsRevoked => Composition.IsRetired;
+
+    internal DeclaredValue(Composition composition, SymbolicValue value)
+    {
+        composition.Model.ValidateValue(value);
+        Composition = composition;
+        Value = value;
+    }
+
+    /// <summary>Concatenates values while retaining their resource references and secret classification.</summary>
+    /// <param name="suffix">The following value in the same composition.</param>
+    /// <returns>A new immutable composition-scoped value.</returns>
+    [AspireExport]
+    public DeclaredValue ConcatValue(DeclaredValue suffix)
+    {
+        if (!ReferenceEquals(Composition, suffix.Composition))
+        {
+            throw new ArgumentException("The value belongs to another composition.", nameof(suffix));
+        }
+
+        return new(Composition, Value.Concat(suffix.Value));
+    }
+
+    /// <summary>Escapes this value as a URI data segment during server-side resolution.</summary>
+    /// <returns>A new value retaining the original references and secret classification.</returns>
+    [AspireExport]
+    public DeclaredValue EncodeUriValue() => new(Composition, Value.UriEncode());
+}
+
+/// <summary>Contains symbolic metadata only; no credential payloads or live capability handles.</summary>
+[AspireDto]
+internal sealed class SymbolicConfigurationSnapshot
+{
+    public required SymbolicConfigurationProperty[] Properties { get; init; }
+}
+
+/// <summary>Describes one value's secret classification and dependency identities without resolving it.</summary>
+[AspireDto]
+internal sealed class SymbolicConfigurationProperty
+{
+    public required string Name { get; init; }
+    public required bool IsSecret { get; init; }
+    public required string[] References { get; init; }
+    public required string[] ParameterReferences { get; init; }
 }
 
 /// <summary>Contains a copied composition view, not live resource capabilities.</summary>

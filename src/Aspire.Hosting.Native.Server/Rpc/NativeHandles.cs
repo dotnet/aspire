@@ -63,6 +63,23 @@ internal sealed class NativeHandles(int capacity) : IDisposable
         return typed;
     }
 
+    public object ReadReference(JsonObject reference, string? expectedTypeId = null)
+    {
+        RpcArguments.Validate(reference, ["$handle", "$type"]);
+        var id = RpcArguments.String(reference["$handle"]);
+        var typeId = RpcArguments.String(reference["$type"]);
+        if (!_entries.TryGetValue(id, out var entry) || entry.Value is ICapabilityLifetime { IsRevoked: true })
+        {
+            throw new RpcFault("HANDLE_NOT_FOUND", "The capability handle is unknown or retired.");
+        }
+        if (typeId != entry.TypeId || expectedTypeId is not null && typeId != expectedTypeId)
+        {
+            throw new RpcFault("TYPE_MISMATCH", "The capability handle is not applicable.");
+        }
+
+        return entry.Value;
+    }
+
     public void RemoveRevoked()
     {
         foreach (var (id, entry) in _entries.ToArray())

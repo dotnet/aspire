@@ -66,6 +66,7 @@
     <Project Path="src/Aspire.Hosting.Milvus/Aspire.Hosting.Milvus.csproj" />
     <Project Path="src/Aspire.Hosting.MongoDB/Aspire.Hosting.MongoDB.csproj" />
     <Project Path="src/Aspire.Hosting.MySql/Aspire.Hosting.MySql.csproj" />
+    <Project Path="src/Aspire.Hosting.Native.Client/Aspire.Hosting.Native.Client.csproj" />
     <Project Path="src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" />
     <Project Path="src/Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj" />
     <Project Path="src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj" />
@@ -151,6 +152,16 @@
     <File Path="playground/Directory.Build.targets" />
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/playground/NativeIntegrations/">
+    <Project Path="playground/NativeIntegrations/CSharp/ExternalApi/NativeIntegrations.ExternalApi.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/AppHost/NativeIntegrations.AppHost.Sample.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/Redis/NativeIntegrations.Redis.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/RedisContracts/NativeIntegrations.Redis.Contracts.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj" />
   </Folder>
   <Folder Name="/playground/BlazorHosted/">
     <Project Path="playground/BlazorHosted/BlazorHosted.AppHost/BlazorHosted.AppHost.csproj" />

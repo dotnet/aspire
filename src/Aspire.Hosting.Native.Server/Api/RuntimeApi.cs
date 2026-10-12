@@ -47,6 +47,9 @@ internal sealed class NativeApplicationServer
     [AspireExport]
     public ApplicationObserver JoinApplicationObserver(string invitation) => _invitations.Claim<ApplicationObserver>(invitation);
 
+    internal void AttachProviderLifecycleDispatcher(IProviderLifecycleDispatcher dispatcher) =>
+        _invitations.Options.ProviderLifecycleDispatcher = dispatcher;
+
     internal void Close() => _invitations.Close();
     internal Task DrainAsync() => _invitations.DrainAsync();
     internal ApplicationObserver? GetApplicationObserver() => _invitations.GetApplicationObserver();
@@ -95,6 +98,28 @@ internal sealed class ApplicationExecution : ICapabilityLifetime
     /// <summary>Delegates observation, command invocation, and interaction responses for this execution.</summary>
     [AspireExport]
     public string InviteApplicationObserver() => _invitations.Issue(this, () => new ApplicationObserver(Runtime));
+
+    /// <summary>Reads the started application's authoritative readiness without issuing an observer invitation.</summary>
+    [AspireExport]
+    public ApplicationObservations ReadApplicationState() => ApplicationObserver.Copy(Runtime.Read());
+
+    /// <summary>Awaits native dependency and protocol readiness with an explicit bounded deadline.</summary>
+    [AspireExport]
+    public Task WaitApplicationReady(int timeoutMilliseconds) => Runtime.WaitDeclaredApplicationAsync(timeoutMilliseconds);
+
+    /// <summary>Awaits a declared one-shot resource's terminal state; false explicitly reports failure.</summary>
+    [AspireExport]
+    public Task<bool> WaitResourceCompletion(DeclaredResource resource, int timeoutMilliseconds)
+    {
+        if (!ReferenceEquals(_composition, resource.Composition))
+        {
+            throw new ArgumentException("The resource belongs to another composition.", nameof(resource));
+        }
+        var declaration = resource.Composition.Model.ReadResource(resource.Handle);
+        var runtimeHandle = Runtime.ResolveResource(declaration.Name, declaration.TypeId);
+
+        return Runtime.WaitDeclaredResourceCompletionAsync(runtimeHandle.ResourceId, timeoutMilliseconds);
+    }
 
     internal void Retire() => Runtime.Dispose();
 }

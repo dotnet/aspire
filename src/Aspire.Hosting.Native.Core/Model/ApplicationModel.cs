@@ -12,6 +12,7 @@ internal sealed class ApplicationModel : IDisposable
     private readonly Lock _gate = new();
     private readonly Dictionary<Guid, Resource> _resources = [];
     private readonly HashSet<string> _names = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SymbolicValue> _secretParameters = new(StringComparer.Ordinal);
     private ApplicationSnapshot? _snapshot;
     private bool _disposed;
     private readonly TimeProvider _timeProvider;
@@ -113,6 +114,97 @@ internal sealed class ApplicationModel : IDisposable
         }
     }
 
+    /// <summary>Declares a named secret once within this composition, retaining its value only on the server.</summary>
+    public SymbolicValue AddSecretParameter(string name, string value)
+    {
+        var parameter = SymbolicValue.SecretParameter(GenerationId, name, value);
+        lock (_gate)
+        {
+            EnsureMutable();
+            if (_secretParameters.Count >= 64 || !_secretParameters.TryAdd(name, parameter))
+            {
+                throw new ArgumentException("The secret parameter is duplicate or exceeds capacity.");
+            }
+
+            return parameter;
+        }
+    }
+
+    public void ValidateValue(SymbolicValue value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        lock (_gate)
+        {
+            EnsureAlive();
+            if (value.GenerationId != GenerationId)
+            {
+                throw new ArgumentException("The symbolic value belongs to another composition.");
+            }
+            foreach (var reference in value.References)
+            {
+                GetResource(reference);
+            }
+            if (value.SecretParameters.Any(parameter => !_secretParameters.TryGetValue(parameter.ParameterName, out var declared) ||
+                !ReferenceEquals(parameter, declared)))
+            {
+                throw new ArgumentException("The symbolic parameter is not declared in this composition.");
+            }
+        }
+    }
+
+    /// <summary>Atomically replaces one symbolic field and derives its readiness references without stale edges.</summary>
+    public void SetSymbolicConfiguration(ResourceHandle handle, string name, SymbolicValue value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.Length > 128)
+        {
+            throw new ArgumentException("Invalid symbolic configuration name.");
+        }
+        lock (_gate)
+        {
+            EnsureMutable();
+            ValidateValue(value);
+            var resource = GetResource(handle);
+            if (resource.SymbolicConfiguration.Count >= 64 && !resource.SymbolicConfiguration.ContainsKey(name))
+            {
+                throw new ArgumentException("The symbolic configuration exceeds capacity.");
+            }
+            resource.SymbolicConfiguration.TryGetValue(name, out var previous);
+            resource.SymbolicConfiguration[name] = value;
+            try
+            {
+                foreach (var dependency in Dependencies(resource))
+                {
+                    if (Reaches(_resources[dependency], handle.ResourceId))
+                    {
+                        throw new InvalidOperationException("The symbolic value dependency would create a cycle.");
+                    }
+                }
+            }
+            catch
+            {
+                if (previous is null)
+                {
+                    resource.SymbolicConfiguration.Remove(name);
+                }
+                else
+                {
+                    resource.SymbolicConfiguration[name] = previous;
+                }
+                throw;
+            }
+        }
+    }
+
+    public void RemoveSymbolicConfiguration(ResourceHandle handle, string name)
+    {
+        lock (_gate)
+        {
+            EnsureMutable();
+            GetResource(handle).SymbolicConfiguration.Remove(name);
+        }
+    }
+
     private ResourceSnapshot ReadResourceCore(ResourceHandle handle)
     {
         lock (_gate)
@@ -166,6 +258,7 @@ internal sealed class ApplicationModel : IDisposable
             _disposed = true;
             _resources.Clear();
             _names.Clear();
+            _secretParameters.Clear();
             _snapshot = null;
         }
     }
@@ -213,7 +306,7 @@ internal sealed class ApplicationModel : IDisposable
             {
                 continue;
             }
-            foreach (var dependency in _resources[id].Dependencies)
+            foreach (var dependency in Dependencies(_resources[id]))
             {
                 pending.Push(dependency);
             }
@@ -223,12 +316,52 @@ internal sealed class ApplicationModel : IDisposable
     }
 
     private ApplicationSnapshot CreateSnapshot() => new(GenerationId,
-        _resources.Values.OrderBy(resource => resource.Name, StringComparer.Ordinal).Select(Snapshot).ToImmutableArray());
+        _resources.Values.OrderBy(resource => resource.Name, StringComparer.Ordinal).Select(Snapshot).ToImmutableArray())
+    {
+        SecretParameters = _secretParameters.Values.ToImmutableArray()
+    };
 
     private ResourceSnapshot Snapshot(Resource resource) => new(resource.Handle, resource.Name, resource.TypeId,
-        resource.Dependencies.Select(id => _resources[id])
+        Dependencies(resource).Select(id => _resources[id])
             .OrderBy(dependency => dependency.Name, StringComparer.Ordinal)
-            .Select(dependency => dependency.Handle).ToImmutableArray(), resource.Configuration);
+            .Select(dependency => dependency.Handle).ToImmutableArray(), resource.Configuration)
+    {
+        Workload = resource.Workload,
+        ProviderLifecycle = resource.ProviderLifecycle,
+        SymbolicConfiguration = resource.SymbolicConfiguration.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => new SymbolicConfigurationEntry(pair.Key, pair.Value)).ToImmutableArray()
+    };
+
+    private static IEnumerable<Guid> Dependencies(Resource resource) => resource.Dependencies.Concat(
+        resource.SymbolicConfiguration.Values.SelectMany(value => value.References)
+            .Select(reference => reference.ResourceId).Where(id => id != resource.Handle.ResourceId)).Distinct();
+
+    /// <summary>Validates and stores desired workload metadata without launching or acquiring runtime ownership.</summary>
+    public void SetWorkload(ResourceHandle handle, DeclaredWorkload workload)
+    {
+        lock (_gate)
+        {
+            EnsureMutable();
+            Runtime.WorkloadDefinition.Validate(workload.Plan);
+            workload.Bindings.Validate(workload.Plan);
+            GetResource(handle).Workload = workload;
+        }
+    }
+
+    /// <summary>Attaches only provider bindings already authenticated by the hosting boundary.</summary>
+    internal void SetProviderLifecycle(ResourceHandle handle, ImmutableArray<Runtime.ProviderLifecycleBinding> bindings)
+    {
+        lock (_gate)
+        {
+            EnsureMutable();
+            var resource = GetResource(handle);
+            if (!resource.ProviderLifecycle.IsEmpty && !resource.ProviderLifecycle.SequenceEqual(bindings))
+            {
+                throw new InvalidOperationException("The declaration already has a provider lifecycle owner.");
+            }
+            resource.ProviderLifecycle = bindings;
+        }
+    }
 
     private sealed class Resource(ResourceHandle handle, string name, string typeId)
     {
@@ -237,5 +370,8 @@ internal sealed class ApplicationModel : IDisposable
         public string TypeId { get; } = typeId;
         public HashSet<Guid> Dependencies { get; } = [];
         public ImmutableArray<ResourceConfigurationEntry> Configuration { get; set; } = [];
+        public Dictionary<string, SymbolicValue> SymbolicConfiguration { get; } = new(StringComparer.Ordinal);
+        public DeclaredWorkload? Workload { get; set; }
+        public ImmutableArray<Runtime.ProviderLifecycleBinding> ProviderLifecycle { get; set; } = [];
     }
 }

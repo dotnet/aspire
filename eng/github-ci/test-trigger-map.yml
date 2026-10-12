@@ -120,6 +120,7 @@ ignore:
   # Native AOT/socket/generated-SDK/workload smokes run in the independently path-triggered
   # native-hosting-validation.yml lane, not a tests.yml run_* target.
   - .github/workflows/native-hosting-validation.yml
+  - playground/NativeIntegrations/TypeScript/**        # executed by the dedicated native hosting workflow
   # Schedule/dispatch-only workflows that regenerate API/ATS surface baselines; no PR-CI path.
   - .github/workflows/generate-api-diffs.yml
   - .github/workflows/generate-ats-diffs.yml

@@ -19,6 +19,8 @@ internal sealed class NativeRpcListener : IDisposable
     private readonly NativeLanguageCatalog? _languages;
     private readonly ILogger _logger;
     private readonly NativeServerOptions _options;
+    private readonly INativeRpcPeerFactory _peers;
+    private readonly INativeProviderRegistry _providers;
     private readonly string? _socketPath;
     private int _running;
     private int _disposed;
@@ -43,9 +45,18 @@ internal sealed class NativeRpcListener : IDisposable
 
     public NativeRpcListener(EndPoint endPoint, string token, ILogger logger, NativeApplicationServer server,
         NativeLanguageCatalog? languages, NativeServerOptions options)
+        : this(endPoint, token, logger, server, languages, options,
+            new NativeRpcPeerFactory(options, logger), new NativeProviderRegistry(NativeRpcConnection.CoreContract, options, logger))
+    {
+    }
+
+    internal NativeRpcListener(EndPoint endPoint, string token, ILogger logger, NativeApplicationServer server,
+        NativeLanguageCatalog? languages, NativeServerOptions options, INativeRpcPeerFactory peers, INativeProviderRegistry providers)
     {
         options.Validate();
         _options = options;
+        _peers = peers;
+        _providers = providers;
         _server = server;
         _languages = languages;
         if (endPoint is not UnixDomainSocketEndPoint &&
@@ -138,69 +149,24 @@ internal sealed class NativeRpcListener : IDisposable
         using var connection = new NativeRpcConnection(_token, _server, _languages, _options, _logger);
         using var lifetime = new Aspire.Hosting.Native.Runtime.TimeProviderCancellation(
             _options.AuthenticationTimeout, _options.TimeProvider, cancellationToken);
-        using var writes = new SemaphoreSlim(1);
-        var framing = new NativeRpcFraming(stream, _options.MaximumRequestBytes);
-        var requests = new List<Task>();
+        using var peer = _peers.Create(stream);
+        connection.AttachProviderTransport(_providers, peer);
+        using var disconnected = peer.Closed.Register(connection.Dispose);
         try
         {
-            while (await framing.ReadAsync(lifetime.Token).ConfigureAwait(false) is { } payload)
+            await peer.RunAsync(async payload =>
             {
-                await Task.WhenAll(requests.Where(task => task.IsCompleted)).ConfigureAwait(false);
-                requests.RemoveAll(task => task.IsCompletedSuccessfully);
-                if (requests.Count >= _options.MaximumConcurrentRequests)
+                var response = await connection.ProcessAsync(payload).ConfigureAwait(false);
+                if (connection.IsAuthenticated)
                 {
-                    throw new InvalidDataException("The connection response backlog exceeds the limit.");
+                    lifetime.StopTimeout();
                 }
-                requests.Add(RespondAsync(payload));
-            }
-        }
-        catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException)
-        {
-            // A truncated/malformed frame ends only this connection. Report the
-            // classification, never payloads, bearer tokens, or peer input.
-            _logger.LogWarning("Native connection closed: {ErrorType}.", exception.GetType().Name);
-        }
-        catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
-        {
+                return response;
+            }, lifetime.Token).ConfigureAwait(false);
         }
         finally
         {
-            await lifetime.CancelAsync().ConfigureAwait(false);
-            connection.Dispose();
-            await Task.WhenAll(requests).ConfigureAwait(false);
-        }
-
-        async Task RespondAsync(byte[] payload)
-        {
-            var response = await connection.ProcessAsync(payload).ConfigureAwait(false);
-            if (connection.IsAuthenticated)
-            {
-                lifetime.StopTimeout();
-            }
-            if (response is null || lifetime.IsCancellationRequested)
-            {
-                return;
-            }
-            try
-            {
-                await writes.WaitAsync(lifetime.Token).ConfigureAwait(false);
-                try
-                {
-                    await NativeRpcFraming.WriteAsync(stream, response, lifetime.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    writes.Release();
-                }
-            }
-            catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
-            {
-            }
-            catch (Exception exception) when (exception is IOException or SocketException)
-            {
-                _logger.LogWarning("Native response failed: {ErrorType}.", exception.GetType().Name);
-                await lifetime.CancelAsync().ConfigureAwait(false);
-            }
+            _providers.Disconnect(connection);
         }
     }
 
