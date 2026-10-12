@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-sdkinstallertests-publishcommand-whensdknotinstalled-macos-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: SdkInstallerTests.PublishCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode times out after 30s on macOS",
+  "test_name": "Aspire.Cli.Tests.Commands.SdkInstallerTests.PublishCommand_WhenSdkNotInstalled_ReturnsCorrectExitCode",
+  "error_pattern": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/SdkInstallerTests.cs:135 timed out after reaching the limit of 30000ms.\n   at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber)",
+  "occurrences": [
+    {
+      "run_id": 38192811768,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38192811768",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T02:22:20Z"
+    }
+  ]
+}

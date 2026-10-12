@@ -1,0 +1,16 @@
+{
+  "id": "aspire-hosting-dotnet-tests-fileapprebuild-workspace-file-lock-race",
+  "type": "flaky-test",
+  "title": "Flaky: DotnetProjectBuildCoordinatorTests.FileAppRebuildCommandBuildsEditedSourceAndRestartsResource hits a Windows file-lock race reading worker-ran.txt",
+  "test_name": "Aspire.Hosting.Dotnet.Tests.DotnetProjectBuildCoordinatorTests.FileAppRebuildCommandBuildsEditedSourceAndRestartsResource",
+  "error_pattern": "System.IO.IOException : The process cannot access the file 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Hosting.TestUtilities\\Workspace\\<id>\\worker-ran.txt' because it is being used by another process.\n   at System.IO.Strategies.OSFileStreamStrategy..ctor\n   at System.IO.File.ReadAllText(String path, Encoding encoding)\n   at Aspire.Hosting.Dotnet.Tests.DotnetProjectBuildCoordinatorTests.FileAppRebuildCommandBuildsEditedSourceAndRestartsResource",
+  "occurrences": [
+    {
+      "run_id": 38192811768,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38192811768",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Dotnet.Tests, Hosting.Dotnet, Hosting.Dotnet, tests/Asp... / Hosting.Dotnet (windows-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T02:22:20Z"
+    }
+  ]
+}
