@@ -14,109 +14,109 @@ namespace Aspire.Cli.Agents;
 /// </summary>
 internal sealed class AgentClient
 {
-    public static readonly AgentClient Copilot = new("copilot");
-    public static readonly AgentClient ClaudeCode = new("claude");
-    public static readonly AgentClient OpenCode = new("opencode");
+    private static readonly string s_universalSkillsDirectory = Path.Combine(".agents", "skills");
+
+    public static readonly AgentClient Copilot = new()
+    {
+        DisplayName = AgentCommandStrings.Environment_Copilot,
+        Description = AgentCommandStrings.Agent_CopilotPlatforms,
+        Environments = AgentEnvironment.CopilotCli | AgentEnvironment.CopilotApp | AgentEnvironment.VsCode,
+        UsesUniversalSkills = true,
+        ProjectSkillsDirectory = s_universalSkillsDirectory,
+        GlobalSkillsDirectory = static (context, _) => Path.Combine(context.HomeDirectory.FullName, s_universalSkillsDirectory),
+        ProjectMcpFileName = ".mcp.json",
+        GlobalMcpConfigPath = static (context, environment) =>
+            Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json"),
+        McpServersPropertyName = "mcpServers",
+        ApplyProjectMcpConfigurationAsync = ClaudeCodeAgentEnvironmentScanner.ApplyAspireMcpConfigurationAsync,
+        ApplyGlobalMcpConfigurationAsync = static (path, cancellationToken) =>
+            CopilotAgentEnvironmentScanner.ApplyMcpConfigurationAsync(Path.GetDirectoryName(path)!, cancellationToken),
+        ProjectMcpRepairFiles = [Path.Combine(".vscode", "mcp.json"), Path.Combine(".github", "copilot", "mcp.json")]
+    };
+
+    public static readonly AgentClient ClaudeCode = new()
+    {
+        DisplayName = AgentCommandStrings.Environment_ClaudeCode,
+        Description = AgentCommandStrings.Agent_ClaudePlatforms,
+        Environments = AgentEnvironment.ClaudeCode,
+        ProjectSkillsDirectory = Path.Combine(".claude", "skills"),
+        GlobalSkillsDirectory = static (context, environment) =>
+            Path.Combine(ClaudeCodeAgentEnvironmentScanner.GetConfigDirectory(context, environment), "skills"),
+        ProjectMcpFileName = ".mcp.json",
+        GlobalMcpConfigPath = ClaudeCodeAgentEnvironmentScanner.GetGlobalMcpConfigPath,
+        McpServersPropertyName = "mcpServers",
+        ApplyProjectMcpConfigurationAsync = ClaudeCodeAgentEnvironmentScanner.ApplyAspireMcpConfigurationAsync,
+        ApplyGlobalMcpConfigurationAsync = ClaudeCodeAgentEnvironmentScanner.ApplyAspireMcpConfigurationAsync
+    };
+
+    public static readonly AgentClient OpenCode = new()
+    {
+        DisplayName = AgentCommandStrings.Environment_OpenCode,
+        Description = AgentCommandStrings.Agent_OpenCodePlatforms,
+        Environments = AgentEnvironment.OpenCode,
+        UsesUniversalSkills = true,
+        ProjectSkillsDirectory = s_universalSkillsDirectory,
+        GlobalSkillsDirectory = static (context, _) => Path.Combine(context.HomeDirectory.FullName, s_universalSkillsDirectory),
+        ProjectMcpFileName = "opencode.jsonc",
+        GlobalMcpConfigPath = OpenCodeAgentEnvironmentScanner.GetGlobalMcpConfigPath,
+        McpServersPropertyName = "mcp",
+        McpJsonPreprocessor = OpenCodeAgentEnvironmentScanner.RemoveJsonComments,
+        ApplyProjectMcpConfigurationAsync = OpenCodeAgentEnvironmentScanner.ApplyMcpConfigurationAsync,
+        ApplyGlobalMcpConfigurationAsync = OpenCodeAgentEnvironmentScanner.ApplyMcpConfigurationAsync
+    };
 
     public static IReadOnlyList<AgentClient> All { get; } = [Copilot, ClaudeCode, OpenCode];
 
-    private AgentClient(string id) => Id = id;
-
-    public string Id { get; }
-
-    public bool UsesUniversalSkills => this != ClaudeCode;
-
-    public string DisplayName => Id switch
+    private AgentClient()
     {
-        "copilot" => AgentCommandStrings.Environment_Copilot,
-        "claude" => "Claude Code",
-        "opencode" => "OpenCode",
-        _ => throw new InvalidOperationException()
-    };
+    }
 
-    public string Description => Id switch
-    {
-        "copilot" => AgentCommandStrings.Agent_CopilotPlatforms,
-        "claude" => AgentCommandStrings.Agent_ClaudePlatforms,
-        "opencode" => AgentCommandStrings.Agent_OpenCodePlatforms,
-        _ => throw new InvalidOperationException()
-    };
+    public required string DisplayName { get; init; }
+    public required string Description { get; init; }
+    public required AgentEnvironment Environments { get; init; }
+    public bool UsesUniversalSkills { get; init; }
+    public required string ProjectSkillsDirectory { get; init; }
+    public required Func<CliExecutionContext, IEnvironment, string> GlobalSkillsDirectory { get; init; }
+    public required string ProjectMcpFileName { get; init; }
+    public required Func<CliExecutionContext, IEnvironment, string> GlobalMcpConfigPath { get; init; }
+    public required string McpServersPropertyName { get; init; }
+    public Func<string, string>? McpJsonPreprocessor { get; init; }
+    public required Func<string, CancellationToken, Task> ApplyProjectMcpConfigurationAsync { get; init; }
+    public required Func<string, CancellationToken, Task> ApplyGlobalMcpConfigurationAsync { get; init; }
+    public IReadOnlyList<string> ProjectMcpRepairFiles { get; init; } = [];
 
-    public bool Includes(AgentEnvironment environment) => Id switch
-    {
-        "copilot" => environment is AgentEnvironment.CopilotCli or AgentEnvironment.CopilotApp or AgentEnvironment.VsCode,
-        "claude" => environment is AgentEnvironment.ClaudeCode,
-        "opencode" => environment is AgentEnvironment.OpenCode,
-        _ => false
-    };
+    public bool Includes(AgentEnvironment environments) => (Environments & environments) != AgentEnvironment.None;
 
     public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
-        if (this == ClaudeCode)
-        {
-            return scope is AgentConfigurationScope.Project
-                ? Path.Combine(workspaceRoot.FullName, ".claude", "skills")
-                : Path.Combine(GetClaudeConfigDirectory(executionContext, environment), "skills");
-        }
-
-        // Copilot (including VS Code) and OpenCode discover this shared compatibility
-        // location. Their configuration overrides do not relocate it.
-        // https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
-        // https://opencode.ai/docs/skills/
-        return GetUniversalSkillBaseDirectory(scope, workspaceRoot, executionContext);
+        return scope is AgentConfigurationScope.Project
+            ? Path.Combine(workspaceRoot.FullName, ProjectSkillsDirectory)
+            : GlobalSkillsDirectory(executionContext, environment);
     }
 
     internal static string GetUniversalSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext)
-        => Path.Combine((scope is AgentConfigurationScope.Project ? workspaceRoot : executionContext.HomeDirectory).FullName, ".agents", "skills");
+        => Path.Combine((scope is AgentConfigurationScope.Project ? workspaceRoot : executionContext.HomeDirectory).FullName, s_universalSkillsDirectory);
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
-        if (scope is AgentConfigurationScope.Project)
-        {
-            return Path.Combine(workspaceRoot.FullName, this == OpenCode ? "opencode.jsonc" : ".mcp.json");
-        }
-
-        if (this == Copilot)
-        {
-            return Path.Combine(CopilotPaths.GetConfigDirectory(executionContext.HomeDirectory, environment), "mcp-config.json");
-        }
-
-        if (this == ClaudeCode)
-        {
-            // CLAUDE_CONFIG_DIR moves the state file into that directory, unlike ~/.claude.json.
-            // https://code.claude.com/docs/en/env-vars
-            return GetOverride("CLAUDE_CONFIG_DIR", executionContext, environment) is { } directory
-                ? Path.Combine(directory, ".claude.json")
-                : Path.Combine(executionContext.HomeDirectory.FullName, ".claude.json");
-        }
-
-        if (GetOverride("OPENCODE_CONFIG", executionContext, environment) is { } configFile)
-        {
-            return configFile;
-        }
-
-        var configDirectory = GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment)
-            ?? Path.Combine(GetOverride("XDG_CONFIG_HOME", executionContext, environment)
-                ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
-        return Path.Combine(configDirectory, "opencode.jsonc");
+        return scope is AgentConfigurationScope.Project
+            ? Path.Combine(workspaceRoot.FullName, ProjectMcpFileName)
+            : GlobalMcpConfigPath(executionContext, environment);
     }
 
     public AgentEnvironmentApplicator? CreateMcpApplicator(string configPath, AgentConfigurationScope scope)
     {
-        var isOpenCode = this == OpenCode;
-        if (McpConfigFileHelper.HasServerConfigured(configPath, isOpenCode ? "mcp" : "mcpServers", "aspire",
-            isOpenCode ? OpenCodeAgentEnvironmentScanner.RemoveJsonComments : null))
+        if (McpConfigFileHelper.HasServerConfigured(configPath, McpServersPropertyName, "aspire", McpJsonPreprocessor))
         {
             return null;
         }
 
+        var applyConfiguration = scope is AgentConfigurationScope.Project
+            ? ApplyProjectMcpConfigurationAsync
+            : ApplyGlobalMcpConfigurationAsync;
         return new AgentEnvironmentApplicator(
             string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_McpConfigurationDescription, DisplayName, configPath),
-            cancellationToken => isOpenCode
-                ? OpenCodeAgentEnvironmentScanner.ApplyMcpConfigurationAsync(configPath, cancellationToken)
-                : this == Copilot && scope is AgentConfigurationScope.Global
-                    ? CopilotAgentEnvironmentScanner.ApplyMcpConfigurationAsync(Path.GetDirectoryName(configPath)!, cancellationToken)
-                    : ClaudeCodeAgentEnvironmentScanner.ApplyAspireMcpConfigurationAsync(configPath, cancellationToken))
+            cancellationToken => applyConfiguration(configPath, cancellationToken))
         {
             TargetPath = configPath
         };
@@ -125,24 +125,18 @@ internal sealed class AgentClient
     public IEnumerable<string> GetMcpRepairPaths(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
         yield return GetMcpConfigPath(scope, workspaceRoot, executionContext, environment);
-        if (scope is AgentConfigurationScope.Project && this == Copilot)
+        if (scope is AgentConfigurationScope.Project)
         {
             // Keep existing editor/CLI repairs, but never let discovery expand the
             // selected scope or authorize writes for an unselected client.
-            yield return Path.Combine(workspaceRoot.FullName, ".vscode", "mcp.json");
-            yield return Path.Combine(workspaceRoot.FullName, ".github", "copilot", "mcp.json");
+            foreach (var path in ProjectMcpRepairFiles)
+            {
+                yield return Path.Combine(workspaceRoot.FullName, path);
+            }
         }
     }
 
-    internal static string GetClaudeConfigDirectory(CliExecutionContext executionContext, IEnvironment environment)
-        => GetOverride("CLAUDE_CONFIG_DIR", executionContext, environment) ?? Path.Combine(executionContext.HomeDirectory.FullName, ".claude");
-
-    private static string? GetOverride(string name, CliExecutionContext executionContext, IEnvironment environment)
-        => environment.GetEnvironmentVariable(name) is { Length: > 0 } value
-            ? Path.GetFullPath(value, executionContext.WorkingDirectory.FullName)
-            : null;
-
-    public override string ToString() => Id;
+    public override string ToString() => DisplayName;
 }
 
 internal enum AgentConfigurationScope

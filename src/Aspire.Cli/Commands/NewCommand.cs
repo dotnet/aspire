@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -88,7 +89,9 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
-        _agentInitCommand.AddOptions(this, includeMcp: false, includeWorkspaceRoot: false);
+        Options.Add(_agentInitCommand.AgentsOption);
+        Options.Add(_agentInitCommand.ScopeOption);
+        Options.Add(AgentInitCommand.s_skillsOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = KnownFeatures.IsStagingChannelEnabled(services.Features, configuration)
@@ -603,7 +606,9 @@ internal sealed class NewCommand : BaseCommand
             templateResult.ExitCode,
             workspaceRoot,
             agentInitBinding,
-            _agentInitCommand.CreateBindings(parseResult, includeMcp: false),
+            PromptBinding.Create(parseResult, _agentInitCommand.AgentsOption),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption),
+            PromptBinding.Create(parseResult, _agentInitCommand.ScopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))

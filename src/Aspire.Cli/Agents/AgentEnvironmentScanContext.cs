@@ -9,7 +9,6 @@ namespace Aspire.Cli.Agents;
 internal sealed class AgentEnvironmentScanContext
 {
     private readonly List<AgentEnvironmentApplicator> _applicators = [];
-    private readonly HashSet<AgentEnvironment> _detectedEnvironments = [];
 
     /// <summary>
     /// Gets the working directory being scanned.
@@ -46,11 +45,11 @@ internal sealed class AgentEnvironmentScanContext
     /// <param name="environment">The detected agent environment.</param>
     public void AddDetectedEnvironment(AgentEnvironment environment)
     {
-        _detectedEnvironments.Add(environment);
+        DetectedEnvironments |= environment;
     }
 
     /// <summary>
     /// Gets the detected agent environments.
     /// </summary>
-    public IReadOnlyCollection<AgentEnvironment> DetectedEnvironments => _detectedEnvironments;
+    public AgentEnvironment DetectedEnvironments { get; private set; }
 }

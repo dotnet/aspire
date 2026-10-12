@@ -55,7 +55,7 @@ public sealed class NewWithAgentInitTests(ITestOutputHelper output)
         // Pass client, scope, and skill flags so the test does not depend on
         // the position or count of entries in the interactive skill-selection menus, which
         // change whenever the bundle ships a new skill.
-        await auto.TypeAsync("aspire new --agents claude --scope project --skills playwright-cli");
+        await auto.TypeAsync("aspire new --agents \"Claude Code\" --scope project --skills playwright-cli");
         await auto.EnterAsync();
 
         // Template selection: accept default Starter App

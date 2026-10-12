@@ -18,7 +18,7 @@ internal interface ITelemetryHookConfigurator
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A summary of which environments were configured and which were skipped (and why).</returns>
     Task<TelemetryHookConfigurationResult> ConfigureAsync(
-        IReadOnlyCollection<AgentEnvironment> detectedEnvironments,
+        AgentEnvironment detectedEnvironments,
         CancellationToken cancellationToken);
 }
 
@@ -50,5 +50,5 @@ internal sealed record TelemetryHookSkip(AgentEnvironment Environment, Telemetry
 /// <param name="ConfiguredEnvironments">Environments whose telemetry hook was registered or refreshed.</param>
 /// <param name="Skipped">Environments whose registration was skipped, with the reason.</param>
 internal sealed record TelemetryHookConfigurationResult(
-    IReadOnlyList<AgentEnvironment> ConfiguredEnvironments,
+    AgentEnvironment ConfiguredEnvironments,
     IReadOnlyList<TelemetryHookSkip> Skipped);

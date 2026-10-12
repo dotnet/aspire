@@ -13,7 +13,7 @@ public class CommonAgentApplicatorsTests
     [Fact]
     public void AgentClient_All_ContainsSupportedGroups()
     {
-        Assert.Equal(["copilot", "claude", "opencode"], AgentClient.All.Select(static client => client.Id));
+        Assert.Equal([AgentClient.Copilot, AgentClient.ClaudeCode, AgentClient.OpenCode], AgentClient.All);
     }
 
     [Fact]

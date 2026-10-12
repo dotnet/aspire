@@ -8,8 +8,8 @@ Options:
   --language <language>                                                  The programming language for the AppHost (csharp, typescript)
   --file-based                                                           Create apphost.cs in the current directory, skipping .NET solution discovery. Requires C#.
   --suppress-agent-init                                                  Suppress AI agent environment configuration after project creation
-  --agents <all|claude|copilot|none|opencode>                            Comma-separated agents (copilot,claude,opencode), 'all', or 'none'. Defaults to detected clients and clients that support universal .agents/skills
-  --scope <global|project>                                               Configuration and skill scope: project or global (default: project)
+  --agents <agents>                                                      Comma-separated agent names (GitHub Copilot,Claude Code,OpenCode), 'all', or 'none'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected
+  --scope <project|global>                                               Configuration and skill scope: project or global (default: project)
   --skills <skills>                                                      Comma-separated list of skills to install. Bundle skills are loaded dynamically; CLI-provided skills include playwright-cli,dotnet-inspect. Use 'all' or 'none'
   -?, -h, --help                                                         Show help and usage information
   -l, --log-level <Critical|Debug|Error|Information|None|Trace|Warning>  Set the minimum log level for console output (Trace, Debug, Information, Warning, Error, Critical)

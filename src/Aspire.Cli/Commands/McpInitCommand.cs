@@ -20,7 +20,11 @@ internal sealed class McpInitCommand : BaseCommand
         : base("init", McpCommandStrings.InitCommand_Description, services)
     {
         _agentInitCommand = agentInitCommand;
-        _agentInitCommand.AddOptions(this, includeMcp: true, includeWorkspaceRoot: true);
+        Options.Add(AgentInitCommand.s_workspaceRootOption);
+        Options.Add(AgentInitCommand.s_mcpOption);
+        Options.Add(_agentInitCommand.AgentsOption);
+        Options.Add(_agentInitCommand.ScopeOption);
+        Options.Add(AgentInitCommand.s_skillsOption);
     }
 
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)

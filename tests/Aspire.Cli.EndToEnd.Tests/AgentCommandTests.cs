@@ -121,7 +121,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Step 2: Explicit standalone MCP setup repairs the selected client's deprecated config.
         // Skill installation is not part of this migration coverage, so keep it disabled
         // to avoid depending on the external Aspire skills package.
-        await auto.TypeAsync("aspire agent init --workspace-root . --agents claude --scope project --skills none --mcp");
+        await auto.TypeAsync("aspire agent init --workspace-root . --agents \"Claude Code\" --scope project --skills none --mcp");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -167,7 +167,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Tests that aspire agent init with a .vscode folder shows client, scope, and skill selection
+    /// Tests that aspire agent init with a .vscode folder shows client, skill, and scope selection
     /// prompts, and that accepting the defaults completes successfully and creates the default
     /// skill files in the .agents/skills/ directory.
     /// </summary>
@@ -195,21 +195,20 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Create .vscode folder so the scanner detects VS Code environment
         Directory.CreateDirectory(vscodePath);
 
-        // Accept the universal clients, detected clients, project scope, and default copied skills.
+        // Accept detected clients, default skills, then project scope.
         await auto.TypeAsync("aspire agent init");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("workspace:", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitAsync(500);
         await auto.EnterAsync(); // Accept default workspace path
         await auto.WaitUntilAsync(
-            s => s.ContainsText("Which agents do you want to install to?") && s.ContainsText("Universal (.agents/skills)"),
-            timeout: TimeSpan.FromSeconds(60), description: "client selection prompt");
-        await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("Installation scope", timeout: TimeSpan.FromSeconds(30));
+            s => s.ContainsText("Which agents do you use?") &&
+                s.ContainsText("GitHub Copilot") && s.ContainsText("OpenCode") && s.ContainsText("Claude Code"),
+            timeout: TimeSpan.FromSeconds(30), description: "agent selection prompt");
         await auto.EnterAsync();
         await auto.WaitUntilAsync(
             s => s.ContainsText("skills should be installed"),
-            timeout: TimeSpan.FromSeconds(30), description: "skill selection prompt");
+            timeout: TimeSpan.FromSeconds(60), description: "skill selection prompt");
         // Playwright and dotnet-inspect are not pre-selected, so just accept
         // the default Aspire skills from the installed CLI's embedded bundle.
         await auto.EnterAsync();
@@ -218,6 +217,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             timeout: TimeSpan.FromSeconds(30), description: "MCP server confirmation prompt");
         // MCP configuration is strictly opt-in and defaults to No, so accepting the default
         // here leaves MCP unconfigured.
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("Installation scope", timeout: TimeSpan.FromSeconds(30));
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -269,7 +270,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var bundleOnlySkills = new[] { "aspire-init", "aspire-monitoring", "aspire-orchestration" };
         var skillsArg = string.Join(",", bundleOnlySkills);
 
-        await auto.TypeAsync($"aspire agent init --workspace-root . --agents copilot --scope project --skills {skillsArg} --mcp=false");
+        await auto.TypeAsync($"aspire agent init --workspace-root . --agents \"GitHub Copilot\" --scope project --skills {skillsArg} --mcp=false");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -307,7 +308,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliAsync(strategy, counter);
 
-        // Provide editor detection evidence independently of the universal client defaults.
+        // Provide editor detection evidence for the client defaults.
         // The chained flow must leave this MCP configuration target untouched.
         var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
 
@@ -325,26 +326,26 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.WaitAsync(500);
         await auto.TypeAsync("y");
 
-        // Accept the universal and detected clients, then project scope.
         await auto.WaitUntilAsync(
-            s => s.ContainsText("Which agents do you want to install to?") && s.ContainsText("Universal (.agents/skills)"),
-            timeout: TimeSpan.FromSeconds(60), description: "client selection prompt");
-        await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("Installation scope", timeout: TimeSpan.FromSeconds(30));
+            s => s.ContainsText("Which agents do you use?") &&
+                s.ContainsText("GitHub Copilot") && s.ContainsText("OpenCode") && s.ContainsText("Claude Code"),
+            timeout: TimeSpan.FromSeconds(30), description: "agent selection prompt");
         await auto.EnterAsync();
 
         // Skill selection prompt: the retired "Install Aspire MCP server" entry must never be mixed
         // into this list — MCP configuration is unreachable from the chained flow by construction.
         await auto.WaitUntilAsync(
             s => s.ContainsText("skills should be installed"),
-            timeout: TimeSpan.FromSeconds(30), description: "skill selection prompt");
+            timeout: TimeSpan.FromSeconds(60), description: "skill selection prompt");
         var skillSelectionScreen = auto.CreateSnapshot().GetScreenText();
         Assert.DoesNotContain("Install Aspire MCP server", skillSelectionScreen);
         await auto.EnterAsync();
 
-        // The chained flow never registers --mcp, so it goes straight from skill selection to
-        // "configuration complete" — no MCP prompt is ever shown, and the detected `.vscode`
-        // target (created above) is left untouched.
+        await auto.WaitUntilTextAsync("Installation scope", timeout: TimeSpan.FromSeconds(30));
+        await auto.EnterAsync();
+
+        // The chained flow never registers --mcp. It completes after client and scope selection
+        // without an MCP prompt, leaving the detected `.vscode` configuration untouched.
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         var completionScreen = auto.CreateSnapshot().GetScreenText();
         Assert.DoesNotContain("Configure the Aspire MCP server", completionScreen);
@@ -388,7 +389,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Explicit client and scope skip those prompts so the skill defaults can be inspected.
         await auto.AspireNewAcceptingAgentInitAsync(
             "StarterApp",
-            extraArguments: "--agents claude --scope project",
+            extraArguments: "--agents \"Claude Code\" --scope project",
             beforeAcceptingAgentInit: () =>
             {
                 Directory.CreateDirectory(vscodePath);

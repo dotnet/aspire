@@ -41,7 +41,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents copilot --scope global");
+        var result = command.Parse("agent init --agents \"GitHub Copilot\" --scope global");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -74,7 +74,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents copilot");
+        var result = command.Parse("agent init --agents \"GitHub Copilot\"");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -664,7 +664,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents copilot");
+        var result = command.Parse("agent init --agents \"GitHub Copilot\"");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -718,7 +718,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = [AgentEnvironment.CopilotCli] };
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = AgentEnvironment.CopilotCli };
             options.AspireSkillsInstallerFactory = serviceProvider => new FakeAspireSkillsInstaller(
                 serviceProvider.GetRequiredService<CliExecutionContext>(),
                 AspireSkillsInstallResult.Failed(installFailureMessage));
@@ -732,11 +732,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             CliExitCodes.Success,
             workspace.WorkspaceRoot,
             PromptBinding.CreateDefault(true),
-            new AgentInitPromptBindings(
-                PromptBinding.CreateDefault<string?>(null),
-                PromptBinding.CreateDefault<string?>(null),
-                PromptBinding.CreateDefault(AgentConfigurationScope.Project),
-                Mcp: null),
+            PromptBinding.CreateDefault<string?>(null),
+            PromptBinding.CreateDefault<string?>(null),
+            PromptBinding.CreateDefault(AgentConfigurationScope.Project),
             CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, result.ExitCode);
@@ -756,7 +754,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = [AgentEnvironment.CopilotCli] };
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = AgentEnvironment.CopilotCli };
         });
         using var provider = services.BuildServiceProvider();
 
@@ -769,11 +767,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             CliExitCodes.Success,
             workspace.WorkspaceRoot,
             PromptBinding.CreateDefault(true),
-            new AgentInitPromptBindings(
-                PromptBinding.CreateDefault<string?>(null),
-                PromptBinding.CreateDefault<string?>(null),
-                PromptBinding.CreateDefault(AgentConfigurationScope.Project),
-                Mcp: null),
+            PromptBinding.CreateDefault<string?>(null),
+            PromptBinding.CreateDefault<string?>(null),
+            PromptBinding.CreateDefault(AgentConfigurationScope.Project),
             CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, result.ExitCode);
@@ -918,7 +914,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --skills {CommonAgentApplicators.AspireSkillName}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --skills {CommonAgentApplicators.AspireSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1009,13 +1005,13 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.CliExecutionContextFactory = _ => CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory);
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = [environment] };
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = environment };
             options.InteractionServiceFactory = _ => interactionService;
         });
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --scope global --skills aspire");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --scope global --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1042,14 +1038,14 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.CliExecutionContextFactory = _ => CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory);
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = [AgentEnvironment.CopilotCli] };
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedEnvironments = AgentEnvironment.CopilotCli };
             options.InteractionServiceFactory = _ => interactionService;
             options.TelemetryHookConfiguratorFactory = _ => new TestTelemetryHookConfigurator { Exception = new InvalidOperationException(failureMessage) };
         });
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --scope global --skills aspire");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --scope global --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

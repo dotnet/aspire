@@ -259,7 +259,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Which agents do you want to install to?.
+        ///   Looks up a localized string similar to Which agents do you use?.
         /// </summary>
         internal static string InitCommand_SelectAgentsPrompt {
             get {
@@ -268,20 +268,47 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Universal (.agents/skills) - selected by default.
+        ///   Looks up a localized string similar to Installation locations:.
         /// </summary>
-        internal static string InitCommand_UniversalSkills {
+        internal static string InitCommand_InstallationLocations {
             get {
-                return ResourceManager.GetString("InitCommand_UniversalSkills", resourceCulture);
+                return ResourceManager.GetString("InitCommand_InstallationLocations", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Additional agent (.claude/skills).
+        ///   Looks up a localized string similar to {0} (shared: {1}).
         /// </summary>
-        internal static string InitCommand_AdditionalAgentSkills {
+        internal static string InitCommand_SharedLocation {
             get {
-                return ResourceManager.GetString("InitCommand_AdditionalAgentSkills", resourceCulture);
+                return ResourceManager.GetString("InitCommand_SharedLocation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shared files may be discovered by agents that aren&apos;t selected..
+        /// </summary>
+        internal static string InitCommand_SharedLocationNotice {
+            get {
+                return ResourceManager.GetString("InitCommand_SharedLocationNotice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Skills: {0}.
+        /// </summary>
+        internal static string InitCommand_SkillsLocationHint {
+            get {
+                return ResourceManager.GetString("InitCommand_SkillsLocationHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MCP: {0}.
+        /// </summary>
+        internal static string InitCommand_McpLocationHint {
+            get {
+                return ResourceManager.GetString("InitCommand_McpLocationHint", resourceCulture);
             }
         }
 
@@ -291,15 +318,6 @@ namespace Aspire.Cli.Resources {
         internal static string InitCommand_SelectScopePrompt {
             get {
                 return ResourceManager.GetString("InitCommand_SelectScopePrompt", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Clients that support universal skills and detected clients are selected by default. Only the selected scope is configured..
-        /// </summary>
-        internal static string InitCommand_EnvironmentSelectionNotice {
-            get {
-                return ResourceManager.GetString("InitCommand_EnvironmentSelectionNotice", resourceCulture);
             }
         }
 
@@ -574,6 +592,24 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Claude Code.
+        /// </summary>
+        internal static string Environment_ClaudeCode {
+            get {
+                return ResourceManager.GetString("Environment_ClaudeCode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to OpenCode.
+        /// </summary>
+        internal static string Environment_OpenCode {
+            get {
+                return ResourceManager.GetString("Environment_OpenCode", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed to resolve {0} from the npm registry..
         /// </summary>
         internal static string PlaywrightCliInstaller_FailedToResolvePackage {
@@ -700,7 +736,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected clients and clients that support universal .agents/skills.
+        ///   Looks up a localized string similar to Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected.
         /// </summary>
         internal static string InitCommand_EnvironmentsOptionDescription {
             get {

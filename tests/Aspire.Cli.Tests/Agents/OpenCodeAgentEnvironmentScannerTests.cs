@@ -27,7 +27,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
         // The scan should succeed (HasServerConfigured catches JsonException)
-        Assert.Equal([AgentEnvironment.OpenCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.OpenCode, context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
@@ -53,7 +53,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentEnvironment.OpenCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.OpenCode, context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
@@ -78,7 +78,7 @@ public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentEnvironment.OpenCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.OpenCode, context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 

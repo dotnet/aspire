@@ -122,14 +122,19 @@
         <target state="needs-review-translation">Gerencie integrações de agente de IA.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Environment_ClaudeCode">
+        <source>Claude Code</source>
+        <target state="new">Claude Code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Environment_Copilot">
         <source>GitHub Copilot</source>
         <target state="new">GitHub Copilot</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_AdditionalAgentSkills">
-        <source>Additional agent (.claude/skills)</source>
-        <target state="new">Additional agent (.claude/skills)</target>
+      <trans-unit id="Environment_OpenCode">
+        <source>OpenCode</source>
+        <target state="new">OpenCode</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureMcpServer">
@@ -152,14 +157,9 @@
         <target state="new">{0}: {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_EnvironmentSelectionNotice">
-        <source>Clients that support universal skills and detected clients are selected by default. Only the selected scope is configured.</source>
-        <target state="new">Clients that support universal skills and detected clients are selected by default. Only the selected scope is configured.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_EnvironmentsOptionDescription">
-        <source>Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected clients and clients that support universal .agents/skills</source>
-        <target state="new">Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected clients and clients that support universal .agents/skills</target>
+        <source>Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected</source>
+        <target state="new">Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_FailedToInstallSkill">
@@ -170,6 +170,11 @@
       <trans-unit id="InitCommand_GlobalScope">
         <source>Global (Install in your home directory; available across all projects)</source>
         <target state="new">Global (Install in your home directory; available across all projects)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_InstallationLocations">
+        <source>Installation locations:</source>
+        <target state="new">Installation locations:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstalledPlaywrightCli">
@@ -207,6 +212,11 @@
         <target state="new">Configure Aspire MCP for {0} at {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_McpLocationHint">
+        <source>MCP: {0}</source>
+        <target state="new">MCP: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_McpOptionDescription">
         <source>Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</source>
         <target state="new">Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</target>
@@ -233,13 +243,28 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_SelectAgentsPrompt">
-        <source>Which agents do you want to install to?</source>
-        <target state="new">Which agents do you want to install to?</target>
+        <source>Which agents do you use?</source>
+        <target state="new">Which agents do you use?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_SelectScopePrompt">
         <source>Installation scope</source>
         <target state="new">Installation scope</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_SharedLocation">
+        <source>{0} (shared: {1})</source>
+        <target state="new">{0} (shared: {1})</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_SharedLocationNotice">
+        <source>Shared files may be discovered by agents that aren't selected.</source>
+        <target state="new">Shared files may be discovered by agents that aren't selected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_SkillsLocationHint">
+        <source>Skills: {0}</source>
+        <target state="new">Skills: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_SkillsOptionDescription">
@@ -265,11 +290,6 @@
       <trans-unit id="InitCommand_TelemetryHooksInstalled">
         <source>Installed Aspire agent telemetry hooks for: {0}. Only Aspire skill, MCP tool, and reference-file usage is recorded. Opt out anytime by setting ASPIRE_CLI_TELEMETRY_OPTOUT=true.</source>
         <target state="new">Installed Aspire agent telemetry hooks for: {0}. Only Aspire skill, MCP tool, and reference-file usage is recorded. Opt out anytime by setting ASPIRE_CLI_TELEMETRY_OPTOUT=true.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_UniversalSkills">
-        <source>Universal (.agents/skills) - selected by default</source>
-        <target state="new">Universal (.agents/skills) - selected by default</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootOptionDescription">

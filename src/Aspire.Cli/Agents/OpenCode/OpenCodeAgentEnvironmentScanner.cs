@@ -31,6 +31,24 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         _logger = logger;
     }
 
+    internal static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
+    {
+        if (GetOverride("OPENCODE_CONFIG") is { } configFile)
+        {
+            return configFile;
+        }
+
+        var configDirectory = GetOverride("OPENCODE_CONFIG_DIR")
+            ?? Path.Combine(GetOverride("XDG_CONFIG_HOME")
+                ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
+        return Path.Combine(configDirectory, OpenCodeConfigFileName);
+
+        string? GetOverride(string name)
+            => environment.GetEnvironmentVariable(name) is { Length: > 0 } value
+                ? Path.GetFullPath(value, executionContext.WorkingDirectory.FullName)
+                : null;
+    }
+
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {

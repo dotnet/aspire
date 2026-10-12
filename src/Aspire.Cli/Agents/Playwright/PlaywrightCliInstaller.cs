@@ -85,13 +85,13 @@ internal sealed class PlaywrightCliInstaller(
     /// This must match the directory that the playwright-cli binary actually writes to.
     /// See: https://github.com/microsoft/playwright-cli/issues/294
     /// </summary>
-    internal static readonly string s_primarySkillBaseDirectory = Path.Combine(".claude", "skills");
+    internal static readonly string s_primarySkillBaseDirectory = AgentClient.ClaudeCode.ProjectSkillsDirectory;
 
     // These are upstream-generated paths to clean up in staging, not installation targets.
     private static readonly string[] s_generatedSkillBaseDirectories =
     [
-        Path.Combine(".agents", "skills"),
-        s_primarySkillBaseDirectory,
+        .. AgentClient.All.Select(static client => client.ProjectSkillsDirectory).Distinct(StringComparer.OrdinalIgnoreCase),
+        // Legacy output from the upstream generator; never offered as installation destinations.
         Path.Combine(".github", "skills"),
         Path.Combine(".opencode", "skill")
     ];
@@ -101,8 +101,8 @@ internal sealed class PlaywrightCliInstaller(
     /// </summary>
     public async Task<(PlaywrightInstallStatus Status, string? Message)> InstallSelectedAsync(IReadOnlySet<string> selectedSkillDirectories, CancellationToken cancellationToken)
     {
-        // playwright-cli generates .claude/skills even when only another client is selected.
-        // Stage those files so it cannot overwrite an unselected project or user skill.
+        // The upstream generator chooses its own output directories. Generate in isolation,
+        // then copy only to destinations belonging to the selected agents and scope.
         var stagingDirectory = Directory.CreateTempSubdirectory("aspire-playwright-skills-");
         try
         {

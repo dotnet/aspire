@@ -25,7 +25,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentEnvironment.VsCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.VsCode, context.DetectedEnvironments);
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("VS Code", applicator.Description);
     }
@@ -43,7 +43,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentEnvironment.VsCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.VsCode, context.DetectedEnvironments);
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("VS Code", applicator.Description);
     }
@@ -75,7 +75,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentEnvironment.VsCode], context.DetectedEnvironments);
+        Assert.Equal(AgentEnvironment.VsCode, context.DetectedEnvironments);
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("VS Code", applicator.Description);
     }

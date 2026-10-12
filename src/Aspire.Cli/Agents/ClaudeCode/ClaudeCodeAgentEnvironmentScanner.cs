@@ -36,6 +36,23 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         _logger = logger;
     }
 
+    internal static string GetConfigDirectory(CliExecutionContext executionContext, IEnvironment environment)
+        => GetConfigDirectoryOverride(executionContext, environment)
+            ?? Path.Combine(executionContext.HomeDirectory.FullName, ClaudeCodeFolderName);
+
+    internal static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
+    {
+        // CLAUDE_CONFIG_DIR relocates the state file into that directory, unlike ~/.claude.json.
+        // https://code.claude.com/docs/en/env-vars
+        var directory = GetConfigDirectoryOverride(executionContext, environment) ?? executionContext.HomeDirectory.FullName;
+        return Path.Combine(directory, ".claude.json");
+    }
+
+    private static string? GetConfigDirectoryOverride(CliExecutionContext executionContext, IEnvironment environment)
+        => environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR") is { Length: > 0 } value
+            ? Path.GetFullPath(value, executionContext.WorkingDirectory.FullName)
+            : null;
+
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.Copilot;
 using Microsoft.Extensions.Logging;
 
@@ -53,12 +54,10 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 
     /// <inheritdoc />
     public async Task<TelemetryHookConfigurationResult> ConfigureAsync(
-        IReadOnlyCollection<AgentEnvironment> detectedEnvironments,
+        AgentEnvironment detectedEnvironments,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(detectedEnvironments);
-
-        var configured = new List<AgentEnvironment>();
+        var configured = AgentEnvironment.None;
         var skipped = new List<TelemetryHookSkip>();
 
         // VS Code and OpenCode hook schemas are not yet verified, so they are intentionally not
@@ -67,16 +66,16 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         // This identifies the configuration target, not the hook event's client-name: the canonical
         // scripts currently report App events as copilot-cli. See https://github.com/microsoft/aspire-skills/issues/71.
         var supported = new List<AgentEnvironment>();
-        if (detectedEnvironments.Contains(AgentEnvironment.CopilotApp))
+        if (detectedEnvironments.HasFlag(AgentEnvironment.CopilotApp))
         {
             supported.Add(AgentEnvironment.CopilotApp);
         }
-        else if (detectedEnvironments.Contains(AgentEnvironment.CopilotCli))
+        else if (detectedEnvironments.HasFlag(AgentEnvironment.CopilotCli))
         {
             supported.Add(AgentEnvironment.CopilotCli);
         }
 
-        if (detectedEnvironments.Contains(AgentEnvironment.ClaudeCode))
+        if (detectedEnvironments.HasFlag(AgentEnvironment.ClaudeCode))
         {
             supported.Add(AgentEnvironment.ClaudeCode);
         }
@@ -97,7 +96,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
                 case AgentEnvironment.CopilotCli:
                     if (await TryConfigureCopilotAsync(cancellationToken))
                     {
-                        configured.Add(environment);
+                        configured |= environment;
                     }
                     else
                     {
@@ -113,7 +112,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
                     }
                     else
                     {
-                        configured.Add(environment);
+                        configured |= environment;
                     }
                     break;
             }
@@ -162,7 +161,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 
     private async Task<TelemetryHookSkipReason?> ConfigureClaudeAsync(CancellationToken cancellationToken)
     {
-        var claudeDirectory = AgentClient.GetClaudeConfigDirectory(_executionContext, _environment);
+        var claudeDirectory = ClaudeCodeAgentEnvironmentScanner.GetConfigDirectory(_executionContext, _environment);
         var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
 
         JsonObject settings;

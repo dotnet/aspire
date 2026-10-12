@@ -700,9 +700,9 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.Contains(interactionService.DisplayedMessages, m => m.Message == "Aspire AppHost created! To complete setup, run one of:");
-        Assert.DoesNotContain(subtleMessages, m => m.Contains("copilot", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains("  claude \"run the aspireify skill\"", subtleMessages);
-        Assert.Contains("  opencode --prompt \"run the aspireify skill\"", subtleMessages);
+        Assert.Equal(
+            ["  claude \"run the aspireify skill\"", "  opencode --prompt \"run the aspireify skill\""],
+            subtleMessages.Where(static message => message.StartsWith("  ", StringComparison.Ordinal)));
         Assert.False(mcpConfigured);
     }
 
@@ -805,7 +805,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var command = serviceProvider.GetRequiredService<RootCommand>();
 
-        var parseResult = command.Parse($"init --non-interactive --agents copilot --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
+        var parseResult = command.Parse($"init --non-interactive --agents \"GitHub Copilot\" --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
