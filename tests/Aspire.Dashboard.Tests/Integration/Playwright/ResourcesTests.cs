@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Dashboard.Resources;
@@ -177,6 +178,84 @@ public class ResourcesTests : PlaywrightTestsBase<ResourcesTests.ResourcesDashbo
             var navigationCountAfterSwitch = await page.EvaluateAsync<int>("() => performance.getEntriesByType('navigation').length");
             Assert.Equal(navigationCount, navigationCountAfterSwitch);
             await Assertions.Expect(page.Locator("#blazor-error-ui")).ToBeHiddenAsync();
+        });
+    }
+
+    [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
+    public async Task HiddenResourceGraphIcon_HasContinuousHoverTargetWithName()
+    {
+        await RunTestAsync(async page =>
+        {
+            await page.GotoAsync("/?view=Graph&showHiddenResources=true");
+
+            var node = page.Locator(".resource-group[resource-name='hidden-resource']");
+            await Assertions.Expect(node).ToBeVisibleAsync();
+            await WaitForPositionToStabilizeAsync(node);
+
+            var nameHitbox = node.Locator(".resource-name-hitbox");
+            var iconHitbox = node.Locator(".resource-hidden-icon-hitbox");
+            var nameBounds = await nameHitbox.BoundingBoxAsync();
+            var iconBounds = await iconHitbox.BoundingBoxAsync();
+            Assert.NotNull(nameBounds);
+            Assert.NotNull(iconBounds);
+            Assert.InRange(Math.Abs(iconBounds.X - (nameBounds.X + nameBounds.Width)), 0, 1);
+            Assert.InRange(Math.Abs(iconBounds.Y - nameBounds.Y), 0, 1);
+            Assert.InRange(Math.Abs(iconBounds.Height - nameBounds.Height), 0, 1);
+            await Assertions.Expect(node.Locator(".resource-hidden-icon > title")).ToHaveTextAsync(Columns.HiddenResourceIconTooltip);
+
+            var entireBoxIsInteractive = await iconHitbox.EvaluateAsync<bool>(
+                """
+                element => {
+                    const bounds = element.getBoundingClientRect();
+                    const points = [
+                        [bounds.left + 1, bounds.top + 1],
+                        [bounds.right - 1, bounds.top + 1],
+                        [bounds.left + 1, bounds.bottom - 1],
+                        [bounds.right - 1, bounds.bottom - 1],
+                        [bounds.left + bounds.width / 2, bounds.top + bounds.height / 2]
+                    ];
+                    return points.every(([x, y]) => document.elementFromPoint(x, y) === element);
+                }
+                """);
+            Assert.True(entireBoxIsInteractive);
+
+            var cursorY = nameBounds.Y + nameBounds.Height / 2;
+            await page.Mouse.MoveAsync(nameBounds.X + nameBounds.Width / 2, cursorY);
+            await Assertions.Expect(node).ToHaveClassAsync(new Regex("resource-group-hover"));
+            await node.EvaluateAsync(
+                """
+                element => {
+                    element.hoverLosses = 0;
+                    element.hoverObserver = new MutationObserver(records => {
+                        for (let i = 0; i < records.length; i++) {
+                            const nextClass = records[i + 1]?.oldValue ?? element.getAttribute('class');
+                            if (!nextClass.split(' ').includes('resource-group-hover')) {
+                                element.hoverLosses++;
+                            }
+                        }
+                    });
+                    element.hoverObserver.observe(element, {
+                        attributes: true,
+                        attributeFilter: ['class'],
+                        attributeOldValue: true
+                    });
+                }
+                """);
+
+            await page.Mouse.MoveAsync(iconBounds.X + iconBounds.Width - 1, cursorY, new MouseMoveOptions { Steps = 20 });
+            await Assertions.Expect(node).ToHaveClassAsync(new Regex("resource-group-hover"));
+            var hoverLosses = await node.EvaluateAsync<int>(
+                """
+                element => {
+                    element.hoverObserver.disconnect();
+                    return element.hoverLosses;
+                }
+                """);
+            Assert.Equal(0, hoverLosses);
+
+            await page.Mouse.ClickAsync(iconBounds.X + 1, iconBounds.Y + 1);
+            await Assertions.Expect(page.Locator(".details-header-title")).ToHaveTextAsync("Container: hidden-resource");
         });
     }
 

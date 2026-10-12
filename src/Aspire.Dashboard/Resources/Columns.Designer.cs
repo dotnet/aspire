@@ -70,7 +70,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to This resource is hidden by default. It&apos;s only shown because &quot;Show hidden resources&quot; is turned on..
+        ///   Looks up a localized string similar to Hidden by default. Visible when &quot;Show hidden resources&quot; is enabled..
         /// </summary>
         public static string HiddenResourceIconTooltip {
             get {

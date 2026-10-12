@@ -820,18 +820,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private string GetRowClass(ResourceViewModel resource)
     {
-        var classes = "resource-row";
-        if (string.Equals(resource.Name, PageViewModel.SelectedResource?.Name, StringComparisons.ResourceName))
-        {
-            classes += " selected-row";
-        }
-        // The resource would be hidden if the "show hidden resources" toggle was off. It's only in the
-        // grid right now because the toggle is on, so call out that it's not a "normal" visible resource.
-        if (resource.IsResourceHidden(showHiddenResources: false))
-        {
-            classes += " resource-row-hidden";
-        }
-        return classes;
+        var classes = string.Equals(resource.Name, PageViewModel.SelectedResource?.Name, StringComparisons.ResourceName)
+            ? "selected-row resource-row"
+            : "resource-row";
+
+        return resource.IsResourceHidden(showHiddenResources: false) ? $"{classes} resource-row-hidden" : classes;
     }
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)

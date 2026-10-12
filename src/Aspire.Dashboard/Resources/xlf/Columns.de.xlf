@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="de" original="../Columns.resx">
     <body>
       <trans-unit id="HiddenResourceIconTooltip">
-        <source>This resource is hidden by default. It's only shown because "Show hidden resources" is turned on.</source>
-        <target state="new">This resource is hidden by default. It's only shown because "Show hidden resources" is turned on.</target>
+        <source>Hidden by default. Visible when "Show hidden resources" is enabled.</source>
+        <target state="new">Hidden by default. Visible when "Show hidden resources" is enabled.</target>
         <note />
       </trans-unit>
       <trans-unit id="PersistentContainerIconTooltip">
