@@ -21,6 +21,59 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
 {
     [Fact]
+    public async Task ExistingCluster_DoesNotCreateDefaultWorkloadPool()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = AzureKubernetesTestBuilder.Create(output, workspace);
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .AsExisting(builder.AddParameter("cluster-name"), null);
+        var container = builder.AddContainer("myapi", "myimage");
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Single(aks.Resource.NodePools);
+        Assert.Empty(app.Services.GetRequiredService<DistributedApplicationModel>().Resources.OfType<AksNodePoolResource>());
+        Assert.False(container.Resource.HasAnnotationOfType<KubernetesNodePoolAnnotation>());
+    }
+
+    [Fact]
+    public async Task ExistingCluster_PreservesExplicitAffinity()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = AzureKubernetesTestBuilder.Create(output, workspace);
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .AsExisting(builder.AddParameter("cluster-name"), null);
+        var pool = aks.AddNodePool("custom");
+        var container = builder.AddContainer("myapi", "myimage").WithNodePool(pool);
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Equal(2, aks.Resource.NodePools.Count);
+        Assert.True(container.Resource.TryGetLastAnnotation<KubernetesNodePoolAnnotation>(out var affinity));
+        Assert.Same(pool.Resource, affinity.NodePool);
+    }
+
+    [Fact]
+    public async Task ExistingCluster_PreservesWorkloadIdentity()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = AzureKubernetesTestBuilder.Create(output, workspace);
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .AsExisting(builder.AddParameter("cluster-name"), null);
+        var identity = builder.AddAzureUserAssignedIdentity("identity");
+        builder.AddContainer("myapi", "myimage").WithAzureUserAssignedIdentity(identity);
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        Assert.Same(identity.Resource, Assert.Single(aks.Resource.WorkloadIdentities).Value);
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
     public async Task NoUserPool_CreatesDefaultWorkloadPool()
     {
         using var workspace = TemporaryWorkspace.Create(output);

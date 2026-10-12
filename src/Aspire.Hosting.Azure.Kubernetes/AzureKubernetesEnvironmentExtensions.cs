@@ -505,10 +505,10 @@ public static class AzureKubernetesEnvironmentExtensions
         return builder;
     }
 
-    private static void ConfigureAksInfrastructure(AzureResourceInfrastructure infrastructure)
+    private static ContainerServiceManagedCluster CreateAksCluster(
+        AzureResourceInfrastructure infrastructure,
+        AzureKubernetesEnvironmentResource aksResource)
     {
-        var aksResource = (AzureKubernetesEnvironmentResource)infrastructure.AspireResource;
-
         // Create the AKS managed cluster
         var aks = new ContainerServiceManagedCluster(aksResource.GetBicepIdentifier())
         {
@@ -662,6 +662,16 @@ public static class AzureKubernetesEnvironmentExtensions
                 gatewayApi: aksResource.GatewayApiEnabled,
                 applicationLoadBalancer: aksResource.ApplicationLoadBalancerEnabled);
         }
+
+        return aks;
+    }
+
+    private static void ConfigureAksInfrastructure(AzureResourceInfrastructure infrastructure)
+    {
+        var aksResource = (AzureKubernetesEnvironmentResource)infrastructure.AspireResource;
+        var aks = aksResource.IsExisting()
+            ? (ContainerServiceManagedCluster)aksResource.AddAsExistingResource(infrastructure)
+            : CreateAksCluster(infrastructure, aksResource);
 
         // ACR pull role assignment for kubelet identity
         if (aksResource.DefaultContainerRegistry is not null || aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))

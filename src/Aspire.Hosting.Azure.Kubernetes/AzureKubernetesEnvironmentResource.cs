@@ -7,13 +7,15 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Pipelines;
+using Azure.Provisioning.ContainerService;
+using Azure.Provisioning.Primitives;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Kubernetes;
 
 /// <summary>
-/// Represents an Azure Kubernetes Service (AKS) environment resource that provisions
+/// Represents an Azure Kubernetes Service (AKS) environment resource that provisions or references
 /// an AKS cluster and serves as a compute environment for Kubernetes workloads.
 /// </summary>
 public partial class AzureKubernetesEnvironmentResource :
@@ -330,4 +332,27 @@ public partial class AzureKubernetesEnvironmentResource :
     /// <c>2025-09-02-preview</c>).
     /// </summary>
     internal bool RequiresPreviewIngressApi => GatewayApiEnabled || ApplicationLoadBalancerEnabled;
+
+    /// <inheritdoc/>
+    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    {
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var existingCluster = infra.GetProvisionableResources()
+            .OfType<ContainerServiceManagedCluster>()
+            .SingleOrDefault(cluster => cluster.BicepIdentifier == bicepIdentifier);
+
+        if (existingCluster is not null)
+        {
+            return existingCluster;
+        }
+
+        var cluster = ContainerServiceManagedCluster.FromExisting(bicepIdentifier);
+        if (!TryApplyExistingResourceAnnotation(this, infra, cluster))
+        {
+            cluster.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
+        infra.Add(cluster);
+        return cluster;
+    }
 }

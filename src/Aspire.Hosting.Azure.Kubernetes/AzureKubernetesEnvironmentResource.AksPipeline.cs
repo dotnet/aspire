@@ -50,10 +50,9 @@ public partial class AzureKubernetesEnvironmentResource
 
         logger.LogInformation("Processing AKS environment '{Name}'", Name);
 
-        // Ensure a default user node pool exists for workload scheduling.
-        // The system pool should only run system pods; application workloads
-        // need a user pool.
-        var defaultUserPool = EnsureDefaultUserNodePool(this, appModel);
+        // New clusters get a user pool for application workloads. Existing clusters own their
+        // node pools; do not assume a pool named "workload" exists.
+        var defaultUserPool = this.IsExisting() ? null : EnsureDefaultUserNodePool(this, appModel);
 
         foreach (var r in appModel.GetComputeResources())
         {
