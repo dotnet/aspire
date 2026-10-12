@@ -797,7 +797,10 @@ Provider and DCP processes use .NET 11's typed exit-status waits. On Linux
 and Windows, `KillOnParentExit` adds kernel-enforced ownership; macOS retains
 explicit disposal and DCP's existing monitor contract. DCP output uses the
 combined asynchronous line reader, and shutdown awaits its drain with a bounded
-deadline before disposing process and connection state.
+deadline before disposing process and connection state. Provider exit and output
+draining share one shutdown budget; expired drains cancel and close their readers
+even if a descendant retained the pipes. Normal exits racing forced termination
+do not bypass cleanup.
 
 The declaration model stores resource kinds as validated `ResourceTypeId`
 values. These are integration identities such as `example/Redis`, not CLR

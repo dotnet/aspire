@@ -39,18 +39,20 @@ public sealed class NativeProviderHost(IConfiguration configuration, TimeProvide
 public sealed class NativeProviderActivation : IAsyncDisposable
 {
     private readonly Process _process;
-    private readonly Task _stdout;
-    private readonly Task _stderr;
+    private readonly Task _output;
+    private readonly CancellationTokenSource _outputCancellation = new();
     private readonly TimeProvider _clock;
 
-    private NativeProviderActivation(Process process, TimeProvider clock)
+    /// <summary>Owns a started provider and its redirected output.</summary>
+    internal NativeProviderActivation(Process process, TimeProvider clock)
     {
         _process = process;
         _clock = clock;
         // Drain both streams concurrently. Only classifications are logged by the
         // framework; provider console output may include application secrets.
-        _stdout = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
-        _stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
+        _output = Task.WhenAll(
+            process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, _outputCancellation.Token),
+            process.StandardError.BaseStream.CopyToAsync(Stream.Null, _outputCancellation.Token));
     }
 
     /// <summary>Launches one explicitly selected provider and awaits server-verified registration.</summary>
@@ -99,12 +101,38 @@ public sealed class NativeProviderActivation : IAsyncDisposable
     /// <summary>Stops only the provider process owned by this activation and drains its output.</summary>
     public async ValueTask DisposeAsync()
     {
-        if (!_process.HasExited)
+        using var processLifetime = _process;
+        using var outputLifetime = _outputCancellation;
+        var completion = _output;
+        try
         {
-            _process.Kill(entireProcessTree: true);
+            if (!_process.HasExited)
+            {
+                try
+                {
+                    _process.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException) when (_process.HasExited)
+                {
+                    // Exiting between the check and Kill is normal shutdown.
+                }
+            }
+            // A descendant can retain the pipes after the root exits. Both exit
+            // and EOF must fit within the same shutdown budget.
+            completion = Task.WhenAll(_process.WaitForExitStatusAsync(), _output);
+            await completion.WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
         }
-        await _process.WaitForExitStatusAsync().WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
-        await Task.WhenAll(_stdout, _stderr).ConfigureAwait(false);
-        _process.Dispose();
+        finally
+        {
+            // Cancellation and reader disposal release pending reads even when
+            // process-tree termination cannot reach a pipe-owning descendant.
+            _outputCancellation.Cancel();
+            _process.StandardOutput.Dispose();
+            _process.StandardError.Dispose();
+            // A timed-out drain can fault after its caller has already observed
+            // the shutdown failure. Observe that late fault without awaiting EOF.
+            _ = completion.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
     }
 }

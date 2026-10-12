@@ -227,11 +227,18 @@ internal sealed class DcpApiClient : IAsyncDisposable
         {
             try
             {
-                if (_process is { HasExited: false })
+                if (_process is { HasExited: false } process)
                 {
-                    _process.Kill(entireProcessTree: true);
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (InvalidOperationException) when (process.HasExited)
+                    {
+                        // A normal exit racing Kill must not skip the drain.
+                    }
                     using var forcedExit = new CancellationTokenSource(_options.CleanupTimeout, _options.TimeProvider);
-                    await _process.WaitForExitStatusAsync().WaitAsync(forcedExit.Token).ConfigureAwait(false);
+                    await process.WaitForExitStatusAsync().WaitAsync(forcedExit.Token).ConfigureAwait(false);
                 }
                 if (_output is not null)
                 {
