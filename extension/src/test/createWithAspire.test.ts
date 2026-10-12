@@ -35,6 +35,7 @@ suite('createWithAspireCommand', () => {
     let activeTextEditorStub: sinon.SinonStub;
     let discoverStub: sinon.SinonStub;
     let discovery: AppHostDiscoveryService;
+    let terminalProvider: sinon.SinonStubbedInstance<AspireTerminalProvider>;
 
     setup(() => {
         sandbox = sinon.createSandbox();
@@ -49,7 +50,8 @@ suite('createWithAspireCommand', () => {
             vscode.workspace.workspaceFolders?.find(folder =>
                 uri.toString() === folder.uri.toString() || uri.toString().startsWith(`${folder.uri.toString()}/`)));
         sandbox.stub(vscode.workspace, 'findFiles').resolves([]);
-        discovery = new AppHostDiscoveryService(sandbox.createStubInstance(AspireTerminalProvider));
+        terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+        discovery = new AppHostDiscoveryService(terminalProvider);
         discoverStub = sandbox.stub(discovery, 'discover').resolves([]);
     });
 
@@ -80,6 +82,25 @@ suite('createWithAspireCommand', () => {
         const items = showQuickPickStub.firstCall.args[0] as { command: string }[];
         assert.deepStrictEqual(items.map(item => item.command), ['aspire-vscode.new', 'aspire-vscode.init']);
         assert.ok(discoverStub.calledOnceWithExactly(folder));
+        assert.ok(executeCommandStub.calledOnceWithExactly('aspire-vscode.init', workspaceFolderCliPathTarget(folder), 'tree'));
+    });
+
+    test('offers init when the CLI is unavailable and no AppHost exists', async () => {
+        const folder = createWorkspaceFolder('without-apphost', path.resolve('repo', 'without-apphost'));
+        workspaceFoldersStub.value([folder]);
+        discoverStub.restore();
+        terminalProvider.getAspireCliExecutablePath.resolves(path.join(folder.uri.fsPath, 'missing-aspire'));
+        terminalProvider.resolveAspireCliPath.resolves({
+            cliPath: 'aspire',
+            available: false,
+            source: 'not-found',
+        });
+
+        await createWithAspireCommand(discovery);
+
+        const items = showQuickPickStub.firstCall.args[0] as { command: string }[];
+        assert.deepStrictEqual(items.map(item => item.command), ['aspire-vscode.new', 'aspire-vscode.init']);
+        assert.strictEqual(showErrorMessageStub.called, false);
         assert.ok(executeCommandStub.calledOnceWithExactly('aspire-vscode.init', workspaceFolderCliPathTarget(folder), 'tree'));
     });
 

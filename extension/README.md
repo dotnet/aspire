@@ -16,7 +16,7 @@ An **AppHost** defines your app in code: services, containers, databases, front 
 2. Choose your AppHost and press **F5**. Aspire starts every resource in the right order and connects supported debuggers.
 3. Use the **Aspire** view and **Aspire Dashboard** to follow resources, endpoints, logs, traces, and metrics.
 
-Use **Create with Aspire...** in the Aspire view to create a new app or add Aspire to an existing workspace folder. **Add Aspire to this workspace** only targets folders without an AppHost and is hidden when every folder already has one, even if no default AppHost is selected or an existing AppHost cannot build.
+Use **Create with Aspire...** in the Aspire view to create a new app or add Aspire to an existing workspace folder. **Add Aspire to this workspace** only targets folders without an AppHost and is hidden when every folder already has one, even if no default AppHost is selected or an existing AppHost cannot build. Folders where AppHost presence cannot be determined are not offered as initialization targets. If the CLI is not installed, adding Aspire to a folder without an AppHost still opens the CLI installation guidance.
 
 ## A better inner dev loop
 

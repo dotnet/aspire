@@ -2,21 +2,26 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { aspireConfigFileName, getAppHostPathFromConfig, readJsonFile } from './cliTypes';
 import { extensionLogOutputChannel } from './logging';
-import { projectContentsReferencesRunnableAspireAppHost } from './appHostLanguage';
-import { appHostDiscoveryFindFilesMaxResults, getAppHostDiscoveryExcludeGlob } from './workspaceFileSearch';
+import { classifyAppHostPath, projectContentsReferencesRunnableAspireAppHost } from './appHostLanguage';
+import { appHostDiscoveryFindFilesMaxResults, appHostSourceFilePatterns, getAppHostDiscoveryExcludeGlob } from './workspaceFileSearch';
 import type { CandidateAppHostDisplayInfo } from './appHostCandidateTypes';
 
-export async function findConfiguredAppHostPaths(workspaceFolder: vscode.WorkspaceFolder, cancellationToken?: vscode.CancellationToken): Promise<string[]> {
+export async function findConfiguredAppHostPaths(workspaceFolder: vscode.WorkspaceFolder, cancellationToken?: vscode.CancellationToken, options?: { readonly throwOnError: boolean }): Promise<string[]> {
     let newConfigFiles: vscode.Uri[];
     let legacySettingsFiles: vscode.Uri[];
     try {
         const excludePattern = getAppHostDiscoveryExcludeGlob();
+        // A truncated search cannot establish that the workspace has no configured AppHost.
+        const maxResults = options?.throwOnError ? undefined : appHostDiscoveryFindFilesMaxResults;
         [newConfigFiles, legacySettingsFiles] = await Promise.all([
-            vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, `**/${aspireConfigFileName}`), excludePattern, appHostDiscoveryFindFilesMaxResults, cancellationToken),
-            vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, '**/.aspire/settings.json'), excludePattern, appHostDiscoveryFindFilesMaxResults, cancellationToken),
+            vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, `**/${aspireConfigFileName}`), excludePattern, maxResults, cancellationToken),
+            vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, '**/.aspire/settings.json'), excludePattern, maxResults, cancellationToken),
         ]);
     }
     catch (error) {
+        if (options?.throwOnError) {
+            throw error;
+        }
         extensionLogOutputChannel.warn(`Failed to find AppHost configuration files: ${formatErrorMessage(error)}`);
         return [];
     }
@@ -36,11 +41,27 @@ export async function findConfiguredAppHostPaths(workspaceFolder: vscode.Workspa
                 configuredPaths.push(path.isAbsolute(appHostPath) ? appHostPath : path.join(path.dirname(uri.fsPath), appHostPath));
             }
         }
-        catch {
+        catch (error) {
+            if (options?.throwOnError) {
+                throw error;
+            }
         }
     }
 
     return configuredPaths;
+}
+
+export async function discoverSourceAppHostsFromWorkspaceFiles(workspaceFolder: vscode.WorkspaceFolder, cancellationToken: vscode.CancellationToken): Promise<CandidateAppHostDisplayInfo[]> {
+    const uris = await vscode.workspace.findFiles(
+        new vscode.RelativePattern(workspaceFolder, `{${appHostSourceFilePatterns.join(',')}}`),
+        getAppHostDiscoveryExcludeGlob(),
+        undefined,
+        cancellationToken);
+    return uris.map(uri => ({
+        path: uri.fsPath,
+        language: classifyAppHostPath(uri.fsPath),
+        status: 'possibly-unbuildable',
+    }));
 }
 
 export async function discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder: vscode.WorkspaceFolder): Promise<CandidateAppHostDisplayInfo[]> {
@@ -53,6 +74,7 @@ export async function discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder:
         vscode.workspace.findFiles(new vscode.RelativePattern(workspaceFolder, '**/*.vbproj'), getAppHostDiscoveryExcludeGlob()),
     ])).flat();
     const candidates: CandidateAppHostDisplayInfo[] = [];
+    let unreadableProject: Error | undefined;
     for (const uri of projectUris.sort((left, right) => left.fsPath.localeCompare(right.fsPath))) {
         let projectContents: string;
         try {
@@ -60,6 +82,7 @@ export async function discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder:
         }
         catch (error) {
             extensionLogOutputChannel.warn(`Failed to read possible AppHost project ${uri.fsPath}: ${formatErrorMessage(error)}`);
+            unreadableProject ??= new Error(`Failed to read possible AppHost project ${uri.fsPath}: ${formatErrorMessage(error)}`);
             continue;
         }
 
@@ -70,6 +93,10 @@ export async function discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder:
                 status: 'buildable',
             });
         }
+    }
+
+    if (candidates.length === 0 && unreadableProject) {
+        throw unreadableProject;
     }
 
     return candidates;

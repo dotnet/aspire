@@ -12,6 +12,7 @@ import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import * as cliPathModule from '../utils/cliPath';
 import { ConfigInfoProvider } from '../utils/configInfoProvider';
 import { AppHostDiscoveryService } from '../utils/appHostDiscovery';
+import { cliNotAvailable, dismissLabel, openCliInstallInstructions } from '../loc/strings';
 import { windowCliPathTarget, workspaceFolderCliPathTarget } from '../utils/cliPathVariables';
 import { CommandInvocationEvent, onDidInvokeCommand } from '../utils/telemetry';
 import { createWorkspaceFolder, removeDirectorySafely } from './testHelpers';
@@ -186,6 +187,45 @@ suite('registerCliCommands', () => {
         assert.deepStrictEqual(events.map(event => ({ command: event.command, outcome: event.outcome })), [
             { command: 'aspire-vscode.createWithAspire', outcome: 'canceled' },
         ]);
+    });
+
+    test('create with Aspire retains init installation guidance without a CLI or AppHost', async () => {
+        const folder = createWorkspaceFolder('without-apphost', '/repo/without-apphost');
+        const target = workspaceFolderCliPathTarget(folder);
+        workspaceFoldersStub.value([folder]);
+        sandbox.stub(vscode.workspace, 'findFiles').resolves([]);
+        const unavailableTerminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+        unavailableTerminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+        const realDiscovery = new AppHostDiscoveryService(unavailableTerminalProvider);
+        appHostDiscoveryService.discover.callsFake(workspaceFolder => realDiscovery.discover(workspaceFolder));
+        sandbox.stub(vscode.window, 'showQuickPick').callsFake(
+            async items => (await items).find(item => 'command' in item && item.command === 'aspire-vscode.init'));
+        sandbox.stub(vscode.commands, 'executeCommand').callsFake(
+            async (command, ...args) => callbacks.get(command)?.(...args));
+        resolveCliPathStub.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+        const showErrorMessageStub: sinon.SinonStub = sandbox.stub(vscode.window, 'showErrorMessage');
+        showErrorMessageStub.resolves(openCliInstallInstructions);
+        const openExternalStub = sandbox.stub(vscode.env, 'openExternal').resolves(true);
+        const events: CommandInvocationEvent[] = [];
+        const subscription = onDidInvokeCommand(event => events.push(event));
+
+        try {
+            await callbacks.get('aspire-vscode.createWithAspire')!();
+
+            assert.ok(showErrorMessageStub.calledOnceWithExactly(cliNotAvailable, openCliInstallInstructions, dismissLabel));
+            assert.ok(openExternalStub.calledOnce);
+            assert.strictEqual(openExternalStub.firstCall.args[0].toString(), 'https://aspire.dev/get-started/install-cli/');
+            assert.ok(resolveCliPathStub.calledOnceWithExactly(target));
+            assert.strictEqual(sendCommandStub.called, false);
+            assert.deepStrictEqual(events.map(event => ({ command: event.command, source: event.source, outcome: event.outcome })), [
+                { command: 'aspire-vscode.init', source: 'tree', outcome: 'canceled' },
+                { command: 'aspire-vscode.createWithAspire', source: 'tree', outcome: 'canceled' },
+            ]);
+        }
+        finally {
+            subscription.dispose();
+            realDiscovery.dispose();
+        }
     });
 
     test('new prompts once in a multi-root window and reuses the selected target', async () => {

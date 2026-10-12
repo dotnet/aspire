@@ -8,7 +8,7 @@ import {
     errorMessage,
 } from '../loc/strings';
 import { type HandledCommandOutcome, isCommandCancellation } from '../utils/telemetry';
-import type { AppHostDiscoveryService } from '../utils/appHostDiscovery';
+import { AppHostDiscoveryCliUnavailableError, type AppHostDiscoveryService } from '../utils/appHostDiscovery';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { selectCommandTarget } from '../utils/workspace';
 
@@ -35,6 +35,10 @@ export async function createWithAspireCommand(appHostDiscoveryService: AppHostDi
             if (isCommandCancellation(error)) {
                 throw error;
             }
+            if (error instanceof AppHostDiscoveryCliUnavailableError) {
+                eligibleFolders.push(folders[index]);
+                continue;
+            }
 
             // Failed discovery is not evidence that a folder has no AppHost.
             extensionLogOutputChannel.warn(`Failed to discover AppHost candidates for workspace ${folders[index].uri.fsPath}: ${error}`);
@@ -43,7 +47,8 @@ export async function createWithAspireCommand(appHostDiscoveryService: AppHostDi
             eligibleFolders.push(folders[index]);
         }
     }
-    const failedDiscovery = discoveryResults.find(result => result.status === 'rejected');
+    const failedDiscovery = discoveryResults.find(result =>
+        result.status === 'rejected' && !(result.reason instanceof AppHostDiscoveryCliUnavailableError));
     if (failedDiscovery?.status === 'rejected') {
         void vscode.window.showErrorMessage(errorMessage(failedDiscovery.reason));
     }
