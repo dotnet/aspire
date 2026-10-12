@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-processguestlauncher-launchasync-nooptions-oncancellation-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: ProcessGuestLauncherTests.LaunchAsync_NoOptions_OnCancellation_ForceKillsProcessTreeAndReturns times out on macOS",
+  "test_name": "Aspire.Cli.Tests.Projects.ProcessGuestLauncherTests.LaunchAsync_NoOptions_OnCancellation_ForceKillsProcessTreeAndReturns",
+  "error_pattern": "System.TimeoutException : The operation has timed out.\n   at Aspire.Cli.Tests.Projects.ProcessGuestLauncherTests.LaunchAsync_NoOptions_OnCancellation_ForceKillsProcessTreeAndReturns() in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Projects/ProcessGuestLauncherTests.cs:line 79",
+  "occurrences": [
+    {
+      "run_id": 38196953544,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38196953544",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T03:59:22Z"
+    }
+  ]
+}
