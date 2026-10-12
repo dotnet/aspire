@@ -277,7 +277,7 @@ public static partial class JavaScriptHostingExtensions
                                 wsBuildCtx.Workspace.GetBuildDependenciesCommand(wsBuildCtx.WorkspaceProjectName, buildCommand.ScriptName) is { } depBuildArgs)
                             {
                                 builderStage.EmptyLine()
-                                    .Run(string.Join(' ', depBuildArgs));
+                                    .Run(JoinDockerShellCommand(depBuildArgs));
                             }
 
                             builderStage.EmptyLine()
@@ -651,7 +651,7 @@ public static partial class JavaScriptHostingExtensions
                                 wsBuildCtx.Workspace.GetBuildDependenciesCommand(wsBuildCtx.WorkspaceProjectName, buildCommand.ScriptName) is { } depBuildArgs)
                             {
                                 builderStage.EmptyLine()
-                                    .Run(string.Join(' ', depBuildArgs));
+                                    .Run(JoinDockerShellCommand(depBuildArgs));
                             }
 
                             builderStage.EmptyLine()
@@ -1875,7 +1875,7 @@ public static partial class JavaScriptHostingExtensions
                             if (c.Resource.TryGetLastAnnotation<JavaScriptWorkspaceContextAnnotation>(out var wsBuildCtx) &&
                                 wsBuildCtx.Workspace.GetBuildDependenciesCommand(wsBuildCtx.WorkspaceProjectName, buildCommand.ScriptName) is { } depBuildArgs)
                             {
-                                dockerBuilder.Run(string.Join(' ', depBuildArgs));
+                                dockerBuilder.Run(JoinDockerShellCommand(depBuildArgs));
                             }
 
                             dockerBuilder.Run(BuildPackageScriptCommand(packageManager, buildCommand, c.Resource));
