@@ -458,8 +458,10 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             GetDirectDependencies(diagnosticLines, "destroy-azure-azure-environment"));
     }
 
-    [Fact]
-    public async Task DestroyPipelineUsesPersistedAksOutputAndScopeWithoutProvisioning()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("app-resource-group")]
+    public async Task DestroyPipelineUsesPersistedClusterIdentityInsteadOfModuleScope(string? moduleResourceGroup)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var stateManager = new InMemoryDeploymentStateManager();
@@ -485,8 +487,8 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             }.ToJsonString(),
             ["Scope"] = new JsonObject
             {
-                ["resourceGroup"] = "cluster-resource-group",
-                ["subscription"] = "00000000-5555-6666-7777-888888888888"
+                ["resourceGroup"] = moduleResourceGroup,
+                ["subscription"] = "00000000-1111-2222-3333-444444444444"
             }.ToJsonString()
         });
         stateManager.SetSection("Helm:aks", new JsonObject

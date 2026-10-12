@@ -394,51 +394,14 @@ public partial class AzureKubernetesEnvironmentResource
                 $"The Azure deployment state for AKS environment '{Name}' does not contain the deployed cluster identity.");
         }
 
-        // Scope is persisted as a JSON string using the same shape produced by
-        // BicepUtilities.SetScopeAsync:
-        //   { "resourceGroup": "shared-rg", "subscription": "00000000-..." }
-        // A missing property means the resource did not pin that scope value, so only that value
-        // falls back to global Azure deployment state. Older state without Scope uses the persisted
-        // resource ID so a changed AppHost scope cannot redirect cleanup to another cluster or wait
-        // on provisioning that is not part of the destroy graph.
-        string subscriptionId;
-        string? resourceGroupName;
-        if (deploymentStateSection.Data["Scope"] is not null)
-        {
-            string? scopedSubscription;
-            string? scopedResourceGroup;
-            try
-            {
-                var scopeJson = deploymentStateSection.Data["Scope"]!.GetValue<string>();
-                var scope = JsonNode.Parse(scopeJson)?.AsObject()
-                    ?? throw new InvalidOperationException("The persisted scope is not a JSON object.");
-                scopedSubscription = scope["subscription"]?.GetValue<string>();
-                scopedResourceGroup = scope["resourceGroup"]?.GetValue<string>();
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                throw new InvalidOperationException(
-                    $"The Azure deployment state for AKS environment '{Name}' contains an invalid scope.",
-                    ex);
-            }
-
-            (subscriptionId, resourceGroupName) = await ResolveDeploymentScopeAsync(
-                scopedSubscription,
-                scopedResourceGroup,
-                context.Services,
-                context.CancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            subscriptionId = clusterResourceId.SubscriptionId!;
-            resourceGroupName = clusterResourceId.ResourceGroupName!;
-        }
-
+        // The module's saved scope describes supporting infrastructure, which can be in a
+        // different resource group than an existing cluster. The persisted cluster ID is
+        // authoritative and cannot be redirected by a changed AppHost or deployment scope.
         await GetAksCredentialsAsync(
             context,
             clusterResourceId.Name,
-            resourceGroupName,
-            subscriptionId,
+            clusterResourceId.ResourceGroupName,
+            clusterResourceId.SubscriptionId,
             verifyClusterExists: true).ConfigureAwait(false);
     }
 
