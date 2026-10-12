@@ -14,6 +14,7 @@ public class DashboardTelemetryServiceTests
     [Theory]
     [InlineData(TelemetryPropertyKeys.DashboardVersion, "aspire.dashboard.version")]
     [InlineData(TelemetryPropertyKeys.DashboardBuildId, "aspire.dashboard.build_id")]
+    [InlineData(TelemetryPropertyKeys.DashboardIsAot, "aspire.dashboard.is_aot")]
     [InlineData(TelemetryPropertyKeys.StartupSuccess, "aspire.dashboard.startup.success")]
     [InlineData(TelemetryPropertyKeys.StartupLaunchContext, "aspire.dashboard.startup.launch_context")]
     [InlineData(TelemetryPropertyKeys.StartupPersistenceMode, "aspire.dashboard.startup.persistence_mode")]

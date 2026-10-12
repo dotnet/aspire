@@ -10,6 +10,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
 using Aspire.Shared;
@@ -1210,6 +1211,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
+        Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
         Assert.Equal(validOptions, attributes[TelemetryPropertyKeys.StartupSuccess]);
         if (!validOptions)
         {

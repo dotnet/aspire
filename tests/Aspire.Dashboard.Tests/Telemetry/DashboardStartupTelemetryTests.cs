@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Utils;
 using Aspire.Shared;
 using Xunit;
 
@@ -43,6 +44,7 @@ public class DashboardStartupTelemetryTests
         Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
         Assert.Equal(TelemetryEventKeys.Startup, log.Message);
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
+        Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
         Assert.Equal(success, attributes[TelemetryPropertyKeys.StartupSuccess]);
         Assert.Equal(KnownDashboardLaunchContexts.AppHost, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);

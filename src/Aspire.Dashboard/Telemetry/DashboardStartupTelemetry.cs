@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Utils;
 using Aspire.Shared;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -42,6 +43,7 @@ internal sealed class DashboardStartupTelemetry
 
         Dictionary<string, AspireTelemetryProperty> properties = new()
         {
+            [TelemetryPropertyKeys.DashboardIsAot] = new(VersionHelpers.IsNativeAot),
             [TelemetryPropertyKeys.StartupSuccess] = new(success),
             [TelemetryPropertyKeys.StartupLaunchContext] = new(_launchContext),
             [TelemetryPropertyKeys.StartupPersistenceMode] = new(_persistenceMode),

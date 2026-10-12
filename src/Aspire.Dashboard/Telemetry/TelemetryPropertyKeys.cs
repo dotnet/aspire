@@ -14,6 +14,7 @@ public static class TelemetryPropertyKeys
     public const string DashboardBuildId = AspireDashboardPropertyPrefix + "build_id";
 
     // Startup properties
+    public const string DashboardIsAot = AspireDashboardPropertyPrefix + "is_aot";
     public const string StartupSuccess = AspireDashboardPropertyPrefix + "startup.success";
     public const string StartupLaunchContext = AspireDashboardPropertyPrefix + "startup.launch_context";
     public const string StartupPersistenceMode = AspireDashboardPropertyPrefix + "startup.persistence_mode";
