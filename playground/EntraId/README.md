@@ -11,8 +11,10 @@ Neither app exchanges an authorization code or requires a client secret.
 Neither app calls the other or a downstream API.
 The two front ends have separate local sessions, although Entra ID can reuse your browser's single-sign-on session.
 
-The integration doesn't create app registrations yet, so you create one registration in your own tenant and give the AppHost
-its IDs. You need a tenant where you can create app registrations, such as the default directory of an Azure subscription.
+This playground deliberately references an existing registration, so it doesn't need Azure provisioning configuration or
+Graph access at runtime. The integration can also create registrations with Bicep; see the
+[hosting integration README](../../src/Aspire.Hosting.Azure.EntraId/README.md#create-registrations).
+For this playground, create one registration in your own tenant and give the AppHost its IDs.
 
 ## Register the shared web application
 

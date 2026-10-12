@@ -32,5 +32,25 @@ public sealed class AzureResourceInfrastructure : Infrastructure
     /// </summary>
     public AzureProvisioningResource AspireResource { get; }
 
+    /// <summary>
+    /// Gets the Bicep extension declarations for this infrastructure, keyed by namespace alias.
+    /// </summary>
+    /// <remarks>
+    /// Each value is an extension reference, such as
+    /// <c>br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0</c>.
+    /// Inline references keep generated modules independent of a <c>bicepconfig.json</c> file.
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// builder.AddAzureInfrastructure("graph", infrastructure =>
+    /// {
+    ///     infrastructure.BicepExtensions["microsoftGraphV1"] =
+    ///         "br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0";
+    /// });
+    /// </code>
+    /// </example>
+    [AspireExportIgnore(Reason = "Bicep extension declarations are configured through C# infrastructure callbacks.")]
+    public Dictionary<string, string> BicepExtensions { get; } = new(StringComparer.Ordinal);
+
     internal IEnumerable<ProvisioningParameter> GetParameters() => GetProvisionableResources().OfType<ProvisioningParameter>();
 }

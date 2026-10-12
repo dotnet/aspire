@@ -206,7 +206,7 @@
     <!-- playground apps dependencies for AzureFunctionsWithDts -->
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.19.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask.AzureManaged" Version="1.10.0" />
-    <!-- playground apps dependencies for EntraId -->
+    <!-- Entra ID playground and configuration contract tests -->
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.16.0" />
     <!-- playground apps dependencies for javascript -->
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->

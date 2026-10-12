@@ -243,14 +243,15 @@ public class EntraIdResourceBuilderTests
     }
 
     [Fact]
-    public void AddEntraIdApplication_IsExcludedFromManifest()
+    public void AsExistingApplication_IsExcludedFromManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var entra = appBuilder.AddEntraIdApplication("entra-api");
+        var entra = appBuilder.AddEntraIdApplication("entra-api")
+            .AsExistingApplication(tenantId: TenantId, clientId: ClientId);
 
         Assert.True(entra.Resource.TryGetAnnotationsOfType<ManifestPublishingCallbackAnnotation>(out var annotations));
-        Assert.Equal(ManifestPublishingCallbackAnnotation.Ignore, Assert.Single(annotations));
+        Assert.Equal(ManifestPublishingCallbackAnnotation.Ignore, annotations.Last());
     }
 
     [Fact]
@@ -346,7 +347,7 @@ public class EntraIdResourceBuilderTests
 
         appBuilder.AddEntraIdApplication("entra-web")
             .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
-            .WithFicMsi("mi-client-id");
+            .WithFicMsi(ClientId);
 
         using var app = appBuilder.Build();
 
@@ -356,27 +357,47 @@ public class EntraIdResourceBuilderTests
         Assert.Single(resource.ClientCredentials);
         var cred = Assert.IsType<EntraIdFederatedIdentityCredential>(resource.ClientCredentials[0]);
         Assert.Equal("SignedAssertionFromManagedIdentity", cred.SourceType);
-        Assert.Equal("mi-client-id", cred.ManagedIdentityClientId);
+        Assert.Equal(ClientId, cred.ManagedIdentityClientId);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("mi-client-id")]
+    [InlineData("/subscriptions/sub/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/web")]
+    [InlineData("00001111-aaaa-2222-bbbb-3333cccc4444 ")]
+    public void WithFicMsi_RejectsInvalidManagedIdentityClientId(string clientId)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        var exception = Assert.Throws<ArgumentException>(() => entra.WithFicMsi(clientId));
+        Assert.Equal("managedIdentityClientId", exception.ParamName);
+        Assert.Empty(entra.Resource.ClientCredentials);
     }
 
     [Fact]
-    public void AddEntraIdApplication_WithFicMsi_SystemAssigned()
+    public void WithFicMsi_RejectsMissingManagedIdentityClientId()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
 
-        appBuilder.AddEntraIdApplication("entra-web")
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
-            .WithFicMsi();
+        var exception = Assert.Throws<ArgumentNullException>(() => entra.WithFicMsi(null!));
+        Assert.Equal("managedIdentityClientId", exception.ParamName);
+        Assert.Empty(entra.Resource.ClientCredentials);
+    }
 
-        using var app = appBuilder.Build();
+    [Theory]
+    [InlineData("")]
+    [InlineData("mi-client-id")]
+    [InlineData("00001111-aaaa-2222-bbbb-3333cccc4444 ")]
+    public void FederatedIdentityCredential_RejectsInvalidManagedIdentityClientId(string clientId)
+    {
+        var exception = Assert.Throws<ArgumentException>(() => new EntraIdFederatedIdentityCredential
+        {
+            ManagedIdentityClientId = clientId
+        });
 
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var resource = Assert.Single(appModel.Resources.OfType<EntraIdApplicationResource>());
-        Assert.Single(resource.ClientCredentials);
-        var cred = Assert.IsType<EntraIdFederatedIdentityCredential>(resource.ClientCredentials[0]);
-        Assert.Equal("SignedAssertionFromManagedIdentity", cred.SourceType);
-        Assert.Null(cred.ManagedIdentityClientId);
+        Assert.Equal(nameof(EntraIdFederatedIdentityCredential.ManagedIdentityClientId), exception.ParamName);
     }
 
     [Fact]
@@ -389,7 +410,7 @@ public class EntraIdResourceBuilderTests
         appBuilder.AddEntraIdApplication("entra-web")
             .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
             .WithClientSecret(secret)
-            .WithFicMsi("mi-client-id");
+            .WithFicMsi(ClientId);
 
         using var app = appBuilder.Build();
 
@@ -1161,6 +1182,7 @@ public class EntraIdResourceBuilderTests
             Password = password.Resource
         };
         var entra = appBuilder.AddEntraIdApplication("entra-web")
+            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
             .WithCredential(new EntraIdClientSecretCredential { ClientSecret = secret.Resource })
             .WithCredential(certificate);
 
@@ -1181,6 +1203,8 @@ public class EntraIdResourceBuilderTests
         Assert.Equal(dotnet ? new Dictionary<string, string>
         {
             ["AzureAd__Instance"] = "https://login.microsoftonline.com/",
+            ["AzureAd__TenantId"] = TenantId,
+            ["AzureAd__ClientId"] = ClientId,
             ["AzureAd__ClientCredentials__0__SourceType"] = "ClientSecret",
             ["AzureAd__ClientCredentials__0__ClientSecret"] = expectedSecret,
             ["AzureAd__ClientCredentials__1__SourceType"] = "Path",
@@ -1189,6 +1213,8 @@ public class EntraIdResourceBuilderTests
         } : new Dictionary<string, string>
         {
             ["ENTRA_WEB_INSTANCE"] = "https://login.microsoftonline.com/",
+            ["ENTRA_WEB_TENANT_ID"] = TenantId,
+            ["ENTRA_WEB_CLIENT_ID"] = ClientId,
             ["ENTRA_WEB_CLIENT_CREDENTIALS_0_SOURCE_TYPE"] = "ClientSecret",
             ["ENTRA_WEB_CLIENT_CREDENTIALS_0_CLIENT_SECRET"] = expectedSecret,
             ["ENTRA_WEB_CLIENT_CREDENTIALS_1_SOURCE_TYPE"] = "Path",

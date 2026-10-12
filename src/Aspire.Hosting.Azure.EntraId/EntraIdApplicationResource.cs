@@ -1,7 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Existing registrations remove the framework's provisioning annotations.
+
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.EntraId.Provisioning;
+using Aspire.Hosting.Pipelines;
+using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting.Azure;
 
@@ -15,6 +21,10 @@ namespace Aspire.Hosting.Azure;
 /// client ID, and optionally client credentials and API scopes.
 /// </para>
 /// <para>
+/// Aspire creates new registrations using a resource-group-scoped Microsoft Graph Bicep deployment.
+/// Use <c>AsExistingApplication</c> to reference an existing registration without deploying infrastructure.
+/// </para>
+/// <para>
 /// References to this resource inject configuration as environment variables.
 /// .NET program references default to names such as <c>AzureAd__TenantId</c> and <c>AzureAd__ClientId</c>,
 /// compatible with Microsoft.Identity.Web. Other references default to an uppercase resource-name prefix
@@ -25,17 +35,163 @@ namespace Aspire.Hosting.Azure;
 /// <c>Microsoft.Identity.Abstractions</c>.
 /// </para>
 /// </remarks>
-public class EntraIdApplicationResource : Resource
+public class EntraIdApplicationResource : AzureProvisioningResource
 {
     private const string DefaultInstance = "https://login.microsoftonline.com/";
+    private readonly IResourceAnnotation[] _provisioningAnnotations;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EntraIdApplicationResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     public EntraIdApplicationResource(string name)
-        : base(name)
+        : base(name, ConfigureApplicationInfrastructure)
     {
+        Parameters["applicationName"] = name;
+        Parameters["principalId"] = null;
+        Parameters["signInAudience"] = SignInAudience.ToString();
+        _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
+    }
+
+    internal bool IsExistingApplication { get; private set; }
+
+    internal void SetExistingApplication()
+    {
+        IsExistingApplication = true;
+        ProvisioningTaskCompletionSource = null;
+
+        // Configuration-only registrations must not generate Bicep or provisioning tasks. Remove only the base
+        // resource's annotations so any pipeline steps added by the AppHost are preserved.
+        foreach (var annotation in _provisioningAnnotations)
+        {
+            Annotations.Remove(annotation);
+        }
+    }
+
+    /// <summary>
+    /// Gets the application (client) ID produced when the registration is provisioned.
+    /// </summary>
+    /// <remarks>
+    /// This output is available for applications created by Aspire. Existing applications use
+    /// <see cref="ClientIdParameter"/> or <see cref="ClientId"/> instead.
+    /// </remarks>
+    public BicepOutputReference ClientIdOutputReference => new("clientId", this);
+
+    /// <summary>
+    /// Gets the home tenant ID produced when the registration is provisioned.
+    /// </summary>
+    /// <remarks>
+    /// Registrations are created in the tenant of the Azure subscription used for provisioning.
+    /// Existing applications use <see cref="TenantIdParameter"/> or <see cref="TenantId"/> instead.
+    /// </remarks>
+    public BicepOutputReference TenantIdOutputReference => new("tenantId", this);
+
+    internal object? HomeTenantIdValue => IsExistingApplication
+        ? (object?)TenantIdParameter ?? TenantId
+        : TenantIdOutputReference;
+
+    internal object? ClientIdValue => IsExistingApplication
+        ? (object?)ClientIdParameter ?? ClientId
+        : ClientIdOutputReference;
+
+    /// <inheritdoc />
+    public override string GetBicepTemplateString()
+    {
+        ValidateProvisioningConfiguration();
+        return base.GetBicepTemplateString();
+    }
+
+    /// <inheritdoc />
+    public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
+    {
+        ValidateProvisioningConfiguration();
+        return base.GetBicepTemplateFile(directory, deleteTemporaryFileOnDispose);
+    }
+
+    private void ValidateProvisioningConfiguration()
+    {
+        if (IsExistingApplication || this.HasAnnotationOfType<ExistingAzureResourceAnnotation>())
+        {
+            throw new InvalidOperationException(
+                "Entra ID applications are identified by tenant ID and client ID, not by an Azure resource name or resource group. " +
+                "Use AsExistingApplication(tenantId, clientId) to reference an existing registration without provisioning it.");
+        }
+
+        if (Scope is { HasResourceGroup: false })
+        {
+            throw new InvalidOperationException("Entra ID application templates must be deployed at resource-group scope.");
+        }
+
+        if (!Enum.IsDefined(SignInAudience))
+        {
+            throw new InvalidOperationException($"'{SignInAudience}' is not a valid {nameof(EntraIdSignInAudience)} value.");
+        }
+
+        if (EntraIdValidation.ValidateInstance(Instance) is { } instanceError)
+        {
+            throw new InvalidOperationException($"The instance '{Instance}' is not valid. {instanceError}");
+        }
+
+        // Provisioning and resource initialization complete independently. Reject invalid credentials before
+        // the Azure controller can report Running, rather than leaving a consumer to fail when it resolves them.
+        foreach (var credential in ClientCredentials)
+        {
+            _ = credential.SourceType;
+        }
+    }
+
+    private static void ConfigureApplicationInfrastructure(AzureResourceInfrastructure infrastructure)
+    {
+        var resource = (EntraIdApplicationResource)infrastructure.AspireResource;
+        resource.ValidateProvisioningConfiguration();
+        infrastructure.BicepExtensions["microsoftGraphV1"] = "br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0";
+
+        var applicationName = new ProvisioningParameter("applicationName", typeof(string));
+        var principalId = new ProvisioningParameter("principalId", typeof(string));
+        var signInAudience = new SignInAudienceParameter
+        {
+            Value = nameof(EntraIdSignInAudience.AzureADMyOrg)
+        };
+        var redirectUris = new ProvisioningParameter("redirectUris", typeof(string[]))
+        {
+            Value = new ArrayExpression([])
+        };
+        var enableIdTokenIssuance = new ProvisioningParameter("enableIdTokenIssuance", typeof(bool))
+        {
+            Value = false
+        };
+        infrastructure.Add(applicationName);
+        infrastructure.Add(principalId);
+        infrastructure.Add(signInAudience);
+        infrastructure.Add(redirectUris);
+        infrastructure.Add(enableIdTokenIssuance);
+
+        var application = new MicrosoftGraphApplication("application")
+        {
+            DisplayName = applicationName,
+            // The directory-wide key must remain stable across deployments and distinguish resource groups.
+            UniqueName = BicepFunction.Interpolate($"{applicationName}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"),
+            SignInAudience = signInAudience,
+            RequestedAccessTokenVersion = 2,
+            RedirectUris = redirectUris,
+            EnableIdTokenIssuance = enableIdTokenIssuance,
+            Owners = [principalId]
+        };
+        infrastructure.Add(application);
+
+        var servicePrincipal = new MicrosoftGraphServicePrincipal("servicePrincipal")
+        {
+            AppId = application.AppId,
+            Owners = [principalId]
+        };
+        infrastructure.Add(servicePrincipal);
+
+        infrastructure.Add(new ProvisioningOutput("clientId", typeof(string)) { Value = application.AppId.ToBicepExpression() });
+        // Compile the scope-function property directly; ToBicepExpression would reference an undeclared "tenant" resource.
+        infrastructure.Add(new ProvisioningOutput("tenantId", typeof(string)) { Value = BicepFunction.GetTenant().TenantId.Compile() });
+        infrastructure.Add(new ProvisioningOutput("objectId", typeof(string)) { Value = application.Id.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput("servicePrincipalId", typeof(string)) { Value = servicePrincipal.Id.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput("uniqueName", typeof(string)) { Value = application.UniqueName.ToBicepExpression() });
     }
 
     // ── Core identity ──────────────────────────────────────────────────────
@@ -94,7 +250,15 @@ public class EntraIdApplicationResource : Resource
     /// Defaults to <see cref="EntraIdSignInAudience.AzureADMyOrg"/>, which allows only accounts in the home tenant.
     /// The value must match the "Supported account types" setting of the app registration.
     /// </remarks>
-    public EntraIdSignInAudience SignInAudience { get; set; } = EntraIdSignInAudience.AzureADMyOrg;
+    public EntraIdSignInAudience SignInAudience
+    {
+        get;
+        set
+        {
+            field = value;
+            Parameters["signInAudience"] = value.ToString();
+        }
+    } = EntraIdSignInAudience.AzureADMyOrg;
 
     /// <summary>
     /// Gets the keyword that Microsoft.Identity.Web expects as <c>TenantId</c> for <see cref="SignInAudience"/>,
@@ -167,6 +331,24 @@ public class EntraIdApplicationResource : Resource
     /// Useful for routing to specific test slices or data centers.
     /// </remarks>
     internal Dictionary<string, string> ExtraQueryParameters { get; } = [];
+
+    private sealed class SignInAudienceParameter() : ProvisioningParameter("signInAudience", typeof(string))
+    {
+        protected override IEnumerable<BicepStatement> Compile()
+        {
+            foreach (var statement in base.Compile())
+            {
+                if (statement is ParameterStatement parameter)
+                {
+                    parameter.Decorators.Add(new DecoratorExpression(new FunctionCallExpression(
+                        new IdentifierExpression("allowed"),
+                        new ArrayExpression([.. Enum.GetNames<EntraIdSignInAudience>().Select(name => new StringLiteralExpression(name))]))));
+                }
+
+                yield return statement;
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -247,7 +429,9 @@ public sealed class EntraIdClientSecretCredential : EntraIdClientCredential
 /// </summary>
 /// <remarks>
 /// Maps to <c>SourceType = "SignedAssertionFromManagedIdentity"</c> in Microsoft.Identity.Web configuration.
-/// For system-assigned managed identity, leave <see cref="ManagedIdentityClientId"/> as <see langword="null"/>.
+/// The registration must trust a user-assigned managed identity in the same tenant, and the identity must
+/// be attached to the workload. This configuration does not create that trust or assign the identity.
+/// See <see href="https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity"/>.
 /// </remarks>
 public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
 {
@@ -255,12 +439,27 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     public override string SourceType => "SignedAssertionFromManagedIdentity";
 
     /// <summary>
-    /// Gets or sets the client ID of a user-assigned managed identity.
+    /// Gets or sets the client ID of the user-assigned managed identity that supplies the signed assertion.
     /// </summary>
     /// <remarks>
-    /// Leave <see langword="null"/> for system-assigned managed identity.
+    /// Use the identity's client ID, not the object (principal) ID used as the federated credential's subject.
+    /// Microsoft Entra's managed-identity federation scenario supports user-assigned identities only.
     /// </remarks>
-    public string? ManagedIdentityClientId { get; set; }
+    /// <exception cref="ArgumentException">Thrown when the value is empty or is not a GUID.</exception>
+    public required string ManagedIdentityClientId
+    {
+        get;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (EntraIdValidation.ValidateManagedIdentityClientId(value) is { } error)
+            {
+                throw new ArgumentException(error, nameof(ManagedIdentityClientId));
+            }
+
+            field = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the token exchange URL for federated identity credential scenarios.
@@ -283,10 +482,7 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     {
         base.EmitEnvironmentVariables(envVars, prefix, separator);
 
-        if (ManagedIdentityClientId is not null)
-        {
-            envVars[$"{prefix}{separator}ManagedIdentityClientId"] = ManagedIdentityClientId;
-        }
+        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = ManagedIdentityClientId;
 
         if (TokenExchangeUrl is not null)
         {

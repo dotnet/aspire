@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
@@ -286,6 +287,17 @@ public sealed class AzurePublishingContext(
             };
         }
 
+        BicepExpression ResolveModuleParameter(object? value) => value switch
+        {
+            IEnumerable<string> strings => new ArrayExpression([.. strings.Select(s => new StringLiteralExpression(s))]),
+            // Preserve JSON arrays, objects, and scalar types; stringifying them changes the module parameter type.
+            JsonNode node => new FunctionCallExpression(new IdentifierExpression("json"), new StringLiteralExpression(node.ToJsonString())),
+            bool boolean => new BicepValue<bool>(boolean).Compile(),
+            int integer => new BicepValue<int>(integer).Compile(),
+            Guid guid => new StringLiteralExpression(guid.ToString()),
+            _ => ResolveValue(Eval(value)).Compile()
+        };
+
         BicepValue<string> GetScopeExpression(AzureBicepResource resource)
         {
             if (resource.Scope is null)
@@ -366,9 +378,7 @@ public sealed class AzurePublishingContext(
                     continue;
                 }
 
-                var value = ResolveValue(Eval(parameter.Value));
-
-                module.Parameters.Add(parameter.Key, value);
+                module.Parameters.Add(parameter.Key, new BicepValue<object>(ResolveModuleParameter(parameter.Value)));
             }
 
             await task.SucceedAsync(

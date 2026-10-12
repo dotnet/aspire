@@ -7,7 +7,8 @@ Use this integration to model, configure, and orchestrate Microsoft Entra ID app
 ### Prerequisites
 
 - A Microsoft Entra ID tenant
-- An app registration created in the [Microsoft Entra admin center](https://entra.microsoft.com)
+- For existing registrations: an app registration created in the [Microsoft Entra admin center](https://entra.microsoft.com)
+- For new registrations: an Azure subscription, permission to deploy to a resource group and create application registrations and service principals in its tenant, and Azure CLI with Bicep 0.36.1 or later
 
 ### Add the integration
 
@@ -38,6 +39,54 @@ Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the 
 For .NET program resources, `WithReference` injects environment variables in the form `AzureAd__{Key}` — for example `AzureAd__Instance`, `AzureAd__TenantId`, and `AzureAd__ClientId`. .NET's configuration system maps these to the `AzureAd` configuration section, so the referencing resource reads them as ordinary configuration with no glue code.
 
 When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why. `WaitFor` keeps the referencing resource from starting with invalid settings.
+
+### Create registrations
+
+Omit `AsExistingApplication` to create a registration and its service principal using the Microsoft Graph Bicep extension:
+
+```csharp
+var entraApi = builder.AddEntraIdApplication("entra-api");
+var entraWeb = builder.AddEntraIdApplication("entra-web")
+                      .WithParameter("redirectUris", [
+                          "https://localhost:7123/signin-oidc",
+                          "https://localhost:7123/signout-callback-oidc"]);
+
+builder.AddProject<Projects.Api>("api")
+       .WithReference(entraApi)
+       .WaitFor(entraApi);
+
+builder.AddProject<Projects.Web>("web")
+       .WithReference(entraWeb)
+       .WaitFor(entraWeb);
+```
+
+Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. The provisioning identity is added as an owner of both the application and service principal. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
+
+The module is generated in C# using `Azure.Provisioning`, including the Graph application, service principal, parameters, and outputs. Aspire emits the Microsoft Graph extension declaration from the infrastructure's `BicepExtensions` collection using a pinned inline registry reference. No `bicepconfig.json` is required, including when Aspire copies the module into temporary or published output. The first compilation downloads the extension from `mcr.microsoft.com`, which must be reachable.
+
+The resource derives from `AzureProvisioningResource`, so `ConfigureInfrastructure` callbacks can customize the generated infrastructure or add provisioning outputs.
+
+The client ID and tenant ID are deployment outputs. References wait for provisioning and inject those outputs into the consumer's configuration; multi-tenant registrations still receive the appropriate sign-in keyword and `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
+
+A stable `uniqueName` derived from the resource name and resource group ID makes redeployment update the same registration. Two AppHosts sharing a resource group must use different resource names to avoid sharing a registration.
+
+This first provisioning increment creates the registration and service principal. Redirect URIs can be provided explicitly using the `redirectUris` Bicep parameter; endpoints are not discovered automatically. It does not provision client credentials, API scopes, or API permissions.
+
+For the playground's ID-token-only sign-in flow, explicitly enable ID-token issuance:
+
+```csharp
+entraWeb.Resource.Parameters["enableIdTokenIssuance"] = true;
+```
+
+ID-token issuance through implicit or hybrid flows is disabled by default. It is not needed for authorization-code-only flows. For new production applications, prefer authorization code flow with PKCE and configure a confidential-client credential when the application redeems codes. The sign-in-only playground deliberately uses ID tokens without redeeming codes or calling downstream APIs.
+
+Creating a registration does not protect a workload's routes or authorize API requests. Configure authentication and authorization in the consuming application using Microsoft.Identity.Web or the corresponding library for that language. A web-to-API flow additionally requires an API identifier URI, exposed scopes, client permissions/consent, a client credential, and scope or role validation in the API. These are not provisioned by this initial increment.
+
+### Clean up created registrations
+
+Registrations live in the tenant and **are not deleted when the resource group is deleted**. The deployment outputs include `objectId`, `servicePrincipalId`, and `uniqueName` for locating the objects.
+
+Delete only the registrations and service principals belonging to your application using the [Microsoft Entra admin center](https://entra.microsoft.com) or Microsoft Graph. Deleted applications remain soft-deleted for 30 days; restore or permanently delete the application before redeploying with the same `uniqueName`.
 
 ### Custom environment variable names
 
@@ -114,10 +163,14 @@ For deployed applications, use a federated identity credential so that no secret
 ```csharp
 var entraWeb = builder.AddEntraIdApplication("entra-web")
                       .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
-                      .WithFicMsi();
+                      .WithFicMsi("00001111-aaaa-2222-bbbb-3333cccc4444");
 ```
 
-Pass a client ID to use a user-assigned managed identity instead of the system-assigned one.
+Pass the **Client ID of a user-assigned managed identity**, not its object (principal) ID or Azure resource ID. The identity must be assigned to the workload and belong to the same tenant as the registration. Entra's managed-identity federation scenario supports user-assigned identities only; a system-assigned identity is not a supported replacement.
+
+`WithFicMsi` configures Microsoft.Identity.Web; it does **not** create the managed identity, assign it to the workload, or add a federated credential to the registration. Configure that trust first, using the identity's **object (principal) ID** as the subject, the tenant's v2 issuer, and the token-exchange audience for the cloud. See [Configure an application to trust a managed identity](https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity).
+
+Federation authenticates as the app registration using a managed identity assertion. It is different from acquiring a token directly as the managed identity. It also does not enable mTLS proof-of-possession: that requires downstream API `ProtocolScheme = "MTLS_POP"` and the transport/certificate support described in Microsoft's [bound-credentials guidance](https://github.com/AzureAD/microsoft-identity-web/tree/master/.github/skills/boundcredentials).
 
 ### Certificate from Azure Key Vault
 
@@ -159,20 +212,21 @@ var entraApi = builder.AddEntraIdApplication("entra-api")
 
 ## Current limitations
 
-The integration references app registrations that already exist. It doesn't yet:
+The integration can reference existing registrations or create registrations and service principals. It doesn't yet:
 
-* Create or update app registrations.
-* Add the referencing resources' URLs as redirect URIs.
+* Automatically add the referencing resources' URLs as redirect URIs.
 * Expose API scopes or grant API permissions.
 * Create, store, or rotate client secrets and certificates.
 
-Create and configure the app registrations in the [Microsoft Entra admin center](https://entra.microsoft.com), then pass their IDs to `AsExistingApplication`.
+Existing registrations are never modified. Continue configuring their redirect URIs, API permissions, and credentials in the [Microsoft Entra admin center](https://entra.microsoft.com).
 
 ## Additional documentation
 
 * https://aspire.dev/integrations/gallery/
 * https://learn.microsoft.com/entra/identity-platform/
+* https://learn.microsoft.com/graph/templates/bicep/overview-bicep-templates-for-graph
 * https://learn.microsoft.com/entra/msal/dotnet/microsoft-identity-web/
+* https://github.com/AzureAD/microsoft-identity-web/tree/master/.github/skills
 * https://devblogs.microsoft.com/aspire/securing-dotnet-aspire-apps-with-microsoft-entra-id/
 
 ## Feedback & contributing

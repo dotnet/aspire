@@ -27,6 +27,11 @@ public static class EntraIdResourceExtensions
     /// into consuming services. For .NET programs, the variables default to the <c>AzureAd</c> configuration section
     /// that Microsoft.Identity.Web reads natively.
     /// </para>
+    /// <para>
+    /// By default, Aspire provisions an application and service principal using the Microsoft Graph Bicep extension.
+    /// This requires Azure provisioning configuration and permission to create registrations in the subscription's
+    /// tenant. Call <c>AsExistingApplication</c> to reference an existing registration without Azure or Graph access.
+    /// </para>
     /// <example>
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
@@ -48,7 +53,14 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new EntraIdApplicationResource(name);
+        builder.AddAzureProvisioning();
+
+        var resource = new EntraIdApplicationResource(name)
+        {
+            // Resource initialization and Azure environment initialization run concurrently. Keep a pending task
+            // available from the outset so ID resolution waits for provisioning rather than reading missing outputs.
+            ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
         return ConfigureEntraIdResource(builder.AddResource(resource));
     }
 
@@ -65,8 +77,6 @@ public static class EntraIdResourceExtensions
                 State = KnownResourceStates.Waiting,
                 Properties = []
             })
-            // The resource only describes an app registration that already exists, so there is nothing to deploy.
-            .ExcludeFromManifest()
             .OnInitializeResource(InitializeEntraIdResourceAsync);
     }
 
@@ -77,8 +87,9 @@ public static class EntraIdResourceExtensions
     {
         var logger = evt.Logger;
 
-        if ((resource.TenantIdParameter is null && resource.TenantId is null) ||
-            (resource.ClientIdParameter is null && resource.ClientId is null))
+        if (resource.IsExistingApplication &&
+            ((resource.TenantIdParameter is null && resource.TenantId is null) ||
+             (resource.ClientIdParameter is null && resource.ClientId is null)))
         {
             logger.LogError("The app registration is not fully configured. Call AsExistingApplication with the registration's tenant ID and client ID.");
             await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
@@ -87,8 +98,31 @@ public static class EntraIdResourceExtensions
 
         // Check every setting before failing, so that a misconfigured resource reports all of its problems at once
         // rather than one per restart of the AppHost.
-        var tenantId = await ResolveIdAsync(resource.TenantIdParameter, resource.TenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
-        var clientId = await ResolveIdAsync(resource.ClientIdParameter, resource.ClientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        string? tenantId;
+        string? clientId;
+        if (resource.IsExistingApplication)
+        {
+            tenantId = await ResolveIdAsync(resource.TenantIdParameter, resource.TenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
+            clientId = await ResolveIdAsync(resource.ClientIdParameter, resource.ClientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            try
+            {
+                tenantId = await resource.TenantIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                clientId = await resource.ClientIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AsExistingApplication with an existing registration's tenant ID and client ID.");
+                await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
+                return;
+            }
+
+            tenantId = await ResolveIdAsync(null, tenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
+            clientId = await ResolveIdAsync(null, clientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        }
+
         var hasInvalidSetting = false;
 
         if (EntraIdValidation.ValidateInstance(resource.Instance) is { } instanceError)
@@ -126,9 +160,11 @@ public static class EntraIdResourceExtensions
 
         try
         {
-            // Other resources that stand in for an external service publish this event before reporting Running, which
-            // runs the OnBeforeResourceStarted callbacks registered on the resource.
-            await evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(resource, evt.Services), cancellationToken).ConfigureAwait(false);
+            // Azure provisioning already publishes this event for created registrations.
+            if (resource.IsExistingApplication)
+            {
+                await evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(resource, evt.Services), cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
@@ -278,7 +314,7 @@ public static class EntraIdResourceExtensions
 
         builder.Resource.TenantIdParameter = tenantId.Resource;
         builder.Resource.ClientIdParameter = clientId.Resource;
-        return builder;
+        return ConfigureExistingApplication(builder);
     }
 
     /// <summary>
@@ -335,7 +371,14 @@ public static class EntraIdResourceExtensions
 
         builder.Resource.TenantId = tenantId;
         builder.Resource.ClientId = clientId;
-        return builder;
+        return ConfigureExistingApplication(builder);
+    }
+
+    private static IResourceBuilder<EntraIdApplicationResource> ConfigureExistingApplication(
+        IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        builder.Resource.SetExistingApplication();
+        return builder.ExcludeFromManifest();
     }
 
     /// <summary>
@@ -378,21 +421,44 @@ public static class EntraIdResourceExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="managedIdentityClientId">
-    /// The client ID of a user-assigned managed identity.
-    /// If <see langword="null"/>, the system-assigned managed identity is used.
+    /// The client ID of the user-assigned managed identity attached to the consuming workload.
+    /// This is not the identity's object (principal) ID.
     /// </param>
     /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="managedIdentityClientId"/> is empty or is not a GUID.
+    /// </exception>
     /// <remarks>
     /// <para>
     /// This adds an entry to the <c>ClientCredentials</c> array in the Microsoft.Identity.Web
     /// configuration with <c>SourceType</c> set to <c>"SignedAssertionFromManagedIdentity"</c>.
+    /// It does not create or assign the managed identity, or provision the federated identity credential.
+    /// </para>
+    /// <para>
+    /// The registration must already trust a user-assigned managed identity in the same tenant.
+    /// The credential's subject is the identity's object (principal) ID, while this method takes its client ID.
+    /// Microsoft Entra's managed-identity federation scenario does not support system-assigned managed identities.
+    /// See <see href="https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity"/>.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .AsExistingApplication(tenantId, clientId)
+    ///     .WithFicMsi("00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<EntraIdApplicationResource> WithFicMsi(
         this IResourceBuilder<EntraIdApplicationResource> builder,
-        string? managedIdentityClientId = null)
+        string managedIdentityClientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(managedIdentityClientId);
+
+        if (EntraIdValidation.ValidateManagedIdentityClientId(managedIdentityClientId) is { } error)
+        {
+            throw new ArgumentException(error, nameof(managedIdentityClientId));
+        }
 
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
         {
@@ -746,7 +812,7 @@ public static class EntraIdResourceExtensions
             // be used when the app acquires tokens as itself, so Microsoft.Identity.Web falls back to AppHomeTenantId for
             // those requests and fails when it isn't set. See
             // https://learn.microsoft.com/entra/identity-platform/howto-convert-app-to-be-multi-tenant
-            object? homeTenantId = (object?)entra.TenantIdParameter ?? entra.TenantId;
+            var homeTenantId = entra.HomeTenantIdValue;
             if (entra.SignInTenantKeyword is { } signInTenantKeyword)
             {
                 environmentVariables[$"{keyPrefix}TenantId"] = signInTenantKeyword;
@@ -761,13 +827,9 @@ public static class EntraIdResourceExtensions
                 environmentVariables[$"{keyPrefix}TenantId"] = homeTenantId;
             }
 
-            if (entra.ClientIdParameter is not null)
+            if (entra.ClientIdValue is { } clientId)
             {
-                environmentVariables[$"{keyPrefix}ClientId"] = entra.ClientIdParameter;
-            }
-            else if (entra.ClientId is not null)
-            {
-                environmentVariables[$"{keyPrefix}ClientId"] = entra.ClientId;
+                environmentVariables[$"{keyPrefix}ClientId"] = clientId;
             }
 
             // Send the x5c claim only when explicitly requested. It enables certificate rollover but

@@ -52,7 +52,7 @@ public class EntraIdInitializationTests
         var entra = builder.AddEntraIdApplication("entra-web")
             .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
             .WithClientSecret(builder.AddParameter("EntraClientSecret", "super-secret", secret: true))
-            .WithFicMsi();
+            .WithFicMsi(ClientId);
 
         using var app = builder.Build();
         var snapshot = await InitializeAsync(app, entra.Resource);
@@ -203,19 +203,44 @@ public class EntraIdInitializationTests
     }
 
     [Fact]
-    public async Task Initialize_WithoutExistingApplication_ReportsMissingConfiguration()
+    public async Task Initialize_CreatedApplication_UsesProvisioningOutputs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-api");
+        entra.Resource.Outputs["tenantId"] = TenantId;
+        entra.Resource.Outputs["clientId"] = ClientId;
+
+        using var app = builder.Build();
+        entra.Resource.ProvisioningTaskCompletionSource!.SetResult();
+        var snapshot = await InitializeAsync(app, entra.Resource);
+
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
+        Assert.Equal(new[] { "OpenID Config", "Azure Portal" }, snapshot.Urls.Select(u => u.Name));
+        Assert.Equal(new[]
+        {
+            new ResourcePropertySnapshot("entra.tenant.id", TenantId) { DisplayName = "Tenant ID", IsHighlighted = true, SortOrder = 0 },
+            new ResourcePropertySnapshot("entra.client.id", ClientId) { DisplayName = "Client ID", IsHighlighted = true, SortOrder = 1 }
+        }, snapshot.Properties.Take(2));
+    }
+
+    [Fact]
+    public async Task Initialize_CreatedApplication_ReportsProvisioningFailure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-api");
 
         using var app = builder.Build();
+        entra.Resource.ProvisioningTaskCompletionSource!.SetException(new InvalidOperationException("Registration creation was denied."));
         var snapshot = await InitializeAsync(app, entra.Resource);
 
         Assert.Equal(KnownResourceStates.FailedToStart, snapshot.State?.Text);
-        Assert.Equal(new (string, bool)[]
-        {
-            ("The app registration is not fully configured. Call AsExistingApplication with the registration's tenant ID and client ID.", true)
-        }, await ReadLogsAsync(app, entra.Resource));
+        Assert.Empty(snapshot.Urls);
+        var log = Assert.Single(await ReadLogsAsync(app, entra.Resource));
+        Assert.True(log.IsErrorMessage);
+        Assert.StartsWith(
+            "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AsExistingApplication " +
+            "with an existing registration's tenant ID and client ID.",
+            log.Message);
     }
 
     [Fact]
@@ -223,6 +248,7 @@ public class EntraIdInitializationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-api")
+            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
             .WithCredential(new EntraIdStoreCertificateCredential { StorePath = "CurrentUser/My" });
 
         // The properties are public, so code that sets them directly bypasses the validation in the builder methods.

@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using System.Text.Json.Nodes;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Microsoft.DotNet.RemoteExecutor;
@@ -199,6 +200,38 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
 
         var mainBicep = File.ReadAllText(Path.Combine(workspace.Path, "main.bicep"));
         await Verify(mainBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AzurePublishingContext_PreservesStructuredModuleParameters()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+
+        builder.AddAzureEnvironment();
+        var module = builder.AddBicepTemplateString("mod",
+            """
+            param location string
+            param redirectUris array
+            param options object
+            param enabled bool
+            param count int
+            param identifier string
+            """)
+            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc", "https://localhost:7252/callback"])
+            .WithParameter("options", new JsonObject { ["scopes"] = new JsonArray("access_as_user"), ["enabled"] = true });
+        module.Resource.Parameters["enabled"] = false;
+        module.Resource.Parameters["count"] = 2;
+        module.Resource.Parameters["identifier"] = Guid.Parse("00001111-aaaa-2222-bbbb-3333cccc4444");
+
+        using var app = builder.Build();
+        var context = await CreatePublishingContextAsync(app, workspace.Path);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+
+        await context.WriteModelAsync(model, environment);
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep");
     }
 
     [Fact]
