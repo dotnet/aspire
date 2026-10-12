@@ -27,8 +27,6 @@ import { cleanupRun, registerRunCleanup } from '../runCleanupRegistry';
 const AF_EXTENSION_ID = azureFunctionsExtensionId;
 const NODE_WORKER_ARGUMENTS_ENV = 'languageWorkers__node__arguments';
 const NODE_INSPECTOR_HOST = '127.0.0.1';
-// The probe listener must close before the Node worker can bind. Keep the selected port reserved
-// in-process until run cleanup so concurrent Aspire debug sessions cannot select the same port.
 const reservedNodeInspectorPorts = new Set<number>();
 const DEFAULT_PICK_PROCESS_TIMEOUT_SECONDS = 30;
 const FUNC_HOST_DEFAULT_PORT = 7071;
@@ -53,6 +51,17 @@ type TerminalProfileConfiguration = {
 type WorkerProcessIdDiscovery = {
     jsonOutputFile: string;
     initialContents: string;
+};
+
+type NodeInspectorPortProbe = {
+    port: number;
+    close: () => Promise<void>;
+};
+
+type NodeInspectorPortReservation = {
+    port: number;
+    releaseForLaunch: () => Promise<void>;
+    release: () => void;
 };
 
 type FuncRunState = {
@@ -657,8 +666,8 @@ function throwUnsupportedTaskShell(): never {
     throw new Error(azureFunctionsUnsupportedTaskShell);
 }
 
-async function getAvailableNodeInspectorPort(): Promise<number> {
-    return await new Promise<number>((resolve, reject) => {
+async function createNodeInspectorPortProbe(): Promise<NodeInspectorPortProbe> {
+    return await new Promise<NodeInspectorPortProbe>((resolve, reject) => {
         const server = net.createServer();
 
         server.once('error', error => reject(new Error(azureFunctionsNodeInspectorPortAllocationFailed, { cause: error })));
@@ -670,26 +679,49 @@ async function getAvailableNodeInspectorPort(): Promise<number> {
                 return;
             }
 
-            const port = address.port;
-            server.close(error => {
-                if (error) {
-                    reject(new Error(azureFunctionsNodeInspectorPortAllocationFailed, { cause: error }));
-                    return;
-                }
+            let closePromise: Promise<void> | undefined;
+            resolve({
+                port: address.port,
+                close: () => closePromise ??= new Promise<void>((resolveClose, rejectClose) => {
+                    server.close(error => {
+                        if (error) {
+                            rejectClose(new Error(azureFunctionsNodeInspectorPortAllocationFailed, { cause: error }));
+                            return;
+                        }
 
-                resolve(port);
+                        resolveClose();
+                    });
+                })
             });
         });
     });
 }
 
-async function allocateNodeInspectorPort(): Promise<number> {
+async function reserveNodeInspectorPort(): Promise<NodeInspectorPortReservation> {
     for (let attempt = 0; attempt < 20; attempt++) {
-        const port = await getAvailableNodeInspectorPort();
-        if (!reservedNodeInspectorPorts.has(port)) {
-            reservedNodeInspectorPorts.add(port);
-            return port;
+        const probe = await createNodeInspectorPortProbe();
+        if (!reservedNodeInspectorPorts.has(probe.port)) {
+            reservedNodeInspectorPorts.add(probe.port);
+            let released = false;
+            return {
+                port: probe.port,
+                // Keep the OS listener open until the task is ready to start. The Node worker
+                // must bind this same port, so the listener cannot remain open after launch.
+                releaseForLaunch: probe.close,
+                release: () => {
+                    if (released) {
+                        return;
+                    }
+
+                    released = true;
+                    reservedNodeInspectorPorts.delete(probe.port);
+                    void probe.close().catch(error => extensionLogOutputChannel.error(
+                        `Failed to release Azure Functions Node inspector port ${probe.port}: ${error}`));
+                }
+            };
         }
+
+        await probe.close();
     }
 
     throw new Error(azureFunctionsNodeInspectorPortAllocationFailed);
@@ -746,7 +778,8 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
             return;
         }
 
-        const debugPort = await allocateNodeInspectorPort();
+        const inspectorPortReservation = await reserveNodeInspectorPort();
+        const debugPort = inspectorPortReservation.port;
         const debugEnv = {
             ...effectiveEnv,
             // Microsoft Learn documents Node Functions debugging as the Functions host
@@ -781,19 +814,17 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
 
         let taskExecution: vscode.TaskExecution | undefined;
         let stopped = false;
-        let portReleased = false;
-        const releasePort = () => {
-            if (!portReleased) {
-                portReleased = true;
-                reservedNodeInspectorPorts.delete(debugPort);
-            }
-        };
         registerRunCleanup(debugConfiguration.runId, () => {
             stopped = true;
             taskExecution?.terminate();
-            releasePort();
+            inspectorPortReservation.release();
         });
         try {
+            await inspectorPortReservation.releaseForLaunch();
+            if (stopped) {
+                throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+            }
+
             taskExecution = await vscode.tasks.executeTask(task);
             // Cleanup can run while executeTask is pending. Do not leave that late
             // task running after its parent Aspire session has already stopped.

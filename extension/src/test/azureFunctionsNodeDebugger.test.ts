@@ -162,6 +162,44 @@ suite('Azure Functions Node Debugger Tests', () => {
         cleanupRun(secondDebugConfig.runId);
     });
 
+    test('holds inspector port probe until immediately before task launch', async () => {
+        const server = new net.Server();
+        const close = sinon.stub(server, 'close').callsFake(callback => {
+            callback?.();
+            return server;
+        });
+        sinon.stub(server, 'address').returns({ address: '127.0.0.1', family: 'IPv4', port: 12345 });
+        sinon.stub(server, 'listen').callsFake((...args: unknown[]) => {
+            (args[2] as () => void)();
+            return server;
+        });
+        sinon.stub(net, 'createServer').returns(server);
+        const executeTask = sinon.stub(vscode.tasks, 'executeTask').callsFake(async () => {
+            sinon.assert.calledOnce(close);
+            return { terminate: sinon.spy() } as unknown as vscode.TaskExecution;
+        });
+        const launchConfig: AzureFunctionsNodeLaunchConfiguration = {
+            type: 'azure-functions-node',
+            app_directory: '/workspace/functions',
+            command: 'func',
+            language: 'javascript',
+            worker_runtime: 'node'
+        };
+        const debugConfig = createDebugConfig();
+
+        await azureFunctionsNodeDebuggerExtension.createDebugSessionConfigurationCallback!(
+            launchConfig,
+            ['host', 'start'],
+            [],
+            { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession },
+            debugConfig
+        );
+
+        sinon.assert.calledOnce(executeTask);
+        cleanupRun(debugConfig.runId);
+        sinon.assert.calledOnce(close);
+    });
+
     test('configures no-debug launch without starting inspector task', async () => {
         const executeTaskStub = sinon.stub(vscode.tasks, 'executeTask');
         const launchConfig: AzureFunctionsNodeLaunchConfiguration = {
