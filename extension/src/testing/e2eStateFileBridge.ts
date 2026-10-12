@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as https from 'https';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
@@ -11,7 +10,7 @@ import { createDebugSessionConfiguration, getResourceDebuggerExtensions } from '
 import { externalBuildProjectDebuggerExtension, projectDebuggerExtension } from '../debugger/languages/dotnet';
 import { onDidSpawnCliProcess, redactCliArgsForLogging, spawnCliProcess, terminateCliProcess } from '../utils/process/cliProcess';
 import { cleanupRun } from '../debugger/runCleanupRegistry';
-import type { AspireResourceExtendedDebugConfiguration, DcpServerConnectionInfo, EnvVar, ExecutableLaunchConfiguration } from '../dcp/types';
+import type { AspireResourceExtendedDebugConfiguration, EnvVar, ExecutableLaunchConfiguration } from '../dcp/types';
 import { createStateSnapshot, getSensitiveDashboardUrl, isSamePath } from '../extensionState';
 import { AppHostLaunchRequestedEvent, AppHostLaunchService } from '../services/AppHostLaunchService';
 import type { AspireDebugConsoleOutputEvent, AspireExtensionE2EBrowserDebugSession, AspireExtensionE2ECodeLensProbeResult, AspireExtensionE2ECommandInvocation, AspireExtensionE2EControlCommand, AspireExtensionE2EControlPayload, AspireExtensionE2EControlStatus, AspireExtensionE2EDebugConsoleOutput, AspireExtensionE2EDebugLaunch, AspireExtensionE2EStoppingPathEvent, AspireExtensionE2ETaskProcessEvent, AspireExtensionE2ETerminalCommand, AspireExtensionStateSnapshot } from '../types/extensionApi';
@@ -922,10 +921,6 @@ export async function executeE2eControlCommand(
       markStarted();
       return context.extension.packageJSON;
     }
-    case 'getDcpRunSessionInfo': {
-      markStarted();
-      return await getDcpRunSessionInfoForE2E(aspireContext.dcpServer.connectionInfo);
-    }
     case 'getExtensionFileStatus': {
       markStarted();
       return getExtensionFileStatus(context, command.relativePaths);
@@ -1270,12 +1265,6 @@ interface DebugAdapterStoppedEvent {
   threadId?: number;
 }
 
-interface DebugAdapterExceptionStop {
-  stoppedEvent: DebugAdapterStoppedEvent;
-  exceptionInfo?: unknown;
-  error?: string;
-}
-
 interface DebugAdapterOutputEvent {
   sessionId: string;
   sessionType: string;
@@ -1323,8 +1312,6 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
   const launchRequests: DebugAdapterLaunchRequest[] = [];
   const debugAdapterResponses: DebugAdapterMessageSummary[] = [];
   const stoppedEvents: DebugAdapterStoppedEvent[] = [];
-  const exceptionStops: DebugAdapterExceptionStop[] = [];
-  const exceptionStopHandlers: Promise<void>[] = [];
   const breakpointRequests: DebugAdapterMessageSummary[] = [];
   const breakpointResponses: DebugAdapterMessageSummary[] = [];
 
@@ -1376,32 +1363,13 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
             });
           }
           if (message?.type === 'event' && message.event === 'stopped') {
-            const stoppedEvent = {
+            stoppedEvents.push({
               sessionId: session.id,
               sessionType: session.type,
               sessionName: session.name,
               reason: message.body?.reason,
               threadId: message.body?.threadId,
-            };
-            stoppedEvents.push(stoppedEvent);
-
-            if (command.continueExceptionStops &&
-              stoppedEvent.reason === 'exception' &&
-              stoppedEvent.threadId !== undefined) {
-              const exceptionStop: DebugAdapterExceptionStop = { stoppedEvent };
-              exceptionStops.push(exceptionStop);
-              exceptionStopHandlers.push((async () => {
-                try {
-                  exceptionStop.exceptionInfo = redactDebugAdapterArguments(await session.customRequest('exceptionInfo', {
-                    threadId: stoppedEvent.threadId,
-                  }));
-                  await session.customRequest('continue', { threadId: stoppedEvent.threadId });
-                }
-                catch (error) {
-                  exceptionStop.error = error instanceof Error ? error.message : String(error);
-                }
-              })());
-            }
+            });
           }
         }
       };
@@ -1491,7 +1459,6 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
         session.startupCompleted &&
         typeof session.appHostPath === 'string' &&
         isSamePath(session.appHostPath, appHostPath)));
-    await Promise.allSettled(exceptionStopHandlers);
 
     return {
       proof: 'aspire-apphost-and-resource-debug-breakpoints-hit',
@@ -1520,11 +1487,9 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
-      exceptionStops,
     };
   }
   catch (error) {
-    await Promise.allSettled(exceptionStopHandlers);
     throw new Error(`${error instanceof Error ? error.message : String(error)}
 Diagnostics:
 ${JSON.stringify({
@@ -1538,7 +1503,6 @@ ${JSON.stringify({
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
-      exceptionStops,
     }, undefined, 2)}`);
   }
   finally {
@@ -2934,45 +2898,6 @@ function getE2eBreakpoints(): Array<{ filePath: string; line: number; enabled: b
       line: breakpoint.location.range.start.line,
       enabled: breakpoint.enabled,
     }));
-}
-
-// Verify the packaged extension's externally visible DCP /info response, rather
-// than only calling the in-process capability helper.
-async function getDcpRunSessionInfoForE2E({ address, token }: DcpServerConnectionInfo): Promise<unknown> {
-  return await new Promise((resolve, reject) => {
-    const request = https.get(`https://${address}/info`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'microsoft-developer-dcp-instance-id': 'aspire-extension-e2e',
-      },
-      // The opt-in E2E bridge calls the extension's loopback-only DCP server,
-      // which uses a per-session self-signed certificate.
-      rejectUnauthorized: false,
-    }, response => {
-      const chunks: Buffer[] = [];
-      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-      response.on('error', reject);
-      response.on('end', () => {
-        const body = Buffer.concat(chunks).toString('utf8');
-        if (response.statusCode !== 200) {
-          reject(new Error(`DCP /info returned HTTP ${response.statusCode}: ${body}`));
-          return;
-        }
-
-        try {
-          resolve(JSON.parse(body));
-        }
-        catch (error) {
-          reject(error);
-        }
-      });
-    });
-
-    request.on('error', reject);
-    request.setTimeout(10000, () => {
-      request.destroy(new Error('DCP /info request timed out'));
-    });
-  });
 }
 
 function getExtensionFileStatus(context: vscode.ExtensionContext, relativePaths: readonly string[]): Record<string, boolean> {

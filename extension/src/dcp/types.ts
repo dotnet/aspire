@@ -233,18 +233,6 @@ export function isAzureFunctionsLaunchConfiguration(obj: any): obj is AzureFunct
     return obj && obj.type === 'azure-functions';
 }
 
-export interface AzureFunctionsNodeLaunchConfiguration extends ExecutableLaunchConfiguration {
-    type: "azure-functions-node";
-    app_directory: string;
-    command: string;
-    language: "typescript" | "javascript";
-    worker_runtime: "node";
-}
-
-export function isAzureFunctionsNodeLaunchConfiguration(obj: any): obj is AzureFunctionsNodeLaunchConfiguration {
-    return obj && obj.type === 'azure-functions-node';
-}
-
 export interface MauiLaunchConfiguration extends ExecutableLaunchConfiguration {
     type: "maui";
     project_path: string;
