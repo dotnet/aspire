@@ -10,6 +10,7 @@ using Aspire.Cli.Acquisition;
 using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Npm;
@@ -24,10 +25,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Sigstore;
 using Tuf;
-
 #if DEBUG
 using System.Globalization;
-using Aspire.Cli.Commands;
 using Aspire.Cli.Resources;
 #endif
 

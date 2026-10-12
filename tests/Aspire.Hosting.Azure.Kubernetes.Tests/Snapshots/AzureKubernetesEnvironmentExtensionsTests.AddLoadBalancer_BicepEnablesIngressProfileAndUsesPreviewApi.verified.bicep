@@ -50,7 +50,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
   }
   sku: {
     name: 'Base'
-    tier: 'Free'
+    tier: 'Standard'
   }
   identity: {
     type: 'SystemAssigned'

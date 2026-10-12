@@ -9,7 +9,7 @@ import { EnvironmentVariables } from './environment';
 import { cliNotAvailable } from '../loc/strings';
 import { extensionLogOutputChannel } from './logging';
 import { getAppHostDiscoveryTimeoutMs } from './settings';
-import { classifyAppHostPath, summarizeAppHostLanguages } from './appHostLanguage';
+import { summarizeAppHostLanguages } from './appHostLanguage';
 import { sendTelemetryEvent } from './telemetry';
 import { appHostSourceFilePatterns, isExcludedDiscoveryCandidate, isExcludedDiscoveryUri } from './workspaceFileSearch';
 import { ConfigInfoProvider } from './configInfoProvider';
@@ -18,7 +18,7 @@ import { workspaceFolderCliPathTarget } from './cliPathVariables';
 import { isSamePath } from './paths/comparison';
 import { isSameFileSystemEntry } from './paths/fileSystemIdentity';
 import { createLsStreamCandidateHandler, parseCandidateOutput, parseLegacyGetAppHostsOutput, toCandidatesFromLegacySearchResult } from './appHostCandidateParsing';
-import { discoverProjectAppHostsFromWorkspaceFiles, discoverSourceAppHostsFromWorkspaceFiles, findConfiguredAppHostPaths, formatErrorMessage } from './appHostProjectFiles';
+import { discoverConfiguredAppHostsFromWorkspaceFiles, discoverProjectAppHostsFromWorkspaceFiles, discoverSourceAppHostsFromWorkspaceFiles, findConfiguredAppHostPaths, formatErrorMessage } from './appHostProjectFiles';
 import { findCandidateForEditorFile, findWorkspaceDefaultCandidate, getDebugTargetForCandidate, sortCandidatesByPath } from './appHostCandidateSelection';
 import type { CandidateAppHostDisplayInfo, IncrementalCandidateCallback } from './appHostCandidateTypes';
 
@@ -157,7 +157,7 @@ export class AppHostDiscoveryService implements vscode.Disposable {
                 .then(async discovery => {
                     let candidates = this._filterExcludedCandidates(workspaceFolder, discovery.candidates);
                     try {
-                        candidates = await this._includeConfiguredAppHostCandidate(workspaceFolder, candidates, candidates.length === 0);
+                        candidates = await this._selectConfiguredAppHostCandidate(workspaceFolder, candidates);
                         candidates = sortCandidatesByPath(this._filterExcludedCandidates(workspaceFolder, candidates));
                         emitAppHostDiscoveryTelemetry(discovery.source, 'success', candidates, startTime);
                     }
@@ -330,24 +330,38 @@ export class AppHostDiscoveryService implements vscode.Disposable {
             }
 
             let fileFallbackError: Error | undefined;
-            try {
-                let appHosts = await discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder);
-                if (error instanceof AppHostDiscoveryCliUnavailableError) {
-                    const sourceAppHosts = await discoverSourceAppHostsFromWorkspaceFiles(workspaceFolder, cancellationToken);
-                    appHosts.push(...sourceAppHosts.filter(candidate => !findCandidateForEditorFile(candidate.path, appHosts)));
-                    if (appHosts.length === 0) {
-                        appHosts = await this._includeConfiguredAppHostCandidate(workspaceFolder, appHosts, true);
-                    }
+            const appHosts: CandidateAppHostDisplayInfo[] = [];
+            // An unreadable project must not hide a verifiable source AppHost.
+            // Retain failures until the independent presence checks finish.
+            const addFileCandidates = async (discoverCandidates: () => Promise<CandidateAppHostDisplayInfo[]>): Promise<void> => {
+                try {
+                    const candidates = this._filterExcludedCandidates(workspaceFolder, await discoverCandidates());
+                    this._throwIfDisposed();
+                    throwIfCancellationRequested(cancellationToken);
+                    appHosts.push(...candidates.filter(candidate => !findCandidateForEditorFile(candidate.path, appHosts)));
                 }
-                throwIfCancellationRequested(cancellationToken);
-                if (appHosts.length > 0) {
-                    extensionLogOutputChannel.warn(`CLI AppHost discovery failed; using ${appHosts.length} AppHost project candidate(s) found in the workspace.`);
-                    return { source: 'workspace-files', candidates: appHosts };
+                catch (discoveryError) {
+                    this._throwIfDisposed();
+                    throwIfCancellationRequested(cancellationToken);
+                    if (discoveryError instanceof vscode.CancellationError) {
+                        throw discoveryError;
+                    }
+                    fileFallbackError ??= discoveryError instanceof Error ? discoveryError : new Error(formatErrorMessage(discoveryError));
+                    extensionLogOutputChannel.warn(`Workspace file discovery failed: ${formatErrorMessage(discoveryError)}`);
+                }
+            };
+            await addFileCandidates(() => discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder));
+            if (error instanceof AppHostDiscoveryCliUnavailableError) {
+                await addFileCandidates(() => discoverSourceAppHostsFromWorkspaceFiles(workspaceFolder, cancellationToken));
+                if (appHosts.length === 0) {
+                    await addFileCandidates(() => discoverConfiguredAppHostsFromWorkspaceFiles(workspaceFolder, cancellationToken));
                 }
             }
-            catch (error) {
-                throwIfCancellationRequested(cancellationToken);
-                fileFallbackError = error instanceof Error ? error : new Error(formatErrorMessage(error));
+            this._throwIfDisposed();
+            throwIfCancellationRequested(cancellationToken);
+            if (appHosts.length > 0) {
+                extensionLogOutputChannel.warn(`CLI AppHost discovery failed; using ${appHosts.length} AppHost candidate(s) found by file discovery.`);
+                return { source: 'workspace-files', candidates: appHosts };
             }
 
             // Only a completed file search can distinguish a missing CLI from indeterminate discovery.
@@ -522,37 +536,23 @@ export class AppHostDiscoveryService implements vscode.Disposable {
         }
     }
 
-    private async _includeConfiguredAppHostCandidate(workspaceFolder: vscode.WorkspaceFolder, candidates: CandidateAppHostDisplayInfo[], throwOnError: boolean): Promise<CandidateAppHostDisplayInfo[]> {
+    private async _selectConfiguredAppHostCandidate(
+        workspaceFolder: vscode.WorkspaceFolder,
+        candidates: CandidateAppHostDisplayInfo[]): Promise<CandidateAppHostDisplayInfo[]> {
         if (candidates.some(candidate => candidate.selected)) {
             return candidates;
         }
 
-        const configuredPaths = (await findConfiguredAppHostPaths(workspaceFolder, undefined, { throwOnError }))
-            .filter(configuredPath => !isExcludedDiscoveryCandidate(workspaceFolder, vscode.Uri.file(configuredPath)));
-        const configuredPath = configuredPaths.find(configuredPath => candidates.some(candidate => isSameFileSystemEntry(candidate.path, configuredPath)))
-            ?? configuredPaths[0];
+        const configuredPaths = await findConfiguredAppHostPaths(workspaceFolder);
+        const configuredPath = configuredPaths.find(configuredPath => candidates.some(candidate => isSameFileSystemEntry(candidate.path, configuredPath)));
         if (!configuredPath) {
             return candidates;
         }
 
-        const matchingCandidate = candidates.find(candidate => isSameFileSystemEntry(candidate.path, configuredPath));
-        if (matchingCandidate) {
-            return candidates.map(candidate => ({
-                ...candidate,
-                selected: isSameFileSystemEntry(candidate.path, configuredPath),
-            }));
-        }
-
-        const configuredLanguage = classifyAppHostPath(configuredPath);
-        return [
-            ...candidates,
-            {
-                path: configuredPath,
-                language: configuredLanguage === 'unknown' ? null : configuredLanguage,
-                status: 'buildable',
-                selected: true,
-            },
-        ];
+        return candidates.map(candidate => ({
+            ...candidate,
+            selected: isSameFileSystemEntry(candidate.path, configuredPath),
+        }));
     }
 
     private _filterExcludedCandidates(workspaceFolder: vscode.WorkspaceFolder, candidates: CandidateAppHostDisplayInfo[]): CandidateAppHostDisplayInfo[] {

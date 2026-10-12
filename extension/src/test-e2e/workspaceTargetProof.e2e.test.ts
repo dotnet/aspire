@@ -14,8 +14,6 @@ const createWithAspireActionLabels = [
 
 suite('Workspace target proof E2E', function () {
     this.timeout(900000);
-    let initTargetFixtureRoot: string | undefined;
-
     teardown(async () => {
         await runE2eTeardown([
             () => executeCommandFromPalette('Terminal: Kill All Terminals'),
@@ -23,12 +21,6 @@ suite('Workspace target proof E2E', function () {
             () => restoreE2eCliPathForE2E(),
             () => restoreWorkspaceFoldersForE2E(),
             () => writeWorkspaceSetting('files.simpleDialog.enable', undefined),
-            () => {
-                if (initTargetFixtureRoot) {
-                    fs.rmSync(initTargetFixtureRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
-                    initTargetFixtureRoot = undefined;
-                }
-            },
             () => fs.rmSync(path.join(getWorkspaceRoot(), '.new-project-output-collision'), { recursive: true, force: true }),
         ], 'Workspace target proof E2E teardown failed.');
     });
@@ -107,7 +99,9 @@ suite('Workspace target proof E2E', function () {
     test('initializes only eligible folders when an initialized folder has the active editor', async () => {
         const runRoot = getRunRoot();
         assert.ok(runRoot, 'The E2E run root is required for sibling workspace folder fixtures.');
-        initTargetFixtureRoot = path.join(runRoot, 'init-target-proof');
+        // VS Code can retain folder handles after workspace removal on Windows.
+        // The run-root owner removes this sibling fixture after VS Code exits.
+        const initTargetFixtureRoot = path.join(runRoot, 'init-target-proof');
         const folderB = path.join(initTargetFixtureRoot, 'eligible-b');
         const folderC = path.join(initTargetFixtureRoot, 'eligible-c');
         const invocationLogPath = path.join(runRoot, 'eligible-init-invocation.json');

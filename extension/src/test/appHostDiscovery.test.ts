@@ -1,7 +1,7 @@
 /// <reference types="mocha" />
 
 import * as assert from 'assert';
-import * as fs from 'fs';
+import fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { EventEmitter } from 'events';
@@ -10,7 +10,6 @@ import { PassThrough } from 'stream';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { createWithAspireCommand } from '../commands/createWithAspire';
-import { errorMessage } from '../loc/strings';
 import * as cliModule from '../utils/process/cliProcess';
 import { AppHostDiscoveryCliUnavailableError, AppHostDiscoveryService, CandidateAppHostDisplayInfo, findCandidateForEditorFile, findConfiguredAppHostPaths, getDebugTargetForCandidate, getWorkspaceAppHostProjectSearchResult, isSameFileSystemEntry, selectWorkspaceAppHostPath } from '../utils/appHostDiscovery';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
@@ -1811,12 +1810,75 @@ suite('AppHost discovery', () => {
                     path: appHostPath,
                     language: 'csharp',
                     status: 'buildable',
+                    selected: true,
                 }]);
             }
             finally {
                 service.dispose();
             }
         });
+
+        for (const selectionKind of ['enumerated', 'outside', 'alias'] as const) {
+            test(`preserves ${selectionKind} legacy CLI selection instead of overriding it from configuration`, async () => {
+                const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                try {
+                    stubFileSystemWatchers(sandbox);
+                    const workspaceRoot = path.join(fixtureRoot, 'workspace');
+                    fs.mkdirSync(workspaceRoot);
+                    const workspaceFolder = makeWorkspaceFolder(workspaceRoot);
+                    const configuredPath = path.join(workspaceFolder.uri.fsPath, 'AppHost.csproj');
+                    const selectedPath = vscode.Uri.file(path.join(fixtureRoot, 'external', 'AppHost.csproj')).fsPath;
+                    const configPath = path.join(workspaceFolder.uri.fsPath, 'aspire.config.json');
+                    fs.mkdirSync(path.dirname(selectedPath));
+                    fs.writeFileSync(selectedPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                    let cliSelectedPath = selectedPath;
+                    if (selectionKind === 'alias') {
+                        const aliasDirectory = path.join(fixtureRoot, 'alias');
+                        fs.symlinkSync(path.dirname(selectedPath), aliasDirectory, 'junction');
+                        cliSelectedPath = vscode.Uri.file(path.join(aliasDirectory, 'AppHost.csproj')).fsPath;
+                    }
+                    fs.writeFileSync(configuredPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                    fs.writeFileSync(configPath, JSON.stringify({ appHost: { path: 'AppHost.csproj' } }));
+                    findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                        const pattern = typeof include === 'string' ? include : include.pattern;
+                        return pattern.endsWith('aspire.config.json') ? [vscode.Uri.file(configPath)] : [];
+                    });
+                    sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, args = [], options) => {
+                        if (args[0] === 'ls') {
+                            options?.stderrCallback?.('aspire ls unavailable');
+                            options?.exitCallback?.(1);
+                        }
+                        else {
+                            options?.stdoutCallback?.(JSON.stringify({
+                                selected_project_file: cliSelectedPath,
+                                all_project_file_candidates: selectionKind === 'outside' ? [configuredPath] : [configuredPath, selectedPath],
+                            }));
+                            options?.exitCallback?.(0);
+                        }
+                        return { kill: () => true } as ReturnType<typeof cliModule.spawnCliProcess>;
+                    });
+                    const service = new AppHostDiscoveryService(makeTerminalProvider());
+                    try {
+                        assert.deepStrictEqual(await service.discover(workspaceFolder), [{
+                            path: selectedPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                            selected: true,
+                        }, {
+                            path: configuredPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                        }]);
+                    }
+                    finally {
+                        service.dispose();
+                    }
+                }
+                finally {
+                    removeDirectorySafely(fixtureRoot);
+                }
+            });
+        }
 
         test('filters aspire ls candidates in excluded directories', async () => {
             stubFileSystemWatchers(sandbox);
@@ -2065,89 +2127,295 @@ suite('AppHost discovery', () => {
         });
 
         test('keeps configured AppHost presence without an installed CLI', async () => {
-            stubFileSystemWatchers(sandbox);
-            const configUri = vscode.Uri.file(buildPath('workspace', 'aspire.config.json')).with({ scheme: 'aspire-discovery-test' });
-            const appHostPath = buildPath('workspace', 'custom-host.mts');
-            const fileSystemRegistration = vscode.workspace.registerFileSystemProvider(
-                'aspire-discovery-test',
-                new InMemoryProjectFileSystemProvider(new Map([[configUri.path, JSON.stringify({ appHost: { path: appHostPath } })]])),
-                { isCaseSensitive: true });
-            findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
-                const pattern = typeof include === 'string' ? include : include.pattern;
-                return pattern.endsWith('aspire.config.json') ? [configUri] : [];
-            });
-            const terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
-            terminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
-            const service = new AppHostDiscoveryService(terminalProvider);
-
+            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
             try {
-                assert.deepStrictEqual(await service.discover(makeWorkspaceFolder(buildPath('workspace'))), [{
-                    path: appHostPath,
-                    language: 'typescript',
-                    status: 'buildable',
-                    selected: true,
-                }]);
+                stubFileSystemWatchers(sandbox);
+                const configUri = vscode.Uri.file(path.join(tempDir, 'aspire.config.json'));
+                const appHostPath = path.join(tempDir, 'custom-host.mts');
+                fs.writeFileSync(appHostPath, 'export {};');
+                fs.writeFileSync(configUri.fsPath, JSON.stringify({ appHost: { path: appHostPath } }));
+                findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                    const pattern = typeof include === 'string' ? include : include.pattern;
+                    return pattern.endsWith('aspire.config.json') ? [configUri] : [];
+                });
+                const terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+                terminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                const service = new AppHostDiscoveryService(terminalProvider);
+
+                try {
+                    assert.deepStrictEqual(await service.discover(makeWorkspaceFolder(tempDir)), [{
+                        path: appHostPath,
+                        language: 'typescript',
+                        status: 'possibly-unbuildable',
+                        selected: true,
+                    }]);
+                }
+                finally {
+                    service.dispose();
+                }
             }
             finally {
-                service.dispose();
-                fileSystemRegistration.dispose();
+                removeDirectorySafely(tempDir);
             }
         });
 
         for (const format of ['current', 'legacy']) {
-            for (const cliAvailable of [false, true]) {
-                for (const excludedFirst of [false, true]) {
-                    test(`keeps ${format} configured AppHost presence with ${excludedFirst ? 'excluded' : 'valid'} path first when the CLI is ${cliAvailable ? 'available' : 'unavailable'}`, async () => {
-                        stubFileSystemWatchers(sandbox);
-                        const folder = makeWorkspaceFolder(buildPath('workspace'));
-                        sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
-                        const appHostPath = buildPath('workspace', 'AppHost', 'custom-host.mts');
-                        const excludedPath = buildPath('workspace', '.agents', 'skills', 'demo', 'custom-host.mts');
-                        const configuredPaths = excludedFirst ? [excludedPath, appHostPath] : [appHostPath, excludedPath];
-                        const configUris = configuredPaths.map((_, index) => vscode.Uri.file(format === 'current'
-                            ? buildPath('workspace', `config-${index}`, 'aspire.config.json')
-                            : buildPath('workspace', `config-${index}`, '.aspire', 'settings.json')).with({ scheme: 'aspire-discovery-test' }));
-                        const files = new Map(configUris.map((uri, index) => [uri.path, JSON.stringify(format === 'current'
-                            ? { appHost: { path: configuredPaths[index] } }
-                            : { appHostPath: configuredPaths[index] })]));
-                        const fileSystemRegistration = vscode.workspace.registerFileSystemProvider(
-                            'aspire-discovery-test',
-                            new InMemoryProjectFileSystemProvider(files),
-                            { isCaseSensitive: true });
-                        const configPattern = format === 'current' ? '**/aspire.config.json' : '**/.aspire/settings.json';
-                        findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
-                            const pattern = typeof include === 'string' ? include : include.pattern;
-                            return pattern === configPattern ? configUris : [];
-                        });
-                        const terminalProvider = makeTerminalProvider();
-                        if (!cliAvailable) {
-                            sandbox.stub(terminalProvider, 'resolveAspireCliPath').resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
-                        }
-                        sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
-                            emitLsOutput(options, []);
-                            return makeCompletedCliProcess();
-                        });
-                        const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
-                        const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
-                        sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
-                        const service = new AppHostDiscoveryService(terminalProvider);
-
+            for (const projectFirst of [false, true]) {
+                for (const sourceKind of ['canonical', 'configured', 'missing']) {
+                    test(`completes offline file checks despite unreadable projects (${format}, ${projectFirst ? 'project' : 'source'} first, ${sourceKind} source)`, async () => {
+                        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
                         try {
-                            assert.deepStrictEqual(await service.discover(folder), [{
-                                path: appHostPath,
-                                language: 'typescript',
-                                status: 'buildable',
-                                selected: true,
-                            }]);
+                            stubFileSystemWatchers(sandbox);
+                            const folder = makeWorkspaceFolder(tempDir);
+                            sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
+                            const projectUri = vscode.Uri.file(path.join(tempDir, 'Unreadable.csproj')).with({ scheme: 'aspire-discovery-test' });
+                            const sourcePath = vscode.Uri.file(path.join(tempDir, sourceKind === 'canonical' ? 'apphost.mts' : 'custom-host.mts')).fsPath;
+                            if (sourceKind !== 'missing') {
+                                fs.writeFileSync(sourcePath, 'export {};');
+                            }
+                            const files = new Map<string, string | Error>([[projectUri.path, vscode.FileSystemError.NoPermissions(projectUri)]]);
+                            const configuredPaths = projectFirst ? [projectUri.fsPath, sourcePath] : [sourcePath, projectUri.fsPath];
+                            const configUris = configuredPaths.map((configuredPath, index) => {
+                                const uri = vscode.Uri.file(format === 'current'
+                                    ? path.join(tempDir, `config-${index}`, 'aspire.config.json')
+                                    : path.join(tempDir, `config-${index}`, '.aspire', 'settings.json')).with({ scheme: 'aspire-discovery-test' });
+                                files.set(uri.path, JSON.stringify(format === 'current'
+                                    ? { appHost: { path: configuredPath } }
+                                    : { appHostPath: configuredPath }));
+                                return uri;
+                            });
+                            const fileSystemRegistration = vscode.workspace.registerFileSystemProvider(
+                                'aspire-discovery-test',
+                                new InMemoryProjectFileSystemProvider(files),
+                                { isCaseSensitive: true });
+                            const configPattern = format === 'current' ? '**/aspire.config.json' : '**/.aspire/settings.json';
+                            findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                                const pattern = typeof include === 'string' ? include : include.pattern;
+                                return pattern === configPattern ? configUris
+                                    : pattern.endsWith('*.csproj') ? [projectUri]
+                                        : sourceKind === 'canonical' && pattern.includes('**/apphost.mts') ? [vscode.Uri.file(sourcePath)]
+                                            : [];
+                            });
+                            const terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+                            terminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                            const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+                            const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
+                            sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
+                            const service = new AppHostDiscoveryService(terminalProvider);
 
-                            await createWithAspireCommand(service);
+                            try {
+                                if (sourceKind === 'missing') {
+                                    await assert.rejects(service.discover(folder), error =>
+                                        error instanceof Error
+                                        && !(error instanceof AppHostDiscoveryCliUnavailableError)
+                                        && error.message.includes('Failed to read possible AppHost project'));
+                                }
+                                else {
+                                    assert.deepStrictEqual(await service.discover(folder), [{
+                                        path: sourcePath,
+                                        language: 'typescript',
+                                        status: 'possibly-unbuildable',
+                                        selected: true,
+                                    }]);
+                                }
 
-                            assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined), ['aspire-vscode.new']);
-                            assert.strictEqual(showErrorStub.called, false);
+                                await createWithAspireCommand(service);
+
+                                assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined),
+                                    ['aspire-vscode.new']);
+                                assert.strictEqual(showErrorStub.callCount, sourceKind === 'missing' ? 1 : 0);
+                            }
+                            finally {
+                                service.dispose();
+                                fileSystemRegistration.dispose();
+                            }
                         }
                         finally {
-                            service.dispose();
-                            fileSystemRegistration.dispose();
+                            removeDirectorySafely(tempDir);
+                        }
+                    });
+                }
+            }
+        }
+
+        for (const resultKind of ['project', 'configured-source', 'empty', 'canceled', 'disposed']) {
+            test(`preserves ${resultKind} results when offline source search fails`, async () => {
+                const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                try {
+                    stubFileSystemWatchers(sandbox);
+                    const folder = makeWorkspaceFolder(tempDir);
+                    const projectUri = vscode.Uri.file(path.join(tempDir, 'AppHost.csproj'));
+                    const sourceUri = vscode.Uri.file(path.join(tempDir, 'custom-host.mts'));
+                    const configUri = vscode.Uri.file(path.join(tempDir, 'aspire.config.json'));
+                    const hasProject = ['project', 'canceled', 'disposed'].includes(resultKind);
+                    if (hasProject) {
+                        fs.writeFileSync(projectUri.fsPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                    }
+                    if (resultKind === 'configured-source') {
+                        fs.writeFileSync(sourceUri.fsPath, 'export {};');
+                        fs.writeFileSync(configUri.fsPath, JSON.stringify({ appHost: { path: sourceUri.fsPath } }));
+                    }
+                    const terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+                    terminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                    const service = new AppHostDiscoveryService(terminalProvider);
+                    findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                        const pattern = typeof include === 'string' ? include : include.pattern;
+                        if (pattern.includes('**/apphost.mts')) {
+                            if (resultKind === 'canceled') {
+                                throw new vscode.CancellationError();
+                            }
+                            if (resultKind === 'disposed') {
+                                service.dispose();
+                            }
+                            throw new Error('source file search failed');
+                        }
+                        return pattern.endsWith('*.csproj') && hasProject ? [projectUri]
+                            : pattern.endsWith('aspire.config.json') && resultKind === 'configured-source' ? [configUri]
+                                : [];
+                    });
+
+                    try {
+                        if (resultKind === 'canceled') {
+                            await assert.rejects(service.discover(folder), vscode.CancellationError);
+                        }
+                        else if (resultKind === 'disposed') {
+                            await assert.rejects(service.discover(folder), /disposed/);
+                        }
+                        else if (resultKind === 'empty') {
+                            await assert.rejects(service.discover(folder), error =>
+                                error instanceof Error
+                                && !(error instanceof AppHostDiscoveryCliUnavailableError)
+                                && error.message.includes('source file search failed'));
+                        }
+                        else {
+                            assert.deepStrictEqual(await service.discover(folder), [resultKind === 'project' ? {
+                                path: projectUri.fsPath,
+                                language: 'csharp',
+                                status: 'buildable',
+                            } : {
+                                path: sourceUri.fsPath,
+                                language: 'typescript',
+                                status: 'possibly-unbuildable',
+                                selected: true,
+                            }]);
+                        }
+                    }
+                    finally {
+                        service.dispose();
+                    }
+                }
+                finally {
+                    removeDirectorySafely(tempDir);
+                }
+            });
+        }
+
+        for (const target of [
+            { name: 'missing source', fileName: 'missing-host.mts', contents: undefined, directory: false },
+            { name: 'source directory', fileName: 'custom-host.mts', contents: undefined, directory: true },
+            { name: 'missing project', fileName: 'missing-host.csproj', contents: undefined, directory: false },
+            { name: 'project directory', fileName: 'custom-host.csproj', contents: undefined, directory: true },
+            { name: 'ordinary project', fileName: 'custom-host.csproj', contents: '<Project Sdk="Microsoft.NET.Sdk" />', directory: false },
+            { name: 'unsupported file', fileName: 'custom-host.txt', contents: 'not an AppHost', directory: false },
+        ]) {
+            test(`does not infer AppHost presence from a configured ${target.name} without an installed CLI`, async () => {
+                const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                try {
+                    stubFileSystemWatchers(sandbox);
+                    const appHostPath = path.join(tempDir, target.fileName);
+                    if (target.directory) {
+                        fs.mkdirSync(appHostPath);
+                    }
+                    else if (target.contents !== undefined) {
+                        fs.writeFileSync(appHostPath, target.contents);
+                    }
+                    const configUri = vscode.Uri.file(path.join(tempDir, 'aspire.config.json'));
+                    fs.writeFileSync(configUri.fsPath, JSON.stringify({ appHost: { path: appHostPath } }));
+                    findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                        const pattern = typeof include === 'string' ? include : include.pattern;
+                        return pattern.endsWith('aspire.config.json') ? [configUri] : [];
+                    });
+                    const terminalProvider = sandbox.createStubInstance(AspireTerminalProvider);
+                    terminalProvider.resolveAspireCliPath.resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                    const service = new AppHostDiscoveryService(terminalProvider);
+
+                    try {
+                        await assert.rejects(service.discover(makeWorkspaceFolder(tempDir)), AppHostDiscoveryCliUnavailableError);
+                    }
+                    finally {
+                        service.dispose();
+                    }
+                }
+                finally {
+                    removeDirectorySafely(tempDir);
+                }
+            });
+        }
+
+        for (const format of ['current', 'legacy']) {
+            for (const cliAvailable of [false, true]) {
+                for (const excludedFirst of [false, true]) {
+                    test(`uses ${cliAvailable ? 'authoritative CLI' : 'verified file'} discovery with ${format} configuration and ${excludedFirst ? 'excluded' : 'valid'} path first`, async () => {
+                        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                        try {
+                            stubFileSystemWatchers(sandbox);
+                            const folder = makeWorkspaceFolder(tempDir);
+                            sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
+                            const appHostPath = path.join(tempDir, 'AppHost', 'custom-host.mts');
+                            const excludedPath = path.join(tempDir, '.agents', 'skills', 'demo', 'apphost.mts');
+                            const configuredPaths = excludedFirst ? [excludedPath, appHostPath] : [appHostPath, excludedPath];
+                            const configUris = configuredPaths.map((configuredPath, index) => {
+                                fs.mkdirSync(path.dirname(configuredPath), { recursive: true });
+                                fs.writeFileSync(configuredPath, 'export {};');
+                                const uri = vscode.Uri.file(format === 'current'
+                                    ? path.join(tempDir, `config-${index}`, 'aspire.config.json')
+                                    : path.join(tempDir, `config-${index}`, '.aspire', 'settings.json'));
+                                fs.mkdirSync(path.dirname(uri.fsPath), { recursive: true });
+                                fs.writeFileSync(uri.fsPath, JSON.stringify(format === 'current'
+                                    ? { appHost: { path: configuredPath } }
+                                    : { appHostPath: configuredPath }));
+                                return uri;
+                            });
+                            const configPattern = format === 'current' ? '**/aspire.config.json' : '**/.aspire/settings.json';
+                            findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                                const pattern = typeof include === 'string' ? include : include.pattern;
+                                return pattern === configPattern ? configUris
+                                    : pattern.includes('**/apphost.mts') ? [vscode.Uri.file(excludedPath)]
+                                        : [];
+                            });
+                            const terminalProvider = makeTerminalProvider();
+                            if (!cliAvailable) {
+                                sandbox.stub(terminalProvider, 'resolveAspireCliPath').resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                            }
+                            sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
+                                emitLsOutput(options, []);
+                                return makeCompletedCliProcess();
+                            });
+                            const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+                            const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
+                            sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
+                            const service = new AppHostDiscoveryService(terminalProvider);
+
+                            try {
+                                assert.deepStrictEqual(await service.discover(folder), cliAvailable ? [] : [{
+                                    path: appHostPath,
+                                    language: 'typescript',
+                                    status: 'possibly-unbuildable',
+                                    selected: true,
+                                }]);
+
+                                await createWithAspireCommand(service);
+
+                                assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined),
+                                    cliAvailable ? ['aspire-vscode.new', 'aspire-vscode.init'] : ['aspire-vscode.new']);
+                                assert.strictEqual(showErrorStub.called, false);
+                            }
+                            finally {
+                                service.dispose();
+                            }
+                        }
+                        finally {
+                            removeDirectorySafely(tempDir);
                         }
                     });
                 }
@@ -2160,7 +2428,7 @@ suite('AppHost discovery', () => {
                 { name: 'unreadable configuration', searchError: undefined, contents: undefined },
                 { name: 'malformed configuration', searchError: undefined, contents: '{invalid JSON' },
             ]) {
-                test(`${candidateKind === 'known' ? 'keeps known AppHost presence' : `rejects ${candidateKind} CLI discovery`} with ${scenario.name}`, async () => {
+                test(`keeps ${candidateKind} authoritative CLI discovery with ${scenario.name}`, async () => {
                     stubFileSystemWatchers(sandbox);
                     const folder = makeWorkspaceFolder(buildPath('workspace'));
                     sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
@@ -2198,32 +2466,16 @@ suite('AppHost discovery', () => {
                     const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
                     const executeCommandStub = sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
                     const service = new AppHostDiscoveryService(makeTerminalProvider());
-                    let discoveryError: unknown;
-
                     try {
-                        if (candidateKind === 'known') {
-                            assert.deepStrictEqual(await service.discover(folder), candidates);
-                        }
-                        else {
-                            await assert.rejects(service.discover(folder), error => {
-                                discoveryError = error;
-                                return error instanceof Error && !(error instanceof AppHostDiscoveryCliUnavailableError);
-                            });
-                        }
+                        assert.deepStrictEqual(await service.discover(folder), candidateKind === 'known' ? candidates : []);
 
                         await createWithAspireCommand(service);
 
-                        assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined), ['aspire-vscode.new']);
+                        assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined),
+                            candidateKind === 'known' ? ['aspire-vscode.new'] : ['aspire-vscode.new', 'aspire-vscode.init']);
                         assert.ok(executeCommandStub.calledOnceWithExactly('aspire-vscode.new', 'tree'));
-                        if (candidateKind === 'known') {
-                            assert.strictEqual(showErrorStub.called, false);
-                            assert.strictEqual(spawnStub.callCount, 1);
-                        }
-                        else {
-                            assert.strictEqual(showErrorStub.callCount, 1);
-                            assert.deepStrictEqual(showErrorStub.firstCall.args, [errorMessage(discoveryError)]);
-                            assert.strictEqual(spawnStub.callCount, 2);
-                        }
+                        assert.strictEqual(showErrorStub.called, false);
+                        assert.strictEqual(spawnStub.callCount, 1);
                     }
                     finally {
                         service.dispose();
@@ -2235,59 +2487,75 @@ suite('AppHost discovery', () => {
 
         for (const format of ['current', 'legacy']) {
             for (const cliAvailable of [false, true]) {
-                test(`finds ${format} configured AppHost beyond the bounded search when the CLI is ${cliAvailable ? 'available' : 'unavailable'}`, async () => {
-                    stubFileSystemWatchers(sandbox);
-                    const folder = makeWorkspaceFolder(buildPath('workspace'));
-                    sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
-                    const appHostPath = buildPath('workspace', 'custom-host.mts');
-                    const configUris = Array.from({ length: appHostDiscoveryFindFilesMaxResults + 1 }, (_, index) =>
-                        vscode.Uri.file(format === 'current'
-                            ? buildPath('workspace', `config-${index}`, 'aspire.config.json')
-                            : buildPath('workspace', `config-${index}`, '.aspire', 'settings.json')).with({ scheme: 'aspire-discovery-test' }));
-                    const files = new Map(configUris.map(uri => [uri.path, '{}']));
-                    files.set(configUris[configUris.length - 1].path, JSON.stringify(format === 'current'
-                        ? { appHost: { path: appHostPath } }
-                        : { appHostPath }));
-                    const fileSystemRegistration = vscode.workspace.registerFileSystemProvider(
-                        'aspire-discovery-test',
-                        new InMemoryProjectFileSystemProvider(files),
-                        { isCaseSensitive: true });
-                    const configPattern = format === 'current' ? '**/aspire.config.json' : '**/.aspire/settings.json';
-                    findFilesStub.callsFake(async (include: vscode.GlobPattern, _exclude, maxResults) => {
-                        const pattern = typeof include === 'string' ? include : include.pattern;
-                        return pattern === configPattern ? configUris.slice(0, maxResults) : [];
+                for (const target of [
+                    { name: 'source', fileName: 'custom-host.mts', contents: 'export {};', language: 'typescript', status: 'possibly-unbuildable' },
+                    { name: 'project', fileName: 'custom-host.csproj', contents: '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />', language: 'csharp', status: 'buildable' },
+                ]) {
+                    test(`completes ${format} ${target.name} configuration checks beyond the bounded search when the CLI is ${cliAvailable ? 'available' : 'unavailable'}`, async () => {
+                        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                        try {
+                            stubFileSystemWatchers(sandbox);
+                            const workspaceRoot = path.join(tempDir, 'workspace');
+                            fs.mkdirSync(workspaceRoot);
+                            const folder = makeWorkspaceFolder(workspaceRoot);
+                            sandbox.stub(vscode.workspace, 'workspaceFolders').value([folder]);
+                            const appHostPath = path.join(tempDir, target.fileName);
+                            fs.writeFileSync(appHostPath, target.contents);
+                            const configUris = Array.from({ length: appHostDiscoveryFindFilesMaxResults + 1 }, (_, index) => {
+                                const uri = vscode.Uri.file(format === 'current'
+                                    ? path.join(workspaceRoot, `config-${index}`, 'aspire.config.json')
+                                    : path.join(workspaceRoot, `config-${index}`, '.aspire', 'settings.json'));
+                                fs.mkdirSync(path.dirname(uri.fsPath), { recursive: true });
+                                fs.writeFileSync(uri.fsPath, index === appHostDiscoveryFindFilesMaxResults
+                                    ? JSON.stringify(format === 'current' ? { appHost: { path: appHostPath } } : { appHostPath })
+                                    : '{}');
+                                return uri;
+                            });
+                            const configPattern = format === 'current' ? '**/aspire.config.json' : '**/.aspire/settings.json';
+                            findFilesStub.callsFake(async (include: vscode.GlobPattern, _exclude, maxResults) => {
+                                const pattern = typeof include === 'string' ? include : include.pattern;
+                                return pattern === configPattern ? configUris.slice(0, maxResults) : [];
+                            });
+                            const terminalProvider = makeTerminalProvider();
+                            if (!cliAvailable) {
+                                sandbox.stub(terminalProvider, 'resolveAspireCliPath').resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
+                            }
+                            sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
+                                emitLsOutput(options, []);
+                                return makeCompletedCliProcess();
+                            });
+                            const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+                            const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
+                            sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
+                            const service = new AppHostDiscoveryService(terminalProvider);
+
+                            try {
+                                assert.deepStrictEqual(await service.discover(folder), cliAvailable ? [] : [{
+                                    path: appHostPath,
+                                    language: target.language,
+                                    status: target.status,
+                                }]);
+                                assert.ok(findFilesStub.getCalls().some(call => {
+                                    const include: vscode.GlobPattern = call.args[0];
+                                    const pattern = typeof include === 'string' ? include : include.pattern;
+                                    return pattern === configPattern && call.args[2] === (cliAvailable ? appHostDiscoveryFindFilesMaxResults : undefined);
+                                }));
+
+                                await createWithAspireCommand(service);
+
+                                assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined),
+                                    cliAvailable ? ['aspire-vscode.new', 'aspire-vscode.init'] : ['aspire-vscode.new']);
+                                assert.strictEqual(showErrorStub.called, false);
+                            }
+                            finally {
+                                service.dispose();
+                            }
+                        }
+                        finally {
+                            removeDirectorySafely(tempDir);
+                        }
                     });
-                    const terminalProvider = makeTerminalProvider();
-                    if (!cliAvailable) {
-                        sandbox.stub(terminalProvider, 'resolveAspireCliPath').resolves({ cliPath: 'aspire', available: false, source: 'not-found' });
-                    }
-                    sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
-                        emitLsOutput(options, []);
-                        return makeCompletedCliProcess();
-                    });
-                    const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
-                    const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
-                    sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
-                    const service = new AppHostDiscoveryService(terminalProvider);
-
-                    try {
-                        assert.deepStrictEqual(await service.discover(folder), [{
-                            path: appHostPath,
-                            language: 'typescript',
-                            status: 'buildable',
-                            selected: true,
-                        }]);
-
-                        await createWithAspireCommand(service);
-
-                        assert.deepStrictEqual((await showQuickPickStub.firstCall.args[0]).map(item => 'command' in item ? item.command : undefined), ['aspire-vscode.new']);
-                        assert.strictEqual(showErrorStub.called, false);
-                    }
-                    finally {
-                        service.dispose();
-                        fileSystemRegistration.dispose();
-                    }
-                });
+                }
             }
         }
 
@@ -2380,6 +2648,7 @@ suite('AppHost discovery', () => {
                     path: appHostPath,
                     language: 'csharp',
                     status: 'buildable',
+                    selected: true,
                 }]);
             }
             finally {
@@ -2813,8 +3082,11 @@ suite('AppHost discovery', () => {
                         : [];
                 });
                 sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
-                    options?.stdoutCallback?.('[]');
-                    options?.exitCallback?.(0);
+                    emitLsOutput(options, [{
+                        path: appHostProjectPath,
+                        language: 'csharp',
+                        status: 'buildable',
+                    }]);
                     return { kill: () => { } } as any;
                 });
                 const service = new AppHostDiscoveryService(makeTerminalProvider());
@@ -2901,6 +3173,309 @@ suite('AppHost discovery', () => {
                 removeDirectorySafely(tempDir);
             }
         });
+
+        test('does not re-add configured AppHost path that no longer exists on disk', async () => {
+            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+            try {
+                stubFileSystemWatchers(sandbox);
+                const configPath = path.join(tempDir, 'aspire.config.json');
+                const realAppHostPath = path.join(tempDir, 'aspire-apphost.csproj');
+
+                fs.writeFileSync(realAppHostPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                fs.writeFileSync(configPath, JSON.stringify({ appHost: { path: 'aspire_apphost.csproj' } }));
+                findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                    const pattern = typeof include === 'string' ? include : include.pattern;
+                    return pattern.endsWith('aspire.config.json')
+                        ? [vscode.Uri.file(configPath)]
+                        : [];
+                });
+                sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
+                    emitLsOutput(options, [
+                        {
+                            path: realAppHostPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                        },
+                    ]);
+                    return { kill: () => { } } as any;
+                });
+                const service = new AppHostDiscoveryService(makeTerminalProvider());
+
+                try {
+                    const result = await service.discover(makeWorkspaceFolder(tempDir));
+
+                    assert.deepStrictEqual(result, [
+                        {
+                            path: realAppHostPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                        },
+                    ]);
+                }
+                finally {
+                    service.dispose();
+                }
+            }
+            finally {
+                removeDirectorySafely(tempDir);
+            }
+        });
+
+        for (const discoveryMode of ['streaming', 'buffered', 'buffered-after-stream-error', 'legacy'] as const) {
+            for (const hasCandidates of [true, false]) {
+                test(`does not append configured files after successful ${discoveryMode} discovery with ${hasCandidates ? 'candidates' : 'no candidates'}`, async () => {
+                    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                    try {
+                        stubFileSystemWatchers(sandbox);
+                        getConfigInfoStub.resolves({
+                            capabilities: discoveryMode === 'buffered' ? [] : [lsJsonStreamCapability],
+                        });
+                        const workspaceFolder = makeWorkspaceFolder(tempDir);
+                        const configPath = path.join(tempDir, 'aspire.config.json');
+                        const configuredAppHostPath = path.join(workspaceFolder.uri.fsPath, 'AppHost', 'AppHost.csproj');
+                        const candidates: CandidateAppHostDisplayInfo[] = hasCandidates ? [{
+                            path: path.join(workspaceFolder.uri.fsPath, 'Other', 'AppHost.csproj'),
+                            language: 'csharp',
+                            status: 'buildable',
+                        }] : [];
+
+                        fs.mkdirSync(path.dirname(configuredAppHostPath), { recursive: true });
+                        fs.writeFileSync(configuredAppHostPath, discoveryMode === 'legacy'
+                            ? '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />'
+                            : '<Project Sdk="Microsoft.NET.Sdk" />');
+                        fs.writeFileSync(configPath, JSON.stringify({ appHost: { path: 'AppHost/AppHost.csproj' } }));
+                        findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                            const pattern = typeof include === 'string' ? include : include.pattern;
+                            return pattern.endsWith('aspire.config.json')
+                                ? [vscode.Uri.file(configPath)]
+                                : [];
+                        });
+                        const spawnStub = sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, args = [], options) => {
+                            if (discoveryMode === 'legacy' && args[0] === 'extension') {
+                                options?.stdoutCallback?.(JSON.stringify({
+                                    selected_project_file: null,
+                                    all_project_file_candidates: candidates.map(candidate => candidate.path),
+                                }));
+                                options?.exitCallback?.(0);
+                            }
+                            else if (discoveryMode === 'legacy' || (discoveryMode === 'buffered-after-stream-error' && args.includes('--stream'))) {
+                                options?.stderrCallback?.('streaming discovery unavailable');
+                                options?.exitCallback?.(1);
+                            }
+                            else {
+                                emitLsOutput(options, candidates);
+                            }
+                            return { kill: () => true } as ReturnType<typeof cliModule.spawnCliProcess>;
+                        });
+                        const service = new AppHostDiscoveryService(makeTerminalProvider());
+
+                        try {
+                            assert.deepStrictEqual(await service.discover(workspaceFolder), candidates);
+                            if (discoveryMode === 'legacy') {
+                                assert.deepStrictEqual(spawnStub.lastCall.args[2]?.slice(0, 2), ['extension', 'get-apphosts']);
+                            }
+                            else {
+                                assert.ok(spawnStub.getCalls().every(call => call.args[2]?.[0] === 'ls'));
+                            }
+                        }
+                        finally {
+                            service.dispose();
+                        }
+                    }
+                    finally {
+                        removeDirectorySafely(tempDir);
+                    }
+                });
+            }
+        }
+
+        for (const configuredTarget of ['csharp-project', 'fsharp-project', 'visualbasic-project', 'external-only-project', 'ordinary-project', 'alias', 'missing', 'directory', 'unreadable', 'unsupported-file'] as const) {
+            test(`workspace file discovery validates a configured ${configuredTarget} instead of assuming it is buildable`, async () => {
+                const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                try {
+                    stubFileSystemWatchers(sandbox);
+                    const workspaceRoot = path.join(fixtureRoot, 'workspace');
+                    fs.mkdirSync(workspaceRoot);
+                    const workspaceFolder = makeWorkspaceFolder(workspaceRoot);
+                    const configPath = path.join(workspaceFolder.uri.fsPath, 'aspire.config.json');
+                    const configuredExtension = configuredTarget === 'fsharp-project' ? '.fsproj'
+                        : configuredTarget === 'visualbasic-project' ? '.vbproj'
+                        : configuredTarget === 'unsupported-file' ? '.ts' : '.csproj';
+                    const configuredAppHostPath = vscode.Uri.file(path.join(fixtureRoot, 'external', `AppHost${configuredExtension}`)).fsPath;
+                    const otherAppHostPath = path.join(workspaceFolder.uri.fsPath, 'Other', 'AppHost.csproj');
+                    const hasWorkspaceAppHost = configuredTarget !== 'external-only-project';
+                    const expectedCandidates: CandidateAppHostDisplayInfo[] = hasWorkspaceAppHost ? [{
+                        path: otherAppHostPath,
+                        language: 'csharp',
+                        status: 'buildable',
+                    }] : [];
+
+                    if (hasWorkspaceAppHost) {
+                        fs.mkdirSync(path.dirname(otherAppHostPath), { recursive: true });
+                        fs.writeFileSync(otherAppHostPath, '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                    }
+                    if (configuredTarget === 'directory') {
+                        fs.mkdirSync(configuredAppHostPath, { recursive: true });
+                    }
+                    else if (configuredTarget === 'alias') {
+                        fs.symlinkSync(path.dirname(otherAppHostPath), path.dirname(configuredAppHostPath), 'junction');
+                        expectedCandidates[0].selected = true;
+                    }
+                    else if (configuredTarget !== 'missing') {
+                        fs.mkdirSync(path.dirname(configuredAppHostPath), { recursive: true });
+                        fs.writeFileSync(configuredAppHostPath, configuredTarget === 'ordinary-project'
+                            ? '<Project Sdk="Microsoft.NET.Sdk" />'
+                            : '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />');
+                    }
+                    if (['csharp-project', 'fsharp-project', 'visualbasic-project', 'external-only-project'].includes(configuredTarget)) {
+                        for (const candidate of expectedCandidates) {
+                            candidate.selected = false;
+                        }
+                        expectedCandidates.unshift({
+                            path: configuredAppHostPath,
+                            language: configuredTarget === 'fsharp-project' ? 'fsharp'
+                                : configuredTarget === 'visualbasic-project' ? 'visualbasic' : 'csharp',
+                            status: 'buildable',
+                            selected: true,
+                        });
+                    }
+                    if (configuredTarget === 'unreadable') {
+                        const workspaceFs = vscode.workspace.fs;
+                        sandbox.stub(vscode.workspace, 'fs').value({
+                            ...workspaceFs,
+                            readFile: sandbox.stub().callsFake((uri: vscode.Uri) => {
+                                if (isSameFileSystemEntry(uri.fsPath, configuredAppHostPath)) {
+                                    throw vscode.FileSystemError.NoPermissions(uri);
+                                }
+                                return workspaceFs.readFile(uri);
+                            }),
+                        });
+                    }
+                    fs.writeFileSync(configPath, JSON.stringify({ appHost: { path: configuredAppHostPath } }));
+                    findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                        const pattern = typeof include === 'string' ? include : include.pattern;
+                        if (pattern.endsWith('aspire.config.json')) {
+                            return [vscode.Uri.file(configPath)];
+                        }
+                        return pattern.endsWith('*.csproj') && hasWorkspaceAppHost ? [vscode.Uri.file(otherAppHostPath)] : [];
+                    });
+                    sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
+                        options?.stderrCallback?.('CLI discovery unavailable');
+                        options?.exitCallback?.(1);
+                        return { kill: () => true } as ReturnType<typeof cliModule.spawnCliProcess>;
+                    });
+                    const service = new AppHostDiscoveryService(makeTerminalProvider());
+
+                    try {
+                        assert.deepStrictEqual(await service.discover(workspaceFolder), expectedCandidates);
+                    }
+                    finally {
+                        service.dispose();
+                    }
+                }
+                finally {
+                    removeDirectorySafely(fixtureRoot);
+                }
+            });
+        }
+
+        for (const collision of ['same-file', 'different-apphost', 'different-ordinary-project'] as const) {
+            test(`workspace file fallback preserves configured case-only paths for ${collision}`, async () => {
+                const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
+                try {
+                    stubFileSystemWatchers(sandbox);
+                    sandbox.stub(process, 'platform').value('win32');
+                    const workspaceFolder = makeWorkspaceFolder(path.join(fixtureRoot, 'Repo'));
+                    const scannedPath = path.join(workspaceFolder.uri.fsPath, 'AppHost.csproj');
+                    const configuredPath = vscode.Uri.file(path.join(fixtureRoot, 'repo', 'AppHost.csproj')).fsPath;
+                    const configPath = path.join(workspaceFolder.uri.fsPath, 'aspire.config.json');
+                    const appHostContents = '<Project Sdk="Aspire.AppHost.Sdk/13.5.0" />';
+                    const scannedContents = collision === 'different-ordinary-project'
+                        ? '<Project Sdk="Microsoft.NET.Sdk" />' : appHostContents;
+                    const scannedFixturePath = path.join(fixtureRoot, 'scanned.csproj');
+                    const configuredFixturePath = path.join(fixtureRoot, 'configured.csproj');
+                    fs.writeFileSync(scannedFixturePath, scannedContents);
+                    fs.writeFileSync(configuredFixturePath, appHostContents);
+
+                    // Simulate per-directory Windows case sensitivity without changing the
+                    // host's NTFS settings. Real fixture files supply the native identities.
+                    const scannedStats = fs.statSync(scannedFixturePath, { bigint: true });
+                    const configuredStats = collision === 'same-file'
+                        ? scannedStats : fs.statSync(configuredFixturePath, { bigint: true });
+                    const statSync = fs.statSync;
+                    sandbox.stub(fs, 'statSync').callsFake((filePath, options) => {
+                        if (typeof filePath === 'string') {
+                            const resolvedPath = path.resolve(filePath);
+                            if (resolvedPath === path.resolve(scannedPath)) {
+                                return scannedStats;
+                            }
+                            if (resolvedPath === path.resolve(configuredPath)) {
+                                return configuredStats;
+                            }
+                        }
+                        return statSync(filePath, options);
+                    });
+                    assert.strictEqual(isSameFileSystemEntry(scannedPath, configuredPath), collision === 'same-file');
+
+                    const contentsByPath = new Map([
+                        [configPath, JSON.stringify({ appHost: { path: configuredPath } })],
+                        [scannedPath, scannedContents],
+                        [configuredPath, appHostContents],
+                    ]);
+                    const workspaceFs = vscode.workspace.fs;
+                    sandbox.stub(vscode.workspace, 'fs').value({
+                        ...workspaceFs,
+                        readFile: sandbox.stub().callsFake((uri: vscode.Uri) => {
+                            const contents = contentsByPath.get(uri.fsPath);
+                            return contents === undefined
+                                ? workspaceFs.readFile(uri) : Promise.resolve(Buffer.from(contents, 'utf8'));
+                        }),
+                    });
+                    findFilesStub.callsFake(async (include: vscode.GlobPattern) => {
+                        const pattern = typeof include === 'string' ? include : include.pattern;
+                        if (pattern.endsWith('aspire.config.json')) {
+                            return [vscode.Uri.file(configPath)];
+                        }
+                        return pattern.endsWith('*.csproj') ? [vscode.Uri.file(scannedPath)] : [];
+                    });
+                    sandbox.stub(cliModule, 'spawnCliProcess').callsFake((_terminalProvider, _command, _args, options) => {
+                        options?.stderrCallback?.('CLI discovery unavailable');
+                        options?.exitCallback?.(1);
+                        return { kill: () => true } as ReturnType<typeof cliModule.spawnCliProcess>;
+                    });
+                    const expectedCandidates: CandidateAppHostDisplayInfo[] = collision === 'same-file' ? [{
+                        path: scannedPath,
+                        language: 'csharp',
+                        status: 'buildable',
+                        selected: true,
+                    }] : [
+                        ...(collision === 'different-apphost' ? [{
+                            path: scannedPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                            selected: false,
+                        }] : []),
+                        {
+                            path: configuredPath,
+                            language: 'csharp',
+                            status: 'buildable',
+                            selected: true,
+                        },
+                    ];
+                    const service = new AppHostDiscoveryService(makeTerminalProvider());
+
+                    try {
+                        assert.deepStrictEqual(await service.discover(workspaceFolder), expectedCandidates);
+                    }
+                    finally {
+                        service.dispose();
+                    }
+                }
+                finally {
+                    removeDirectorySafely(fixtureRoot);
+                }
+            });
+        }
 
         test('does not duplicate configured candidate when differently cased paths identify the same filesystem entry', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aspire-apphost-discovery-'));
@@ -3186,7 +3761,7 @@ class InMemoryProjectFileSystemProvider implements vscode.FileSystemProvider {
     private readonly _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
     readonly onDidChangeFile = this._onDidChangeFile.event;
 
-    public constructor(private readonly _files: Map<string, string>) {
+    public constructor(private readonly _files: ReadonlyMap<string, string | Error>) {
     }
 
     public watch(): vscode.Disposable {
@@ -3203,7 +3778,7 @@ class InMemoryProjectFileSystemProvider implements vscode.FileSystemProvider {
             type: vscode.FileType.File,
             ctime: 0,
             mtime: 0,
-            size: Buffer.byteLength(contents, 'utf8'),
+            size: contents instanceof Error ? 0 : Buffer.byteLength(contents, 'utf8'),
         };
     }
 
@@ -3219,6 +3794,9 @@ class InMemoryProjectFileSystemProvider implements vscode.FileSystemProvider {
         const contents = this._files.get(uri.path);
         if (contents === undefined) {
             throw vscode.FileSystemError.FileNotFound(uri);
+        }
+        if (contents instanceof Error) {
+            throw contents;
         }
 
         return Buffer.from(contents, 'utf8');
