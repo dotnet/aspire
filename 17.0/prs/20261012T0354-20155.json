@@ -1,0 +1,9 @@
+{
+  "author": "afscrome",
+  "comment": "Adds a visual indicator and background tint for hidden resources in the dashboard grid, graph, and Parameters view",
+  "mergedAt": "2026-10-12T03:54:58Z",
+  "number": 20155,
+  "runDate": "2026-10-12T06:09:52Z",
+  "status": "included",
+  "title": "Visually distinguish hidden resources in the dashboard grid"
+}

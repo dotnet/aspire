@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Fixes a Release-only compilation error in a CLI test file by moving a using directive outside an #if DEBUG block; test-only build fix with no user-facing impact",
+  "mergedAt": "2026-10-12T02:40:33Z",
+  "number": 20910,
+  "runDate": "2026-10-12T06:09:52Z",
+  "status": "excluded",
+  "title": "Fix Release compilation of CLI bootstrap tests"
+}

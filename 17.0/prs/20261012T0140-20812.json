@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Adjusts deployment E2E test fixture to use anonymous ingress; test-only infrastructure change with no user-facing impact",
+  "mergedAt": "2026-10-12T01:40:35Z",
+  "number": 20812,
+  "runDate": "2026-10-12T06:09:52Z",
+  "status": "excluded",
+  "title": "Use anonymous ingress in DotnetProject Sandbox deployment test"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Disables a single flaky deployment E2E test via ActiveIssue; test-only infrastructure change with no user-facing impact",
+  "mergedAt": "2026-10-12T00:43:59Z",
+  "number": 20818,
+  "runDate": "2026-10-12T06:09:52Z",
+  "status": "excluded",
+  "title": "Disable App Configuration provisioning deployment test"
+}

@@ -1,0 +1,21 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [
+    "@afscrome"
+  ],
+  "description": "Hidden resources shown via \"Show hidden resources\" now display an eye-off icon and a subtle background tint in the Resources grid, Parameters view, and graph, making them easy to distinguish from normally visible resources without appearing disabled.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🙈",
+  "firstMergedAt": "2026-10-12T03:54:58Z",
+  "lastMergedAt": "2026-10-12T03:54:58Z",
+  "name": "Visually distinguish hidden resources",
+  "owner": "JamesNK",
+  "prs": [
+    20155
+  ]
+}

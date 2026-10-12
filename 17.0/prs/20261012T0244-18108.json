@@ -1,0 +1,9 @@
+{
+  "author": "davidfowl",
+  "comment": "Adds WithOptional()/WithRequired() and TryGetCurrentValue()/SetValueAsync() for first-class optional and programmatic parameter values",
+  "mergedAt": "2026-10-12T02:44:09Z",
+  "number": 18108,
+  "runDate": "2026-10-12T06:09:52Z",
+  "status": "included",
+  "title": "Add optional parameters and programmatic value setting"
+}
