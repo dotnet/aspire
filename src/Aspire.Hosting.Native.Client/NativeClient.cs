@@ -18,6 +18,7 @@ namespace Aspire.Hosting.Native.Client;
 public sealed class NativeClient : IAsyncDisposable
 {
     private readonly JsonRpc _rpc;
+    private readonly INativeAppHostRpc _serverRpc;
     private NativeProviderDefinition? _providerDefinition;
     private NativeProviderContext? _providerContext;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Func<JsonElement, Task<JsonElement>>> _callbacks = new(StringComparer.Ordinal);
@@ -32,6 +33,7 @@ public sealed class NativeClient : IAsyncDisposable
     {
         _clock = clock;
         _rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, new SystemTextJsonFormatter()));
+        _serverRpc = _rpc.Attach<INativeAppHostRpc>();
         _rpc.AddLocalRpcMethod("getCapabilities", new Func<JsonElement>(() =>
             (_providerDefinition ?? throw new InvalidOperationException("This is not a provider connection.")).Metadata));
         _rpc.AddLocalRpcMethod("handleExternalCapability",
@@ -150,14 +152,14 @@ public sealed class NativeClient : IAsyncDisposable
             client = new NativeClient(new NetworkStream(socket, ownsSocket: true), timeProvider);
             client.Endpoint = endpoint;
             client.AuthenticationToken = authenticationToken;
-            var authenticated = await client.RequestAsync<bool>("authenticate",
-                [authenticationToken], deadline.Token).ConfigureAwait(false);
+            var authenticated = await RequestAsync(() => client._serverRpc.AuthenticateAsync(authenticationToken),
+                deadline.Token).ConfigureAwait(false);
             if (!authenticated)
             {
                 throw new UnauthorizedAccessException("Native server authentication was rejected.");
             }
-            var root = await client.RequestAsync<JsonElement>("getApplicationServer",
-                [], deadline.Token).ConfigureAwait(false);
+            var root = await RequestAsync(client._serverRpc.GetApplicationServerAsync,
+                deadline.Token).ConfigureAwait(false);
             client.Server = new NativeApplicationServer(client, root);
 
             return client;
@@ -189,16 +191,16 @@ public sealed class NativeClient : IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
         // The native contract does not implement JSON-RPC $/cancelRequest. Bound
         // the caller's wait without pretending to cancel accepted server work.
-        var result = await RequestAsync<JsonElement>("invokeCapability",
-            [capability, arguments], cancellationToken).ConfigureAwait(false);
+        var result = await RequestAsync(() => _serverRpc.InvokeCapabilityAsync(capability, arguments),
+            cancellationToken).ConfigureAwait(false);
 
         return NativeCapabilityResult.Parse(result);
     }
 
-    private async Task<T> RequestAsync<T>(string method, object?[] arguments, CancellationToken cancellationToken)
+    private static async Task<T> RequestAsync<T>(Func<Task<T>> send, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var request = _rpc.InvokeWithCancellationAsync<T>(method, arguments, CancellationToken.None);
+        var request = send();
         // The caller can stop waiting before the native request completes. Observe
         // any later transport fault, including faults caused by connection disposal.
         _ = request.ContinueWith(
@@ -212,13 +214,13 @@ public sealed class NativeClient : IAsyncDisposable
 
     /// <summary>Creates one-use registration authority for an explicitly selected integration provider package.</summary>
     public Task<string> ExpectIntegrationHostAsync(string packageName, CancellationToken cancellationToken) =>
-        RequestAsync<string>("expectIntegrationHost", [packageName], cancellationToken);
+        RequestAsync(() => _serverRpc.ExpectIntegrationHostAsync(packageName), cancellationToken);
     /// <summary>Waits for explicit provider activation without log-based readiness or retries.</summary>
     public Task<bool> WaitIntegrationHostRegistrationAsync(string authority, CancellationToken cancellationToken) =>
-        RequestAsync<bool>("waitIntegrationHostRegistration", [authority], cancellationToken);
+        RequestAsync(() => _serverRpc.WaitIntegrationHostRegistrationAsync(authority), cancellationToken);
     /// <summary>Reads portable metadata for registered integration APIs without changing the static native contract.</summary>
     public Task<JsonElement> GetIntegrationCapabilitiesAsync(CancellationToken cancellationToken) =>
-        RequestAsync<JsonElement>("getIntegrationCapabilities", [], cancellationToken);
+        RequestAsync(_serverRpc.GetIntegrationCapabilitiesAsync, cancellationToken);
 
     /// <summary>Hosts an offline-generated integration contract on this bidirectional connection.</summary>
     public async Task RegisterIntegrationHostAsync(string authority, NativeProviderDefinition definition,
@@ -230,7 +232,7 @@ public sealed class NativeClient : IAsyncDisposable
         }
         _providerContext = new NativeProviderContext(this);
         _providerDefinition = definition;
-        if (!await RequestAsync<bool>("registerAsIntegrationHost", [authority], cancellationToken).ConfigureAwait(false))
+        if (!await RequestAsync(() => _serverRpc.RegisterIntegrationHostAsync(authority), cancellationToken).ConfigureAwait(false))
         {
             throw new InvalidOperationException("Provider registration was rejected.");
         }
@@ -246,7 +248,7 @@ public sealed class NativeClient : IAsyncDisposable
     }
     internal Task WaitForDisconnectAsync(CancellationToken cancellationToken) => _rpc.Completion.WaitAsync(cancellationToken);
     internal Task<JsonElement> InvokeGuestCallbackAsync(string callback, Dictionary<string, JsonElement> arguments) =>
-        RequestAsync<JsonElement>("invokeGuestCallback", [callback, arguments], CancellationToken.None);
+        RequestAsync(() => _serverRpc.InvokeGuestCallbackAsync(callback, arguments), CancellationToken.None);
 
     /// <summary>Closes the connection and releases its server-owned capability lifetimes.</summary>
     /// <returns>The shared disposal operation, including provider-local object release.</returns>

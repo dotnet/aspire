@@ -191,27 +191,51 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         var parameters = metadata["parameters"]!.AsArray();
         RpcArguments.Validate(arguments, parameters.Select(parameter => parameter!["name"]!.GetValue<string>()).ToArray());
         var mapped = new JsonObject();
-        foreach (var parameter in parameters.Cast<JsonObject>())
-        {
-            var name = parameter["name"]!.GetValue<string>();
-            if (parameter["isCallback"]?.GetValue<bool>() == true)
-            {
-                var callbackId = RpcArguments.String(arguments[name]);
-                var callback = new ProviderCallback(caller, callbackId, parameter);
-                mapped[name] = registration.Connection.AddCallback(callback);
-            }
-            else
-            {
-                mapped[name] = ToProvider(registration, caller, arguments[name], parameter["type"]!.AsObject());
-            }
-        }
+        var callbacks = new List<ProviderCallbackLease>();
         try
         {
+            foreach (var parameter in parameters.Cast<JsonObject>())
+            {
+                var name = parameter["name"]!.GetValue<string>();
+                if (parameter["isCallback"]?.GetValue<bool>() == true)
+                {
+                    var callbackId = RpcArguments.String(arguments[name]);
+                    var lease = registration.Connection.AddCallback(new ProviderCallback(caller, callbackId, parameter));
+                    callbacks.Add(lease);
+                    mapped[name] = lease.Id;
+                }
+                else
+                {
+                    mapped[name] = ToProvider(registration, caller, arguments[name], parameter["type"]!.AsObject());
+                }
+            }
             var result = await registration.Peer.RequestAsync("handleExternalCapability",
                 new JsonArray(JsonValue.Create(capability), mapped, JsonValue.Create(Guid.NewGuid().ToString())), caller.Closed).ConfigureAwait(false);
             EnsureAvailable(registration);
 
-            return ToCaller(registration, caller, result, metadata["returnType"]!.AsObject());
+            var translated = ToCaller(registration, caller, result, metadata["returnType"]!.AsObject());
+            // A returned provider object owns deferred callbacks. Mutators may
+            // instead attach them to their existing provider-owned receiver.
+            var callbackOwner = result is JsonObject handle && handle.ContainsKey("$lifetime") ? handle :
+                metadata["targetParameterName"] is JsonValue receiver ? mapped[receiver.GetValue<string>()] as JsonObject : null;
+            if (callbacks.Count > 0 && callbackOwner?["$handle"] is JsonValue objectId)
+            {
+                lock (_gate)
+                {
+                    if (registration.Resources.TryGetValue(objectId.GetValue<string>(), out var resource) &&
+                        ReferenceEquals(resource.Owner, caller) && !resource.IsRetired && !resource.Declaration.IsRevoked)
+                    {
+                        foreach (var callback in callbacks)
+                        {
+                            callback.Callback.Resource = resource;
+                            resource.Callbacks.Add(callback);
+                        }
+                        callbacks.Clear();
+                    }
+                }
+            }
+
+            return translated;
         }
         catch (RpcFault fault) when (fault.FaultCode == "PROVIDER_TIMEOUT")
         {
@@ -222,6 +246,13 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             Disconnect(registration.Connection);
             throw new RpcFault("PROVIDER_DISCONNECTED", "The provider invocation did not complete; it will not be replayed.");
+        }
+        finally
+        {
+            foreach (var callback in callbacks)
+            {
+                callback.Dispose();
+            }
         }
     }
 
@@ -564,6 +595,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             foreach (var resource in Resources.Values)
             {
                 resource.IsRetired = true;
+                resource.Callbacks.Clear();
             }
             Resources.Clear();
         }
@@ -610,4 +642,16 @@ internal sealed record ProviderResourceReference(NativeProviderRegistry.Registra
     public bool IsRevoked => Owner.IsClosed || Provider.Disconnected || Provider.Connection.IsClosed || !Owner.IsReferenceAlive(Lifetime);
 }
 
-internal sealed record ProviderCallback(NativeRpcConnection Owner, string Id, JsonObject Metadata);
+internal sealed record ProviderCallback(NativeRpcConnection Owner, string Id, JsonObject Metadata)
+{
+    internal NativeProviderRegistry.PublishedResource? Resource { get; set; }
+    public bool IsRevoked => Owner.IsClosed || Resource is { } resource &&
+        (resource.IsRetired || resource.Registration.Disconnected || resource.Declaration.IsRevoked);
+}
+
+internal sealed class ProviderCallbackLease(NativeRpcConnection connection, string id, ProviderCallback callback) : IDisposable
+{
+    public string Id { get; } = id;
+    public ProviderCallback Callback { get; } = callback;
+    public void Dispose() => connection.RemoveCallback(Id);
+}

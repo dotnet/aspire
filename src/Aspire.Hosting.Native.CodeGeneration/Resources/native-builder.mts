@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 import { connectNativeAppHost } from './native-client.mjs';
+import { basename, parse, resolve } from 'node:path';
 import type { ApplicationExecution, ApplicationWorkspace, Composition, DeclaredResource, DeclaredValue } from './aspire.mjs';
 import type { AspireClientRpc } from './transport.mjs';
 
@@ -185,9 +186,35 @@ interface NativeBuilderSettings {
     providers: Map<string, { executable: string; arguments: string[] }>;
     configuration: Record<string, string>;
 }
-function settingsFromArgs(args: readonly string[]): NativeBuilderSettings {
+/** Stable application source identity; defaults to the launch working directory, not compiled output. */
+export interface NativeBuilderOptions {
+    applicationRoot?: string;
+    applicationName?: string;
+}
+function defaultVolumePrefix(applicationRoot: string, applicationName?: string): string {
+    if (!applicationRoot.trim()) throw new Error('Application root cannot be empty.');
+    const root = resolve(applicationRoot);
+    applicationName ??= root === parse(root).root ? 'app' : basename(root);
+    if (!applicationName.trim()) throw new Error('Application name cannot be empty.');
+    const asciiLower = (value: string) => value.replace(/[A-Z]/g, c => c.toLowerCase());
+    const canonicalRoot = process.platform === 'win32' ? asciiLower(root.replaceAll('\\', '/')) : root;
+    if (process.platform === 'win32') applicationName = asciiLower(applicationName);
+    // Match NativeBuilderSettings: UTF-8(root + NUL + name), FNV-1a/64,
+    // lowercase 16-digit hex. NUL separates identity fields without ambiguity.
+    // No runtime crypto/hash package is needed for this nonsecurity identity.
+    // https://www.ietf.org/archive/id/draft-eastlake-fnv-35.html
+    let hash = 14695981039346656037n;
+    for (const value of Buffer.from(`${canonicalRoot}\0${applicationName}`, 'utf8')) {
+        hash = BigInt.asUintN(64, (hash ^ BigInt(value)) * 1099511628211n);
+    }
+    const label = asciiLower(applicationName.slice(0, 40)).replace(/[^a-z0-9_.-]/g, '_');
+    return `aspire-${label}-${hash.toString(16).padStart(16, '0')}`;
+}
+function settingsFromArgs(args: readonly string[], options: NativeBuilderOptions = {}): NativeBuilderSettings {
     const settings: NativeBuilderSettings = { endpoint: process.env.ASPIRE_NATIVE_RPC_ENDPOINT,
-        volumePrefix: 'aspire', providers: new Map(), configuration: {} };
+        volumePrefix: '', providers: new Map(), configuration: {} };
+    let applicationRoot = options.applicationRoot ?? process.cwd(), applicationName = options.applicationName;
+    let volumePrefix: string | undefined;
     // --native-provider=package=executable[|arg...] keeps process arguments out
     // of shell interpolation. Only the framework consumes activation coordinates.
     for (const arg of args) {
@@ -196,7 +223,9 @@ function settingsFromArgs(args: readonly string[]): NativeBuilderSettings {
         const name = arg.slice(0, index).replace(/^--/, ''), value = arg.slice(index + 1);
         switch (name) {
             case 'native-endpoint': settings.endpoint = value; break;
-            case 'native-volume-prefix': settings.volumePrefix = value; break;
+            case 'native-volume-prefix': volumePrefix = value; break;
+            case 'native-application-root': applicationRoot = value; break;
+            case 'native-application-name': applicationName = value; break;
             case 'native-exit-on-completion': settings.exitOnCompletion = value; break;
             case 'native-provider': {
                 const split = value.indexOf('=');
@@ -208,6 +237,7 @@ function settingsFromArgs(args: readonly string[]): NativeBuilderSettings {
             default: settings.configuration[name] = value; break;
         }
     }
+    settings.volumePrefix = volumePrefix ?? defaultVolumePrefix(applicationRoot, applicationName);
     return settings;
 }
 
@@ -275,8 +305,8 @@ export class DistributedApplicationBuilder {
         return context;
     }
 }
-export async function createBuilder(args: readonly string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
-    return new DistributedApplicationBuilder(settingsFromArgs(args));
+export async function createBuilder(args: readonly string[] = process.argv.slice(2), options: NativeBuilderOptions = {}): Promise<DistributedApplicationBuilder> {
+    return new DistributedApplicationBuilder(settingsFromArgs(args, options));
 }
 
 /** Framework-owned connection/provider/revision lifetime; no user-facing handle or invitation choreography. */

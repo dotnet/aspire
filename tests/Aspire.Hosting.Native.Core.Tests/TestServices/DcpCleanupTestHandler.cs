@@ -16,6 +16,7 @@ internal sealed class DcpCleanupTestHandler : HttpMessageHandler
     public Func<string, CancellationToken, Task>? BeforeDelete { get; set; }
     public bool Exited { get; set; }
     public ConcurrentQueue<string> AdministrativeRequests { get; } = new();
+    public ConcurrentQueue<(string ContentType, string Body)> RequestContents { get; } = new();
     public Func<CancellationToken, Task>? BeforeCleanup { get; set; }
     public Func<CancellationToken, Task>? BeforeResponse { get; set; }
 
@@ -32,6 +33,11 @@ internal sealed class DcpCleanupTestHandler : HttpMessageHandler
         }
         var path = request.RequestUri!.AbsolutePath;
         var key = string.Join('/', path.Split('/')[^2..]);
+        if (request.Content is { } content)
+        {
+            RequestContents.Enqueue((content.Headers.ContentType!.ToString(),
+                await content.ReadAsStringAsync(cancellationToken)));
+        }
         if (key == "admin/execution")
         {
             if (request.Method == HttpMethod.Patch)

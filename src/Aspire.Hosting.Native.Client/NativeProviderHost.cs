@@ -3,22 +3,28 @@
 
 using System.Diagnostics;
 using System.Net;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Client;
 
 /// <summary>Runs an integration's generated provider contract using framework-owned activation coordinates.</summary>
-public static class NativeProviderHost
+/// <param name="configuration">Injected provider activation settings.</param>
+/// <param name="clock">Provider authentication deadlines.</param>
+/// <param name="logger">Classified provider diagnostics.</param>
+public sealed class NativeProviderHost(IConfiguration configuration, TimeProvider clock, ILogger logger)
 {
     /// <summary>Registers a generated contract and remains alive until the native peer disconnects.</summary>
-    public static async Task RunAsync(NativeProviderDefinition definition, TimeProvider clock, ILogger logger,
-        CancellationToken cancellationToken)
+    /// <param name="definition">The integration's offline-generated ATS contract.</param>
+    /// <param name="cancellationToken">Stops provider activation and lifetime waits.</param>
+    /// <returns>The provider lifetime.</returns>
+    public async Task RunAsync(NativeProviderDefinition definition, CancellationToken cancellationToken)
     {
-        var endpoint = IPEndPoint.Parse(Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_ENDPOINT")
+        var endpoint = IPEndPoint.Parse(configuration["ASPIRE_NATIVE_RPC_ENDPOINT"]
             ?? throw new InvalidOperationException("Provider activation requires a native endpoint."));
-        var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
+        var token = configuration["ASPIRE_NATIVE_RPC_TOKEN"]
             ?? throw new InvalidOperationException("Provider activation requires authentication.");
-        var authority = Environment.GetEnvironmentVariable("ASPIRE_INTEGRATION_HOST_REGISTRATION_ID")
+        var authority = configuration["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"]
             ?? throw new InvalidOperationException("Provider activation requires expected registration authority.");
         var connected = await NativeClient.ConnectAsync(endpoint, token, TimeSpan.FromSeconds(15), clock, cancellationToken).ConfigureAwait(false);
         await using var clientLifetime = connected.ConfigureAwait(false);
@@ -57,6 +63,13 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         }
         var authority = await client.ExpectIntegrationHostAsync(packageName, cancellationToken).ConfigureAwait(false);
         var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        // Kernel-enforced parent ownership survives abrupt host termination.
+        // .NET does not support this option on macOS; explicit disposal still applies.
+        // https://learn.microsoft.com/dotnet/api/system.diagnostics.processstartinfo.killonparentexit
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
+        {
+            start.KillOnParentExit = true;
+        }
         foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);
@@ -90,7 +103,7 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         {
             _process.Kill(entireProcessTree: true);
         }
-        await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
+        await _process.WaitForExitStatusAsync().WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
         await Task.WhenAll(_stdout, _stderr).ConfigureAwait(false);
         _process.Dispose();
     }

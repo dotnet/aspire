@@ -12,9 +12,9 @@ public static class DistributedApplication
     /// <param name="args">Framework selection and application configuration flags.</param>
     /// <returns>A synchronous, disconnected command recorder.</returns>
     public static DistributedApplicationBuilder CreateBuilder(string[] args) => CreateBuilder(args, new NativeBuilderOptions());
-    /// <summary>Creates a command recorder using injected framework time and logging services.</summary>
+    /// <summary>Creates a command recorder using stable application identity and injected framework services.</summary>
     /// <param name="args">Framework selection and application configuration flags.</param>
-    /// <param name="options">Framework time and classified logging services.</param>
+    /// <param name="options">Application root/name, framework time and classified logging services.</param>
     /// <returns>A synchronous, disconnected command recorder.</returns>
     public static DistributedApplicationBuilder CreateBuilder(string[] args, NativeBuilderOptions options) =>
         new(NativeBuilderSettings.FromArgs(args, options));

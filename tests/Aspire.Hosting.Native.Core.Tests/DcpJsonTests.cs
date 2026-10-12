@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Runtime;
+using Aspire.Hosting.Native.Core.Tests.TestServices;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
@@ -32,10 +33,14 @@ public class DcpJsonTests
             Image = "example/worker:1", Env = [new DcpEnvironment("CUSTOM", "configured")],
             Args = ["--work"], Ports = [new DcpContainerPort(4567, "127.0.0.1", WorkloadProtocol.Tcp)]
         };
-        var envelope = new DcpResourceEnvelope("usvc-dev.developer.microsoft.com/v1", "Container",
-            new DcpMetadata("test-worker", null),
-            JsonSerializer.SerializeToElement(spec, DcpJsonContext.Default.DcpWorkloadSpec));
-        await Verify(JsonSerializer.Serialize(envelope, DcpJsonContext.Default.DcpResourceEnvelope), "json")
+        using var handler = new DcpCleanupTestHandler();
+        await using var client = handler.CreateClient(new());
+        await client.CreateAsync(DcpResourceCollection.Containers, "test-worker",
+            JsonSerializer.SerializeToElement(spec, DcpJsonContext.Default.DcpWorkloadSpec), null,
+            TestContext.Current.CancellationToken);
+        var content = Assert.Single(handler.RequestContents);
+        Assert.Equal("application/json", content.ContentType);
+        await Verify(content.Body, "json")
             .UseDirectory("Snapshots");
     }
 

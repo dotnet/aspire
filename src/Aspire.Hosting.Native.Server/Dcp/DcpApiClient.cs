@@ -19,6 +19,7 @@ internal sealed class DcpApiClient : IAsyncDisposable
     private const string Api = "/apis/usvc-dev.developer.microsoft.com/v1/";
     private readonly DirectoryInfo _directory = Directory.CreateTempSubdirectory("aspire-native-dcp-");
     private Process? _process;
+    private Task? _output;
     private HttpClient? _client;
     private DcpConnectionMaterial? _connection;
     private readonly NativeServerOptions _options;
@@ -58,6 +59,13 @@ internal sealed class DcpApiClient : IAsyncDisposable
         {
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true
         };
+        // Keep DCP's cross-platform --monitor contract, with kernel-enforced
+        // ownership on the platforms where .NET supports it.
+        // https://learn.microsoft.com/dotnet/api/system.diagnostics.processstartinfo.killonparentexit
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsWindows())
+        {
+            start.KillOnParentExit = true;
+        }
         foreach (var argument in new[] { "start-apiserver", "--monitor",
             Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), "--kubeconfig", kubeconfig })
         {
@@ -65,15 +73,23 @@ internal sealed class DcpApiClient : IAsyncDisposable
         }
         start.Environment["DCP_SESSION_FOLDER"] = _directory.FullName;
         _process = Process.Start(start) ?? throw new InvalidOperationException("DCP did not start.");
-        _process.OutputDataReceived += (_, line) => { if (line.Data is not null) { _logger.LogDebug("{DcpOutput}", line.Data); } };
-        _process.ErrorDataReceived += (_, line) => { if (line.Data is not null) { _logger.LogDebug("{DcpOutput}", line.Data); } };
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
+        _output = DrainOutputAsync(_process);
 
         _connection = await DcpConnectionMaterial.WaitAsync(kubeconfig, () => _process.HasExited,
             _options.ControllerRequestTimeout, _options.RetryInterval, message => _logger.LogDebug("{DcpReadiness}", message),
             _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         _client = _connection.Client;
+    }
+
+    private async Task DrainOutputAsync(Process process)
+    {
+        // ReadAllLinesAsync multiplexes both redirected streams, avoiding pipe
+        // deadlocks and giving shutdown an observable, awaitable drain operation.
+        // https://learn.microsoft.com/dotnet/api/system.diagnostics.process.readalllinesasync
+        await foreach (var line in process.ReadAllLinesAsync().ConfigureAwait(false))
+        {
+            _logger.LogDebug("{DcpOutput}", line.Content);
+        }
     }
 
     public async Task<DcpResource?> GetAsync(DcpResourceCollection collection, string name, CancellationToken cancellationToken)
@@ -122,14 +138,8 @@ internal sealed class DcpApiClient : IAsyncDisposable
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
         {
-            using var bytes = new MemoryStream();
-            using (var writer = new Utf8JsonWriter(bytes))
-            {
-                body.Value.WriteTo(writer);
-            }
-            request.Content = new ByteArrayContent(bytes.ToArray());
-            request.Content.Headers.ContentType = new MediaTypeHeaderValue(
-                method == HttpMethod.Patch ? "application/merge-patch+json" : "application/json");
+            request.Content = JsonContent.Create(body.Value, DcpJsonContext.Default.JsonElement,
+                new MediaTypeHeaderValue(method == HttpMethod.Patch ? "application/merge-patch+json" : "application/json"));
         }
         using var timeout = new TimeProviderCancellation(_options.ControllerRequestTimeout, _options.TimeProvider, cancellationToken);
         using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
@@ -210,26 +220,36 @@ internal sealed class DcpApiClient : IAsyncDisposable
                 await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
                     new DcpExecutionRequest(DcpExecutionState.Stopping, DcpResourceCleanup.Full), DcpJsonContext.Default.DcpExecutionRequest),
                     cleanup.Token, DcpResponseMode.Empty).ConfigureAwait(false);
-                await _process.WaitForExitAsync(cleanup.Token).ConfigureAwait(false);
+                await _process.WaitForExitStatusAsync().WaitAsync(cleanup.Token).ConfigureAwait(false);
             }
         }
         finally
         {
-            if (_process is { HasExited: false })
+            try
             {
-                _process.Kill(entireProcessTree: true);
-                using var forcedExit = new CancellationTokenSource(_options.CleanupTimeout, _options.TimeProvider);
-                await _process.WaitForExitAsync(forcedExit.Token).ConfigureAwait(false);
+                if (_process is { HasExited: false })
+                {
+                    _process.Kill(entireProcessTree: true);
+                    using var forcedExit = new CancellationTokenSource(_options.CleanupTimeout, _options.TimeProvider);
+                    await _process.WaitForExitStatusAsync().WaitAsync(forcedExit.Token).ConfigureAwait(false);
+                }
+                if (_output is not null)
+                {
+                    await _output.WaitAsync(_options.CleanupTimeout, _options.TimeProvider).ConfigureAwait(false);
+                }
             }
-            _process?.Dispose();
-            _connection?.Dispose();
-            if (_connection is null)
+            finally
             {
-                _client?.Dispose();
-            }
-            if (Directory.Exists(_directory.FullName))
-            {
-                _directory.Delete(recursive: true);
+                _process?.Dispose();
+                _connection?.Dispose();
+                if (_connection is null)
+                {
+                    _client?.Dispose();
+                }
+                if (Directory.Exists(_directory.FullName))
+                {
+                    _directory.Delete(recursive: true);
+                }
             }
         }
     }

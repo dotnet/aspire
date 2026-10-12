@@ -44,12 +44,7 @@ internal sealed class ApplicationModel : IDisposable
         {
             throw new ArgumentException("Resource names must start with an ASCII letter and contain at most 128 letters, digits, or hyphens.", nameof(name));
         }
-        var separator = typeId.IndexOf('/');
-        if (separator <= 0 || separator == typeId.Length - 1 ||
-            typeId.IndexOf('/', separator + 1) >= 0 || typeId.Any(char.IsWhiteSpace) || typeId.Any(char.IsControl))
-        {
-            throw new ArgumentException("Resource type identities must have the form 'namespace/type'.", nameof(typeId));
-        }
+        var declaredType = new ResourceTypeId(typeId);
 
         lock (_gate)
         {
@@ -59,7 +54,7 @@ internal sealed class ApplicationModel : IDisposable
                 throw new InvalidOperationException($"Resource '{name}' is already declared.");
             }
             var handle = new ResourceHandle(GenerationId, Guid.NewGuid());
-            _resources.Add(handle.ResourceId, new Resource(handle, name, typeId));
+            _resources.Add(handle.ResourceId, new Resource(handle, name, declaredType));
             operation.SetResource(handle.ResourceId);
 
             return handle;
@@ -321,7 +316,7 @@ internal sealed class ApplicationModel : IDisposable
         SecretParameters = _secretParameters.Values.ToImmutableArray()
     };
 
-    private ResourceSnapshot Snapshot(Resource resource) => new(resource.Handle, resource.Name, resource.TypeId,
+    private ResourceSnapshot Snapshot(Resource resource) => new(resource.Handle, resource.Name, resource.TypeId.Value,
         Dependencies(resource).Select(id => _resources[id])
             .OrderBy(dependency => dependency.Name, StringComparer.Ordinal)
             .Select(dependency => dependency.Handle).ToImmutableArray(), resource.Configuration)
@@ -363,11 +358,11 @@ internal sealed class ApplicationModel : IDisposable
         }
     }
 
-    private sealed class Resource(ResourceHandle handle, string name, string typeId)
+    private sealed class Resource(ResourceHandle handle, string name, ResourceTypeId typeId)
     {
         public ResourceHandle Handle { get; } = handle;
         public string Name { get; } = name;
-        public string TypeId { get; } = typeId;
+        public ResourceTypeId TypeId { get; } = typeId;
         public HashSet<Guid> Dependencies { get; } = [];
         public ImmutableArray<ResourceConfigurationEntry> Configuration { get; set; } = [];
         public Dictionary<string, SymbolicValue> SymbolicConfiguration { get; } = new(StringComparer.Ordinal);

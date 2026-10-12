@@ -786,6 +786,26 @@ compatibility belongs to the configuration provider and boot parser, not to
 individual services. The BCL-only kernel receives explicit settings and does
 not reference configuration providers.
 
+The server uses the generic host for configuration, logging and application
+lifetime, with controller and transport ownership in a hosted service. C#
+integration providers also receive `IConfiguration`; their host does not read
+ambient environment variables. The C# native client uses a source-generated,
+strongly typed JSON-RPC bootstrap contract, while capability projections continue
+to come from ATS.
+
+Provider and DCP processes use .NET 11's typed exit-status waits. On Linux
+and Windows, `KillOnParentExit` adds kernel-enforced ownership; macOS retains
+explicit disposal and DCP's existing monitor contract. DCP output uses the
+combined asynchronous line reader, and shutdown awaits its drain with a bounded
+deadline before disposing process and connection state.
+
+The declaration model stores resource kinds as validated `ResourceTypeId`
+values. These are integration identities such as `example/Redis`, not CLR
+`Type` objects; snapshots and RPC keep the existing string representation.
+`SymbolicValue` is the server-owned representation of an authored
+`ReferenceExpression`. It retains generation-scoped endpoint and secret
+authority and resolves only at the native runtime boundary.
+
 CLI server launches use the CLI-generated `ASPIRE_REMOTE_APPHOST_TOKEN`, not
 an inherited `ASPIRE_NATIVE_RPC_TOKEN`. Direct launches retain the native-token
 priority and remote-token fallback. The CLI fixture exercises an invalid

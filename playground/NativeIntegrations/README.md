@@ -156,9 +156,32 @@ dotnet run --project playground/NativeIntegrations/CSharp/RedisAppHost/NativeInt
 
 Provider selection is framework configuration, not application registration.
 Without `--native-exit-on-completion`, `RunAsync`/`run` waits for shutdown and
-retires before closing its provider. `--native-volume-prefix` namespaces the
-default `<prefix>-cache-data` retained volume. C# framework time/log services can
-be injected with `NativeBuilderOptions`. TypeScript provider configuration uses
+retires before closing its provider. Default retained volumes are
+`aspire-<application-name>-<root/name-hash>-cache-data`, not a global `aspire`
+namespace. The stable application root defaults to the launch working directory;
+launch from the AppHost source root, or set `--native-application-root` when
+launching from elsewhere. It must not point at a rebuild-specific output folder.
+The application name defaults to that root's directory name; use
+`--native-application-name` to distinguish AppHosts sharing a root. C#
+`NativeBuilderOptions` and TypeScript `createBuilder(args, options)` also accept
+these root/name settings. Framework flags override the corresponding options.
+
+Both languages resolve the root to an absolute, dot-segment-free path, remove
+non-root trailing separators, use `/` separators, and ASCII-fold root/name case
+on Windows only. UTF-8 bytes of `root + NUL + name` are hashed with nonsecurity
+FNV-1a/64 (offset `14695981039346656037`, prime `1099511628211`, wrapping at
+64 bits), rendered as 16 lowercase hexadecimal digits. The display name uses
+its first 40 UTF-16 code units, ASCII-lowercased and with characters outside
+`[a-z0-9_.-]` replaced by `_`. This preserves namespaces across rebuilds,
+reruns and native revisions, while separating different source roots even when
+their directory/resource names match. Moving the source root changes its
+namespace; `--native-volume-prefix` preserves an exact explicit prefix, including
+for reusing an existing retained volume. No existing volume is renamed or deleted.
+To intentionally reuse the previous global default, select
+`--native-volume-prefix=aspire`.
+
+C# framework time/log services can be injected with `NativeBuilderOptions`.
+TypeScript provider configuration uses
 `--native-provider=example.ts.redis=<node>|<provider.mjs>`; quote the whole flag
 so `|` is not interpreted by the shell.
 

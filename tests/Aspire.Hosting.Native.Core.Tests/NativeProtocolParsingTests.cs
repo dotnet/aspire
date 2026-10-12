@@ -135,6 +135,7 @@ public class NativeProtocolParsingTests
     [InlineData("""{"jsonrpc":"2.0","id":null,"method":"authenticate"}""", false)]
     [InlineData("""{"jsonrpc":"2.0","id":1,"method":"authenticate"}""", false)]
     [InlineData("""{"jsonrpc":"2.0","id":"one","method":"authenticate"}""", false)]
+    [InlineData("""{"jsonrpc":"2.0","id":1,"method":"authenticate","params":null}""", false)]
     public void RpcEnvelopeKeepsNotificationsDistinctFromNullRequestIds(string json, bool notification)
     {
         var request = NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(json));
@@ -148,6 +149,13 @@ public class NativeProtocolParsingTests
     [InlineData("""{"jsonrpc":"2.0","method":"a","id":true}""")]
     [InlineData("""{"jsonrpc":"2.0","method":1}""")]
     [InlineData("""{"jsonrpc":"2.0","method":"a","unknown":true}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","m\u0065thod":"b"}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":""}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":" "}""")]
+    [InlineData("""{"jsonrpc":2.0,"method":"a"}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","params":false}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","params":"text"}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","id":1.5}""")]
     public void RpcEnvelopeRejectsDuplicateKeysAndMalformedClosedFields(string json) =>
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(json)));
 
@@ -162,6 +170,27 @@ public class NativeProtocolParsingTests
         Assert.Null(NativeRpcProtocol.ReadTraceContext(duplicate, 1024));
         Assert.Null(NativeRpcProtocol.ReadTraceContext("""{"traceparent":true}"""u8.ToArray(), 1024));
         Assert.Null(NativeRpcProtocol.ReadTraceContext("""{"traceparent":"invalid"}"""u8.ToArray(), 1024));
+        var malformedState = Encoding.UTF8.GetBytes($$"""{"traceparent":"{{parent}}","tracestate":true}""");
+        Assert.Null(NativeRpcProtocol.ReadTraceContext(malformedState, 1024));
+        var escapedParent = Encoding.UTF8.GetBytes($$"""{"\u0074raceparent":"{{parent}}"}""");
+        Assert.True(NativeRpcProtocol.ReadTraceContext(escapedParent, 1024)!.Value.IsRemote);
+    }
+
+    [Fact]
+    public void RpcEnvelopeBoundsPayloadMethodAndRequestId()
+    {
+        var method = new string('m', 256);
+        var id = new string('i', 512);
+        var valid = $$$"""{"jsonrpc":"2.0","method":"{{{method}}}","id":"{{{id}}}","params":{"data":""}}""";
+        Assert.Equal(method, NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(valid)).Method);
+        Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(
+            Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"{{method}}x"}""")));
+        Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(
+            Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"a","id":"{{id}}x"}""")));
+        var padded = valid.Replace("\"data\":\"\"", $"\"data\":\"{new string('x', NativeRpcConnection.MaximumRequestBytes - Encoding.UTF8.GetByteCount(valid))}\"");
+        Assert.Equal(NativeRpcConnection.MaximumRequestBytes, Encoding.UTF8.GetByteCount(padded));
+        Assert.Equal(method, NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded)).Method);
+        Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded + " ")));
     }
 
     private static NativeCliRequest Request(string parameters) => new()

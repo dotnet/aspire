@@ -11,6 +11,7 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Native.Core.Tests" />
     <PackageReference Include="StreamJsonRpc" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <ProjectReference Include="../Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj"
                       ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>

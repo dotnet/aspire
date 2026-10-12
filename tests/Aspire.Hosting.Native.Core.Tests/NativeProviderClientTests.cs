@@ -7,11 +7,37 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Client;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 using NativeIntegration.Generated;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderClientTests
 {
+    [Fact]
+    public async Task ProviderHostUsesInjectedConfigurationWithoutAmbientEnvironment()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        var authority = await app.ExpectIntegrationHostAsync("example.pending", CancellationToken.None);
+        using var configuration = new ConfigurationManager();
+        configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_NATIVE_RPC_ENDPOINT"] = host.Endpoint.ToString(),
+            ["ASPIRE_NATIVE_RPC_TOKEN"] = host.Token,
+            ["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"] = authority
+        });
+        var provider = new NativeProviderHost(configuration, TimeProvider.System, NullLogger.Instance);
+        using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var lifetime = provider.RunAsync(PrimitiveDefinition((_, _, _) =>
+            Task.FromResult(JsonSerializer.SerializeToElement("provider-host-ok"))), shutdown.Token);
+        Assert.True(await app.WaitIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+        Assert.Equal("provider-host-ok", (await app.InvokeAsync("example.pending/pending", [],
+            TestContext.Current.CancellationToken)).GetString());
+        await shutdown.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lifetime);
+    }
+
     [Theory]
     [InlineData("""{"code":"bad","message":"private-provider-secret"}""")]
     [InlineData("""{"code":-32603,"message":false}""")]
@@ -176,6 +202,130 @@ public class NativeProviderClientTests
         var result = await app.InvokeAsync("example.callback/transform",
             new Dictionary<string, JsonElement> { ["callback"] = JsonDocument.Parse("\"guest-transform\"").RootElement.Clone() }, CancellationToken.None);
         Assert.Equal("hello guest", result.GetString());
+    }
+
+    [Fact]
+    public async Task ImmediateAndFailedProviderInvocationsReleaseCallbackAuthority()
+    {
+        await using var host = await NativeClientTestHost.StartWithOptionsAsync(new() { MaximumHandlesPerConnection = 4 });
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        NativeProviderContext? callbackContext = null;
+        string? callbackId = null;
+        var definition = new NativeProviderDefinition(JsonDocument.Parse("""
+            {"protocolVersion":2,"capabilities":[{
+              "id":"example.callback/transform","method":"transform",
+              "parameters":[{"name":"callback","type":{"typeId":"callback","category":"Callback"},
+                "isCallback":true,"callbackParameters":[{"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+                "callbackReturnType":{"typeId":"string","category":"Primitive"}},
+                {"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"string","category":"Primitive"}
+            }]}
+            """).RootElement.Clone(), async (context, _, args) =>
+        {
+            callbackContext = context;
+            callbackId = args.GetProperty("callback").GetString()!;
+            if (args.GetProperty("value").GetString() == "fail")
+            {
+                throw new InvalidOperationException("Provider invocation failed.");
+            }
+
+            return await context.InvokeGuestCallbackAsync(callbackId,
+                new() { ["p0"] = args.GetProperty("value") });
+        });
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.callback", CancellationToken.None), definition, CancellationToken.None);
+        app.RegisterCallback("transform", args => Task.FromResult(args.GetProperty("p0")));
+        for (var iteration = 0; iteration < 16; iteration++)
+        {
+            var arguments = new Dictionary<string, JsonElement>
+            {
+                ["callback"] = JsonSerializer.SerializeToElement("transform"),
+                ["value"] = JsonSerializer.SerializeToElement(42)
+            };
+            var failure = await Assert.ThrowsAsync<NativeCapabilityException>(() =>
+                app.InvokeAsync("example.callback/transform", arguments, CancellationToken.None));
+            Assert.Equal("INVALID_ARGUMENT", failure.Code);
+            arguments["value"] = JsonSerializer.SerializeToElement("hello");
+            Assert.Equal("hello", (await app.InvokeAsync("example.callback/transform", arguments, CancellationToken.None)).GetString());
+            Assert.NotNull(callbackContext);
+            Assert.NotNull(callbackId);
+            arguments["value"] = JsonSerializer.SerializeToElement("fail");
+            await Assert.ThrowsAsync<NativeCapabilityException>(() =>
+                app.InvokeAsync("example.callback/transform", arguments, CancellationToken.None));
+            await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+                callbackContext.InvokeGuestCallbackAsync(callbackId, new() { ["p0"] = arguments["value"] }));
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeferredProviderCallbacksFollowResourceRetirement(bool attachToExistingReceiver)
+    {
+        await using var host = await NativeClientTestHost.StartWithOptionsAsync(new() { MaximumHandlesPerConnection = 16 });
+        await using var app = await ConnectAsync(host);
+        await using var provider = await ConnectAsync(host);
+        NativeProviderContext? callbackContext = null;
+        string? callbackId = null;
+        var definition = new NativeProviderDefinition(JsonDocument.Parse("""
+            {"protocolVersion":2,"capabilities":[{
+              "id":"example.callback/add","method":"add",
+              "parameters":[{"name":"composition","type":{"typeId":"Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition","category":"Handle"}},
+                {"name":"callback","type":{"typeId":"callback","category":"Callback"},"isCallback":true,
+                  "callbackParameters":[{"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+                  "callbackReturnType":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"example.callback/Resource","category":"Handle"}
+            },{
+              "id":"example.callback/attach","method":"attach",
+              "targetTypeId":"example.callback/Resource","targetParameterName":"resource",
+              "parameters":[{"name":"resource","type":{"typeId":"example.callback/Resource","category":"Handle"}},
+                {"name":"callback","type":{"typeId":"callback","category":"Callback"},"isCallback":true,
+                  "callbackParameters":[{"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+                  "callbackReturnType":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"string","category":"Primitive"}
+            }]}
+            """).RootElement.Clone(), async (context, _, args) =>
+        {
+            callbackContext = context;
+            callbackId = args.GetProperty("callback").GetString()!;
+            if (args.TryGetProperty("resource", out var receiver))
+            {
+                return JsonSerializer.SerializeToElement("attached");
+            }
+            var composition = new Composition(context.Client, args.GetProperty("composition"));
+            var declaration = await composition.AddResourceAsync("callback-resource", "example/callback");
+
+            return context.PublishResource(new LifecycleProviderTestResource(declaration), "example.callback/Resource");
+        });
+        await provider.RegisterIntegrationHostAsync(
+            await app.ExpectIntegrationHostAsync("example.callback", CancellationToken.None), definition, CancellationToken.None);
+        app.RegisterCallback("transform", args => Task.FromResult(args.GetProperty("p0")));
+        var session = await app.Server.OpenApplicationAsync();
+        for (var iteration = 0; iteration < 32; iteration++)
+        {
+            var composition = await session.StartGenerationAsync();
+            var resource = await app.InvokeAsync("example.callback/add", new()
+            {
+                ["composition"] = composition.Handle,
+                ["callback"] = JsonSerializer.SerializeToElement("transform")
+            }, CancellationToken.None);
+            if (attachToExistingReceiver)
+            {
+                Assert.Equal("attached", (await app.InvokeAsync("example.callback/attach", new()
+                {
+                    ["resource"] = resource,
+                    ["callback"] = JsonSerializer.SerializeToElement("transform")
+                }, CancellationToken.None)).GetString());
+            }
+            Assert.NotNull(callbackContext);
+            Assert.NotNull(callbackId);
+            var arguments = new Dictionary<string, JsonElement> { ["p0"] = JsonSerializer.SerializeToElement("deferred") };
+            Assert.Equal("deferred", (await callbackContext.InvokeGuestCallbackAsync(callbackId, arguments)).GetString());
+            await session.RetireGenerationAsync(composition);
+            await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+                callbackContext.InvokeGuestCallbackAsync(callbackId, arguments));
+        }
     }
 
     [Fact]

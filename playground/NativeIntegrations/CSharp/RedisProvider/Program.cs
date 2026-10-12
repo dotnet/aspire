@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Hosting.Native.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NativeIntegration.Generated;
 using NativeIntegrations.Redis;
@@ -42,5 +43,8 @@ if (args.FirstOrDefault() is "--redis-health" or "--redis-save" or "--redis-cons
         return 1;
     }
 }
-await NativeProviderHost.RunAsync(ProviderContract.Create(), TimeProvider.System, NullLogger.Instance, CancellationToken.None);
+using var configuration = new ConfigurationManager();
+configuration.AddEnvironmentVariables();
+var host = new NativeProviderHost(configuration, TimeProvider.System, NullLogger.Instance);
+await host.RunAsync(ProviderContract.Create(), CancellationToken.None);
 return 0;

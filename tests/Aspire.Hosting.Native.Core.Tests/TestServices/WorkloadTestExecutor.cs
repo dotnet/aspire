@@ -17,6 +17,7 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
     public TaskCompletionSource CleanupStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Exception? StartFailure { get; init; }
     public Func<CancellationToken, Task>? BeforeStart { get; init; }
+    public Func<CancellationToken, Task>? BeforeReadStatus { get; init; }
     public WorkloadPhase Phase { get; set; } = WorkloadPhase.Running;
     public int? ExitCode { get; set; }
     public Func<WorkloadPlan, WorkloadStatus>? StatusForPlan { get; init; }
@@ -46,8 +47,15 @@ internal sealed class WorkloadTestExecutor : IWorkloadExecutor
         public WorkloadEndpoint Endpoint { get; } = new("test-instance",
             plan.Endpoints.Select((endpoint, index) => new AllocatedWorkloadPort(
                 endpoint.Name, endpoint.Protocol, endpoint.UriScheme, "127.0.0.1", 5050 + index)).ToImmutableArray());
-        public Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(executor.StatusForPlan?.Invoke(plan) ?? new WorkloadStatus(executor.Phase, executor.ExitCode));
+        public async Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken)
+        {
+            if (executor.BeforeReadStatus is { } before)
+            {
+                await before(cancellationToken).ConfigureAwait(false);
+            }
+
+            return executor.StatusForPlan?.Invoke(plan) ?? new WorkloadStatus(executor.Phase, executor.ExitCode);
+        }
         public Task<ImmutableArray<WorkloadLog>> ReadLogsAsync(CancellationToken cancellationToken) =>
             Task.FromResult(ImmutableArray<WorkloadLog>.Empty);
         public async ValueTask DisposeAsync()

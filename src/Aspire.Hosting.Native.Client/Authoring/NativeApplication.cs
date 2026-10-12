@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Text;
 using Aspire.Hosting.Native.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +12,10 @@ namespace Aspire.Hosting.Native.Authoring;
 /// <summary>Configures framework services without giving the AppHost transport or runtime ownership.</summary>
 public sealed class NativeBuilderOptions
 {
+    /// <summary>Gets the stable application source root, defaulting to the launch working directory, not the build output directory.</summary>
+    public string? ApplicationRoot { get; init; }
+    /// <summary>Gets the application identity within its root, defaulting to the root directory name.</summary>
+    public string? ApplicationName { get; init; }
     /// <summary>Gets the framework clock used for connection deadlines and owned-process cleanup.</summary>
     public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
     /// <summary>Gets classified framework logging; credentials and provider console output are never logged here.</summary>
@@ -21,13 +26,16 @@ internal sealed class NativeBuilderSettings
 {
     internal NativeBuilderOptions Options { get; private init; } = new();
     internal string? Endpoint { get; private set; }
-    internal string VolumePrefix { get; private set; } = "aspire";
+    internal string VolumePrefix { get; private set; } = CreateVolumePrefix(Directory.GetCurrentDirectory(), null);
     internal Dictionary<string, string> Configuration { get; } = new(StringComparer.OrdinalIgnoreCase);
     internal Dictionary<string, (string Executable, string[] Arguments)> Providers { get; } = new(StringComparer.Ordinal);
     internal string? ExitOnCompletion { get; private set; }
     internal static NativeBuilderSettings FromArgs(string[] args, NativeBuilderOptions options)
     {
         var settings = new NativeBuilderSettings { Endpoint = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_ENDPOINT"), Options = options };
+        var applicationRoot = options.ApplicationRoot ?? Directory.GetCurrentDirectory();
+        var applicationName = options.ApplicationName;
+        string? volumePrefix = null;
         // Framework flags use --native-provider=package=executable[|arg...].
         // Split once for the flag and package; arguments remain separate process
         // arguments, never an interpolated shell command.
@@ -42,7 +50,9 @@ internal sealed class NativeBuilderSettings
             switch (parts[0])
             {
                 case "native-endpoint": settings.Endpoint = value; break;
-                case "native-volume-prefix": settings.VolumePrefix = value; break;
+                case "native-volume-prefix": volumePrefix = value; break;
+                case "native-application-root": applicationRoot = value; break;
+                case "native-application-name": applicationName = value; break;
                 case "native-exit-on-completion": settings.ExitOnCompletion = value; break;
                 case "native-provider":
                     var provider = value.Split('=', 2);
@@ -58,8 +68,40 @@ internal sealed class NativeBuilderSettings
             }
         }
 
+        settings.VolumePrefix = volumePrefix ?? CreateVolumePrefix(applicationRoot, applicationName);
         return settings;
     }
+
+    private static string CreateVolumePrefix(string applicationRoot, string? applicationName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(applicationRoot);
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(applicationRoot));
+        applicationName ??= Path.GetFileName(root) is { Length: > 0 } name ? name : "app";
+        ArgumentException.ThrowIfNullOrWhiteSpace(applicationName);
+        var canonicalRoot = root.Replace(Path.DirectorySeparatorChar, '/');
+        if (OperatingSystem.IsWindows())
+        {
+            canonicalRoot = AsciiLower(canonicalRoot);
+            applicationName = AsciiLower(applicationName);
+        }
+
+        // Match native-builder.mts: UTF-8(root + NUL + name), FNV-1a/64,
+        // lowercase 16-digit hex. The NUL keeps root/name pairs unambiguous.
+        // This nonsecurity hash avoids a crypto dependency in the standalone
+        // client and has a small, identical implementation in both languages.
+        // https://www.ietf.org/archive/id/draft-eastlake-fnv-35.html
+        var hash = 14695981039346656037UL;
+        foreach (var value in Encoding.UTF8.GetBytes($"{canonicalRoot}\0{applicationName}"))
+        {
+            hash = unchecked((hash ^ value) * 1099511628211UL);
+        }
+        var label = AsciiLower(applicationName[..Math.Min(applicationName.Length, 40)]);
+        label = new string(label.Select(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '.' or '-' ? c : '_').ToArray());
+
+        return $"aspire-{label}-{hash:x16}";
+    }
+
+    private static string AsciiLower(string value) => new(value.Select(c => c is >= 'A' and <= 'Z' ? (char)(c + ('a' - 'A')) : c).ToArray());
 }
 
 /// <summary>Materializes a sealed transport plan and delegates all scheduling, values and retirement to the native server.</summary>

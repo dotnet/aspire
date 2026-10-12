@@ -16,6 +16,94 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeBuilderAuthoringTests
 {
     [Fact]
+    public void DefaultVolumesUseStableApplicationIdentityAndPortableCrossLanguageVectors()
+    {
+        var root = OperatingSystem.IsWindows() ? @"C:\native-volume-tests\shop" : "/native-volume-tests/shop";
+        var options = new NativeBuilderOptions { ApplicationRoot = root };
+        var first = DistributedApplication.CreateBuilder([], options);
+        var cache = first.AddRedis("cache").WithDataVolume();
+        var expected = OperatingSystem.IsWindows() ? "aspire-shop-9e1a5d5bed7f2e30-cache-data" : "aspire-shop-150be96b0b469209-cache-data";
+        Assert.Equal(expected, first.GetDefaultDataVolumeName(cache.Resource));
+        first.Build();
+
+        var rerun = DistributedApplication.CreateBuilder([], options);
+        Assert.Equal(expected, rerun.GetDefaultDataVolumeName(rerun.AddRedis("cache").WithDataVolume().Resource));
+        var revision = DistributedApplication.CreateBuilder(
+            [$"--native-application-root={Path.Combine(root, "..", "shop")}{Path.DirectorySeparatorChar}"]);
+        Assert.Equal(expected, revision.GetDefaultDataVolumeName(revision.AddRedis("cache").WithDataVolume().Resource));
+
+        var otherRoot = OperatingSystem.IsWindows() ? @"C:\native-volume-tests\other\shop" : "/native-volume-tests/other/shop";
+        var other = DistributedApplication.CreateBuilder([], new() { ApplicationRoot = otherRoot });
+        Assert.Equal(OperatingSystem.IsWindows() ? "aspire-shop-66cbb558beb5aaf5-cache-data" : "aspire-shop-7dd235e7275aa500-cache-data",
+            other.GetDefaultDataVolumeName(other.AddRedis("cache").WithDataVolume().Resource));
+
+        var named = DistributedApplication.CreateBuilder([], new() { ApplicationRoot = root, ApplicationName = "Inventory / 世界" });
+        var namedVolume = named.GetDefaultDataVolumeName(named.AddRedis("cache").WithDataVolume().Resource);
+        Assert.Equal(OperatingSystem.IsWindows() ? "aspire-inventory_____-9556ab04977d6d99-cache-data" : "aspire-inventory_____-76d0c05eac46aedc-cache-data",
+            namedVolume);
+        Assert.Matches("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$", namedVolume);
+        var selected = DistributedApplication.CreateBuilder(
+            [$"--native-application-root={root}", "--native-application-name=Inventory / 世界"],
+            new() { ApplicationRoot = otherRoot, ApplicationName = "ignored" });
+        Assert.Equal(namedVolume, selected.GetDefaultDataVolumeName(selected.AddRedis("cache").Resource));
+        Assert.Throws<ArgumentException>(() => DistributedApplication.CreateBuilder([], new() { ApplicationRoot = "" }));
+        Assert.Throws<ArgumentException>(() => DistributedApplication.CreateBuilder([], new() { ApplicationName = " " }));
+
+        var explicitPrefix = DistributedApplication.CreateBuilder(
+            ["--native-volume-prefix=User.Exact_Prefix"], new() { ApplicationRoot = otherRoot });
+        Assert.Equal("User.Exact_Prefix-cache-data",
+            explicitPrefix.GetDefaultDataVolumeName(explicitPrefix.AddRedis("cache").WithDataVolume().Resource));
+
+        var defaults = DistributedApplication.CreateBuilder([]);
+        var launchRoot = DistributedApplication.CreateBuilder([], new() { ApplicationRoot = Directory.GetCurrentDirectory() });
+        Assert.Equal(defaults.GetDefaultDataVolumeName(defaults.AddRedis("cache").Resource),
+            launchRoot.GetDefaultDataVolumeName(launchRoot.AddRedis("cache").Resource));
+    }
+
+    [Fact]
+    public async Task RetainedVolumeIdentitySurvivesNativeRevisionsAndSeparatesApplicationRoots()
+    {
+        var executor = new WorkloadTestExecutor();
+        executor.ReleaseCleanup();
+        await using var host = await NativeClientTestHost.StartWithExecutorAsync(executor, new());
+        await using var native = await NativeClient.ConnectAsync(host.Endpoint, host.Token, TimeSpan.FromSeconds(10), TimeProvider.System);
+        var workspace = await native.Server.CreateApplicationWorkspaceAsync();
+        var firstRoot = Path.Combine(Path.GetPathRoot(Directory.GetCurrentDirectory())!, "native-volume-tests", "shop");
+        var otherRoot = Path.Combine(firstRoot, "..", "other", "shop");
+        var expectedVolumes = new List<string>();
+        ApplicationExecution? execution = null;
+        foreach (var (root, prefix) in new (string, string?)[]
+        {
+            (firstRoot, null), (Path.Combine(firstRoot, "..", "shop"), null),
+            (otherRoot, null), (otherRoot, "User.Exact_Prefix")
+        })
+        {
+            var builder = DistributedApplication.CreateBuilder(prefix is null ? [] : [$"--native-volume-prefix={prefix}"],
+                new() { ApplicationRoot = root });
+            // Exercise the actual generic container + Redis data-volume authoring
+            // operation; the executor records native plans, not client commands.
+            var cache = builder.AddContainer(new RedisContainerResource("cache")).WithDataVolume();
+            var volume = builder.GetDefaultDataVolumeName(cache.Resource);
+            if (expectedVolumes.Count == 0 || expectedVolumes[^1] != volume)
+            {
+                expectedVolumes.Add(volume);
+            }
+            var revision = await workspace.BeginRevisionAsync();
+            await builder.MaterializeAsync(revision, CancellationToken.None);
+            await workspace.CommitRevisionAsync(revision);
+            execution = execution is null ? await revision.StartApplicationAsync() : await workspace.GetApplicationExecutionAsync();
+            await execution.WaitApplicationReadyAsync(10000);
+            Assert.Equal(expectedVolumes.Count, executor.Plans.Count);
+        }
+        Assert.Equal(3, expectedVolumes.Count);
+        Assert.Equal(expectedVolumes.Select(volume => new Aspire.Hosting.Native.Runtime.WorkloadMount(
+            Aspire.Hosting.Native.Runtime.WorkloadMountKind.Volume, volume, "/data", false)),
+            executor.Plans.Select(plan => Assert.Single(Assert.IsType<Aspire.Hosting.Native.Runtime.ContainerWorkload>(plan).Mounts)));
+        await workspace.RetireApplicationWorkspaceAsync();
+        Assert.Equal(3, executor.Removed.Count);
+    }
+
+    [Fact]
     public void OrdinaryProviderAuthoringCancellationIsInvocationContextNotAnExtraWireArgument()
     {
         var contract = RedisContracts::NativeIntegration.Generated.ProviderContract.Create();

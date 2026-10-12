@@ -140,12 +140,19 @@ internal sealed partial class NativeProviderRegistry
         await Task.Yield();
         INativeRpcPeer? peer;
         NativeRpcConnection? connection;
+        ProviderCallbackLease[] callbacks;
         lock (_gate)
         {
             resource.IsRetired = true;
             resource.Registration.Resources.Remove(resource.ObjectId);
+            callbacks = resource.Callbacks.ToArray();
+            resource.Callbacks.Clear();
             peer = resource.Registration.Disconnected ? null : resource.Registration.Peer;
             connection = resource.Registration.Disconnected ? null : resource.Registration.Connection;
+        }
+        foreach (var callback in callbacks)
+        {
+            callback.Dispose();
         }
         if (peer is null || peer.Closed.IsCancellationRequested)
         {
@@ -184,6 +191,7 @@ internal sealed partial class NativeProviderRegistry
         internal string ObjectId { get; } = objectId;
         internal string TypeId { get; } = typeId;
         internal bool IsRetired { get; set; }
+        internal List<ProviderCallbackLease> Callbacks { get; } = [];
         public Task RetireAsync()
         {
             lock (_retirementGate)

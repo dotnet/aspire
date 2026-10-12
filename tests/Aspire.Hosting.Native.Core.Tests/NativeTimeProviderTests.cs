@@ -140,6 +140,8 @@ public class NativeTimeProviderTests
     {
         var clock = new FakeTimeProvider();
         CancellationToken startupToken = default;
+        var observing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseObservation = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var executor = new WorkloadTestExecutor
         {
             BeforeStart = token =>
@@ -147,6 +149,12 @@ public class NativeTimeProviderTests
                 startupToken = token;
 
                 return Task.CompletedTask;
+            },
+            BeforeReadStatus = _ =>
+            {
+                observing.TrySetResult();
+
+                return releaseObservation.Task;
             }
         };
         executor.ReleaseCleanup();
@@ -156,11 +164,22 @@ public class NativeTimeProviderTests
             new NativeRuntimeOptions { TimeProvider = clock, WorkloadStartupTimeout = TimeSpan.FromSeconds(2) });
         using var owner = runtime.ClaimResource(handle);
         await owner.StartWorkload(new ContainerWorkload("example:1", 0, [], []));
-        clock.Advance(TimeSpan.FromSeconds(3));
-        Assert.False(startupToken.IsCancellationRequested);
-        runtime.Dispose();
+        try
+        {
+            await observing.Task.WaitAsync(TestContext.Current.CancellationToken);
+            clock.Advance(TimeSpan.FromSeconds(3));
+            Assert.False(startupToken.IsCancellationRequested);
+            runtime.Dispose();
+            // Assert while the startup scope is alive. If observation unwinds
+            // during parent cancellation, disposing its linked CTS can remove
+            // the startup callback before cancellation reaches it.
+            Assert.True(startupToken.IsCancellationRequested);
+        }
+        finally
+        {
+            releaseObservation.TrySetResult();
+        }
         await runtime.Completion;
-        Assert.True(startupToken.IsCancellationRequested);
     }
 
     [Fact]

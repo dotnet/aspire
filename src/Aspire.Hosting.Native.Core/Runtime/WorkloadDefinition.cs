@@ -19,6 +19,23 @@ internal static class WorkloadDefinition
     public static void Validate(WorkloadPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        ValidateEnvironmentAndArguments(plan);
+        ValidateEndpoints(plan);
+        switch (plan)
+        {
+            case ContainerWorkload container:
+                ValidateContainer(container);
+                break;
+            case ExecutableWorkload executable:
+                ValidateExecutable(executable);
+                break;
+            default:
+                throw new NotSupportedException("The workload primitive is not implemented.");
+        }
+    }
+
+    private static void ValidateEnvironmentAndArguments(WorkloadPlan plan)
+    {
         if (plan.Environment.IsDefault || plan.Arguments.IsDefault || plan.Endpoints.IsDefault ||
             plan.Environment.Length > 64 || plan.Arguments.Length > 128 || plan.Endpoints.Length > 32 ||
             plan.Arguments.Any(argument => argument is null || argument.Length > 8192 || argument.Contains('\0')) ||
@@ -28,6 +45,10 @@ internal static class WorkloadDefinition
         {
             throw new ArgumentException("Invalid workload environment, arguments, or endpoint capacity.", nameof(plan));
         }
+    }
+
+    private static void ValidateEndpoints(WorkloadPlan plan)
+    {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var environmentNames = plan.Environment.Select(variable => variable.Name).ToHashSet(StringComparer.Ordinal);
         foreach (var endpoint in plan.Endpoints)
@@ -51,46 +72,50 @@ internal static class WorkloadDefinition
                 throw new ArgumentException("Use a container target port or an executable target port/port environment variable.", nameof(plan));
             }
         }
-        switch (plan)
+    }
+
+    private static void ValidateContainer(ContainerWorkload plan)
+    {
+        if (string.IsNullOrWhiteSpace(plan.Image) || plan.Image.Length > 2048 ||
+            plan.Image.Any(char.IsWhiteSpace) || plan.Image.Contains('\0') ||
+            plan.Command is { } command && (string.IsNullOrWhiteSpace(command) || command.Length > 8192 || command.Contains('\0')) ||
+            plan.Mounts.IsDefault || plan.Mounts.Length > 64)
         {
-            case ContainerWorkload container:
-                if (string.IsNullOrWhiteSpace(container.Image) || container.Image.Length > 2048 ||
-                    container.Image.Any(char.IsWhiteSpace) || container.Image.Contains('\0') ||
-                    container.Command is { } command && (string.IsNullOrWhiteSpace(command) || command.Length > 8192 || command.Contains('\0')) ||
-                    container.Mounts.IsDefault || container.Mounts.Length > 64)
-                {
-                    throw new ArgumentException("Invalid container image, command, or mounts.", nameof(plan));
-                }
-                var targets = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var mount in container.Mounts)
-                {
-                    if (mount is null || mount.Source is null || string.IsNullOrWhiteSpace(mount.Target) ||
-                        !mount.Target.StartsWith('/') || mount.Target.Length > 4096 || mount.Target.Contains('\0') ||
-                        !targets.Add(mount.Target) ||
-                        mount.Type is not (WorkloadMountKind.Bind or WorkloadMountKind.Volume) ||
-                        mount.Type == WorkloadMountKind.Bind && (!Path.IsPathFullyQualified(mount.Source) ||
-                            !(File.Exists(mount.Source) || Directory.Exists(mount.Source))) ||
-                        mount.Type == WorkloadMountKind.Volume && (mount.Source.Length is < 1 or > 255 ||
-                            !char.IsAsciiLetterOrDigit(mount.Source[0]) ||
-                            mount.Source.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '_' or '.' or '-'))))
-                    {
-                        throw new ArgumentException("Invalid or duplicate container mount.", nameof(plan));
-                    }
-                }
-                if (container.Endpoints.Select(endpoint => (endpoint.TargetPort, endpoint.Protocol)).Distinct().Count() != container.Endpoints.Length)
-                {
-                    throw new ArgumentException("Container target ports must be unique for each protocol.", nameof(plan));
-                }
-                break;
-            case ExecutableWorkload executable:
-                if (!Path.IsPathFullyQualified(executable.ExecutablePath) || !File.Exists(executable.ExecutablePath) ||
-                    !Path.IsPathFullyQualified(executable.WorkingDirectory) || !Directory.Exists(executable.WorkingDirectory))
-                {
-                    throw new ArgumentException("Executables require existing absolute paths.", nameof(plan));
-                }
-                break;
-            default:
-                throw new NotSupportedException("The workload primitive is not implemented.");
+            throw new ArgumentException("Invalid container image, command, or mounts.", nameof(plan));
+        }
+        ValidateMounts(plan);
+        if (plan.Endpoints.Select(endpoint => (endpoint.TargetPort, endpoint.Protocol)).Distinct().Count() != plan.Endpoints.Length)
+        {
+            throw new ArgumentException("Container target ports must be unique for each protocol.", nameof(plan));
+        }
+    }
+
+    private static void ValidateMounts(ContainerWorkload plan)
+    {
+        var targets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var mount in plan.Mounts)
+        {
+            if (mount is null || mount.Source is null || string.IsNullOrWhiteSpace(mount.Target) ||
+                !mount.Target.StartsWith('/') || mount.Target.Length > 4096 || mount.Target.Contains('\0') ||
+                !targets.Add(mount.Target) ||
+                mount.Type is not (WorkloadMountKind.Bind or WorkloadMountKind.Volume) ||
+                mount.Type == WorkloadMountKind.Bind && (!Path.IsPathFullyQualified(mount.Source) ||
+                    !(File.Exists(mount.Source) || Directory.Exists(mount.Source))) ||
+                mount.Type == WorkloadMountKind.Volume && (mount.Source.Length is < 1 or > 255 ||
+                    !char.IsAsciiLetterOrDigit(mount.Source[0]) ||
+                    mount.Source.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '_' or '.' or '-'))))
+            {
+                throw new ArgumentException("Invalid or duplicate container mount.", nameof(plan));
+            }
+        }
+    }
+
+    private static void ValidateExecutable(ExecutableWorkload plan)
+    {
+        if (!Path.IsPathFullyQualified(plan.ExecutablePath) || !File.Exists(plan.ExecutablePath) ||
+            !Path.IsPathFullyQualified(plan.WorkingDirectory) || !Directory.Exists(plan.WorkingDirectory))
+        {
+            throw new ArgumentException("Executables require existing absolute paths.", nameof(plan));
         }
     }
 

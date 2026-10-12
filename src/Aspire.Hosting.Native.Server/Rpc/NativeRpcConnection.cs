@@ -117,17 +117,33 @@ internal sealed class NativeRpcConnection : IDisposable
         catch (Exception exception) when (exception is RpcFault or ObjectDisposedException) { return false; }
     }
 
-    internal string AddCallback(ProviderCallback callback)
+    internal ProviderCallbackLease AddCallback(ProviderCallback callback)
     {
         lock (_gate)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            foreach (var (existingId, existing) in _callbacks.ToArray())
+            {
+                if (existing.IsRevoked)
+                {
+                    _callbacks.Remove(existingId);
+                }
+            }
             if (_callbacks.Count >= _options.MaximumHandlesPerConnection)
             {
                 throw new RpcFault("HANDLE_LIMIT", "The callback authority limit was reached.");
             }
             var id = RandomNumberGenerator.GetHexString(32);
             _callbacks.Add(id, callback);
-            return id;
+            return new(this, id, callback);
+        }
+    }
+
+    internal void RemoveCallback(string id)
+    {
+        lock (_gate)
+        {
+            _callbacks.Remove(id);
         }
     }
 
@@ -135,7 +151,7 @@ internal sealed class NativeRpcConnection : IDisposable
     {
         lock (_gate)
         {
-            if (!_callbacks.TryGetValue(id, out var callback) || callback.Owner.IsClosed)
+            if (!_callbacks.TryGetValue(id, out var callback) || callback.IsRevoked)
             {
                 throw new RpcFault("HANDLE_NOT_FOUND", "The callback authority is unknown or retired.");
             }

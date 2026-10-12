@@ -31,6 +31,7 @@ public class DcpWorkloadCleanupTests
         await Task.WhenAll(first, second);
         Assert.Equal("""{"status":"CleaningResources","shutdownResourceCleanup":"Full"}""",
             Assert.Single(handler.AdministrativeRequests));
+        Assert.Equal("application/merge-patch+json", Assert.Single(handler.RequestContents).ContentType);
     }
 
     [Fact]

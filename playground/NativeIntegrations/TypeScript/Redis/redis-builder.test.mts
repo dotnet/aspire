@@ -3,11 +3,50 @@
 
 import assert from 'node:assert/strict';
 import { createServer } from 'node:net';
+import { join } from 'node:path';
 import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
 import { createBuilder } from './redis-builder.mjs';
 import { RedisContainerResource } from './redis-authoring.mjs';
 import { ExecutableResource, NativeApplication } from './native-builder.mjs';
+
+test('default volumes use stable application identity and portable cross-language vectors', async () => {
+    const root = process.platform === 'win32' ? 'C:\\native-volume-tests\\shop' : '/native-volume-tests/shop';
+    const options = { applicationRoot: root };
+    const first = await createBuilder([], options);
+    const cache = first.addRedis('cache').withDataVolume();
+    const expected = process.platform === 'win32' ? 'aspire-shop-9e1a5d5bed7f2e30-cache-data' : 'aspire-shop-150be96b0b469209-cache-data';
+    assert.equal(first.getDefaultDataVolumeName(cache.resource), expected);
+    first.build();
+
+    const rerun = await createBuilder([], options);
+    assert.equal(rerun.getDefaultDataVolumeName(rerun.addRedis('cache').withDataVolume().resource), expected);
+    const revision = await createBuilder([`--native-application-root=${join(root, '..', 'shop')}/`]);
+    assert.equal(revision.getDefaultDataVolumeName(revision.addRedis('cache').withDataVolume().resource), expected);
+
+    const otherRoot = process.platform === 'win32' ? 'C:\\native-volume-tests\\other\\shop' : '/native-volume-tests/other/shop';
+    const other = await createBuilder([], { applicationRoot: otherRoot });
+    assert.equal(other.getDefaultDataVolumeName(other.addRedis('cache').withDataVolume().resource),
+        process.platform === 'win32' ? 'aspire-shop-66cbb558beb5aaf5-cache-data' : 'aspire-shop-7dd235e7275aa500-cache-data');
+
+    const named = await createBuilder([], { applicationRoot: root, applicationName: 'Inventory / 世界' });
+    const namedVolume = named.getDefaultDataVolumeName(named.addRedis('cache').withDataVolume().resource);
+    assert.equal(namedVolume, process.platform === 'win32' ? 'aspire-inventory_____-9556ab04977d6d99-cache-data' : 'aspire-inventory_____-76d0c05eac46aedc-cache-data');
+    assert.match(namedVolume, /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/);
+    const selected = await createBuilder([`--native-application-root=${root}`, '--native-application-name=Inventory / 世界'],
+        { applicationRoot: otherRoot, applicationName: 'ignored' });
+    assert.equal(selected.getDefaultDataVolumeName(selected.addRedis('cache').resource), namedVolume);
+    await assert.rejects(createBuilder([], { applicationRoot: '' }), /root cannot be empty/);
+    await assert.rejects(createBuilder([], { applicationName: ' ' }), /name cannot be empty/);
+
+    const explicitPrefix = await createBuilder(['--native-volume-prefix=User.Exact_Prefix'], { applicationRoot: otherRoot });
+    assert.equal(explicitPrefix.getDefaultDataVolumeName(explicitPrefix.addRedis('cache').withDataVolume().resource), 'User.Exact_Prefix-cache-data');
+
+    const defaults = await createBuilder([]);
+    const launchRoot = await createBuilder([], { applicationRoot: process.cwd() });
+    assert.equal(defaults.getDefaultDataVolumeName(defaults.addRedis('cache').resource),
+        launchRoot.getDefaultDataVolumeName(launchRoot.addRedis('cache').resource));
+});
 
 test('familiar awaited fluent composition and build perform no RPC', async () => {
     let connections = 0;

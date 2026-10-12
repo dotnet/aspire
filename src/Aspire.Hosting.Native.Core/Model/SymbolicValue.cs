@@ -30,7 +30,7 @@ internal sealed class SymbolicValueException(SymbolicValueFailure failure) : Inv
     };
 }
 
-/// <summary>Retains immutable server-owned values, secret classification and authoritative resource references.</summary>
+/// <summary>Represents an authoring reference expression as immutable server-owned values, secret classification and authoritative resource references.</summary>
 internal sealed class SymbolicValue
 {
     private readonly string _text;
