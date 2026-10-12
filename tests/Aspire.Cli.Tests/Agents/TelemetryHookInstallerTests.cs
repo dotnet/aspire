@@ -206,12 +206,6 @@ public class TelemetryHookInstallerTests(ITestOutputHelper outputHelper)
         }
     }
 
-    private static async Task<string> ReadLfNormalizedAsync(string path)
-    {
-        var content = await File.ReadAllTextAsync(path).DefaultTimeout();
-        return content.ReplaceLineEndings("\n");
-    }
-
     private static TelemetryHookInstaller CreateInstaller(TemporaryWorkspace workspace, DirectoryInfo home)
     {
         var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: home);

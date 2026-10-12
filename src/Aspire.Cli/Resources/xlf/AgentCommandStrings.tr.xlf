@@ -57,46 +57,6 @@
         <target state="new">OpenCode using its native configuration and the universal .agents/skills location.</target>
         <note />
       </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_ArchiveHashVerificationFailed">
-        <source>Embedded Aspire skills archive failed SHA-512 verification. Expected '{0}', got '{1}'.</source>
-        <target state="new">Embedded Aspire skills archive failed SHA-512 verification. Expected '{0}', got '{1}'.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_GitHubUnavailable">
-        <source>Aspire skills could not be downloaded from the verified GitHub release asset, and no valid cached or embedded bundle is available.</source>
-        <target state="new">Aspire skills could not be downloaded from the verified GitHub release asset, and no valid cached or embedded bundle is available.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_InvalidMetadata">
-        <source>Embedded Aspire skills bundle metadata is invalid: {0}</source>
-        <target state="new">Embedded Aspire skills bundle metadata is invalid: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_MetadataRepositoryMismatch">
-        <source>Embedded Aspire skills metadata repository '{0}' does not match expected repository '{1}'.</source>
-        <target state="new">Embedded Aspire skills metadata repository '{0}' does not match expected repository '{1}'.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_MissingMetadataAssetName">
-        <source>Embedded Aspire skills metadata must specify a release asset name.</source>
-        <target state="new">Embedded Aspire skills metadata must specify a release asset name.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_MissingMetadataSha512">
-        <source>Embedded Aspire skills metadata must specify the release asset SHA-512 hash.</source>
-        <target state="new">Embedded Aspire skills metadata must specify the release asset SHA-512 hash.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_MissingMetadataTag">
-        <source>Embedded Aspire skills metadata must specify a GitHub release tag.</source>
-        <target state="new">Embedded Aspire skills metadata must specify a GitHub release tag.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_MissingMetadataVersion">
-        <source>Embedded Aspire skills metadata must specify a version.</source>
-        <target state="new">Embedded Aspire skills metadata must specify a version.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConfigurationCompletedWithWarnings">
         <source>Agent configuration completed with warnings. Review the skipped or unavailable targets above.</source>
         <target state="new">Agent configuration completed with warnings. Review the skipped or unavailable targets above.</target>
@@ -436,16 +396,6 @@ These files were left unchanged. Review them after the client acquires the plugi
         <target state="new">Path to the workspace root directory</target>
         <note />
       </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_InstallingStatus">
-        <source>Installing Aspire skills...</source>
-        <target state="new">Installing Aspire skills...</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="AspireSkillsInstaller_InvalidBundle">
-        <source>The Aspire skills bundle is invalid: {0}</source>
-        <target state="new">The Aspire skills bundle is invalid: {0}</target>
-        <note />
-      </trans-unit>
       <trans-unit id="LocalSkills_ReadFailed">
         <source>Could not check local Aspire skills at '{0}': {1}</source>
         <target state="new">Could not check local Aspire skills at '{0}': {1}</target>
@@ -534,11 +484,6 @@ These files were left unchanged. Review them after the client acquires the plugi
       <trans-unit id="SetupCommand_PluginRetry">
         <source>The Aspire CLI is ready, but optional plugin setup did not complete. Retry with 'aspire agent init --scope global --aspire-skills y --mcp n --playwright n --dotnet-inspect n'.</source>
         <target state="new">The Aspire CLI is ready, but optional plugin setup did not complete. Retry with 'aspire agent init --scope global --aspire-skills y --mcp n --playwright n --dotnet-inspect n'.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="SkillDescription_DotnetInspect">
-        <source>Query .NET API surfaces across NuGet packages and platform libraries</source>
-        <target state="new">Query .NET API surfaces across NuGet packages and platform libraries</target>
         <note />
       </trans-unit>
       <trans-unit id="SkillDescription_PlaywrightCli">
