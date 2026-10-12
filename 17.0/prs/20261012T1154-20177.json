@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Migrates dashboard image references to canonical mcr.microsoft.com/aspire repositories",
+  "mergedAt": "2026-10-12T11:54:38Z",
+  "number": 20177,
+  "runDate": "2026-10-12T12:07:49Z",
+  "status": "included",
+  "title": "Migrate dashboard consumers to canonical Aspire images"
+}

@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": true,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Aspire-managed AKS clusters now default to the Standard control-plane tier, providing an uptime SLA suited for production as the integration moves toward general availability. Existing AppHost code can opt back into the Free tier via ConfigureInfrastructure; applying updated infrastructure to an existing cluster can change its tier and introduce a cluster-management charge.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "☸️",
+  "firstMergedAt": "2026-10-12T06:26:46Z",
+  "lastMergedAt": "2026-10-12T06:26:46Z",
+  "name": "Standard control-plane tier default for AKS clusters",
+  "owner": "mitchdenny",
+  "prs": [
+    20917
+  ]
+}

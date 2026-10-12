@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Default AKS clusters to Standard control-plane tier (breaking change, docs required)",
+  "mergedAt": "2026-10-12T06:26:46Z",
+  "number": 20917,
+  "runDate": "2026-10-12T12:07:49Z",
+  "status": "included",
+  "title": "Default AKS clusters to the Standard control-plane tier"
+}

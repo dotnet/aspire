@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Fixes Azure deployment failures caused by expired federated assertions during ACR authentication",
+  "mergedAt": "2026-10-12T09:41:39Z",
+  "number": 20907,
+  "runDate": "2026-10-12T12:07:49Z",
+  "status": "included",
+  "title": "Pre-acquire selected Azure deployment token audiences"
+}

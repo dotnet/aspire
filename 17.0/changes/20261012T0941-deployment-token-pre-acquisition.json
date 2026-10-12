@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Azure deployments using short-lived federated credentials could finish lengthy ARM provisioning and then fail when ACR authentication requested a different token audience. Deployment now pre-acquires all required token audiences before resource-group creation, avoiding this class of late-stage authentication failure.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🔐",
+  "firstMergedAt": "2026-10-12T09:41:39Z",
+  "lastMergedAt": "2026-10-12T09:41:39Z",
+  "name": "Pre-acquire Azure deployment token audiences",
+  "owner": "mitchdenny",
+  "prs": [
+    20907
+  ]
+}
