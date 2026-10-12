@@ -50,7 +50,6 @@ public sealed class JavaScriptPackageManagerAnnotation(string executableName, st
     /// This is useful for package managers like Yarn PnP that generate resolution files (e.g. .pnp.cjs)
     /// which get overwritten by the source copy and need to be regenerated.
     /// </summary>
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public Action<DockerfileStage>? FinalizeDockerBuildStage { get; init; }
 
     /// <summary>
