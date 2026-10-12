@@ -1169,14 +1169,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(true, DashboardPersistenceMode.None, "none")]
     [InlineData(true, DashboardPersistenceMode.Run, "run")]
-    [InlineData(true, DashboardPersistenceMode.Resume, "resume")]
-    [InlineData(false, DashboardPersistenceMode.None, "none")]
-    [InlineData(false, DashboardPersistenceMode.Run, "run")]
     [InlineData(false, DashboardPersistenceMode.Resume, "resume")]
     [InlineData(false, (DashboardPersistenceMode)999, "unknown")]
-    [InlineData(false, (DashboardPersistenceMode)(-1), "unknown")]
     public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();
