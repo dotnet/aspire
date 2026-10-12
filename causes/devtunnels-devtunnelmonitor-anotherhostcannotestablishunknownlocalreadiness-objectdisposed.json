@@ -1,0 +1,16 @@
+{
+  "id": "devtunnels-devtunnelmonitor-anotherhostcannotestablishunknownlocalreadiness-objectdisposed",
+  "type": "flaky-test",
+  "title": "Flaky: DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness throws ObjectDisposedException on disposed IServiceProvider",
+  "test_name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness",
+  "error_pattern": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context)",
+  "occurrences": [
+    {
+      "run_id": 38305395704,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38305395704",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T21:26:20Z"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "run_id": 38305395704,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38305395704",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-12T21:26:20Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "1b24a1a1e00d94026aeba649b0de14402aef0c10",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 114998863275,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38305395704/job/114998863275",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic test assertion failure: KubernetesServiceTests expects recorded HTTP methods [POST, GET] but none were recorded, matching a known recurring main-repository breakage tied to the DCP retry-budget feature.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "id": 114998890021,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38305395704/job/114998890021",
+      "classification": "flaky-test",
+      "reason": "DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness throws ObjectDisposedException on a disposed IServiceProvider during an async update callback, matching the same timing/race-condition pattern as two other known-flaky DevTunnelMonitor tests.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115000781236,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38305395704/job/115000781236",
+      "classification": "main-repository-breakage",
+      "reason": "Nuxt integration Docker build deterministically fails at 'RUN npm ci' with exit code 1 after all 59 TypeScript validation AppHosts pass; this is a known recurring repository-level breakage in the Nuxt web publish image.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115004297089,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38305395704/job/115004297089",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job fails deterministically because the upstream TypeScript SDK Validation (Node 22.x) job failed (npm ci Docker build breakage); Python, Go, Java, and Rust validations all succeeded.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic assertion failure consistent across many prior main runs since this DCP retry-budget feature merged; not timing dependent."
+    },
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Async disposal race: the shared IServiceProvider is disposed before a queued resource notification/command callback runs, matching the same known-flaky pattern as two other DevTunnelMonitor tests (CancellingAHealthCallerDoesNotCancelTheSharedObserver, HostOutputAllocatesPortsWithoutQueryingServiceStatus)."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "devtunnels-devtunnelmonitor-anotherhostcannotestablishunknownlocalreadiness-objectdisposed",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
