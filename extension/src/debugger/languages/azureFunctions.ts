@@ -27,6 +27,9 @@ import { cleanupRun, registerRunCleanup } from '../runCleanupRegistry';
 const AF_EXTENSION_ID = azureFunctionsExtensionId;
 const NODE_WORKER_ARGUMENTS_ENV = 'languageWorkers__node__arguments';
 const NODE_INSPECTOR_HOST = '127.0.0.1';
+// The probe listener must close before the Node worker can bind. Keep the selected port reserved
+// in-process until run cleanup so concurrent Aspire debug sessions cannot select the same port.
+const reservedNodeInspectorPorts = new Set<number>();
 const DEFAULT_PICK_PROCESS_TIMEOUT_SECONDS = 30;
 const FUNC_HOST_DEFAULT_PORT = 7071;
 const POLL_INTERVAL_MS = 100;
@@ -654,7 +657,7 @@ function throwUnsupportedTaskShell(): never {
     throw new Error(azureFunctionsUnsupportedTaskShell);
 }
 
-async function allocateNodeInspectorPort(): Promise<number> {
+async function getAvailableNodeInspectorPort(): Promise<number> {
     return await new Promise<number>((resolve, reject) => {
         const server = net.createServer();
 
@@ -678,6 +681,18 @@ async function allocateNodeInspectorPort(): Promise<number> {
             });
         });
     });
+}
+
+async function allocateNodeInspectorPort(): Promise<number> {
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const port = await getAvailableNodeInspectorPort();
+        if (!reservedNodeInspectorPorts.has(port)) {
+            reservedNodeInspectorPorts.add(port);
+            return port;
+        }
+    }
+
+    throw new Error(azureFunctionsNodeInspectorPortAllocationFailed);
 }
 
 export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
@@ -712,6 +727,10 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
         const dcpEnv = Object.fromEntries(
             (env ?? []).filter(e => e.value !== undefined).map(e => [e.name, e.value])
         );
+        const effectiveEnv = {
+            ...dcpEnv,
+            ...debugConfiguration.env
+        };
 
         if (!launchOptions.debug) {
             debugConfiguration.type = 'pwa-node';
@@ -719,6 +738,7 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
             debugConfiguration.runtimeExecutable = launchConfig.command;
             debugConfiguration.runtimeArgs = args ?? [];
             debugConfiguration.cwd = launchConfig.app_directory;
+            debugConfiguration.env = effectiveEnv;
             debugConfiguration.noDebug = true;
 
             delete debugConfiguration.program;
@@ -728,7 +748,7 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
 
         const debugPort = await allocateNodeInspectorPort();
         const debugEnv = {
-            ...dcpEnv,
+            ...effectiveEnv,
             // Microsoft Learn documents Node Functions debugging as the Functions host
             // passing inspector arguments to the language worker with
             // `languageWorkers__node__arguments`, and the Azure Functions VS Code
@@ -761,9 +781,17 @@ export const azureFunctionsNodeDebuggerExtension: ResourceDebuggerExtension = {
 
         let taskExecution: vscode.TaskExecution | undefined;
         let stopped = false;
+        let portReleased = false;
+        const releasePort = () => {
+            if (!portReleased) {
+                portReleased = true;
+                reservedNodeInspectorPorts.delete(debugPort);
+            }
+        };
         registerRunCleanup(debugConfiguration.runId, () => {
             stopped = true;
             taskExecution?.terminate();
+            releasePort();
         });
         try {
             taskExecution = await vscode.tasks.executeTask(task);

@@ -68,6 +68,7 @@ suite('E2E shard matrix', () => {
                 browser: optionalString(row, 'browser', index),
                 installDotnetDebugger: optionalBoolean(row, 'installDotnetDebugger', index),
                 installAzureFunctions: optionalBoolean(row, 'installAzureFunctions', index),
+                installAzureFunctionsCoreTools: optionalBoolean(row, 'installAzureFunctionsCoreTools', index),
             };
         });
     }
@@ -197,7 +198,9 @@ suite('E2E shard matrix', () => {
         assert.strictEqual(rows[0].name, 'Linux');
         assert.strictEqual(rows[0].runner, 'ubuntu-latest');
         assert.strictEqual(rows[0].spec, 'out/test-e2e/test-e2e/azureFunctionsNode.e2e.test.js');
-        assert.strictEqual(rows[0].installAzureFunctions, true);
+        assert.strictEqual(rows[0].installDotnetDebugger, true);
+        assert.strictEqual(rows[0].installAzureFunctionsCoreTools, true);
+        assert.strictEqual(rows[0].installAzureFunctions, undefined);
         assert.strictEqual(rows[0].advisoryIssue, undefined);
         assert.ok(!fs.readFileSync(path.join(specDirectory, 'azureFunctions.e2e.test.ts'), 'utf8').includes('azureFunctionsNode.e2e.test'));
     });
@@ -415,4 +418,5 @@ interface MatrixRow {
     browser?: string;
     installDotnetDebugger?: boolean;
     installAzureFunctions?: boolean;
+    installAzureFunctionsCoreTools?: boolean;
 }

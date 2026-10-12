@@ -75,6 +75,93 @@ suite('Azure Functions Node Debugger Tests', () => {
         sinon.assert.calledOnce(taskExecution.terminate as sinon.SinonSpy);
     });
 
+    test('uses the effective debugger environment for the functions host task', async () => {
+        const taskExecution = { terminate: sinon.spy() } as unknown as vscode.TaskExecution;
+        const executeTaskStub = sinon.stub(vscode.tasks, 'executeTask').resolves(taskExecution);
+        const launchConfig: AzureFunctionsNodeLaunchConfiguration = {
+            type: 'azure-functions-node',
+            app_directory: '/workspace/functions',
+            command: 'npm',
+            language: 'typescript',
+            worker_runtime: 'node'
+        };
+        const debugConfig = createDebugConfig();
+        debugConfig.env = {
+            PROCESS_ENV: 'process',
+            FUNCTIONS_WORKER_RUNTIME: 'overridden',
+            USER_DEBUG_ENV: 'configured'
+        };
+
+        await azureFunctionsNodeDebuggerExtension.createDebugSessionConfigurationCallback!(
+            launchConfig,
+            ['run', 'start'],
+            [{ name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }],
+            { debug: true, runId: '1', debugSessionId: '1', isApphost: false, debugSession: fakeAspireDebugSession },
+            debugConfig
+        );
+
+        const execution = executeTaskStub.firstCall.args[0].execution as vscode.ShellExecution;
+        assert.strictEqual(execution.options?.env?.PROCESS_ENV, 'process');
+        assert.strictEqual(execution.options?.env?.FUNCTIONS_WORKER_RUNTIME, 'overridden');
+        assert.strictEqual(execution.options?.env?.USER_DEBUG_ENV, 'configured');
+        assert.match(execution.options?.env?.languageWorkers__node__arguments ?? '', /^--inspect=127\.0\.0\.1:\d+$/);
+
+        cleanupRun(debugConfig.runId);
+    });
+
+    test('reserves inspector ports across concurrent debug sessions', async () => {
+        const allocatedPorts = [12345, 12345, 12346];
+        sinon.stub(net, 'createServer').callsFake(() => {
+            const server = new net.Server();
+            const port = allocatedPorts.shift();
+            assert.notStrictEqual(port, undefined);
+            sinon.stub(server, 'address').returns({ address: '127.0.0.1', family: 'IPv4', port: port! });
+            sinon.stub(server, 'close').callsFake(callback => {
+                callback?.();
+                return server;
+            });
+            sinon.stub(server, 'listen').callsFake((...args: unknown[]) => {
+                (args[2] as () => void)();
+                return server;
+            });
+            return server;
+        });
+        const executeTaskStub = sinon.stub(vscode.tasks, 'executeTask')
+            .onFirstCall().resolves({ terminate: sinon.spy() } as unknown as vscode.TaskExecution)
+            .onSecondCall().resolves({ terminate: sinon.spy() } as unknown as vscode.TaskExecution);
+        const launchConfig: AzureFunctionsNodeLaunchConfiguration = {
+            type: 'azure-functions-node',
+            app_directory: '/workspace/functions',
+            command: 'func',
+            language: 'javascript',
+            worker_runtime: 'node'
+        };
+        const firstDebugConfig = createDebugConfig('first');
+        const secondDebugConfig = createDebugConfig('second');
+
+        await azureFunctionsNodeDebuggerExtension.createDebugSessionConfigurationCallback!(
+            launchConfig,
+            ['host', 'start'],
+            [],
+            { debug: true, runId: 'first', debugSessionId: 'first', isApphost: false, debugSession: fakeAspireDebugSession },
+            firstDebugConfig
+        );
+        await azureFunctionsNodeDebuggerExtension.createDebugSessionConfigurationCallback!(
+            launchConfig,
+            ['host', 'start'],
+            [],
+            { debug: true, runId: 'second', debugSessionId: 'second', isApphost: false, debugSession: fakeAspireDebugSession },
+            secondDebugConfig
+        );
+
+        assert.strictEqual(firstDebugConfig.port, 12345);
+        assert.strictEqual(secondDebugConfig.port, 12346);
+        sinon.assert.callCount(executeTaskStub, 2);
+
+        cleanupRun(firstDebugConfig.runId);
+        cleanupRun(secondDebugConfig.runId);
+    });
+
     test('configures no-debug launch without starting inspector task', async () => {
         const executeTaskStub = sinon.stub(vscode.tasks, 'executeTask');
         const launchConfig: AzureFunctionsNodeLaunchConfiguration = {
@@ -225,10 +312,10 @@ suite('Azure Functions Node Debugger Tests', () => {
     }
 });
 
-function createDebugConfig(): AspireResourceExtendedDebugConfiguration {
+function createDebugConfig(runId = '1'): AspireResourceExtendedDebugConfiguration {
     return {
-        runId: '1',
-        debugSessionId: '1',
+        runId,
+        debugSessionId: runId,
         type: 'pwa-node',
         name: 'Azure Functions',
         request: 'launch',
