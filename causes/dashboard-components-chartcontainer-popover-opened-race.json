@@ -1,0 +1,16 @@
+{
+  "id": "dashboard-components-chartcontainer-popover-opened-race",
+  "type": "flaky-test",
+  "title": "Flaky: ChartContainer_ParametersAndActiveView_OnlyRefreshAndRenderWhenChanged races on popover 'opened' attribute after click",
+  "test_name": "Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_ParametersAndActiveView_OnlyRefreshAndRenderWhenChanged",
+  "error_pattern": "Assert.Equal() Failure: Strings differ\n   (pos 0)\nExpected: \"true\"\nActual:   \"false\"\n   at Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_ParametersAndActiveView_OnlyRefreshAndRenderWhenChanged() in MetricsTests.cs:line 381. The test calls cut.Find(\".chart-filter-button\").Click() then immediately asserts the fluent-popover 'opened' attribute without a WaitForAssertion/render-settle wrapper, racing bUnit's render cycle.",
+  "occurrences": [
+    {
+      "run_id": 38196718737,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38196718737",
+      "job": "Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (windows-latest), Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T03:26:51Z"
+    }
+  ]
+}
