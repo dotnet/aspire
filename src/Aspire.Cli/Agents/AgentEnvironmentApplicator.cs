@@ -48,6 +48,11 @@ internal sealed class AgentEnvironmentApplicator
     public int Priority { get; }
 
     /// <summary>
+    /// Gets the configuration path when the applicator targets a known file.
+    /// </summary>
+    public string? TargetPath { get; init; }
+
+    /// <summary>
     /// Applies the configuration changes to enable the agent environment.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

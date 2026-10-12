@@ -259,6 +259,78 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Which agents do you want to configure?.
+        /// </summary>
+        internal static string InitCommand_SelectAgentsPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_SelectAgentsPrompt", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Where do you want to configure the selected agents?.
+        /// </summary>
+        internal static string InitCommand_SelectScopePrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_SelectScopePrompt", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Only the selected scope is configured. Shared locations are written once..
+        /// </summary>
+        internal static string InitCommand_EnvironmentSelectionNotice {
+            get {
+                return ResourceManager.GetString("InitCommand_EnvironmentSelectionNotice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No agent configuration selected. Existing configuration was left unchanged..
+        /// </summary>
+        internal static string InitCommand_NoConfigurationSelected {
+            get {
+                return ResourceManager.GetString("InitCommand_NoConfigurationSelected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to project.
+        /// </summary>
+        internal static string InitCommand_ProjectScope {
+            get {
+                return ResourceManager.GetString("InitCommand_ProjectScope", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to user.
+        /// </summary>
+        internal static string InitCommand_UserScope {
+            get {
+                return ResourceManager.GetString("InitCommand_UserScope", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: {1}.
+        /// </summary>
+        internal static string InitCommand_EnvironmentLocationDescription {
+            get {
+                return ResourceManager.GetString("InitCommand_EnvironmentLocationDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Configure Aspire MCP for {0} at {1}.
+        /// </summary>
+        internal static string InitCommand_McpConfigurationDescription {
+            get {
+                return ResourceManager.GetString("InitCommand_McpConfigurationDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} config uses deprecated &apos;mcp start&apos; command.
         /// </summary>
         internal static string DeprecatedConfigWarning {
@@ -286,7 +358,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Configure the Aspire MCP server for detected agent environments?.
+        ///   Looks up a localized string similar to Configure the Aspire MCP server for selected agent environments?.
         /// </summary>
         internal static string InitCommand_ConfigureMcpServerPrompt {
             get {
@@ -349,7 +421,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Configure the Aspire MCP server for detected agent environments. Omit to leave MCP unconfigured, pass &apos;--mcp&apos; to opt in, or pass &apos;--mcp=false&apos; to explicitly opt out.
+        ///   Looks up a localized string similar to Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass &apos;--mcp&apos; to opt in, or pass &apos;--mcp=false&apos; to explicitly opt out.
         /// </summary>
         internal static string InitCommand_McpOptionDescription {
             get {
@@ -367,29 +439,11 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Where should skill files be installed?.
-        /// </summary>
-        internal static string InitCommand_SelectSkillLocations {
-            get {
-                return ResourceManager.GetString("InitCommand_SelectSkillLocations", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Which skills should be installed?.
         /// </summary>
         internal static string InitCommand_SelectSkills {
             get {
                 return ResourceManager.GetString("InitCommand_SelectSkills", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Comma-separated list of skill locations to install (e.g. {0}), &apos;{1}&apos;, or &apos;{2}&apos;.
-        /// </summary>
-        internal static string InitCommand_SkillLocationsOptionDescription {
-            get {
-                return ResourceManager.GetString("InitCommand_SkillLocationsOptionDescription", resourceCulture);
             }
         }
 
@@ -493,6 +547,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to GitHub Copilot.
+        /// </summary>
+        internal static string Environment_Copilot {
+            get {
+                return ResourceManager.GetString("Environment_Copilot", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed to resolve {0} from the npm registry..
         /// </summary>
         internal static string PlaywrightCliInstaller_FailedToResolvePackage {
@@ -502,11 +565,38 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host)..
+        /// </summary>
+        internal static string Agent_CopilotPlatforms {
+            get {
+                return ResourceManager.GetString("Agent_CopilotPlatforms", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Installed Playwright CLI (some locations failed to mirror)..
         /// </summary>
         internal static string PlaywrightCliInstaller_InstalledWithMirrorWarnings {
             get {
                 return ResourceManager.GetString("PlaywrightCliInstaller_InstalledWithMirrorWarnings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Claude Code CLI and Claude Code editor integrations; not Claude Desktop..
+        /// </summary>
+        internal static string Agent_ClaudePlatforms {
+            get {
+                return ResourceManager.GetString("Agent_ClaudePlatforms", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to OpenCode using its native configuration and skill locations..
+        /// </summary>
+        internal static string Agent_OpenCodePlatforms {
+            get {
+                return ResourceManager.GetString("Agent_OpenCodePlatforms", resourceCulture);
             }
         }
 
@@ -592,74 +682,38 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Required for Claude Code.
+        ///   Looks up a localized string similar to Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected agents, or '{2}' when none are detected.
         /// </summary>
-        internal static string SkillLocation_ClaudeCodeDescription {
+        internal static string InitCommand_EnvironmentsOptionDescription {
             get {
-                return ResourceManager.GetString("SkillLocation_ClaudeCodeDescription", resourceCulture);
+                return ResourceManager.GetString("InitCommand_EnvironmentsOptionDescription", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Claude Code (.claude/skills/).
+        ///   Looks up a localized string similar to Invalid agent selection '{0}'. Use {1}, '{2}', or '{3}'..
         /// </summary>
-        internal static string SkillLocation_ClaudeCodeName {
+        internal static string InitCommand_InvalidEnvironments {
             get {
-                return ResourceManager.GetString("SkillLocation_ClaudeCodeName", resourceCulture);
+                return ResourceManager.GetString("InitCommand_InvalidEnvironments", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Legacy location for GitHub Copilot skills.
+        ///   Looks up a localized string similar to Configuration and skill scope: project or user (default: project).
         /// </summary>
-        internal static string SkillLocation_GitHubSkillsDescription {
+        internal static string InitCommand_ScopeOptionDescription {
             get {
-                return ResourceManager.GetString("SkillLocation_GitHubSkillsDescription", resourceCulture);
+                return ResourceManager.GetString("InitCommand_ScopeOptionDescription", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to VS Code / GitHub Copilot (.github/skills/).
+        ///   Looks up a localized string similar to Invalid scope '{0}'. Use 'project' or 'user'..
         /// </summary>
-        internal static string SkillLocation_GitHubSkillsName {
+        internal static string InitCommand_InvalidScope {
             get {
-                return ResourceManager.GetString("SkillLocation_GitHubSkillsName", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Legacy location for OpenCode skills.
-        /// </summary>
-        internal static string SkillLocation_OpenCodeDescription {
-            get {
-                return ResourceManager.GetString("SkillLocation_OpenCodeDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to OpenCode (.opencode/skill/).
-        /// </summary>
-        internal static string SkillLocation_OpenCodeName {
-            get {
-                return ResourceManager.GetString("SkillLocation_OpenCodeName", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Supported by VS Code, GitHub Copilot, and OpenCode (also installs at ~/).
-        /// </summary>
-        internal static string SkillLocation_StandardDescription {
-            get {
-                return ResourceManager.GetString("SkillLocation_StandardDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Standard (.agents/skills/).
-        /// </summary>
-        internal static string SkillLocation_StandardName {
-            get {
-                return ResourceManager.GetString("SkillLocation_StandardName", resourceCulture);
+                return ResourceManager.GetString("InitCommand_InvalidScope", resourceCulture);
             }
         }
 

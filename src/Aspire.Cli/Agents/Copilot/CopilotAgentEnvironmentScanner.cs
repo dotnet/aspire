@@ -77,9 +77,10 @@ internal sealed class CopilotAgentEnvironmentScanner : IAgentEnvironmentScanner
         var isVSCode = _environment.GetEnvironmentVariable("TERM_PROGRAM") == "vscode";
         if (isVSCode)
         {
-            _logger.LogDebug("Detected VSCode terminal environment. Assuming GitHub Copilot CLI is available to avoid potential hangs from interactive installation prompts.");
-            context.AddDetectedClient(AgentClientKind.CopilotCli);
-            copilotCliDetected = true;
+            // The editor is a selection hint, not evidence that Copilot CLI or its hooks
+            // are installed. Invoking the installation shim could hang discovery.
+            _logger.LogDebug("Detected VSCode terminal environment. Skipping the Copilot CLI version probe.");
+            context.AddDetectedClient(AgentClientKind.VsCode);
         }
         else
         {
@@ -159,7 +160,7 @@ internal sealed class CopilotAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     /// <param name="configDirectory">The GitHub Copilot configuration directory.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    private static async Task ApplyMcpConfigurationAsync(
+    internal static async Task ApplyMcpConfigurationAsync(
         string configDirectory,
         CancellationToken cancellationToken)
     {

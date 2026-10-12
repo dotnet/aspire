@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.AspireSkills;
-using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -29,7 +28,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) => choices.Cast<object>()
             .Where(choice => choice switch
             {
-                SkillLocation location => location == SkillLocation.Standard,
+                AgentClient client => client == AgentClient.Copilot,
                 SkillDefinition skill => skill.HasName(CommonAgentApplicators.AspireSkillName),
                 _ => false
             })
@@ -42,7 +41,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init");
+        var result = command.Parse("agent init --scope user");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -50,7 +49,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var expectedSummary = string.Join(Environment.NewLine,
             AgentCommandStrings.InitCommand_InstalledSkillsSummary,
             $"  {string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InstalledSkillsSummarySkills, CommonAgentApplicators.AspireSkillName)}",
-            $"  {string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InstalledSkillsSummaryLocations, ".agents/skills, ~/.agents/skills")}");
+            $"  {string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InstalledSkillsSummaryLocations, "~/.agents/skills")}");
 
         Assert.Contains(
             interactionService.DisplayedMessages,
@@ -75,7 +74,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init");
+        var result = command.Parse("agent init --agent copilot");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -87,7 +86,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
                 CultureInfo.CurrentCulture,
                 AgentCommandStrings.InitCommand_InstalledSkillsSummarySkills,
                 $"{CommonAgentApplicators.AspireSkillName}, {CommonAgentApplicators.AspireDeploymentSkillName}, {FakeAspireSkillsInstaller.AspireInitSkillName}, {FakeAspireSkillsInstaller.AspireMonitoringSkillName}, {FakeAspireSkillsInstaller.AspireOrchestrationSkillName}, {FakeAspireSkillsInstaller.AspireProjectV2MigrationSkillName}, {CommonAgentApplicators.AspireifySkillName}")}",
-            $"  {string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InstalledSkillsSummaryLocations, ".agents/skills, ~/.agents/skills")}");
+            $"  {string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InstalledSkillsSummaryLocations, ".agents/skills")}");
         var message = Assert.Single(interactionService.DisplayedMessages, displayedMessage => displayedMessage.Emoji.Equals(KnownEmojis.Robot));
         Assert.Equal(expectedSummary, message.Message);
         Assert.DoesNotContain(
@@ -107,7 +106,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) => choices.Cast<object>()
             .Where(choice => choice switch
             {
-                SkillLocation location => location == SkillLocation.Standard,
+                AgentClient client => client == AgentClient.Copilot,
                 SkillDefinition skill => skill.HasName(CommonAgentApplicators.AspireSkillName),
                 _ => false
             })
@@ -133,7 +132,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithAllLocationsAndSkills_InstallsSkillFiles()
+    public async Task AgentInitCommand_NonInteractive_WithAllClientsAndSkills_InstallsSkillFiles()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -141,7 +140,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -161,9 +160,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var expectedSkillDirectories = new[]
         {
             Path.Combine(".agents", "skills"),
-            Path.Combine(".claude", "skills"),
-            Path.Combine(".github", "skills"),
-            Path.Combine(".opencode", "skill")
+            Path.Combine(".claude", "skills")
         };
 
         foreach (var relativeSkillDirectory in expectedSkillDirectories)
@@ -185,9 +182,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            if (items.FirstOrDefault() is SkillLocation)
+            if (items.FirstOrDefault() is AgentClient)
             {
-                return [SkillLocation.Standard];
+                return [AgentClient.Copilot];
             }
 
             promptedSkillNames.AddRange(items.OfType<SkillDefinition>().Select(static skill => skill.Name));
@@ -228,9 +225,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, formatter, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            if (items.FirstOrDefault() is SkillLocation)
+            if (items.FirstOrDefault() is AgentClient)
             {
-                return [SkillLocation.Standard];
+                return [AgentClient.Copilot];
             }
 
             var skill = Assert.Single(items.OfType<SkillDefinition>(), static skill => skill.HasName(FakeAspireSkillsInstaller.AspireMonitoringSkillName));
@@ -292,9 +289,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, formatter, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            if (items.FirstOrDefault() is SkillLocation)
+            if (items.FirstOrDefault() is AgentClient)
             {
-                return [SkillLocation.Standard];
+                return [AgentClient.Copilot];
             }
 
             var skill = Assert.Single(items.OfType<SkillDefinition>(), static skill => skill.HasName(FakeAspireSkillsInstaller.AspireMonitoringSkillName));
@@ -340,9 +337,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            if (items.FirstOrDefault() is SkillLocation)
+            if (items.FirstOrDefault() is AgentClient)
             {
-                return [SkillLocation.Standard];
+                return [AgentClient.Copilot];
             }
 
             promptedSkillNames.AddRange(items.OfType<SkillDefinition>().Select(static skill => skill.Name));
@@ -378,15 +375,15 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills {FakeAspireSkillsInstaller.AspireMonitoringSkillName}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills {FakeAspireSkillsInstaller.AspireMonitoringSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         AssertSkillFileExists(workspace.WorkspaceRoot, Path.Combine(".agents", "skills"), FakeAspireSkillsInstaller.AspireMonitoringSkillName);
         AssertSkillFileExists(workspace.WorkspaceRoot, Path.Combine(".claude", "skills"), FakeAspireSkillsInstaller.AspireMonitoringSkillName);
-        AssertSkillFileExists(workspace.WorkspaceRoot, Path.Combine(".github", "skills"), FakeAspireSkillsInstaller.AspireMonitoringSkillName);
-        AssertSkillFileExists(workspace.WorkspaceRoot, Path.Combine(".opencode", "skill"), FakeAspireSkillsInstaller.AspireMonitoringSkillName);
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".opencode", "skill")));
     }
 
     [Theory]
@@ -462,7 +459,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills PLAYWRIGHT-CLI");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills PLAYWRIGHT-CLI");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -486,9 +483,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            if (items.FirstOrDefault() is SkillLocation)
+            if (items.FirstOrDefault() is AgentClient)
             {
-                return [SkillLocation.Standard];
+                return [AgentClient.Copilot];
             }
 
             promptedSkills.AddRange(items.OfType<SkillDefinition>());
@@ -515,7 +512,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithNoneLocations_SucceedsWithNoSkillsInstalled()
+    public async Task AgentInitCommand_NonInteractive_WithNoClients_SucceedsWithNoSkillsInstalled()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -523,19 +520,19 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations none --skills all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent none --skills all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
 
-        // No locations selected, so no skill directories should be created
+        // No clients selected, so no skill directories should be created.
         var agentsDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents");
         Assert.False(Directory.Exists(agentsDir), $"Expected no .agents directory but found {agentsDir}");
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithoutSkillLocations_UsesDefaultLocations()
+    public async Task AgentInitCommand_NonInteractive_WithoutClientSelection_UsesDetectedClients()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -559,7 +556,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -605,7 +602,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         // avoids dragging in Playwright/dotnet-inspect, which would attempt real network calls.
         var skillsArg = string.Join(",", bundleSkillNames);
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills {skillsArg}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills {skillsArg}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -628,7 +625,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills {FakeAspireSkillsInstaller.AspireOrchestrationSkillName}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills {FakeAspireSkillsInstaller.AspireOrchestrationSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -640,7 +637,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithInvalidSkillLocations_FailsWithMissingArgument()
+    public async Task AgentInitCommand_NonInteractive_WithInvalidClient_FailsValidation()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -648,11 +645,12 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations invalid --skills all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent invalid --skills all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
-        Assert.Equal(CliExitCodes.MissingRequiredArgument, exitCode);
+        Assert.NotEqual(CliExitCodes.Success, exitCode);
+        Assert.Single(result.Errors);
     }
 
     [Fact]
@@ -664,7 +662,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init");
+        var result = command.Parse("agent init --agent copilot");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -696,7 +694,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -705,7 +703,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain(
             interactionService.DisplayedMessages,
             message => message.Emoji.Equals(KnownEmojis.Warning) && message.Message == installFailureMessage);
-        Assert.Contains(McpCommandStrings.InitCommand_ConfigurationComplete, interactionService.DisplayedSuccess);
+        Assert.Empty(interactionService.DisplayedErrors);
     }
 
     [Fact]
@@ -718,6 +716,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
             options.AspireSkillsInstallerFactory = serviceProvider => new FakeAspireSkillsInstaller(
                 serviceProvider.GetRequiredService<CliExecutionContext>(),
                 AspireSkillsInstallResult.Failed(installFailureMessage));
@@ -731,8 +730,11 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             CliExitCodes.Success,
             workspace.WorkspaceRoot,
             PromptBinding.CreateDefault(true),
-            PromptBinding.CreateDefault<string?>(null),
-            PromptBinding.CreateDefault<string?>(null),
+            new AgentInitPromptBindings(
+                PromptBinding.CreateDefault<string?>(null),
+                PromptBinding.CreateDefault<string?>(null),
+                PromptBinding.CreateDefault(AgentConfigurationScope.Project),
+                Mcp: null),
             CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, result.ExitCode);
@@ -740,7 +742,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain(
             interactionService.DisplayedMessages,
             message => message.Emoji.Equals(KnownEmojis.Warning) && message.Message == installFailureMessage);
-        Assert.Contains(McpCommandStrings.InitCommand_ConfigurationComplete, interactionService.DisplayedSuccess);
+        Assert.Empty(interactionService.DisplayedErrors);
     }
 
     [Fact]
@@ -752,6 +754,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
         });
         using var provider = services.BuildServiceProvider();
 
@@ -764,8 +767,11 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             CliExitCodes.Success,
             workspace.WorkspaceRoot,
             PromptBinding.CreateDefault(true),
-            PromptBinding.CreateDefault<string?>(null),
-            PromptBinding.CreateDefault<string?>(null),
+            new AgentInitPromptBindings(
+                PromptBinding.CreateDefault<string?>(null),
+                PromptBinding.CreateDefault<string?>(null),
+                PromptBinding.CreateDefault(AgentConfigurationScope.Project),
+                Mcp: null),
             CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, result.ExitCode);
@@ -784,7 +790,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --skills none");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --skills none");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -815,7 +821,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -843,12 +849,14 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --mcp");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --mcp");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.True(mcpConfigured);
+        Assert.False(mcpConfigured);
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc")));
     }
 
     [Fact]
@@ -871,7 +879,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations all --mcp=false");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent all --mcp=false");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -880,7 +888,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithSkillLocationsNone_DoesNotInstallAnySkills()
+    public async Task AgentInitCommand_NonInteractive_WithAgentNone_DoesNotInstallAnySkills()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -888,19 +896,19 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations none --skills all");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent none --skills all");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
 
-        // With --skill-locations none, no skill files should be installed even when --skills all is passed.
+        // With --agent none, no skill files should be installed even when --skills all is passed.
         var agentsDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills");
         Assert.False(Directory.Exists(agentsDir), $"Expected no agents/skills directory but found {agentsDir}");
     }
 
     [Fact]
-    public async Task AgentInitCommand_NonInteractive_WithSkillLocationsAndSkills_InstallsOnlySpecifiedSkills()
+    public async Task AgentInitCommand_NonInteractive_WithClientAndSkills_InstallsOnlySpecifiedSkills()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -908,7 +916,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations standard --skills {CommonAgentApplicators.AspireSkillName}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent copilot --skills {CommonAgentApplicators.AspireSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -990,7 +998,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(nameof(AgentClientKind.CopilotCli), "GitHub Copilot CLI")]
     [InlineData(nameof(AgentClientKind.CopilotApp), "GitHub Copilot App")]
-    public async Task AgentInitCommand_DefaultOn_InstallsTelemetryHook_ForDetectedClient(string clientKind, string displayName)
+    public async Task AgentInitCommand_UserScope_InstallsTelemetryHook_ForSelectedDetectedClient(string clientKind, string displayName)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var homeDirectory = workspace.CreateDirectory("fake-home");
@@ -999,13 +1007,13 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.CliExecutionContextFactory = _ => CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory);
-            options.AgentEnvironmentDetectorFactory = _ => new FakeDetectingDetector(client);
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [client] };
             options.InteractionServiceFactory = _ => interactionService;
         });
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations none --skills none");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent copilot --scope user --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1032,14 +1040,14 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.CliExecutionContextFactory = _ => CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory);
-            options.AgentEnvironmentDetectorFactory = _ => new FakeDetectingDetector(AgentClientKind.CopilotCli);
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector { DetectedClients = [AgentClientKind.CopilotCli] };
             options.InteractionServiceFactory = _ => interactionService;
-            options.TelemetryHookConfiguratorFactory = _ => new ThrowingTelemetryHookConfigurator(failureMessage);
+            options.TelemetryHookConfiguratorFactory = _ => new TestTelemetryHookConfigurator { Exception = new InvalidOperationException(failureMessage) };
         });
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --skill-locations none --skills none");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agent copilot --scope user --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1054,29 +1062,4 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             homeDirectory: homeDirectory);
     }
 
-    /// <summary>
-    /// A detector that marks a single client as detected without contributing applicators, so the
-    /// telemetry hook wiring in <c>agent init</c> can be exercised without real client installations.
-    /// </summary>
-    private sealed class FakeDetectingDetector(AgentClientKind client) : IAgentEnvironmentDetector
-    {
-        public Task<AgentEnvironmentApplicator[]> DetectAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
-        {
-            context.AddDetectedClient(client);
-            return Task.FromResult(Array.Empty<AgentEnvironmentApplicator>());
-        }
-    }
-
-    /// <summary>
-    /// A configurator that always throws, simulating a non-IO failure (e.g. a missing embedded hook
-    /// script surfacing as <see cref="InvalidOperationException"/>) so the best-effort catch in
-    /// <c>agent init</c> can be verified to never abort the command.
-    /// </summary>
-    private sealed class ThrowingTelemetryHookConfigurator(string message) : ITelemetryHookConfigurator
-    {
-        public Task<TelemetryHookConfigurationResult> ConfigureAsync(
-            IReadOnlyCollection<AgentClientKind> detectedClients,
-            CancellationToken cancellationToken)
-            => throw new InvalidOperationException(message);
-    }
 }

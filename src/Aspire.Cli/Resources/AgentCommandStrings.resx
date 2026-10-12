@@ -96,14 +96,35 @@
   <data name="InitCommand_ConfigureMcpServer" xml:space="preserve">
     <value>Install Aspire MCP server</value>
   </data>
-  <data name="InitCommand_SelectSkillLocations" xml:space="preserve">
-    <value>Where should skill files be installed?</value>
+  <data name="InitCommand_SelectAgentsPrompt" xml:space="preserve">
+    <value>Which agents do you want to configure?</value>
+  </data>
+  <data name="InitCommand_SelectScopePrompt" xml:space="preserve">
+    <value>Where do you want to configure the selected agents?</value>
+  </data>
+  <data name="InitCommand_EnvironmentSelectionNotice" xml:space="preserve">
+    <value>Only the selected scope is configured. Shared locations are written once.</value>
+  </data>
+  <data name="InitCommand_NoConfigurationSelected" xml:space="preserve">
+    <value>No agent configuration selected. Existing configuration was left unchanged.</value>
+  </data>
+  <data name="InitCommand_ProjectScope" xml:space="preserve">
+    <value>project</value>
+  </data>
+  <data name="InitCommand_UserScope" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="InitCommand_EnvironmentLocationDescription" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="InitCommand_McpConfigurationDescription" xml:space="preserve">
+    <value>Configure Aspire MCP for {0} at {1}</value>
   </data>
   <data name="InitCommand_SelectSkills" xml:space="preserve">
     <value>Which skills should be installed?</value>
   </data>
   <data name="InitCommand_ConfigureMcpServerPrompt" xml:space="preserve">
-    <value>Configure the Aspire MCP server for detected agent environments?</value>
+    <value>Configure the Aspire MCP server for selected agent environments?</value>
   </data>
   <data name="InitCommand_InstalledPlaywrightCli" xml:space="preserve">
     <value>Installed Playwright CLI.</value>
@@ -150,29 +171,17 @@
   <data name="SkillDescription_Aspireify" xml:space="preserve">
     <value>One-time setup: wire up AppHost with discovered projects</value>
   </data>
-  <data name="SkillLocation_StandardName" xml:space="preserve">
-    <value>Standard (.agents/skills/)</value>
+  <data name="Environment_Copilot" xml:space="preserve">
+    <value>GitHub Copilot</value>
   </data>
-  <data name="SkillLocation_StandardDescription" xml:space="preserve">
-    <value>Supported by VS Code, GitHub Copilot, and OpenCode (also installs at ~/)</value>
+  <data name="Agent_CopilotPlatforms" xml:space="preserve">
+    <value>Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host).</value>
   </data>
-  <data name="SkillLocation_ClaudeCodeName" xml:space="preserve">
-    <value>Claude Code (.claude/skills/)</value>
+  <data name="Agent_ClaudePlatforms" xml:space="preserve">
+    <value>Claude Code CLI and Claude Code editor integrations; not Claude Desktop.</value>
   </data>
-  <data name="SkillLocation_ClaudeCodeDescription" xml:space="preserve">
-    <value>Required for Claude Code</value>
-  </data>
-  <data name="SkillLocation_GitHubSkillsName" xml:space="preserve">
-    <value>VS Code / GitHub Copilot (.github/skills/)</value>
-  </data>
-  <data name="SkillLocation_GitHubSkillsDescription" xml:space="preserve">
-    <value>Legacy location for GitHub Copilot skills</value>
-  </data>
-  <data name="SkillLocation_OpenCodeName" xml:space="preserve">
-    <value>OpenCode (.opencode/skill/)</value>
-  </data>
-  <data name="SkillLocation_OpenCodeDescription" xml:space="preserve">
-    <value>Legacy location for OpenCode skills</value>
+  <data name="Agent_OpenCodePlatforms" xml:space="preserve">
+    <value>OpenCode using its native configuration and skill locations.</value>
   </data>
   <data name="AspireSkillsInstaller_InstallingStatus" xml:space="preserve">
     <value>Installing Aspire skills...</value>
@@ -234,14 +243,23 @@
   <data name="InitCommand_WorkspaceRootOptionDescription" xml:space="preserve">
     <value>Path to the workspace root directory</value>
   </data>
-  <data name="InitCommand_SkillLocationsOptionDescription" xml:space="preserve">
-    <value>Comma-separated list of skill locations to install (e.g. {0}), '{1}', or '{2}'</value>
+  <data name="InitCommand_EnvironmentsOptionDescription" xml:space="preserve">
+    <value>Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected agents, or '{2}' when none are detected</value>
+  </data>
+  <data name="InitCommand_InvalidEnvironments" xml:space="preserve">
+    <value>Invalid agent selection '{0}'. Use {1}, '{2}', or '{3}'.</value>
+  </data>
+  <data name="InitCommand_ScopeOptionDescription" xml:space="preserve">
+    <value>Configuration and skill scope: project or user (default: project)</value>
+  </data>
+  <data name="InitCommand_InvalidScope" xml:space="preserve">
+    <value>Invalid scope '{0}'. Use 'project' or 'user'.</value>
   </data>
   <data name="InitCommand_SkillsOptionDescription" xml:space="preserve">
     <value>Comma-separated list of skills to install. Bundle skills are loaded dynamically; CLI-provided skills include {0}. Use '{1}' or '{2}'</value>
   </data>
   <data name="InitCommand_McpOptionDescription" xml:space="preserve">
-    <value>Configure the Aspire MCP server for detected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</value>
+    <value>Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</value>
   </data>
   <data name="AgentTelemetryCommand_Description" xml:space="preserve">
     <value>Record AI agent skill and tool usage telemetry. Invoked by the Aspire agent telemetry hook scripts; not intended to be run directly.</value>

@@ -87,6 +87,39 @@ internal sealed class PlaywrightCliInstaller(
     /// </summary>
     internal static readonly string s_primarySkillBaseDirectory = Path.Combine(".claude", "skills");
 
+    private static readonly string[] s_generatedSkillBaseDirectories =
+    [
+        Path.Combine(".agents", "skills"),
+        s_primarySkillBaseDirectory,
+        Path.Combine(".github", "skills"),
+        Path.Combine(".opencode", "skill")
+    ];
+
+    /// <summary>
+    /// Generates skills in isolation before copying them to the selected absolute destinations.
+    /// </summary>
+    public async Task<(PlaywrightInstallStatus Status, string? Message)> InstallSelectedAsync(IReadOnlySet<string> selectedSkillDirectories, CancellationToken cancellationToken)
+    {
+        // playwright-cli generates .claude/skills even when only another client is selected.
+        // Stage those files so it cannot overwrite an unselected project or user skill.
+        var stagingDirectory = Directory.CreateTempSubdirectory("aspire-playwright-skills-");
+        try
+        {
+            return await InstallAsync(stagingDirectory.FullName, selectedSkillDirectories, cancellationToken);
+        }
+        finally
+        {
+            try
+            {
+                stagingDirectory.Delete(recursive: true);
+            }
+            catch (IOException ex)
+            {
+                logger.LogDebug(ex, "Failed to clean up generated Playwright skills at {Path}.", stagingDirectory.FullName);
+            }
+        }
+    }
+
     /// <summary>
     /// Configuration key that disables package validation when set to "true".
     /// This is a break-glass mechanism for debugging npm service issues and must never be the default.
@@ -307,12 +340,12 @@ internal sealed class PlaywrightCliInstaller(
     private static HashSet<string> SnapshotPlaywrightSkillDirs(string repoRoot)
     {
         var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var location in SkillLocation.All)
+        foreach (var skillBaseDirectory in s_generatedSkillBaseDirectories)
         {
-            var dir = Path.Combine(repoRoot, location.RelativeSkillDirectory, PlaywrightCliSkillName);
+            var dir = Path.Combine(repoRoot, skillBaseDirectory, PlaywrightCliSkillName);
             if (Directory.Exists(dir))
             {
-                existing.Add(location.RelativeSkillDirectory);
+                existing.Add(skillBaseDirectory);
             }
         }
         return existing;
@@ -357,19 +390,19 @@ internal sealed class PlaywrightCliInstaller(
         // Clean up playwright-cli directories that were created during this run
         // in locations the user didn't select. We only remove directories that
         // didn't exist before install — pre-existing content is never touched.
-        foreach (var location in SkillLocation.All)
+        foreach (var skillBaseDirectory in s_generatedSkillBaseDirectories)
         {
-            if (selectedSkillDirectories.Contains(location.RelativeSkillDirectory))
+            if (selectedSkillDirectories.Contains(skillBaseDirectory))
             {
                 continue; // User selected this location — keep it
             }
 
-            if (preExistingLocations.Contains(location.RelativeSkillDirectory))
+            if (preExistingLocations.Contains(skillBaseDirectory))
             {
                 continue; // Was already there before this run — leave it alone
             }
 
-            var skillDir = Path.Combine(repoRoot, location.RelativeSkillDirectory, PlaywrightCliSkillName);
+            var skillDir = Path.Combine(repoRoot, skillBaseDirectory, PlaywrightCliSkillName);
             if (!Directory.Exists(skillDir))
             {
                 continue;
@@ -380,7 +413,7 @@ internal sealed class PlaywrightCliInstaller(
                 Directory.Delete(skillDir, recursive: true);
                 logger.LogDebug("Removed playwright-cli skills from unselected location: {SkillDir}", skillDir);
 
-                RemoveEmptyParentDirectories(skillDir, repoRoot, location.RelativeSkillDirectory, logger);
+                RemoveEmptyParentDirectories(skillDir, repoRoot, skillBaseDirectory, logger);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

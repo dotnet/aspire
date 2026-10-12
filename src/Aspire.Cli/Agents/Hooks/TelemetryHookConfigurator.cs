@@ -25,7 +25,6 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
     private const string CopilotHooksDirectoryName = "hooks";
     private const string CopilotHookFileName = "aspire-telemetry.json";
 
-    private const string ClaudeFolderName = ".claude";
     private const string ClaudeSettingsFileName = "settings.json";
     private const string ClaudePostToolUseKey = "PostToolUse";
 
@@ -163,7 +162,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 
     private async Task<TelemetryHookSkipReason?> ConfigureClaudeAsync(CancellationToken cancellationToken)
     {
-        var claudeDirectory = Path.Combine(_executionContext.HomeDirectory.FullName, ClaudeFolderName);
+        var claudeDirectory = AgentClient.GetClaudeConfigDirectory(_executionContext, _environment);
         var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
 
         JsonObject settings;

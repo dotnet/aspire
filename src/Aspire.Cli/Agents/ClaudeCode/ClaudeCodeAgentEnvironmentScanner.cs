@@ -190,17 +190,16 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     {
         return new AgentEnvironmentApplicator(
             ClaudeCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            async cancellationToken => await ApplyAspireMcpConfigurationAsync(repoRoot, cancellationToken));
+            cancellationToken => ApplyAspireMcpConfigurationAsync(Path.Combine(repoRoot.FullName, McpConfigFileName), cancellationToken));
     }
 
     /// <summary>
     /// Creates or updates the .mcp.json file at the repo root with Aspire MCP configuration.
     /// </summary>
-    private static async Task ApplyAspireMcpConfigurationAsync(
-        DirectoryInfo repoRoot,
+    internal static async Task ApplyAspireMcpConfigurationAsync(
+        string configFilePath,
         CancellationToken cancellationToken)
     {
-        var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
         var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, null, cancellationToken);
 
         // Ensure "mcpServers" object exists
@@ -220,6 +219,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
+        Directory.CreateDirectory(Path.GetDirectoryName(configFilePath)!);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
     }
 

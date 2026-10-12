@@ -489,8 +489,8 @@ internal static class Hex1bAutomatorTestHelpers
 
     /// <summary>
     /// Runs <c>aspire new</c> interactively up to and including accepting the chained agent init
-    /// confirmation prompt, landing on whatever prompt comes next (skill location or skill selection,
-    /// depending on whether <paramref name="extraArguments"/> includes <c>--skill-locations</c>).
+    /// confirmation prompt, landing on the next client, scope, or skill selection prompt,
+    /// depending on the options supplied in <paramref name="extraArguments"/>.
     /// Used by tests that need to drive the chained agent-init flow instead of declining it via
     /// <see cref="AspireNewAsync"/>. <paramref name="beforeAcceptingAgentInit"/> runs after the
     /// project has been scaffolded but before the prompt is accepted, so callers can seed a

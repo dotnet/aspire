@@ -184,7 +184,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ScanAsync_WhenInVSCode_ReturnsApplicatorWithoutCallingRunner()
+    public async Task ScanAsync_WhenInVSCode_RecordsEditorHintWithoutCallingRunner()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null); // Return null to verify it's not called
@@ -195,10 +195,9 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        // Scanner adds applicators for: Aspire MCP, Playwright CLI, and agent instructions
-        Assert.NotEmpty(context.Applicators);
-        Assert.Contains(context.Applicators, a => a.Description.Contains("GitHub Copilot"));
-        Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
+        Assert.Equal([AgentClientKind.VsCode], context.DetectedClients);
+        Assert.Empty(context.Applicators);
+        Assert.False(copilotCliRunner.WasCalled);
     }
 
     [Fact]

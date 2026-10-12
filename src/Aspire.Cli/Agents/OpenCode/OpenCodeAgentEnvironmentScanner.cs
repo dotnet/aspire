@@ -135,7 +135,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <summary>
     /// Removes single-line comments from JSONC content.
     /// </summary>
-    private static string RemoveJsonComments(string jsonc)
+    internal static string RemoveJsonComments(string jsonc)
     {
         var result = new System.Text.StringBuilder();
         var lines = jsonc.Split('\n');
@@ -174,18 +174,17 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         return new AgentEnvironmentApplicator(
             OpenCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyMcpConfigurationAsync(
-                configDirectory,
+                Path.Combine(configDirectory.FullName, OpenCodeConfigFileName),
                 cancellationToken));
     }
 
     /// <summary>
     /// Creates or updates the opencode.jsonc file with the Aspire MCP server configuration.
     /// </summary>
-    private static async Task ApplyMcpConfigurationAsync(
-        DirectoryInfo configDirectory,
+    internal static async Task ApplyMcpConfigurationAsync(
+        string configFilePath,
         CancellationToken cancellationToken)
     {
-        var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
         var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, RemoveJsonComments, cancellationToken);
 
         // Ensure schema is set for new configs
@@ -212,6 +211,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
         // Write the updated config using AOT-compatible serialization
         var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
+        Directory.CreateDirectory(Path.GetDirectoryName(configFilePath)!);
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
     }
 

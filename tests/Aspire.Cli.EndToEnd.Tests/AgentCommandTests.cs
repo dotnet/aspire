@@ -56,6 +56,9 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.TypeAsync("aspire agent init --help");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("aspire agent init [options]", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilAsync(
+            s => s.ContainsText("--agent") && s.ContainsText("--scope") && s.ContainsText("--skills"),
+            timeout: TimeSpan.FromSeconds(30), description: "agent init help showing client, scope, and copied-skill options");
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Test 4: aspire mcp --help (now shows tools and call subcommands)
@@ -115,10 +118,10 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync(".mcp.json", timeout: TimeSpan.FromSeconds(10));
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Step 2: Run aspire agent init - should detect and auto-migrate deprecated config.
+        // Step 2: Explicit standalone MCP setup repairs the selected client's deprecated config.
         // Skill installation is not part of this migration coverage, so keep it disabled
         // to avoid depending on the external Aspire skills package.
-        await auto.TypeAsync("aspire agent init --workspace-root . --skill-locations none --skills none");
+        await auto.TypeAsync("aspire agent init --workspace-root . --agent claude --scope project --skills none --mcp");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -164,7 +167,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Tests that aspire agent init with a .vscode folder shows skill location and skill selection
+    /// Tests that aspire agent init with a .vscode folder shows client, scope, and skill selection
     /// prompts, and that accepting the defaults completes successfully and creates the default
     /// skill files in the .agents/skills/ directory.
     /// </summary>
@@ -192,16 +195,18 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Create .vscode folder so the scanner detects VS Code environment
         Directory.CreateDirectory(vscodePath);
 
-        // Run aspire agent init and accept the default location and skills.
+        // Accept the detected Copilot group, project scope, and default copied skills.
         await auto.TypeAsync("aspire agent init");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("workspace:", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitAsync(500);
         await auto.EnterAsync(); // Accept default workspace path
         await auto.WaitUntilAsync(
-            s => s.ContainsText("skill files be installed"),
-            timeout: TimeSpan.FromSeconds(60), description: "skill location prompt");
-        await auto.EnterAsync(); // Accept default skill locations (Standard pre-selected)
+            s => s.ContainsText("Which agents do you want to configure?"),
+            timeout: TimeSpan.FromSeconds(60), description: "client selection prompt");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("Where do you want to configure the selected agents?", timeout: TimeSpan.FromSeconds(30));
+        await auto.EnterAsync();
         await auto.WaitUntilAsync(
             s => s.ContainsText("skills should be installed"),
             timeout: TimeSpan.FromSeconds(30), description: "skill selection prompt");
@@ -209,7 +214,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // the default Aspire skills from the installed CLI's embedded bundle.
         await auto.EnterAsync();
         await auto.WaitUntilAsync(
-            s => s.ContainsText("Configure the Aspire MCP server for detected agent environments?"),
+            s => s.ContainsText("Configure the Aspire MCP server for selected agent environments?"),
             timeout: TimeSpan.FromSeconds(30), description: "MCP server confirmation prompt");
         // MCP configuration is strictly opt-in and defaults to No, so accepting the default
         // here leaves MCP unconfigured.
@@ -217,7 +222,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Verify skill files were created (skills are now installed at .agents/skills/ by StandardLocationAgentEnvironmentScanner)
+        // The Copilot group uses the shared .agents/skills compatibility location.
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", "aspire", "SKILL.md");
         var fileContent = File.ReadAllText(skillFilePath);
         Assert.Contains("name: aspire", fileContent);
@@ -264,7 +269,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var bundleOnlySkills = new[] { "aspire-init", "aspire-monitoring", "aspire-orchestration" };
         var skillsArg = string.Join(",", bundleOnlySkills);
 
-        await auto.TypeAsync($"aspire agent init --workspace-root . --skill-locations standard --skills {skillsArg}");
+        await auto.TypeAsync($"aspire agent init --workspace-root . --agent copilot --scope project --skills {skillsArg} --mcp=false");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -322,10 +327,12 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.WaitAsync(500);
         await auto.TypeAsync("y");
 
-        // Skill location prompt: accept the default (Standard).
+        // Accept the detected Copilot group and project scope.
         await auto.WaitUntilAsync(
-            s => s.ContainsText("skill files be installed"),
-            timeout: TimeSpan.FromSeconds(60), description: "skill location prompt");
+            s => s.ContainsText("Which agents do you want to configure?"),
+            timeout: TimeSpan.FromSeconds(60), description: "client selection prompt");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("Where do you want to configure the selected agents?", timeout: TimeSpan.FromSeconds(30));
         await auto.EnterAsync();
 
         // Skill selection prompt: the retired "Install Aspire MCP server" entry must never be mixed
@@ -382,11 +389,10 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // wired into the chained flow.
         var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
 
-        // --skill-locations skips the interactive skill-location prompt so the flow lands directly
-        // on the skill selection prompt whose pre-selected state we want to inspect.
+        // Explicit client and scope skip those prompts so the skill defaults can be inspected.
         await auto.AspireNewAcceptingAgentInitAsync(
             "StarterApp",
-            extraArguments: "--skill-locations claudecode",
+            extraArguments: "--agent claude --scope project",
             beforeAcceptingAgentInit: () =>
             {
                 Directory.CreateDirectory(vscodePath);

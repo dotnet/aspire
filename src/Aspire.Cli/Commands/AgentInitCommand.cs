@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.CommandLine.Completions;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -13,6 +14,7 @@ using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
@@ -29,6 +31,9 @@ internal sealed class AgentInitCommand : BaseCommand
     private readonly IGitRepository _gitRepository;
     private readonly ILanguageDiscovery _languageDiscovery;
     private readonly ITelemetryHookConfigurator _telemetryHookConfigurator;
+    private readonly IEnvironment _environment;
+    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly Option<string?> _agentOption;
 
     public AgentInitCommand(
         IAgentEnvironmentDetector agentEnvironmentDetector,
@@ -37,6 +42,7 @@ internal sealed class AgentInitCommand : BaseCommand
         IGitRepository gitRepository,
         ILanguageDiscovery languageDiscovery,
         ITelemetryHookConfigurator telemetryHookConfigurator,
+        IEnvironment environment,
         CommonCommandServices services)
         : base("init", AgentCommandStrings.InitCommand_Description, services)
     {
@@ -46,11 +52,11 @@ internal sealed class AgentInitCommand : BaseCommand
         _gitRepository = gitRepository;
         _languageDiscovery = languageDiscovery;
         _telemetryHookConfigurator = telemetryHookConfigurator;
+        _environment = environment;
+        _hostEnvironment = services.HostEnvironment;
+        _agentOption = CreateAgentsOption();
 
-        Options.Add(s_workspaceRootOption);
-        Options.Add(s_skillLocationsOption);
-        Options.Add(s_skillsOption);
-        Options.Add(s_mcpOption);
+        AddOptions(this, includeMcp: true, includeWorkspaceRoot: true);
     }
 
     private static readonly Option<string?> s_workspaceRootOption = new("--workspace-root")
@@ -58,14 +64,7 @@ internal sealed class AgentInitCommand : BaseCommand
         Description = AgentCommandStrings.InitCommand_WorkspaceRootOptionDescription
     };
 
-    internal static readonly Option<string?> s_skillLocationsOption = new("--skill-locations")
-    {
-        Description = string.Format(CultureInfo.InvariantCulture, AgentCommandStrings.InitCommand_SkillLocationsOptionDescription,
-            string.Join(",", SkillLocation.All.Select(l => l.Id)),
-            ConsoleInteractionService.AllChoice,
-            ConsoleInteractionService.NoneChoice),
-        Recursive = true
-    };
+    private static readonly Option<AgentConfigurationScope> s_scopeOption = CreateScopeOption();
 
     internal static readonly Option<string?> s_skillsOption = new("--skills")
     {
@@ -78,7 +77,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
     /// <summary>
     /// Confirms whether standalone <c>aspire agent init</c> configures the Aspire MCP server for
-    /// detected agent environments. This option is only registered on this command — <c>aspire
+    /// selected agent environments. This option is only registered on this command — <c>aspire
     /// new</c> and <c>aspire init</c> do not add it, so MCP configuration is unavailable from
     /// those chained flows by construction. Omitting the option defaults to "no"; passing
     /// <c>--mcp</c> opts in, and <c>--mcp=false</c> is an explicit opt-out.
@@ -88,6 +87,87 @@ internal sealed class AgentInitCommand : BaseCommand
         Description = AgentCommandStrings.InitCommand_McpOptionDescription,
         Recursive = true
     };
+
+    internal void AddOptions(Command command, bool includeMcp, bool includeWorkspaceRoot)
+    {
+        if (includeWorkspaceRoot)
+        {
+            command.Options.Add(s_workspaceRootOption);
+        }
+
+        if (includeMcp)
+        {
+            command.Options.Add(s_mcpOption);
+        }
+
+        command.Options.Add(_agentOption);
+        command.Options.Add(s_scopeOption);
+        command.Options.Add(s_skillsOption);
+    }
+
+    internal AgentInitPromptBindings CreateBindings(ParseResult parseResult, bool includeMcp) => new(
+        PromptBinding.Create(parseResult, _agentOption),
+        PromptBinding.Create(parseResult, s_skillsOption),
+        PromptBinding.Create(parseResult, s_scopeOption, AgentConfigurationScope.Project),
+        includeMcp ? PromptBinding.CreateBoolConfirm(parseResult, s_mcpOption, defaultValue: false) : null);
+
+    private static Option<string?> CreateAgentsOption()
+    {
+        var supportedClients = string.Join(",", AgentClient.All.Select(static client => client.Id));
+        return new Option<string?>("--agent")
+        {
+            Description = string.Format(CultureInfo.InvariantCulture, AgentCommandStrings.InitCommand_EnvironmentsOptionDescription,
+                supportedClients, ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice),
+            Recursive = true,
+            CustomParser = result =>
+            {
+                if (result.Tokens.Count == 0)
+                {
+                    return null;
+                }
+
+                var value = result.Tokens[0].Value;
+                var selected = ConsoleInteractionService.MatchChoices(value, AgentClient.All, static client => client.Id);
+                if (selected is null || selected.Count == 0 &&
+                    !string.Equals(value, ConsoleInteractionService.NoneChoice, StringComparison.OrdinalIgnoreCase))
+                {
+                    result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidEnvironments,
+                        value, supportedClients, ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice));
+                }
+
+                return value;
+            }
+        };
+    }
+
+    private static Option<AgentConfigurationScope> CreateScopeOption()
+    {
+        var option = new Option<AgentConfigurationScope>("--scope")
+        {
+            Description = AgentCommandStrings.InitCommand_ScopeOptionDescription,
+            Recursive = true,
+            Arity = ArgumentArity.ExactlyOne,
+            CustomParser = result =>
+            {
+                var value = result.Tokens.Count == 1 ? result.Tokens[0].Value : string.Empty;
+                if (string.Equals(value, "project", StringComparison.OrdinalIgnoreCase))
+                {
+                    return AgentConfigurationScope.Project;
+                }
+
+                if (string.Equals(value, "user", StringComparison.OrdinalIgnoreCase))
+                {
+                    return AgentConfigurationScope.User;
+                }
+
+                result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidScope, value));
+                return default;
+            }
+        };
+        option.CompletionSources.Clear();
+        option.CompletionSources.Add(static _ => [new CompletionItem("project"), new CompletionItem("user")]);
+        return option;
+    }
 
     /// <summary>
     /// Public entry point for executing the init command.
@@ -105,8 +185,7 @@ internal sealed class AgentInitCommand : BaseCommand
     /// Chained flows never register <c>--mcp</c> and never offer MCP server configuration: this
     /// method always executes agent init with MCP configuration unavailable, so MCP remains an
     /// explicit opt-in reachable only through standalone <c>aspire agent init</c>.
-    /// Callers that expose <c>--skill-locations</c> and <c>--skills</c> can pass
-    /// <paramref name="skillLocationsBinding"/> and <paramref name="skillsBinding"/> so the chained
+    /// Callers pass <paramref name="bindings"/> so the chained
     /// execution reuses the same non-interactive selection semantics as standalone <c>aspire agent init</c>.
     /// </summary>
     internal async Task<AgentInitExecutionResult> PromptAndChainAsync(
@@ -114,8 +193,7 @@ internal sealed class AgentInitCommand : BaseCommand
         int previousResultExitCode,
         DirectoryInfo workspaceRoot,
         PromptBinding<bool> agentInitBinding,
-        PromptBinding<string?> skillLocationsBinding,
-        PromptBinding<string?> skillsBinding,
+        AgentInitPromptBindings bindings,
         CancellationToken cancellationToken)
     {
         if (previousResultExitCode != CliExitCodes.Success)
@@ -133,7 +211,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
         if (runAgentInit)
         {
-            return await ExecuteAgentInitAsync(workspaceRoot, skillLocationsBinding, skillsBinding, mcpBinding: null, cancellationToken);
+            return await ExecuteAgentInitAsync(workspaceRoot, bindings with { Mcp = null }, cancellationToken);
         }
 
         return new(CliExitCodes.Success, [], []);
@@ -142,10 +220,7 @@ internal sealed class AgentInitCommand : BaseCommand
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var workspaceRoot = await PromptForWorkspaceRootAsync(parseResult, cancellationToken);
-        var skillLocationsBinding = PromptBinding.Create(parseResult, s_skillLocationsOption);
-        var skillsBinding = PromptBinding.Create(parseResult, s_skillsOption);
-        var mcpBinding = PromptBinding.CreateBoolConfirm(parseResult, s_mcpOption, defaultValue: false);
-        var result = await ExecuteAgentInitAsync(workspaceRoot, skillLocationsBinding, skillsBinding, mcpBinding, cancellationToken);
+        var result = await ExecuteAgentInitAsync(workspaceRoot, CreateBindings(parseResult, includeMcp: true), cancellationToken);
         return CommandResult.FromExitCode(result.ExitCode);
     }
 
@@ -181,9 +256,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
     private async Task<AgentInitExecutionResult> ExecuteAgentInitAsync(
         DirectoryInfo workspaceRoot,
-        PromptBinding<string?> skillLocationsBinding,
-        PromptBinding<string?> skillsBinding,
-        PromptBinding<bool>? mcpBinding,
+        AgentInitPromptBindings bindings,
         CancellationToken cancellationToken)
     {
         var context = new AgentEnvironmentScanContext
@@ -201,43 +274,59 @@ internal sealed class AgentInitCommand : BaseCommand
         // When no language is detected (e.g., standalone `aspire agent init`), language-restricted skills are excluded.
         var detectedLanguage = await _languageDiscovery.DetectLanguageRecursiveAsync(workspaceRoot, cancellationToken);
 
-        // Apply deprecated config migrations silently (these are fixes, not choices)
-        var configUpdates = applicators.Where(a => a.PromptGroup == McpInitPromptGroup.ConfigUpdates).ToList();
-        var userChoices = applicators.Where(a => a.PromptGroup != McpInitPromptGroup.ConfigUpdates).ToList();
-
-        foreach (var update in configUpdates)
-        {
-            try
-            {
-                await update.ApplyAsync(cancellationToken);
-                InteractionService.DisplayMessage(KnownEmojis.Wrench, update.Description);
-            }
-            catch (InvalidOperationException ex)
-            {
-                InteractionService.DisplayError(ex.Message);
-            }
-        }
-
-        // --- Phase 1: Skill location selection ---
-        var defaultLocationIds = string.Join(",", SkillLocation.All.Where(l => l.IsDefault).Select(l => l.Id));
-        var skillLocationsBindingWithDefault = skillLocationsBinding.WithDefault(defaultLocationIds);
-
-        var selectedLocations = await InteractionService.PromptForSelectionsAsync(
-            AgentCommandStrings.InitCommand_SelectSkillLocations,
-            SkillLocation.All,
-            loc => $"{loc.DisplayName} — {loc.Description}",
-            preSelected: SkillLocation.All.Where(l => l.IsDefault),
+        var detectedClients = AgentClient.All.Where(client => context.DetectedClients.Any(client.Includes)).ToArray();
+        InteractionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_EnvironmentSelectionNotice);
+        var (agentsProvided, requestedAgents) = bindings.Environments.Resolve();
+        var selectedClients = agentsProvided && requestedAgents is not null
+            ? ConsoleInteractionService.MatchChoices(requestedAgents, AgentClient.All, static client => client.Id)
+            : await InteractionService.PromptForSelectionsAsync(
+            AgentCommandStrings.InitCommand_SelectAgentsPrompt,
+            AgentClient.All,
+            static client => client.DisplayName.EscapeMarkup() + Environment.NewLine + "  " + client.Description.EscapeMarkup(),
+            preSelected: detectedClients,
             optional: true,
-            binding: skillLocationsBindingWithDefault,
+            binding: bindings.Environments.WithDefault(detectedClients.Length > 0
+                ? string.Join(",", detectedClients.Select(static client => client.Id))
+                : ConsoleInteractionService.NoneChoice),
             echoSelected: false,
             cancellationToken: cancellationToken);
 
-        // --- Phase 2: Skill selection (only if locations were selected) ---
+        if (selectedClients is null)
+        {
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidEnvironments,
+                requestedAgents, string.Join(",", AgentClient.All.Select(static client => client.Id)),
+                ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice));
+            return new(CliExitCodes.InvalidCommand, [], []);
+        }
+
+        if (selectedClients.Count == 0)
+        {
+            InteractionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_NoConfigurationSelected);
+            return new(CliExitCodes.Success, [], []);
+        }
+
+        var (scopeProvided, requestedScope) = bindings.Scope.Resolve();
+        var scope = scopeProvided ? requestedScope : bindings.Scope.DefaultValue;
+        if (!scopeProvided && _hostEnvironment.SupportsInteractiveInput)
+        {
+            scope = await InteractionService.PromptForSelectionAsync(
+                AgentCommandStrings.InitCommand_SelectScopePrompt,
+                new[] { AgentConfigurationScope.Project, AgentConfigurationScope.User },
+                value => DescribeScope(value, selectedClients, workspaceRoot),
+                cancellationToken: cancellationToken);
+        }
+
+        // Client selection determines destinations, never the scanner's inferred locations.
+        var selectedSkillDirs = selectedClients
+            .Select(client => client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment))
+            .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var skillsBinding = bindings.Skills;
+
         IReadOnlyList<SkillDefinition> selectedSkills = [];
         AspireSkillsBundle? aspireSkillsBundle = null;
         string? bundleInstallFailureMessage = null;
 
-        if (selectedLocations.Count > 0)
+        if (selectedClients.Count > 0)
         {
             IReadOnlyList<SkillDefinition> availableSkills;
             if (ShouldSkipBundleCatalogResolution(skillsBinding))
@@ -292,31 +381,31 @@ internal sealed class AgentInitCommand : BaseCommand
         // configuration is unreachable from those flows by construction rather than by a runtime
         // visibility flag. The Aspire MCP server is the only server the CLI configures today, so
         // this is a plain confirmation rather than a selection; the confirmed choice is applied to
-        // every detected configuration target in Phase 5.
+        // every selected configuration target in Phase 5.
         var configureMcp = false;
-        var mcpConfigurationTargets = mcpBinding is not null
-            ? userChoices.Where(a => a.PromptGroup == McpInitPromptGroup.AgentEnvironments).ToList()
-            : [];
-
-        if (mcpBinding is not null && mcpConfigurationTargets.Count > 0)
+        if (bindings.Mcp is not null)
         {
             configureMcp = await InteractionService.PromptConfirmAsync(
                 AgentCommandStrings.InitCommand_ConfigureMcpServerPrompt,
-                binding: mcpBinding,
+                binding: bindings.Mcp,
                 cancellationToken: cancellationToken);
         }
 
-        // --- Phase 3: Apply skill files for selected locations × skills ---
+        if (selectedSkills.Count == 0 && !configureMcp)
+        {
+            InteractionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_NoConfigurationSelected);
+            return new(CliExitCodes.Success, selectedClients, []);
+        }
+
+        // --- Phase 3: Apply copied skill files at each unique destination ---
         // Each skill file write is fast (small markdown files), so sequential execution
         // is fine — parallelizing would complicate error handling for no meaningful gain.
         var hasErrors = false;
 
         var installedSkills = new List<InstalledSkillSummaryItem>();
 
-        foreach (var location in selectedLocations)
+        foreach (var skillDirectory in selectedSkillDirs)
         {
-            context.AddSkillBaseDirectory(location.RelativeSkillDirectory);
-
             foreach (var skill in selectedSkills)
             {
                 // Playwright CLI is installed via PlaywrightCliInstaller, not as a static skill file
@@ -331,32 +420,15 @@ internal sealed class AgentInitCommand : BaseCommand
                 }
 
                 var installResult = await InstallSkillAsync(
-                    workspaceRoot,
-                    location.RelativeSkillDirectory,
+                    skillDirectory,
+                    GetDisplaySkillDirectory(skillDirectory, scope, workspaceRoot),
                     skill,
                     aspireSkillsBundle,
-                    isUserLevel: false,
                     cancellationToken);
                 hasErrors |= !installResult.Succeeded;
                 if (installResult.UpdatedSkill is not null)
                 {
                     installedSkills.Add(installResult.UpdatedSkill);
-                }
-
-                if (location.IncludeUserLevel)
-                {
-                    installResult = await InstallSkillAsync(
-                        ExecutionContext.HomeDirectory,
-                        location.RelativeSkillDirectory,
-                        skill,
-                        aspireSkillsBundle,
-                        isUserLevel: true,
-                        cancellationToken);
-                    hasErrors |= !installResult.Succeeded;
-                    if (installResult.UpdatedSkill is not null)
-                    {
-                        installedSkills.Add(installResult.UpdatedSkill);
-                    }
                 }
             }
         }
@@ -364,12 +436,11 @@ internal sealed class AgentInitCommand : BaseCommand
         DisplayInstalledSkillsSummary(installedSkills);
 
         // --- Phase 4: Handle Playwright CLI (installs binary + mirrors skill files to registered directories) ---
-        var selectedSkillDirs = selectedLocations.Select(l => l.RelativeSkillDirectory).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (selectedSkills.Contains(SkillDefinition.PlaywrightCli) && selectedLocations.Count > 0)
+        if (selectedSkills.Contains(SkillDefinition.PlaywrightCli))
         {
             try
             {
-                var (status, message) = await _playwrightCliInstaller.InstallAsync(workspaceRoot.FullName, selectedSkillDirs, cancellationToken);
+                var (status, message) = await _playwrightCliInstaller.InstallSelectedAsync(selectedSkillDirs, cancellationToken);
                 switch (status)
                 {
                     case PlaywrightInstallStatus.Installed:
@@ -398,9 +469,32 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         // --- Phase 5: Apply MCP server configuration if the user confirmed ---
-        // Apply the confirmed configuration to every detected target exactly once.
+        // Preserve the legacy applicators, but apply only selected, scoped targets.
         if (configureMcp)
         {
+            var mcpPaths = selectedClients
+                .Select(client => client.GetMcpConfigPath(scope, workspaceRoot, ExecutionContext, _environment))
+                .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            foreach (var update in applicators.Where(applicator =>
+                applicator.PromptGroup == McpInitPromptGroup.ConfigUpdates &&
+                applicator.TargetPath is { } path && mcpPaths.Contains(path)))
+            {
+                try
+                {
+                    await update.ApplyAsync(cancellationToken);
+                    InteractionService.DisplayMessage(KnownEmojis.Wrench, update.Description);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+                {
+                    InteractionService.DisplayError(ex.Message);
+                    hasErrors = true;
+                }
+            }
+
+            var mcpConfigurationTargets = selectedClients
+                .Select(client => client.CreateMcpApplicator(client.GetMcpConfigPath(scope, workspaceRoot, ExecutionContext, _environment), scope))
+                .OfType<AgentEnvironmentApplicator>()
+                .DistinctBy(static target => target.TargetPath, OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             foreach (var target in mcpConfigurationTargets)
             {
                 try
@@ -412,7 +506,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 // (e.g., MCP config writers) when the underlying operation fails.
                 // JsonException as InnerException indicates a malformed config file
                 // (e.g., invalid JSON in .copilot/mcp-config.json or .vscode/mcp.json).
-                catch (InvalidOperationException ex)
+                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
                 {
                     InteractionService.DisplayError(ex.Message);
                     if (ex.InnerException is JsonException)
@@ -426,10 +520,14 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         // --- Phase 6: Install agent telemetry hooks (default-on, parity with azure-skills) ---
-        // Hooks are installed for every detected, supported client. Whether telemetry is actually
+        // User-scoped setup instruments selected, detected supported clients only. Whether telemetry is actually
         // transmitted stays gated by the single ASPIRE_CLI_TELEMETRY_OPTOUT opt-out, which both the
         // hook scripts and the `aspire agent telemetry` command path re-check at runtime.
-        await ConfigureTelemetryHooksAsync(context, cancellationToken);
+        if (scope is AgentConfigurationScope.User)
+        {
+            var hookClients = context.DetectedClients.Where(client => selectedClients.Any(selected => selected.Includes(client))).ToArray();
+            await ConfigureTelemetryHooksAsync(hookClients, cancellationToken);
+        }
 
         if (hasErrors)
         {
@@ -442,16 +540,16 @@ internal sealed class AgentInitCommand : BaseCommand
 
         return new(
             hasErrors ? CliExitCodes.InvalidCommand : CliExitCodes.Success,
-            selectedLocations,
+            selectedClients,
             selectedSkills);
     }
 
-    private async Task ConfigureTelemetryHooksAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
+    private async Task ConfigureTelemetryHooksAsync(IReadOnlyCollection<AgentClientKind> detectedClients, CancellationToken cancellationToken)
     {
         TelemetryHookConfigurationResult result;
         try
         {
-            result = await _telemetryHookConfigurator.ConfigureAsync(context.DetectedClients, cancellationToken);
+            result = await _telemetryHookConfigurator.ConfigureAsync(detectedClients, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -656,15 +754,13 @@ internal sealed class AgentInitCommand : BaseCommand
     /// </summary>
     /// <returns>The install result, including the skill/location pair when files were updated.</returns>
     private async Task<SkillInstallResult> InstallSkillAsync(
-        DirectoryInfo rootDirectory,
-        string relativeSkillDirectory,
+        string skillBaseDirectory,
+        string displayLocation,
         SkillDefinition skill,
         AspireSkillsBundle? aspireSkillsBundle,
-        bool isUserLevel,
         CancellationToken cancellationToken)
     {
-        var relativeSkillPath = Path.Combine(relativeSkillDirectory, skill.Name);
-        var fullSkillDirectoryPath = Path.Combine(rootDirectory.FullName, relativeSkillPath);
+        var fullSkillDirectoryPath = Path.Combine(skillBaseDirectory, skill.Name);
 
         try
         {
@@ -673,7 +769,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
             foreach (var skillFile in skillFiles)
             {
-                var fullPath = Path.Combine(rootDirectory.FullName, relativeSkillPath, skillFile.RelativePath);
+                var fullPath = Path.Combine(fullSkillDirectoryPath, skillFile.RelativePath);
                 var directory = Path.GetDirectoryName(fullPath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
@@ -698,7 +794,6 @@ internal sealed class AgentInitCommand : BaseCommand
                 return new(Succeeded: true, UpdatedSkill: null);
             }
 
-            var displayLocation = GetDisplaySkillDirectory(relativeSkillDirectory, isUserLevel);
             return new(Succeeded: true, new InstalledSkillSummaryItem(skill.Name, displayLocation));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
@@ -742,13 +837,31 @@ internal sealed class AgentInitCommand : BaseCommand
         return uniqueValues;
     }
 
-    private static string GetDisplaySkillDirectory(string relativeSkillDirectory, bool isUserLevel)
+    private string GetDisplaySkillDirectory(string skillDirectory, AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
+        var root = scope is AgentConfigurationScope.Project ? workspaceRoot : ExecutionContext.HomeDirectory;
+        var relativeSkillDirectory = Path.GetRelativePath(root.FullName, skillDirectory);
+        if (Path.IsPathRooted(relativeSkillDirectory) || relativeSkillDirectory == ".." ||
+            relativeSkillDirectory.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            return skillDirectory;
+        }
+
         var displayRelativeSkillDirectory = relativeSkillDirectory
             .Replace(Path.DirectorySeparatorChar, '/')
             .Replace(Path.AltDirectorySeparatorChar, '/');
 
-        return isUserLevel ? $"~/{displayRelativeSkillDirectory}" : displayRelativeSkillDirectory;
+        return scope is AgentConfigurationScope.User ? $"~/{displayRelativeSkillDirectory}" : displayRelativeSkillDirectory;
+    }
+
+    private string DescribeScope(AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, DirectoryInfo workspaceRoot)
+    {
+        var description = scope is AgentConfigurationScope.Project
+            ? AgentCommandStrings.InitCommand_ProjectScope
+            : AgentCommandStrings.InitCommand_UserScope;
+        return description + Environment.NewLine + string.Join(Environment.NewLine, clients.Select(client =>
+            "  " + string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_EnvironmentLocationDescription,
+                client.DisplayName, GetDisplaySkillDirectory(client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment), scope, workspaceRoot)).EscapeMarkup()));
     }
 
     private static async Task<IReadOnlyList<SkillAssetFile>> GetSkillFilesAsync(SkillDefinition skill, AspireSkillsBundle? aspireSkillsBundle, CancellationToken cancellationToken)
@@ -778,5 +891,11 @@ internal sealed class AgentInitCommand : BaseCommand
 
 internal readonly record struct AgentInitExecutionResult(
     int ExitCode,
-    IReadOnlyList<SkillLocation> SelectedLocations,
+    IReadOnlyList<AgentClient> SelectedClients,
     IReadOnlyList<SkillDefinition> SelectedSkills);
+
+internal sealed record AgentInitPromptBindings(
+    PromptBinding<string?> Environments,
+    PromptBinding<string?> Skills,
+    PromptBinding<AgentConfigurationScope> Scope,
+    PromptBinding<bool>? Mcp);
