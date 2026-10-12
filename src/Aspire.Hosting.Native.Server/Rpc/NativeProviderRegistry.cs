@@ -32,18 +32,11 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     private readonly Dictionary<string, Registration> _capabilities = new(StringComparer.Ordinal);
     private readonly Dictionary<NativeRpcConnection, Registration> _providers = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<string> _providerTypes = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _coreCapabilities = coreContract["Capabilities"]!.AsArray()
-        .Select(value => value!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
-    private readonly HashSet<string> _coreHandles = coreContract["HandleTypes"]!.AsArray()
-        .Select(value => value!["AtsTypeId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+    private readonly NativeProviderProtocol _protocol = new(coreContract);
 
     public string Expect(NativeRpcConnection owner, string packageName)
     {
-        if (string.IsNullOrWhiteSpace(packageName) || packageName.Length > 128 ||
-            packageName.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_')))
-        {
-            throw new RpcFault("INVALID_ARGUMENT", "A portable provider package identity is required.");
-        }
+        NativeProviderProtocol.ValidatePackageName(packageName);
         lock (_gate)
         {
             foreach (var (authority, expectation) in _activationWaits.ToArray())
@@ -87,17 +80,15 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             using var deadline = new CancellationTokenSource(options.ProviderRegistrationTimeout, options.TimeProvider);
             using var discovery = CancellationTokenSource.CreateLinkedTokenSource(connection.Closed, deadline.Token);
             var manifest = await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false);
-            var projected = ValidateManifest(expected.PackageName, manifest);
-            var ownTypes = projected.Values.SelectMany(EnumerateTypes)
-                .Where(type => type["category"]?.GetValue<string>() == "Handle")
-                .Select(type => RpcArguments.String(type["typeId"])).Where(type => !_coreHandles.Contains(type)).ToHashSet(StringComparer.Ordinal);
+            var projection = _protocol.ParseManifest(expected.PackageName, manifest);
+            var projected = projection.Capabilities;
             var registration = new Registration(expected.Owner, connection, peer, projected);
             lock (_gate)
             {
                 if (expected.Owner.IsClosed || connection.IsClosed || peer.Closed.IsCancellationRequested ||
                     _capabilities.Count + projected.Count > 4096 ||
-                    projected.Keys.Any(id => _coreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
-                    ownTypes.Overlaps(_providerTypes) ||
+                    projected.Keys.Any(id => _protocol.CoreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
+                    projection.OwnedTypes.Overlaps(_providerTypes) ||
                     _providers.ContainsKey(connection))
                 {
                     throw new RpcFault("PROVIDER_CONFLICT", "The provider registration conflicts with an existing capability.");
@@ -107,7 +98,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                     _capabilities.Add(id, registration);
                 }
                 _providers.Add(connection, registration);
-                _providerTypes.UnionWith(ownTypes);
+                _providerTypes.UnionWith(projection.OwnedTypes);
             }
             logger.LogInformation("Native provider activated with {CapabilityCount} capabilities.", projected.Count);
             expected.Completion.TrySetResult();
@@ -164,7 +155,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             {
                 ["protocolVersion"] = 2,
                 ["capabilities"] = new JsonArray(_capabilities.OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                    .Select(pair => (JsonNode?)pair.Value.Capabilities[pair.Key].DeepClone()).ToArray())
+                    .Select(pair => (JsonNode?)pair.Value.Capabilities[pair.Key].Metadata.DeepClone()).ToArray())
             };
         }
     }
@@ -184,51 +175,54 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         }
         EnsureAvailable(registration);
         var metadata = registration.Capabilities[capability];
-        if (metadata["lifecyclePhase"] is not null)
+        if (metadata.LifecyclePhase is not null)
         {
             throw new RpcFault("LIFECYCLE_AUTHORITY_REQUIRED", "Lifecycle capabilities require native phase authority.");
         }
-        var parameters = metadata["parameters"]!.AsArray();
-        RpcArguments.Validate(arguments, parameters.Select(parameter => parameter!["name"]!.GetValue<string>()).ToArray());
+        var parameters = metadata.Parameters;
+        RpcArguments.Validate(arguments, parameters.Select(parameter => parameter.Name).ToArray());
         var mapped = new JsonObject();
         var callbacks = new List<ProviderCallbackLease>();
+        PublishedResource? callbackReceiver = null;
         try
         {
-            foreach (var parameter in parameters.Cast<JsonObject>())
+            foreach (var parameter in parameters)
             {
-                var name = parameter["name"]!.GetValue<string>();
-                if (parameter["isCallback"]?.GetValue<bool>() == true)
+                var name = parameter.Name;
+                if (parameter.Callback is { } signature)
                 {
                     var callbackId = RpcArguments.String(arguments[name]);
-                    var lease = registration.Connection.AddCallback(new ProviderCallback(caller, callbackId, parameter));
+                    var lease = registration.Connection.AddCallback(new ProviderCallback(caller, callbackId, signature));
                     callbacks.Add(lease);
                     mapped[name] = lease.Id;
                 }
                 else
                 {
-                    mapped[name] = ToProvider(registration, caller, arguments[name], parameter["type"]!.AsObject());
+                    mapped[name] = ToProvider(registration, caller, arguments[name], parameter.Type, out var resource);
+                    if (metadata.TargetParameterName == name)
+                    {
+                        callbackReceiver = resource;
+                    }
                 }
             }
             var result = await registration.Peer.RequestAsync("handleExternalCapability",
                 new JsonArray(JsonValue.Create(capability), mapped, JsonValue.Create(Guid.NewGuid().ToString())), caller.Closed).ConfigureAwait(false);
             EnsureAvailable(registration);
 
-            var translated = ToCaller(registration, caller, result, metadata["returnType"]!.AsObject());
+            var translated = ToCaller(registration, caller, result, metadata.ReturnType, out var callbackOwner);
             // A returned provider object owns deferred callbacks. Mutators may
             // instead attach them to their existing provider-owned receiver.
-            var callbackOwner = result is JsonObject handle && handle.ContainsKey("$lifetime") ? handle :
-                metadata["targetParameterName"] is JsonValue receiver ? mapped[receiver.GetValue<string>()] as JsonObject : null;
-            if (callbacks.Count > 0 && callbackOwner?["$handle"] is JsonValue objectId)
+            callbackOwner ??= callbackReceiver;
+            if (callbacks.Count > 0 && callbackOwner is not null)
             {
                 lock (_gate)
                 {
-                    if (registration.Resources.TryGetValue(objectId.GetValue<string>(), out var resource) &&
-                        ReferenceEquals(resource.Owner, caller) && !resource.IsRetired && !resource.Declaration.IsRevoked)
+                    if (ReferenceEquals(callbackOwner.Owner, caller) && !callbackOwner.IsRetired && !callbackOwner.Declaration.IsRevoked)
                     {
                         foreach (var callback in callbacks)
                         {
-                            callback.Callback.Resource = resource;
-                            resource.Callbacks.Add(callback);
+                            callback.Callback.Resource = callbackOwner;
+                            callbackOwner.Callbacks.Add(callback);
                         }
                         callbacks.Clear();
                     }
@@ -343,28 +337,30 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         }
         EnsureAvailable(registration);
         var callback = provider.ReadCallback(callbackId);
-        var parameters = callback.Metadata["callbackParameters"]!.AsArray();
-        RpcArguments.Validate(arguments, Enumerable.Range(0, parameters.Count).Select(index => $"p{index}").ToArray());
+        var parameters = callback.Signature.Parameters;
+        RpcArguments.Validate(arguments, Enumerable.Range(0, parameters.Length).Select(index => $"p{index}").ToArray());
         var mapped = new JsonObject();
-        for (var index = 0; index < parameters.Count; index++)
+        for (var index = 0; index < parameters.Length; index++)
         {
             mapped[$"p{index}"] = ToCaller(registration, callback.Owner, arguments[$"p{index}"],
-                parameters[index]!["type"]!.AsObject());
+                parameters[index], out _);
         }
         var result = await callback.Owner.RequestAsync("invokeCallback",
             new JsonArray(JsonValue.Create(callback.Id), mapped)).ConfigureAwait(false);
-        return ToProvider(registration, callback.Owner, result, callback.Metadata["callbackReturnType"]!.AsObject());
+        return ToProvider(registration, callback.Owner, result, callback.Signature.ReturnType, out _);
     }
 
-    private JsonNode? ToProvider(Registration registration, NativeRpcConnection caller, JsonNode? value, JsonObject type)
+    private JsonNode? ToProvider(Registration registration, NativeRpcConnection caller, JsonNode? value, NativeProviderType type,
+        out PublishedResource? resource)
     {
-        if (type["category"]!.GetValue<string>() != "Handle")
+        resource = null;
+        if (type.Kind != NativeProviderValueKind.Handle)
         {
-            ValidatePrimitive(value, type);
+            NativeProviderProtocol.ValidatePrimitive(value, type);
             return value?.DeepClone();
         }
         var handle = value as JsonObject ?? throw new RpcFault("INVALID_HANDLE", "A typed handle is required.");
-        var expectedType = RpcArguments.String(type["typeId"]);
+        var expectedType = type.TypeId;
         var reference = caller.ReadReference(handle, expectedType);
         if (reference is ProviderResourceReference external)
         {
@@ -372,34 +368,30 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             {
                 throw new RpcFault("INVALID_HANDLE", "The provider resource belongs to another authority.");
             }
+            resource = external.Resource;
             return external.Handle.DeepClone();
         }
-        if (!_coreHandles.Contains(expectedType))
+        if (!_protocol.CoreHandles.Contains(expectedType))
         {
             throw new RpcFault("TYPE_MISMATCH", "The value is not an integration-owned resource.");
         }
         return registration.Connection.AddReference(new DelegatedCoreReference(caller, handle.DeepClone().AsObject()), expectedType);
     }
 
-    private JsonNode? ToCaller(Registration registration, NativeRpcConnection caller, JsonNode? value, JsonObject type)
+    private JsonNode? ToCaller(Registration registration, NativeRpcConnection caller, JsonNode? value, NativeProviderType type,
+        out PublishedResource? resource)
     {
-        if (type["category"]!.GetValue<string>() != "Handle")
+        resource = null;
+        if (type.Kind != NativeProviderValueKind.Handle)
         {
-            ValidatePrimitive(value, type);
+            NativeProviderProtocol.ValidatePrimitive(value, type);
             return value?.DeepClone();
         }
-        var expectedType = RpcArguments.String(type["typeId"]);
-        var handle = value as JsonObject ?? throw new RpcFault("INVALID_HANDLE", "The provider did not return a typed handle.");
-        var coreHandle = _coreHandles.Contains(expectedType);
-        RpcArguments.Validate(handle, coreHandle ? ["$handle", "$type"] : ["$handle", "$type", "$lifetime"]);
-        var id = RpcArguments.String(handle["$handle"]);
-        if (id.Length is 0 or > 512 || RpcArguments.String(handle["$type"]) != expectedType)
+        var expectedType = type.TypeId;
+        var handle = _protocol.ParseReturnedHandle(value, type);
+        if (_protocol.CoreHandles.Contains(expectedType))
         {
-            throw new RpcFault("TYPE_MISMATCH", "The provider returned an invalid resource handle.");
-        }
-        if (coreHandle)
-        {
-            if (registration.Connection.ReadReference(handle, expectedType) is not DelegatedCoreReference delegated ||
+            if (registration.Connection.ReadReference(handle.Wire, expectedType) is not DelegatedCoreReference delegated ||
                 !ReferenceEquals(delegated.Owner, caller))
             {
                 throw new RpcFault("INVALID_HANDLE", "The returned core handle is not delegated by this caller.");
@@ -407,7 +399,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             caller.ReadReference(delegated.Handle, expectedType);
             return delegated.Handle.DeepClone();
         }
-        if (handle["$lifetime"] is not JsonObject lifetime ||
+        if (handle.Lifetime is not { } lifetime ||
             registration.Connection.ReadReference(lifetime) is not DelegatedCoreReference backing ||
             !ReferenceEquals(backing.Owner, caller))
         {
@@ -417,116 +409,9 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             throw new RpcFault("INVALID_HANDLE", "Integration resource lifetime must be a native resource declaration.");
         }
-        TrackProviderObject(registration, caller, handle, declaration, expectedType);
-        return caller.AddReference(new ProviderResourceReference(registration, caller, handle.DeepClone().AsObject(),
-            backing.Handle.DeepClone().AsObject()), expectedType);
-    }
-
-    private Dictionary<string, JsonObject> ValidateManifest(string packageName, JsonNode? manifest)
-    {
-        if (manifest is not JsonObject envelope || envelope["protocolVersion"]?.GetValue<int>() != 2 ||
-            envelope["capabilities"] is not JsonArray { Count: > 0 and <= 128 } capabilities)
-        {
-            throw new RpcFault("PROVIDER_METADATA_INVALID", "Provider metadata requires protocol version 2 and bounded capabilities.");
-        }
-        var result = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
-        foreach (var node in capabilities)
-        {
-            if (node is not JsonObject metadata || metadata["id"] is not JsonValue ||
-                metadata["parameters"] is not JsonArray { Count: <= 32 } parameters ||
-                metadata["returnType"] is not JsonObject returnType)
-            {
-                throw new RpcFault("PROVIDER_METADATA_INVALID", "Provider capability projection is incomplete.");
-            }
-            var id = RpcArguments.String(metadata["id"]);
-            if (!id.StartsWith(packageName + "/", StringComparison.Ordinal) || id.Length > 256 ||
-                string.IsNullOrWhiteSpace(RpcArguments.String(metadata["method"])) || !result.TryAdd(id, metadata.DeepClone().AsObject()))
-            {
-                throw new RpcFault("PROVIDER_CONFLICT", "The provider capability identity is duplicate or outside its package.");
-            }
-            ValidateType(returnType, packageName);
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var parameter in parameters)
-            {
-                if (parameter is not JsonObject argument || argument["type"] is not JsonObject type ||
-                    !names.Add(RpcArguments.String(argument["name"])) ||
-                    string.IsNullOrWhiteSpace(RpcArguments.String(argument["name"])) ||
-                    argument["isOptional"]?.GetValue<bool>() == true || argument["isNullable"]?.GetValue<bool>() == true)
-                {
-                    throw new RpcFault("PROVIDER_METADATA_INVALID", "Provider arguments require distinct required names and types.");
-                }
-                if (argument["isCallback"]?.GetValue<bool>() == true)
-                {
-                    if (type["category"]?.GetValue<string>() != "Callback" ||
-                        argument["callbackParameters"] is not JsonArray { Count: <= 16 } callbackParameters ||
-                        argument["callbackReturnType"] is not JsonObject callbackReturn)
-                    {
-                        throw new RpcFault("PROVIDER_METADATA_INVALID", "Callback projection is incomplete.");
-                    }
-                    ValidateType(callbackReturn, packageName);
-                    if (RpcArguments.String(callbackReturn["typeId"]) == "void")
-                    {
-                        throw new RpcFault("PROVIDER_METADATA_UNSUPPORTED", "Void callback writeback is not implemented by this provider protocol phase.");
-                    }
-                    foreach (var callbackParameter in callbackParameters)
-                    {
-                        ValidateType(callbackParameter!["type"]!.AsObject(), packageName);
-                    }
-                }
-                else
-                {
-                    ValidateType(type, packageName);
-                }
-            }
-            if (metadata["targetTypeId"] is { } targetId)
-            {
-                var receiver = RpcArguments.String(metadata["targetParameterName"]);
-                var target = parameters.SingleOrDefault(parameter => parameter!["name"]!.GetValue<string>() == receiver);
-                if (target?["type"]?["typeId"]?.GetValue<string>() != RpcArguments.String(targetId) ||
-                    target?["type"]?["category"]?.GetValue<string>() != "Handle")
-                {
-                    throw new RpcFault("PROVIDER_METADATA_INVALID", "The provider receiver must match its projected handle parameter.");
-                }
-            }
-            if (metadata["lifecyclePhase"] is not null)
-            {
-                ValidateLifecycleMetadata(metadata);
-            }
-        }
-        var phases = result.Values.Where(metadata => metadata["lifecyclePhase"] is not null);
-        if (phases.GroupBy(metadata => (Type: RpcArguments.String(metadata["targetTypeId"]),
-                Phase: RpcArguments.String(metadata["lifecyclePhase"]))).Any(group => group.Count() > 1))
-        {
-            throw new RpcFault("PROVIDER_METADATA_INVALID", "A provider resource phase cannot have duplicate capabilities.");
-        }
-
-        return result;
-    }
-
-    private void ValidateType(JsonObject type, string packageName)
-    {
-        var id = RpcArguments.String(type["typeId"]);
-        var category = RpcArguments.String(type["category"]);
-        if (category == "Primitive" && id is "string" or "bool" or "int" or "long" or "void" ||
-            category == "Handle" && (_coreHandles.Contains(id) || id.StartsWith(packageName + "/", StringComparison.Ordinal) && id.Length <= 256))
-        {
-            return;
-        }
-        throw new RpcFault("PROVIDER_METADATA_UNSUPPORTED", "This provider protocol phase supports primitive values, typed handles and projected callbacks only.");
-    }
-
-    private static void ValidatePrimitive(JsonNode? value, JsonObject type)
-    {
-        var id = RpcArguments.String(type["typeId"]);
-        switch (id)
-        {
-            case "void" when value is null: return;
-            case "string": _ = RpcArguments.String(value); return;
-            case "bool": _ = RpcArguments.Boolean(value); return;
-            case "int": _ = RpcArguments.Int32(value); return;
-            case "long": _ = RpcArguments.Int64(value); return;
-            default: throw new RpcFault("TYPE_MISMATCH", "The provider value does not match its projection.");
-        }
+        resource = TrackProviderObject(registration, caller, handle.Id, declaration, expectedType);
+        return caller.AddReference(new ProviderResourceReference(registration, caller, handle.Wire.DeepClone().AsObject(),
+            backing.Handle.DeepClone().AsObject(), resource), expectedType);
     }
 
     private static void EnsureAvailable(Registration registration)
@@ -571,7 +456,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     }
 
     internal sealed class Registration(NativeRpcConnection owner, NativeRpcConnection connection, INativeRpcPeer peer,
-        Dictionary<string, JsonObject> capabilities)
+        Dictionary<string, NativeProviderCapability> capabilities)
     {
         private NativeRpcConnection? _owner = owner;
         private NativeRpcConnection? _connection = connection;
@@ -579,7 +464,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         public NativeRpcConnection Owner => _owner ?? throw Unavailable();
         public NativeRpcConnection Connection => _connection ?? throw Unavailable();
         public INativeRpcPeer Peer => _peer ?? throw Unavailable();
-        public Dictionary<string, JsonObject> Capabilities { get; } = capabilities;
+        public Dictionary<string, NativeProviderCapability> Capabilities { get; } = capabilities;
         public Guid Id { get; } = Guid.NewGuid();
         public Dictionary<string, PublishedResource> Resources { get; } = new(StringComparer.Ordinal);
         public bool Disconnected { get; set; }
@@ -607,27 +492,6 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         public TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    private static IEnumerable<JsonObject> EnumerateTypes(JsonNode? node)
-    {
-        if (node is JsonObject obj)
-        {
-            if (obj.ContainsKey("typeId") && obj.ContainsKey("category"))
-            {
-                yield return obj;
-            }
-            foreach (var nested in obj.SelectMany(pair => EnumerateTypes(pair.Value)))
-            {
-                yield return nested;
-            }
-        }
-        else if (node is JsonArray array)
-        {
-            foreach (var nested in array.SelectMany(EnumerateTypes))
-            {
-                yield return nested;
-            }
-        }
-    }
 }
 
 /// <summary>Delegates invocation access, never ownership, to the caller's original core handle table.</summary>
@@ -637,12 +501,12 @@ internal sealed record DelegatedCoreReference(NativeRpcConnection Owner, JsonObj
 }
 
 internal sealed record ProviderResourceReference(NativeProviderRegistry.Registration Provider, NativeRpcConnection Owner,
-    JsonObject Handle, JsonObject Lifetime) : ICapabilityLifetime
+    JsonObject Handle, JsonObject Lifetime, NativeProviderRegistry.PublishedResource Resource) : ICapabilityLifetime
 {
     public bool IsRevoked => Owner.IsClosed || Provider.Disconnected || Provider.Connection.IsClosed || !Owner.IsReferenceAlive(Lifetime);
 }
 
-internal sealed record ProviderCallback(NativeRpcConnection Owner, string Id, JsonObject Metadata)
+internal sealed record ProviderCallback(NativeRpcConnection Owner, string Id, NativeProviderCallback Signature)
 {
     internal NativeProviderRegistry.PublishedResource? Resource { get; set; }
     public bool IsRevoked => Owner.IsClosed || Resource is { } resource &&

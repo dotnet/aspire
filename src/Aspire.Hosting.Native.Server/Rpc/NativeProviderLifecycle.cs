@@ -11,27 +11,9 @@ namespace Aspire.Hosting.Native.Rpc;
 
 internal sealed partial class NativeProviderRegistry
 {
-    private const string LifecycleScopeType = "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope";
-
-    private void ValidateLifecycleMetadata(JsonObject metadata)
-    {
-        var phase = RpcArguments.String(metadata["lifecyclePhase"]);
-        var parameters = metadata["parameters"]!.AsArray();
-        if (phase is not ("initialize" or "allocated" or "ready" or "retiring") ||
-            metadata["targetTypeId"] is null || _coreHandles.Contains(RpcArguments.String(metadata["targetTypeId"])) || parameters.Count != 2 ||
-            parameters.Any(parameter => parameter!["isCallback"]?.GetValue<bool>() == true) ||
-            parameters.SingleOrDefault(parameter => parameter!["name"]?.GetValue<string>() == "scope")
-                ?["type"]?["typeId"]?.GetValue<string>() != LifecycleScopeType ||
-            metadata["returnType"]?["typeId"]?.GetValue<string>() != "void")
-        {
-            throw new RpcFault("PROVIDER_METADATA_INVALID", "Lifecycle metadata requires an owned receiver, one native scope and a void result.");
-        }
-    }
-
-    private void TrackProviderObject(Registration registration, NativeRpcConnection owner, JsonObject handle,
+    private PublishedResource TrackProviderObject(Registration registration, NativeRpcConnection owner, string id,
         DeclaredResource declaration, string typeId)
     {
-        var id = RpcArguments.String(handle["$handle"]);
         lock (_gate)
         {
             if (registration.Resources.TryGetValue(id, out var existing))
@@ -41,24 +23,22 @@ internal sealed partial class NativeProviderRegistry
                 {
                     throw new RpcFault("INVALID_HANDLE", "An integration object cannot change its original declaration authority.");
                 }
-                return;
+                return existing;
             }
             if (registration.Resources.Count >= 4096)
             {
                 throw new RpcFault("PROVIDER_LIMIT", "Provider object capacity was reached.");
             }
             var hooks = registration.Capabilities.Values.Where(metadata =>
-                metadata["targetTypeId"]?.GetValue<string>() == typeId && metadata["lifecyclePhase"] is not null).ToArray();
-            if (hooks.Select(metadata => metadata["lifecyclePhase"]!.GetValue<string>()).Distinct(StringComparer.Ordinal).Count() != hooks.Length)
-            {
-                throw new RpcFault("PROVIDER_METADATA_INVALID", "A resource phase must have exactly one provider callback.");
-            }
+                metadata.TargetTypeId == typeId && metadata.LifecyclePhase is not null).ToArray();
             var bindings = hooks.Select(metadata => new ProviderLifecycleBinding(registration.Id, id, typeId,
-                metadata["lifecyclePhase"]!.GetValue<string>(), metadata["id"]!.GetValue<string>())).ToImmutableArray();
+                metadata.LifecyclePhase!, metadata.Id)).ToImmutableArray();
             declaration.Composition.Model.SetProviderLifecycle(declaration.Handle, bindings);
             var resource = new PublishedResource(this, registration, owner, declaration, id, typeId);
             declaration.Composition.TrackProviderResource(resource);
             registration.Resources.Add(id, resource);
+
+            return resource;
         }
     }
 
@@ -73,7 +53,7 @@ internal sealed partial class NativeProviderRegistry
                 ?? throw new RpcFault("PROVIDER_DISCONNECTED", "The lifecycle provider is unavailable.");
             if (!registration.Resources.TryGetValue(binding.ObjectId, out resource!) || resource.IsRetired ||
                 resource.TypeId != binding.TypeId || !registration.Capabilities.TryGetValue(binding.CapabilityId, out var metadata) ||
-                metadata["lifecyclePhase"]?.GetValue<string>() != authority.Phase)
+                metadata.LifecyclePhase != authority.Phase)
             {
                 throw new RpcFault("INVALID_HANDLE", "The lifecycle object or phase authority is unavailable.");
             }
@@ -84,7 +64,7 @@ internal sealed partial class NativeProviderRegistry
         var scope = connection.AddLifecycleScope(new ResourceLifecycleScope(authority));
         var invocation = Guid.NewGuid().ToString();
         var metadataProjection = registration.Capabilities[binding.CapabilityId];
-        var receiver = RpcArguments.String(metadataProjection["targetParameterName"]);
+        var receiver = metadataProjection.TargetParameterName!;
         var arguments = new JsonObject
         {
             [receiver] = new JsonObject { ["$handle"] = binding.ObjectId, ["$type"] = binding.TypeId },
@@ -96,7 +76,7 @@ internal sealed partial class NativeProviderRegistry
         {
             var result = await peer.RequestAsync("handleExternalCapability",
                 new JsonArray(JsonValue.Create(binding.CapabilityId), arguments, JsonValue.Create(invocation)), cancellation.Token).ConfigureAwait(false);
-            ValidatePrimitive(result, metadataProjection["returnType"]!.AsObject());
+            NativeProviderProtocol.ValidatePrimitive(result, metadataProjection.ReturnType);
             logger.LogDebug("Native provider lifecycle {Phase} completed.", authority.Phase);
         }
         catch (Exception)

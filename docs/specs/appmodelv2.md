@@ -816,6 +816,10 @@ values before execution logic consumes them. Closed lifecycle and operation
 states are not compared as raw strings. Extensible integration-supplied labels
 remain extensible; strong internal types must not silently narrow an existing
 wire contract. Parsing failures must remain explicit and independently testable.
+Provider manifest, callback-signature and returned-handle shape validation lives
+in `NativeProviderProtocol`. Registration and invocation consume its typed
+projections and retain authority resolution, dispatch and lifetime ownership;
+they do not interpret capability metadata during each invocation.
 
 Clocks, elapsed-time measurement, delays and timeout scheduling use an injected
 `TimeProvider`. Tests can advance time without sleeping, and cancellation must

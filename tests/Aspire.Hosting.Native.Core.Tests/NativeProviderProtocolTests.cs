@@ -1,0 +1,92 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Native.Rpc;
+
+namespace Aspire.Hosting.Native.Core.Tests;
+
+public class NativeProviderProtocolTests
+{
+    [Fact]
+    public void ManifestProducesTypedReceiverAndCallbackProjections()
+    {
+        var metadata = JsonNode.Parse("""
+            {"protocolVersion":2,"capabilities":[{
+              "id":"example.protocol/attach","method":"attach",
+              "targetTypeId":"example.protocol/Resource","targetParameterName":"resource",
+              "parameters":[
+                {"name":"resource","type":{"typeId":"example.protocol/Resource","category":"Handle"}},
+                {"name":"callback","isCallback":true,"type":{"typeId":"callback","category":"Callback"},
+                  "callbackParameters":[{"name":"resource","type":{"typeId":"example.protocol/Resource","category":"Handle"}}],
+                  "callbackReturnType":{"typeId":"long","category":"Primitive"}}],
+              "returnType":{"typeId":"bool","category":"Primitive"}
+            }]}
+            """)!;
+        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
+        var manifest = protocol.ParseManifest("example.protocol", metadata);
+        var capability = Assert.Single(manifest.Capabilities).Value;
+        Assert.Equal("example.protocol/attach", capability.Id);
+        Assert.Equal("example.protocol/Resource", capability.TargetTypeId);
+        Assert.Equal("resource", capability.TargetParameterName);
+        Assert.Null(capability.LifecyclePhase);
+        Assert.Equal(NativeProviderValueKind.Boolean, capability.ReturnType.Kind);
+        Assert.Collection(capability.Parameters,
+            receiver =>
+            {
+                Assert.Equal("resource", receiver.Name);
+                Assert.Equal(NativeProviderValueKind.Handle, receiver.Type.Kind);
+                Assert.Null(receiver.Callback);
+            },
+            callback =>
+            {
+                Assert.Equal("callback", callback.Name);
+                Assert.Equal(NativeProviderValueKind.Callback, callback.Type.Kind);
+                Assert.NotNull(callback.Callback);
+                Assert.Equal(NativeProviderValueKind.Handle, Assert.Single(callback.Callback.Parameters).Kind);
+                Assert.Equal(NativeProviderValueKind.Int64, callback.Callback.ReturnType.Kind);
+            });
+        Assert.Equal("example.protocol/Resource", Assert.Single(manifest.OwnedTypes));
+        metadata["capabilities"]![0]!["method"] = "changed";
+        Assert.Equal("attach", capability.Metadata["method"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("""{"protocolVersion":"2","capabilities":[]}""")]
+    [InlineData("""{"protocolVersion":null,"capabilities":[]}""")]
+    [InlineData("""{"protocolVersion":2,"capabilities":{}}""")]
+    public void InvalidEnvelopeIsRejectedAtTheProtocolBoundary(string metadata)
+    {
+        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
+        var fault = Assert.Throws<RpcFault>(() => protocol.ParseManifest("example.protocol", JsonNode.Parse(metadata)));
+        Assert.Equal("PROVIDER_METADATA_INVALID", fault.FaultCode);
+    }
+
+    [Theory]
+    [InlineData("""{"name":"value","type":{"typeId":"string","category":"Primitive"},"isOptional":"false"}""")]
+    [InlineData("""{"name":"value","type":{"typeId":"callback","category":"Callback"},"isCallback":true,"callbackParameters":[42],"callbackReturnType":{"typeId":"string","category":"Primitive"}}""")]
+    public void MalformedParametersProduceProtocolFaults(string parameter)
+    {
+        var metadata = JsonNode.Parse($$"""
+            {"protocolVersion":2,"capabilities":[{
+              "id":"example.protocol/invoke","method":"invoke","parameters":[{{parameter}}],
+              "returnType":{"typeId":"string","category":"Primitive"}
+            }]}
+            """);
+        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
+        var fault = Assert.Throws<RpcFault>(() => protocol.ParseManifest("example.protocol", metadata));
+        Assert.Equal("PROVIDER_METADATA_INVALID", fault.FaultCode);
+    }
+
+    [Theory]
+    [InlineData("""{"$handle":"object","$type":"other/Resource","$lifetime":{}}""", "TYPE_MISMATCH")]
+    [InlineData("""{"$handle":"","$type":"example.protocol/Resource","$lifetime":{}}""", "TYPE_MISMATCH")]
+    [InlineData("""{"$handle":"object","$type":"example.protocol/Resource","$lifetime":null}""", "INVALID_HANDLE")]
+    public void ReturnedHandleShapeIsCheckedWithoutResolvingAuthority(string wire, string code)
+    {
+        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
+        var type = new NativeProviderType("example.protocol/Resource", NativeProviderValueKind.Handle);
+        var fault = Assert.Throws<RpcFault>(() => protocol.ParseReturnedHandle(JsonNode.Parse(wire), type));
+        Assert.Equal(code, fault.FaultCode);
+    }
+}
