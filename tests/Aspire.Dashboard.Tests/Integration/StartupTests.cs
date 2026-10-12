@@ -1175,6 +1175,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     [InlineData(false, DashboardPersistenceMode.None, "none")]
     [InlineData(false, DashboardPersistenceMode.Run, "run")]
     [InlineData(false, DashboardPersistenceMode.Resume, "resume")]
+    [InlineData(false, (DashboardPersistenceMode)999, "unknown")]
+    [InlineData(false, (DashboardPersistenceMode)(-1), "unknown")]
     public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();
@@ -1186,7 +1188,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 data[DashboardConfigNames.DashboardLaunchContextName.ConfigKey] = " CLI ";
                 data[DashboardConfigNames.DashboardPersistenceModeName.ConfigKey] = persistenceMode.ToString();
                 data[DashboardConfigNames.DashboardDataDirectoryName.ConfigKey] = workspace.Path;
-                if (!validOptions)
+                if (!validOptions && Enum.IsDefined(persistenceMode))
                 {
                     data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = null;
                 }
@@ -1201,7 +1203,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         }
         else
         {
-            Assert.Throws<OptionsValidationException>(() => app.DashboardOptionsMonitor.CurrentValue);
+            var exception = Assert.Throws<OptionsValidationException>(() => app.DashboardOptionsMonitor.CurrentValue);
+            if (!Enum.IsDefined(persistenceMode))
+            {
+                Assert.Equal($"Unexpected dashboard persistence mode: {persistenceMode}", Assert.Single(exception.Failures));
+            }
+
             var exitCode = await app.RunAsync(CancellationToken.None).DefaultTimeout();
             Assert.Equal(DashboardWebApplication.ExitCodeValidationFailure, exitCode);
         }

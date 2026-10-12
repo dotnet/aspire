@@ -19,6 +19,8 @@ public class DashboardStartupTelemetryTests
     [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.None, "none")]
     [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.Run, "run")]
     [InlineData(false, KnownDashboardStartupFailureReasons.AddressInUse, DashboardPersistenceMode.Resume, "resume")]
+    [InlineData(false, KnownDashboardStartupFailureReasons.ConfigurationValidation, (DashboardPersistenceMode)999, "unknown")]
+    [InlineData(false, KnownDashboardStartupFailureReasons.ConfigurationValidation, (DashboardPersistenceMode)(-1), "unknown")]
     public void Record_RecordsStartupResultOnce(bool success, string? errorType, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();

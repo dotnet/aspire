@@ -20,7 +20,14 @@ internal sealed class DashboardStartupTelemetry
     {
         _telemetry = telemetry;
         _startTimestamp = startTimestamp;
-        _persistenceMode = options.Data.PersistenceMode.ToString().ToLowerInvariant();
+        // Failed startup can supply unvalidated options, so keep this dimension bounded.
+        _persistenceMode = options.Data.PersistenceMode switch
+        {
+            DashboardPersistenceMode.None => "none",
+            DashboardPersistenceMode.Run => "run",
+            DashboardPersistenceMode.Resume => "resume",
+            _ => "unknown"
+        };
         _launchContext = options.LaunchContext?.Trim().ToLowerInvariant() switch
         {
             KnownDashboardLaunchContexts.AppHost => KnownDashboardLaunchContexts.AppHost,
