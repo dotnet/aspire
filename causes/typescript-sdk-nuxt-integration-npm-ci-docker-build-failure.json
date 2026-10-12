@@ -101,6 +101,13 @@
       "job": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x), Tests / Polyglot SDK Validation / Polyglot Validation Results",
       "pr_number": 0,
       "observed_at": "2026-10-12T07:12:55Z"
+    },
+    {
+      "run_id": 38231535953,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38231535953",
+      "job": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x), Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T10:31:33Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/20866"
