@@ -91,15 +91,20 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                 await auto.WaitForPipelineSuccessAsync(timeout: TimeSpan.FromMinutes(40));
                 await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
+                // ARM resource IDs can differ in casing between ACR and role-assignment responses.
                 await auto.RunCommandAsync(
                     $"AKS_NAME=$(az aks list --resource-group {resourceGroup} --query '[0].name' -o tsv) && " +
                     $"test -n \"$AKS_NAME\" && " +
                     $"KUBELET_ID=$(az aks show --resource-group {resourceGroup} --name \"$AKS_NAME\" --query identityProfile.kubeletidentity.objectId -o tsv) && " +
                     $"ACR_ID=$(az acr show --resource-group {registryGroup} --name {registryName} --query id -o tsv) && " +
                     "test -n \"$KUBELET_ID\" && test -n \"$ACR_ID\" && " +
-                    "ROLE_COUNT=$(az role assignment list --scope \"$ACR_ID\" " +
-                    "--query \"length([?principalId=='$KUBELET_ID' && roleDefinitionName=='AcrPull' && scope=='$ACR_ID'])\" -o tsv) && " +
-                    "test \"$ROLE_COUNT\" -eq 1",
+                    "az role assignment list --scope \"$ACR_ID\" --fill-principal-name false -o json > cross-registry-role-assignments.json && " +
+                    "printf 'Expected kubelet principal: %s\\nExpected registry scope: %s\\n' \"$KUBELET_ID\" \"$ACR_ID\" && " +
+                    "jq '[.[] | {principalId, roleDefinitionName, scope}]' cross-registry-role-assignments.json && " +
+                    "jq -e --arg principal \"$KUBELET_ID\" --arg scope \"$ACR_ID\" " +
+                    "'[.[] | select((.principalId | ascii_downcase) == ($principal | ascii_downcase) and " +
+                    ".roleDefinitionName == \"AcrPull\" and (.scope | ascii_downcase) == ($scope | ascii_downcase))] | length == 1' " +
+                    "cross-registry-role-assignments.json",
                     counter, TimeSpan.FromMinutes(2));
 
                 await auto.RunCommandAsync(
