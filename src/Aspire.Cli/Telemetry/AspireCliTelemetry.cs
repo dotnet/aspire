@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Aspire.Shared.Telemetry;
@@ -293,9 +292,9 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
 
                 tagsList.Add(new(TelemetryConstants.Tags.DeploymentEnvironmentName, isCIEnvironment ? "ci" : "local"));
 
-                tagsList.Add(new(TelemetryConstants.Tags.OsName, GetOsName()));
-                tagsList.Add(new(TelemetryConstants.Tags.OsType, GetOsType()));
-                tagsList.Add(new(TelemetryConstants.Tags.OsVersion, Environment.OSVersion.Version.ToString()));
+                tagsList.Add(new(TelemetryConstants.Tags.OsName, OperatingSystemTelemetry.GetOsName()));
+                tagsList.Add(new(TelemetryConstants.Tags.OsType, OperatingSystemTelemetry.GetOsType()));
+                tagsList.Add(new(TelemetryConstants.Tags.OsVersion, OperatingSystemTelemetry.GetOsVersion()));
 
                 return (IReadOnlyList<KeyValuePair<string, object?>>)tagsList;
             }
@@ -426,52 +425,6 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
 
             activity.AddEvent(new ActivityEvent(TelemetryConstants.Events.InternalMicrosoftProbe, tags: tags));
         }
-    }
-
-    /// <summary>
-    /// Gets the human-readable operating system name for the <c>os.name</c> semantic convention.
-    /// </summary>
-    internal static string GetOsName()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return "Windows";
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return "Linux";
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return "macOS";
-        }
-
-        return RuntimeInformation.OSDescription;
-    }
-
-    /// <summary>
-    /// Gets the OpenTelemetry semantic convention value for the <c>os.type</c> attribute.
-    /// </summary>
-    internal static string GetOsType()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return "windows";
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return "linux";
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return "darwin";
-        }
-
-        return "unknown";
     }
 
     /// <summary>

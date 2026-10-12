@@ -26,6 +26,7 @@ using Aspire.Dashboard.Terminal;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
+using Aspire.Shared.Telemetry;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -253,7 +254,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddSingleton(services => new DashboardStartupTelemetry(
             services.GetRequiredService<DashboardTelemetryService>(),
             dashboardOptions,
-            startupTimestamp));
+            startupTimestamp,
+            CIEnvironmentDetector.IsCIEnvironment(Environment.GetEnvironmentVariable)));
 
         if (!validDashboardOptions)
         {

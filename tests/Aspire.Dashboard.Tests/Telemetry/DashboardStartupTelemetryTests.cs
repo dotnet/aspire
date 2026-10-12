@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -30,7 +31,7 @@ public class DashboardStartupTelemetryTests
             Data = new DashboardDataOptions { PersistenceMode = persistenceMode }
         };
         var startupTimestamp = Stopwatch.GetTimestamp() - Stopwatch.Frequency;
-        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, startupTimestamp);
+        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, startupTimestamp, isCIEnvironment: false);
 
         if (success)
         {
@@ -47,6 +48,7 @@ public class DashboardStartupTelemetryTests
         Assert.Equal(TelemetryEventKeys.Startup, log.Message);
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
+        Assert.Equal("local", Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
         Assert.Equal(success, attributes[TelemetryPropertyKeys.StartupSuccess]);
         Assert.Equal(KnownDashboardLaunchContexts.AppHost, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
@@ -75,7 +77,7 @@ public class DashboardStartupTelemetryTests
     {
         using var fixture = new DashboardTelemetryFixture();
         var options = new DashboardOptions { LaunchContext = launchContext };
-        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, Stopwatch.GetTimestamp());
+        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, Stopwatch.GetTimestamp(), isCIEnvironment: false);
 
         startupTelemetry.RecordSuccess();
 
@@ -83,5 +85,66 @@ public class DashboardStartupTelemetryTests
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(expected, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal("none", attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
+    }
+
+    [Theory]
+    [InlineData(true, true, "ci")]
+    [InlineData(true, false, "local")]
+    [InlineData(false, true, "ci")]
+    [InlineData(false, false, "local")]
+    public void Record_RecordsDeploymentEnvironment(bool success, bool isCIEnvironment, string expectedEnvironment)
+    {
+        using var fixture = new DashboardTelemetryFixture();
+        var startupTelemetry = new DashboardStartupTelemetry(
+            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp(), isCIEnvironment);
+
+        if (success)
+        {
+            startupTelemetry.RecordSuccess();
+        }
+        else
+        {
+            startupTelemetry.RecordFailure(KnownDashboardStartupFailureReasons.ConfigurationValidation);
+        }
+
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+        var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
+        Assert.Equal(expectedEnvironment, Assert.IsType<string>(attributes["deployment.environment.name"]));
+        Assert.Equal(success, attributes[TelemetryPropertyKeys.StartupSuccess]);
+        Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Record_RecordsOperatingSystem(bool success)
+    {
+        using var fixture = new DashboardTelemetryFixture();
+        var startupTelemetry = new DashboardStartupTelemetry(
+            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp(), isCIEnvironment: false);
+
+        if (success)
+        {
+            startupTelemetry.RecordSuccess();
+        }
+        else
+        {
+            startupTelemetry.RecordFailure(KnownDashboardStartupFailureReasons.ConfigurationValidation);
+        }
+
+        var expectedOsName = OperatingSystem.IsWindows() ? "Windows"
+            : OperatingSystem.IsLinux() ? "Linux"
+            : OperatingSystem.IsMacOS() ? "macOS"
+            : RuntimeInformation.OSDescription;
+        var expectedOsType = OperatingSystem.IsWindows() ? "windows"
+            : OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "darwin"
+            : "unknown";
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+        Assert.Collection(log.Attributes.Where(p => p.Key.StartsWith("os.", StringComparison.Ordinal)).OrderBy(p => p.Key, StringComparer.Ordinal),
+            attribute => Assert.Equal(new KeyValuePair<string, object?>("os.name", expectedOsName), attribute),
+            attribute => Assert.Equal(new KeyValuePair<string, object?>("os.type", expectedOsType), attribute),
+            attribute => Assert.Equal(new KeyValuePair<string, object?>("os.version", Environment.OSVersion.Version.ToString()), attribute));
+        Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
     }
 }

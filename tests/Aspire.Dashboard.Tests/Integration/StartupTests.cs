@@ -14,6 +14,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
 using Aspire.Shared;
+using Aspire.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -1214,6 +1215,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
         Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
+        Assert.Equal(CIEnvironmentDetector.IsCIEnvironment(Environment.GetEnvironmentVariable) ? "ci" : "local",
+            Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
+        Assert.Equal(OperatingSystemTelemetry.GetOsName(), attributes[TelemetryPropertyKeys.OsName]);
+        Assert.Equal(OperatingSystemTelemetry.GetOsType(), attributes[TelemetryPropertyKeys.OsType]);
+        Assert.Equal(Environment.OSVersion.Version.ToString(), attributes[TelemetryPropertyKeys.OsVersion]);
         Assert.Equal(validOptions, attributes[TelemetryPropertyKeys.StartupSuccess]);
         if (!validOptions)
         {

@@ -15,6 +15,10 @@ public static class TelemetryPropertyKeys
 
     // Startup properties
     public const string DashboardIsAot = AspireDashboardPropertyPrefix + "is_aot";
+    public const string DeploymentEnvironmentName = "deployment.environment.name";
+    public const string OsName = "os.name";
+    public const string OsType = "os.type";
+    public const string OsVersion = "os.version";
     public const string StartupSuccess = AspireDashboardPropertyPrefix + "startup.success";
     public const string StartupLaunchContext = AspireDashboardPropertyPrefix + "startup.launch_context";
     public const string StartupPersistenceMode = AspireDashboardPropertyPrefix + "startup.persistence_mode";
