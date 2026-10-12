@@ -1688,9 +1688,10 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task GetCredentialsStepUsesClusterReferenceScope(bool crossResourceGroup)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task GetCredentialsStepUsesClusterReferenceScope(bool crossResourceGroup, bool crossSubscription)
     {
         const string scopeSubscriptionId = "00000000-0000-0000-0000-000000000003";
         const string scopeResourceGroup = "scope-assigned-rg";
@@ -1711,13 +1712,15 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             deploymentStateManager: deploymentStateManager);
 
         var aks = builder.AddAzureKubernetesEnvironment("aks");
-        if (crossResourceGroup)
+        if (crossSubscription)
         {
             aks.AsExistingInResourceGroup(clusterName, clusterResourceGroup, clusterSubscriptionId);
         }
         else
         {
-            aks.AsExisting(builder.AddParameter("cluster-name", () => clusterName), null);
+            aks.AsExisting(
+                builder.AddParameter("cluster-name", () => clusterName),
+                crossResourceGroup ? builder.AddParameter("cluster-rg", () => clusterResourceGroup) : null);
         }
 
         aks.Resource.Scope = new AzureBicepResourceScope(scopeResourceGroup, scopeSubscriptionId);
@@ -1764,7 +1767,7 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
         });
 
         var expectedResourceGroup = crossResourceGroup ? clusterResourceGroup : scopeResourceGroup;
-        var expectedSubscriptionId = crossResourceGroup ? clusterSubscriptionId : scopeSubscriptionId;
+        var expectedSubscriptionId = crossSubscription ? clusterSubscriptionId : scopeSubscriptionId;
         Assert.Equal(
             [$"aks get-credentials --resource-group \"{expectedResourceGroup}\" --name \"{clusterName}\" --file - --subscription \"{expectedSubscriptionId}\""],
             invocations);

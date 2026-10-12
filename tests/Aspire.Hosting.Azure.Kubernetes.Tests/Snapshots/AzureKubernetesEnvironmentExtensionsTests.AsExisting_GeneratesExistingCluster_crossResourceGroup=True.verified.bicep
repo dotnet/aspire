@@ -34,7 +34,7 @@ output name string = aks.name
 
 output clusterFqdn string = aks.properties.fqdn
 
-output oidcIssuerUrl string = aks.properties.oidcIssuerProfile.issuerURL
+output oidcIssuerUrl string = (aks.properties.?oidcIssuerProfile.?issuerURL ?? '')
 
 output kubeletIdentityObjectId string = aks.properties.identityProfile.kubeletidentity.objectId
 

@@ -585,8 +585,10 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
-    [Fact]
-    public async Task AddLoadBalancer_BicepEnablesIngressProfileAndUsesPreviewApi()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddLoadBalancer_BicepEnablesIngressProfileAndUsesPreviewApi(bool existing)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
@@ -596,10 +598,15 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         var albSubnet = vnet.AddSubnet("alb", "10.0.4.0/24");
 
         var aks = builder.AddAzureKubernetesEnvironment("aks").WithSubnet(aksSubnet);
+        if (existing)
+        {
+            aks.AsExisting(builder.AddParameter("cluster-name"), null);
+        }
+
         aks.AddLoadBalancer("lb", albSubnet);
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
-        await Verify(manifest.BicepText, extension: "bicep");
+        await Verify(manifest.BicepText, extension: "bicep").UseParameters(existing);
     }
 
     [Fact]

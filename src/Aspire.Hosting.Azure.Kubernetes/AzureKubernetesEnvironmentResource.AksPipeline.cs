@@ -709,7 +709,8 @@ public partial class AzureKubernetesEnvironmentResource
         if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) &&
             !existing.IsTenantScope && (existing.ResourceGroup is not null || existing.Subscription is not null))
         {
-            return (existing.Subscription, existing.ResourceGroup);
+            // A resource-group-only reference inherits its subscription from the Bicep module.
+            return (existing.Subscription ?? Scope?.Subscription, existing.ResourceGroup);
         }
 
         if (Scope is not null)

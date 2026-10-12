@@ -25,6 +25,11 @@ public partial class AzureKubernetesEnvironmentResource :
     IAzureNspAssociationTarget
 {
     /// <summary>
+    /// The API version exposing both managed Gateway API and application load balancer properties.
+    /// </summary>
+    internal const string PreviewIngressApiVersion = "2025-09-02-preview";
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AzureKubernetesEnvironmentResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
@@ -224,6 +229,7 @@ public partial class AzureKubernetesEnvironmentResource :
     /// <summary>
     /// Gets the OIDC issuer URL for the AKS cluster, used for workload identity federation.
     /// </summary>
+    /// <remarks>The output is empty when an existing cluster does not have an OIDC issuer.</remarks>
     public BicepOutputReference OidcIssuerUrl => new("oidcIssuerUrl", this);
 
     /// <summary>
@@ -347,6 +353,11 @@ public partial class AzureKubernetesEnvironmentResource :
         }
 
         var cluster = ContainerServiceManagedCluster.FromExisting(bicepIdentifier);
+        if (RequiresPreviewIngressApi)
+        {
+            cluster.ResourceVersion = PreviewIngressApiVersion;
+        }
+
         if (!TryApplyExistingResourceAnnotation(this, infra, cluster))
         {
             cluster.Name = NameOutputReference.AsProvisioningParameter(infra);

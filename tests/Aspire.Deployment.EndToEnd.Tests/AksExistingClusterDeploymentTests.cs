@@ -46,12 +46,13 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
                 az aks create --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" \
                     --name existing-aks --location westus3 --nodepool-name system --node-count 1 \
                     --node-vm-size Standard_D2as_v5 --enable-managed-identity \
-                    --enable-oidc-issuer --enable-workload-identity \
                     --ssh-key-value "$BOOTSTRAP_DIR/aks-key.pub" \
                     --query id -o tsv > "$BOOTSTRAP_DIR/cluster-id"
                 az aks show --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" --name existing-aks \
                     -o json | jq -S '{id, agentPoolProfiles, networkProfile, oidcIssuerProfile, securityProfile, identityProfile, tags}' \
                     > "$BOOTSTRAP_DIR/cluster-before.json"
+                jq -e '.oidcIssuerProfile.enabled != true and .securityProfile.workloadIdentity.enabled != true' \
+                    "$BOOTSTRAP_DIR/cluster-before.json"
                 """, TimeSpan.FromMinutes(25));
 
             await auto.AspireNewAsync(projectName, counter, useRedisCache: false);
