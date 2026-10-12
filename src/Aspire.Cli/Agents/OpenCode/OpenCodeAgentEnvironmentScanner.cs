@@ -1,223 +1,421 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Globalization;
+using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
+using Semver;
 
 namespace Aspire.Cli.Agents.OpenCode;
 
 /// <summary>
-/// Scans for OpenCode environments and provides an applicator to configure the Aspire MCP server.
+/// Discovers OpenCode and configures native catalogs and MCP entries with one coherent schema across scopes.
 /// </summary>
 internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
-    private const string OpenCodeConfigFileName = "opencode.jsonc";
-    private const string AspireServerName = "aspire";
+    internal const string V1Catalog = "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/";
+    internal const string V2Catalog = "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v2/";
+    internal const string MinimumV1CatalogVersion = "1.18.31";
+
+    private static readonly SemVersion s_minimumV1CatalogVersion = SemVersion.Parse(MinimumV1CatalogVersion, SemVersionStyles.Strict);
+
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
+    private readonly CliExecutionContext _executionContext;
+    private readonly IEnvironment _environment;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="OpenCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
+    /// <param name="executionContext">The CLI execution context for resolving workspace and user configuration paths.</param>
+    /// <param name="environment">The environment abstraction for reading environment variables.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
+    public OpenCodeAgentEnvironmentScanner(
+        IOpenCodeCliRunner openCodeCliRunner,
+        CliExecutionContext executionContext,
+        IEnvironment environment,
+        ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(logger);
         _openCodeCliRunner = openCodeCliRunner;
+        _executionContext = executionContext;
+        _environment = environment;
         _logger = logger;
     }
 
-    internal static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
-    {
-        if (GetOverride("OPENCODE_CONFIG") is { } configFile)
-        {
-            return configFile;
-        }
+    /// <inheritdoc />
+    public AgentClient Client => AgentClient.OpenCode;
 
-        var configDirectory = GetOverride("OPENCODE_CONFIG_DIR")
-            ?? Path.Combine(GetOverride("XDG_CONFIG_HOME")
-                ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
-        return Path.Combine(configDirectory, OpenCodeConfigFileName);
+    public string DisplayName => Client.DisplayName;
 
-        string? GetOverride(string name)
-            => environment.GetEnvironmentVariable(name) is { Length: > 0 } value
-                ? Path.GetFullPath(value, executionContext.WorkingDirectory.FullName)
-                : null;
-    }
+    public string Description => AgentCommandStrings.Agent_OpenCodePlatforms;
+
+    public override string ToString() => DisplayName;
 
     /// <inheritdoc />
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _logger.LogDebug("Starting OpenCode environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
-        // Look for existing opencode.jsonc file at workspace root
-        var configDirectory = context.RepositoryRoot;
-        var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        var configFileExists = File.Exists(configFilePath);
+        var hasProjectConfiguration = HasProjectConfiguration(context.WorkingDirectory, context.WorkspaceRoot);
+        // Probe even when configuration exists so application can compare the installed version
+        // with the file's schema. A missing executable does not invalidate project evidence.
+        var version = await _openCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (configFileExists)
+        if (hasProjectConfiguration || version is not null)
         {
-            _logger.LogDebug("Found existing opencode.jsonc at: {ConfigFilePath}", configFilePath);
+            _logger.LogDebug("Detected OpenCode with version: {Version}", version);
+            context.AddDetection(new(AgentEnvironment.OpenCode, version));
+        }
+    }
 
-            context.AddDetectedEnvironment(AgentEnvironment.OpenCode);
+    /// <summary>
+    /// Checks for OpenCode configuration files within the workspace boundary.
+    /// </summary>
+    /// <param name="startDirectory">The directory to start searching from.</param>
+    /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
+    private static bool HasProjectConfiguration(DirectoryInfo startDirectory, DirectoryInfo? repositoryRoot)
+        // V2 also loads configuration inside .opencode; a skills-only directory is insufficient.
+        // https://opencode.ai/v2/docs/config#locations
+        => AgentPath.ProjectDirectories(startDirectory, repositoryRoot).Any(directory =>
+            ConfigFiles(directory.FullName).Concat(ConfigFiles(Path.Combine(directory.FullName, ".opencode"))).Any(File.Exists));
 
-            // Check if aspire is already configured
-            _logger.LogDebug("Checking if Aspire MCP server is already configured in opencode.jsonc...");
-            if (!HasAspireServerConfigured(configFilePath))
+    /// <inheritdoc />
+    public IEnumerable<AgentConfigurationTarget> GetTargets(AgentInitRequest request)
+    {
+        if (!request.Assets.AspireSkills && !request.Assets.Mcp)
+        {
+            yield break;
+        }
+
+        var locations = new List<OpenCodeLocation>();
+        if (request.WorkspaceRoot is { } workspaceRoot)
+        {
+            locations.Add(FindLocation(workspaceRoot.FullName, AgentConfigurationScope.Project, includeNested: true));
+        }
+        else if (request.Scope is AgentConfigurationScope.Project)
+        {
+            AgentPath.RequireWorkspaceRoot(request.WorkspaceRoot);
+        }
+
+        var userDirectory = GetConfigDirectory(_executionContext, _environment);
+        var user = AgentPath.GetOverride("OPENCODE_CONFIG", _executionContext, _environment) is { } customFile
+            ? new OpenCodeLocation(customFile, AgentConfigurationScope.Global, [customFile])
+            : FindLocation(userDirectory, AgentConfigurationScope.Global, includeNested: false);
+        locations.Add(user);
+        if (AgentPath.GetOverride("OPENCODE_CONFIG_DIR", _executionContext, _environment) is { } customDirectory)
+        {
+            locations.Add(FindLocation(customDirectory, AgentConfigurationScope.Global, includeNested: false));
+        }
+
+        foreach (var location in locations.Where(location => location.Scope == request.Scope))
+        {
+            if (request.Assets.AspireSkills)
             {
-                // Config file exists but aspire is not configured - offer to add it
-                _logger.LogDebug("Adding OpenCode applicator to update existing opencode.jsonc");
-                context.AddApplicator(CreateApplicator(configDirectory));
+                yield return Target(location, AgentAssetKind.AspireSkills);
             }
-            else
+
+            if (request.Assets.Mcp)
             {
-                _logger.LogDebug("Aspire MCP server is already configured");
+                yield return Target(location, AgentAssetKind.Mcp);
+            }
+        }
+
+        AgentConfigurationTarget Target(OpenCodeLocation location, AgentAssetKind asset)
+            => new(location.Path, location.Scope, asset, [this], asset is AgentAssetKind.AspireSkills ? "catalog:aspire" : "mcp:aspire",
+                async (root, context, cancellationToken) =>
+                {
+                    var documents = new Dictionary<string, JsonObject>(AgentPath.Comparer);
+                    var candidates = locations.SelectMany(item => item.Candidates)
+                        .Concat(ConfigFiles(userDirectory))
+                        .Concat(ConfigFiles(GetManagedDirectory(_executionContext, _environment)));
+                    foreach (var path in candidates.Distinct(AgentPath.Comparer))
+                    {
+                        if (await context.ReadOptionalAsync(path, cancellationToken) is { } config)
+                        {
+                            documents[path] = config;
+                        }
+                    }
+
+                    var present = location.Candidates.Where(documents.ContainsKey).ToArray();
+                    var active = present.Length > 0 ? present[^1] : location.Candidates[0];
+                    if (present.GroupBy(Path.GetDirectoryName, AgentPath.Comparer).Any(group => group.Count() > 1))
+                    {
+                        return AgentConfigurationEdit.Blocked(AgentCommandStrings.Configuration_OpenCodeMultipleFiles);
+                    }
+
+                    if (!AgentPath.Comparer.Equals(active, location.Path))
+                    {
+                        return AgentConfigurationEdit.Blocked(AgentCommandStrings.Configuration_ConcurrentChange);
+                    }
+
+                    var configs = documents.Values.Append(root).ToList();
+                    if (_environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
+                    {
+                        var inlineConfig = AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline));
+                        configs.Add(inlineConfig);
+                        if (inlineConfig.ContainsKey(asset is AgentAssetKind.AspireSkills ? "skills" : "mcp"))
+                        {
+                            return AgentConfigurationEdit.Blocked(AgentCommandStrings.Configuration_PolicyBlocked);
+                        }
+                    }
+
+                    var schema = ResolveSchema(request.Detections, configs, validateMcp: asset is AgentAssetKind.Mcp);
+                    if (asset is AgentAssetKind.AspireSkills)
+                    {
+                        if (schema == 1 && GetUnsupportedCatalogVersion(request.Detections) is { } unsupportedVersion)
+                        {
+                            // The upstream V1 contract requires 1.18.31+ for skills.urls.
+                            // Keep this capability check on the catalog mutation, not schema
+                            // resolution: older clients still support native V1 MCP entries.
+                            // https://github.com/microsoft/aspire-skills/pull/69
+                            return AgentConfigurationEdit.Blocked(string.Format(CultureInfo.CurrentCulture,
+                                AgentCommandStrings.Configuration_OpenCodeCatalogVersionUnsupported, unsupportedVersion, MinimumV1CatalogVersion));
+                        }
+
+                        return ApplySkills(root, configs, schema);
+                    }
+
+                    foreach (var config in configs)
+                    {
+                        var container = AgentConfigurationJson.OptionalObject(config, "mcp");
+                        var servers = schema == 2 && container is not null ? AgentConfigurationJson.OptionalObject(container, "servers") : container;
+                        if (AspireMcpConfiguration.CheckExistingEntry(servers, commandArray: true, () =>
+                        {
+                            var ownMcp = AgentConfigurationJson.OptionalObject(root, "mcp");
+                            return schema == 2 && ownMcp is not null ? AgentConfigurationJson.OptionalObject(ownMcp, "servers") : ownMcp;
+                        }) is { } existing)
+                        {
+                            return existing;
+                        }
+                    }
+
+                    var mcp = AgentConfigurationJson.Object(root, "mcp");
+                    return AspireMcpConfiguration.Apply(mcp, "servers", commandArray: true, "local", bare: schema == 1);
+                });
+    }
+
+    private static int ResolveSchema(IReadOnlyList<AgentClientDetection> detections, IEnumerable<JsonObject> configs, bool validateMcp)
+    {
+        // Both generations share a $schema URL; use installed versions and configuration shapes.
+        var versions = new HashSet<int>();
+        foreach (var detection in detections.Where(detection => detection.Client is AgentEnvironment.OpenCode))
+        {
+            if (detection.Version is { } version)
+            {
+                if (version.Major > 2)
+                {
+                    throw new AgentConfigurationException(AgentCommandStrings.Configuration_OpenCodeSchemaConflict);
+                }
+
+                versions.Add(version.Major < 2 ? 1 : 2);
+            }
+        }
+
+        foreach (var config in configs)
+        {
+            if (config.TryGetPropertyValue("skills", out var skills))
+            {
+                switch (skills)
+                {
+                    case JsonObject v1:
+                        AgentConfigurationJson.OptionalStrings(v1, "paths");
+                        CheckCatalogs(AgentConfigurationJson.OptionalStrings(v1, "urls"), 1);
+                        versions.Add(1);
+                        break;
+                    case JsonArray v2 when v2.All(value => AgentConfigurationJson.String(value) is not null):
+                        CheckCatalogs(v2, 2);
+                        versions.Add(2);
+                        break;
+                    default:
+                        throw AgentConfigurationJson.Shape("skills");
+                }
+            }
+
+            if (AgentConfigurationJson.OptionalObject(config, "mcp") is { Count: > 0 } mcp)
+            {
+                if (mcp.ContainsKey("servers") || IsV2Timeout(mcp["timeout"]))
+                {
+                    if (mcp.Any(property => property.Key is not ("servers" or "timeout")))
+                    {
+                        throw new AgentConfigurationException(AgentCommandStrings.Configuration_OpenCodeSchemaConflict);
+                    }
+
+                    // Timeout values do not govern catalog registration; only the schema markers do.
+                    if (validateMcp && mcp.ContainsKey("timeout") &&
+                        (!IsV2Timeout(mcp["timeout"]) || mcp["timeout"]!.AsObject().Any(property =>
+                            property.Value is not JsonValue value || !value.TryGetValue<int>(out var timeout) || timeout <= 0)))
+                    {
+                        throw AgentConfigurationJson.Shape("mcp.timeout");
+                    }
+
+                    CheckServerShapes(AgentConfigurationJson.OptionalObject(mcp, "servers"), 2);
+                    versions.Add(2);
+                }
+                else
+                {
+                    CheckServerShapes(mcp, 1);
+                    versions.Add(1);
+                }
+            }
+        }
+
+        if (versions.Count > 1)
+        {
+            throw new AgentConfigurationException(AgentCommandStrings.Configuration_OpenCodeSchemaConflict);
+        }
+
+        // An explicitly selected, undetected client with no schema evidence uses stable V1.
+        return versions.SingleOrDefault(1);
+    }
+
+    private static string? GetUnsupportedCatalogVersion(IReadOnlyList<AgentClientDetection> detections)
+    {
+        foreach (var detection in detections.Where(detection => detection.Client is AgentEnvironment.OpenCode))
+        {
+            if (detection.Version is { } version && SemVersion.ComparePrecedence(version, s_minimumV1CatalogVersion) < 0)
+            {
+                return version.ToString();
+            }
+        }
+
+        return null;
+    }
+
+    private static AgentConfigurationEdit ApplySkills(JsonObject root, IReadOnlyList<JsonObject> configs, int schema)
+    {
+        var preferred = schema == 1 ? V1Catalog : V2Catalog;
+        foreach (var config in configs)
+        {
+            var sources = schema == 1
+                ? AgentConfigurationJson.OptionalObject(config, "skills") is { } skills ? AgentConfigurationJson.OptionalStrings(skills, "urls") : null
+                : config["skills"] as JsonArray;
+            if (sources?.Select(AgentConfigurationJson.String).FirstOrDefault(value => CatalogSchema(value) == schema) is { } existing)
+            {
+                preferred = existing;
+                if (!existing.Contains("/main/opencode/", StringComparison.Ordinal))
+                {
+                    break;
+                }
+            }
+        }
+
+        JsonArray target;
+        if (schema == 1)
+        {
+            var skills = AgentConfigurationJson.Object(root, "skills");
+            target = AgentConfigurationJson.OptionalStrings(skills, "urls") ?? new JsonArray();
+            if (!skills.ContainsKey("urls"))
+            {
+                skills["urls"] = target;
             }
         }
         else
         {
-            // No config file - check if OpenCode CLI is installed
-            _logger.LogDebug("No opencode.jsonc found, checking for OpenCode CLI installation...");
-            var openCodeVersion = await _openCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
-
-            if (openCodeVersion is not null)
+            target = root["skills"] as JsonArray ?? new JsonArray();
+            if (!root.ContainsKey("skills"))
             {
-                _logger.LogDebug("Found OpenCode CLI version: {Version}", openCodeVersion);
-
-                context.AddDetectedEnvironment(AgentEnvironment.OpenCode);
-
-                // OpenCode is installed - offer to create config
-                _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
-                context.AddApplicator(CreateApplicator(configDirectory));
-            }
-            else
-            {
-                _logger.LogDebug("OpenCode CLI not found - skipping");
+                root["skills"] = target;
             }
         }
+
+        if (!target.Any(value => CatalogSchema(AgentConfigurationJson.String(value)) == schema))
+        {
+            target.Add((JsonNode?)preferred);
+        }
+
+        return AgentConfigurationEdit.Applied();
     }
 
-    /// <summary>
-    /// Checks if the opencode.jsonc file has an "aspire" server configured.
-    /// </summary>
-    /// <param name="configFilePath">The path to the opencode.jsonc file.</param>
-    /// <returns>True if the aspire server is already configured, false otherwise.</returns>
-    private static bool HasAspireServerConfigured(string configFilePath)
+    private static void CheckCatalogs(JsonArray? sources, int schema)
     {
-        try
+        if (sources is not null && sources.Any(value => CatalogSchema(AgentConfigurationJson.String(value)) is { } declared && declared != schema))
         {
-            var content = File.ReadAllText(configFilePath);
+            throw new AgentConfigurationException(AgentCommandStrings.Configuration_OpenCodeSchemaConflict);
+        }
+    }
 
-            // Remove single-line comments for parsing (JSONC support)
-            content = RemoveJsonComments(content);
+    private static int? CatalogSchema(string? source)
+    {
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps ||
+            !uri.Host.Equals("raw.githubusercontent.com", StringComparison.OrdinalIgnoreCase) ||
+            !uri.AbsolutePath.StartsWith("/microsoft/aspire-skills/", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
 
-            var config = JsonNode.Parse(content)?.AsObject();
+        var path = uri.AbsolutePath.TrimEnd('/');
+        return path.EndsWith("/opencode/v1", StringComparison.Ordinal) ? 1
+            : path.EndsWith("/opencode/v2", StringComparison.Ordinal) ? 2
+            : null;
+    }
 
-            if (config is null)
+    private static void CheckServerShapes(JsonObject? servers, int schema)
+    {
+        if (servers is null)
+        {
+            return;
+        }
+
+        foreach (var (_, node) in servers)
+        {
+            if (node is not JsonObject server)
             {
-                return false;
+                throw AgentConfigurationJson.Shape("mcp");
             }
 
-            if (config.TryGetPropertyValue("mcp", out var mcpNode) && mcpNode is JsonObject mcp)
+            if (server.ContainsKey(schema == 1 ? "disabled" : "enabled"))
             {
-                return mcp.ContainsKey(AspireServerName);
+                throw new AgentConfigurationException(AgentCommandStrings.Configuration_OpenCodeSchemaConflict);
             }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            // If the JSON is malformed, assume aspire is not configured
-            return false;
         }
     }
 
-    /// <summary>
-    /// Removes single-line comments from JSONC content.
-    /// </summary>
-    internal static string RemoveJsonComments(string jsonc)
+    private static bool IsV2Timeout(JsonNode? node)
+        => node is JsonObject timeout && timeout.All(property => property.Key is "startup" or "catalog" or "execution");
+
+    public static string GetConfigDirectory(CliExecutionContext executionContext, IEnvironment environment)
+        => Path.Combine(AgentPath.GetOverride("XDG_CONFIG_HOME", executionContext, environment) ??
+            Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
+
+    private static string GetManagedDirectory(CliExecutionContext executionContext, IEnvironment environment)
     {
-        var result = new System.Text.StringBuilder();
-        var lines = jsonc.Split('\n');
-
-        foreach (var line in lines)
+        // https://opencode.ai/docs/config/#managed-settings
+        if (environment.IsWindows())
         {
-            var trimmedLine = line;
-            var commentIndex = line.IndexOf("//", StringComparison.Ordinal);
-
-            // Simple heuristic: if // appears and it's not inside a string, remove it
-            // This is a simplified approach - a full JSONC parser would be more robust
-            if (commentIndex >= 0)
-            {
-                // Count quotes before the comment to check if we're in a string
-                var beforeComment = line[..commentIndex];
-                var quoteCount = beforeComment.Count(c => c == '"');
-
-                // If even number of quotes, we're not in a string
-                if (quoteCount % 2 == 0)
-                {
-                    trimmedLine = beforeComment;
-                }
-            }
-
-            result.AppendLine(trimmedLine);
+            return Path.Combine(AgentPath.GetOverride("ProgramData", executionContext, environment) ??
+                Path.Combine(Path.GetPathRoot(executionContext.HomeDirectory.FullName)!, "ProgramData"), "opencode");
         }
 
-        return result.ToString();
+        return environment.IsMacOS()
+            ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", "opencode")
+            : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", "opencode");
     }
 
-    /// <summary>
-    /// Creates an applicator for configuring the MCP server in the opencode.jsonc file.
-    /// </summary>
-    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo configDirectory)
+    private static OpenCodeLocation FindLocation(string directory, AgentConfigurationScope scope, bool includeNested)
     {
-        return new AgentEnvironmentApplicator(
-            OpenCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            async cancellationToken => await ApplyMcpConfigurationAsync(
-                Path.Combine(configDirectory.FullName, OpenCodeConfigFileName),
-                cancellationToken));
+        var candidates = ConfigFiles(directory).ToList();
+        if (includeNested)
+        {
+            candidates.AddRange(ConfigFiles(Path.Combine(directory, ".opencode")));
+        }
+
+        return new OpenCodeLocation(candidates.LastOrDefault(File.Exists) ?? candidates[0], scope, candidates);
     }
 
-    /// <summary>
-    /// Creates or updates the opencode.jsonc file with the Aspire MCP server configuration.
-    /// </summary>
-    internal static async Task ApplyMcpConfigurationAsync(
-        string configFilePath,
-        CancellationToken cancellationToken)
+    private static IEnumerable<string> ConfigFiles(string directory)
     {
-        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, RemoveJsonComments, cancellationToken);
-
-        // Ensure schema is set for new configs
-        if (!config.ContainsKey("$schema"))
-        {
-            config["$schema"] = "https://opencode.ai/config.json";
-        }
-
-        // Ensure "mcp" object exists
-        if (!config.ContainsKey("mcp") || config["mcp"] is not JsonObject)
-        {
-            config["mcp"] = new JsonObject();
-        }
-
-        var mcp = config["mcp"]!.AsObject();
-
-        // Add the "aspire" server configuration
-        mcp[AspireServerName] = new JsonObject
-        {
-            ["type"] = "local",
-            ["command"] = new JsonArray("aspire", "agent", "mcp"),
-            ["enabled"] = true
-        };
-
-        // Write the updated config using AOT-compatible serialization
-        var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
-        Directory.CreateDirectory(Path.GetDirectoryName(configFilePath)!);
-        await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
+        yield return Path.Combine(directory, "opencode.json");
+        yield return Path.Combine(directory, "opencode.jsonc");
     }
 
+    private sealed record OpenCodeLocation(string Path, AgentConfigurationScope Scope, IReadOnlyList<string> Candidates);
 }

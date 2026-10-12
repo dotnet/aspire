@@ -11,6 +11,7 @@ using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.Copilot;
+using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Agents.VsCode;
@@ -618,20 +619,18 @@ public class Program
         builder.Services.AddSingleton<IAspireSkillsInstaller, AspireSkillsInstaller>();
         builder.Services.AddSingleton<IPlaywrightCliRunner, PlaywrightCliRunner>();
         builder.Services.AddSingleton<PlaywrightCliInstaller>();
+        builder.Services.AddSingleton<IAgentSkillInstaller, AgentSkillInstaller>();
+        builder.Services.AddSingleton<AgentConfigurationWriter>();
+        builder.Services.AddSingleton<AgentSetupService>();
+        builder.Services.AddSingleton<ITelemetryHookInstaller, TelemetryHookInstaller>();
+        builder.Services.AddSingleton<ITelemetryHookConfigurator, TelemetryHookConfigurator>();
 
-        // Agent environment detection.
-        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
+        // One implementation per agent supplies both discovery and configuration.
         builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
         builder.Services.AddSingleton<ICopilotAppInstallationDetector, CopilotAppInstallationDetector>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, CopilotAgentEnvironmentScanner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
-
-        // Agent telemetry hook installation/configuration.
-        builder.Services.AddSingleton<Aspire.Cli.Agents.Hooks.ITelemetryHookInstaller, Aspire.Cli.Agents.Hooks.TelemetryHookInstaller>();
-        builder.Services.AddSingleton<Aspire.Cli.Agents.Hooks.ITelemetryHookConfigurator, Aspire.Cli.Agents.Hooks.TelemetryHookConfigurator>();
+        builder.Services.AddSingleton<IAgentEnvironmentScanner, CopilotAgentEnvironmentScanner>();
+        builder.Services.AddSingleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>();
+        builder.Services.AddSingleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>();
 
         // Template factories.
         builder.Services.AddSingleton<TemplateNuGetConfigService>();
@@ -973,6 +972,34 @@ public class Program
         return false;
     }
 
+    internal static bool ShouldOfferAgentSetup(
+        ParseResult parseResult,
+        string[] args,
+        IConfiguration configuration,
+        ICliHostEnvironment hostEnvironment,
+        bool inputRedirected)
+    {
+        if (parseResult.Errors.Count > 0 ||
+            !hostEnvironment.SupportsInteractiveInput || !hostEnvironment.SupportsInteractiveOutput || inputRedirected ||
+            configuration[KnownConfigNames.ExtensionEndpoint] is not null ||
+            CommonOptionNames.IsInformationalInvocation(args) || HasMachineReadableOutput(args) ||
+            ContainsRootOption(args, static arg => arg == CommonOptionNames.NonInteractive))
+        {
+            return false;
+        }
+
+        var command = parseResult.CommandResult;
+        while (command.Parent is System.CommandLine.Parsing.CommandResult parent && parent.Parent is not null)
+        {
+            command = parent;
+        }
+
+        // These entry points own their prompts or serve background/protocol traffic.
+        // Bare invocation displays help and must not consume installation onboarding.
+        return command.Parent is not null &&
+            command.Command.Name is not ("setup" or "new" or "init" or "agent" or "mcp" or "extension");
+    }
+
     // Machine-readable output flags should never have welcome/telemetry text
     // interleaved with the structured payload. Stop at the command argument
     // delimiter so application/resource arguments named like CLI flags don't
@@ -1278,6 +1305,14 @@ public class Program
                 logger.LogDebug("Executing command: {CommandName}", commandName);
 
                 telemetry.SetActivityProperty(mainActivity, TelemetryConstants.Tags.CommandName, commandName);
+
+                if (ShouldOfferAgentSetup(parseResult, args, app.Services.GetRequiredService<IConfiguration>(),
+                    app.Services.GetRequiredService<ICliHostEnvironment>(), Console.IsInputRedirected))
+                {
+                    await app.Services.GetRequiredService<AgentSetupService>().OfferUserPluginSetupAsync(
+                        PromptBinding.CreateDefault(false), PromptBinding.CreateDefault<string?>(null),
+                        interactive: true, cancellationManager.Token).ConfigureAwait(false);
+                }
 
                 ProfilingTelemetry.ActivityScope profileCommandActivity = default;
                 try

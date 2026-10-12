@@ -1,16 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
+using Aspire.Cli.Tests.Agents;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Hosting;
@@ -647,113 +651,133 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains(interactionService.DisplayedMessages, m => m.Message == "Created aspire-apphost/apphost.mts");
     }
 
-    [Fact]
-    public async Task InitCommand_WhenAspireifySkillSelected_PrintsToolSpecificFollowUpCommands()
+    [Theory]
+    [InlineData("Configured")]
+    [InlineData("Unchanged")]
+    public async Task InitCommand_WhenNativeSourceIsRegistered_PrintsAspireifyHandoff(string status)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-
-        var interactionService = new TestInteractionService
-        {
-            ConfirmCallback = (_, _) => true
-        };
-        var mcpConfigured = false;
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ =>
-            {
-                mcpConfigured = true;
-                return Task.CompletedTask;
-            });
-
         var subtleMessages = new List<string>();
-        interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
-        {
-            var items = choices.Cast<object>().ToList();
-
-            if (items.FirstOrDefault() is AgentClient)
-            {
-                return [AgentClient.Copilot, AgentClient.ClaudeCode, AgentClient.OpenCode];
-            }
-
-            Assert.All(items, static item => Assert.IsType<SkillDefinition>(item));
-            return items
-                .OfType<SkillDefinition>()
-                .Where(static skill => skill.HasName(CommonAgentApplicators.AspireifySkillName))
-                .Cast<object>()
-                .ToList();
-        };
-
+        var interactionService = new TestInteractionService { DisplaySubtleMessageCallback = subtleMessages.Add };
+        var hooks = new TestTelemetryHookConfigurator();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
-            options.CliHostEnvironmentFactory = _ => global::Aspire.Cli.Tests.TestHelpers.CreateInteractiveHostEnvironment();
             options.ScaffoldingServiceFactory = _ => new TestScaffoldingService();
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
+            options.AgentEnvironments = TestAgentEnvironmentScanner.CreateEnvironments(
+                new(AgentEnvironment.CopilotCli, null), new(AgentEnvironment.ClaudeCode, null));
+            options.TelemetryHookConfiguratorFactory = _ => hooks;
+            foreach (var scanner in options.AgentEnvironments.Where(scanner => scanner.DisplayName is "GitHub Copilot" or "Claude Code"))
+            {
+                scanner.GetTargetsCallback = request =>
+                    [scanner.CreateTarget(Path.Combine(Assert.IsType<DirectoryInfo>(request.WorkspaceRoot).FullName, $"{scanner.DisplayName}.json"),
+                        AgentAssetKind.AspireSkills, Enum.Parse<AgentConfigurationStatus>(status), null)];
+            }
         });
-
         using var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
 
-        var parseResult = initCommand.Parse("init --language typescript");
-        var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
+        var exitCode = await initCommand.Parse("init --language typescript").InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.Contains(interactionService.DisplayedMessages, m => m.Message == "Aspire AppHost created! To complete setup, run one of:");
+        var request = Assert.Single(hooks.Requests);
+        Assert.Equal(new AgentAssetSelection(false, false, false, true), request.Assets);
+        Assert.Equal(workspace.WorkspaceRoot.FullName, Assert.IsType<DirectoryInfo>(request.WorkspaceRoot).FullName);
         Assert.Equal(
-            ["  claude \"run the aspireify skill\"", "  opencode --prompt \"run the aspireify skill\""],
-            subtleMessages.Where(static message => message.StartsWith("  ", StringComparison.Ordinal)));
-        Assert.False(mcpConfigured);
+            [SharedCommandStrings.PromptRunAgentInit, McpCommandStrings.InitCommand_ConfigurePlaywrightPrompt,
+                AgentCommandStrings.InitCommand_ConfigureDotnetInspectPrompt, AgentCommandStrings.InitCommand_ConfigureAspireSkillsPrompt],
+            interactionService.BooleanPromptCalls.Select(call => call.PromptText));
+        var handoff = Assert.Single(interactionService.DisplayedMessages, message => message.Emoji.Equals(KnownEmojis.Dizzy));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills")));
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_AspireifyHandoff, $"{AgentCommandStrings.Environment_Copilot}, Claude Code"),
+            handoff.Message);
+        Assert.Single(subtleMessages, message => message == AgentCommandStrings.InitCommand_ClientAcquisitionNotice);
     }
 
-    [Fact]
-    public async Task InitCommand_WhenAspireifySkillNotSelected_DoesNotPrintFollowUpCommands()
+    [Theory]
+    [InlineData("AspireSkills", "Skipped", CliExitCodes.Success)]
+    [InlineData("AspireSkills", "Blocked", CliExitCodes.InvalidCommand)]
+    [InlineData("AspireSkills", "Failed", CliExitCodes.InvalidCommand)]
+    [InlineData("DotnetInspect", "Configured", CliExitCodes.Success)]
+    [InlineData("Playwright", "Configured", CliExitCodes.Success)]
+    public async Task InitCommand_WithoutSuccessfulNativeRegistration_DoesNotPrintAspireifyHandoff(string asset, string status, int expectedExitCode)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-
-        var interactionService = new TestInteractionService
-        {
-            ConfirmCallback = (_, _) => true
-        };
-
-        var subtleMessages = new List<string>();
-        interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
-        {
-            var items = choices.Cast<object>().ToList();
-
-            if (items.FirstOrDefault() is AgentClient)
-            {
-                return [AgentClient.Copilot];
-            }
-
-            return items
-                .OfType<SkillDefinition>()
-                .Where(static skill => skill.HasName(CommonAgentApplicators.AspireSkillName))
-                .Cast<object>()
-                .ToList();
-        };
-
+        var interactionService = new TestInteractionService();
+        var hooks = new TestTelemetryHookConfigurator();
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
-            options.CliHostEnvironmentFactory = _ => global::Aspire.Cli.Tests.TestHelpers.CreateInteractiveHostEnvironment();
             options.ScaffoldingServiceFactory = _ => new TestScaffoldingService();
+            options.TelemetryHookConfiguratorFactory = _ => hooks;
+            var copilot = options.AgentEnvironments.Single(scanner => scanner.DisplayName == "GitHub Copilot");
+            if (asset == "AspireSkills")
+            {
+                copilot.GetTargetsCallback = request =>
+                    [copilot.CreateTarget(Path.Combine(Assert.IsType<DirectoryInfo>(request.WorkspaceRoot).FullName, "settings.json"),
+                        AgentAssetKind.AspireSkills, Enum.Parse<AgentConfigurationStatus>(status), "Native registration was not applied.")];
+            }
+            else
+            {
+                options.AgentSkillInstallerFactory = _ => new TestAgentConfigurationSkillInstaller
+                {
+                    Results = [new(Enum.Parse<AgentAssetKind>(asset), [copilot], "skill", AgentConfigurationScope.Project, AgentConfigurationStatus.Configured, null)]
+                };
+            }
         });
-
         using var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
+        var arguments = asset switch
+        {
+            "DotnetInspect" => " --aspire-skills n --dotnet-inspect",
+            "Playwright" => " --aspire-skills n --playwright",
+            _ => string.Empty
+        };
 
-        var parseResult = initCommand.Parse("init --language typescript");
+        var parseResult = initCommand.Parse($"init --language typescript{arguments}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
-        Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.DoesNotContain(interactionService.DisplayedMessages, m => m.Message.Contains("To complete setup", StringComparison.Ordinal));
-        Assert.DoesNotContain(subtleMessages, m => m.Contains("run the aspireify skill", StringComparison.Ordinal));
+        Assert.Equal(expectedExitCode, exitCode);
+        Assert.Single(hooks.Requests);
+        var handoffs = interactionService.DisplayedMessages.Where(message => message.Emoji.Equals(KnownEmojis.Dizzy)).ToArray();
+        Assert.Empty(handoffs);
     }
 
     [Fact]
-    public async Task InitCommand_NonInteractive_WithNoneSkills_DoesNotInstallAgentSkills()
+    public async Task InitCommand_PartialRegistrationFailure_DoesNotPrintSuccessfulHandoff()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interactionService = new TestInteractionService();
+        var hooks = new TestTelemetryHookConfigurator();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interactionService;
+            options.AgentEnvironments = TestAgentEnvironmentScanner.CreateEnvironments(
+                new(AgentEnvironment.CopilotCli, null), new(AgentEnvironment.ClaudeCode, null));
+            options.TelemetryHookConfiguratorFactory = _ => hooks;
+            foreach (var scanner in options.AgentEnvironments.Where(scanner => scanner.DisplayName is "GitHub Copilot" or "Claude Code"))
+            {
+                var status = scanner.DisplayName == "GitHub Copilot" ? AgentConfigurationStatus.Configured : AgentConfigurationStatus.Blocked;
+                scanner.GetTargetsCallback = request =>
+                    [scanner.CreateTarget(Path.Combine(Assert.IsType<DirectoryInfo>(request.WorkspaceRoot).FullName, $"{scanner.DisplayName}.json"),
+                        AgentAssetKind.AspireSkills, status, "Native source result.")];
+            }
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>().Parse("init").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
+        Assert.Single(hooks.Requests);
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, $"{AgentClient.Copilot.DisplayName}.json")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, $"{AgentClient.ClaudeCode.DisplayName}.json")));
+        var handoffs = interactionService.DisplayedMessages.Where(message => message.Emoji.Equals(KnownEmojis.Dizzy)).ToArray();
+        Assert.Empty(handoffs);
+    }
+
+    [Fact]
+    public async Task InitCommand_NonInteractive_AllAssetsDisabled_CreatesAppHostWithoutAgentDiscovery()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -761,21 +785,18 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var command = serviceProvider.GetRequiredService<RootCommand>();
 
-        var parseResult = command.Parse("init --non-interactive --skills none");
+        var parseResult = command.Parse("init --non-interactive --playwright n --dotnet-inspect false --aspire-skills N");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
 
-        var aspireSkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireSkillName);
-        Assert.False(Directory.Exists(aspireSkillPath), $"Expected no aspire skill directory but found {aspireSkillPath}");
-
-        var aspireifySkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireifySkillName);
-        Assert.False(Directory.Exists(aspireifySkillPath), $"Expected no aspireify skill directory but found {aspireifySkillPath}");
+        Assert.Empty(Assert.IsType<TestTelemetryHookConfigurator>(serviceProvider.GetRequiredService<ITelemetryHookConfigurator>()).Requests);
+        Assert.All(serviceProvider.GetServices<IAgentEnvironmentScanner>(), scanner => Assert.Empty(Assert.IsType<TestAgentEnvironmentScanner>(scanner).Calls));
     }
 
     [Fact]
-    public async Task InitCommand_NonInteractive_WithAgentNone_DoesNotInstallAgentSkills()
+    public async Task InitCommand_NonInteractive_WithNoClients_CreatesAppHostWithoutAgentConfiguration()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -789,15 +810,11 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
 
-        // With --agents none, no skill files should be installed regardless of skill selection.
-        var agentsDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills");
-        Assert.False(Directory.Exists(agentsDir), $"Expected no agents/skills directory but found {agentsDir}");
+        Assert.Empty(Assert.IsType<TestTelemetryHookConfigurator>(serviceProvider.GetRequiredService<ITelemetryHookConfigurator>()).Requests);
     }
 
-    [Theory]
-    [InlineData("project")]
-    [InlineData("global")]
-    public async Task InitCommand_NonInteractive_WithClientScopeAndSkills_InstallsOnlySpecifiedSkills(string scope)
+    [Fact]
+    public async Task InitCommand_NonInteractive_WithExplicitAssets_ConfiguresOnlySelectedClients()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -805,23 +822,91 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var command = serviceProvider.GetRequiredService<RootCommand>();
 
-        var parseResult = command.Parse($"init --non-interactive --agents \"GitHub Copilot\" --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
+        var parseResult = command.Parse("init --non-interactive --aspire-skills n --dotnet-inspect y --agents \"GitHub Copilot,Claude Code\"");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
 
-        var homeDirectory = serviceProvider.GetRequiredService<CliExecutionContext>().HomeDirectory;
-        var selectedRoot = scope == "project" ? workspace.WorkspaceRoot : homeDirectory;
-        var unselectedRoot = scope == "project" ? homeDirectory : workspace.WorkspaceRoot;
-        var aspireSkillPath = Path.Combine(selectedRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
-        Assert.True(File.Exists(aspireSkillPath), $"Expected aspire skill file at {aspireSkillPath}");
-        Assert.False(Directory.Exists(Path.Combine(unselectedRoot.FullName, ".agents", "skills")));
-        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
+        var hooks = Assert.IsType<TestTelemetryHookConfigurator>(serviceProvider.GetRequiredService<ITelemetryHookConfigurator>());
+        var request = Assert.Single(hooks.Requests);
+        Assert.Equal(new AgentAssetSelection(false, false, true, false), request.Assets);
+        Assert.Equal(["GitHub Copilot", "Claude Code"], request.Environments.Select(client => client.DisplayName));
+        Assert.Equal(workspace.WorkspaceRoot.FullName, Assert.IsType<DirectoryInfo>(request.WorkspaceRoot).FullName);
+    }
 
-        // aspireify was not requested, so it should not be installed.
-        var aspireifySkillPath = Path.Combine(selectedRoot.FullName, ".agents", "skills", CommonAgentApplicators.AspireifySkillName);
-        Assert.False(Directory.Exists(aspireifySkillPath), $"Expected no aspireify skill directory but found {aspireifySkillPath}");
+    [Theory]
+    [InlineData("")]
+    [InlineData(" --suppress-agent-init=false")]
+    public async Task InitCommand_NonInteractive_DefaultsToRunningAgentInit(string arguments)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse($"init --non-interactive{arguments}").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        var hooks = Assert.IsType<TestTelemetryHookConfigurator>(provider.GetRequiredService<ITelemetryHookConfigurator>());
+        var request = Assert.Single(hooks.Requests);
+        Assert.Equal(new AgentAssetSelection(false, false, false, true), request.Assets);
+        Assert.Equal(["GitHub Copilot"], request.Environments.Select(client => client.DisplayName));
+    }
+
+    [Fact]
+    public async Task InitCommand_NonInteractive_SuppressAgentInit_SkipsDiscoveryAndConfiguration()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("init --non-interactive --suppress-agent-init").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
+        Assert.Empty(Assert.IsType<TestTelemetryHookConfigurator>(provider.GetRequiredService<ITelemetryHookConfigurator>()).Requests);
+        Assert.All(provider.GetServices<IAgentEnvironmentScanner>(), scanner => Assert.Empty(Assert.IsType<TestAgentEnvironmentScanner>(scanner).Calls));
+    }
+
+    [Fact]
+    public async Task InitCommand_NonInteractive_NoDetectedClients_SelectsCopilot()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.AgentEnvironments = TestAgentEnvironmentScanner.CreateEnvironments();
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("init --non-interactive").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
+        var hooks = Assert.IsType<TestTelemetryHookConfigurator>(provider.GetRequiredService<ITelemetryHookConfigurator>());
+        var request = Assert.Single(hooks.Requests);
+        Assert.Equal(["GitHub Copilot"], request.Environments.Select(client => client.DisplayName));
+        Assert.Empty(request.Detections);
+    }
+
+    [Theory]
+    [InlineData("--mcp")]
+    [InlineData("--skills all")]
+    [InlineData("--skill-locations standard")]
+    [InlineData("--agents unknown-client")]
+    [InlineData("--agent copilot")]
+    public async Task InitCommand_RejectsUnsupportedAgentOptionsBeforeCreatingAppHost(string argument)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var result = provider.GetRequiredService<RootCommand>().Parse($"init {argument}");
+
+        Assert.NotEmpty(result.Errors);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.NotEqual(CliExitCodes.Success, exitCode);
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs")));
+        Assert.Empty(Assert.IsType<TestTelemetryHookConfigurator>(provider.GetRequiredService<ITelemetryHookConfigurator>()).Requests);
     }
 
     [Fact]
@@ -1106,6 +1191,8 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.FailedToInstallTemplates, exitCode);
         Assert.Contains(interactionService.DisplayedErrors, e => e.Contains("simulated network failure", StringComparison.Ordinal));
+        Assert.Empty(Assert.IsType<TestTelemetryHookConfigurator>(serviceProvider.GetRequiredService<ITelemetryHookConfigurator>()).Requests);
+        Assert.All(serviceProvider.GetServices<IAgentEnvironmentScanner>(), scanner => Assert.Empty(Assert.IsType<TestAgentEnvironmentScanner>(scanner).Calls));
     }
 
     /// <summary>

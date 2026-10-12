@@ -4,52 +4,41 @@
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Context passed to agent environment scanners to collect detected applicators.
+/// Collects client detections during a read-only environment scan.
 /// </summary>
 internal sealed class AgentEnvironmentScanContext
 {
-    private readonly List<AgentEnvironmentApplicator> _applicators = [];
+    private readonly List<AgentClientDetection> _detectedClients = [];
 
-    /// <summary>
-    /// Gets the working directory being scanned.
-    /// </summary>
-    public required DirectoryInfo WorkingDirectory { get; init; }
-
-    /// <summary>
-    /// Gets the root directory of the repository/workspace.
-    /// This is typically the git repository root if available, otherwise the working directory.
-    /// Scanners should use this as the boundary for searches instead of searching up the directory tree.
-    /// </summary>
-    public required DirectoryInfo RepositoryRoot { get; init; }
-
-    /// <summary>
-    /// Adds an applicator to the collection of detected agent environments.
-    /// </summary>
-    /// <param name="applicator">The applicator to add.</param>
-    public void AddApplicator(AgentEnvironmentApplicator applicator)
+    public AgentEnvironmentScanContext(DirectoryInfo workingDirectory, DirectoryInfo? workspaceRoot)
     {
-        ArgumentNullException.ThrowIfNull(applicator);
-        _applicators.Add(applicator);
+        WorkingDirectory = workingDirectory;
+        WorkspaceRoot = workspaceRoot;
+        DetectedClients = _detectedClients.AsReadOnly();
     }
 
-    /// <summary>
-    /// Gets the collection of detected applicators.
-    /// </summary>
-    public IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
-
-    /// <summary>
-    /// Records a detected agent environment. Used to scope
-    /// telemetry hook registration to the environments the user actually has, independent of whether the
-    /// Aspire MCP server still needs configuring.
-    /// </summary>
-    /// <param name="environment">The detected agent environment.</param>
-    public void AddDetectedEnvironment(AgentEnvironment environment)
-    {
-        DetectedEnvironments |= environment;
-    }
-
-    /// <summary>
-    /// Gets the detected agent environments.
-    /// </summary>
+    public DirectoryInfo WorkingDirectory { get; }
+    public DirectoryInfo? WorkspaceRoot { get; }
+    public IReadOnlyList<AgentClientDetection> DetectedClients { get; }
     public AgentEnvironment DetectedEnvironments { get; private set; }
+
+    public void AddDetectedEnvironment(AgentEnvironment environments)
+    {
+        foreach (var environment in Enum.GetValues<AgentEnvironment>())
+        {
+            if (environment is not AgentEnvironment.None && (environments & environment) != AgentEnvironment.None)
+            {
+                AddDetection(new AgentClientDetection(environment, Version: null));
+            }
+        }
+    }
+
+    public void AddDetection(AgentClientDetection detection)
+    {
+        if (!_detectedClients.Contains(detection))
+        {
+            _detectedClients.Add(detection);
+            DetectedEnvironments |= detection.Client;
+        }
+    }
 }

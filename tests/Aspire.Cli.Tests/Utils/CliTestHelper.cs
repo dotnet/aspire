@@ -5,7 +5,6 @@ using System.Text;
 using Aspire.Cli.Acquisition;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.Hooks;
-using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Bundles;
@@ -27,6 +26,7 @@ using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
+using Aspire.Cli.Tests.Agents;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -178,11 +178,16 @@ internal static class CliTestHelper
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
-        services.AddSingleton(options.AgentEnvironmentDetectorFactory);
+        foreach (var scanner in options.AgentEnvironments)
+        {
+            services.AddSingleton<IAgentEnvironmentScanner>(scanner);
+        }
+        services.AddSingleton<AgentConfigurationWriter>();
+        services.AddSingleton<AgentSetupService>();
+        services.AddSingleton(options.AgentSkillInstallerFactory);
         services.AddSingleton(options.GitRepositoryFactory);
         services.AddSingleton(options.NpmRunnerFactory);
         services.AddSingleton(options.NpmProvenanceCheckerFactory);
-        services.AddSingleton(options.AspireSkillsInstallerFactory);
         services.AddSingleton(options.PlaywrightCliRunnerFactory);
         services.AddSingleton<PlaywrightCliInstaller>();
         services.AddSingleton<ITelemetryHookInstaller, TelemetryHookInstaller>();
@@ -685,10 +690,11 @@ internal sealed class CliServiceCollectionTestOptions
         return new TestAuxiliaryBackchannelMonitor();
     };
 
-    public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
-    {
-        return new AgentEnvironmentDetector([]);
-    };
+    public TestAgentEnvironmentScanner[] AgentEnvironments { get; set; } =
+        TestAgentEnvironmentScanner.CreateEnvironments(new AgentClientDetection(AgentEnvironment.CopilotCli, null));
+
+    public Func<IServiceProvider, IAgentSkillInstaller> AgentSkillInstallerFactory { get; set; } =
+        _ => new TestAgentConfigurationSkillInstaller();
 
     public Func<IServiceProvider, IGitRepository> GitRepositoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
@@ -702,15 +708,11 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INpmProvenanceChecker> NpmProvenanceCheckerFactory { get; set; } = _ => new FakeNpmProvenanceChecker();
 
-    public Func<IServiceProvider, IAspireSkillsInstaller> AspireSkillsInstallerFactory { get; set; } = serviceProvider => new FakeAspireSkillsInstaller(serviceProvider.GetRequiredService<CliExecutionContext>());
-
     public Func<IServiceProvider, IPlaywrightCliRunner> PlaywrightCliRunnerFactory { get; set; } = _ => new FakePlaywrightCliRunner();
 
-    // Defaults to the real configurator (resolving ITelemetryHookInstaller/CliExecutionContext/IEnvironment
-    // from DI) so agent-init tests exercise the shipped behavior; a test can override it to simulate a
-    // failure and assert hook installation never aborts `agent init`.
+    // Command tests run the real orchestration with no-op scanners and hook/skill installers.
     public Func<IServiceProvider, ITelemetryHookConfigurator> TelemetryHookConfiguratorFactory { get; set; }
-        = serviceProvider => ActivatorUtilities.CreateInstance<TelemetryHookConfigurator>(serviceProvider);
+        = _ => new TestTelemetryHookConfigurator();
 
     public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
@@ -872,6 +874,8 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
 
     public Func<CancellationToken, Task>? EnsureExtractedAsyncCallback { get; set; }
 
+    public Func<string, bool, CancellationToken, Task<BundleExtractResult>>? ExtractAsyncCallback { get; set; }
+
     public Func<CancellationToken, Task>? EnsureExtractedAndAcquireLayoutAsyncCallback { get; set; }
 
     public Func<BundleLayoutLease>? CreateLayoutLease { get; set; }
@@ -886,7 +890,8 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
         => EnsureExtractedAsyncCallback?.Invoke(cancellationToken) ?? Task.CompletedTask;
 
     public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
-        => Task.FromResult(isBundle ? BundleExtractResult.AlreadyUpToDate : BundleExtractResult.NoPayload);
+        => ExtractAsyncCallback?.Invoke(destinationPath, force, cancellationToken) ??
+            Task.FromResult(isBundle ? BundleExtractResult.AlreadyUpToDate : BundleExtractResult.NoPayload);
 
     public async Task<BundleLayoutLease?> EnsureExtractedAndAcquireLayoutAsync(string holderKind, string? commandName = null, CancellationToken cancellationToken = default)
     {

@@ -1292,8 +1292,15 @@ setup_cli_bundle() {
         return 0
     fi
 
+    # Piped installation input contains script text, not prompt responses. Hand off
+    # to the controlling terminal only when both input and output support interaction.
+    local setup_input=/dev/null
+    if [[ -t 1 ]] && (: </dev/tty) 2>/dev/null; then
+        setup_input=/dev/tty
+    fi
+
     say_verbose "Running: $INSTALLED_CLI_PATH setup"
-    if ! "$INSTALLED_CLI_PATH" setup; then
+    if ! "$INSTALLED_CLI_PATH" setup < "$setup_input"; then
         say_error "Aspire CLI bundle setup failed"
         return 1
     fi

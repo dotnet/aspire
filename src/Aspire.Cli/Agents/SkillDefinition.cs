@@ -29,9 +29,9 @@ internal sealed class SkillDefinition
     /// Only offered when the workspace contains a .NET AppHost.
     /// </summary>
     public static readonly SkillDefinition DotnetInspect = new(
-        CommonAgentApplicators.DotnetInspectSkillName,
+        DotnetInspectSkill.Name,
         AgentCommandStrings.SkillDescription_DotnetInspect,
-        CommonAgentApplicators.DotnetInspectSkillFileContent,
+        DotnetInspectSkill.Content,
         sourceKind: SkillSourceKind.Static,
         installExcludedRelativePaths: [],
         isDefault: false,

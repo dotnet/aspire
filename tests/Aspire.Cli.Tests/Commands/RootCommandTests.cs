@@ -4,6 +4,7 @@
 using Aspire.Cli.Commands;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.InternalTesting;
@@ -12,6 +13,66 @@ namespace Aspire.Cli.Tests.Commands;
 
 public class RootCommandTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData("config list", true)]
+    [InlineData("--nologo config list", true)]
+    [InlineData("doctor", true)]
+    [InlineData("", false)]
+    [InlineData("--help", false)]
+    [InlineData("--version", false)]
+    [InlineData("-v", false)]
+    [InlineData("doctor --help", false)]
+    [InlineData("doctor --self --format json", false)]
+    [InlineData("doctor --self --format=json", false)]
+    [InlineData("setup", false)]
+    [InlineData("new", false)]
+    [InlineData("init", false)]
+    [InlineData("agent init", false)]
+    [InlineData("agent mcp", false)]
+    [InlineData("mcp start", false)]
+    [InlineData("agent telemetry --event-type skill_invocation --client copilot-cli --skill-name aspire", false)]
+    [InlineData("config list --non-interactive", false)]
+    [InlineData("unsupported-command", false)]
+    public void AgentOnboarding_IsLimitedToValidInteractiveHumanCommands(string arguments, bool expected)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.BundleServiceFactory = _ => new TestBundleService(isBundle: true);
+        }).BuildServiceProvider();
+        var parseResult = provider.GetRequiredService<RootCommand>().Parse(arguments);
+        var args = arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var offer = Program.ShouldOfferAgentSetup(parseResult, args, provider.GetRequiredService<IConfiguration>(),
+            TestHelpers.CreateInteractiveHostEnvironment(), inputRedirected: false);
+
+        Assert.Equal(expected, offer);
+    }
+
+    [Theory]
+    [InlineData(false, true, false, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, true, false, true)]
+    public void AgentOnboarding_RejectsHeadlessRedirectedAndExtensionInput(bool input, bool output, bool redirected, bool extension)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ConfigurationCallback = configuration =>
+            {
+                if (extension)
+                {
+                    configuration[KnownConfigNames.ExtensionEndpoint] = "test-extension";
+                }
+            };
+        }).BuildServiceProvider();
+        var parseResult = provider.GetRequiredService<RootCommand>().Parse("config list");
+
+        Assert.False(Program.ShouldOfferAgentSetup(parseResult, ["config", "list"], provider.GetRequiredService<IConfiguration>(),
+            new TestCliHostEnvironment(input, output), redirected));
+    }
+
     [Fact]
     public async Task RootCommandVersionOption_PrintsIdentityVersion_WhenIdentityOverridden()
     {

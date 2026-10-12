@@ -161,8 +161,8 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         var allConfig = new Dictionary<string, string>();
 
         var nearestSettingFilePath = FindNearestSettingsFile();
-        await LoadConfigurationFromFileAsync(nearestSettingFilePath, allConfig, cancellationToken);
-        await LoadConfigurationFromFileAsync(globalSettingsFile.FullName, allConfig, cancellationToken);
+        await LoadConfigurationFromFileAsync(nearestSettingFilePath, allConfig, throwOnError: false, cancellationToken);
+        await LoadConfigurationFromFileAsync(globalSettingsFile.FullName, allConfig, throwOnError: false, cancellationToken);
 
         return allConfig;
     }
@@ -171,18 +171,18 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     {
         var localConfig = new Dictionary<string, string>();
         var nearestSettingFilePath = FindNearestSettingsFile();
-        await LoadConfigurationFromFileAsync(nearestSettingFilePath, localConfig, cancellationToken);
+        await LoadConfigurationFromFileAsync(nearestSettingFilePath, localConfig, throwOnError: false, cancellationToken);
         return localConfig;
     }
 
-    public async Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, string>> GetGlobalConfigurationAsync(bool throwOnError, CancellationToken cancellationToken = default)
     {
         var globalConfig = new Dictionary<string, string>();
-        await LoadConfigurationFromFileAsync(globalSettingsFile.FullName, globalConfig, cancellationToken);
+        await LoadConfigurationFromFileAsync(globalSettingsFile.FullName, globalConfig, throwOnError, cancellationToken);
         return globalConfig;
     }
 
-    private static async Task LoadConfigurationFromFileAsync(string filePath, Dictionary<string, string> config, CancellationToken cancellationToken)
+    private static async Task LoadConfigurationFromFileAsync(string filePath, Dictionary<string, string> config, bool throwOnError, CancellationToken cancellationToken)
     {
         try
         {
@@ -200,8 +200,18 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             {
                 FlattenJsonObject(settings, config, string.Empty);
             }
+            else if (throwOnError)
+            {
+                throw new JsonException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationFileMustBeJsonObject, filePath));
+            }
         }
-        catch
+        catch (FileNotFoundException)
+        {
+        }
+        catch (DirectoryNotFoundException)
+        {
+        }
+        catch when (!throwOnError)
         {
             // Ignore errors reading configuration files
         }

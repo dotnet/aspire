@@ -431,6 +431,33 @@ public class ReleaseScriptFunctionTests(ITestOutputHelper testOutput)
     #region setup_cli_bundle
 
     [Fact]
+    public async Task SetupCliBundle_HeadlessInputIsNotPassedToOptionalPluginPrompts()
+    {
+        using var env = new TestEnvironment();
+        var cliPath = Path.Combine(env.TempDirectory, "aspire");
+        var capturePath = Path.Combine(env.TempDirectory, "setup-input.txt");
+        await File.WriteAllTextAsync(cliPath, ($$"""
+            #!/bin/sh
+            if read -r response; then
+                printf '%s' "$response" > "{{capturePath}}"
+                exit 24
+            fi
+            printf '%s' 'no-input' > "{{capturePath}}"
+            """).ReplaceLineEndings("\n"));
+        FileHelper.MakeExecutable(cliPath);
+        using var cmd = new ScriptFunctionCommand(
+            s_releaseScript,
+            $"INSTALLED_CLI_PATH='{cliPath}'; INSTALLED_CLI_OS=\"$(detect_os)\"; INSTALLED_CLI_ARCH=\"$(get_cli_architecture_from_architecture '<auto>')\"; DRY_RUN=false; printf 'script-text-not-consent\\n' | setup_cli_bundle",
+            env,
+            _testOutput);
+
+        var result = await cmd.ExecuteAsync();
+
+        result.EnsureSuccessful();
+        Assert.Equal("no-input", await File.ReadAllTextAsync(capturePath));
+    }
+
+    [Fact]
     public async Task SetupCliBundle_InvokesSetupAndPropagatesFailure()
     {
         using var env = new TestEnvironment();

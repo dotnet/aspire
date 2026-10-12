@@ -2181,7 +2181,7 @@ builder.Build().Run();");
             return Task.FromResult(new Dictionary<string, string>());
         }
 
-        public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+        public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(bool throwOnError, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(new Dictionary<string, string>());
         }

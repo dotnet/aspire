@@ -233,7 +233,7 @@ internal sealed class ConfigCommand : BaseCommand
             }
 
             var localConfig = await ConfigurationService.GetLocalConfigurationAsync(cancellationToken);
-            var globalConfig = await ConfigurationService.GetGlobalConfigurationAsync(cancellationToken);
+            var globalConfig = await ConfigurationService.GetGlobalConfigurationAsync(throwOnError: false, cancellationToken);
 
             var featurePrefix = $"{KnownFeatures.FeaturePrefix}.";
 

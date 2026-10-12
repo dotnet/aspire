@@ -2,19 +2,31 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Commands;
 
 /// <summary>
-/// Extracts the embedded bundle payload from a self-extracting Aspire CLI binary.
+/// Extracts the CLI runtime and offers optional user-level Aspire plugin registration.
 /// </summary>
 internal sealed class SetupCommand : BaseCommand
 {
     protected override bool UpdateNotificationsEnabled => true;
 
     private readonly IBundleService _bundleService;
+    private readonly AgentSetupService _agentSetup;
+    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IConfiguration _configuration;
+    private readonly Option<string?> _agentOption;
+
+    private static readonly Option<AgentConfirmation?> s_aspireSkillsOption = AgentSetupService.CreateAssetOption(
+        "--aspire-skills", AgentCommandStrings.SetupCommand_PluginOptionDescription);
 
     private static readonly Option<string?> s_installPathOption = new("--install-path")
     {
@@ -28,15 +40,23 @@ internal sealed class SetupCommand : BaseCommand
 
     public SetupCommand(
         IBundleService bundleService,
+        AgentSetupService agentSetup,
+        IConfiguration configuration,
         CommonCommandServices services)
         : base("setup", "Extract the embedded bundle to set up the Aspire CLI runtime", services)
     {
         // Hidden: the setup command is an implementation detail used by install scripts.
         Hidden = true;
         _bundleService = bundleService;
+        _agentSetup = agentSetup;
+        _hostEnvironment = services.HostEnvironment;
+        _configuration = configuration;
+        _agentOption = AgentSetupService.CreateAgentsOption();
 
         Options.Add(s_installPathOption);
         Options.Add(s_forceOption);
+        Options.Add(s_aspireSkillsOption);
+        Options.Add(_agentOption);
     }
 
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -90,6 +110,13 @@ internal sealed class SetupCommand : BaseCommand
             case BundleExtractResult.ExtractionFailed:
                 return CommandResult.Failure(CliExitCodes.FailedToBuildArtifacts, $"Bundle was extracted to {installPath} but layout validation failed.");
         }
+
+        await _agentSetup.OfferUserPluginSetupAsync(
+            AgentSetupService.CreateAssetBinding(parseResult, s_aspireSkillsOption, defaultValue: false),
+            PromptBinding.Create(parseResult, _agentOption),
+            interactive: _hostEnvironment.SupportsInteractiveInput && _hostEnvironment.SupportsInteractiveOutput &&
+                !Console.IsInputRedirected && _configuration[KnownConfigNames.ExtensionEndpoint] is null,
+            cancellationToken);
 
         return exitCode;
     }

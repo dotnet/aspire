@@ -1,0 +1,16 @@
+﻿{
+  Output: [
+    ⚠ Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.,
+    ,
+    🤖 Detecting agents...,
+    Only the selected scope is configured. Shared locations are written once.,
+    Prefer not to use the plugin? Install the skills directly from https://github.com/microsoft/aspire-skills instead.,
+    project [dim](.mcp.json)[/],
+    Existing MCP configuration is disabled.,
+    ⚠️ Configuration completed with errors. Please fix the reported issues and re-run the command.
+  ],
+  Error:
+❌ Blocked Aspire MCP server for Claude Code (project): .mcp.json
+📄 See logs at <log-file>
+
+}

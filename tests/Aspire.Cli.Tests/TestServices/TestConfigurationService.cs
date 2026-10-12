@@ -13,6 +13,7 @@ public sealed class TestConfigurationService : IConfigurationService
     public Action<string, string, bool>? OnSetConfiguration { get; set; }
     public Action<string, bool>? OnDeleteConfiguration { get; set; }
     public Func<string, string?>? OnGetConfiguration { get; set; }
+    public Func<Dictionary<string, string>>? OnGetGlobalConfiguration { get; set; }
 
     public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
@@ -36,9 +37,9 @@ public sealed class TestConfigurationService : IConfigurationService
         return Task.FromResult(new Dictionary<string, string>());
     }
 
-    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(CancellationToken cancellationToken = default)
+    public Task<Dictionary<string, string>> GetGlobalConfigurationAsync(bool throwOnError, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(new Dictionary<string, string>());
+        return Task.FromResult(OnGetGlobalConfiguration?.Invoke() ?? new Dictionary<string, string>());
     }
 
     public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)

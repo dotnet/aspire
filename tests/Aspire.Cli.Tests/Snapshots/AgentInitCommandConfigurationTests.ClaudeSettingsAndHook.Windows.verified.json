@@ -1,0 +1,34 @@
+﻿{
+  "model": "preserved",
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[aspire-executable]",
+            "args": [
+              "agent",
+              "telemetry",
+              "--hook"
+            ],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "aspire-skills": {
+      "source": {
+        "source": "github",
+        "repo": "microsoft/aspire-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "aspire@aspire-skills": true
+  }
+}
