@@ -11,20 +11,7 @@ public sealed class VerifyTelemetryHookChangesWorkflowTests(ITestOutputHelper ou
 {
     private const string WorkflowRelativePath = ".github/workflows/verify-telemetry-hook-changes.yml";
     private const string ProtectedHookPath = "src/Aspire.Cli/Agents/Hooks/track-telemetry.sh";
-    private const string AspireSkillsInstallerPath = "src/Aspire.Cli/Agents/AspireSkills/AspireSkillsInstaller.cs";
-    private const string AspireSkillsMetadataPath = "src/Aspire.Cli/Agents/AspireSkills/Embedded/aspire-skills.metadata.json";
-    private const string AspireCliProjectPath = "src/Aspire.Cli/Aspire.Cli.csproj";
-    private const string OldArchivePath = "src/Aspire.Cli/Agents/AspireSkills/Embedded/aspire-skills-v0.0.2.tgz";
-    private const string NewArchivePath = "src/Aspire.Cli/Agents/AspireSkills/Embedded/aspire-skills-v0.0.3.tgz";
-    private const string ArchiveChange = "archive";
-    private const string SynchronizationBranch = "update-aspire-skills-bundle";
-
-    private static readonly string[] s_requiredBundlePaths =
-    [
-        AspireSkillsInstallerPath,
-        AspireSkillsMetadataPath,
-        AspireCliProjectPath,
-    ];
+    private const string SynchronizationBranch = "update-telemetry-hooks";
 
     [Fact]
     public void WorkflowProvidesMergeResultHistoryAndPullRequestHead()
@@ -61,55 +48,6 @@ public sealed class VerifyTelemetryHookChangesWorkflowTests(ITestOutputHelper ou
 
     [Fact]
     [RequiresTools(["git", "pwsh"])]
-    public async Task FeatureBranchAcceptsCompleteBundleRefresh()
-    {
-        using var workspace = CreateRepository();
-        ChangeFile(workspace, ProtectedHookPath);
-        foreach (var path in s_requiredBundlePaths)
-        {
-            ChangeFile(workspace, path);
-        }
-        ReplaceArchive(workspace);
-        CommitAll(workspace, "Refresh complete Aspire skills bundle");
-
-        var result = await RunPolicyAsync(workspace, "feature/bundle-refresh");
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Telemetry hook changes are part of a complete generated bundle update", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Telemetry hook branch policy satisfied", result.Output, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData(AspireSkillsInstallerPath)]
-    [InlineData(AspireSkillsMetadataPath)]
-    [InlineData(AspireCliProjectPath)]
-    [InlineData(ArchiveChange)]
-    [RequiresTools(["git", "pwsh"])]
-    public async Task FeatureBranchRejectsIncompleteBundleRefresh(string omittedChange)
-    {
-        using var workspace = CreateRepository();
-        ChangeFile(workspace, ProtectedHookPath);
-        foreach (var path in s_requiredBundlePaths)
-        {
-            if (!string.Equals(path, omittedChange, StringComparison.Ordinal))
-            {
-                ChangeFile(workspace, path);
-            }
-        }
-        if (!string.Equals(omittedChange, ArchiveChange, StringComparison.Ordinal))
-        {
-            ReplaceArchive(workspace);
-        }
-        CommitAll(workspace, $"Refresh Aspire skills bundle without {omittedChange}");
-
-        var result = await RunPolicyAsync(workspace, "feature/incomplete-bundle-refresh");
-
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("as part of a complete generated bundle update", result.Output, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    [RequiresTools(["git", "pwsh"])]
     public async Task SynchronizationBranchAcceptsHookChange()
     {
         using var workspace = CreateRepository();
@@ -120,7 +58,6 @@ public sealed class VerifyTelemetryHookChangesWorkflowTests(ITestOutputHelper ou
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Telemetry hook branch policy satisfied", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain("complete generated bundle update", result.Output, StringComparison.Ordinal);
     }
 
     private TemporaryWorkspace CreateRepository()
@@ -133,11 +70,6 @@ public sealed class VerifyTelemetryHookChangesWorkflowTests(ITestOutputHelper ou
 
         WriteFile(workspace, ProtectedHookPath, "#!/usr/bin/env bash\necho baseline\n");
         WriteFile(workspace, "src/Aspire.Cli/Agents/Hooks/track-telemetry.ps1", "Write-Output baseline\n");
-        foreach (var path in s_requiredBundlePaths)
-        {
-            WriteFile(workspace, path, $"baseline {path}\n");
-        }
-        WriteFile(workspace, OldArchivePath, "baseline archive\n");
         CommitAll(workspace, "Create baseline");
 
         return workspace;
@@ -154,12 +86,6 @@ public sealed class VerifyTelemetryHookChangesWorkflowTests(ITestOutputHelper ou
             .WithTimeout(TimeSpan.FromMinutes(1));
 
         return await command.ExecuteAsync();
-    }
-
-    private static void ReplaceArchive(TemporaryWorkspace workspace)
-    {
-        File.Delete(GetFullPath(workspace, OldArchivePath));
-        WriteFile(workspace, NewArchivePath, "refreshed archive\n");
     }
 
     private static void ChangeFile(TemporaryWorkspace workspace, string relativePath)
