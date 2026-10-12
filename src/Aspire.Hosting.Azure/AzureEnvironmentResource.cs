@@ -101,7 +101,7 @@ public sealed class AzureEnvironmentResource : Resource
             {
                 Name = "validate-azure-login",
                 TokenScopes = ["https://management.azure.com/.default"],
-                Description = "Validates Azure CLI authentication before deployment.",
+                Description = "Validates Azure authentication before deployment.",
                 Action = ctx => ValidateAzureLoginAsync(ctx),
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
@@ -230,7 +230,7 @@ public sealed class AzureEnvironmentResource : Resource
         }
 
         await context.ReportingStep.CompleteAsync(
-            "Azure CLI authentication validated successfully",
+            "Azure authentication validated successfully",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }

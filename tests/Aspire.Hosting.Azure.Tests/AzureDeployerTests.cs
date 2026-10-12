@@ -63,6 +63,12 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 ? ["https://management.azure.com/.default", AcrLoginService.AcrScope, "https://graph.windows.net/.default"]
                 : ["https://management.azure.com/.default", "https://graph.windows.net/.default"];
         Assert.Equal(expected.Order(StringComparer.Ordinal), credential.Requests.Order(StringComparer.Ordinal));
+        if (expected.Length > 0)
+        {
+            Assert.Contains(reporter.CompletedSteps, step =>
+                step.StepTitle == "validate-azure-login" &&
+                step.CompletionText == "Azure authentication validated successfully");
+        }
     }
 
     [Theory]
