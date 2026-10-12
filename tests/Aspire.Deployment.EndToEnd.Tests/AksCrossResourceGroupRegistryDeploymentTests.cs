@@ -86,7 +86,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
 
                 // Only Aspire grants kubelet AcrPull. Attaching ACR through az aks or adding
                 // image-pull credentials here would make the broken generated scope pass.
-                await auto.TypeAsync("aspire deploy --clear-cache");
+                await auto.TypeAsync("aspire deploy");
                 await auto.EnterAsync();
                 await auto.WaitForPipelineSuccessAsync(timeout: TimeSpan.FromMinutes(40));
                 await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
@@ -97,7 +97,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                     $"KUBELET_ID=$(az aks show --resource-group {resourceGroup} --name \"$AKS_NAME\" --query identityProfile.kubeletidentity.objectId -o tsv) && " +
                     $"ACR_ID=$(az acr show --resource-group {registryGroup} --name {registryName} --query id -o tsv) && " +
                     "test -n \"$KUBELET_ID\" && test -n \"$ACR_ID\" && " +
-                    "ROLE_COUNT=$(az role assignment list --scope \"$ACR_ID\" --all " +
+                    "ROLE_COUNT=$(az role assignment list --scope \"$ACR_ID\" " +
                     "--query \"length([?principalId=='$KUBELET_ID' && roleDefinitionName=='AcrPull' && scope=='$ACR_ID'])\" -o tsv) && " +
                     "test \"$ROLE_COUNT\" -eq 1",
                     counter, TimeSpan.FromMinutes(2));
