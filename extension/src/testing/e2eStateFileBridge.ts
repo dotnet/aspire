@@ -1270,6 +1270,12 @@ interface DebugAdapterStoppedEvent {
   threadId?: number;
 }
 
+interface DebugAdapterExceptionStop {
+  stoppedEvent: DebugAdapterStoppedEvent;
+  exceptionInfo?: unknown;
+  error?: string;
+}
+
 interface DebugAdapterOutputEvent {
   sessionId: string;
   sessionType: string;
@@ -1317,6 +1323,8 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
   const launchRequests: DebugAdapterLaunchRequest[] = [];
   const debugAdapterResponses: DebugAdapterMessageSummary[] = [];
   const stoppedEvents: DebugAdapterStoppedEvent[] = [];
+  const exceptionStops: DebugAdapterExceptionStop[] = [];
+  const exceptionStopHandlers: Promise<void>[] = [];
   const breakpointRequests: DebugAdapterMessageSummary[] = [];
   const breakpointResponses: DebugAdapterMessageSummary[] = [];
 
@@ -1368,13 +1376,32 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
             });
           }
           if (message?.type === 'event' && message.event === 'stopped') {
-            stoppedEvents.push({
+            const stoppedEvent = {
               sessionId: session.id,
               sessionType: session.type,
               sessionName: session.name,
               reason: message.body?.reason,
               threadId: message.body?.threadId,
-            });
+            };
+            stoppedEvents.push(stoppedEvent);
+
+            if (command.continueExceptionStops &&
+              stoppedEvent.reason === 'exception' &&
+              stoppedEvent.threadId !== undefined) {
+              const exceptionStop: DebugAdapterExceptionStop = { stoppedEvent };
+              exceptionStops.push(exceptionStop);
+              exceptionStopHandlers.push((async () => {
+                try {
+                  exceptionStop.exceptionInfo = redactDebugAdapterArguments(await session.customRequest('exceptionInfo', {
+                    threadId: stoppedEvent.threadId,
+                  }));
+                  await session.customRequest('continue', { threadId: stoppedEvent.threadId });
+                }
+                catch (error) {
+                  exceptionStop.error = error instanceof Error ? error.message : String(error);
+                }
+              })());
+            }
           }
         }
       };
@@ -1464,6 +1491,7 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
         session.startupCompleted &&
         typeof session.appHostPath === 'string' &&
         isSamePath(session.appHostPath, appHostPath)));
+    await Promise.allSettled(exceptionStopHandlers);
 
     return {
       proof: 'aspire-apphost-and-resource-debug-breakpoints-hit',
@@ -1492,9 +1520,11 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
+      exceptionStops,
     };
   }
   catch (error) {
+    await Promise.allSettled(exceptionStopHandlers);
     throw new Error(`${error instanceof Error ? error.message : String(error)}
 Diagnostics:
 ${JSON.stringify({
@@ -1508,6 +1538,7 @@ ${JSON.stringify({
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
+      exceptionStops,
     }, undefined, 2)}`);
   }
   finally {

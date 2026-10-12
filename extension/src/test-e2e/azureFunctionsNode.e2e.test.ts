@@ -103,6 +103,10 @@ builder.Build().Run();`);
             resourceSourcePath: sourcePath,
             resourceBreakpointLine: breakpointLine,
             resourceRequestPath: '/api/node-debug-proof',
+            // The C# debugger can report handled first-chance exceptions while the AppHost model
+            // creates implicit Azure resources. This proof is about source breakpoints, so capture
+            // those exception details and continue without weakening failures from a terminated host.
+            continueExceptionStops: true,
             timeoutMs: 300000,
         }, { timeoutMs: 660000 });
         assert.strictEqual(status.status, 'applied');
