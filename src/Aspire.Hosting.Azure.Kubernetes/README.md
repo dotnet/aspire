@@ -41,6 +41,32 @@ const myService = await builder.addNodeApp("myService", "../my-service", "server
     .withComputeEnvironment(aks);
 ```
 
+### Existing container registries
+
+Use an existing Azure Container Registry, including one in another resource group:
+
+**C#**
+
+```csharp
+var registry = builder.AddAzureContainerRegistry("registry")
+    .PublishAsExisting("myregistry", "registry-resource-group");
+
+var aks = builder.AddAzureKubernetesEnvironment("aks")
+    .WithContainerRegistry(registry);
+```
+
+**TypeScript**
+
+```typescript
+const registry = await builder.addAzureContainerRegistry("registry");
+await registry.publishAsExisting("myregistry", { resourceGroup: "registry-resource-group" });
+
+const aks = await builder.addAzureKubernetesEnvironment("aks");
+await aks.withContainerRegistry(registry);
+```
+
+Aspire grants the AKS kubelet identity `AcrPull` at the registry's scope. The deployment identity must have permission to create role assignments there, as well as push images to the registry. The existing registry is not deleted by `aspire destroy`.
+
 ### Persistent volumes
 
 Add a persistent volume to the AKS environment and mount it into a workload:

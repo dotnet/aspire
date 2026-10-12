@@ -386,6 +386,102 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         Assert.Same(aks.Resource.DefaultContainerRegistry, annotation.Registry);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WithContainerRegistry_CrossResourceGroupPublishesScopedKubeletRole(bool parameterizedScope)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var registry = builder.AddAzureContainerRegistry("registry");
+        if (parameterizedScope)
+        {
+            registry.PublishAsExistingInResourceGroup(
+                builder.AddParameter("registry-name", "existingacr"),
+                builder.AddParameter("registry-group", "registry-rg"),
+                builder.AddParameter("registry-subscription", "00000000-0000-0000-0000-000000000001"));
+        }
+        else
+        {
+            registry.PublishAsExisting("existingacr", "registry-rg");
+        }
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .WithContainerRegistry(registry);
+        builder.AddContainer("api", "myimage").WithHttpEndpoint(targetPort: 8080);
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var roles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(),
+            resource => resource.Name == "aks-acr-pull");
+        Assert.Equal(registry.Resource.NameOutputReference.ValueExpression,
+            Assert.IsType<BicepOutputReference>(roles.Parameters["acrName"]).ValueExpression);
+        Assert.Equal(aks.Resource.Id.ValueExpression,
+            Assert.IsType<BicepOutputReference>(roles.Parameters["aksId"]).ValueExpression);
+        Assert.Equal(aks.Resource.KubeletIdentityObjectId.ValueExpression,
+            Assert.IsType<BicepOutputReference>(roles.Parameters["principalId"]).ValueExpression);
+        Assert.NotNull(roles.Scope);
+        Assert.False(aks.Resource.Parameters.ContainsKey("acrName"));
+
+        var mainBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep"));
+        var aksBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks", "aks.bicep"));
+        var roleBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-acr-pull", "aks-acr-pull.bicep"));
+        var registryBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "registry", "registry.bicep"));
+        await Verify(mainBicep, "bicep")
+            .UseParameters(parameterizedScope)
+            .AppendContentAsFile(aksBicep, "bicep")
+            .AppendContentAsFile(roleBicep, "bicep")
+            .AppendContentAsFile(registryBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task WithContainerRegistry_CrossResourceGroupUsesFinalRegistryAndPreparesOnce()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var first = builder.AddAzureContainerRegistry("first").PublishAsExisting("firstacr", "first-rg");
+        var final = builder.AddAzureContainerRegistry("final");
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .WithContainerRegistry(first)
+            .WithContainerRegistry(final);
+        final.PublishAsExisting("finalacr", "final-rg");
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var roles = Assert.Single(model.Resources, resource => resource.Name == "aks-acr-pull");
+        var provisioningRoles = Assert.IsType<AzureProvisioningResource>(roles);
+        Assert.Equal("final-rg", provisioningRoles.Scope!.ResourceGroup);
+        Assert.Equal(final.Resource.NameOutputReference.ValueExpression,
+            Assert.IsType<BicepOutputReference>(provisioningRoles.Parameters["acrName"]).ValueExpression);
+        Assert.Equal(aks.Resource.KubeletIdentityObjectId.ValueExpression,
+            Assert.IsType<BicepOutputReference>(provisioningRoles.Parameters["principalId"]).ValueExpression);
+    }
+
+    [Fact]
+    public async Task WithContainerRegistry_SharedCrossGroupRegistryGrantsEachKubeletRole()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var registry = builder.AddAzureContainerRegistry("registry").PublishAsExisting("existingacr", "registry-rg");
+        var first = builder.AddAzureKubernetesEnvironment("first").WithContainerRegistry(registry);
+        var second = builder.AddAzureKubernetesEnvironment("second").WithContainerRegistry(registry);
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        var roles = app.Services.GetRequiredService<DistributedApplicationModel>().Resources
+            .OfType<AzureProvisioningResource>().Where(resource => resource.Name.EndsWith("-acr-pull", StringComparison.Ordinal));
+        Assert.Collection(roles,
+            role => Assert.Equal(first.Resource.KubeletIdentityObjectId.ValueExpression,
+                Assert.IsType<BicepOutputReference>(role.Parameters["principalId"]).ValueExpression),
+            role => Assert.Equal(second.Resource.KubeletIdentityObjectId.ValueExpression,
+                Assert.IsType<BicepOutputReference>(role.Parameters["principalId"]).ValueExpression));
+    }
+
     [Fact]
     public void WithSystemNodePool_CustomVmSize()
     {

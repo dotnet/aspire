@@ -58,7 +58,8 @@ public static class AzureKubernetesEnvironmentExtensions
             o => o.SupportsTargetedRoleAssignments = true);
 
         // Create the unified AKS environment resource
-        var resource = new AzureKubernetesEnvironmentResource(name, ConfigureAksInfrastructure);
+        var resource = new AzureKubernetesEnvironmentResource(name,
+            infrastructure => ConfigureAksInfrastructure(infrastructure, builder.ExecutionContext.IsPublishMode));
 
         // Create the inner KubernetesEnvironmentResource directly so it can hold
         // Kubernetes-specific state without surfacing as a second environment in
@@ -96,6 +97,59 @@ public static class AzureKubernetesEnvironmentExtensions
         // can create an AcrPull role assignment for the kubelet identity.
         // The publishing context will wire this as a parameter in main.bicep.
         resource.Parameters["acrName"] = defaultRegistry.Resource.NameOutputReference;
+
+        AzureProvisioningResource? acrPullRoles = null;
+        builder.Pipeline.AddStep(
+            name: $"prepare-aks-acr-pull-{name}",
+            action: context =>
+            {
+                // Preparation also runs in the publish pipeline after BeforeStart.
+                if (acrPullRoles is not null || resource.IsExcludedFromPublish() ||
+                    !resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) ||
+                    registryReference.Registry is not AzureContainerRegistryResource registry ||
+                    GetAcrPullRoleScope(resource) is not { } scope)
+                {
+                    return Task.CompletedTask;
+                }
+
+                var roles = new AzureProvisioningResource($"{name}-acr-pull", infrastructure =>
+                {
+                    var acrName = new ProvisioningParameter("acrName", typeof(string));
+                    var aksId = new ProvisioningParameter("aksId", typeof(string));
+                    var principalId = new ProvisioningParameter("principalId", typeof(string));
+                    infrastructure.Add(acrName);
+                    infrastructure.Add(aksId);
+                    infrastructure.Add(principalId);
+
+                    var acr = ContainerRegistryService.FromExisting("acr");
+                    acr.Name = acrName;
+                    infrastructure.Add(acr);
+
+                    var roleId = BicepFunction.GetSubscriptionResourceId(
+                        "Microsoft.Authorization/roleDefinitions",
+                        "7f951dda-4ed3-4680-a7ca-43fe172d538d");
+                    infrastructure.Add(new RoleAssignment("acrPullRole")
+                    {
+                        Name = BicepFunction.CreateGuid(acr.Id, aksId, roleId),
+                        Scope = new IdentifierExpression(acr.BicepIdentifier),
+                        RoleDefinitionId = roleId,
+                        PrincipalId = principalId,
+                        PrincipalType = RoleManagementPrincipalType.ServicePrincipal
+                    });
+                })
+                {
+                    Scope = scope
+                };
+                roles.Parameters["acrName"] = registry.NameOutputReference;
+                roles.Parameters["aksId"] = resource.Id;
+                roles.Parameters["principalId"] = resource.KubeletIdentityObjectId;
+                context.Model.Resources.Add(roles);
+                acrPullRoles = roles;
+                resource.Parameters.Remove("acrName");
+
+                return Task.CompletedTask;
+            },
+            requiredBy: AzureEnvironmentResource.PrepareResourcesStepName);
 
         // Ensure push steps wait for ALL Azure provisioning to complete. Push steps
         // call registry.Endpoint.GetValueAsync() which awaits the BicepOutputReference
@@ -505,7 +559,7 @@ public static class AzureKubernetesEnvironmentExtensions
         return builder;
     }
 
-    private static void ConfigureAksInfrastructure(AzureResourceInfrastructure infrastructure)
+    private static void ConfigureAksInfrastructure(AzureResourceInfrastructure infrastructure, bool isPublishMode)
     {
         var aksResource = (AzureKubernetesEnvironmentResource)infrastructure.AspireResource;
 
@@ -664,7 +718,10 @@ public static class AzureKubernetesEnvironmentExtensions
         }
 
         // ACR pull role assignment for kubelet identity
-        if (aksResource.DefaultContainerRegistry is not null || aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
+        // Cross-group assignments must be deployed in a module at the registry's scope.
+        // Keeping them inline would either target the AKS group or fail Bicep validation (BCP139).
+        if ((!isPublishMode || GetAcrPullRoleScope(aksResource) is null) &&
+            (aksResource.DefaultContainerRegistry is not null || aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _)))
         {
             var acrNameParam = new ProvisioningParameter("acrName", typeof(string));
             infrastructure.Add(acrNameParam);
@@ -858,6 +915,21 @@ public static class AzureKubernetesEnvironmentExtensions
             };
             infrastructure.Add(fedCred);
         }
+    }
+
+    private static AzureBicepResourceScope? GetAcrPullRoleScope(AzureKubernetesEnvironmentResource resource)
+    {
+        if (!resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) ||
+            registryReference.Registry is not AzureContainerRegistryResource registry ||
+            !registry.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) ||
+            existing.ResourceGroup is not { } resourceGroup)
+        {
+            return null;
+        }
+
+        return existing.Subscription is { } subscription
+            ? new AzureBicepResourceScope(resourceGroup, subscription)
+            : new AzureBicepResourceScope(resourceGroup);
     }
 
     private static void AddKubernetesPipelineAnnotations(AzureKubernetesEnvironmentResource resource)

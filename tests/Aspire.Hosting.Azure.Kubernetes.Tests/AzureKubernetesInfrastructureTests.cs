@@ -192,6 +192,25 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task CrossGroupRegistryRoleProvisioningPrecedesHelmDeployment()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var reporter = new TestPipelineActivityReporter(output);
+        using var builder = AzureKubernetesTestBuilder.Create(
+            output, workspace, step: WellKnownPipelineSteps.Diagnostics, activityReporter: reporter);
+        var registry = builder.AddAzureContainerRegistry("registry").PublishAsExisting("existingacr", "registry-rg");
+        builder.AddAzureKubernetesEnvironment("aks").WithContainerRegistry(registry);
+        builder.AddContainer("api", "myimage").WithHttpEndpoint(targetPort: 8080);
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        await Verify(string.Join('\n', reporter.LoggedMessages
+            .Where(message => message.StepTitle == "diagnostics")
+            .Select(message => message.Message)), "txt");
+    }
+
+    [Fact]
     public async Task DestroyPipelineFetchesCredentialsBeforeClusterCleanupAndDeletesAzureLast()
     {
         using var workspace = TemporaryWorkspace.Create(output);
