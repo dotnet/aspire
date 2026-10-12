@@ -23,8 +23,6 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("src/Aspire.Dashboard/Components/Pages/Resources.razor")]
     [InlineData("src/Aspire.Hosting/Dashboard/proto/dashboard_service.proto")]
     [InlineData("src/Shared/SocketPermissionHelper.cs")]
-    [InlineData("playground/NativeHosting/AtsServer/AtsSession.cs")]
-    [InlineData("playground/NativeHosting/ManagedAdapter/NativeHosting.ManagedAdapter.csproj")]
     [InlineData("playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj")]
     [InlineData("playground/NativeIntegrations/TypeScript/external-api.mts")]
     [InlineData("playground/NativeIntegrations/CSharp/Redis/RedisExtensions.cs")]
@@ -72,6 +70,7 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("extension/src/extension.ts")]
     [InlineData("tests/Infrastructure.Tests/TestTriggerMap/NativeHostingWorkflowTests.cs")]
     [InlineData("tests/Aspire.Hosting.Redis.Tests/RedisResourceTests.cs")]
+    [InlineData("playground/NativeHosting/AtsServer/AtsSession.cs")]
     public void UnrelatedInputsDoNotTriggerNativeHostingLane(string path)
     {
         Assert.All(Paths(Events(), "pull_request"),

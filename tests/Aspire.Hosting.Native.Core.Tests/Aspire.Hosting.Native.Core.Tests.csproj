@@ -18,11 +18,6 @@
     <ProjectReference Include="../../playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
     <ProjectReference Include="../../playground/NativeIntegrations/CSharp/RedisContracts/NativeIntegrations.Redis.Contracts.csproj" Aliases="RedisContracts" />
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../playground/NativeHosting/AtsServer/NativeHosting.AtsServer.csproj" Aliases="NativeLegacyServer" />
-    <ProjectReference Include="../../playground/NativeHosting/Ats/NativeHosting.Ats.csproj" Aliases="NativeLegacy" />
-    <ProjectReference Include="../../playground/NativeHosting/Core/NativeHosting.Core.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../playground/NativeHosting/AtsCodegen/NativeHosting.AtsCodegen.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../../playground/NativeHosting/ManagedAdapter/NativeHosting.ManagedAdapter.csproj" ReferenceOutputAssembly="false" />
     <Compile Remove="AotSmoke/**/*.cs" />
     <None Update="AotSmoke/SymbolicRedisConsumer.mts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

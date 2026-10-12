@@ -42,7 +42,6 @@ run_logged() {
 }
 
 run_logged restore ./restore.sh
-run_logged devtunnel-parser-tests node --test playground/NativeHosting/devtunnel-output.test.mts
 
 # The native core, server, build-time generator and AOT smoke host target net11.
 # Keep the published executable on the same runtime as its regression suite.
