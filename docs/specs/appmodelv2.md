@@ -340,6 +340,10 @@ immutable model snapshots, dependency validation, execution ownership, revision
 fencing, resource observations/logs, command and confirmation completion, and
 workload cleanup obligations. It does not reference ATS attributes, Hosting,
 KubernetesClient, gRPC, ASP.NET Core, a language runtime, or integration packages.
+Workload mutators read and validate the current declaration, update symbolic
+configuration and derived dependencies, and store the new plan under the same
+model lock. Concurrent authoring cannot overwrite unrelated changes or reuse an
+argument slot, and sealing observes either the entire mutation or none of it.
 The server owns ATS bindings, authenticated transports, DCP wire adaptation,
 CLI discovery/backchannels, and Dashboard gRPC. Splitting the assemblies makes
 the dependency boundary enforceable; it does not remove those dependencies from

@@ -47,26 +47,28 @@ internal sealed partial class Composition
 
 internal sealed partial class DeclaredResource
 {
-    private DeclaredWorkload ReadWorkload() => Composition.Model.ReadResource(Handle).Workload ??
-        throw new InvalidOperationException("The resource has no declared workload.");
-
     /// <summary>Assigns a late-bound environment value and derives its readiness dependencies.</summary>
     [AspireExport]
     public DeclaredResource WithEnvironment(string name, DeclaredValue value)
     {
-        var current = ReadWorkload();
-        var key = $"workload.env.{name}";
-        var next = current with
+        if (!ReferenceEquals(Composition, value.Composition))
         {
-            Bindings = current.Bindings with
+            throw new ArgumentException("The value belongs to another composition.", nameof(value));
+        }
+        Composition.Model.MutateWorkload(Handle, current =>
+        {
+            var key = $"workload.env.{name}";
+            var next = current with
             {
-                Environment = current.Bindings.Environment.Where(binding => binding.Name != name)
-                    .Append(new SymbolicEnvironmentBinding(name, key)).ToImmutableArray()
-            }
-        };
-        next.Bindings.Validate(next.Plan);
-        SetSymbolicConfiguration(key, value);
-        Composition.Model.SetWorkload(Handle, next);
+                Bindings = current.Bindings with
+                {
+                    Environment = current.Bindings.Environment.Where(binding => binding.Name != name)
+                        .Append(new SymbolicEnvironmentBinding(name, key)).ToImmutableArray()
+                }
+            };
+
+            return (next, new(key, value.Value));
+        });
 
         return this;
     }
@@ -79,18 +81,23 @@ internal sealed partial class DeclaredResource
     [AspireExport]
     public DeclaredResource WithArgument(DeclaredValue value)
     {
-        var current = ReadWorkload();
-        var index = current.Plan.Arguments.Length;
-        var key = $"workload.arg.{index}";
-        var plan = SymbolicWorkloadBindings.Copy(current.Plan, current.Plan.Environment, current.Plan.Arguments.Add(""));
-        var next = current with
+        if (!ReferenceEquals(Composition, value.Composition))
         {
-            Plan = plan,
-            Bindings = current.Bindings with { Arguments = current.Bindings.Arguments.Add(new(index, key)) }
-        };
-        next.Bindings.Validate(plan);
-        SetSymbolicConfiguration(key, value);
-        Composition.Model.SetWorkload(Handle, next);
+            throw new ArgumentException("The value belongs to another composition.", nameof(value));
+        }
+        Composition.Model.MutateWorkload(Handle, current =>
+        {
+            var index = current.Plan.Arguments.Length;
+            var key = $"workload.arg.{index}";
+            var plan = SymbolicWorkloadBindings.Copy(current.Plan, current.Plan.Environment, current.Plan.Arguments.Add(""));
+            var next = current with
+            {
+                Plan = plan,
+                Bindings = current.Bindings with { Arguments = current.Bindings.Arguments.Add(new(index, key)) }
+            };
+
+            return (next, new(key, value.Value));
+        });
 
         return this;
     }
@@ -100,17 +107,20 @@ internal sealed partial class DeclaredResource
     public DeclaredResource WithEndpoint(WorkloadEndpointDeclaration endpoint)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
-        var current = ReadWorkload();
-        var ports = current.Plan.Endpoints.Where(port => port.Name != endpoint.Name).Append(
-            new WorkloadPort(endpoint.Name, RuntimeStates.ParseProtocol(endpoint.Protocol), endpoint.UriScheme,
-                endpoint.TargetPort, endpoint.HostPort, endpoint.EnvironmentVariable)).ToImmutableArray();
-        var plan = current.Plan switch
+        Composition.Model.MutateWorkload(Handle, current =>
         {
-            ContainerWorkload container => (WorkloadPlan)(container with { Ports = ports }),
-            ExecutableWorkload executable => executable with { Ports = ports },
-            _ => throw new NotSupportedException("The declared workload primitive is unsupported.")
-        };
-        Composition.Model.SetWorkload(Handle, current with { Plan = plan });
+            var ports = current.Plan.Endpoints.Where(port => port.Name != endpoint.Name).Append(
+                new WorkloadPort(endpoint.Name, RuntimeStates.ParseProtocol(endpoint.Protocol), endpoint.UriScheme,
+                    endpoint.TargetPort, endpoint.HostPort, endpoint.EnvironmentVariable)).ToImmutableArray();
+            var plan = current.Plan switch
+            {
+                ContainerWorkload container => (WorkloadPlan)(container with { Ports = ports }),
+                ExecutableWorkload executable => executable with { Ports = ports },
+                _ => throw new NotSupportedException("The declared workload primitive is unsupported.")
+            };
+
+            return (current with { Plan = plan }, null);
+        });
 
         return this;
     }
@@ -119,12 +129,15 @@ internal sealed partial class DeclaredResource
     [AspireExport]
     public DeclaredResource WithEntrypoint(string entrypoint)
     {
-        var current = ReadWorkload();
-        if (current.Plan is not ContainerWorkload container)
+        Composition.Model.MutateWorkload(Handle, current =>
         {
-            throw new InvalidOperationException("Entrypoints require a container declaration.");
-        }
-        Composition.Model.SetWorkload(Handle, current with { Plan = container with { Command = entrypoint } });
+            if (current.Plan is not ContainerWorkload container)
+            {
+                throw new InvalidOperationException("Entrypoints require a container declaration.");
+            }
+
+            return (current with { Plan = container with { Command = entrypoint } }, null);
+        });
 
         return this;
     }
@@ -133,14 +146,17 @@ internal sealed partial class DeclaredResource
     [AspireExport]
     public DeclaredResource WithVolume(string name, string target, bool readOnly)
     {
-        var current = ReadWorkload();
-        if (current.Plan is not ContainerWorkload container)
+        Composition.Model.MutateWorkload(Handle, current =>
         {
-            throw new InvalidOperationException("Volumes require a container declaration.");
-        }
-        var mounts = container.Mounts.Where(mount => mount.Target != target)
-            .Append(new WorkloadMount(WorkloadMountKind.Volume, name, target, readOnly)).ToImmutableArray();
-        Composition.Model.SetWorkload(Handle, current with { Plan = container with { Mounts = mounts } });
+            if (current.Plan is not ContainerWorkload container)
+            {
+                throw new InvalidOperationException("Volumes require a container declaration.");
+            }
+            var mounts = container.Mounts.Where(mount => mount.Target != target)
+                .Append(new WorkloadMount(WorkloadMountKind.Volume, name, target, readOnly)).ToImmutableArray();
+
+            return (current with { Plan = container with { Mounts = mounts } }, null);
+        });
 
         return this;
     }
@@ -158,13 +174,11 @@ internal sealed partial class DeclaredResource
         var command = ResourceExecution.CreateExecutablePlan(launch);
         var slots = ResourceExecution.CopyBindings(bindings);
         slots.Validate(command);
-        var current = ReadWorkload();
-        var next = current with
+        Composition.Model.MutateWorkload(Handle, current => (current with
         {
             Lifecycle = current.Lifecycle.Where(hook => hook.Phase != phase)
                 .Append(new(phase, command, slots)).ToImmutableArray()
-        };
-        Composition.Model.SetWorkload(Handle, next);
+        }, null));
 
         return this;
     }

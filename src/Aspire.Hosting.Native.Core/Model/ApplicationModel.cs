@@ -343,6 +343,28 @@ internal sealed class ApplicationModel : IDisposable
         }
     }
 
+    /// <summary>Atomically updates the current workload and its optional symbolic field before sealing.</summary>
+    public void MutateWorkload(ResourceHandle handle,
+        Func<DeclaredWorkload, (DeclaredWorkload Workload, SymbolicConfigurationEntry? Configuration)> mutation)
+    {
+        lock (_gate)
+        {
+            EnsureMutable();
+            var resource = GetResource(handle);
+            var current = resource.Workload ?? throw new InvalidOperationException("The resource has no declared workload.");
+            var (workload, configuration) = mutation(current);
+            Runtime.WorkloadDefinition.Validate(workload.Plan);
+            workload.Bindings.Validate(workload.Plan);
+            // Validate the complete plan before changing symbolic state. Its cycle/capacity
+            // checks roll back on failure; the subsequent workload assignment cannot fail.
+            if (configuration is not null)
+            {
+                SetSymbolicConfiguration(handle, configuration.Name, configuration.Value);
+            }
+            resource.Workload = workload;
+        }
+    }
+
     /// <summary>Attaches only provider bindings already authenticated by the hosting boundary.</summary>
     internal void SetProviderLifecycle(ResourceHandle handle, ImmutableArray<Runtime.ProviderLifecycleBinding> bindings)
     {
