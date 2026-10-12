@@ -80,6 +80,34 @@ public class NativeRpcTests
     }
 
     [Fact]
+    public void HandleSweepRemovesInterleavedRetiredEntriesWithoutLosingLiveAuthority()
+    {
+        using var client = new RpcTestClient(authenticate: true);
+        var retiredSession = client.CreateSession();
+        var liveSession = client.CreateSession();
+        var retired = client.StartGeneration(retiredSession);
+        var live = client.StartGeneration(liveSession);
+        var liveResources = new JsonNode[128];
+        for (var index = 0; index < liveResources.Length; index++)
+        {
+            client.AddResource(retired, $"retired-{index}");
+            liveResources[index] = client.AddResource(live, $"live-{index}");
+        }
+        Assert.Equal(260, client.Connection.HandleCount);
+        Assert.Null(client.Invoke("retireGeneration", Arguments(("context", retiredSession), ("composition", retired)))["error"]);
+        Assert.Equal(131, client.Connection.HandleCount);
+        for (var index = 0; index < liveResources.Length; index++)
+        {
+            Assert.Equal($"live-{index}", Result(client.Invoke("inspectResource",
+                Arguments(("context", liveResources[index]))))["name"]!.GetValue<string>());
+        }
+        var replacement = client.StartGeneration(retiredSession);
+        var added = client.AddResource(replacement, "replacement");
+        Assert.Equal("replacement", Result(client.Invoke("inspectResource", Arguments(("context", added))))["name"]!.GetValue<string>());
+        Assert.Equal(133, client.Connection.HandleCount);
+    }
+
+    [Fact]
     public void ForeignForgedAndRetaggedHandlesAreRejected()
     {
         using var first = new RpcTestClient(authenticate: true);

@@ -3,6 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Auxiliary;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Dcp;
@@ -13,6 +14,43 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProtocolParsingTests
 {
+    [Theory]
+    [InlineData("null")]
+    [InlineData("true")]
+    [InlineData("9223372036854775807")]
+    [InlineData("1.5")]
+    [InlineData("\"\\u0065scaped\"")]
+    [InlineData("""[null,1,{"nested":["two"]}]""")]
+    [InlineData("""{"nested":{"value":3},"array":[false,null]}""")]
+    public void ConvertedPeerResultsOutliveTheirEnvelope(string json)
+    {
+        JsonNode? result;
+        using (var document = JsonDocument.Parse(json))
+        {
+            result = NativeRpcProtocol.ToNode(document.RootElement);
+        }
+
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), result));
+    }
+
+    [Fact]
+    public void ParsedRequestArgumentsAndIdsOutliveTheirBorrowedEnvelope()
+    {
+        NativeRpcRequest request;
+        using (var document = JsonDocument.Parse(
+            """{"jsonrpc":"2.0","id":"request-id","method":"invokeCapability","params":["example/test",{"nested":{"value":"retained"}}]}"""))
+        {
+            request = NativeRpcProtocol.ParseRequest(document.RootElement);
+        }
+
+        Assert.False(request.IsNotification);
+        Assert.Equal("request-id", request.Id!.GetValue<string>());
+        Assert.Equal("invokeCapability", request.Method);
+        Assert.Collection(request.Parameters!.AsArray(),
+            capability => Assert.Equal("example/test", capability!.GetValue<string>()),
+            arguments => Assert.Equal("retained", arguments!["nested"]!["value"]!.GetValue<string>()));
+    }
+
     [Theory]
     [InlineData("Starting")]
     [InlineData("Running")]
@@ -136,6 +174,7 @@ public class NativeProtocolParsingTests
     [InlineData("""{"jsonrpc":"2.0","id":1,"method":"authenticate"}""", false)]
     [InlineData("""{"jsonrpc":"2.0","id":"one","method":"authenticate"}""", false)]
     [InlineData("""{"jsonrpc":"2.0","id":1,"method":"authenticate","params":null}""", false)]
+    [InlineData("""{"jsonr\u0070c":"2.0","i\u0064":1,"m\u0065thod":"auth\u0065nticate","p\u0061rams":null}""", false)]
     public void RpcEnvelopeKeepsNotificationsDistinctFromNullRequestIds(string json, bool notification)
     {
         var request = NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(json));
@@ -156,6 +195,9 @@ public class NativeProtocolParsingTests
     [InlineData("""{"jsonrpc":"2.0","method":"a","params":false}""")]
     [InlineData("""{"jsonrpc":"2.0","method":"a","params":"text"}""")]
     [InlineData("""{"jsonrpc":"2.0","method":"a","id":1.5}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","id":9223372036854775808}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","traceparent":true}""")]
+    [InlineData("""{"jsonrpc":"2.0","method":"a","tracestate":[]}""")]
     public void RpcEnvelopeRejectsDuplicateKeysAndMalformedClosedFields(string json) =>
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(json)));
 
@@ -191,6 +233,12 @@ public class NativeProtocolParsingTests
         Assert.Equal(NativeRpcConnection.MaximumRequestBytes, Encoding.UTF8.GetByteCount(padded));
         Assert.Equal(method, NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded)).Method);
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded + " ")));
+        Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(
+            Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"a","traceparent":"{{new string('p', 513)}}"}""")));
+        Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(
+            Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"a","tracestate":"{{new string('s', 513)}}"}""")));
+        Assert.ThrowsAny<JsonException>(() => NativeRpcProtocol.ParseRequest(
+            Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"a","params":[{{new string('[', 32)}}0{{new string(']', 32)}}]}""")));
     }
 
     private static NativeCliRequest Request(string parameters) => new()

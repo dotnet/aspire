@@ -588,9 +588,10 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             EnsureAlive();
             var dependencies = GetOwnedResource(resourceId).Declaration.Dependencies
                 .Select(handle => handle.ResourceId).ToHashSet();
-            var snapshot = Snapshot();
-
-            return snapshot with { Resources = snapshot.Resources.Where(resource => dependencies.Contains(resource.ResourceId)).ToImmutableArray() };
+            return new(_version, GenerationId, _resources.Values
+                .Where(resource => dependencies.Contains(resource.Declaration.Handle.ResourceId))
+                .OrderBy(resource => resource.Declaration.Name, StringComparer.Ordinal)
+                .Select(SnapshotResource).ToImmutableArray());
         }
     }
 
@@ -938,12 +939,14 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
 
     private RuntimeSnapshot Snapshot() => new(_version, GenerationId, _resources.Values
         .OrderBy(resource => resource.Declaration.Name, StringComparer.Ordinal)
-        .Select(resource => new RuntimeResourceSnapshot(resource.Declaration.Handle.ResourceId,
-            resource.Declaration.Name, resource.Declaration.TypeId, resource.State, resource.Healthy, resource.Urls,
-            resource.Commands.OrderBy(command => command.Key, StringComparer.Ordinal)
+        .Select(SnapshotResource).ToImmutableArray());
+
+    private RuntimeResourceSnapshot SnapshotResource(RuntimeResource resource) =>
+        new(resource.Declaration.Handle.ResourceId, resource.Declaration.Name, resource.Declaration.TypeId,
+            resource.State, resource.Healthy, resource.Urls,
+            resource.Commands.Count == 0 ? [] : resource.Commands.OrderBy(command => command.Key, StringComparer.Ordinal)
                 .Select(command => new RuntimeCommandDefinition(command.Key, Redact(command.Value))).ToImmutableArray(),
-            resource.ConfigurationRevision, resource.AppliedConfigurationRevision, resource.ConfigurationStatus))
-        .ToImmutableArray());
+            resource.ConfigurationRevision, resource.AppliedConfigurationRevision, resource.ConfigurationStatus);
 
     private void Changed()
     {

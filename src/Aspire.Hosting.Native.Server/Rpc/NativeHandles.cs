@@ -82,7 +82,10 @@ internal sealed class NativeHandles(int capacity) : IDisposable
 
     public void RemoveRevoked()
     {
-        foreach (var (id, entry) in _entries.ToArray())
+        // Dictionary.Remove does not invalidate enumeration on modern .NET.
+        // Sweep under the connection gate without copying every live handle.
+        // https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2.enumerator#remarks
+        foreach (var (id, entry) in _entries)
         {
             if (entry.Value is ICapabilityLifetime { IsRevoked: true })
             {

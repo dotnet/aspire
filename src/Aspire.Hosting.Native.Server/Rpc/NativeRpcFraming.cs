@@ -13,12 +13,13 @@ internal sealed class NativeRpcFraming(Stream stream, int maximumRequestBytes)
     {
     }
     private readonly byte[] _buffer = new byte[8192];
+    private readonly byte[] _header = new byte[8192];
     private int _position;
     private int _length;
 
     public async Task<byte[]?> ReadAsync(CancellationToken cancellationToken)
     {
-        var header = new byte[8192];
+        var header = _header;
         var count = 0;
         while (true)
         {
@@ -52,25 +53,27 @@ internal sealed class NativeRpcFraming(Stream stream, int maximumRequestBytes)
         // Content-Length counts UTF-8 bytes, not characters. Reject duplicate
         // lengths and over-limit frames before allocating or reading the body.
         int? contentLength = null;
-        foreach (var line in Encoding.ASCII.GetString(header, 0, count - 4).Split("\r\n", StringSplitOptions.None))
+        var headers = Encoding.ASCII.GetString(header, 0, count - 4).AsSpan();
+        foreach (var range in headers.Split("\r\n"))
         {
+            var line = headers[range];
             var separator = line.IndexOf(':');
             if (separator <= 0)
             {
                 throw new InvalidDataException("The JSON-RPC frame header is malformed.");
             }
             var name = line[..separator];
-            if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+            if (name.Equals("Content-Length".AsSpan(), StringComparison.OrdinalIgnoreCase))
             {
                 if (contentLength is not null ||
-                    !int.TryParse(line.AsSpan(separator + 1).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var length) ||
+                    !int.TryParse(line[(separator + 1)..].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var length) ||
                     length > maximumRequestBytes)
                 {
                     throw new InvalidDataException("The JSON-RPC frame length is invalid.");
                 }
                 contentLength = length;
             }
-            else if (!name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+            else if (!name.Equals("Content-Type".AsSpan(), StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("The JSON-RPC frame header is not supported.");
             }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Native.Rpc;
@@ -9,7 +10,8 @@ namespace Aspire.Hosting.Native.Rpc;
 internal interface INativeRpcPeer : IDisposable
 {
     CancellationToken Closed { get; }
-    Task RunAsync(Func<ReadOnlyMemory<byte>, Task<byte[]?>> dispatch, CancellationToken cancellationToken);
+    /// <summary>The borrowed envelope remains valid until dispatch completes.</summary>
+    Task RunAsync(Func<JsonElement, Task<byte[]?>> dispatch, CancellationToken cancellationToken);
     Task<JsonNode?> RequestAsync(string method, JsonArray arguments, CancellationToken cancellationToken);
     Task SendAsync(byte[] payload, CancellationToken cancellationToken);
 }

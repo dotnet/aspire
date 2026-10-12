@@ -19,6 +19,8 @@ internal sealed class NativeRpcConnection : IDisposable
 {
     public const int MaximumRequestBytes = 256 * 1024;
     private static readonly JsonObject s_contract = LoadContract();
+    private static readonly HashSet<string> s_coreCapabilities = s_contract["Capabilities"]!.AsArray()
+        .Select(capability => capability!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
     private readonly Lock _gate = new();
     private readonly NativeHandles _handles;
     private readonly NativeServerOptions _options;
@@ -76,7 +78,7 @@ internal sealed class NativeRpcConnection : IDisposable
                 ProviderResourceReference resource => (resource.Provider.Connection, RpcArguments.String(resource.Handle["$handle"]), typeId),
                 _ => throw new InvalidOperationException("Only delegated references are published through this boundary.")
             };
-            foreach (var (key, reference) in _proxyReferences.ToArray())
+            foreach (var (key, reference) in _proxyReferences)
             {
                 if (reference is ICapabilityLifetime { IsRevoked: true })
                 {
@@ -122,7 +124,7 @@ internal sealed class NativeRpcConnection : IDisposable
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            foreach (var (existingId, existing) in _callbacks.ToArray())
+            foreach (var (existingId, existing) in _callbacks)
             {
                 if (existing.IsRevoked)
                 {
@@ -248,10 +250,32 @@ internal sealed class NativeRpcConnection : IDisposable
     /// <summary>Processes one JSON-RPC request; notifications have no response.</summary>
     public byte[]? Process(ReadOnlyMemory<byte> payload) => ProcessAsync(payload).GetAwaiter().GetResult();
 
-    /// <summary>Dispatches a request without holding the connection gate while awaiting remote or user work.</summary>
+    /// <summary>Bounds and parses a standalone request before dispatch.</summary>
     public async Task<byte[]?> ProcessAsync(ReadOnlyMemory<byte> payload)
     {
-        using var incomingTrace = StartIncomingTrace(payload);
+        if (payload.Length > _options.MaximumRequestBytes)
+        {
+            return RejectRequest(-32600, "REQUEST_TOO_LARGE", "The request exceeds the size limit.");
+        }
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
+        }
+        catch (JsonException)
+        {
+            return RejectRequest(-32700, "PARSE_ERROR", "The request is not valid JSON.");
+        }
+        using (document)
+        {
+            return await ProcessAsync(document.RootElement).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Dispatches a bounded envelope without holding the gate while awaiting remote or user work.</summary>
+    internal async Task<byte[]?> ProcessAsync(JsonElement envelope)
+    {
+        using var incomingTrace = StartIncomingTrace(envelope);
         using var operation = new NativeDiagnostics.Operation("rpc.request", null, null, _options.TimeProvider);
         JsonNode? id;
         string method;
@@ -261,14 +285,10 @@ internal sealed class NativeRpcConnection : IDisposable
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (payload.Length > _options.MaximumRequestBytes)
-            {
-                return EncodeError(null, -32600, "REQUEST_TOO_LARGE", "The request exceeds the size limit.");
-            }
             NativeRpcRequest request;
             try
             {
-                request = NativeRpcProtocol.ParseRequest(payload);
+                request = NativeRpcProtocol.ParseRequest(envelope);
             }
             catch (JsonException)
             {
@@ -486,7 +506,7 @@ internal sealed class NativeRpcConnection : IDisposable
             {
                 return await _providers.InvokeCoreAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
             }
-            if (!s_contract["Capabilities"]!.AsArray().Any(value => value!["CapabilityId"]!.GetValue<string>() == capabilityId))
+            if (!s_coreCapabilities.Contains(capabilityId))
             {
                 return await _providers.InvokeAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
             }
@@ -494,9 +514,9 @@ internal sealed class NativeRpcConnection : IDisposable
         return await NativeDispatch.InvokeAsync(_server, _handles, capabilityId, capabilityArguments).ConfigureAwait(false);
     }
 
-    private Activity? StartIncomingTrace(ReadOnlyMemory<byte> payload)
+    private static Activity? StartIncomingTrace(JsonElement envelope)
     {
-        if (NativeRpcProtocol.ReadTraceContext(payload, _options.MaximumRequestBytes) is { } context)
+        if (NativeRpcProtocol.ReadTraceContext(envelope) is { } context)
         {
             var activity = new Activity("native.rpc.incoming")
                 .SetParentId(context.TraceId, context.SpanId, context.TraceFlags);
@@ -506,6 +526,17 @@ internal sealed class NativeRpcConnection : IDisposable
         }
 
         return null;
+    }
+
+    private byte[] RejectRequest(int code, string fault, string message)
+    {
+        using var operation = new NativeDiagnostics.Operation("rpc.request", null, null, _options.TimeProvider);
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            return EncodeError(null, code, fault, message);
+        }
     }
 
     private static void ObserveFault(Task task) =>

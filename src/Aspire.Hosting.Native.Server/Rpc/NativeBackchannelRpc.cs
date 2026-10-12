@@ -30,9 +30,9 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
         long nextToken = 0;
         try
         {
-            await peer.RunAsync(async payload =>
+            await peer.RunAsync(async envelope =>
             {
-                var request = JsonSerializer.Deserialize(payload.Span, NativeCliJsonContext.Default.NativeCliRequest)
+                var request = envelope.Deserialize(NativeCliJsonContext.Default.NativeCliRequest)
                     ?? throw new InvalidDataException("Invalid backchannel request.");
                 if (request.Jsonrpc != "2.0" ||
                     request.Id is { ValueKind: not (JsonValueKind.String or JsonValueKind.Number) })

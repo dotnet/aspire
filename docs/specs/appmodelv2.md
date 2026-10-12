@@ -386,6 +386,57 @@ integration's ability to publish health do not implement those broader contracts
 Measurements below describe the implemented baseline only, not full integration
 parity, and retain the complete server's protocol costs.
 
+### RPC transport and hot-path costs
+
+JSON framing, envelope validation, trace propagation, and serialization stay in
+the server's RPC boundary. The peer lends its parsed `JsonElement` to dispatch
+until that dispatch completes; the owning response task then disposes the
+document. ATS envelope validation and tracing reuse that element rather than
+parsing the bytes again. Retained IDs, arguments, and provider results clone only
+their JSON subtrees, so capability state never depends on a disposed transport
+document. CLI backchannels share the transport while keeping their existing
+source-generated request and response contracts.
+
+Outbound peer requests serialize directly to UTF-8 through the existing JSON
+context. Core capability membership is indexed once with ordinal comparison,
+rather than scanning JSON metadata during dispatch. Framing retains a
+connection-owned header buffer and parses header fields with spans. Completed
+request tasks and revoked handle/callback entries are removed without
+allocating intermediate collections. The transport still
+enforces the existing framing, size, depth, duplicate-key, trace-context, and
+concurrency limits. No JSON types or transport ownership enter the BCL-only
+kernel, and replacing the peer implementation does not change model or builder
+contracts.
+
+Resource dependency reads filter the current graph before projecting
+observations, rather than constructing and discarding unrelated snapshots.
+Projection preserves ordinal ordering, command-label redaction, generation and
+version identity, and immutable prior observations. Resources with no commands
+do not allocate command sorting/projection machinery.
+
+Warmed Release measurements on .NET 11/macOS arm64 use five samples of 4,000
+operations and `GC.GetAllocatedBytesForCurrentThread`. Stream operations complete
+synchronously over memory streams; connection setup is excluded or amortized.
+These are allocation and transport microbenchmarks, not end-to-end workload or
+startup performance claims.
+
+| Operation | Previous allocated bytes | Current allocated bytes |
+| --- | ---: | ---: |
+| Complete framed ATS `ping`, including dispatch and response serialization | 11,964 | 2,436 |
+| Inspect a resource with an attached provider transport | 12,888 | 7,536 |
+| Read a small frame on an existing connection | 8,504 | 200 |
+| Sweep 1,024 live capability handles | 16,408 | 0 |
+| Serialize a peer request containing a 2 KiB string | 6,520 | 2,184 |
+| Read two dependencies in a 200-resource graph | 67,328 | 1,136 |
+| Read all 200 observations with no resource commands | 66,856 | 25,256 |
+
+The complete framed `ping` median falls from approximately 6.9 to 4.3
+microseconds in this controlled workload. Handle retirement still uses a linear
+scan; eliminating its table copy targets allocation pressure rather than
+claiming faster scans at every handle count. Cold-path LINQ and materialization
+remain where they keep initialization and validation clearer. There is no new
+serialization framework, pooling layer, or snapshot cache.
+
 ### Neutral baseline measurements
 
 `NativeBaselineSmoke.mts` connects independent ATS clients directly to each

@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Server;
@@ -40,13 +39,13 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         {
             using var deadline = new CancellationTokenSource(options.ProviderInvocationTimeout, options.TimeProvider);
             using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _closed.Token, deadline.Token);
-            var payload = Encoding.UTF8.GetBytes(new JsonObject
+            var payload = JsonSerializer.SerializeToUtf8Bytes(new JsonObject
             {
                 ["jsonrpc"] = "2.0",
                 ["id"] = id,
                 ["method"] = method,
                 ["params"] = arguments.DeepClone()
-            }.ToJsonString());
+            }, NativeRpcMessageJsonContext.Default.JsonNode);
             if (payload.Length > options.MaximumRequestBytes)
             {
                 throw new RpcFault("REQUEST_TOO_LARGE", "The request exceeds the size limit.");
@@ -71,7 +70,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         }
     }
 
-    public async Task RunAsync(Func<ReadOnlyMemory<byte>, Task<byte[]?>> dispatch, CancellationToken cancellationToken)
+    public async Task RunAsync(Func<JsonElement, Task<byte[]?>> dispatch, CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _running, 1) != 0)
         {
@@ -84,26 +83,42 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         {
             while (await framing.ReadAsync(lifetime.Token).ConfigureAwait(false) is { } payload)
             {
-                using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                JsonDocument? document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
+                try
                 {
-                    throw new InvalidDataException("An RPC envelope must be an object.");
+                    if (document.RootElement.ValueKind != JsonValueKind.Object)
+                    {
+                        throw new InvalidDataException("An RPC envelope must be an object.");
+                    }
+                    NativeRpcProtocol.ValidateUniqueProperties(document.RootElement);
+                    // JSON-RPC is bidirectional: {"id":"native:1","result":...} is a
+                    // reply, not an inbound call. Peer-supplied IDs never select authority.
+                    if (!document.RootElement.TryGetProperty("method", out _))
+                    {
+                        AcceptResponse(document.RootElement);
+                        continue;
+                    }
+                    for (var index = requests.Count - 1; index >= 0; index--)
+                    {
+                        if (requests[index].IsCompleted)
+                        {
+                            await requests[index].ConfigureAwait(false);
+                            requests.RemoveAt(index);
+                        }
+                    }
+                    if (requests.Count >= options.MaximumConcurrentRequests)
+                    {
+                        throw new InvalidDataException("The connection response backlog exceeds the limit.");
+                    }
+                    // Dispatch borrows the parsed envelope across awaits. Transfer
+                    // disposal to the response task rather than cloning or reparsing it.
+                    requests.Add(RespondAsync(document));
+                    document = null;
                 }
-                NativeRpcProtocol.ValidateUniqueProperties(document.RootElement);
-                // JSON-RPC is bidirectional: {"id":"native:1","result":...} is a
-                // reply, not an inbound call. Peer-supplied IDs never select authority.
-                if (!document.RootElement.TryGetProperty("method", out _))
+                finally
                 {
-                    AcceptResponse(document.RootElement);
-                    continue;
+                    document?.Dispose();
                 }
-                await Task.WhenAll(requests.Where(task => task.IsCompleted)).ConfigureAwait(false);
-                requests.RemoveAll(task => task.IsCompletedSuccessfully);
-                if (requests.Count >= options.MaximumConcurrentRequests)
-                {
-                    throw new InvalidDataException("The connection response backlog exceeds the limit.");
-                }
-                requests.Add(RespondAsync(payload));
             }
         }
         catch (Exception exception) when (exception is IOException or SocketException or InvalidDataException or JsonException or RpcFault)
@@ -119,11 +134,12 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
             await Task.WhenAll(requests).ConfigureAwait(false);
         }
 
-        async Task RespondAsync(byte[] payload)
+        async Task RespondAsync(JsonDocument document)
         {
+            using var envelope = document;
             try
             {
-                var response = await dispatch(payload).ConfigureAwait(false);
+                var response = await dispatch(envelope.RootElement).ConfigureAwait(false);
                 if (response is null || lifetime.IsCancellationRequested)
                 {
                     return;
@@ -167,7 +183,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         }
         else
         {
-            completion.TrySetResult(JsonNode.Parse(response.GetProperty("result").GetRawText()));
+            completion.TrySetResult(NativeRpcProtocol.ToNode(response.GetProperty("result")));
         }
     }
 
