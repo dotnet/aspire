@@ -30,7 +30,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
         // The scan should succeed (HasServerConfigured catches JsonException)
-        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.ClaudeCode], context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
@@ -58,7 +58,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.ClaudeCode], context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
@@ -85,7 +85,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.ClaudeCode], context.DetectedEnvironments);
         var aspireApplicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", aspireApplicator.Description);
 

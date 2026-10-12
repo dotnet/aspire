@@ -26,7 +26,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.CopilotCli], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.CopilotCli], context.DetectedEnvironments);
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("GitHub Copilot", applicator.Description);
     }
@@ -173,7 +173,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.CopilotCli], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.CopilotCli], context.DetectedEnvironments);
         Assert.Empty(context.Applicators);
     }
 
@@ -189,7 +189,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.VsCode], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.VsCode], context.DetectedEnvironments);
         Assert.Empty(context.Applicators);
         Assert.False(copilotCliRunner.WasCalled);
     }
@@ -204,7 +204,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Equal([AgentClientKind.CopilotApp], context.DetectedClients);
+        Assert.Equal([AgentEnvironment.CopilotApp], context.DetectedEnvironments);
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", applicator.Description);
     }
@@ -219,8 +219,8 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(
-            [AgentClientKind.CopilotCli, AgentClientKind.CopilotApp],
-            context.DetectedClients.OrderBy(static client => client));
+            [AgentEnvironment.CopilotCli, AgentEnvironment.CopilotApp],
+            context.DetectedEnvironments.OrderBy(static client => client));
         var applicator = Assert.Single(context.Applicators);
         Assert.Contains("Aspire MCP", applicator.Description);
     }
@@ -234,7 +234,7 @@ public class CopilotAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.Empty(context.DetectedClients);
+        Assert.Empty(context.DetectedEnvironments);
         Assert.Empty(context.Applicators);
     }
 

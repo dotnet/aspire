@@ -15,6 +15,17 @@ public class AgentClientTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void UniversalClients_UseSharedSkillsWithoutChangingEnvironmentMembership()
+    {
+        Assert.Equal(["copilot", "opencode"], AgentClient.All.Where(client => client.UsesUniversalSkills).Select(client => client.Id));
+        Assert.False(AgentClient.ClaudeCode.UsesUniversalSkills);
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.CopilotCli));
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.CopilotApp));
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.VsCode));
+        Assert.False(AgentClient.Copilot.Includes(AgentEnvironment.ClaudeCode));
+    }
+
+    [Fact]
     public void ProjectPaths_IgnoreUserOverridesAndShareCompatibilityLocations()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -37,7 +48,7 @@ public class AgentClientTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void UserPaths_RespectClientOverridesWithoutRelocatingSharedSkills()
+    public void GlobalPaths_RespectClientOverridesWithoutRelocatingSharedSkills()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executionContext = workspace.CreateExecutionContext();
@@ -53,22 +64,22 @@ public class AgentClientTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(
             [Path.Combine(copilotDirectory, "mcp-config.json"), Path.Combine(claudeDirectory, ".claude.json"), openCodeFile],
-            AgentClient.All.Select(client => client.GetMcpConfigPath(AgentConfigurationScope.User, workspace.WorkspaceRoot, executionContext, environment)));
+            AgentClient.All.Select(client => client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment)));
         Assert.Equal(
             [Path.Combine(executionContext.HomeDirectory.FullName, ".agents", "skills"), Path.Combine(claudeDirectory, "skills")],
-            AgentClient.All.Select(client => client.GetSkillBaseDirectory(AgentConfigurationScope.User, workspace.WorkspaceRoot, executionContext, environment)).Distinct());
+            AgentClient.All.Select(client => client.GetSkillBaseDirectory(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment)).Distinct());
     }
 
     [Theory]
     [InlineData("OPENCODE_CONFIG_DIR", "custom-opencode", "opencode.jsonc")]
     [InlineData("XDG_CONFIG_HOME", "custom-xdg", "opencode", "opencode.jsonc")]
-    public void OpenCode_UserConfigDirectories_AreResolvedRelativeToExecutionContext(string variable, string value, params string[] suffix)
+    public void OpenCode_GlobalConfigDirectories_AreResolvedRelativeToExecutionContext(string variable, string value, params string[] suffix)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executionContext = workspace.CreateExecutionContext();
         var environment = new TestEnvironment(new Dictionary<string, string?> { [variable] = value });
         var expected = Path.Combine([workspace.WorkspaceRoot.FullName, value, .. suffix]);
 
-        Assert.Equal(expected, AgentClient.OpenCode.GetMcpConfigPath(AgentConfigurationScope.User, workspace.WorkspaceRoot, executionContext, environment));
+        Assert.Equal(expected, AgentClient.OpenCode.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment));
     }
 }

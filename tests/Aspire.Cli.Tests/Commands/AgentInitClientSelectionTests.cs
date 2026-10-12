@@ -19,9 +19,9 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     [InlineData("copilot", "project", ".agents")]
     [InlineData("opencode", "project", ".agents")]
     [InlineData("claude", "project", ".claude")]
-    [InlineData("copilot", "user", ".agents")]
-    [InlineData("opencode", "user", ".agents")]
-    [InlineData("claude", "user", ".claude")]
+    [InlineData("copilot", "global", ".agents")]
+    [InlineData("opencode", "global", ".agents")]
+    [InlineData("claude", "global", ".claude")]
     public async Task AgentInit_ExplicitUndetectedClient_InstallsCopiedSkillsOnlyInSelectedScope(string client, string scope, string skillFolder)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -33,7 +33,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agent {client} --scope {scope} --skills aspire --mcp=false");
+            $"agent init --agents {client} --scope {scope} --skills aspire --mcp=false");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
 
         var root = scope == "project" ? workspace.WorkspaceRoot : homeDirectory;
@@ -43,13 +43,58 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
             Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills"),
             Path.Combine(workspace.WorkspaceRoot.FullName, ".claude", "skills"),
             Path.Combine(homeDirectory.FullName, ".agents", "skills"),
-            Path.Combine(homeDirectory.FullName, ".claude", "skills")
+            Path.Combine(homeDirectory.FullName, ".claude", "skills"),
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills"),
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".opencode", "skills"),
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".opencode", "skill"),
+            Path.Combine(homeDirectory.FullName, ".github", "skills"),
+            Path.Combine(homeDirectory.FullName, ".opencode", "skills"),
+            Path.Combine(homeDirectory.FullName, ".opencode", "skill")
         };
         Assert.Equal([expected], candidates.Where(Directory.Exists));
         Assert.Equal(
             ["SKILL.md", Path.Combine("references", "app-commands.md")],
             Directory.EnumerateFiles(Path.Combine(expected, "aspire"), "*", SearchOption.AllDirectories)
                 .Select(path => Path.GetRelativePath(Path.Combine(expected, "aspire"), path)).Order(StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("project")]
+    [InlineData("global")]
+    public async Task AgentInit_UniversalClients_LeaveExistingAgentSpecificSkillsUntouched(string scope)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        const string original = "existing agent-specific skill";
+        var existingPaths = new List<string>();
+        foreach (var root in new[] { workspace.WorkspaceRoot, homeDirectory })
+        {
+            foreach (var folder in new[] { ".github", ".opencode" })
+            {
+                var directory = Path.Combine(root.FullName, folder, "skills", "aspire");
+                Directory.CreateDirectory(directory);
+                var path = Path.Combine(directory, "SKILL.md");
+                await File.WriteAllTextAsync(path, original);
+                existingPaths.Add(path);
+            }
+        }
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents copilot,opencode --scope {scope} --skills aspire --mcp=false");
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        var selectedRoot = scope == "project" ? workspace.WorkspaceRoot : homeDirectory;
+        Assert.True(File.Exists(Path.Combine(selectedRoot.FullName, ".agents", "skills", "aspire", "SKILL.md")));
+        foreach (var path in existingPaths)
+        {
+            Assert.Equal(original, await File.ReadAllTextAsync(path));
+            Assert.Equal([path], Directory.EnumerateFiles(Path.GetDirectoryName(path)!, "*", SearchOption.AllDirectories));
+        }
     }
 
     [Fact]
@@ -60,7 +105,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector
             {
-                DetectedClients = [AgentClientKind.CopilotApp, AgentClientKind.CopilotCli, AgentClientKind.VsCode]
+                DetectedEnvironments = [AgentEnvironment.CopilotApp, AgentEnvironment.CopilotCli, AgentEnvironment.VsCode]
             };
         });
         using var provider = services.BuildServiceProvider();
@@ -69,21 +114,42 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".agents", "skills", "aspire", "SKILL.md")));
         Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".claude")));
-        Assert.True(AgentClient.Copilot.Includes(AgentClientKind.CopilotApp));
-        Assert.True(AgentClient.Copilot.Includes(AgentClientKind.CopilotCli));
-        Assert.True(AgentClient.Copilot.Includes(AgentClientKind.VsCode));
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.CopilotApp));
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.CopilotCli));
+        Assert.True(AgentClient.Copilot.Includes(AgentEnvironment.VsCode));
     }
 
-    [Fact]
-    public async Task AgentInit_NoDetectedClients_DefaultsToNoneWithoutResolvingBundle()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgentInit_DefaultsToUniversalClientsAndDetectedAdditionalClients(bool detectClaude)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var original = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
-        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var hooks = new TestTelemetryHookConfigurator();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector
+            {
+                DetectedEnvironments = detectClaude ? [AgentEnvironment.ClaudeCode] : []
+            };
+            options.TelemetryHookConfiguratorFactory = _ => hooks;
+        });
+        using var provider = services.BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse("agent init");
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --scope global --skills aspire --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
-        Assert.Equal(original, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+        var executionContext = provider.GetRequiredService<CliExecutionContext>();
+        var environment = provider.GetRequiredService<IEnvironment>();
+        var defaults = AgentClient.All.Where(client => client.UsesUniversalSkills || detectClaude && client == AgentClient.ClaudeCode).ToArray();
+        Assert.Equal(
+            defaults.Select(client => client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment)).Order(StringComparer.Ordinal),
+            AgentClient.All.Select(client => client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment)).Where(File.Exists).Order(StringComparer.Ordinal));
+        Assert.True(File.Exists(Path.Combine(homeDirectory.FullName, ".agents", "skills", "aspire", "SKILL.md")));
+        Assert.Equal(detectClaude, File.Exists(Path.Combine(homeDirectory.FullName, ".claude", "skills", "aspire", "SKILL.md")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".agents")));
+        Assert.Equal(detectClaude ? [AgentEnvironment.ClaudeCode] : [], hooks.ConfiguredEnvironments);
     }
 
     [Theory]
@@ -106,7 +172,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agent {clients} --scope user --skills {skills} {mcp}");
+            $"agent init --agents {clients} --scope global --skills {skills} {mcp}");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(original, await File.ReadAllTextAsync(configPath));
         Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
@@ -114,14 +180,15 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("--agent unsupported")]
-    [InlineData("--agent copilot,unsupported")]
-    [InlineData("--agent copilot,none")]
-    [InlineData("--agent")]
-    [InlineData("--agent \"\"")]
+    [InlineData("--agents unsupported")]
+    [InlineData("--agents copilot,unsupported")]
+    [InlineData("--agents copilot,none")]
+    [InlineData("--agents")]
+    [InlineData("--agents \"\"")]
     [InlineData("--scope both")]
     [InlineData("--scope 0")]
     [InlineData("--scope 1")]
+    [InlineData("--scope user")]
     public void AgentInit_InvalidSelection_IsRejectedBeforeExecution(string options)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -132,6 +199,54 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
 
         Assert.Single(result.Errors);
         Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Theory]
+    [InlineData("agent init")]
+    [InlineData("mcp init")]
+    [InlineData("init")]
+    [InlineData("new aspire-empty")]
+    public void AgentSelection_SingularOption_IsRejectedBeforeExecution(string command)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+        var result = provider.GetRequiredService<RootCommand>().Parse($"{command} --agent copilot");
+
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Fact]
+    public async Task AgentInit_InteractiveEmptySelection_DoesNotConfigureDefaultClients()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var hooks = new TestTelemetryHookConfigurator();
+        var interaction = new TestInteractionService
+        {
+            PromptForSelectionsCallback = (_, choices, _, _) =>
+            {
+                Assert.Equal(["copilot", "opencode", "claude"], choices.Cast<AgentClient>().Select(client => client.Id));
+                return [];
+            },
+            PromptForSelectionCallback = (_, _, _, _) => throw new InvalidOperationException("Scope must not be prompted for an empty agent selection.")
+        };
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+            options.InteractionServiceFactory = _ => interaction;
+            options.TelemetryHookConfiguratorFactory = _ => hooks;
+        });
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --skills all --mcp");
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+        Assert.Empty(homeDirectory.GetFileSystemInfos());
+        Assert.Empty(hooks.ConfiguredEnvironments);
     }
 
     [Fact]
@@ -150,7 +265,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         });
         using var provider = services.BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agent COPILOT,copilot,OpenCode --skills aspire");
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents COPILOT,copilot,OpenCode --skills aspire");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         var summary = Assert.Single(interaction.DisplayedMessages, message => message.Message.StartsWith(AgentCommandStrings.InitCommand_InstalledSkillsSummary, StringComparison.Ordinal));
         await Verify(summary.Message);
@@ -158,7 +273,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("project")]
-    [InlineData("user")]
+    [InlineData("global")]
     public async Task AgentInit_ExplicitMcp_UsesSelectedScopeAndSharedProjectFile(string scope)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -173,10 +288,10 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
         var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
 
-        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agent all --scope {scope} --skills none --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agents all --scope {scope} --skills none --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
 
-        var selectedScope = scope == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.User;
+        var selectedScope = scope == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
         var paths = AgentClient.All.Select(client => client.GetMcpConfigPath(selectedScope, workspace.WorkspaceRoot, executionContext, environment)).Distinct().ToArray();
         var root = selectedScope is AgentConfigurationScope.Project ? workspace.WorkspaceRoot : homeDirectory;
         var contents = new Dictionary<string, JsonElement>();
@@ -199,7 +314,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(path, pinned);
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agent copilot,claude --skills none --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents copilot,claude --skills none --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(pinned, await File.ReadAllTextAsync(path));
     }
@@ -207,7 +322,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData("copilot", "project", true)]
     [InlineData("claude", "project", false)]
-    [InlineData("copilot", "user", false)]
+    [InlineData("copilot", "global", false)]
     public async Task AgentInit_LegacyMcpRepairs_AreLimitedToSelectedClientAndScope(string client, string scope, bool shouldRepair)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -222,7 +337,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         });
         using var provider = services.BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agent {client} --scope {scope} --skills none --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agents {client} --scope {scope} --skills none --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         using var config = JsonDocument.Parse(await File.ReadAllTextAsync(configPath));
         Assert.Equal(shouldRepair ? ["agent", "mcp"] : ["mcp", "start"],
@@ -234,7 +349,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AgentInit_PinnedUserMcpOverrides_ArePreserved()
+    public async Task AgentInit_PinnedGlobalMcpOverrides_ArePreserved()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var copilot = workspace.CreateDirectory("custom-copilot");
@@ -250,7 +365,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var originals = new Dictionary<string, string>();
         foreach (var client in AgentClient.All)
         {
-            var path = client.GetMcpConfigPath(AgentConfigurationScope.User, workspace.WorkspaceRoot, executionContext, environment);
+            var path = client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, environment);
             var content = client == AgentClient.OpenCode
                 ? """{ "mcp": { "aspire": { "command": ["pinned-aspire"] } }, "preference": true }"""
                 : """{ "mcpServers": { "aspire": { "command": "pinned-aspire" } }, "preference": true }""";
@@ -262,7 +377,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         services.AddSingleton<IEnvironment>(environment);
         using var provider = services.BuildServiceProvider();
         var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
-        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agent all --scope user --skills none --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents all --scope global --skills none --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
 
         foreach (var (path, content) in originals)
@@ -281,15 +396,15 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(path, original);
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agent claude --skills none --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents claude --skills none --mcp");
         Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(original, await File.ReadAllTextAsync(path));
     }
 
     [Theory]
     [InlineData("project")]
-    [InlineData("user")]
-    public async Task AgentInit_Hooks_AreLimitedToSelectedDetectedClientsInUserScope(string scope)
+    [InlineData("global")]
+    public async Task AgentInit_Hooks_AreLimitedToSelectedDetectedEnvironmentsInGlobalScope(string scope)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var hooks = new TestTelemetryHookConfigurator();
@@ -297,15 +412,15 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector
             {
-                DetectedClients = [AgentClientKind.CopilotApp, AgentClientKind.ClaudeCode, AgentClientKind.OpenCode]
+                DetectedEnvironments = [AgentEnvironment.CopilotApp, AgentEnvironment.ClaudeCode, AgentEnvironment.OpenCode]
             };
             options.TelemetryHookConfiguratorFactory = _ => hooks;
         });
         using var provider = services.BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agent claude --scope {scope} --skills aspire");
+        var result = provider.GetRequiredService<RootCommand>().Parse($"agent init --agents claude --scope {scope} --skills aspire");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
-        Assert.Equal(scope == "user" ? [AgentClientKind.ClaudeCode] : [], hooks.ConfiguredClients);
+        Assert.Equal(scope == "global" ? [AgentEnvironment.ClaudeCode] : [], hooks.ConfiguredEnvironments);
     }
 
     [Fact]
@@ -314,7 +429,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
-        var result = provider.GetRequiredService<RootCommand>().Parse("mcp init --agent claude --scope project --skills aspire --mcp");
+        var result = provider.GetRequiredService<RootCommand>().Parse("mcp init --agents claude --scope project --skills aspire --mcp");
         Assert.Empty(result.Errors);
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".claude", "skills", "aspire", "SKILL.md")));

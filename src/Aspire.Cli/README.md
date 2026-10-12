@@ -72,38 +72,6 @@ aspire <command> [options]
 | `docs` | Browse and search Aspire documentation and API reference from aspire.dev. |
 | `agent` | Manage AI agent specific setup. |
 
-### Agent client selection
-
-`aspire agent init` selects supported clients rather than skill folders:
-
-```bash
-aspire agent init --agent copilot,claude --scope project --skills aspire,aspireify
-aspire agent init --agent opencode --scope user --skills aspire --mcp
-aspire agent init --agent none
-```
-
-`--agent` accepts `copilot`, `claude`, `opencode`, `all`, or `none` (case-insensitive).
-Copilot groups the CLI, App, and VS Code Agent Host. Claude means Claude Code,
-including editor integrations, not Claude Desktop. Discovery is read-only and
-preselects detected client groups; undetected supported clients can still be
-selected explicitly. Non-interactive runs default to detected groups, or `none`
-when no clients are detected.
-
-`--scope` accepts `project` (the default) or `user`. Copilot and OpenCode share
-`.agents/skills`; Claude uses `.claude/skills`. Shared destinations are written
-once, in the selected scope only. Personal Claude skills follow `CLAUDE_CONFIG_DIR`
-when set. No implicit project-to-home mirrors are created.
-
-This command still copies skills from the existing verified Aspire skills bundle;
-`--skills` and bundle version/acquisition behavior are unchanged. MCP remains
-an explicit standalone opt-in with `--mcp`; chained `aspire new` and `aspire init`
-accept `--agent`, `--scope`, and `--skills` but never configure MCP. Their existing
-`--suppress-agent-init` option and aspireify follow-up remain available.
-`--agent none`, or `--skills none --mcp=false`, leaves configuration, skills, and
-hooks unchanged. User-scoped setup retains best-effort telemetry hooks only for
-selected, detected supported clients; project-only setup never writes user hooks.
-`ASPIRE_CLI_TELEMETRY_OPTOUT=true` continues to opt out of telemetry transmission.
-
 ## Examples
 
 To initialize an empty C# AppHost without discovering incidental `.sln` or `.slnx` files, run this from the repository root:

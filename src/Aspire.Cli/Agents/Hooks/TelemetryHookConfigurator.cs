@@ -53,12 +53,12 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 
     /// <inheritdoc />
     public async Task<TelemetryHookConfigurationResult> ConfigureAsync(
-        IReadOnlyCollection<AgentClientKind> detectedClients,
+        IReadOnlyCollection<AgentEnvironment> detectedEnvironments,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(detectedClients);
+        ArgumentNullException.ThrowIfNull(detectedEnvironments);
 
-        var configured = new List<AgentClientKind>();
+        var configured = new List<AgentEnvironment>();
         var skipped = new List<TelemetryHookSkip>();
 
         // VS Code and OpenCode hook schemas are not yet verified, so they are intentionally not
@@ -66,19 +66,19 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         // same ~/.copilot hook location, so prefer the App display name when both are detected.
         // This identifies the configuration target, not the hook event's client-name: the canonical
         // scripts currently report App events as copilot-cli. See https://github.com/microsoft/aspire-skills/issues/71.
-        var supported = new List<AgentClientKind>();
-        if (detectedClients.Contains(AgentClientKind.CopilotApp))
+        var supported = new List<AgentEnvironment>();
+        if (detectedEnvironments.Contains(AgentEnvironment.CopilotApp))
         {
-            supported.Add(AgentClientKind.CopilotApp);
+            supported.Add(AgentEnvironment.CopilotApp);
         }
-        else if (detectedClients.Contains(AgentClientKind.CopilotCli))
+        else if (detectedEnvironments.Contains(AgentEnvironment.CopilotCli))
         {
-            supported.Add(AgentClientKind.CopilotCli);
+            supported.Add(AgentEnvironment.CopilotCli);
         }
 
-        if (detectedClients.Contains(AgentClientKind.ClaudeCode))
+        if (detectedEnvironments.Contains(AgentEnvironment.ClaudeCode))
         {
-            supported.Add(AgentClientKind.ClaudeCode);
+            supported.Add(AgentEnvironment.ClaudeCode);
         }
 
         if (supported.Count == 0)
@@ -89,31 +89,31 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         // Keep compatibility scripts current for existing registrations and older clients.
         await _installer.EnsureInstalledAsync(cancellationToken);
 
-        foreach (var client in supported)
+        foreach (var environment in supported)
         {
-            switch (client)
+            switch (environment)
             {
-                case AgentClientKind.CopilotApp:
-                case AgentClientKind.CopilotCli:
+                case AgentEnvironment.CopilotApp:
+                case AgentEnvironment.CopilotCli:
                     if (await TryConfigureCopilotAsync(cancellationToken))
                     {
-                        configured.Add(client);
+                        configured.Add(environment);
                     }
                     else
                     {
-                        skipped.Add(new TelemetryHookSkip(client, TelemetryHookSkipReason.WriteFailed));
+                        skipped.Add(new TelemetryHookSkip(environment, TelemetryHookSkipReason.WriteFailed));
                     }
                     break;
 
-                case AgentClientKind.ClaudeCode:
+                case AgentEnvironment.ClaudeCode:
                     var claudeSkipReason = await ConfigureClaudeAsync(cancellationToken);
                     if (claudeSkipReason is { } reason)
                     {
-                        skipped.Add(new TelemetryHookSkip(client, reason));
+                        skipped.Add(new TelemetryHookSkip(environment, reason));
                     }
                     else
                     {
-                        configured.Add(client);
+                        configured.Add(environment);
                     }
                     break;
             }

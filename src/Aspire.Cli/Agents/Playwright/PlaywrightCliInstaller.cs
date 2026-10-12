@@ -87,6 +87,7 @@ internal sealed class PlaywrightCliInstaller(
     /// </summary>
     internal static readonly string s_primarySkillBaseDirectory = Path.Combine(".claude", "skills");
 
+    // These are upstream-generated paths to clean up in staging, not installation targets.
     private static readonly string[] s_generatedSkillBaseDirectories =
     [
         Path.Combine(".agents", "skills"),

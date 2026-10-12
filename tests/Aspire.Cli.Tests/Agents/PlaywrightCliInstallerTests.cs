@@ -24,15 +24,15 @@ public class PlaywrightCliInstallerTests
 
     [Theory]
     [InlineData("project")]
-    [InlineData("user")]
+    [InlineData("global")]
     public async Task InstallSelectedAsync_GeneratesOnceAndPreservesUnselectedScope(string scope)
     {
         var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
         try
         {
-            foreach (var scopeName in new[] { "project", "user" })
+            foreach (var scopeName in new[] { "project", "global" })
             {
-                foreach (var clientFolder in new[] { ".agents", ".claude" })
+                foreach (var clientFolder in new[] { ".agents", ".claude", ".github", ".opencode" })
                 {
                     var directory = Path.Combine(root.FullName, scopeName, clientFolder, "skills", PlaywrightCliInstaller.PlaywrightCliSkillName);
                     Directory.CreateDirectory(directory);
@@ -52,6 +52,12 @@ public class PlaywrightCliInstallerTests
                     Directory.CreateDirectory(Path.Combine(directory, "references"));
                     File.WriteAllText(Path.Combine(directory, "SKILL.md"), "generated skill");
                     File.WriteAllText(Path.Combine(directory, "references", "commands.md"), "generated commands");
+                    foreach (var folder in new[] { ".github", ".opencode" })
+                    {
+                        var generatedDirectory = Path.Combine(stagingRoot, folder, "skills", PlaywrightCliInstaller.PlaywrightCliSkillName);
+                        Directory.CreateDirectory(generatedDirectory);
+                        File.WriteAllText(Path.Combine(generatedDirectory, "SKILL.md"), "unselected generated skill");
+                    }
                 }
             };
             var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
@@ -743,19 +749,20 @@ public class PlaywrightCliInstallerTests
             var selectedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 Path.Combine(".claude", "skills"),
-                Path.Combine(".agents", "skills"),
-                Path.Combine(".github", "skills")
+                Path.Combine(".agents", "skills")
             };
             await installer.InstallAsync(tempDir, selectedDirs, CancellationToken.None);
 
-            // Verify files were mirrored to .agents/skills/playwright-cli/
-            Assert.True(File.Exists(Path.Combine(tempDir, ".agents", "skills", "playwright-cli", "SKILL.md")));
-            Assert.True(File.Exists(Path.Combine(tempDir, ".agents", "skills", "playwright-cli", "subdir", "extra.md")));
+            Assert.Equal(
+                [
+                    Path.Combine(".agents", "skills", "playwright-cli", "SKILL.md"),
+                    Path.Combine(".agents", "skills", "playwright-cli", "subdir", "extra.md"),
+                    Path.Combine(".claude", "skills", "playwright-cli", "SKILL.md"),
+                    Path.Combine(".claude", "skills", "playwright-cli", "subdir", "extra.md")
+                ],
+                Directory.EnumerateFiles(tempDir, "*", SearchOption.AllDirectories)
+                    .Select(path => Path.GetRelativePath(tempDir, path)).Order(StringComparer.Ordinal));
             Assert.Equal("# Playwright CLI Skill", await File.ReadAllTextAsync(Path.Combine(tempDir, ".agents", "skills", "playwright-cli", "SKILL.md")));
-
-            // Verify files were mirrored to .github/skills/playwright-cli/
-            Assert.True(File.Exists(Path.Combine(tempDir, ".github", "skills", "playwright-cli", "SKILL.md")));
-            Assert.True(File.Exists(Path.Combine(tempDir, ".github", "skills", "playwright-cli", "subdir", "extra.md")));
         }
         finally
         {

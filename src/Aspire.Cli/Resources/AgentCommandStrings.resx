@@ -97,22 +97,28 @@
     <value>Install Aspire MCP server</value>
   </data>
   <data name="InitCommand_SelectAgentsPrompt" xml:space="preserve">
-    <value>Which agents do you want to configure?</value>
+    <value>Which agents do you want to install to?</value>
+  </data>
+  <data name="InitCommand_UniversalSkills" xml:space="preserve">
+    <value>Universal (.agents/skills) - selected by default</value>
+  </data>
+  <data name="InitCommand_AdditionalAgentSkills" xml:space="preserve">
+    <value>Additional agent (.claude/skills)</value>
   </data>
   <data name="InitCommand_SelectScopePrompt" xml:space="preserve">
-    <value>Where do you want to configure the selected agents?</value>
+    <value>Installation scope</value>
   </data>
   <data name="InitCommand_EnvironmentSelectionNotice" xml:space="preserve">
-    <value>Only the selected scope is configured. Shared locations are written once.</value>
+    <value>Clients that support universal skills and detected clients are selected by default. Only the selected scope is configured.</value>
   </data>
   <data name="InitCommand_NoConfigurationSelected" xml:space="preserve">
     <value>No agent configuration selected. Existing configuration was left unchanged.</value>
   </data>
   <data name="InitCommand_ProjectScope" xml:space="preserve">
-    <value>project</value>
+    <value>Project (Install in the current directory; committed with your project)</value>
   </data>
-  <data name="InitCommand_UserScope" xml:space="preserve">
-    <value>user</value>
+  <data name="InitCommand_GlobalScope" xml:space="preserve">
+    <value>Global (Install in your home directory; available across all projects)</value>
   </data>
   <data name="InitCommand_EnvironmentLocationDescription" xml:space="preserve">
     <value>{0}: {1}</value>
@@ -244,16 +250,16 @@
     <value>Path to the workspace root directory</value>
   </data>
   <data name="InitCommand_EnvironmentsOptionDescription" xml:space="preserve">
-    <value>Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected agents, or '{2}' when none are detected</value>
+    <value>Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected clients and clients that support universal .agents/skills</value>
   </data>
   <data name="InitCommand_InvalidEnvironments" xml:space="preserve">
     <value>Invalid agent selection '{0}'. Use {1}, '{2}', or '{3}'.</value>
   </data>
   <data name="InitCommand_ScopeOptionDescription" xml:space="preserve">
-    <value>Configuration and skill scope: project or user (default: project)</value>
+    <value>Configuration and skill scope: project or global (default: project)</value>
   </data>
   <data name="InitCommand_InvalidScope" xml:space="preserve">
-    <value>Invalid scope '{0}'. Use 'project' or 'user'.</value>
+    <value>Invalid scope '{0}'. Use 'project' or 'global'.</value>
   </data>
   <data name="InitCommand_SkillsOptionDescription" xml:space="preserve">
     <value>Comma-separated list of skills to install. Bundle skills are loaded dynamically; CLI-provided skills include {0}. Use '{1}' or '{2}'</value>

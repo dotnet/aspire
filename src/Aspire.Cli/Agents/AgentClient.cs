@@ -24,6 +24,8 @@ internal sealed class AgentClient
 
     public string Id { get; }
 
+    public bool UsesUniversalSkills => this != ClaudeCode;
+
     public string DisplayName => Id switch
     {
         "copilot" => AgentCommandStrings.Environment_Copilot,
@@ -40,11 +42,11 @@ internal sealed class AgentClient
         _ => throw new InvalidOperationException()
     };
 
-    public bool Includes(AgentClientKind client) => Id switch
+    public bool Includes(AgentEnvironment environment) => Id switch
     {
-        "copilot" => client is AgentClientKind.CopilotCli or AgentClientKind.CopilotApp or AgentClientKind.VsCode,
-        "claude" => client is AgentClientKind.ClaudeCode,
-        "opencode" => client is AgentClientKind.OpenCode,
+        "copilot" => environment is AgentEnvironment.CopilotCli or AgentEnvironment.CopilotApp or AgentEnvironment.VsCode,
+        "claude" => environment is AgentEnvironment.ClaudeCode,
+        "opencode" => environment is AgentEnvironment.OpenCode,
         _ => false
     };
 
@@ -61,9 +63,11 @@ internal sealed class AgentClient
         // location. Their configuration overrides do not relocate it.
         // https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
         // https://opencode.ai/docs/skills/
-        var root = scope is AgentConfigurationScope.Project ? workspaceRoot : executionContext.HomeDirectory;
-        return Path.Combine(root.FullName, ".agents", "skills");
+        return GetUniversalSkillBaseDirectory(scope, workspaceRoot, executionContext);
     }
+
+    internal static string GetUniversalSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext)
+        => Path.Combine((scope is AgentConfigurationScope.Project ? workspaceRoot : executionContext.HomeDirectory).FullName, ".agents", "skills");
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
@@ -110,7 +114,7 @@ internal sealed class AgentClient
             string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_McpConfigurationDescription, DisplayName, configPath),
             cancellationToken => isOpenCode
                 ? OpenCodeAgentEnvironmentScanner.ApplyMcpConfigurationAsync(configPath, cancellationToken)
-                : this == Copilot && scope is AgentConfigurationScope.User
+                : this == Copilot && scope is AgentConfigurationScope.Global
                     ? CopilotAgentEnvironmentScanner.ApplyMcpConfigurationAsync(Path.GetDirectoryName(configPath)!, cancellationToken)
                     : ClaudeCodeAgentEnvironmentScanner.ApplyAspireMcpConfigurationAsync(configPath, cancellationToken))
         {
@@ -144,5 +148,5 @@ internal sealed class AgentClient
 internal enum AgentConfigurationScope
 {
     Project,
-    User
+    Global
 }

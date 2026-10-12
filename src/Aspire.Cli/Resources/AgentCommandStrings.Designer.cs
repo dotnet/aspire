@@ -259,7 +259,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Which agents do you want to configure?.
+        ///   Looks up a localized string similar to Which agents do you want to install to?.
         /// </summary>
         internal static string InitCommand_SelectAgentsPrompt {
             get {
@@ -268,7 +268,25 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Where do you want to configure the selected agents?.
+        ///   Looks up a localized string similar to Universal (.agents/skills) - selected by default.
+        /// </summary>
+        internal static string InitCommand_UniversalSkills {
+            get {
+                return ResourceManager.GetString("InitCommand_UniversalSkills", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Additional agent (.claude/skills).
+        /// </summary>
+        internal static string InitCommand_AdditionalAgentSkills {
+            get {
+                return ResourceManager.GetString("InitCommand_AdditionalAgentSkills", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Installation scope.
         /// </summary>
         internal static string InitCommand_SelectScopePrompt {
             get {
@@ -277,7 +295,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Only the selected scope is configured. Shared locations are written once..
+        ///   Looks up a localized string similar to Clients that support universal skills and detected clients are selected by default. Only the selected scope is configured..
         /// </summary>
         internal static string InitCommand_EnvironmentSelectionNotice {
             get {
@@ -295,7 +313,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to project.
+        ///   Looks up a localized string similar to Project (Install in the current directory; committed with your project).
         /// </summary>
         internal static string InitCommand_ProjectScope {
             get {
@@ -304,11 +322,11 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to user.
+        ///   Looks up a localized string similar to Global (Install in your home directory; available across all projects).
         /// </summary>
-        internal static string InitCommand_UserScope {
+        internal static string InitCommand_GlobalScope {
             get {
-                return ResourceManager.GetString("InitCommand_UserScope", resourceCulture);
+                return ResourceManager.GetString("InitCommand_GlobalScope", resourceCulture);
             }
         }
 
@@ -682,7 +700,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected agents, or '{2}' when none are detected.
+        ///   Looks up a localized string similar to Comma-separated agents ({0}), '{1}', or '{2}'. Defaults to detected clients and clients that support universal .agents/skills.
         /// </summary>
         internal static string InitCommand_EnvironmentsOptionDescription {
             get {
@@ -700,7 +718,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Configuration and skill scope: project or user (default: project).
+        ///   Looks up a localized string similar to Configuration and skill scope: project or global (default: project).
         /// </summary>
         internal static string InitCommand_ScopeOptionDescription {
             get {
@@ -709,7 +727,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Invalid scope '{0}'. Use 'project' or 'user'..
+        ///   Looks up a localized string similar to Invalid scope '{0}'. Use 'project' or 'global'..
         /// </summary>
         internal static string InitCommand_InvalidScope {
             get {

@@ -20,7 +20,7 @@ using Spectre.Console;
 namespace Aspire.Cli.Commands;
 
 /// <summary>
-/// Command that initializes agent environment configuration for detected agents.
+/// Command that initializes configuration and copied skills for selected agents.
 /// This is the new command under 'aspire agent init'.
 /// </summary>
 internal sealed class AgentInitCommand : BaseCommand
@@ -114,7 +114,7 @@ internal sealed class AgentInitCommand : BaseCommand
     private static Option<string?> CreateAgentsOption()
     {
         var supportedClients = string.Join(",", AgentClient.All.Select(static client => client.Id));
-        var option = new Option<string?>("--agent")
+        var option = new Option<string?>("--agents")
         {
             Description = string.Format(CultureInfo.InvariantCulture, AgentCommandStrings.InitCommand_EnvironmentsOptionDescription,
                 supportedClients, ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice),
@@ -161,9 +161,9 @@ internal sealed class AgentInitCommand : BaseCommand
                     return AgentConfigurationScope.Project;
                 }
 
-                if (string.Equals(value, "user", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(value, "global", StringComparison.OrdinalIgnoreCase))
                 {
-                    return AgentConfigurationScope.User;
+                    return AgentConfigurationScope.Global;
                 }
 
                 result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidScope, value));
@@ -171,7 +171,7 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add(static _ => [new CompletionItem("project"), new CompletionItem("user")]);
+        option.CompletionSources.Add(static _ => [new CompletionItem("project"), new CompletionItem("global")]);
         return option;
     }
 
@@ -280,22 +280,23 @@ internal sealed class AgentInitCommand : BaseCommand
         // When no language is detected (e.g., standalone `aspire agent init`), language-restricted skills are excluded.
         var detectedLanguage = await _languageDiscovery.DetectLanguageRecursiveAsync(workspaceRoot, cancellationToken);
 
-        var detectedClients = AgentClient.All.Where(client => context.DetectedClients.Any(client.Includes)).ToArray();
+        var defaultClients = AgentClient.All
+            .Where(client => client.UsesUniversalSkills || context.DetectedEnvironments.Any(client.Includes))
+            .ToArray();
         InteractionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_EnvironmentSelectionNotice);
         var (agentsProvided, requestedAgents) = bindings.Environments.Resolve();
         var selectedClients = agentsProvided && requestedAgents is not null
             ? ConsoleInteractionService.MatchChoices(requestedAgents, AgentClient.All, static client => client.Id)
             : await InteractionService.PromptForSelectionsAsync(
-            AgentCommandStrings.InitCommand_SelectAgentsPrompt,
-            AgentClient.All,
-            static client => client.DisplayName.EscapeMarkup() + Environment.NewLine + "  " + client.Description.EscapeMarkup(),
-            preSelected: detectedClients,
-            optional: true,
-            binding: bindings.Environments.WithDefault(detectedClients.Length > 0
-                ? string.Join(",", detectedClients.Select(static client => client.Id))
-                : ConsoleInteractionService.NoneChoice),
-            echoSelected: false,
-            cancellationToken: cancellationToken);
+                AgentCommandStrings.InitCommand_SelectAgentsPrompt,
+                AgentClient.All.OrderByDescending(static client => client.UsesUniversalSkills),
+                static client => client.DisplayName.EscapeMarkup() + Environment.NewLine + "  " +
+                    (client.UsesUniversalSkills ? AgentCommandStrings.InitCommand_UniversalSkills : AgentCommandStrings.InitCommand_AdditionalAgentSkills).EscapeMarkup(),
+                preSelected: defaultClients,
+                optional: true,
+                binding: bindings.Environments.WithDefault(string.Join(",", defaultClients.Select(static client => client.Id))),
+                echoSelected: false,
+                cancellationToken: cancellationToken);
 
         if (selectedClients is null)
         {
@@ -317,12 +318,12 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             scope = await InteractionService.PromptForSelectionAsync(
                 AgentCommandStrings.InitCommand_SelectScopePrompt,
-                new[] { AgentConfigurationScope.Project, AgentConfigurationScope.User },
+                new[] { AgentConfigurationScope.Project, AgentConfigurationScope.Global },
                 value => DescribeScope(value, selectedClients, workspaceRoot),
                 cancellationToken: cancellationToken);
         }
 
-        // Client selection determines destinations, never the scanner's inferred locations.
+        // The selected clients determine destinations; defaults never fabricate detection.
         var selectedSkillDirs = selectedClients
             .Select(client => client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment))
             .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
@@ -526,13 +527,13 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         // --- Phase 6: Install agent telemetry hooks (default-on, parity with azure-skills) ---
-        // User-scoped setup instruments selected, detected supported clients only. Whether telemetry is actually
+        // Global setup instruments selected, detected supported environments only. Whether telemetry is actually
         // transmitted stays gated by the single ASPIRE_CLI_TELEMETRY_OPTOUT opt-out, which both the
         // hook scripts and the `aspire agent telemetry` command path re-check at runtime.
-        if (scope is AgentConfigurationScope.User)
+        if (scope is AgentConfigurationScope.Global)
         {
-            var hookClients = context.DetectedClients.Where(client => selectedClients.Any(selected => selected.Includes(client))).ToArray();
-            await ConfigureTelemetryHooksAsync(hookClients, cancellationToken);
+            var hookEnvironments = context.DetectedEnvironments.Where(environment => selectedClients.Any(selected => selected.Includes(environment))).ToArray();
+            await ConfigureTelemetryHooksAsync(hookEnvironments, cancellationToken);
         }
 
         if (hasErrors)
@@ -550,12 +551,12 @@ internal sealed class AgentInitCommand : BaseCommand
             selectedSkills);
     }
 
-    private async Task ConfigureTelemetryHooksAsync(IReadOnlyCollection<AgentClientKind> detectedClients, CancellationToken cancellationToken)
+    private async Task ConfigureTelemetryHooksAsync(IReadOnlyCollection<AgentEnvironment> detectedEnvironments, CancellationToken cancellationToken)
     {
         TelemetryHookConfigurationResult result;
         try
         {
-            result = await _telemetryHookConfigurator.ConfigureAsync(detectedClients, cancellationToken);
+            result = await _telemetryHookConfigurator.ConfigureAsync(detectedEnvironments, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -567,22 +568,22 @@ internal sealed class AgentInitCommand : BaseCommand
             return;
         }
 
-        if (result.ConfiguredClients.Count > 0)
+        if (result.ConfiguredEnvironments.Count > 0)
         {
-            var clientNames = string.Join(", ", result.ConfiguredClients.Select(GetClientDisplayName));
+            var environmentNames = string.Join(", ", result.ConfiguredEnvironments.Select(GetEnvironmentDisplayName));
             InteractionService.DisplayMessage(
                 KnownEmojis.BarChart,
-                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHooksInstalled, clientNames));
+                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHooksInstalled, environmentNames));
         }
 
         foreach (var skip in result.Skipped)
         {
-            var clientName = GetClientDisplayName(skip.Client);
+            var environmentName = GetEnvironmentDisplayName(skip.Environment);
             var message = skip.Reason switch
             {
-                TelemetryHookSkipReason.MalformedConfig => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookSkippedMalformedConfig, clientName),
-                TelemetryHookSkipReason.UnexpectedConfigShape => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookSkippedUnexpectedShape, clientName),
-                _ => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookWriteFailed, clientName),
+                TelemetryHookSkipReason.MalformedConfig => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookSkippedMalformedConfig, environmentName),
+                TelemetryHookSkipReason.UnexpectedConfigShape => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookSkippedUnexpectedShape, environmentName),
+                _ => string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_TelemetryHookWriteFailed, environmentName),
             };
 
             // Skips are surfaced to the user but never treated as command failures: a user-owned
@@ -591,15 +592,15 @@ internal sealed class AgentInitCommand : BaseCommand
         }
     }
 
-    private static string GetClientDisplayName(AgentClientKind client)
-        => client switch
+    private static string GetEnvironmentDisplayName(AgentEnvironment environment)
+        => environment switch
         {
-            AgentClientKind.CopilotCli => "GitHub Copilot CLI",
-            AgentClientKind.CopilotApp => "GitHub Copilot App",
-            AgentClientKind.ClaudeCode => "Claude Code",
-            AgentClientKind.VsCode => "VS Code",
-            AgentClientKind.OpenCode => "OpenCode",
-            _ => client.ToString(),
+            AgentEnvironment.CopilotCli => "GitHub Copilot CLI",
+            AgentEnvironment.CopilotApp => "GitHub Copilot App",
+            AgentEnvironment.ClaudeCode => "Claude Code",
+            AgentEnvironment.VsCode => "VS Code",
+            AgentEnvironment.OpenCode => "OpenCode",
+            _ => environment.ToString(),
         };
 
     private async Task<(IReadOnlyList<SkillDefinition> Skills, AspireSkillsBundle? Bundle, string? FailureMessage)> ResolveAvailableSkillsAsync(LanguageId? detectedLanguage, CancellationToken cancellationToken)
@@ -857,17 +858,18 @@ internal sealed class AgentInitCommand : BaseCommand
             .Replace(Path.DirectorySeparatorChar, '/')
             .Replace(Path.AltDirectorySeparatorChar, '/');
 
-        return scope is AgentConfigurationScope.User ? $"~/{displayRelativeSkillDirectory}" : displayRelativeSkillDirectory;
+        return scope is AgentConfigurationScope.Global ? $"~/{displayRelativeSkillDirectory}" : displayRelativeSkillDirectory;
     }
 
     private string DescribeScope(AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, DirectoryInfo workspaceRoot)
     {
         var description = scope is AgentConfigurationScope.Project
             ? AgentCommandStrings.InitCommand_ProjectScope
-            : AgentCommandStrings.InitCommand_UserScope;
-        return description + Environment.NewLine + string.Join(Environment.NewLine, clients.Select(client =>
-            "  " + string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_EnvironmentLocationDescription,
-                client.DisplayName, GetDisplaySkillDirectory(client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment), scope, workspaceRoot)).EscapeMarkup()));
+            : AgentCommandStrings.InitCommand_GlobalScope;
+        var locations = clients.Select(client => client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment))
+            .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        return description + Environment.NewLine + string.Join(Environment.NewLine, locations.Select(location =>
+            "  " + GetDisplaySkillDirectory(location, scope, workspaceRoot).EscapeMarkup()));
     }
 
     private static async Task<IReadOnlyList<SkillAssetFile>> GetSkillFilesAsync(SkillDefinition skill, AspireSkillsBundle? aspireSkillsBundle, CancellationToken cancellationToken)

@@ -9,7 +9,7 @@ namespace Aspire.Cli.Agents;
 internal sealed class AgentEnvironmentScanContext
 {
     private readonly List<AgentEnvironmentApplicator> _applicators = [];
-    private readonly HashSet<AgentClientKind> _detectedClients = [];
+    private readonly HashSet<AgentEnvironment> _detectedEnvironments = [];
 
     /// <summary>
     /// Gets the working directory being scanned.
@@ -39,18 +39,18 @@ internal sealed class AgentEnvironmentScanContext
     public IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
 
     /// <summary>
-    /// Records that an agent client was detected as present in the environment. Used to scope
-    /// telemetry hook registration to the clients the user actually has, independent of whether the
+    /// Records a detected agent environment. Used to scope
+    /// telemetry hook registration to the environments the user actually has, independent of whether the
     /// Aspire MCP server still needs configuring.
     /// </summary>
-    /// <param name="client">The detected agent client.</param>
-    public void AddDetectedClient(AgentClientKind client)
+    /// <param name="environment">The detected agent environment.</param>
+    public void AddDetectedEnvironment(AgentEnvironment environment)
     {
-        _detectedClients.Add(client);
+        _detectedEnvironments.Add(environment);
     }
 
     /// <summary>
-    /// Gets the set of agent clients detected as present in the environment.
+    /// Gets the detected agent environments.
     /// </summary>
-    public IReadOnlyCollection<AgentClientKind> DetectedClients => _detectedClients;
+    public IReadOnlyCollection<AgentEnvironment> DetectedEnvironments => _detectedEnvironments;
 }

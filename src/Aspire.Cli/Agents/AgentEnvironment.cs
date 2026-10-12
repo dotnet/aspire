@@ -4,9 +4,9 @@
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Identifies an agent client (CLI/editor) that Aspire can configure during <c>aspire agent init</c>.
+/// Identifies an agent environment (CLI/editor) that Aspire can configure during <c>aspire agent init</c>.
 /// </summary>
-internal enum AgentClientKind
+internal enum AgentEnvironment
 {
     /// <summary>GitHub Copilot CLI.</summary>
     CopilotCli,

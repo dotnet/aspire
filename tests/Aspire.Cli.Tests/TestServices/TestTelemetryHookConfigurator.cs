@@ -9,10 +9,10 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestTelemetryHookConfigurator : ITelemetryHookConfigurator
 {
     public Exception? Exception { get; init; }
-    public IReadOnlyCollection<AgentClientKind> ConfiguredClients { get; private set; } = [];
+    public IReadOnlyCollection<AgentEnvironment> ConfiguredEnvironments { get; private set; } = [];
 
     public Task<TelemetryHookConfigurationResult> ConfigureAsync(
-        IReadOnlyCollection<AgentClientKind> detectedClients,
+        IReadOnlyCollection<AgentEnvironment> detectedEnvironments,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -21,7 +21,7 @@ internal sealed class TestTelemetryHookConfigurator : ITelemetryHookConfigurator
             throw exception;
         }
 
-        ConfiguredClients = detectedClients.ToArray();
-        return Task.FromResult(new TelemetryHookConfigurationResult(ConfiguredClients.ToArray(), []));
+        ConfiguredEnvironments = detectedEnvironments.ToArray();
+        return Task.FromResult(new TelemetryHookConfigurationResult(ConfiguredEnvironments.ToArray(), []));
     }
 }
