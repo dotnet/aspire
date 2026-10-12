@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
-using System.Net;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 
 namespace Aspire.Hosting.Native.Core.Tests;
@@ -11,29 +9,39 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeRedisAppHostTests
 {
     [Theory]
-    [InlineData("CSHARP")]
-    [InlineData("TYPESCRIPT")]
-    public async Task RealRedisIntegrationUsesDeclaredWorkloadsAuthenticatedHealthAndRetainedVolume(string language)
+    [InlineData("CSHARP", false)]
+    [InlineData("TYPESCRIPT", false)]
+    [InlineData("CSHARP", true)]
+    [InlineData("TYPESCRIPT", true)]
+    public async Task RealRedisIntegrationUsesDeclaredWorkloadsAuthenticatedHealthAndRetainedVolume(string language, bool revisions)
     {
         var server = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_SYMBOLIC_TEST_SERVER");
         var dcp = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_SYMBOLIC_TEST_DCP");
-        var apphost = Environment.GetEnvironmentVariable($"ASPIRE_NATIVE_REDIS_{language}_APPHOST");
+        var apphost = Environment.GetEnvironmentVariable($"ASPIRE_NATIVE_REDIS_{language}_{(revisions ? "VALIDATION" : "APPHOST")}");
         var provider = Environment.GetEnvironmentVariable($"ASPIRE_NATIVE_REDIS_{language}_PROVIDER");
         var node = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_SYMBOLIC_TEST_NODE");
         if (server is null || dcp is null || apphost is null || provider is null || language == "TYPESCRIPT" && node is null)
         {
             Assert.Skip("The dedicated native lane supplies actual Redis integration AppHosts/providers, AOT, DCP and Node.");
         }
-        var volume = $"native-redis-authoring-{Guid.NewGuid():N}";
+        var prefix = $"native-redis-authoring-{Guid.NewGuid():N}";
+        var volume = $"{prefix}-cache-data";
         try
         {
             await using var host = await NativeClientTestHost.StartWithWorkloadsAsync(server, dcp);
             var executable = language == "CSHARP" ? apphost : node!;
-            var arguments = language == "CSHARP"
-                ? new[] { host.Endpoint.ToString()!, provider, volume }
-                : new[] { apphost, Assert.IsType<IPEndPoint>(host.Endpoint).Port.ToString(CultureInfo.InvariantCulture), provider, volume };
+            var configuration = new[]
+            {
+                $"--native-endpoint={host.Endpoint}",
+                $"--native-provider={(language == "CSHARP" ? "example.csharp.redis" : "example.ts.redis")}={(language == "CSHARP" ? provider : $"{node}|{provider}")}",
+                $"--native-volume-prefix={prefix}",
+                "--native-exit-on-completion=consumer",
+                $"--consumer-path={provider}",
+                $"--data-volume={volume}"
+            };
+            var arguments = language == "CSHARP" ? configuration : new[] { apphost }.Concat(configuration).ToArray();
             var output = await NativeIntegrationAppHostRunner.RunAsync(executable, arguments, host.Token, TimeProvider.System);
-            Assert.Equal("redis-persistence-ok", output.Trim());
+            Assert.Equal(revisions ? "redis-persistence-ok" : "", output.Trim());
             // The provider's retiring ATS callback requests authenticated SAVE
             // through its native phase scope. AOF alone never creates dump.rdb;
             // this proves the authored callback ran after public handle revocation.

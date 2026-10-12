@@ -64,10 +64,6 @@ internal static class NativeProviderProjection
                     {
                         parameters.Add(Parameter(parameter.Name!, parameter.ParameterType));
                     }
-                    else if (lifecycle is null)
-                    {
-                        throw new NotSupportedException("CancellationToken injection is supported only for native lifecycle handlers.");
-                    }
                 }
                 capabilities.Add(new JsonObject
                 {
@@ -152,7 +148,9 @@ internal static class NativeProviderProjection
 
             void AppendClientMethod(MethodInfo method, string name, bool isStatic)
             {
-                var inputs = method.GetParameters();
+                // Cancellation is invocation context, not a wire argument. Ordinary
+                // authoring adapters need the same cancellation as lifecycle handlers.
+                var inputs = method.GetParameters().Where(parameter => parameter.ParameterType != typeof(CancellationToken)).ToArray();
                 if (isStatic && (inputs.Length == 0 || !coreTypes.ContainsKey(inputs[0].ParameterType.Name)))
                 {
                     throw new NotSupportedException("Static provider exports require a typed native receiver.");

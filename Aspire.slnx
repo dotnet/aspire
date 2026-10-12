@@ -162,6 +162,7 @@
     <Project Path="playground/NativeIntegrations/CSharp/RedisContracts/NativeIntegrations.Redis.Contracts.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/RedisValidation/NativeIntegrations.Redis.Validation.csproj" />
   </Folder>
   <Folder Name="/playground/BlazorHosted/">
     <Project Path="playground/BlazorHosted/BlazorHosted.AppHost/BlazorHosted.AppHost.csproj" />

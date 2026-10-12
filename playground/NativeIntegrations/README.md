@@ -72,30 +72,95 @@ surface: `AddContainer`/`AddExecutable`, `WithEnvironment`, `WithArgument`,
 Ordinary AppHosts declare the graph, then `StartApplication` activates native
 workloads. `WaitApplicationReady` observes native dependency and protocol-health
 ordering; no resource-owner invitations are needed. The native static contract
-has 78 exports. Both generated languages project these same contracts.
+has 79 exports. Both generated languages project these same contracts.
 
 ## Real Redis integration
 
-`CSharp/Redis` and `TypeScript/Redis/redis.mts` implement run-only Redis APIs on
-those shared declarations, retaining their own `AddRedis`, `WithDataVolume`, and
-`WithReference` APIs. Passwords are required symbolic parameters; integration
-authoring code never reads them. Redis receives its password through quoted
+`CSharp/Redis/RedisBuilderExtensions.cs` and
+`TypeScript/Redis/redis-authoring.mts` implement run-only Redis using ordinary
+generic builder composition: `AddContainer`, environment/argument/endpoint
+configuration, symbolic connection expressions, and executable health checks.
+Inert typed resource data is separate from the provider's runtime callback
+object. This is integration-author code, not generated RPC calls with new names.
+
+Ordinary C# composition is synchronous:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+var cache = builder.AddRedis("cache").WithDataVolume();
+builder.AddExecutable("consumer", executablePath, workingDirectory)
+    .WithReference(cache)
+    .WaitFor(cache);
+await builder.Build().RunAsync();
+```
+
+The equivalent TypeScript integration contributes a fluent builder method:
+
+```typescript
+const builder = await createBuilder();
+const cache = await builder.addRedis('cache').withDataVolume();
+await builder.addExecutable('consumer', executablePath, workingDirectory)
+    .withReference(cache)
+    .waitFor(cache);
+await builder.build().run();
+```
+
+Composition and `Build` only record/seal a typed transport plan; they never
+connect, block on RPC, resolve secrets, or create a language-local runtime graph.
+Async execution materializes declarations and configuration through the
+generated ATS projections into a staged native revision. The shared framework
+owns authenticated transport, selected provider activation, workspace commits,
+readiness, and retirement. Provider-side generated adapters materialize the
+integration's same generic builder implementation under delegated native
+authority; portable lifecycle callbacks remain out-of-process.
+
+`WithReference` is consumer-side environment injection; `WaitFor` is a separate
+explicit dependency operation. Native value references already contribute their
+own readiness dependencies, so these are distinct authoring concepts, not a
+claim that connection injection has no native scheduling dependency.
+
+`AddRedis` defaults to a cryptographically generated **native-owned** secret
+parameter, never an empty password. An explicit `AddParameter` can supply a
+credential, including a changed value in a staged revision. Credentials are not
+returned to the integration author. Redis receives its password through quoted
 environment expansion, and an integration-owned protocol executable performs
 real `AUTH` and `PING` before dependents can start. No raw socket readiness
 substitute is used.
 
 The integration enables AOF with `appendfsync always`; data volumes mount at
-`/data` and survive application retirement. The ordinary C#/TS Redis AppHosts
-launch a real protocol consumer, write/read data, commit a password-rotation
-revision that replaces the Redis container and its affected consumer, then read
-the persisted value again. Native reference resolution supplies the new
-endpoint and credential. The validation scenario removes its own uniquely named
-volume after both revisions.
+`/data` and survive application retirement. Ordinary AppHosts use a generated
+credential and a real protocol consumer. Separate
+`CSharp/RedisValidation` and `TypeScript/Redis/redis-validation.mts` scenarios use
+the shared application `UpdateAsync`/`update` API to rotate an explicit password,
+replace the container and affected consumer, and read retained AOF data. The
+native workspace—not the recorder—owns revision identity and retention decisions.
+Validation removes only its uniquely named volume after retirement.
 
 ```bash
 dotnet build playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj
 dotnet build playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj
+dotnet build playground/NativeIntegrations/CSharp/RedisValidation/NativeIntegrations.Redis.Validation.csproj
 ```
+
+For the C# ordinary sample, framework configuration can select a separately
+running server/provider and finite consumer without adding transport code:
+
+```bash
+export ASPIRE_NATIVE_RPC_TOKEN='<native server authentication token>'
+dotnet run --project playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj -- \
+  --native-endpoint=127.0.0.1:43210 \
+  --native-provider=example.csharp.redis="$PWD/artifacts/bin/NativeIntegrations.Redis.Provider/Debug/net11.0/NativeIntegrations.Redis.Provider" \
+  --consumer-path="$PWD/artifacts/bin/NativeIntegrations.Redis.Provider/Debug/net11.0/NativeIntegrations.Redis.Provider" \
+  --native-exit-on-completion=consumer
+```
+
+Provider selection is framework configuration, not application registration.
+Without `--native-exit-on-completion`, `RunAsync`/`run` waits for shutdown and
+retires before closing its provider. `--native-volume-prefix` namespaces the
+default `<prefix>-cache-data` retained volume. C# framework time/log services can
+be injected with `NativeBuilderOptions`. TypeScript provider configuration uses
+`--native-provider=example.ts.redis=<node>|<provider.mjs>`; quote the whole flag
+so `|` is not interpreted by the shell.
 
 The dedicated native harness also generates the TS Redis provider/consumer,
 executes both AppHosts against the actual AOT server and DCP, and validates
@@ -130,15 +195,21 @@ removal, aborted authoring, or disconnect. Retained physical workloads adopt
 the next authoring object's handlers without restarting or replaying
 initialization. C# `DisposeAsync` and TS `dispose` release local state once.
 
-The same C# and TS Redis integrations and AppHosts also pass against the local
-independent Rust runtime, including authenticated retirement callbacks, snapshot
-files and owned-volume cleanup. Rust source is not included in this repository
-change. In-process .NET lifecycle tests are not Rust execution evidence.
+The 79-export builder examples also passed against the independent Rust runtime.
+Both ordinary C#/TS AppHosts exercised native-generated default credentials,
+authenticated readiness, references, retirement SAVE and owned-volume cleanup.
+Both separate validators exercised rejected revisions, password rotation and
+retained data. Rust source is not included in this change. In-process .NET tests
+are not Rust execution evidence.
 
 Ongoing health monitoring, container-network references,
-TLS, Redis modules/admin companions, and publish/deploy remain outside this
+TLS, Redis modules/admin companions, provider-catalog discovery, dynamic provider
+addition, and publish/deploy remain outside this
 bounded run-only sample. Unsupported container-context endpoint references fail
 explicitly instead of using host loopback. No existing Redis parity is claimed.
+`--publish=true` fails explicitly; no TLS authoring operation is exposed.
+Default generated credentials are new native declarations per materialized
+revision; use an explicit parameter when controlling retention/rotation.
 Backing-declaration retirement immediately revokes native provider handles.
 Prestart allocated-endpoint barriers, external endpoint publication/revocation,
 provider notification/login selection, and remote-object retention policies

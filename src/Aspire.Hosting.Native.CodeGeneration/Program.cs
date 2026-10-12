@@ -195,6 +195,13 @@ foreach (var (name, content) in sdk)
 {
     await File.WriteAllTextAsync(Path.Combine(output, name), content).ConfigureAwait(false);
 }
+using (var builderSource = typeof(NativeProviderProjection).Assembly.GetManifestResourceStream(
+    "Aspire.Hosting.Native.CodeGeneration.Resources.native-builder.mts")
+    ?? throw new InvalidOperationException("The native builder authoring projection is missing."))
+using (var reader = new StreamReader(builderSource))
+{
+    await File.WriteAllTextAsync(Path.Combine(output, "native-builder.mts"), await reader.ReadToEndAsync().ConfigureAwait(false)).ConfigureAwait(false);
+}
 await File.WriteAllTextAsync(Path.Combine(output, "native-types.mts"),
     "export const nativeTypes = " + new JsonObject(context.HandleTypes.Select(handle => KeyValuePair.Create(
         handle.ClrType!.Name, (JsonNode?)new JsonObject { ["typeId"] = handle.AtsTypeId, ["category"] = "Handle" }))).ToJsonString() +

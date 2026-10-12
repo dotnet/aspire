@@ -6,6 +6,8 @@ import { AspireExport, defineIntegration } from './base.mjs';
 import type { Composition, DeclaredResource, DeclaredValue, ResourceLifecycleScope } from './aspire.mjs';
 import { IntegrationResource } from './integration-host.mjs';
 import { nativeTypes } from './native-types.mjs';
+import { DistributedApplicationBuilder } from './native-builder.mjs';
+import { addRedis as authorRedis } from './redis-authoring.mjs';
 
 const resourceType = { typeId: 'example.ts.redis/RedisResource', category: 'Handle' } as const;
 const text = { typeId: 'string', category: 'Primitive' } as const;
@@ -31,32 +33,24 @@ export const addRedis = AspireExport({
             { name: 'password', type: nativeTypes.DeclaredValue }],
         returnType: resourceType
     }
-}, async ({ composition, name, password }: { composition: Composition; name: string; password: DeclaredValue }) => {
-    const resource = await composition.addContainer(name, 'redis:7.4-alpine');
-    await resource.withEntrypoint('/bin/sh');
-    await resource.withEnvironment('REDIS_PASSWORD', password);
-    // Environment expansion requires explicit shell execution and quoting.
-    for (const argument of ['-c', 'exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes --appendfsync always --dir /data']) {
-        await resource.withArgument(await composition.createLiteralValue(argument));
-    }
-    await resource.withEndpoint({ name: 'tcp', protocol: 'TCP', uriScheme: 'redis',
-        targetPort: 6379, hostPort: 0, environmentVariable: '' });
-    await resource.setSymbolicConfiguration('redis.health.host', await composition.createEndpointValue(resource, 'tcp', 'host'));
-    await resource.setSymbolicConfiguration('redis.health.port', await composition.createEndpointValue(resource, 'tcp', 'port'));
-    await resource.setSymbolicConfiguration('redis.health.password', password);
-    await resource.withLifecycleExecutable('health', {
-        executablePath: process.execPath, workingDirectory: fileURLToPath(new URL('.', import.meta.url)),
-        arguments: [fileURLToPath(new URL('./redis-provider.mjs', import.meta.url)), '--redis-health'],
-        environment: [], endpoints: []
-    }, { environment: [
-        { name: 'REDIS_HOST', configurationKey: 'redis.health.host' },
-        { name: 'REDIS_PORT', configurationKey: 'redis.health.port' },
-        { name: 'REDIS_PASSWORD', configurationKey: 'redis.health.password' }
-    ], arguments: [] });
-    const endpoint = await composition.createEndpointValue(resource, 'tcp', 'hostAndPort');
-    const prefix = await endpoint.concatValue(await composition.createLiteralValue(',password='));
-    return new RedisResource(resource, await prefix.concatValue(password));
+}, async ({ composition, name, password, signal }: { composition: Composition; name: string; password: DeclaredValue; signal: AbortSignal }) => {
+    const builder = new DistributedApplicationBuilder();
+    const credential = builder.importParameter(`${name}-password`, password);
+    const cache = authorRedis(builder, name, credential);
+    const native = await builder.materialize(composition, undefined, signal);
+    return new RedisResource(native.declaration(cache.resource), await native.value(cache.resource.connectionStringExpression));
 });
+
+const declaration = AspireExport({
+    id: 'example.ts.redis/redisDeclaration', method: 'redisDeclaration', description: 'Original delegated native declaration.',
+    projection: { targetTypeId: resourceType.typeId, targetParameterName: 'context',
+        parameters: [{ name: 'context', type: resourceType }], returnType: nativeTypes.DeclaredResource }
+}, async ({ context }: { context: RedisResource }) => context.nativeDeclaration);
+const connection = AspireExport({
+    id: 'example.ts.redis/redisConnection', method: 'redisConnection', description: 'Native symbolic connection, never credential contents.',
+    projection: { targetTypeId: resourceType.typeId, targetParameterName: 'context',
+        parameters: [{ name: 'context', type: resourceType }], returnType: nativeTypes.DeclaredValue }
+}, async ({ context }: { context: RedisResource }) => context.connection);
 
 export const withDataVolume = AspireExport({
     id: 'example.ts.redis/withDataVolume', method: 'withDataVolume',
@@ -109,13 +103,13 @@ const retiring = lifecycle('retiring', 'redisRetiring', async (_context, scope) 
         arguments: [fileURLToPath(new URL('./redis-provider.mjs', import.meta.url)), '--redis-save'],
         environment: [], endpoints: []
     }, { environment: [
-        { name: 'REDIS_HOST', configurationKey: 'redis.health.host' },
-        { name: 'REDIS_PORT', configurationKey: 'redis.health.port' },
-        { name: 'REDIS_PASSWORD', configurationKey: 'redis.health.password' }
+        { name: 'REDIS_HOST', configurationKey: 'health.env.REDIS_HOST' },
+        { name: 'REDIS_PORT', configurationKey: 'health.env.REDIS_PORT' },
+        { name: 'REDIS_PASSWORD', configurationKey: 'health.env.REDIS_PASSWORD' }
     ], arguments: [] })) {
         throw new Error('Redis final authenticated snapshot failed.');
     }
 });
 
 export const integration = defineIntegration({ name: 'Redis',
-    capabilities: [addRedis, withDataVolume, withReference, initialize, allocated, ready, retiring] });
+    capabilities: [addRedis, declaration, connection, withDataVolume, withReference, initialize, allocated, ready, retiring] });

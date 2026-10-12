@@ -118,27 +118,36 @@ run_logged genuine-provider-apphosts env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work
 
 run_logged csharp-redis-provider-build dotnet build playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj
 run_logged csharp-redis-apphost-build dotnet build playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj
+run_logged csharp-redis-validation-build dotnet build playground/NativeIntegrations/CSharp/RedisValidation/NativeIntegrations.Redis.Validation.csproj
 redis_sdk="$work/redis-integration-sdk"
 mkdir -p "$redis_sdk"
 cp "$generated/"*.mts "$redis_sdk/"
 cp playground/NativeIntegrations/TypeScript/Redis/redis.mts playground/NativeIntegrations/TypeScript/Redis/redis-protocol.mts \
-    playground/NativeIntegrations/TypeScript/Redis/redis-provider.mts "$redis_sdk/"
+    playground/NativeIntegrations/TypeScript/Redis/redis-provider.mts \
+    playground/NativeIntegrations/TypeScript/Redis/redis-authoring.mts "$redis_sdk/"
 ln -s "$sdk/node_modules" "$redis_sdk/node_modules"
 run_logged typescript-redis-provider-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$redis_sdk/out" "$redis_sdk/"*.mts
 run_logged typescript-redis-provider-metadata node "$redis_sdk/out/redis-provider.mjs" --emit-contract "$redis_sdk/provider-contract.json"
 run_logged typescript-redis-provider-projection dotnet "$provider_codegen" --provider-ts "$redis_sdk/provider-contract.json" "$redis_sdk"
-cp playground/NativeIntegrations/TypeScript/Redis/redis-apphost.mts "$redis_sdk/"
+cp playground/NativeIntegrations/TypeScript/Redis/redis-apphost.mts \
+    playground/NativeIntegrations/TypeScript/Redis/redis-builder.mts \
+    playground/NativeIntegrations/TypeScript/Redis/redis-builder.test.mts \
+    playground/NativeIntegrations/TypeScript/Redis/redis-validation.mts "$redis_sdk/"
 run_logged typescript-redis-apphost-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$redis_sdk/out" "$redis_sdk/"*.mts
+run_logged typescript-builder-shape-tests node --test "$redis_sdk/out/redis-builder.test.mjs"
 redis_provider="$(dotnet msbuild playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj -nologo -getProperty:TargetPath)"
 redis_apphost="$(dotnet msbuild playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj -nologo -getProperty:TargetPath)"
+redis_validation="$(dotnet msbuild playground/NativeIntegrations/CSharp/RedisValidation/NativeIntegrations.Redis.Validation.csproj -nologo -getProperty:TargetPath)"
 run_logged genuine-redis-apphosts env ASPIRE_NATIVE_SYMBOLIC_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
     ASPIRE_NATIVE_SYMBOLIC_TEST_DCP="$ASPIRE_NATIVE_DCP_PATH" ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
     ASPIRE_NATIVE_REDIS_CSHARP_PROVIDER="$(dirname "$redis_provider")/NativeIntegrations.Redis.Provider" \
     ASPIRE_NATIVE_REDIS_CSHARP_APPHOST="$(dirname "$redis_apphost")/NativeIntegrations.Redis.AppHost.Sample" \
+    ASPIRE_NATIVE_REDIS_CSHARP_VALIDATION="$(dirname "$redis_validation")/NativeIntegrations.Redis.Validation" \
     ASPIRE_NATIVE_REDIS_TYPESCRIPT_PROVIDER="$redis_sdk/out/redis-provider.mjs" \
     ASPIRE_NATIVE_REDIS_TYPESCRIPT_APPHOST="$redis_sdk/out/redis-apphost.mjs" \
+    ASPIRE_NATIVE_REDIS_TYPESCRIPT_VALIDATION="$redis_sdk/out/redis-validation.mjs" \
     dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
     --filter-class '*.NativeRedisAppHostTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
 

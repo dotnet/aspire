@@ -198,6 +198,11 @@ internal sealed partial class Composition(CompositionSession owner, ApplicationM
     [AspireExport]
     public DeclaredValue AddSecretParameter(string name, string value) => new(this, Model.AddSecretParameter(name, value));
 
+    /// <summary>Generates a default credential within the native secret store without returning its payload.</summary>
+    [AspireExport]
+    public DeclaredValue AddGeneratedSecretParameter(string name) =>
+        new(this, Model.AddSecretParameter(name, System.Security.Cryptography.RandomNumberGenerator.GetHexString(64)));
+
     /// <summary>References a named workload endpoint property without resolving its address during composition.</summary>
     /// <param name="resource">The endpoint's resource in this composition.</param>
     /// <param name="endpointName">The declared workload endpoint name.</param>

@@ -439,6 +439,127 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/addGeneratedSecretParameter",
+      "MethodName": "addGeneratedSecretParameter",
+      "OwningTypeName": "Composition",
+      "QualifiedMethodName": "Composition.addGeneratedSecretParameter",
+      "Description": "Generates a default credential within the native secret store without returning its payload.",
+      "Documentation": {
+        "Summary": "Generates a default credential within the native secret store without returning its payload.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        },
+        {
+          "Name": "name",
+          "Type": {
+            "TypeId": "string",
+            "Category": 0,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.DeclaredValue",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.Composition",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.Composition.AddGeneratedSecretParameter",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/addResource",
       "MethodName": "addResource",
       "OwningTypeName": "Composition",

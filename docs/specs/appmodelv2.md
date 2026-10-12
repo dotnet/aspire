@@ -33,11 +33,21 @@ projects the same native ATS declarations as TypeScript.
 **For current authoring examples, start with `NativeIntegrations`, not the older
 worker fixtures below.** Its Redis integrations build on shared declarative
 `AddContainer`, environment, argument, endpoint, reference and volume primitives.
-The AppHost declares the graph and calls `StartApplication`; the server owns
-activation, dependency ordering, workload replacement and cleanup. Both language
-implementations have exercised real authenticated Redis, password rotation and
-retained-volume persistence against both AOT/DCP and Rust/DCP. The same authored
-libraries and AppHosts exercise both backends, including ATS retirement callbacks.
+Ordinary AppHosts now use familiar fluent builder APIs:
+`CreateBuilder`, `AddRedis`/`AddExecutable`, consumer-side `WithReference` and
+`WaitFor`, then `Build`/`Run`. Integration authors compose generic `AddContainer`
+and fluent configuration using new typed resource builders. C# composition is
+synchronous and records transport commands, not RPC calls or a second runtime
+graph. Framework materialization owns connections, provider activation, native
+handles and workspace transactions; the server remains authoritative about
+values, activation, dependency ordering, workload replacement and cleanup.
+
+The builder-facing C# and TS examples have passed actual Redis scenarios against
+both AOT/DCP and Rust/DCP: native-generated default passwords, authenticated
+readiness, references, persistence and lifecycle cleanup. Separate C#/TS
+validators also pass rejected-authoring rollback, password rotation and retained
+data against both backends. In-process .NET tests are not counted as Rust
+execution evidence.
 
 ### 1. The AppHost declares and delegates
 

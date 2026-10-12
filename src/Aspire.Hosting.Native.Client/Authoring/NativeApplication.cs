@@ -1,0 +1,339 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Net;
+using Aspire.Hosting.Native.Client;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Aspire.Hosting.Native.Authoring;
+
+/// <summary>Configures framework services without giving the AppHost transport or runtime ownership.</summary>
+public sealed class NativeBuilderOptions
+{
+    /// <summary>Gets the framework clock used for connection deadlines and owned-process cleanup.</summary>
+    public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+    /// <summary>Gets classified framework logging; credentials and provider console output are never logged here.</summary>
+    public ILogger Logger { get; init; } = NullLogger.Instance;
+}
+
+internal sealed class NativeBuilderSettings
+{
+    internal NativeBuilderOptions Options { get; private init; } = new();
+    internal string? Endpoint { get; private set; }
+    internal string VolumePrefix { get; private set; } = "aspire";
+    internal Dictionary<string, string> Configuration { get; } = new(StringComparer.OrdinalIgnoreCase);
+    internal Dictionary<string, (string Executable, string[] Arguments)> Providers { get; } = new(StringComparer.Ordinal);
+    internal string? ExitOnCompletion { get; private set; }
+    internal static NativeBuilderSettings FromArgs(string[] args, NativeBuilderOptions options)
+    {
+        var settings = new NativeBuilderSettings { Endpoint = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_ENDPOINT"), Options = options };
+        // Framework flags use --native-provider=package=executable[|arg...].
+        // Split once for the flag and package; arguments remain separate process
+        // arguments, never an interpolated shell command.
+        foreach (var arg in args)
+        {
+            var parts = arg.TrimStart('-').Split('=', 2);
+            if (parts.Length != 2)
+            {
+                throw new ArgumentException("AppHost configuration must use --name=value.");
+            }
+            var value = parts[1];
+            switch (parts[0])
+            {
+                case "native-endpoint": settings.Endpoint = value; break;
+                case "native-volume-prefix": settings.VolumePrefix = value; break;
+                case "native-exit-on-completion": settings.ExitOnCompletion = value; break;
+                case "native-provider":
+                    var provider = value.Split('=', 2);
+                    if (provider.Length != 2)
+                    {
+                        throw new ArgumentException("Provider configuration requires package=executable.");
+                    }
+                    var command = provider[1].Split('|');
+                    settings.Providers.Add(provider[0], (command[0], command[1..]));
+                    break;
+                case "publish": throw new NotSupportedException("Native builder publishing is not supported.");
+                default: settings.Configuration.Add(parts[0], value); break;
+            }
+        }
+
+        return settings;
+    }
+}
+
+/// <summary>Materializes a sealed transport plan and delegates all scheduling, values and retirement to the native server.</summary>
+public sealed class NativeApplication : IAsyncDisposable
+{
+    private readonly DistributedApplicationBuilder _initial;
+    private readonly TimeProvider _clock;
+    private readonly ILogger _logger;
+    private readonly List<NativeProviderActivation> _providers = [];
+    private NativeClient? _client;
+    private ApplicationWorkspace? _workspace;
+    private ApplicationExecution? _execution;
+    private NativeBuildContext? _context;
+    private readonly SemaphoreSlim _operations = new(1);
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly Lock _disposalGate = new();
+    private Task? _disposal;
+    private bool _disposed;
+    internal NativeApplication(DistributedApplicationBuilder builder)
+    {
+        _initial = builder;
+        _clock = builder.Settings.Options.TimeProvider;
+        _logger = builder.Settings.Options.Logger;
+    }
+    /// <summary>Starts the initial declaration and waits for native readiness.</summary>
+    /// <param name="cancellationToken">Cancels startup waits and retires accepted native work.</param>
+    /// <returns>A task completing after native authenticated readiness.</returns>
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        await _operations.WaitAsync(operation.Token).ConfigureAwait(false);
+        try
+        {
+            await StartCoreAsync(operation.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+    private async Task StartCoreAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_client is not null)
+        {
+            throw new InvalidOperationException("The application has already started.");
+        }
+        var endpoint = _initial.Settings.Endpoint ?? throw new InvalidOperationException("The framework requires a native server endpoint.");
+        var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
+            ?? throw new InvalidOperationException("The framework requires native authentication.");
+        try
+        {
+            _client = await NativeClient.ConnectAsync(IPEndPoint.Parse(endpoint), token, TimeSpan.FromSeconds(15),
+                _clock, cancellationToken).ConfigureAwait(false);
+            foreach (var package in _initial.Providers.Keys)
+            {
+                var command = _initial.Settings.Providers.TryGetValue(package, out var selected) ? selected :
+                    throw new InvalidOperationException($"Framework provider configuration is missing for '{package}'.");
+                _providers.Add(await NativeProviderActivation.StartAsync(_client, package, command.Executable,
+                    command.Arguments, _clock, _logger, cancellationToken).ConfigureAwait(false));
+            }
+            _workspace = await _client.Server.CreateApplicationWorkspaceAsync(cancellationToken).ConfigureAwait(false);
+            await ApplyAsync(_initial, true, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception startFailure)
+        {
+            try
+            {
+                await DisposeCoreAsync().ConfigureAwait(false);
+            }
+            catch (Exception cleanupFailure)
+            {
+                throw new AggregateException(startFailure, cleanupFailure);
+            }
+            throw;
+        }
+    }
+    /// <summary>Replaces authored intent through the native staged revision transaction, not a client runtime graph.</summary>
+    /// <param name="next">The next authored command plan.</param>
+    /// <param name="cancellationToken">Cancels waits without undoing an adopted native revision.</param>
+    /// <returns>A task completing after native revision readiness.</returns>
+    public async Task UpdateAsync(DistributedApplicationBuilder next, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        await _operations.WaitAsync(operation.Token).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_workspace is null)
+            {
+                throw new InvalidOperationException("The application has not started.");
+            }
+            if (next.Providers.Keys.Any(package => !_initial.Providers.ContainsKey(package)))
+            {
+                throw new NotSupportedException("Adding a provider after activation is not yet supported.");
+            }
+            await ApplyAsync(next, false, operation.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+    private async Task ApplyAsync(DistributedApplicationBuilder builder, bool initial, CancellationToken token)
+    {
+        var revision = await _workspace!.BeginRevisionAsync(token).ConfigureAwait(false);
+        NativeBuildContext context;
+        try
+        {
+            context = await builder.MaterializeAsync(revision, token).ConfigureAwait(false);
+        }
+        catch
+        {
+            await _workspace.AbortRevisionAsync(revision, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
+        try
+        {
+            await _workspace.CommitRevisionAsync(revision, token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Validation can fail before adoption; cleanup can fail after it.
+            // The native workspace alone decides whether this is still pending.
+            // Abort cannot reopen an adopted generation, and its rejection must
+            // never hide the original commit/retirement failure.
+            try
+            {
+                await _workspace.AbortRevisionAsync(revision, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                _logger.LogWarning("Native revision failure could not be discarded as pending authoring.");
+            }
+            throw;
+        }
+        _execution = initial ? await revision.StartApplicationAsync(token).ConfigureAwait(false) :
+            await _workspace.GetApplicationExecutionAsync(token).ConfigureAwait(false);
+        _context = context;
+        await _execution.WaitApplicationReadyAsync(60000, token).ConfigureAwait(false);
+    }
+    /// <summary>Waits for a selected executable's native exit status.</summary>
+    /// <typeparam name="T">The authored resource type.</typeparam>
+    /// <param name="resource">The executable in the currently adopted materialization.</param>
+    /// <param name="cancellationToken">Cancels this observation, not the native workload itself.</param>
+    /// <returns>A task that faults for unsuccessful native exit.</returns>
+    public async Task WaitForCompletionAsync<T>(IResourceBuilder<T> resource, CancellationToken cancellationToken = default) where T : Resource
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        await _operations.WaitAsync(operation.Token).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_execution is null || _context is null)
+            {
+                throw new InvalidOperationException("The application has not started.");
+            }
+            if (!await _execution.WaitResourceCompletionAsync(_context.Declaration(resource.Resource), 60000, operation.Token).ConfigureAwait(false))
+            {
+                throw new InvalidOperationException($"The executable '{resource.Resource.Name}' failed.");
+            }
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+    /// <summary>Runs until cancellation; finite executable scenarios may select framework exit-on-completion configuration.</summary>
+    /// <param name="cancellationToken">Requests ordered application shutdown.</param>
+    /// <returns>A task completing after native retirement and provider shutdown.</returns>
+    public async Task RunAsync(CancellationToken cancellationToken = default)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        ConsoleCancelEventHandler shutdown = (_, args) => { args.Cancel = true; lifetime.Cancel(); };
+        Console.CancelKeyPress += shutdown;
+        try
+        {
+            await StartAsync(lifetime.Token).ConfigureAwait(false);
+            if (_initial.Settings.ExitOnCompletion is { } name)
+            {
+                var resource = _initial.Resources.Single(resource => resource.Name == name);
+                if (!await _execution!.WaitResourceCompletionAsync(_context!.Declaration(resource), 60000, lifetime.Token).ConfigureAwait(false))
+                {
+                    throw new InvalidOperationException($"The executable '{name}' failed.");
+                }
+            }
+            else
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, _clock, lifetime.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            Console.CancelKeyPress -= shutdown;
+            await DisposeAsync().ConfigureAwait(false);
+        }
+    }
+    /// <summary>Retires native authority before closing framework-owned provider and transport lifetimes.</summary>
+    /// <returns>The shared cleanup task; repeated callers join the same retirement.</returns>
+    public ValueTask DisposeAsync()
+    {
+        lock (_disposalGate)
+        {
+            if (_disposal is null)
+            {
+                _lifetime.Cancel();
+                _disposal = DisposeSerializedAsync();
+            }
+
+            return new(_disposal);
+        }
+    }
+    private async Task DisposeSerializedAsync()
+    {
+        await _operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await DisposeCoreAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _operations.Release();
+        }
+    }
+    private async Task DisposeCoreAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        List<Exception> failures = [];
+        try
+        {
+            if (_workspace is not null)
+            {
+                await _workspace.RetireApplicationWorkspaceAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (Exception exception)
+        {
+            failures.Add(exception);
+        }
+        foreach (var provider in _providers)
+        {
+            try
+            {
+                await provider.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(exception);
+            }
+        }
+        try
+        {
+            if (_client is not null)
+            {
+                await _client.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        catch (Exception exception)
+        {
+            failures.Add(exception);
+        }
+        if (failures.Count > 0)
+        {
+            throw new AggregateException("Native application cleanup failed.", failures);
+        }
+    }
+}

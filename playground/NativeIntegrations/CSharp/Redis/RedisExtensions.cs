@@ -2,65 +2,43 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
+using Aspire.Hosting.Native.Authoring;
 using Aspire.Hosting.Native.Client;
+using NativeIntegrations.Redis.Authoring;
 
 namespace NativeIntegrations.Redis;
 
-/// <summary>Builds a run-only Redis integration on shared declared containers and native symbolic values.</summary>
+/// <summary>Adapts generated portable provider calls to the integration's ordinary builder authoring implementation.</summary>
 public static class RedisExtensions
 {
-    /// <summary>Adds a password-protected Redis container with authentic Redis protocol health.</summary>
+    /// <summary>Materializes the authored Redis container using original delegated native authority.</summary>
     [AspireExport("addRedis")]
-    public static async Task<RedisResource> AddRedis(Composition composition, string name, DeclaredValue password)
+    public static async Task<RedisResource> AddRedis(Composition composition, string name, DeclaredValue password, CancellationToken cancellationToken)
     {
-        var resource = await composition.AddContainerAsync(name, "redis:7.4-alpine").ConfigureAwait(false);
-        await resource.WithEntrypointAsync("/bin/sh").ConfigureAwait(false);
-        await resource.WithEnvironmentAsync("REDIS_PASSWORD", password).ConfigureAwait(false);
-        // Redis receives the password via its environment, not a resolved authoring
-        // argument. Shell expansion is explicit and quoted, matching real hosting.
-        foreach (var argument in new[] { "-c", "exec redis-server --requirepass \"$REDIS_PASSWORD\" --appendonly yes --appendfsync always --dir /data" })
-        {
-            await resource.WithArgumentAsync(await composition.CreateLiteralValueAsync(argument).ConfigureAwait(false)).ConfigureAwait(false);
-        }
-        await resource.WithEndpointAsync(new WorkloadEndpointDeclaration
-        {
-            Name = "tcp", Protocol = "TCP", UriScheme = "redis", TargetPort = 6379, HostPort = 0, EnvironmentVariable = ""
-        }).ConfigureAwait(false);
-        var host = await composition.CreateEndpointValueAsync(resource, "tcp", "host").ConfigureAwait(false);
-        var port = await composition.CreateEndpointValueAsync(resource, "tcp", "port").ConfigureAwait(false);
-        await resource.SetSymbolicConfigurationAsync("redis.health.host", host).ConfigureAwait(false);
-        await resource.SetSymbolicConfigurationAsync("redis.health.port", port).ConfigureAwait(false);
-        await resource.SetSymbolicConfigurationAsync("redis.health.password", password).ConfigureAwait(false);
-        await resource.WithLifecycleExecutableAsync("health", new ExecutableWorkloadLaunch
-        {
-            ExecutablePath = Environment.ProcessPath ?? throw new InvalidOperationException("The integration provider needs an executable path."),
-            WorkingDirectory = AppContext.BaseDirectory, Arguments = ["--redis-health"], Environment = [], Endpoints = []
-        }, new SymbolicLaunchBindings
-        {
-            Environment =
-            [
-                new() { Name = "REDIS_HOST", ConfigurationKey = "redis.health.host" },
-                new() { Name = "REDIS_PORT", ConfigurationKey = "redis.health.port" },
-                new() { Name = "REDIS_PASSWORD", ConfigurationKey = "redis.health.password" }
-            ],
-            Arguments = []
-        }).ConfigureAwait(false);
-        var endpoint = await composition.CreateEndpointValueAsync(resource, "tcp", "hostAndPort").ConfigureAwait(false);
-        var separator = await composition.CreateLiteralValueAsync(",password=").ConfigureAwait(false);
-        var connection = await endpoint.ConcatValueAsync(separator).ConfigureAwait(false);
-        connection = await connection.ConcatValueAsync(password).ConfigureAwait(false);
+        var builder = DistributedApplicationBuilder.ForIntegration();
+        var credential = builder.ImportParameter($"{name}-password", password);
+        var cache = builder.AddRedis(name, credential);
+        var native = await builder.MaterializeAsync(composition, cancellationToken).ConfigureAwait(false);
 
-        return new RedisResource(resource, connection);
+        return new RedisResource(native.Declaration(cache.Resource),
+            await native.Value(cache.Resource.ConnectionStringExpression).ConfigureAwait(false));
     }
 }
 
-/// <summary>Retains Redis's own API and symbolic connection expression over a native container declaration.</summary>
-[AspireExport]
+/// <summary>Owns portable Redis callbacks; this is deliberately separate from inert authoring data.</summary>
 public sealed class RedisResource(DeclaredResource declaration, DeclaredValue connection) : NativeIntegrationResource(declaration)
 {
     private CancellationTokenSource? _lifetime;
 
-    /// <summary>Initializes provider-local runtime state without inspecting native credentials.</summary>
+    /// <summary>Provides original native declaration authority to the generic builder projection.</summary>
+    [AspireExport("redisDeclaration")]
+    public DeclaredResource GetDeclaration() => Declaration;
+
+    /// <summary>Provides native symbolic connection authority without returning credential payloads.</summary>
+    [AspireExport("redisConnection")]
+    public DeclaredValue GetConnection() => connection;
+
+    /// <summary>Initializes provider-local state under native lifecycle ownership.</summary>
     [AspireExport("redisInitialize"), NativeResourceLifecycle("initialize")]
     public async Task Initialize(ResourceLifecycleScope scope, CancellationToken cancellationToken)
     {
@@ -68,31 +46,31 @@ public sealed class RedisResource(DeclaredResource declaration, DeclaredValue co
         await scope.WriteLifecycleLogAsync("stdout", "Redis integration initialized.", cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Observes allocation using phase-scoped native authority, not a retained public declaration handle.</summary>
+    /// <summary>Observes endpoint allocation with ephemeral native authority.</summary>
     [AspireExport("redisAllocated"), NativeResourceLifecycle("allocated")]
     public Task Allocated(ResourceLifecycleScope scope, CancellationToken cancellationToken) =>
         scope.WriteLifecycleLogAsync("stdout", "Redis endpoint allocated.", cancellationToken);
 
-    /// <summary>Reports readiness only after native authenticated Redis health succeeds.</summary>
+    /// <summary>Reports readiness after authenticated native health has succeeded.</summary>
     [AspireExport("redisReady"), NativeResourceLifecycle("ready")]
     public Task Ready(ResourceLifecycleScope scope, CancellationToken cancellationToken) =>
         scope.WriteLifecycleLogAsync("stdout", "Redis authenticated and ready.", cancellationToken);
 
-    /// <summary>Creates a final authenticated snapshot before native workload removal.</summary>
+    /// <summary>Executes authenticated SAVE after public revocation, before workload removal.</summary>
     [AspireExport("redisRetiring"), NativeResourceLifecycle("retiring")]
     public async Task Retiring(ResourceLifecycleScope scope, CancellationToken cancellationToken)
     {
         if (!await scope.RunLifecycleExecutableAsync(new ExecutableWorkloadLaunch
         {
-            ExecutablePath = Environment.ProcessPath ?? throw new InvalidOperationException("The Redis provider needs an executable path."),
+            ExecutablePath = Environment.ProcessPath ?? throw new InvalidOperationException("Redis SAVE requires the provider executable."),
             WorkingDirectory = AppContext.BaseDirectory, Arguments = ["--redis-save"], Environment = [], Endpoints = []
         }, new SymbolicLaunchBindings
         {
             Environment =
             [
-                new() { Name = "REDIS_HOST", ConfigurationKey = "redis.health.host" },
-                new() { Name = "REDIS_PORT", ConfigurationKey = "redis.health.port" },
-                new() { Name = "REDIS_PASSWORD", ConfigurationKey = "redis.health.password" }
+                new() { Name = "REDIS_HOST", ConfigurationKey = "health.env.REDIS_HOST" },
+                new() { Name = "REDIS_PORT", ConfigurationKey = "health.env.REDIS_PORT" },
+                new() { Name = "REDIS_PASSWORD", ConfigurationKey = "health.env.REDIS_PASSWORD" }
             ],
             Arguments = []
         }, cancellationToken).ConfigureAwait(false))
@@ -101,7 +79,7 @@ public sealed class RedisResource(DeclaredResource declaration, DeclaredValue co
         }
     }
 
-    /// <summary>Releases provider-local state exactly once when native retirement acknowledges object disposal.</summary>
+    /// <summary>Releases provider-local state exactly once after native retirement acknowledges disposal.</summary>
     public override ValueTask DisposeAsync()
     {
         _lifetime?.Cancel();
@@ -111,7 +89,7 @@ public sealed class RedisResource(DeclaredResource declaration, DeclaredValue co
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>Mounts a retained named Redis data volume at /data; AOF persistence is enabled by this bounded integration.</summary>
+    /// <summary>Retains the low-level provider projection for transport/conformance consumers.</summary>
     [AspireExport("withDataVolume")]
     public async Task<RedisResource> WithDataVolume(string name)
     {
@@ -120,7 +98,7 @@ public sealed class RedisResource(DeclaredResource declaration, DeclaredValue co
         return this;
     }
 
-    /// <summary>References this Redis connection from a host executable using native secret/reference resolution.</summary>
+    /// <summary>Retains the low-level connection projection separately from fluent consumer authoring.</summary>
     [AspireExport("withReference")]
     public async Task<DeclaredResource> WithReference(DeclaredResource consumer, string environmentName)
     {

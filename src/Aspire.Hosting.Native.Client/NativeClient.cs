@@ -10,7 +10,8 @@ namespace Aspire.Hosting.Native.Client;
 
 /// <summary>Owns an authenticated connection and its generated native ATS capabilities.</summary>
 /// <remarks>
-/// This nonshipping client is a transport projection, not a hosting authoring framework.
+/// This type is the low-level transport projection. The separate Authoring namespace
+/// records familiar builder commands and materializes them through this client.
 /// Disposing the connection releases connection-owned authority. Cancellation stops waiting
 /// for a call but cannot undo an operation already accepted by the native server.
 /// </remarks>
