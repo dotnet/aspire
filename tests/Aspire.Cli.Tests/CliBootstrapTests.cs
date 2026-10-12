@@ -25,7 +25,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Sigstore;
 using Tuf;
-
 #if DEBUG
 using System.Globalization;
 using Aspire.Cli.Resources;
