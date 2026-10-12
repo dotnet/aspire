@@ -885,7 +885,6 @@ public class EntraIdResourceBuilderTests
                 ["ENTRA_APP_HOME_TENANT_ID"] = operation == DistributedApplicationOperation.Run ? TenantId : "{EntraTenantId.value}",
                 ["ENTRA_CLIENT_ID"] = operation == DistributedApplicationOperation.Run ? ClientId : "{EntraClientId.value}",
                 ["ENTRA_SEND_X5_C"] = "true",
-                ["ENTRA_AZURE_REGION"] = "westus2",
                 ["ENTRA_CLIENT_CREDENTIALS_0_SOURCE_TYPE"] = "ClientSecret",
                 ["ENTRA_CLIENT_CREDENTIALS_0_CLIENT_SECRET"] = operation == DistributedApplicationOperation.Run ? "super-secret" : "{EntraSecret.value}",
                 ["ENTRA_CLIENT_CREDENTIALS_1_SOURCE_TYPE"] = "SignedAssertionFromManagedIdentity",
