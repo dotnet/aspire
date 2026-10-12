@@ -368,6 +368,16 @@ suite('Aspire tree action command E2E', function () {
 
         before = getCommandInvocationCount('aspire-vscode.openResourceSource');
         section = await openAspireView();
+        await waitForResource('e2e-python-source');
+        const pythonSourceItem = await waitForTreeItem(section, 'e2e-python-source', 60000);
+        const pythonSourceMenu = await pythonSourceItem.openContextMenu();
+        await pythonSourceMenu.select('Open resource source');
+        await waitForCommandOutcome('aspire-vscode.openResourceSource', 'success', 60000, before);
+        await waitForExplorerSelection(['AspireE2E.AppHost', 'e2e-python-source']);
+        await VSBrowser.instance.takeScreenshot('resource-python-source-directory');
+
+        before = getCommandInvocationCount('aspire-vscode.openResourceSource');
+        section = await openAspireView();
         const sourceWorkerItem = await waitForTreeItem(section, 'e2e-worker', 60000);
         const resourceContextMenu = await sourceWorkerItem.openContextMenu();
         await VSBrowser.instance.takeScreenshot('resource-go-to-source-context-menu');

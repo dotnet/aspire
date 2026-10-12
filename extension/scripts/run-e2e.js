@@ -1680,6 +1680,11 @@ function writeAppHostProject(projectName, resolvedAppHostSdkVersion, includeAzur
   fs.mkdirSync(projectDirectory, { recursive: true });
   fs.mkdirSync(path.join(projectDirectory, 'e2e-source-image'), { recursive: true });
   fs.writeFileSync(path.join(projectDirectory, 'e2e-source-tool'), 'Non-filesystem source collision fixture.');
+  const pythonDirectory = path.join(projectDirectory, 'e2e-python-source');
+  const pythonInterpreter = path.join(pythonDirectory, '.venv', isWindows ? 'Scripts' : 'bin', isWindows ? 'python.exe' : 'python');
+  fs.mkdirSync(path.dirname(pythonInterpreter), { recursive: true });
+  fs.writeFileSync(pythonInterpreter, Buffer.from([0x4d, 0x5a, 0, 0]));
+  fs.writeFileSync(path.join(pythonDirectory, 'main.py'), 'print("Python source navigation fixture")\n');
   const azureFunctionsPackageReference = includeAzureFunctions
     ? `    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${resolvedAppHostSdkVersion}" />\n`
     : '';
@@ -1829,6 +1834,19 @@ builder.AddResource(new NoCommandsResource("e2e-directory-source"))
         Properties = [
             new("executable.path", "dotnet"),
             new("executable.workDir", Path.GetDirectoryName(workerProjectPath))
+        ]
+    });
+
+// Match Python snapshot metadata with an existing interpreter, without installing or launching Python.
+builder.AddResource(new NoCommandsResource("e2e-python-source"))
+    .WithInitialState(new CustomResourceSnapshot
+    {
+        ResourceType = "Executable",
+        State = KnownResourceStates.Running,
+        Properties = [
+            new("resource.launchConfigurationType", "python"),
+            new("executable.path", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
+            new("executable.workDir", Path.Combine(builder.AppHostDirectory, "e2e-python-source"))
         ]
     });
 

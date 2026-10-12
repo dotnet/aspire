@@ -14,6 +14,7 @@ import {
 } from '../loc/strings';
 import { isLinkableUrl } from '../utils/urlSchemes';
 import { ResourceCommandJson, ResourceJson } from '../data/AppHostDataRepository';
+import { launchConfigurationTypePropertyName } from '../debugger/debuggerInstallHints';
 
 export const integratedBrowserOpenCommand = 'workbench.action.browser.open';
 export const terminalEnabledPropertyName = 'terminal.enabled';
@@ -110,6 +111,7 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
     const hasNonFilesystemSource = Boolean(resource.properties?.['container.image']?.trim() || resource.properties?.['tool.package']?.trim());
     const executablePath = hasNonFilesystemSource ? undefined : resource.properties?.['executable.path']?.trim();
     const executableWorkDir = resource.properties?.['executable.workDir']?.trim();
+    const isPython = resource.properties?.[launchConfigurationTypePropertyName] === 'python';
     const executableDirectory = executableWorkDir && path.isAbsolute(executableWorkDir)
         ? executableWorkDir
         : appHostDirectory
@@ -122,7 +124,8 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
     const sourceValues = [
         { source: projectPath, directory: appHostDirectory },
         {
-            source: executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
+            // Python's executable is its interpreter, not application source; use its working directory.
+            source: !isPython && executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
                 ? executablePath
                 : undefined,
             directory: executableDirectory,
