@@ -1,0 +1,16 @@
+{
+  "id": "vscode-e2e-windows-launch-profiles-forwardslaunchprofiles-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: VS Code extension E2E (Windows, launch-profiles) 'forwards launch profiles...' test times out probing process command lines via PowerShell",
+  "test_name": "Aspire launch profiles E2E forwards launch profiles from launch.json and the AppHost start tool to the selected CLI",
+  "error_pattern": "E2eProcessError: ... run-tests out/test-e2e/test-e2e/launchProfiles.e2e.test.js ... exited with code 1. powershell.exe -NoProfile -NonInteractive -Command (Get-CimInstance Win32_Process / CommandLineToArgvW probe) timed out after 60000ms.",
+  "occurrences": [
+    {
+      "run_id": 38273890427,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38273890427",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, launch-profiles)",
+      "pr_number": 0,
+      "observed_at": "2026-10-12T17:17:41Z"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "run_id": 38273890427,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38273890427",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-12T17:17:41Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "d1866994b27bb07ef3dac293c1d7c66f16cf8f4f",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Managed.Tests, Managed, Managed, tests/Aspire.Managed.Tests/Asp... / Managed (windows-latest)",
+      "id": 114909654725,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114909654725",
+      "classification": "flaky-test",
+      "reason": "TerminalHostSignalTests.TerminalHostSubcommandStopsWhenOwningAppHostIsGone timed out (aspire-managed exit code 124); matches a recurring flaky-timeout pattern tracked in issue #20902.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "id": 114909661679,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114909661679",
+      "classification": "flaky-test",
+      "reason": "Three TrayWatchStreamTests assertions failed with 'Expected: 0, Actual: 7' reconciliation-count race; this exact race recurs repeatedly across unrelated runs (issues #20772, #20707).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
+      "id": 114909662429,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114909662429",
+      "classification": "flaky-test",
+      "reason": "TerminalHostControlJsonSerializerContextTests.CancellationReachesServer timed out after 30s; matches recurring flaky pattern tracked in issue #20903.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 114909663542,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114909663542",
+      "classification": "flaky-test",
+      "reason": "TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Dashboard) RemoteExecutor timed out after 60s under CPU contention; matches recurring flaky pattern tracked in issue #20891.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 114913223386,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114913223386",
+      "classification": "main-repository-breakage",
+      "reason": "After all 59 TypeScript validation AppHosts passed, the generated Nuxt 'web' publish Docker image deterministically fails at 'RUN npm ci'; recurring main-repo breakage tracked in issue #20866 (15 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, launch-profiles)",
+      "id": 114915736846,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114915736846",
+      "classification": "flaky-test",
+      "reason": "The 'forwards launch profiles...' E2E test timed out after 60s waiting on a PowerShell process-command-line probe (Get-CimInstance Win32_Process); a timing-sensitive environment probe typical of VS Code E2E flakiness.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 114917175200,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38273890427/job/114917175200",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job fails solely because the TypeScript SDK Validation leg failed (Python/Go/Java all succeeded); downstream of the Nuxt Docker 'npm ci' main-repo breakage in job 114913223386.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(saturateSlots: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(Boolean saturateSlots) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 634\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Reconciliation-count race (Expected 0, Actual 7) recurs across many unrelated runs in TrayWatchStreamTests variants, indicating a shared timing/race root cause rather than a code defect."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: True, brokenPipe: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 925\n   at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 940\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring reconciliation-count race (issue #20707) seen 10 times before on main and PR runs."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: False, brokenPipe: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 925\n   at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 940\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring reconciliation-count race (issue #20772) seen 4 times before on main and PR runs."
+    },
+    {
+      "name": "Aspire.TerminalHost.Tests.TerminalHostControlJsonSerializerContextTests.CancellationReachesServer",
+      "job": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
+      "error": "System.TimeoutException : The operation at /_/tests/Aspire.TerminalHost.Tests/TerminalHostControlJsonSerializerContextTests.cs:115 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber) in /_/tests/Shared/AsyncTestHelpers.cs:line 180\n   at Aspire.TerminalHost.Tests.TerminalHostControlJsonSerializerContextTests.CancellationReachesServer() in /_/tests/Aspire.TerminalHost.Tests/TerminalHostControlJsonSerializerContextTests.cs:line 115\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches previously tracked timeout flake for this exact test (issue #20903)."
+    },
+    {
+      "name": "Aspire.Managed.Tests.TerminalHostSignalTests.TerminalHostSubcommandStopsWhenOwningAppHostIsGone",
+      "job": "Tests / No-package tests (regular, Aspire.Managed.Tests, Managed, Managed, tests/Aspire.Managed.Tests/Asp... / Managed (windows-latest)",
+      "error": "aspire-managed exited with code 124.\nstdout: \nstderr:",
+      "stack_trace": "at Aspire.Managed.Tests.TerminalHostSignalTests.AssertTerminalHostStopsWhenOwningAppHostIsGoneAsync(String hostAssemblyPath) in /_/tests/Aspire.Managed.Tests/TerminalHostSignalTests.cs:line 242\n   at Aspire.Managed.Tests.TerminalHostSignalTests.AssertTerminalHostStopsWhenOwningAppHostIsGoneAsync(String hostAssemblyPath) in /_/tests/Aspire.Managed.Tests/TerminalHostSignalTests.cs:line 255\n   at Aspire.Managed.Tests.TerminalHostSignalTests.AssertTerminalHostStopsWhenOwningAppHostIsGoneAsync(String hostAssemblyPath) in /_/tests/Aspire.Managed.Tests/TerminalHostSignalTests.cs:line 267\n   at Aspire.Managed.Tests.TerminalHostSignalTests.TerminalHostSubcommandStopsWhenOwningAppHostIsGone() in /_/tests/Aspire.Managed.Tests/TerminalHostSignalTests.cs:line 100\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches previously tracked timeout flake (aspire-managed exit code 124) for this exact test (issue #20902)."
+    },
+    {
+      "name": "Aspire launch profiles E2E forwards launch profiles from launch.json and the AppHost start tool to the selected CLI",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, launch-profiles)",
+      "error": "powershell.exe -NoProfile -NonInteractive -Command \n$source = @'\nusing System;\nusing System.ComponentModel;\nusing System.Runtime.InteropServices;\n\npublic static class AspireE2ECommandLine\n{\n    [DllImport(\"shell32.dll\", SetLastError = true)]\n    private static extern IntPtr CommandLineToArgvW(\n        [MarshalAs(UnmanagedType.LPWStr)] string commandLine,\n        out int argumentCount);\n\n    [DllImport(\"kernel32.dll\", SetLastError = true)]\n    private static extern IntPtr LocalFree(IntPtr memory);\n\n    public static string[] Parse(string commandLine)\n    {\n        int argumentCount;\n        IntPtr argumentPointers = CommandLineToArgvW(commandLine, out argumentCount);\n        if (argumentPointers == IntPtr.Zero)\n        {\n            throw new Win32Exception(Marshal.GetLastWin32Error());\n        }\n\n        try\n        {\n            var arguments = new string[argumentCount];\n            for (var index = 0; index < argumentCount; index++)\n            {\n                IntPtr argumentPointe",
+      "stack_trace": "Error: powershell.exe -NoProfile -NonInteractive -Command \n$source = @'\nusing System;\nusing System.ComponentModel;\nusing System.Runtime.InteropServices;\n\npublic static class AspireE2ECommandLine\n{\n    [DllImport(\"shell32.dll\", SetLastError = true)]\n    private static extern IntPtr CommandLineToArgvW(\n        [MarshalAs(UnmanagedType.LPWStr)] string commandLine,\n        out int argumentCount);\n\n    [DllImport(\"kernel32.dll\", SetLastError = true)]\n    private static extern IntPtr LocalFree(IntPtr memory);\n\n    public static string[] Parse(string commandLine)\n    {\n        int argumentCount;\n        IntPtr argumentPointers = CommandLineToArgvW(commandLine, out argumentCount);\n        if (argumentPointers == IntPtr.Zero)\n        {\n            throw new Win32Exception(Marshal.GetLastWin32Error());\n        }\n\n        try\n        {\n            var arguments = new string[argumentCount];\n            for (var index = 0; index < argumentCount; index++)\n            {\n                IntPtr argumentPointer = Marshal.ReadIntPtr(argumentPointers, index * IntPtr.Size);\n                arguments[index] = Marshal.PtrToStringUni(argumentPointer) ?? string.Empty;\n            }\n\n            return arguments;\n        }\n        finally\n        {\n            LocalFree(argumentPointers);\n        }\n    }\n}\n'@\n\nAdd-Type -TypeDefinition $source\nGet-CimInstance Win32_Process |\n    ForEach-Object {\n        [PSCustomObject]@{\n            ProcessId = [int]$_.ProcessId\n            CommandLine = $_.CommandLine\n            Arguments = if ($null -eq $_.CommandLine) { @() } else { [AspireE2ECommandLine]::Parse($_.CommandLine) }\n        }\n    } |\n    ConvertTo-Json -Compress -Depth 4\n timed out after 60000ms.\nstdout:\n\nstderr:\n\n    at ChildProcess.<anonymous> (out\\test-e2e\\test-e2e\\helpers\\process.js:60:24)\n    at ChildProcess.emit (node:events:519:28)\n    at maybeClose (node:internal/child_process:1101:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "A PowerShell process-enumeration probe used to inspect CLI process arguments timed out after 60s; VS Code E2E Windows shards exhibit frequent timing-sensitive flakiness in prior causes."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Dashboard\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Half-way through waiting for remote process.\nTimed out at 10/12/2026 4:40:43 PM after 60000ms waiting for remote process.\n\tProcess ID: 6511\n\tName: dotnet\n\tMainModule: /Users/runner/work/aspire/aspire/.dotnet/dotnet\n\tStartTime: 10/12/2026 4:39:42 PM\n\tTotalProcessorTime: 00:00:00.6198625",
+      "stack_trace": "at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose(Boolean disposing) in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 157\n   at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose() in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 58\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 262\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 113\n   at InvokeStub_TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)",
+      "standard_output": "Temporary workspace created at: /var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/Aspire.Cli.Tests/Workspace/edkoyvio.lzv\nDisposing temporary workspace at: /var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/Aspire.Cli.Tests/Workspace/edkoyvio.lzv",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches previously tracked RemoteExecutor timeout flake on macOS under CPU contention (issue #20891), seen twice before."
+    }
+  ],
+  "causes": [
+    "aspire-managed-tests-terminalhostsignal-stopswhenowningapphostisgone-timeout",
+    "aspire-cli-tests-backchannel-traywatchstream-stalled-flaky",
+    "aspire-cli-tests-backchannel-traywatchstream-stalled-flaky-removefirst-false",
+    "aspire-cli-tests-traywatchstream-unacknowledgeddashboardcancellation-flaky",
+    "aspire-terminalhost-tests-cancellationreachesserver-timeout",
+    "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-macos",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "vscode-e2e-windows-launch-profiles-forwardslaunchprofiles-timeout"
+  ]
+}
