@@ -58,7 +58,7 @@ Use `AsExisting(clusterName, null)` when the cluster is in the application's Azu
 
 Aspire references the cluster without changing its node pools, networking, or add-ons, and does not assign workloads to an automatically created `workload` node pool. Cluster-creation settings do not reconfigure an existing cluster. Explicit node-pool affinity must name a pool that already exists. The cluster must have a kubelet managed identity for registry access; workloads using Azure workload identity also require OIDC and workload identity to be enabled beforehand. Any ingress add-ons used by the application must already be installed and configured.
 
-Aspire still provisions the default container registry, grants the cluster's kubelet identity `AcrPull` access, and creates workload identity federated credentials when needed. The deploying identity needs permission to create these supporting resources and role assignments, retrieve AKS credentials, and deploy Kubernetes workloads. `aspire destroy` removes the application's workloads and Aspire-managed Azure resources, but retains the existing cluster.
+Aspire still provisions the default container registry, grants the cluster's kubelet identity `AcrPull` access, and creates workload identity federated credentials when needed. The deploying identity needs permission to create these supporting resources and role assignments, retrieve AKS credentials, and deploy Kubernetes workloads. `aspire destroy` removes the application's workloads and deletes the application's Azure resource group. Keep the existing cluster in a separate resource group if it must survive `aspire destroy`.
 
 ### Persistent volumes
 

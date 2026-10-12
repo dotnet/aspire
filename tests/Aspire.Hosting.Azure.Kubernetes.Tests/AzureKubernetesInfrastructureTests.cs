@@ -1685,8 +1685,10 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
         Assert.Equal("The Azure resource scope value cannot be null or empty.", exception.Message);
     }
 
-    [Fact]
-    public async Task GetCredentialsStepUsesExistingClusterScopeInsteadOfModuleScope()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetCredentialsStepUsesClusterReferenceScope(bool crossResourceGroup)
     {
         const string scopeSubscriptionId = "00000000-0000-0000-0000-000000000003";
         const string scopeResourceGroup = "scope-assigned-rg";
@@ -1706,8 +1708,15 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             workspace,
             deploymentStateManager: deploymentStateManager);
 
-        var aks = builder.AddAzureKubernetesEnvironment("aks")
-            .AsExistingInResourceGroup(clusterName, clusterResourceGroup, clusterSubscriptionId);
+        var aks = builder.AddAzureKubernetesEnvironment("aks");
+        if (crossResourceGroup)
+        {
+            aks.AsExistingInResourceGroup(clusterName, clusterResourceGroup, clusterSubscriptionId);
+        }
+        else
+        {
+            aks.AsExisting(builder.AddParameter("cluster-name", () => clusterName), null);
+        }
 
         aks.Resource.Scope = new AzureBicepResourceScope(scopeResourceGroup, scopeSubscriptionId);
         aks.Resource.Outputs["name"] = clusterName;
@@ -1752,8 +1761,10 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
             ReportingStep = reportingStep
         });
 
+        var expectedResourceGroup = crossResourceGroup ? clusterResourceGroup : scopeResourceGroup;
+        var expectedSubscriptionId = crossResourceGroup ? clusterSubscriptionId : scopeSubscriptionId;
         Assert.Equal(
-            [$"aks get-credentials --resource-group \"{clusterResourceGroup}\" --name \"{clusterName}\" --file - --subscription \"{clusterSubscriptionId}\""],
+            [$"aks get-credentials --resource-group \"{expectedResourceGroup}\" --name \"{clusterName}\" --file - --subscription \"{expectedSubscriptionId}\""],
             invocations);
     }
 

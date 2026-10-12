@@ -245,7 +245,7 @@ public partial class AzureKubernetesEnvironmentResource
                 {
                     // Resolve the scope this cluster actually lives in before touching the CLI. A cluster
                     // adopted via AsExistingInResourceGroup(...) can sit outside the app's own
-                    // subscription/resource group, and the provisioner already targets that scope.
+                    // subscription/resource group, and its Bicep reference targets that scope.
                     var (scopedSubscription, scopedResourceGroup) = GetExplicitScopeValues();
                     (subscriptionId, savedResourceGroup) = await ResolveDeploymentScopeAsync(
                         scopedSubscription,
@@ -736,14 +736,15 @@ public partial class AzureKubernetesEnvironmentResource
     /// Gets the subscription and resource group this resource explicitly targets, if any.
     /// </summary>
     /// <remarks>
-    /// Existing clusters use their annotation's scope, independently of the module's
-    /// <see cref="AzureBicepResource.Scope"/> for supporting infrastructure. New clusters
-    /// use the module's scope. Values are returned unresolved because they may be a literal string, a
+    /// Explicit existing-cluster scopes take precedence over the module's
+    /// <see cref="AzureBicepResource.Scope"/>, which controls supporting infrastructure
+    /// and locally scoped cluster references. Values are returned unresolved because they may be a literal string, a
     /// <see cref="ParameterResource"/>, or a <see cref="BicepOutputReference"/>.
     /// </remarks>
     private (object? Subscription, object? ResourceGroup) GetExplicitScopeValues()
     {
-        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) && !existing.IsTenantScope)
+        if (this.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existing) &&
+            !existing.IsTenantScope && (existing.ResourceGroup is not null || existing.Subscription is not null))
         {
             return (existing.Subscription, existing.ResourceGroup);
         }
@@ -808,7 +809,7 @@ public partial class AzureKubernetesEnvironmentResource
     /// <remarks>
     /// A cluster adopted with <c>AsExistingInResourceGroup(...)</c> can sit in a different
     /// subscription and resource group than the one Aspire deploys the rest of the app into, and the
-    /// provisioner targets that per-resource scope. The Azure CLI calls here have to agree with it,
+    /// cluster's Bicep reference targets that scope. The Azure CLI calls here have to agree with it,
     /// otherwise we would authenticate against the wrong subscription and could even find a
     /// same-named cluster in the wrong place. Values the resource does not pin fall back to the
     /// global deployment state.

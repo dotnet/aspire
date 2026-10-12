@@ -91,20 +91,23 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
                 "Parameters__aksResourceId=\"$(cat \"$BOOTSTRAP_DIR/cluster-id\")\" " +
                 "KUBECONFIG=\"$BOOTSTRAP_DIR/ambient-kubeconfig\"",
                 counter);
-            await auto.TypeAsync("aspire deploy --clear-cache");
+            await auto.TypeAsync("aspire deploy");
             await auto.EnterAsync();
             await auto.WaitForPipelineSuccessAsync(TimeSpan.FromMinutes(25));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             await DotnetProjectDeploymentHelpers.RunScriptAsync(auto, counter, """
-                set -euo pipefail
+                set -euxo pipefail
                 az aks show --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" --name existing-aks -o json \
                     | jq -S '{id, agentPoolProfiles, networkProfile, oidcIssuerProfile, securityProfile, identityProfile, tags}' \
                     > "$BOOTSTRAP_DIR/cluster-after.json"
                 diff -u "$BOOTSTRAP_DIR/cluster-before.json" "$BOOTSTRAP_DIR/cluster-after.json"
                 test "$(az aks list --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" --query 'length(@)' -o tsv)" = 0
                 az deployment group list --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" \
-                    --query '[].properties.outputs.id.value' -o tsv | grep -Fx "$Parameters__aksResourceId"
+                    --query '[].name' -o tsv | while IFS= read -r DEPLOYMENT; do
+                    az deployment group show --subscription "$TEST_SUBSCRIPTION" --resource-group "$DEPLOY_RG" \
+                        --name "$DEPLOYMENT" --query properties.outputs.id.value -o tsv
+                done | grep -Fx "$Parameters__aksResourceId"
                 az aks get-credentials --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" \
                     --name existing-aks --file "$BOOTSTRAP_DIR/verification-kubeconfig"
                 export KUBECONFIG="$BOOTSTRAP_DIR/verification-kubeconfig"
