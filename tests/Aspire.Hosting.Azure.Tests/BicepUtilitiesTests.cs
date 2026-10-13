@@ -51,6 +51,36 @@ public class BicepUtilitiesTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("existing-subscription", scope["subscription"]?.GetValue<string>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SetScopeAsync_ExistingComputeEnvironmentWithModuleScopedReferenceUsesAnnotationScope(bool foundryProject)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        AzureBicepResource resource;
+        if (foundryProject)
+        {
+            resource = builder.AddFoundry("foundry")
+                .AsExistingInResourceGroup("existing-account", "existing-rg", "existing-subscription")
+                .AddProject("project")
+                .AsExistingInResourceGroup("existing-project", "existing-rg", "existing-subscription").Resource;
+        }
+        else
+        {
+            var identity = builder.AddAzureUserAssignedIdentity("identity")
+                .AsExistingInResourceGroup("existing-identity", "existing-rg", "existing-subscription");
+            resource = builder.AddAzureSandboxGroup("sandbox")
+                .WithAcrPullIdentity(identity)
+                .AsExistingInResourceGroup("existing-sandbox", "existing-rg", "existing-subscription").Resource;
+        }
+
+        var scope = new JsonObject();
+        await BicepUtilities.SetScopeAsync(scope, resource);
+
+        Assert.Equal("existing-rg", scope["resourceGroup"]?.GetValue<string>());
+        Assert.Equal("existing-subscription", scope["subscription"]?.GetValue<string>());
+    }
+
     [Fact]
     public async Task SetParametersTranslatesParametersToARMCompatibleJsonParameters()
     {
