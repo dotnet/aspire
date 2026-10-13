@@ -606,6 +606,124 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         Assert.Empty(homeDirectory.GetFileSystemInfos());
     }
 
+    [Theory]
+    [InlineData("project", false, false, "opencode.jsonc")]
+    [InlineData("project", true, false, "opencode.json")]
+    [InlineData("project", true, true, "opencode.jsonc")]
+    [InlineData("global", false, false, "opencode.jsonc")]
+    [InlineData("global", true, false, "opencode.json")]
+    [InlineData("global", true, true, "opencode.jsonc")]
+    public async Task AgentInit_OpenCodeConfiguration_UsesExistingFormatAndPrecedence(
+        string scopeName, bool jsonExists, bool jsoncExists, string expectedFileName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var environment = new TestEnvironment();
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
+        var configDirectory = new DirectoryInfo(Path.GetDirectoryName(
+            AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment))!);
+        configDirectory.Create();
+        if (jsonExists)
+        {
+            await File.WriteAllTextAsync(Path.Combine(configDirectory.FullName, "opencode.json"), """{"model":"keep-json","mcp":{"other":{"command":["other"]}}}""");
+        }
+        if (jsoncExists)
+        {
+            await File.WriteAllTextAsync(Path.Combine(configDirectory.FullName, "opencode.jsonc"), """{"model":"keep-jsonc","mcp":{"other":{"command":["other"]}}}""");
+        }
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+        var expectedPath = Path.Combine(configDirectory.FullName, expectedFileName);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents opencode --scope {scopeName} --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(expectedPath, AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment));
+        Assert.Equal(before.Append(expectedPath).Distinct().Order(StringComparer.Ordinal), GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+        var configurations = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(configDirectory.FullName, "opencode.json*"))
+        {
+            configurations.Add(Path.GetFileName(path), await File.ReadAllTextAsync(path));
+        }
+        await Verify(configurations).UseParameters(scopeName, jsonExists, jsoncExists);
+    }
+
+    [Theory]
+    [InlineData("project", "opencode.json")]
+    [InlineData("project", "both")]
+    [InlineData("global", "opencode.json")]
+    [InlineData("global", "both")]
+    public async Task AgentInit_OpenCodeConfiguration_PreservesPinnedServers(string scopeName, string existingFileName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var environment = new TestEnvironment();
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
+        var configDirectory = Path.GetDirectoryName(AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment))!;
+        Directory.CreateDirectory(configDirectory);
+        var originals = new Dictionary<string, string>();
+        foreach (var fileName in existingFileName == "both" ? new[] { "opencode.json", "opencode.jsonc" } : [existingFileName])
+        {
+            var path = Path.Combine(configDirectory, fileName);
+            var original = $$"""
+                {
+                    "mcp": { "aspire": { "command": ["pinned-{{fileName}}"], "enabled": false } }
+                }
+                """;
+            originals.Add(path, original);
+            await File.WriteAllTextAsync(path, original);
+        }
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents opencode --scope {scopeName} --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        foreach (var (path, original) in originals)
+        {
+            Assert.Equal(original, await File.ReadAllTextAsync(path));
+        }
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Theory]
+    [InlineData("OPENCODE_CONFIG_DIR", "custom-opencode", "custom-opencode")]
+    [InlineData("XDG_CONFIG_HOME", "custom-xdg", "custom-xdg/opencode")]
+    public async Task AgentInit_OpenCodeGlobalDirectoryOverrides_UseExistingJsonConfiguration(
+        string variable, string value, string relativeDirectory)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var configDirectory = workspace.CreateDirectory(relativeDirectory.Replace('/', Path.DirectorySeparatorChar));
+        var configPath = Path.Combine(configDirectory.FullName, "opencode.json");
+        const string pinned = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
+        await File.WriteAllTextAsync(configPath, pinned);
+        var environment = new TestEnvironment(new Dictionary<string, string?> { [variable] = value });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents opencode --scope global --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(pinned, await File.ReadAllTextAsync(configPath));
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
     [Fact]
     public async Task AgentInit_PinnedGlobalMcpOverrides_ArePreserved()
     {

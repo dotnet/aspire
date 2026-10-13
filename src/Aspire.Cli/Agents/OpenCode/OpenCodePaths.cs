@@ -5,7 +5,14 @@ namespace Aspire.Cli.Agents.OpenCode;
 
 internal static class OpenCodePaths
 {
-    public const string McpConfigFileName = "opencode.jsonc";
+    public static string GetMcpConfigPath(DirectoryInfo directory)
+    {
+        var jsoncPath = Path.Combine(directory.FullName, "opencode.jsonc");
+        var jsonPath = Path.Combine(directory.FullName, "opencode.json");
+        // OpenCode loads JSON first, then JSONC, merging the latter with higher precedence.
+        // https://github.com/anomalyco/opencode/blob/dev/packages/core/src/config.ts
+        return File.Exists(jsoncPath) || !File.Exists(jsonPath) ? jsoncPath : jsonPath;
+    }
 
     public static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
     {
@@ -18,7 +25,7 @@ internal static class OpenCodePaths
             ?? Path.Combine(GetOverride("XDG_CONFIG_HOME")
                 ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
 
-        return Path.Combine(configDirectory, McpConfigFileName);
+        return GetMcpConfigPath(new DirectoryInfo(configDirectory));
 
         string? GetOverride(string name)
             => environment.GetEnvironmentVariable(name) is { Length: > 0 } value

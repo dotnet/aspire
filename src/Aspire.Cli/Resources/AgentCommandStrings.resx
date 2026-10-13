@@ -246,6 +246,9 @@
   <data name="PlaywrightCliInstaller_FailedToGenerateSkillFiles" xml:space="preserve">
     <value>Failed to generate Playwright CLI skill files.</value>
   </data>
+  <data name="PlaywrightCliInstaller_FailedToMirrorSkillFiles" xml:space="preserve">
+    <value>Failed to copy Playwright CLI skill files to the selected locations.</value>
+  </data>
   <data name="PlaywrightCliInstaller_InstalledWithMirrorWarnings" xml:space="preserve">
     <value>Installed Playwright CLI (some locations failed to mirror).</value>
   </data>

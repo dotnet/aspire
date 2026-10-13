@@ -33,16 +33,6 @@ internal sealed class AgentInitCommand : BaseCommand
     private readonly ITelemetryHookConfigurator _telemetryHookConfigurator;
     private readonly IEnvironment _environment;
     private readonly ICliHostEnvironment _hostEnvironment;
-    internal Option<string?> AgentsOption { get; }
-
-    internal Option<AgentConfigurationScope> ScopeOption { get; } = new("--scope")
-    {
-        HelpName = "project|global",
-        Description = AgentCommandStrings.InitCommand_ScopeOptionDescription,
-        Recursive = true,
-        Arity = ArgumentArity.ExactlyOne
-    };
-
     public AgentInitCommand(
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IAspireSkillsInstaller aspireSkillsInstaller,
@@ -62,26 +52,15 @@ internal sealed class AgentInitCommand : BaseCommand
         _telemetryHookConfigurator = telemetryHookConfigurator;
         _environment = environment;
         _hostEnvironment = services.HostEnvironment;
-        AgentsOption = CreateAgentsOption();
-        // Native enum parsing also accepts numeric and composite values; scope is one named choice.
-        ScopeOption.Validators.Add(result =>
-        {
-            if (result.Tokens.Count == 1 &&
-                Enum.TryParse<AgentConfigurationScope>(result.Tokens[0].Value, ignoreCase: true, out _) &&
-                !Enum.GetNames<AgentConfigurationScope>().Contains(result.Tokens[0].Value, StringComparer.OrdinalIgnoreCase))
-            {
-                result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidScope, result.Tokens[0].Value));
-            }
-        });
-        ScopeOption.CompletionSources.Clear();
-        ScopeOption.CompletionSources.Add(static _ => [new CompletionItem("project"), new CompletionItem("global")]);
-
         Options.Add(s_workspaceRootOption);
         Options.Add(s_mcpOption);
-        Options.Add(AgentsOption);
-        Options.Add(ScopeOption);
+        Options.Add(s_agentsOption);
+        Options.Add(s_scopeOption);
         Options.Add(s_skillsOption);
     }
+
+    internal static readonly Option<string?> s_agentsOption = CreateAgentsOption();
+    internal static readonly Option<AgentConfigurationScope> s_scopeOption = CreateScopeOption();
 
     internal static readonly Option<string?> s_workspaceRootOption = new("--workspace-root")
     {
@@ -146,6 +125,31 @@ internal sealed class AgentInitCommand : BaseCommand
         return option;
     }
 
+    private static Option<AgentConfigurationScope> CreateScopeOption()
+    {
+        var option = new Option<AgentConfigurationScope>("--scope")
+        {
+            HelpName = "project|global",
+            Description = AgentCommandStrings.InitCommand_ScopeOptionDescription,
+            Recursive = true,
+            Arity = ArgumentArity.ExactlyOne
+        };
+        // Native enum parsing also accepts numeric and composite values; scope is one named choice.
+        option.Validators.Add(result =>
+        {
+            if (result.Tokens.Count == 1 &&
+                Enum.TryParse<AgentConfigurationScope>(result.Tokens[0].Value, ignoreCase: true, out _) &&
+                !Enum.GetNames<AgentConfigurationScope>().Contains(result.Tokens[0].Value, StringComparer.OrdinalIgnoreCase))
+            {
+                result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidScope, result.Tokens[0].Value));
+            }
+        });
+        option.CompletionSources.Clear();
+        option.CompletionSources.Add(static _ => [new CompletionItem("project"), new CompletionItem("global")]);
+
+        return option;
+    }
+
     /// <summary>
     /// Public entry point for executing the init command.
     /// This allows McpInitCommand to delegate to this implementation.
@@ -201,9 +205,9 @@ internal sealed class AgentInitCommand : BaseCommand
         var workspaceRoot = await PromptForWorkspaceRootAsync(parseResult, cancellationToken);
         var result = await ExecuteAgentInitAsync(
             workspaceRoot,
-            PromptBinding.Create(parseResult, AgentsOption),
+            PromptBinding.Create(parseResult, s_agentsOption),
             PromptBinding.Create(parseResult, s_skillsOption),
-            PromptBinding.Create(parseResult, ScopeOption, AgentConfigurationScope.Project),
+            PromptBinding.Create(parseResult, s_scopeOption, AgentConfigurationScope.Project),
             PromptBinding.CreateBoolConfirm(parseResult, s_mcpOption, defaultValue: false),
             cancellationToken);
         return CommandResult.FromExitCode(result.ExitCode);

@@ -38,9 +38,11 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     }
 
     [Theory]
-    [InlineData(".")]
-    [InlineData("subdir")]
-    public async Task ScanAsync_WithProjectDirectory_DetectsClaudeWithoutCallingRunner(string relativeWorkingDirectory)
+    [InlineData(".", false)]
+    [InlineData("subdir", false)]
+    [InlineData(".", true)]
+    [InlineData("subdir", true)]
+    public async Task ScanAsync_WithProjectDirectory_DetectsClaudeWithoutCallingRunner(string relativeWorkingDirectory, bool trailingRootSeparator)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         workspace.CreateDirectory(".claude");
@@ -53,7 +55,9 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         var context = new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = workspace.WorkspaceRoot
+            RepositoryRoot = trailingRootSeparator
+                ? new DirectoryInfo(workspace.WorkspaceRoot.FullName + Path.DirectorySeparatorChar)
+                : workspace.WorkspaceRoot
         };
         var before = Directory.GetFileSystemEntries(workspace.WorkspaceRoot.FullName, "*", SearchOption.AllDirectories);
 
@@ -87,6 +91,42 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         Assert.Equal(AgentEnvironment.None, environments);
         Assert.True(runner.WasCalled);
+    }
+
+    [Theory]
+    [InlineData(".", false)]
+    [InlineData(".", true)]
+    [InlineData("sibling", false)]
+    [InlineData("sibling", true)]
+    [InlineData("selected-sibling", false)]
+    [InlineData("selected-sibling", true)]
+    public async Task ScanAsync_WithWorkingDirectoryOutsideRoot_UsesSelectedWorkspaceRoot(string relativeWorkingDirectory, bool rootHasProjectDirectory)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var selectedRoot = workspace.CreateDirectory("selected");
+        var workingDirectory = relativeWorkingDirectory == "." ? workspace.WorkspaceRoot : workspace.CreateDirectory(relativeWorkingDirectory);
+        Directory.CreateDirectory(Path.Combine(workingDirectory.FullName, ".claude"));
+        if (rootHasProjectDirectory)
+        {
+            Directory.CreateDirectory(Path.Combine(selectedRoot.FullName, ".claude"));
+        }
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var runner = new FakeClaudeCodeCliRunner(null);
+        var scanner = new ClaudeCodeAgentEnvironmentScanner(runner,
+            TestExecutionContextHelper.CreateExecutionContext(workingDirectory, homeDirectory: homeDirectory),
+            NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
+        var context = new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = workingDirectory,
+            RepositoryRoot = selectedRoot
+        };
+        var before = Directory.GetFileSystemEntries(workspace.WorkspaceRoot.FullName, "*", SearchOption.AllDirectories);
+
+        var environments = await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal(rootHasProjectDirectory ? AgentEnvironment.ClaudeCode : AgentEnvironment.None, environments);
+        Assert.Equal(!rootHasProjectDirectory, runner.WasCalled);
+        Assert.Equal(before, Directory.GetFileSystemEntries(workspace.WorkspaceRoot.FullName, "*", SearchOption.AllDirectories));
     }
 
     private sealed class FakeClaudeCodeCliRunner(SemVersion? version) : IClaudeCodeCliRunner

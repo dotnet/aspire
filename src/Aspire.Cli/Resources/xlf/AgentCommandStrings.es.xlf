@@ -307,6 +307,11 @@
         <target state="new">Failed to install {0} globally via npm.</target>
         <note />
       </trans-unit>
+      <trans-unit id="PlaywrightCliInstaller_FailedToMirrorSkillFiles">
+        <source>Failed to copy Playwright CLI skill files to the selected locations.</source>
+        <target state="new">Failed to copy Playwright CLI skill files to the selected locations.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlaywrightCliInstaller_FailedToResolvePackage">
         <source>Failed to resolve {0} from the npm registry.</source>
         <target state="new">Failed to resolve {0} from the npm registry.</target>

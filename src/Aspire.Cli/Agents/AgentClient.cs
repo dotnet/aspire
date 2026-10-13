@@ -23,7 +23,6 @@ internal sealed class AgentClient
         Id = "copilot",
         DisplayName = AgentCommandStrings.Environment_Copilot,
         Environments = AgentEnvironment.CopilotCli | AgentEnvironment.CopilotApp | AgentEnvironment.VsCode,
-        ProjectMcpFileName = ".mcp.json",
         GlobalMcpConfigPath = static (context, environment) =>
             Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json"),
         McpServersPropertyName = "mcpServers",
@@ -49,7 +48,6 @@ internal sealed class AgentClient
         ProjectSkillsDirectory = Path.Combine(ClaudeCodePaths.ConfigDirectoryName, "skills"),
         GlobalSkillsDirectory = static (context, environment) =>
             Path.Combine(ClaudeCodePaths.GetConfigDirectory(context, environment), "skills"),
-        ProjectMcpFileName = ".mcp.json",
         GlobalMcpConfigPath = ClaudeCodePaths.GetGlobalMcpConfigPath,
         McpServersPropertyName = "mcpServers"
     };
@@ -59,7 +57,7 @@ internal sealed class AgentClient
         Id = "opencode",
         DisplayName = AgentCommandStrings.Environment_OpenCode,
         Environments = AgentEnvironment.OpenCode,
-        ProjectMcpFileName = OpenCodePaths.McpConfigFileName,
+        ProjectMcpConfigPath = OpenCodePaths.GetMcpConfigPath,
         GlobalMcpConfigPath = OpenCodePaths.GetGlobalMcpConfigPath,
         McpServersPropertyName = "mcp",
         McpJsonDocumentOptions = ConfigurationHelper.ParseOptions,
@@ -84,7 +82,8 @@ internal sealed class AgentClient
     public string ProjectSkillsDirectory { get; init; } = s_universalSkillsDirectory;
     public Func<CliExecutionContext, IEnvironment, string> GlobalSkillsDirectory { get; init; }
         = static (context, _) => Path.Combine(context.HomeDirectory.FullName, s_universalSkillsDirectory);
-    public required string ProjectMcpFileName { get; init; }
+    public Func<DirectoryInfo, string> ProjectMcpConfigPath { get; init; }
+        = static directory => Path.Combine(directory.FullName, ".mcp.json");
     public required Func<CliExecutionContext, IEnvironment, string> GlobalMcpConfigPath { get; init; }
     public required string McpServersPropertyName { get; init; }
     public JsonDocumentOptions McpJsonDocumentOptions { get; init; }
@@ -109,7 +108,7 @@ internal sealed class AgentClient
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
         return scope is AgentConfigurationScope.Project
-            ? Path.Combine(workspaceRoot.FullName, ProjectMcpFileName)
+            ? ProjectMcpConfigPath(workspaceRoot)
             : GlobalMcpConfigPath(executionContext, environment);
     }
 

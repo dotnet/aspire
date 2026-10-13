@@ -89,8 +89,8 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
-        Options.Add(_agentInitCommand.AgentsOption);
-        Options.Add(_agentInitCommand.ScopeOption);
+        Options.Add(AgentInitCommand.s_agentsOption);
+        Options.Add(AgentInitCommand.s_scopeOption);
         Options.Add(AgentInitCommand.s_skillsOption);
 
         // Customize description based on whether staging channel is enabled
@@ -606,9 +606,9 @@ internal sealed class NewCommand : BaseCommand
             templateResult.ExitCode,
             workspaceRoot,
             agentInitBinding,
-            PromptBinding.Create(parseResult, _agentInitCommand.AgentsOption),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
             PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption),
-            PromptBinding.Create(parseResult, _agentInitCommand.ScopeOption, AgentConfigurationScope.Project),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))

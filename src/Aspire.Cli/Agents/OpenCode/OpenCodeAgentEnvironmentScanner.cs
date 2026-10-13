@@ -19,18 +19,17 @@ internal sealed class OpenCodeAgentEnvironmentScanner(
         logger.LogDebug("Starting OpenCode environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
         logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
-        // Look for existing opencode.jsonc file at workspace root
-        var configFilePath = Path.Combine(context.RepositoryRoot.FullName, OpenCodePaths.McpConfigFileName);
+        var configFilePath = OpenCodePaths.GetMcpConfigPath(context.RepositoryRoot);
         var configFileExists = File.Exists(configFilePath);
 
         if (configFileExists)
         {
-            logger.LogDebug("Found existing opencode.jsonc at: {ConfigFilePath}", configFilePath);
+            logger.LogDebug("Found existing OpenCode configuration at: {ConfigFilePath}", configFilePath);
 
             return AgentEnvironment.OpenCode;
         }
 
-        logger.LogDebug("No opencode.jsonc found, checking for OpenCode CLI installation...");
+        logger.LogDebug("No OpenCode configuration found, checking for OpenCode CLI installation...");
         var openCodeVersion = await openCodeCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
         if (openCodeVersion is not null)
         {

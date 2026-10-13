@@ -4,6 +4,7 @@
 using System.Security.Cryptography;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Npm;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -115,6 +116,134 @@ public class PlaywrightCliInstallerTests
         }
         finally
         {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InstallSelectedAsync_MirrorFailure_ReportsFailureOrPartialSuccess(bool successfulDestination)
+    {
+        var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
+        try
+        {
+            var blockedPath = Path.Combine(root.FullName, "blocked");
+            await File.WriteAllTextAsync(blockedPath, "existing file");
+            var selectedDirectories = new HashSet<string> { blockedPath };
+            var destination = Path.Combine(root.FullName, "skills");
+            if (successfulDestination)
+            {
+                selectedDirectories.Add(destination);
+            }
+            var version = SemVersion.Parse("0.1.3", SemVersionStyles.Strict);
+            var npmRunner = new TestNpmRunner { ResolveResult = new NpmPackageInfo { Version = version } };
+            var playwrightRunner = new TestPlaywrightCliRunner { InstalledVersion = version, InstallSkillsResult = true };
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
+                new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+            var (status, message) = await installer.InstallSelectedAsync(selectedDirectories, CancellationToken.None);
+
+            Assert.Equal(successfulDestination ? PlaywrightInstallStatus.InstalledWithWarnings : PlaywrightInstallStatus.Failed, status);
+            Assert.Equal(successfulDestination
+                ? AgentCommandStrings.PlaywrightCliInstaller_InstalledWithMirrorWarnings
+                : AgentCommandStrings.PlaywrightCliInstaller_FailedToMirrorSkillFiles, message);
+            Assert.Equal("existing file", await File.ReadAllTextAsync(blockedPath));
+            if (successfulDestination)
+            {
+                Assert.Equal("# Playwright CLI Skill", await File.ReadAllTextAsync(Path.Combine(destination, PlaywrightCliInstaller.PlaywrightCliSkillName, "SKILL.md")));
+            }
+            Assert.NotNull(playwrightRunner.InstallSkillsWorkingDirectory);
+            Assert.False(Directory.Exists(playwrightRunner.InstallSkillsWorkingDirectory));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallSelectedAsync_MissingGeneratedSkills_ReturnsFailure()
+    {
+        var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
+        try
+        {
+            var version = SemVersion.Parse("0.1.3", SemVersionStyles.Strict);
+            var npmRunner = new TestNpmRunner { ResolveResult = new NpmPackageInfo { Version = version } };
+            var playwrightRunner = new TestPlaywrightCliRunner
+            {
+                InstalledVersion = version,
+                InstallSkillsResult = true,
+                OnInstallSkills = _ => { }
+            };
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
+                new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+
+            var (status, message) = await installer.InstallSelectedAsync(
+                new HashSet<string> { Path.Combine(root.FullName, "skills") }, CancellationToken.None);
+
+            Assert.Equal(PlaywrightInstallStatus.Failed, status);
+            Assert.Equal(AgentCommandStrings.PlaywrightCliInstaller_FailedToGenerateSkillFiles, message);
+            Assert.Empty(root.GetFileSystemInfos());
+            Assert.NotNull(playwrightRunner.InstallSkillsWorkingDirectory);
+            Assert.False(Directory.Exists(playwrightRunner.InstallSkillsWorkingDirectory));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InstallSelectedAsync_ReadOnlyTemporaryFile_DoesNotOverrideInstallationResult(bool tarballIsReadOnly)
+    {
+        var root = Directory.CreateTempSubdirectory("aspire-selected-playwright-");
+        string? readOnlyFile = null;
+        string? stagingRoot = null;
+        try
+        {
+            var version = SemVersion.Parse("0.1.3", SemVersionStyles.Strict);
+            var npmRunner = new TestNpmRunner { ResolveResult = new NpmPackageInfo { Version = version } };
+            var playwrightRunner = new TestPlaywrightCliRunner
+            {
+                InstallSkillsResult = true,
+                OnInstallSkills = directory =>
+                {
+                    stagingRoot = directory;
+                    var skillDirectory = Path.Combine(directory, PlaywrightCliInstaller.s_primarySkillBaseDirectory, PlaywrightCliInstaller.PlaywrightCliSkillName);
+                    Directory.CreateDirectory(skillDirectory);
+                    var skillFile = Path.Combine(skillDirectory, "SKILL.md");
+                    File.WriteAllText(skillFile, "# Playwright CLI Skill");
+                    readOnlyFile = tarballIsReadOnly ? npmRunner.PackResult : skillFile;
+                    Assert.NotNull(readOnlyFile);
+                    File.SetAttributes(readOnlyFile, FileAttributes.ReadOnly);
+                }
+            };
+            var installer = new PlaywrightCliInstaller(npmRunner, new TestNpmProvenanceChecker(), playwrightRunner, new TestInteractionService(),
+                new ConfigurationBuilder().Build(), NullLogger<PlaywrightCliInstaller>.Instance);
+            var destination = Path.Combine(root.FullName, "skills");
+
+            var (status, message) = await installer.InstallSelectedAsync(new HashSet<string> { destination }, CancellationToken.None);
+
+            Assert.Equal(PlaywrightInstallStatus.Installed, status);
+            Assert.Null(message);
+            var installedFile = Path.Combine(destination, PlaywrightCliInstaller.PlaywrightCliSkillName, "SKILL.md");
+            Assert.Equal("# Playwright CLI Skill", await File.ReadAllTextAsync(installedFile));
+            File.SetAttributes(installedFile, FileAttributes.Normal);
+        }
+        finally
+        {
+            if (readOnlyFile is not null && File.Exists(readOnlyFile))
+            {
+                File.SetAttributes(readOnlyFile, FileAttributes.Normal);
+                Directory.Delete(Path.GetDirectoryName(readOnlyFile)!, recursive: true);
+            }
+            if (stagingRoot is not null && Directory.Exists(stagingRoot))
+            {
+                Directory.Delete(stagingRoot, recursive: true);
+            }
             root.Delete(recursive: true);
         }
     }
@@ -1174,7 +1303,16 @@ public class PlaywrightCliInstallerTests
             InstallSkillsCalled = true;
             InstallSkillsCallCount++;
             InstallSkillsWorkingDirectory = workingDirectory;
-            OnInstallSkills?.Invoke(workingDirectory);
+            if (OnInstallSkills is { } installSkills)
+            {
+                installSkills(workingDirectory);
+            }
+            else if (InstallSkillsResult)
+            {
+                var directory = Path.Combine(workingDirectory, PlaywrightCliInstaller.s_primarySkillBaseDirectory, PlaywrightCliInstaller.PlaywrightCliSkillName);
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(Path.Combine(directory, "SKILL.md"), "# Playwright CLI Skill");
+            }
             return Task.FromResult(InstallSkillsResult);
         }
     }

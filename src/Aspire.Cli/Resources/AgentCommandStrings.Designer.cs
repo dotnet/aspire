@@ -574,6 +574,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Failed to copy Playwright CLI skill files to the selected locations..
+        /// </summary>
+        internal static string PlaywrightCliInstaller_FailedToMirrorSkillFiles {
+            get {
+                return ResourceManager.GetString("PlaywrightCliInstaller_FailedToMirrorSkillFiles", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed to install {0} globally via npm..
         /// </summary>
         internal static string PlaywrightCliInstaller_FailedToInstallGlobally {

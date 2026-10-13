@@ -111,8 +111,8 @@ internal sealed class InitCommand : BaseCommand
         Options.Add(_languageOption);
         Options.Add(_fileBasedOption);
         Options.Add(NewCommand.s_suppressAgentInitOption);
-        Options.Add(_agentInitCommand.AgentsOption);
-        Options.Add(_agentInitCommand.ScopeOption);
+        Options.Add(AgentInitCommand.s_agentsOption);
+        Options.Add(AgentInitCommand.s_scopeOption);
         Options.Add(AgentInitCommand.s_skillsOption);
     }
 
@@ -182,9 +182,9 @@ internal sealed class InitCommand : BaseCommand
             CliExitCodes.Success,
             workspaceRoot,
             agentInitBinding,
-            PromptBinding.Create(parseResult, _agentInitCommand.AgentsOption),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
             PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption),
-            PromptBinding.Create(parseResult, _agentInitCommand.ScopeOption, AgentConfigurationScope.Project),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 
         // Step 5: Print follow-up commands only when the user selected the one-time init skill.

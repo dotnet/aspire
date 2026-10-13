@@ -114,7 +114,7 @@ internal sealed class PlaywrightCliInstaller(
             {
                 stagingDirectory.Delete(recursive: true);
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 logger.LogDebug(ex, "Failed to clean up generated Playwright skills at {Path}.", stagingDirectory.FullName);
             }
@@ -296,7 +296,7 @@ internal sealed class PlaywrightCliInstaller(
                     Directory.Delete(tempDir, recursive: true);
                 }
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 logger.LogDebug(ex, "Failed to clean up temporary directory: {TempDir}", tempDir);
             }
@@ -321,17 +321,7 @@ internal sealed class PlaywrightCliInstaller(
             return (PlaywrightInstallStatus.Failed, AgentCommandStrings.PlaywrightCliInstaller_FailedToGenerateSkillFiles);
         }
 
-        try
-        {
-            MirrorSkillFiles(repoRoot, selectedSkillDirectories, preExisting);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            logger.LogWarning(ex, "Failed to mirror Playwright CLI skill files to some locations.");
-            return (PlaywrightInstallStatus.InstalledWithWarnings, AgentCommandStrings.PlaywrightCliInstaller_InstalledWithMirrorWarnings);
-        }
-
-        return (PlaywrightInstallStatus.Installed, null);
+        return MirrorSkillFiles(repoRoot, selectedSkillDirectories, preExisting);
     }
 
     /// <summary>
@@ -357,16 +347,17 @@ internal sealed class PlaywrightCliInstaller(
     /// user-selected skill directories, then cleans up any directories that
     /// playwright-cli created in unselected locations during this run.
     /// </summary>
-    private void MirrorSkillFiles(string repoRoot, IReadOnlySet<string> selectedSkillDirectories, HashSet<string> preExistingLocations)
+    private (PlaywrightInstallStatus Status, string? Message) MirrorSkillFiles(string repoRoot, IReadOnlySet<string> selectedSkillDirectories, HashSet<string> preExistingLocations)
     {
         var primarySkillDir = Path.Combine(repoRoot, s_primarySkillBaseDirectory, PlaywrightCliSkillName);
 
         if (!Directory.Exists(primarySkillDir))
         {
-            logger.LogDebug("Primary skill directory does not exist: {PrimarySkillDir}", primarySkillDir);
-            return;
+            logger.LogWarning("Primary skill directory does not exist: {PrimarySkillDir}", primarySkillDir);
+            return (PlaywrightInstallStatus.Failed, AgentCommandStrings.PlaywrightCliInstaller_FailedToGenerateSkillFiles);
         }
 
+        var mirrorFailures = 0;
         // Mirror to each user-selected location (skip the primary — it's the source).
         foreach (var skillBaseDir in selectedSkillDirectories)
         {
@@ -385,6 +376,7 @@ internal sealed class PlaywrightCliInstaller(
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 logger.LogWarning(ex, "Failed to mirror playwright-cli skills to {TargetDir}.", targetSkillDir);
+                mirrorFailures++;
             }
         }
 
@@ -421,6 +413,15 @@ internal sealed class PlaywrightCliInstaller(
                 logger.LogDebug(ex, "Failed to remove playwright-cli skills from {SkillDir}.", skillDir);
             }
         }
+
+        if (mirrorFailures == 0)
+        {
+            return (PlaywrightInstallStatus.Installed, null);
+        }
+
+        return mirrorFailures == selectedSkillDirectories.Count
+            ? (PlaywrightInstallStatus.Failed, AgentCommandStrings.PlaywrightCliInstaller_FailedToMirrorSkillFiles)
+            : (PlaywrightInstallStatus.InstalledWithWarnings, AgentCommandStrings.PlaywrightCliInstaller_InstalledWithMirrorWarnings);
     }
 
     /// <summary>

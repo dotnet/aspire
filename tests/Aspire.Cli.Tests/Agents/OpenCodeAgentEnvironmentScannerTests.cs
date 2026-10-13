@@ -12,13 +12,16 @@ namespace Aspire.Cli.Tests.Agents;
 public class OpenCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 {
     [Theory]
-    [InlineData("{ invalid json content")]
-    [InlineData("")]
-    [InlineData("""{"mcp":{"aspire":{"command":["custom-aspire"]}}}""")]
-    public async Task ScanAsync_WithProjectConfiguration_DetectsOpenCodeWithoutParsingOrModifyingFile(string content)
+    [InlineData("opencode.json", "{ invalid json content")]
+    [InlineData("opencode.json", "")]
+    [InlineData("opencode.json", """{"mcp":{"aspire":{"command":["custom-aspire"]}}}""")]
+    [InlineData("opencode.jsonc", "{ invalid json content")]
+    [InlineData("opencode.jsonc", "")]
+    [InlineData("opencode.jsonc", """{"mcp":{"aspire":{"command":["custom-aspire"]}}}""")]
+    public async Task ScanAsync_WithProjectConfiguration_DetectsOpenCodeWithoutParsingOrModifyingFile(string fileName, string content)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc");
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, fileName);
         await File.WriteAllTextAsync(configPath, content);
         var runner = new FakeOpenCodeCliRunner(null);
         var scanner = new OpenCodeAgentEnvironmentScanner(runner, NullLogger<OpenCodeAgentEnvironmentScanner>.Instance);
