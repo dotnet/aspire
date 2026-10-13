@@ -224,14 +224,19 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
         endpoint: string | { host: '127.0.0.1'; port: number };
         authenticationToken: string;
         authenticationTimeoutMilliseconds: number;
+        providerCleanupTimeoutMilliseconds?: number;
+        providerShutdownTimeoutMilliseconds?: number;
     }
 
     export async function connectNativeAppHost(options: NativeConnectionOptions):
         Promise<{ client: AspireClient; server: NativeApplicationServer;
             activateProvider(packageName: string, executable: string, args: readonly string[]): Promise<{ close(): Promise<void> }> }> {
-        if (!Number.isSafeInteger(options.authenticationTimeoutMilliseconds) ||
-            options.authenticationTimeoutMilliseconds < 1 || options.authenticationTimeoutMilliseconds > 2147483647) {
-            throw new RangeError('An explicit bounded authentication timeout is required.');
+        const providerCleanupTimeout = options.providerCleanupTimeoutMilliseconds ?? 15000;
+        const providerShutdownTimeout = options.providerShutdownTimeoutMilliseconds ?? 5000;
+        for (const duration of [options.authenticationTimeoutMilliseconds, providerCleanupTimeout, providerShutdownTimeout]) {
+            if (!Number.isSafeInteger(duration) || duration < 1 || duration > 2147483647) {
+                throw new RangeError('Connection and provider cleanup deadlines must be positive bounded durations.');
+            }
         }
         const socket = typeof options.endpoint === 'string'
             ? createConnection(options.endpoint)
@@ -264,6 +269,26 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                         throw new Error('This explicit activation entry point requires loopback TCP.');
                     }
                     const authority = await connection.sendRequest<string>('expectIntegrationHost', packageName);
+                    const abandon = async (): Promise<void> => {
+                        const cancellation = new rpc.CancellationTokenSource();
+                        let timer: ReturnType<typeof setTimeout> | undefined;
+                        try {
+                            // Cancellation requests remote cooperation; race an independent
+                            // deadline as well so a stalled peer cannot prevent child cleanup.
+                            await Promise.race([
+                                connection.sendRequest('abandonIntegrationHostRegistration', authority, cancellation.token),
+                                new Promise<never>((_, reject) => {
+                                    timer = setTimeout(() => {
+                                        cancellation.cancel();
+                                        reject(new Error('Provider activation cleanup timed out.'));
+                                    }, providerCleanupTimeout);
+                                })
+                            ]);
+                        } finally {
+                            clearTimeout(timer);
+                            cancellation.dispose();
+                        }
+                    };
                     const process = await (async () => {
                         try {
                             return spawn(executable, [...args], {
@@ -275,7 +300,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                             });
                         } catch (error) {
                             try {
-                                await connection.sendRequest('abandonIntegrationHostRegistration', authority);
+                                await abandon();
                             } catch (cleanupError) {
                                 throw new AggregateError([error, cleanupError], 'Provider activation and cleanup failed.');
                             }
@@ -299,7 +324,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                         try {
                             return await Promise.race([
                                 released.then(() => true),
-                                new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), 5000); })
+                                new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), providerShutdownTimeout); })
                             ]);
                         } finally {
                             clearTimeout(timer);
@@ -332,7 +357,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                     } catch (error) {
                         const failures: unknown[] = [error];
                         try {
-                            await connection.sendRequest('abandonIntegrationHostRegistration', authority);
+                            await abandon();
                         } catch (cleanupError) {
                             failures.push(cleanupError);
                         }

@@ -15,6 +15,38 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeProviderClientTests
 {
     [Fact]
+    public async Task ReplacementProviderReusesCapabilitiesAndTypesWithoutRevivingDisconnectedHandles()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        var session = await app.Server.OpenApplicationAsync();
+        var composition = await session.StartGenerationAsync();
+        ExternalApiResourceClient? previous = null;
+        for (var index = 0; index < 3; index++)
+        {
+            await using var provider = await ConnectAsync(host);
+            var authority = await app.ExpectIntegrationHostAsync("example.csharp.external-api", TestContext.Current.CancellationToken);
+            await provider.RegisterIntegrationHostAsync(authority, ProviderContract.Create(), TestContext.Current.CancellationToken);
+            Assert.True(await app.WaitIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+            Assert.Equal(3, (await app.GetIntegrationCapabilitiesAsync(TestContext.Current.CancellationToken))
+                .GetProperty("capabilities").GetArrayLength());
+            if (previous is not null)
+            {
+                var stale = await Assert.ThrowsAsync<NativeCapabilityException>(() => previous.GetResourceNameAsync());
+                Assert.Equal("HANDLE_NOT_FOUND", stale.Code);
+            }
+            previous = await composition.AddExternalApiAsync($"catalog{index}", "https://catalog.example/");
+            Assert.Equal($"catalog{index}", await previous.GetResourceNameAsync());
+            await provider.DisposeAsync();
+            await Assert.ThrowsAsync<NativeCapabilityException>(() => previous.GetResourceNameAsync());
+            Assert.Equal(0, (await app.GetIntegrationCapabilitiesAsync(TestContext.Current.CancellationToken))
+                .GetProperty("capabilities").GetArrayLength());
+            Assert.Equal(index + 1, (await composition.InspectAsync()).Resources.Length);
+        }
+        await session.RetireGenerationAsync(composition);
+    }
+
+    [Fact]
     public async Task AbandonedDiscoveryCannotPublishProviderCapabilitiesAfterItsReplyArrives()
     {
         await using var host = await NativeClientTestHost.StartAsync();
@@ -412,7 +444,7 @@ public class NativeProviderClientTests
         release.TrySetResult(JsonDocument.Parse("\"late\"").RootElement.Clone());
         var unavailable = await Assert.ThrowsAsync<NativeCapabilityException>(() =>
             app.InvokeAsync("example.pending/pending", [], CancellationToken.None));
-        Assert.Equal("PROVIDER_DISCONNECTED", unavailable.Code);
+        Assert.Equal("UNKNOWN_CAPABILITY", unavailable.Code);
         Assert.Equal(1, Volatile.Read(ref count));
     }
 

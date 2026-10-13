@@ -10,6 +10,36 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeProviderActivationTests
 {
     [Fact]
+    public async Task StalledAuthorityAbandonmentUsesAnIndependentConfigurableDeadline()
+    {
+        await using var host = new NativeActivationRpcTestHost();
+        await using var client = await NativeClient.ConnectAsync(host.Endpoint, "test-token",
+            TimeSpan.FromSeconds(5), TimeProvider.System, TestContext.Current.CancellationToken);
+        var clock = new AdjustableFakeTimeProvider();
+        var options = new NativeProviderActivationOptions { CleanupTimeout = TimeSpan.FromSeconds(2) };
+        var directory = Directory.CreateTempSubdirectory("aspire-native-stalled-abandonment-");
+        try
+        {
+            var activation = NativeProviderActivation.StartAsync(client, "example.failure",
+                Path.Combine(directory.FullName, "missing-provider"), [], options, clock,
+                NullLogger.Instance, TestContext.Current.CancellationToken);
+            await host.AbandonmentStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            clock.Advance(TimeSpan.FromMilliseconds(1999));
+            Assert.False(activation.IsCompleted);
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+            var failure = await Assert.ThrowsAsync<AggregateException>(() =>
+                activation.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            Assert.Collection(failure.InnerExceptions,
+                error => Assert.IsType<System.ComponentModel.Win32Exception>(error),
+                error => Assert.IsAssignableFrom<OperationCanceledException>(error));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RepeatedSpawnFailuresDoNotConsumePendingProviderCapacity()
     {
         await using var host = await NativeClientTestHost.StartAsync();
@@ -23,7 +53,7 @@ public class NativeProviderActivationTests
             {
                 await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(() =>
                     NativeProviderActivation.StartAsync(client, "example.failure", missing, [],
-                        TimeProvider.System, NullLogger.Instance, TestContext.Current.CancellationToken));
+                        new NativeProviderActivationOptions(), TimeProvider.System, NullLogger.Instance, TestContext.Current.CancellationToken));
             }
             var authority = await client.ExpectIntegrationHostAsync("example.next", TestContext.Current.CancellationToken);
             Assert.True(await client.AbandonIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
@@ -43,13 +73,15 @@ public class NativeProviderActivationTests
         }
         await using var host = await NativeProviderProcessTestHost.StartAsync(retainOutput: false);
         var handle = host.Process.SafeHandle;
-        var activation = new NativeProviderActivation(host.Process, TimeProvider.System);
+        var activation = new NativeProviderActivation(host.Process, new NativeProviderActivationOptions(), TimeProvider.System);
         await activation.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(handle.IsClosed);
     }
 
-    [Fact]
-    public async Task DescendantHeldOutputCannotOutliveProviderShutdownBudget()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(15)]
+    public async Task DescendantHeldOutputCannotOutliveProviderShutdownBudget(int timeoutSeconds)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -62,16 +94,17 @@ public class NativeProviderActivationTests
         {
             TimerCreated = dueTime =>
             {
-                if (dueTime == TimeSpan.FromSeconds(15))
+                if (dueTime == TimeSpan.FromSeconds(timeoutSeconds))
                 {
                     timerCreated.TrySetResult();
                 }
             }
         };
-        var activation = new NativeProviderActivation(host.Process, clock);
+        var activation = new NativeProviderActivation(host.Process,
+            new NativeProviderActivationOptions { ShutdownTimeout = TimeSpan.FromSeconds(timeoutSeconds) }, clock);
         var disposal = activation.DisposeAsync().AsTask();
         await timerCreated.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        clock.Advance(TimeSpan.FromMilliseconds(14999));
+        clock.Advance(TimeSpan.FromMilliseconds(timeoutSeconds * 1000 - 1));
         Assert.False(disposal.IsCompleted);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         await Assert.ThrowsAsync<TimeoutException>(() =>

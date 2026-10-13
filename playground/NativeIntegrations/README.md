@@ -57,6 +57,13 @@ provider-owned resource must declare an authorized native lifetime. Disconnects
 fail pending calls without retries and do not retire the application's model.
 Failed activation immediately abandons its pending registration authority,
 including process-launch failures; late discovery cannot register afterward.
+Abandonment has an independent configurable deadline, so a stalled RPC peer
+cannot prevent owned-process shutdown. C# uses `NativeProviderActivationOptions`
+(also exposed through builder options); TypeScript connection options expose
+`providerCleanupTimeoutMilliseconds` and `providerShutdownTimeoutMilliseconds`.
+Disconnect removes the provider's discovery and type registrations. A replacement
+can register the same contract, but existing handles remain revoked and cannot
+be rebound to the replacement process.
 Portable provider metadata is available through `getIntegrationCapabilities`;
 the static `getCapabilities` contract remains separate from integration APIs.
 

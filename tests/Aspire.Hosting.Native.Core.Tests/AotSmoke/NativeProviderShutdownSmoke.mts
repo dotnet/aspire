@@ -40,7 +40,7 @@ globalThis.setTimeout = ((callback: (...args: unknown[]) => void, milliseconds?:
         timers.delete(timer);
         callback(...args);
     }, milliseconds);
-    if (milliseconds === 5000 || milliseconds === 15000) timers.add(timer);
+    if (milliseconds === 100 || milliseconds === 5000 || milliseconds === 15000) timers.add(timer);
     return timer;
 }) as typeof setTimeout;
 globalThis.clearTimeout = ((timer: ReturnType<typeof setTimeout>) => {
@@ -51,6 +51,7 @@ globalThis.clearTimeout = ((timer: ReturnType<typeof setTimeout>) => {
 let ready!: () => void;
 let registered = Promise.resolve();
 let rejectRegistration = false;
+let stallAbandonment = false;
 let nextAuthority = 0;
 const pending = new Map<string, { abandoned: Promise<void>; abandon: () => void }>();
 const sockets: Socket[] = [];
@@ -74,6 +75,7 @@ const server = createServer(socket => {
         if (!activation) return false;
         pending.delete(authority);
         activation.abandon();
+        if (stallAbandonment) return new Promise<boolean>(() => {});
         return true;
     });
     connection.onRequest('waitIntegrationHostRegistration', async (authority: string) => {
@@ -102,7 +104,8 @@ assert(address && typeof address !== 'string' && readinessAddress && typeof read
 const native = await connectNativeAppHost({
     endpoint: { host: '127.0.0.1', port: address.port },
     authenticationToken: 'test-token',
-    authenticationTimeoutMilliseconds: 15000
+    authenticationTimeoutMilliseconds: 15000,
+    providerCleanupTimeoutMilliseconds: 100,
 });
 
 const childSource = `
@@ -162,6 +165,20 @@ try {
     }
     await assert.rejects(native.activateProvider('test-provider', '\0', []), TypeError);
     assert.equal(pending.size, 0, 'synchronous spawn errors must also abandon authority');
+
+    prepare();
+    rejectRegistration = true;
+    stallAbandonment = true;
+    const stalled = await native.activateProvider('test-provider', process.execPath,
+        ['-e', childSource, String(readinessAddress.port), 'graceful'])
+        .then(() => { throw new Error('Rejected activation cannot succeed.'); }, error => error);
+    assert(stalled instanceof AggregateError);
+    assert.equal(stalled.errors.length, 2);
+    assert.match(String(stalled.errors[0]), /registration rejected/);
+    assert.match(String(stalled.errors[1]), /cleanup timed out/);
+    assert.equal(children.at(-1)!.exitCode, 0, 'stalled authority cleanup must still release the owned child');
+    assert(children.at(-1)!.stdout?.destroyed && children.at(-1)!.stderr?.destroyed);
+    assert.equal(timers.size, 0);
 } finally {
     for (const child of children) {
         if (child.pid && child.exitCode === null && child.signalCode === null) {

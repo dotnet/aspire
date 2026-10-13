@@ -12,7 +12,7 @@ var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
 var clock = TimeProvider.System;
 await using var client = await NativeClient.ConnectAsync(endpoint, token, TimeSpan.FromSeconds(15), clock);
 await using var provider = await NativeProviderActivation.StartAsync(client, "example.csharp.external-api",
-    args[1], [], clock, NullLogger.Instance, CancellationToken.None);
+    args[1], [], new NativeProviderActivationOptions(), clock, NullLogger.Instance, CancellationToken.None);
 var session = await client.Server.OpenApplicationAsync();
 var composition = await session.StartGenerationAsync();
 var apiKey = await composition.AddSecretParameterAsync("catalog-api-key", "example-authoring-key");

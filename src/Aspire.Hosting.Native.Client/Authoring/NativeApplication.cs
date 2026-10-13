@@ -18,6 +18,8 @@ public sealed class NativeBuilderOptions
     public string? ApplicationName { get; init; }
     /// <summary>Gets the framework clock used for connection deadlines and owned-process cleanup.</summary>
     public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+    /// <summary>Gets the provider activation cleanup and owned-process shutdown policies.</summary>
+    public NativeProviderActivationOptions ProviderActivation { get; init; } = new();
     /// <summary>Gets classified framework logging; credentials and provider console output are never logged here.</summary>
     public ILogger Logger { get; init; } = NullLogger.Instance;
 }
@@ -162,7 +164,7 @@ public sealed class NativeApplication : IAsyncDisposable
                 var command = _initial.Settings.Providers.TryGetValue(package, out var selected) ? selected :
                     throw new InvalidOperationException($"Framework provider configuration is missing for '{package}'.");
                 _providers.Add(await NativeProviderActivation.StartAsync(_client, package, command.Executable,
-                    command.Arguments, _clock, _logger, cancellationToken).ConfigureAwait(false));
+                    command.Arguments, _initial.Settings.Options.ProviderActivation, _clock, _logger, cancellationToken).ConfigureAwait(false));
             }
             _workspace = await _client.Server.CreateApplicationWorkspaceAsync(cancellationToken).ConfigureAwait(false);
             await ApplyAsync(_initial, true, cancellationToken).ConfigureAwait(false);

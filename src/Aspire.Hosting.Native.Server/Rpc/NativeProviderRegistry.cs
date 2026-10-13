@@ -84,7 +84,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             NativeProviderManifest manifest = _protocol.ParseManifest(expected.PackageName,
                 await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false));
             var projected = manifest.Capabilities;
-            var registration = new Registration(expected.Owner, connection, peer, projected);
+            var registration = new Registration(expected.Owner, connection, peer, projected, manifest.OwnedTypes);
             lock (_gate)
             {
                 if (!_activationWaits.TryGetValue(authority, out var pending) || !ReferenceEquals(pending, expected))
@@ -472,6 +472,11 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                     peers.Add(registration.Peer);
                     _providers.Remove(provider);
                     _providersById.Remove(registration.Id);
+                    foreach (var capability in registration.Capabilities.Keys)
+                    {
+                        _capabilities.Remove(capability);
+                    }
+                    _providerTypes.ExceptWith(registration.OwnedTypes);
                     registration.Release();
                 }
             }
@@ -485,7 +490,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     }
 
     internal sealed class Registration(NativeRpcConnection owner, NativeRpcConnection connection, INativeRpcPeer peer,
-        Dictionary<string, NativeProviderCapability> capabilities)
+        Dictionary<string, NativeProviderCapability> capabilities, HashSet<string> ownedTypes)
     {
         private NativeRpcConnection? _owner = owner;
         private NativeRpcConnection? _connection = connection;
@@ -494,6 +499,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         public NativeRpcConnection Connection => _connection ?? throw Unavailable();
         public INativeRpcPeer Peer => _peer ?? throw Unavailable();
         public Dictionary<string, NativeProviderCapability> Capabilities { get; } = capabilities;
+        public IReadOnlySet<string> OwnedTypes { get; } = ownedTypes;
         public Dictionary<string, NativeProviderCapability[]> LifecycleCapabilities { get; } = capabilities.Values
             .Where(capability => capability.LifecyclePhase is not null)
             .GroupBy(capability => capability.TargetTypeId!, StringComparer.Ordinal)
@@ -505,8 +511,8 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             ReferenceEquals(_owner, candidate) || ReferenceEquals(_connection, candidate);
         public void Release()
         {
-            // Keep metadata tombstones for deterministic stale-route rejection,
-            // without retaining the disconnected provider's live authority tables.
+            // Existing handles retain this disconnected tombstone, not registry
+            // routes. A replacement process must never revive their authority.
             _owner = null;
             _connection = null;
             _peer = null;

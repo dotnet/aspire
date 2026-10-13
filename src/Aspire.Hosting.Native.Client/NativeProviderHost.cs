@@ -35,6 +35,26 @@ public sealed class NativeProviderHost(IConfiguration configuration, TimeProvide
     }
 }
 
+/// <summary>Configures independent provider authority cleanup and owned-process shutdown deadlines.</summary>
+public sealed class NativeProviderActivationOptions
+{
+    /// <summary>Gets the independent deadline for abandoning failed activation authority.</summary>
+    public TimeSpan CleanupTimeout { get; init; } = TimeSpan.FromSeconds(15);
+    /// <summary>Gets the deadline for process termination and redirected output release.</summary>
+    public TimeSpan ShutdownTimeout { get; init; } = TimeSpan.FromSeconds(15);
+
+    internal void Validate()
+    {
+        foreach (var timeout in new[] { CleanupTimeout, ShutdownTimeout })
+        {
+            if (timeout <= TimeSpan.Zero || timeout.TotalMilliseconds > int.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(timeout), "Provider cleanup deadlines must be positive bounded durations.");
+            }
+        }
+    }
+}
+
 /// <summary>Activates an explicitly selected provider process; application code never performs registration or handle plumbing.</summary>
 public sealed class NativeProviderActivation : IAsyncDisposable
 {
@@ -42,12 +62,14 @@ public sealed class NativeProviderActivation : IAsyncDisposable
     private readonly Task _output;
     private readonly CancellationTokenSource _outputCancellation = new();
     private readonly TimeProvider _clock;
+    private readonly NativeProviderActivationOptions _options;
 
     /// <summary>Owns a started provider and its redirected output.</summary>
-    internal NativeProviderActivation(Process process, TimeProvider clock)
+    internal NativeProviderActivation(Process process, NativeProviderActivationOptions options, TimeProvider clock)
     {
         _process = process;
         _clock = clock;
+        _options = options;
         // Drain both streams concurrently. Only classifications are logged by the
         // framework; provider console output may include application secrets.
         _output = Task.WhenAll(
@@ -57,8 +79,10 @@ public sealed class NativeProviderActivation : IAsyncDisposable
 
     /// <summary>Launches one explicitly selected provider and awaits server-verified registration.</summary>
     public static async Task<NativeProviderActivation> StartAsync(NativeClient client, string packageName,
-        string executable, IReadOnlyList<string> arguments, TimeProvider clock, ILogger logger, CancellationToken cancellationToken)
+        string executable, IReadOnlyList<string> arguments, NativeProviderActivationOptions options,
+        TimeProvider clock, ILogger logger, CancellationToken cancellationToken)
     {
+        options.Validate();
         if (client.Endpoint is not IPEndPoint endpoint)
         {
             throw new NotSupportedException("This provider activation entry point currently requires loopback TCP.");
@@ -82,7 +106,7 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         try
         {
             start.Environment["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"] = authority;
-            activation = new NativeProviderActivation(Process.Start(start) ?? throw new InvalidOperationException("The provider process did not start."), clock);
+            activation = new NativeProviderActivation(Process.Start(start) ?? throw new InvalidOperationException("The provider process did not start."), options, clock);
             await client.WaitIntegrationHostRegistrationAsync(authority, cancellationToken).ConfigureAwait(false);
             if (activation._process.HasExited)
             {
@@ -97,9 +121,10 @@ public sealed class NativeProviderActivation : IAsyncDisposable
             List<Exception> failures = [activationError];
             try
             {
-                // The original cancellation may already be signalled. Authority
-                // cleanup must still reach the server, including when spawn throws.
-                await client.AbandonIntegrationHostRegistrationAsync(authority, CancellationToken.None).ConfigureAwait(false);
+                // The caller token may already be cancelled. An independent deadline
+                // lets cleanup run, but a stalled peer cannot prevent process disposal.
+                using var cleanup = new CancellationTokenSource(options.CleanupTimeout, clock);
+                await client.AbandonIntegrationHostRegistrationAsync(authority, cleanup.Token).ConfigureAwait(false);
             }
             catch (Exception cleanupError)
             {
@@ -146,7 +171,7 @@ public sealed class NativeProviderActivation : IAsyncDisposable
             // A descendant can retain the pipes after the root exits. Both exit
             // and EOF must fit within the same shutdown budget.
             completion = Task.WhenAll(_process.WaitForExitStatusAsync(), _output);
-            await completion.WaitAsync(TimeSpan.FromSeconds(15), _clock).ConfigureAwait(false);
+            await completion.WaitAsync(_options.ShutdownTimeout, _clock).ConfigureAwait(false);
         }
         finally
         {
