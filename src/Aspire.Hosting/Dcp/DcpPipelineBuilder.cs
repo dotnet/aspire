@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using k8s;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -65,7 +67,16 @@ internal static class DcpPipelineBuilder
     {
         var retryUntilCancelled = new RetryStrategyOptions()
         {
-            ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
+            ShouldHandle = new PredicateBuilder()
+                .HandleInner<EndOfStreamException>()
+                .HandleInner<KubernetesException>(ex => ex.Status.Code is
+                    (int)HttpStatusCode.Gone or
+                    (int)HttpStatusCode.RequestTimeout or
+                    (int)HttpStatusCode.TooManyRequests or
+                    (int)HttpStatusCode.InternalServerError or
+                    (int)HttpStatusCode.BadGateway or
+                    (int)HttpStatusCode.ServiceUnavailable or
+                    (int)HttpStatusCode.GatewayTimeout),
             BackoffType = DelayBackoffType.Exponential,
             MaxRetryAttempts = int.MaxValue,
             UseJitter = true,
