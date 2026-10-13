@@ -58,21 +58,23 @@ suite('Aspire Node Functions debugger E2E', function () {
         const sourcePath = path.join(functionsDirectory, 'HttpProof', 'index.js');
         const breakpointLine = findLine(sourcePath, "const message = 'Aspire Node Functions debugger E2E';");
         const original = fs.readFileSync(generatedAppHostPath, 'utf8');
-        const sdkVersion = original.match(/^#:sdk Aspire\.AppHost\.Sdk@([^\r\n]+)$/m)?.[1];
-        assert.ok(sdkVersion, 'Expected an Aspire SDK directive in the generated AppHost.');
+        const appHostVersion = process.env.ASPIRE_EXTENSION_E2E_APPHOST_SDK_VERSION;
+        assert.ok(appHostVersion, 'ASPIRE_EXTENSION_E2E_APPHOST_SDK_VERSION is required to create the Node Functions AppHost fixture.');
         // The E2E runner publishes all Aspire packages at the same version into the external
-        // consumer's isolated feed. Keep the SDK and integration package aligned so restore does
-        // not combine repository-central dependency versions with external transitive versions.
-        writeFileWithRetry(appHostPath, `<Project Sdk="Aspire.AppHost.Sdk/${sdkVersion}">
+        // consumer's isolated feed. Keep the AppHost and integration packages aligned without
+        // depending on the generated template's SDK or package directive format.
+        writeFileWithRetry(appHostPath, `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
     <NoWarn>$(NoWarn);ASPIREAZUREFUNCTIONS001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${sdkVersion}" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="${appHostVersion}" />
+    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${appHostVersion}" />
   </ItemGroup>
 </Project>
 `);

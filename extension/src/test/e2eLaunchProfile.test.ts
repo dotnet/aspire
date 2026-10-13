@@ -1019,7 +1019,12 @@ builder.Build().Run();
         assert.ok(runner.includes("writeBrowserDebuggerAppHostProject('AspireE2E.Blazor.AppHost', resolvedAppHostSdkVersion);"));
         assert.ok(runner.includes("writeWorkerProject('AspireE2E.Worker');"));
         assert.ok(runner.includes("writeAppHostProject('AspireE2E.AppHost', resolvedAppHostSdkVersion, enableAzureFunctionsE2E, enableWinUiE2E);"));
-        assert.ok(nodeFunctionsSpec.includes('<PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${sdkVersion}" />'));
+        assert.ok(nodeFunctionsSpec.includes('const appHostVersion = process.env.ASPIRE_EXTENSION_E2E_APPHOST_SDK_VERSION;'));
+        assert.ok(nodeFunctionsSpec.includes('<Project Sdk="Microsoft.NET.Sdk">'));
+        assert.ok(nodeFunctionsSpec.includes('<AspireUseCliBundle>true</AspireUseCliBundle>'));
+        assert.ok(nodeFunctionsSpec.includes('<PackageReference Include="Aspire.Hosting.AppHost" Version="${appHostVersion}" />'));
+        assert.ok(nodeFunctionsSpec.includes('<PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${appHostVersion}" />'));
+        assert.ok(!nodeFunctionsSpec.includes('#:sdk'));
         assert.ok(!nodeFunctionsSpec.includes('Aspire.Hosting.Azure.Functions.csproj'));
     });
 
