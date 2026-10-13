@@ -20,6 +20,312 @@ namespace Aspire.Cli.Tests.Projects;
 
 public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData("")]
+    [InlineData("@17.0.0+build.1")]
+    public async Task UpdateSingleFileSdkPreservesDirectiveExamples(string version)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var file = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        const string example = "/*\n#:sdk Aspire.AppHost.Sdk@8.0.0\n#:package Aspire.Hosting.AppHost@8.0.0\n*/\n";
+        const string invalidDirective = "#:package Aspire.Hosting.AppHost@17.0.0 unexpected\n#:PACKAGE Aspire.Hosting.AppHost@17.0.0\n";
+        const string code = "var example = \"\"\"\n#:sdk Aspire.AppHost.Sdk@8.0.0\n#:package Aspire.Hosting.AppHost@8.0.0\n\"\"\";\n";
+        await File.WriteAllTextAsync(file.FullName, example + $"/* keep */ #:sdk Aspire.AppHost.Sdk{version}\n#:package Aspire.Hosting.AppHost@17.0.0\n" + invalidDirective + code);
+
+        await ProjectUpdater.UpdateSdkVersionInAppHostAsync(file,
+            new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "17.0.1", Source = "daily" },
+            new TestInteractionService(), new SdkMigrationInfo(false, false));
+
+        Assert.Equal(example + "/* keep */ #:sdk Aspire.AppHost.Sdk@17.0.1\n" + invalidDirective + code, await File.ReadAllTextAsync(file.FullName));
+    }
+
+    [Theory]
+    [InlineData(".csproj", false, "Sdk")]
+    [InlineData(".fsproj", false, "Sdk")]
+    [InlineData(".vbproj", false, "Sdk")]
+    [InlineData(".csproj", true, "Sdk")]
+    [InlineData(".fsproj", true, "Sdk")]
+    [InlineData(".vbproj", true, "Sdk")]
+    [InlineData(".csproj", true, "Project")]
+    [InlineData(".csproj", true, "Import")]
+    [InlineData(".csproj", true, "Sdk", false)]
+    [InlineData(".fsproj", true, "Sdk", false)]
+    [InlineData(".vbproj", true, "Sdk", false)]
+    [InlineData(".csproj", true, "Project", false)]
+    [InlineData(".csproj", true, "Import", false, "MSBuildAllProjects")]
+    [InlineData(".csproj", true, "Sdk", false, "DirectoryBuildPropsPath", "13.6.1")]
+    [InlineData(".csproj", true, "Sdk", true, "DirectoryBuildPropsPath", null, true)]
+    [InlineData(".csproj", true, "Project", true, "DirectoryBuildPropsPath", null, true)]
+    [InlineData(".csproj", true, "Import", true, "DirectoryBuildPropsPath", null, true)]
+    public async Task UpdateImportedSdkUsesDeclarationInsteadOfImplicitPackage(string extension, bool needsUpdate, string sdkForm, bool hasMarker = true, string importProperty = "DirectoryBuildPropsPath", string? legacyVersion = null, bool inactiveImport = false)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, $"AppHost{extension}"));
+        const string original = "<Project Sdk=\"Microsoft.NET.Sdk\" />";
+        await File.WriteAllTextAsync(appHost.FullName, original);
+        var importedFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props");
+        var currentVersion = legacyVersion ?? (!hasMarker ? "8.2.1" : needsUpdate ? "17.0.0-preview.0" : "17.0.0-preview.1");
+        var declaration = sdkForm switch
+        {
+            "Project" => $"<Project Sdk=\"Aspire.AppHost.Sdk/{currentVersion}\" />",
+            "Import" => $"<Project><Import Project=\"Sdk.props\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"{currentVersion}\" /><Import Project=\"Sdk.targets\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"{currentVersion}\" /></Project>",
+            _ => $"<Project><Sdk Name=\"Aspire.AppHost.Sdk\" Version=\"{currentVersion}\" /></Project>"
+        };
+        if (inactiveImport)
+        {
+            var document = System.Xml.Linq.XDocument.Parse(declaration);
+            document.Root!.Add(new System.Xml.Linq.XElement("Import",
+                new System.Xml.Linq.XAttribute("Project", "Sdk.props"),
+                new System.Xml.Linq.XAttribute("Sdk", "Aspire.AppHost.Sdk"),
+                new System.Xml.Linq.XAttribute("Version", "13.6.1"),
+                new System.Xml.Linq.XAttribute("Condition", "'$(UseLegacySdk)' == 'true'")));
+            declaration = document.ToString();
+        }
+        await File.WriteAllTextAsync(importedFile, declaration);
+        var queries = new List<string>();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _, _) =>
+                {
+                    queries.Add(query);
+                    return (0, [new NuGetPackageCli { Id = query, Version = "17.0.0-preview.1", Source = "daily" }]);
+                },
+                GetProjectItemsAndPropertiesAsyncCallback = (_, _, properties, _, _) =>
+                {
+                    Assert.Contains("_UsingAspireAppHostSdk", properties);
+                    var document = new JsonObject()
+                        .WithSdkVersion(currentVersion)
+                        .WithProperty("_UsingAspireAppHostSdk", hasMarker ? "true" : "")
+                        .WithProperty("_AspireAppHostPackageVersion", "17.0.0")
+                        .WithProperty(importProperty, importedFile)
+                        .WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
+                    return (0, JsonDocument.Parse(document.ToJsonString()));
+                },
+                AddPackageAsyncCallback = (_, package, _, _, _, _, _) =>
+                    throw new InvalidOperationException($"Unexpected package update: {package}")
+            };
+            config.InteractionServiceFactory = _ => new TestInteractionService { ConfirmCallback = (_, _) => true };
+        });
+        using var provider = services.BuildServiceProvider();
+        var updater = new ProjectUpdater(
+            provider.GetRequiredService<ILogger<ProjectUpdater>>(),
+            provider.GetRequiredService<IDotNetCliRunner>(),
+            provider.GetRequiredService<IInteractionService>(),
+            provider.GetRequiredService<IMemoryCache>(),
+            CreateExecutionContext(workspace.WorkspaceRoot),
+            provider.GetRequiredService<FallbackProjectParser>());
+        var channel = (await provider.GetRequiredService<IPackagingService>().GetChannelsAsync().DefaultTimeout())
+            .Single(c => c.Name == "daily");
+
+        await updater.UpdateProjectAsync(CreateUpdateContext(appHost, channel)).DefaultTimeout();
+
+        Assert.Equal(["Aspire.AppHost.Sdk"], queries);
+        Assert.Equal(original, await File.ReadAllTextAsync(appHost.FullName));
+        var importedDocument = System.Xml.Linq.XDocument.Load(importedFile);
+        if (sdkForm == "Project")
+        {
+            Assert.Equal("Aspire.AppHost.Sdk/17.0.0-preview.1", importedDocument.Root!.Attribute("Sdk")!.Value);
+        }
+        else
+        {
+            Assert.Null(importedDocument.Root!.Attribute("Sdk"));
+            Assert.All(importedDocument.Root.Elements().Where(element => element.Attribute("Condition") is null),
+                element => Assert.Equal("17.0.0-preview.1", element.Attribute("Version")!.Value));
+        }
+        if (inactiveImport)
+        {
+            Assert.Equal("13.6.1", importedDocument.Root!.Elements()
+                .Single(element => element.Attribute("Condition") is not null).Attribute("Version")!.Value);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false, ".csproj")]
+    [InlineData(false, true, false, false, ".csproj")]
+    [InlineData(true, false, false, false, ".csproj")]
+    [InlineData(true, true, false, false, ".csproj")]
+    [InlineData(false, false, true, false, ".csproj")]
+    [InlineData(false, true, true, false, ".csproj")]
+    [InlineData(false, false, false, true, ".csproj")]
+    [InlineData(false, false, true, true, ".csproj")]
+    [InlineData(false, false, false, false, ".fsproj")]
+    [InlineData(false, true, false, false, ".fsproj")]
+    [InlineData(false, false, false, false, ".vbproj")]
+    [InlineData(false, true, false, false, ".vbproj")]
+    [InlineData(false, false, false, true, ".csproj", true)]
+    [InlineData(false, false, false, true, ".csproj", false, true)]
+    [InlineData(false, false, false, false, ".csproj", false, true)]
+    [InlineData(false, false, false, false, ".fsproj", false, true)]
+    [InlineData(false, false, false, false, ".vbproj", false, true)]
+    public async Task UpdatePackageOnlyAppHostPreservesExplicitPackageAndDoesNotAddSdk(bool fileBased, bool fallback, bool centrallyManaged, bool imported, string extension, bool childVersion = false, bool inactiveSdk = false)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, fileBased ? "apphost.cs" : $"AppHost{extension}"));
+        var original = imported
+            ? "<Project Sdk=\"Microsoft.NET.Sdk\" />"
+            : fileBased
+            ? "#:package Aspire.Hosting.AppHost@17.0.0\n"
+            : centrallyManaged
+                ? "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" /></ItemGroup></Project>"
+                : "<Project Sdk=\"Microsoft.NET.Sdk\"><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>";
+        if (inactiveSdk && !imported)
+        {
+            original = original.Replace("</Project>", "<Import Project=\"Sdk.props\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"13.6.1\" Condition=\"'$(UseLegacySdk)' == 'true'\" /></Project>");
+        }
+        await File.WriteAllTextAsync(appHost.FullName, original);
+        if (imported)
+        {
+            await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"),
+                inactiveSdk
+                    ? "<Project><Import Project=\"Sdk.props\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"8.2.1\" Condition=\"'$(MSBuildProjectName)' == 'Legacy.AppHost'\" /><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>"
+                    : centrallyManaged
+                    ? "<Project><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" /></ItemGroup></Project>"
+                    : childVersion
+                    ? "<Project><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\"><Version>17.0.0</Version></PackageReference></ItemGroup></Project>"
+                    : "<Project><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>");
+        }
+        var configFile = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json");
+        await File.WriteAllTextAsync(configFile, """{"channel":"stable","sdk":{"version":"17.0.0"}}""");
+        var cpmFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Packages.props");
+        if (centrallyManaged)
+        {
+            await File.WriteAllTextAsync(cpmFile,
+                "<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally></PropertyGroup><ItemGroup><PackageVersion Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>");
+        }
+        var updatedPackages = new List<string>();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _, _) =>
+                {
+                    Assert.Equal("Aspire.Hosting.AppHost", query);
+                    return (0, [new NuGetPackageCli { Id = query, Version = "17.0.1-preview.1", Source = "daily" }]);
+                },
+                GetProjectItemsAndPropertiesAsyncCallback = (_, _, _, _, _) =>
+                {
+                    if (fallback)
+                    {
+                        return (1, null);
+                    }
+                    var document = new JsonObject();
+                    document.WithSdkVersion("17.0.0");
+                    document.WithProperty("_AspireAppHostPackageVersion", "17.0.0");
+                    document.WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
+                    if (imported)
+                    {
+                        document.WithProperty("DirectoryBuildPropsPath", Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"));
+                        document["Items"]!["PackageReference"]!.AsArray()[0]!["DefiningProjectFullPath"] =
+                            Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props");
+                    }
+                    return (0, JsonDocument.Parse(document.ToJsonString()));
+                },
+                AddPackageAsyncCallback = (project, package, version, _, noRestore, _, _) =>
+                {
+                    Assert.Equal(appHost.FullName, project.FullName);
+                    Assert.Equal("17.0.1-preview.1", version);
+                    Assert.True(noRestore);
+                    updatedPackages.Add(package);
+                    return 0;
+                }
+            };
+            config.InteractionServiceFactory = _ => new TestInteractionService { ConfirmCallback = (_, _) => true };
+        });
+        using var provider = services.BuildServiceProvider();
+        var updater = new ProjectUpdater(
+            provider.GetRequiredService<ILogger<ProjectUpdater>>(),
+            provider.GetRequiredService<IDotNetCliRunner>(),
+            provider.GetRequiredService<IInteractionService>(),
+            provider.GetRequiredService<IMemoryCache>(),
+            CreateExecutionContext(workspace.WorkspaceRoot),
+            provider.GetRequiredService<FallbackProjectParser>());
+        var channel = (await provider.GetRequiredService<IPackagingService>().GetChannelsAsync().DefaultTimeout())
+            .Single(c => c.Name == "daily");
+
+        var result = await updater.UpdateProjectAsync(CreateUpdateContext(appHost, channel)).DefaultTimeout();
+
+        Assert.True(result.UpdatedApplied);
+        if (centrallyManaged)
+        {
+            Assert.Empty(updatedPackages);
+            var cpm = System.Xml.Linq.XDocument.Load(cpmFile);
+            Assert.Equal("17.0.1-preview.1", cpm.Descendants("PackageVersion").Single().Attribute("Version")!.Value);
+        }
+        else if (imported)
+        {
+            Assert.Empty(updatedPackages);
+            var props = System.Xml.Linq.XDocument.Load(Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"));
+            var reference = props.Descendants("PackageReference").Single();
+            Assert.Equal("17.0.1-preview.1", childVersion ? reference.Element("Version")!.Value : reference.Attribute("Version")!.Value);
+            if (childVersion)
+            {
+                Assert.Null(reference.Attribute("Version"));
+            }
+            if (inactiveSdk)
+            {
+                Assert.Equal("8.2.1", props.Descendants("Import").Single().Attribute("Version")!.Value);
+            }
+        }
+        else
+        {
+            Assert.Equal(["Aspire.Hosting.AppHost"], updatedPackages);
+        }
+        Assert.Equal(original, await File.ReadAllTextAsync(appHost.FullName));
+        using var configDocument = JsonDocument.Parse(await File.ReadAllTextAsync(configFile));
+        Assert.Equal("daily", configDocument.RootElement.GetProperty("channel").GetString());
+        Assert.Equal("17.0.1-preview.1", configDocument.RootElement.GetProperty("sdk").GetProperty("version").GetString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UpdateConditionalSdkRequiresExplicitEditWithoutChangingSource(bool fallback)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        const string original = "<Project Sdk=\"Microsoft.NET.Sdk\"><Import Project=\"Sdk.props\" Sdk=\"Aspire.AppHost.Sdk\" Version=\"17.0.0\" Condition=\"'$(UseLegacySdk)' == 'true'\" /><ItemGroup><PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"17.0.0\" /></ItemGroup></Project>";
+        await File.WriteAllTextAsync(appHost.FullName, original);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner
+            {
+                GetProjectItemsAndPropertiesAsyncCallback = (_, _, _, _, _) =>
+                {
+                    if (fallback)
+                    {
+                        return (1, null);
+                    }
+                    var document = new JsonObject()
+                        .WithSdkVersion("17.0.0")
+                        .WithProperty("_UsingAspireAppHostSdk", "true")
+                        .WithProperty("_AspireAppHostPackageVersion", "17.0.0")
+                        .WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
+                    return (0, JsonDocument.Parse(document.ToJsonString()));
+                },
+                SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _, _) =>
+                    throw new InvalidOperationException("Conditional SDK classification must fail before package updates.")
+            };
+        });
+        using var provider = services.BuildServiceProvider();
+        var updater = new ProjectUpdater(
+            provider.GetRequiredService<ILogger<ProjectUpdater>>(),
+            provider.GetRequiredService<IDotNetCliRunner>(),
+            provider.GetRequiredService<IInteractionService>(),
+            provider.GetRequiredService<IMemoryCache>(),
+            CreateExecutionContext(workspace.WorkspaceRoot),
+            provider.GetRequiredService<FallbackProjectParser>());
+        var channel = (await provider.GetRequiredService<IPackagingService>().GetChannelsAsync().DefaultTimeout())
+            .Single(c => c.Name == "daily");
+
+        var exception = await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
+            updater.UpdateProjectAsync(CreateUpdateContext(appHost, channel)).DefaultTimeout());
+
+        Assert.Contains("conditional", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(original, await File.ReadAllTextAsync(appHost.FullName));
+    }
+
     [Fact]
     public void IsAppHostProjectMatchesFilesystemAliases()
     {
@@ -3300,7 +3606,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData("#:sdk Aspire.AppHost.Sdk@9.5.2", true)]
     [InlineData("#:sdk Aspire.AppHost.Sdk@*", true)]
     [InlineData("#:sdk Aspire.AppHost.Sdk@10.0.0-preview.1", true)]
-    [InlineData("#:sdk Aspire.AppHost.Sdk", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk", true)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk.Extra@17.0.0", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@17.0.0 trailing", false)]
     [InlineData("#:sdk Aspire.AppHost.Sdk@", false)]
     [InlineData("#:sdk Aspire.AppHost.Sdk 9.5.2", false)]
     [InlineData("#:package Aspire.Hosting.Redis@9.5.2", false)]
@@ -3319,6 +3627,13 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData("#:package aspire.hosting.apphost@13.2.1", true)]
     [InlineData("#:package Aspire.Hosting.AppHost@*", true)]
     [InlineData("#:package Aspire.Hosting.AppHost@10.0.0-preview.1.26264.14", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0+build.1 \r\n", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0\nvar builder = 1;", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0 unexpected", false)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0 unexpected\r\n", false)]
+    [InlineData("#:package\nAspire.Hosting.AppHost@17.0.0", false)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0!", false)]
+    [InlineData("#:PACKAGE Aspire.Hosting.AppHost@17.0.0", false)]
     [InlineData("#:package Aspire.Hosting.Redis@13.2.1", false)]
     [InlineData("#:sdk Aspire.AppHost.Sdk@13.2.1", false)]
     [InlineData("// #:package Aspire.Hosting.AppHost@13.2.1", false)]

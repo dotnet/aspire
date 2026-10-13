@@ -102,6 +102,7 @@ ignore:
   # them would add no coverage; accounting for them here avoids an unrelated full test matrix.
   - eng/scripts/verify-cli-npm-package.ps1
   - eng/scripts/verify-cli-tool-nupkg.ps1
+  - eng/scripts/test-native-terminalhost.ps1          # unconditional native CLI archive smoke
   # SDK registration diagnostics run with the unconditional native Windows archive smoke.
   - eng/scripts/tray-registration-control/**
   # The stabilization job invokes this script independently of the tests selector.
@@ -149,12 +150,13 @@ path_rules:
       - src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js
       - src/Aspire.Dashboard/wwwroot/js/app.js
       - src/Aspire.Dashboard/wwwroot/js/app-terminalwindow.js
+      - src/Aspire.Dashboard/wwwroot/js/app-resourcegraph.js
       - src/Aspire.Dashboard/package.json
       - src/Aspire.Dashboard/package-lock.json
       - src/Aspire.Dashboard/wwwroot/js/hex1b-web-terminal/**
       - tests/Aspire.Dashboard.Components.Tests/JavaScript/**
     targets: [test:Infrastructure.Tests]
-    reason: DashboardTerminalScriptTests executes the terminal lifecycle JavaScript and reads the paired package assets outside its MSBuild graph.
+    reason: Dashboard JavaScript tests execute scripts and read paired package assets outside the MSBuild graph.
 
   # --- catch-all: build infrastructure & broadly shared code -> ALL --------------------------
 
@@ -215,6 +217,24 @@ path_rules:
       - tests/Shared/TemplatesTesting/data/**
     targets: [ALL]
     reason: shared test build inputs and fixtures are consumed across multiple test lanes
+
+  - paths:
+      - src/Aspire.Cli/Aspire.Cli.csproj
+      - src/Aspire.Cli/Resources/*.resx
+      - src/Aspire.Dashboard/Aspire.Dashboard.csproj
+      - src/Aspire.Dashboard/Resources/*.resx
+      - src/Aspire.Hosting/Aspire.Hosting.csproj
+      - src/Aspire.Hosting/Resources/*.resx
+      - src/Aspire.Hosting.Azure/Aspire.Hosting.Azure.csproj
+      - src/Aspire.Hosting.Azure/Resources/*.resx
+      - src/Aspire.Hosting.Browsers/Aspire.Hosting.Browsers.csproj
+      - src/Aspire.Hosting.Browsers/Resources/*.resx
+      - src/Aspire.Hosting.DevTunnels/Aspire.Hosting.DevTunnels.csproj
+      - src/Aspire.Hosting.DevTunnels/Resources/*.resx
+      - src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj
+      - src/Aspire.Hosting.Testing/Properties/*.resx
+    targets: [test:Infrastructure.Tests]
+    reason: resource metadata tests read project configuration and resource filenames at runtime
 
   # Local composite actions used by regular PR CI. Route each action to the work it can affect; when
   # the blast radius is not precise enough, keep the conservative full-matrix target.
@@ -351,6 +371,7 @@ path_rules:
       - src/Aspire.Hosting.JavaScript/**
       - src/Aspire.Hosting.Redis/**
       - src/Aspire.Hosting.RemoteHost/**
+      - src/Aspire.Hosting.Dotnet/**
       - src/Aspire.Managed/**
       - .github/workflows/tests.yml
       - .github/workflows/extension-unit-tests.yml
@@ -507,6 +528,10 @@ path_rules:
     targets: [job:cli-starter-validation]
     reason: package construction and template content consumed by the C# starter validation scenario
   - paths:
+      - src/Aspire.Hosting.Dotnet/**
+    targets: [test:Aspire.Cli.EndToEnd.Tests, test:Aspire.Templates.Tests, job:cli-starter-validation]
+    reason: runtime-only Dotnet dependency in generated C# AppHosts, including when project-graph analysis is unavailable
+  - paths:
       - playground/**
     targets: [test:Aspire.Playground.Tests]
     reason: Aspire.Playground.Tests builds/runs apps under playground/
@@ -543,6 +568,12 @@ path_rules:
       - tools/CreateLayout/**
     targets: [CLI_BUNDLE, test:Infrastructure.Tests]
     reason: assembles and validates native CLI bundle payloads
+  - paths:
+      - src/Aspire.Cli/Aspire.Cli.csproj
+      - src/Aspire.TerminalHost/Aspire.TerminalHost.csproj
+      - src/Aspire.Dashboard/Aspire.Dashboard.csproj
+    targets: [test:Infrastructure.Tests]
+    reason: evaluates terminal pipeline native publish and managed build settings
   - paths: [src/Aspire.Tray/Windows/publish.ps1]
     targets: [CLI_BUNDLE, test:Infrastructure.Tests]
     reason: Windows native publishing and smoke invocation
@@ -573,16 +604,23 @@ affected_project_rules:
   - projects: [Aspire.Hosting.Native.Server]
     targets: [CLI_BUNDLE]
     reason: AppHost Server v2 is embedded in the CLI bundle
+  - projects: [Aspire.TerminalHost]
+    targets: [CLI_BUNDLE]
+    reason: standalone terminal host is a runtime component of the CLI bundle
   - projects:
       - Aspire.Cli
       - Aspire.Managed
       - Aspire.AppHost.Sdk
       - Aspire.Hosting.AppHost
       - Aspire.Hosting.PostgreSQL
+      - Aspire.Hosting.Dotnet
       - Aspire.Hosting.CodeGeneration.TypeScript
       - Aspire.Hosting.JavaScript
     targets: [job:cli-starter-validation]
     reason: direct executables, SDK, and hosting/code-generation packages used by the C# and TypeScript starter scenarios
+  - projects: [Aspire.Hosting.Dotnet]
+    targets: [test:Aspire.Cli.EndToEnd.Tests, test:Aspire.Templates.Tests]
+    reason: generated C# AppHosts use AddDotnetProject through a runtime-only package reference
   - projects:
       - Aspire.TypeSystem
       - Aspire.Hosting.RemoteHost
@@ -673,6 +711,7 @@ affected_project_rules:
       - Aspire.Hosting.CodeGeneration.Java
       - Aspire.Hosting.CodeGeneration.TypeScript
       - Aspire.Hosting.Docker
+      - Aspire.Hosting.Dotnet
       - Aspire.Hosting.Java
       - Aspire.Hosting.JavaScript
       - Aspire.Hosting.Redis

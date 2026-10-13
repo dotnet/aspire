@@ -6,7 +6,6 @@ using System.Globalization;
 using Aspire.Hosting;
 using Aspire.Managed;
 using Aspire.Shared;
-using Aspire.TerminalHost;
 
 BundleVersionLease? acquiredBundleLease;
 try
@@ -105,7 +104,7 @@ static async Task<int> RunServer(string[] args)
 
 static async Task<int> RunTerminalHost(string[] args)
 {
-    return await TerminalHostProcessRunner.RunAsync(args).ConfigureAwait(false);
+    return await TerminalHostForwarder.RunAsync(args).ConfigureAwait(false);
 }
 
 static int ShowUsage()
