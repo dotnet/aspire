@@ -23,14 +23,17 @@ exactly one name, not a comma- or semicolon-separated list.
 
 ## Selecting a group
 
-Set the AppHost's root `LaunchGroup` configuration value. Standard configuration
-precedence applies: command-line arguments override environment variables and JSON.
+Use `--launch-group` with `aspire run` or `aspire start`. The option works with C#
+and polyglot AppHosts, including detached runs and AppHost watch/reload.
 
 ```powershell
-dotnet run --project playground\TestShop\TestShop.AppHost --launch-profile https -- LaunchGroup=catalog
+aspire start --apphost playground\TestShop\TestShop.AppHost\TestShop.AppHost.csproj --launch-group catalog --isolated
+aspire run --apphost .\apphost.mts --launch-group basket
 ```
 
-For Aspire CLI run/start/watch, set the environment variable inherited by the AppHost:
+The option overrides the AppHost's root `LaunchGroup` configuration value from
+environment variables, JSON, and launch profiles. Without the option, standard
+AppHost configuration still applies:
 
 ```powershell
 $env:LaunchGroup = "catalog"
@@ -40,8 +43,8 @@ aspire start --apphost playground\TestShop\TestShop.AppHost\TestShop.AppHost.csp
 For IDE run/debug, put `"LaunchGroup": "catalog"` in the AppHost launch profile's
 `environmentVariables`. TestShop provides `https_catalog`, `https_basket`, and
 `https_frontend` profiles. The same configuration contract applies regardless of
-whether the CLI, Visual Studio, or VS Code launches the AppHost; there is no new
-CLI switch or IDE-specific launch group selector.
+whether the CLI, Visual Studio, or VS Code launches the AppHost. The CLI option is
+also preserved when an Aspire terminal delegates run/debug to VS Code.
 
 Omit the selection to preserve the existing full-application run. Ungrouped
 resources always participate. Ungrouped children inherit their parent's membership;

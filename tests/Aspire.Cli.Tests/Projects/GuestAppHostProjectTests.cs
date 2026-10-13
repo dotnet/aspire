@@ -1725,8 +1725,10 @@ public class GuestAppHostProjectTests : IDisposable
         Assert.Contains("after 0 seconds", exception.Message);
     }
 
-    [Fact]
-    public async Task RunAsync_PassesWorkloadIdToAppHostServerEnvironment()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("catalog")]
+    public async Task RunAsync_PassesWorkloadIdAndLaunchGroupToAppHostServerEnvironment(string? launchGroup)
     {
         const string image = "example.com/aspire-tunnel:configured";
 
@@ -1763,6 +1765,7 @@ public class GuestAppHostProjectTests : IDisposable
         var context = new AppHostProjectContext
         {
             AppHostFile = appHostFile,
+            LaunchGroup = launchGroup,
             WorkingDirectory = _workspace.WorkspaceRoot,
             EnvironmentVariables = new Dictionary<string, string>()
         };
@@ -1774,6 +1777,14 @@ public class GuestAppHostProjectTests : IDisposable
         Assert.NotNull(sessionFactory.CapturedEnvironmentVariables);
         Assert.Equal(expectedWorkloadId, sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.DcpWorkloadId]);
         Assert.Equal(image, sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.ContainerTunnelBaseImage]);
+        if (launchGroup is null)
+        {
+            Assert.False(sessionFactory.CapturedEnvironmentVariables.ContainsKey("LaunchGroup"));
+        }
+        else
+        {
+            Assert.Equal(launchGroup, sessionFactory.CapturedEnvironmentVariables["LaunchGroup"]);
+        }
     }
 
     [Fact]
