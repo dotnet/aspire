@@ -74,10 +74,12 @@ public class AzureFunctionsProjectResource(string name) : ProjectResource(name),
 /// <param name="command">The command used to start the local Azure Functions app.</param>
 /// <param name="appDirectory">The directory that contains the Azure Functions app.</param>
 /// <param name="language">The authoring language used by the Azure Functions app.</param>
+/// <exception cref="ArgumentNullException">Thrown when <paramref name="appDirectory"/> is null.</exception>
+/// <exception cref="ArgumentException">Thrown when <paramref name="appDirectory"/> is empty.</exception>
 [AspireExport(ExposeProperties = true)]
 [Experimental("ASPIREAZUREFUNCTIONS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class AzureFunctionsAppResource(string name, string command, string appDirectory, AzureFunctionsLanguage language)
-    : ExecutableResource(name, command, appDirectory), IResourceWithServiceDiscovery, IAzureFunctionsResource, IResourceWithCustomWithReference<AzureFunctionsAppResource>
+    : ExecutableResource(name, command, ValidateAppDirectory(appDirectory)), IResourceWithServiceDiscovery, IAzureFunctionsResource, IResourceWithCustomWithReference<AzureFunctionsAppResource>
 {
     /// <summary>
     /// Gets the directory that contains the Azure Functions app.
@@ -109,6 +111,13 @@ public class AzureFunctionsAppResource(string name, string command, string appDi
     };
 
     private static bool IsSupportedLanguage(AzureFunctionsLanguage language) => language is AzureFunctionsLanguage.TypeScript or AzureFunctionsLanguage.JavaScript;
+
+    private static string ValidateAppDirectory(string appDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(appDirectory);
+
+        return appDirectory;
+    }
 
     static IResourceBuilder<TDestination>? IResourceWithCustomWithReference<AzureFunctionsAppResource>.TryWithReference<TDestination>(
         IResourceBuilder<TDestination> builder,

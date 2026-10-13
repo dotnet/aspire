@@ -54,7 +54,9 @@ public sealed class AzureFunctionsDeploymentTests(ITestOutputHelper output)
             }
 
             WriteFunctionsApp(workspace);
-            await auto.RunCommandAsync($"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={resourceGroupName}", counter);
+            await auto.RunCommandAsync(
+                $"unset ASPIRE_PLAYGROUND && export AZURE__LOCATION=westus3 && export AZURE__RESOURCEGROUP={AspireCliShellCommandHelpers.QuoteBashArg(resourceGroupName)} && export AZURE__SUBSCRIPTIONID={AspireCliShellCommandHelpers.QuoteBashArg(subscriptionId)}",
+                counter);
             await auto.TypeAsync("aspire deploy --clear-cache");
             await auto.EnterAsync();
             await auto.WaitForPipelineSuccessAsync(timeout: TimeSpan.FromMinutes(30));
@@ -63,7 +65,7 @@ public sealed class AzureFunctionsDeploymentTests(ITestOutputHelper output)
             // Inspect the actual deployed resource, not just the generated Bicep. The HTTP
             // round trip below also proves the generated image listens on its declared port.
             await auto.RunCommandAsync(
-                $"az containerapp list -g {resourceGroupName} -o json > containerapps.json && python3 verify-functions.py",
+                "az containerapp list --subscription \"$AZURE__SUBSCRIPTIONID\" -g \"$AZURE__RESOURCEGROUP\" -o json > containerapps.json && python3 verify-functions.py",
                 counter, TimeSpan.FromMinutes(12));
 
             await auto.TypeAsync("exit");
@@ -88,28 +90,7 @@ public sealed class AzureFunctionsDeploymentTests(ITestOutputHelper output)
         }
         finally
         {
-            // Cleanup has its own budget so a deployment timeout cannot prevent deletion.
-            using var cleanupTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo("az")
-                {
-                    ArgumentList = { "group", "delete", "--name", resourceGroupName, "--yes", "--no-wait" },
-                    UseShellExecute = false
-                }
-            };
-            try
-            {
-                process.Start();
-                await process.WaitForExitAsync(cleanupTimeout.Token);
-                DeploymentReporter.ReportCleanupStatus(resourceGroupName, process.ExitCode == 0,
-                    process.ExitCode == 0 ? "Cleanup requested" : $"az group delete exited with {process.ExitCode}");
-            }
-            catch (Exception ex)
-            {
-                output.WriteLine($"Cleanup failed: {ex.Message}");
-                DeploymentReporter.ReportCleanupStatus(resourceGroupName, success: false, errorMessage: ex.Message);
-            }
+            await DotnetProjectDeploymentHelpers.CleanupAsync(resourceGroupName, subscriptionId, output);
         }
     }
 

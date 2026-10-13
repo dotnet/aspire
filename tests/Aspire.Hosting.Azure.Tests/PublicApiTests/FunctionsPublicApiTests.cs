@@ -238,13 +238,19 @@ public class FunctionsPublicApiTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("command", exception.ParamName);
     }
 
-    [Fact]
-    public void CtorAzureFunctionsAppResourceShouldThrowWhenAppDirectoryIsNull()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CtorAzureFunctionsAppResourceShouldThrowWhenAppDirectoryIsNullOrEmpty(bool isNull)
     {
-        var action = () => new AzureFunctionsAppResource("funcapp", "func", null!, AzureFunctionsLanguage.TypeScript);
+        var appDirectory = isNull ? null! : string.Empty;
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal("workingDirectory", exception.ParamName);
+        var action = () => new AzureFunctionsAppResource("funcapp", "func", appDirectory, AzureFunctionsLanguage.TypeScript);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(appDirectory), exception.ParamName);
     }
 
     [Fact]
