@@ -55,7 +55,7 @@
              RemoveProperties="PublishAot;RuntimeIdentifier;SelfContained">
       <Output TaskParameter="TargetOutputs" ItemName="_NativeCodeGenerationPath" />
     </MSBuild>
-    <Exec Command="dotnet &quot;@(_NativeCodeGenerationPath)&quot; &quot;$(NativeGeneratedDirectory)&quot;" />
+    <Exec Command="&quot;$(DotNetTool)&quot; exec &quot;@(_NativeCodeGenerationPath)&quot; &quot;$(NativeGeneratedDirectory)&quot;" />
     <ItemGroup>
       <Compile Include="$(NativeGeneratedDirectory)NativeDispatch.g.cs" />
     </ItemGroup>

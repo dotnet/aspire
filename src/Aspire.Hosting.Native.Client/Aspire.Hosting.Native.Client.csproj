@@ -21,7 +21,7 @@
       <Output TaskParameter="TargetOutputs" ItemName="_NativeClientCodeGenerationPath" />
     </MSBuild>
     <!-- Client-only generation never writes the server dispatch or TypeScript SDK. -->
-    <Exec Command="dotnet &quot;@(_NativeClientCodeGenerationPath)&quot; &quot;$(NativeGeneratedDirectory)&quot; --csharp" />
+    <Exec Command="&quot;$(DotNetTool)&quot; exec &quot;@(_NativeClientCodeGenerationPath)&quot; &quot;$(NativeGeneratedDirectory)&quot; --csharp" />
     <ItemGroup>
       <Compile Include="$(NativeGeneratedDirectory)NativeClient.g.cs" />
     </ItemGroup>
