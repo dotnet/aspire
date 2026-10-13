@@ -30,15 +30,14 @@ var entraApi = builder.AddEntraIdApplication("entra-api")
                       .AsExistingApplication(tenantId: tenantId, clientId: apiClientId);
 
 var api = builder.AddProject<Projects.Api>("api")
-                 .WithReference(entraApi)
-                 .WaitFor(entraApi);
+                 .WithReference(entraApi);
 ```
 
 Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the app registration's **Overview** page. When the parameters have no value, the dashboard prompts for them.
 
 For .NET program resources, `WithReference` injects environment variables in the form `AzureAd__{Key}` — for example `AzureAd__Instance`, `AzureAd__TenantId`, and `AzureAd__ClientId`. .NET's configuration system maps these to the `AzureAd` configuration section, so the referencing resource reads them as ordinary configuration with no glue code.
 
-When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why. `WaitFor` keeps the referencing resource from starting with invalid settings.
+When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why. `WithReference` automatically makes consuming workloads wait for the registration to be ready before resolving their authentication configuration; no explicit `WaitFor` is required.
 
 ### Create registrations
 
@@ -52,12 +51,10 @@ var entraWeb = builder.AddEntraIdApplication("entra-web")
                           "https://localhost:7123/signout-callback-oidc"]);
 
 builder.AddProject<Projects.Api>("api")
-       .WithReference(entraApi)
-       .WaitFor(entraApi);
+       .WithReference(entraApi);
 
 builder.AddProject<Projects.Web>("web")
-       .WithReference(entraWeb)
-       .WaitFor(entraWeb);
+       .WithReference(entraWeb);
 ```
 
 Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. The provisioning identity is added as an owner of both the application and service principal. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
@@ -66,19 +63,19 @@ The module is generated in C# using `Azure.Provisioning`, including the Graph ap
 
 The resource derives from `AzureProvisioningResource`, so `ConfigureInfrastructure` callbacks can customize the generated infrastructure or add provisioning outputs.
 
-The client ID and tenant ID are deployment outputs. References wait for provisioning and inject those outputs into the consumer's configuration; multi-tenant registrations still receive the appropriate sign-in keyword and `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
+The client ID and tenant ID are deployment outputs. `WithReference` automatically makes consuming workloads wait for provisioning and injects those outputs into their configuration. With the dashboard's default wait behavior, workloads remain waiting while missing Azure settings are supplied and provisioning is retried. The wait respects the application's default wait behavior or an explicit wait configured before `WithReference`. Multi-tenant registrations still receive the appropriate sign-in keyword and `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
 
 A stable `uniqueName` derived from the resource name and resource group ID makes redeployment update the same registration. Two AppHosts sharing a resource group must use different resource names to avoid sharing a registration.
 
 This first provisioning increment creates the registration and service principal. Redirect URIs can be provided explicitly using the `redirectUris` Bicep parameter; endpoints are not discovered automatically. It does not provision client credentials, API scopes, or API permissions.
 
-For the playground's ID-token-only sign-in flow, explicitly enable ID-token issuance:
+For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 
 ```csharp
-entraWeb.Resource.Parameters["enableIdTokenIssuance"] = true;
+entraWeb.WithIdTokenIssuance();
 ```
 
-ID-token issuance through implicit or hybrid flows is disabled by default. It is not needed for authorization-code-only flows. For new production applications, prefer authorization code flow with PKCE and configure a confidential-client credential when the application redeems codes. The sign-in-only playground deliberately uses ID tokens without redeeming codes or calling downstream APIs.
+ID-token issuance through implicit or hybrid flows is disabled by default. `WithIdTokenIssuance` enables only ID-token issuance, not implicit access-token issuance, and only affects registrations created by Aspire. For existing registrations, enable **ID tokens (used for implicit and hybrid flows)** in their **Authentication** settings instead. It is not needed for authorization-code-only flows. For new production applications, prefer authorization code flow with PKCE and configure a confidential-client credential when the application redeems codes.
 
 Creating a registration does not protect a workload's routes or authorize API requests. Configure authentication and authorization in the consuming application using Microsoft.Identity.Web or the corresponding library for that language. A web-to-API flow additionally requires an API identifier URI, exposed scopes, client permissions/consent, a client credential, and scope or role validation in the API. These are not provisioned by this initial increment.
 
@@ -96,8 +93,7 @@ to double underscores; for example, `"Authentication:AzureAd"` produces `Authent
 
 ```csharp
 var customApi = builder.AddProject<Projects.Api>("custom-api")
-                       .WithReference(entraApi, connectionName: "Authentication:AzureAd")
-                       .WaitFor(entraApi);
+                       .WithReference(entraApi, connectionName: "Authentication:AzureAd");
 ```
 
 Other resources use portable uppercase snake-case names with `"_"` separators, including the registration resource's
@@ -106,8 +102,7 @@ Set the optional `connectionName` to override the prefix:
 
 ```csharp
 var worker = builder.AddContainer("worker", "my-worker-image")
-                    .WithReference(entraApi, connectionName: "ENTRA")
-                    .WaitFor(entraApi);
+                    .WithReference(entraApi, connectionName: "ENTRA");
 ```
 
 This produces names such as `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID`. The naming convention applies throughout nested settings

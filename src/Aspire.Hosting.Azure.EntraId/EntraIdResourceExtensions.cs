@@ -636,6 +636,40 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
+    /// Enables ID-token issuance through implicit and hybrid flows for a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// ID-token issuance through implicit and hybrid flows is disabled by default. Enable it when the application's
+    /// OpenID Connect sign-in flow requests an ID token directly from the authorization endpoint. This does not enable
+    /// implicit access-token issuance and is not required for authorization-code-only flows.
+    /// For new production applications, prefer authorization code flow with PKCE.
+    /// </para>
+    /// <para>
+    /// This setting only affects registrations created by Aspire. Existing registrations are not modified;
+    /// enable "ID tokens (used for implicit and hybrid flows)" in their Authentication settings instead.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithIdTokenIssuance()
+    ///     .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithIdTokenIssuance(
+        this IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Parameters["enableIdTokenIssuance"] = true;
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a client capability (e.g., <c>"cp1"</c> for Continuous Access Evaluation).
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -736,6 +770,12 @@ public static class EntraIdResourceExtensions
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// <para>
+    /// Consuming resources that support dependency waits automatically wait for the Entra ID application to be ready
+    /// before resolving authentication configuration. Created registrations wait for provisioning; existing registrations
+    /// wait for validation. An explicit <c>WaitFor</c> call is not required. The wait uses the application's default
+    /// wait behavior unless an explicit wait for this registration is already configured.
+    /// </para>
+    /// <para>
     /// .NET program resources use <c>__</c> between keys and array indexes; other resources use <c>_</c>.
     /// Non-.NET environment variable names, including custom connection names, use uppercase snake case,
     /// such as <c>ENTRA_API_CLIENT_ID</c> and <c>ENTRA_API_CLIENT_CREDENTIALS_0_SOURCE_TYPE</c>.
@@ -798,6 +838,14 @@ public static class EntraIdResourceExtensions
 
         // Create a reference relationship so the dashboard shows the connection
         builder.WithReferenceRelationship(entra);
+
+        // Missing Azure settings fault the first provisioning attempt before the dashboard prompts for them.
+        // Wait for readiness so consumers resolve outputs from the successful retry, not the faulted attempt.
+        if (builder.Resource is IResourceWithWaitSupport waitSupport &&
+            !builder.Resource.Annotations.OfType<WaitAnnotation>().Any(annotation => annotation.Resource == entra))
+        {
+            builder.ApplicationBuilder.CreateResourceBuilder(waitSupport).WaitFor(source);
+        }
 
         builder.WithEnvironment(context =>
         {

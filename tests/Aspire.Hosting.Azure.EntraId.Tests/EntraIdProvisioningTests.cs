@@ -84,8 +84,8 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var entra = builder.AddEntraIdApplication("entra-web")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
-            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
-        entra.Resource.Parameters["enableIdTokenIssuance"] = true;
+            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"])
+            .WithIdTokenIssuance();
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var manifest = await ManifestUtils.GetManifest(entra.Resource, workspace.Path);
@@ -102,8 +102,8 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var web = builder.AddEntraIdApplication("entra-web")
             .WithParameter("redirectUris", [
                 "https://localhost:7123/signin-oidc",
-                "https://localhost:7123/signout-callback-oidc"]);
-        web.Resource.Parameters["enableIdTokenIssuance"] = true;
+                "https://localhost:7123/signout-callback-oidc"])
+            .WithIdTokenIssuance();
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -176,6 +176,47 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         entra.WithSignInAudience(audience);
 
         Assert.Equal(audience.ToString(), entra.Resource.Parameters["signInAudience"]);
+    }
+
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run)]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    public void WithIdTokenIssuance_EnablesProvisioningParameter(DistributedApplicationOperation operation)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.Same(entra, entra.WithIdTokenIssuance());
+        Assert.Same(entra, entra.WithIdTokenIssuance());
+        Assert.True(Assert.IsType<bool>(entra.Resource.Parameters["enableIdTokenIssuance"]));
+    }
+
+    [Fact]
+    public void WithIdTokenIssuance_ThrowsWhenBuilderIsNull()
+    {
+        var exception = Assert.Throws<ArgumentNullException>(() => EntraIdResourceExtensions.WithIdTokenIssuance(null!));
+
+        Assert.Equal("builder", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run)]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    public async Task WithIdTokenIssuance_DoesNotProvisionExistingApplication(DistributedApplicationOperation operation)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithIdTokenIssuance()
+            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
+            .WithIdTokenIssuance();
+
+        Assert.True(entra.Resource.IsExistingApplication);
+        Assert.Equal(TenantId, entra.Resource.TenantId);
+        Assert.Equal(ClientId, entra.Resource.ClientId);
+        Assert.Null(entra.Resource.ProvisioningTaskCompletionSource);
+        Assert.Empty(entra.Resource.Annotations.OfType<PipelineStepAnnotation>());
+        Assert.Empty(entra.Resource.Annotations.OfType<PipelineConfigurationAnnotation>());
+        Assert.Null(await ManifestUtils.GetManifestOrNull(entra.Resource));
     }
 
     [Fact]
@@ -302,6 +343,121 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
             project.Resource, operation, TestServiceProvider.Instance));
         Assert.Equal(expectedContainer, await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             container.Resource, operation, TestServiceProvider.Instance));
+    }
+
+    [Fact]
+    public async Task WithReference_WaitsForAzureConfigurationRecoveryBeforeResolvingOutputs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.Configure<ResourceNotificationServiceOptions>(options =>
+            options.DefaultWaitBehavior = WaitBehavior.WaitOnResourceUnavailable);
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var node = builder.AddExecutable("node", "node", ".")
+            .WithReference(entra);
+
+        using var app = builder.Build();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        entra.Resource.ProvisioningTaskCompletionSource!.SetException(
+            new InvalidOperationException("Azure provisioning options were not provided."));
+        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.FailedToStart
+        });
+
+        var environmentTask = ResolveEnvironmentAfterDependenciesAsync();
+
+        Assert.False(environmentTask.IsCompleted);
+        await notifications.WaitForResourceAsync(node.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        entra.Resource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        entra.Resource.Outputs["tenantId"] = TenantId;
+        entra.Resource.Outputs["clientId"] = ClientId;
+        entra.Resource.ProvisioningTaskCompletionSource.SetResult();
+        await ResourceNotificationServiceTestHelpers.PublishReadyAsync(notifications, entra.Resource);
+
+        Assert.Equal(new Dictionary<string, string>
+        {
+            ["ENTRA_WEB_INSTANCE"] = "https://login.microsoftonline.com/",
+            ["ENTRA_WEB_TENANT_ID"] = TenantId,
+            ["ENTRA_WEB_CLIENT_ID"] = ClientId
+        }, await environmentTask.WaitAsync(cts.Token));
+
+        async Task<Dictionary<string, string>> ResolveEnvironmentAfterDependenciesAsync()
+        {
+            await notifications.WaitForDependenciesAsync(node.Resource, cts.Token);
+            return await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+                node.Resource, DistributedApplicationOperation.Run, app.Services);
+        }
+    }
+
+    [Theory]
+    [InlineData(nameof(ProjectResource), false)]
+    [InlineData(nameof(ExecutableResource), false)]
+    [InlineData(nameof(ContainerResource), false)]
+    [InlineData(nameof(ProjectResource), true)]
+    [InlineData(nameof(ExecutableResource), true)]
+    [InlineData(nameof(ContainerResource), true)]
+    public void WithReference_AddsReadinessDependency(string resourceType, bool existing)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        if (existing)
+        {
+            entra.AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        }
+
+        IResourceBuilder<IResourceWithEnvironment> consumer = resourceType switch
+        {
+            nameof(ProjectResource) => builder.AddResource(new ProjectResource("consumer")),
+            nameof(ExecutableResource) => builder.AddExecutable("consumer", "node", "."),
+            nameof(ContainerResource) => builder.AddContainer("consumer", "test-image"),
+            _ => throw new ArgumentOutOfRangeException(nameof(resourceType))
+        };
+
+        Assert.Same(consumer, consumer.WithReference(entra));
+        consumer.WithReference(entra, connectionName: "OTHER");
+
+        var wait = Assert.Single(consumer.Resource.Annotations.OfType<WaitAnnotation>());
+        Assert.Same(entra.Resource, wait.Resource);
+        Assert.Equal(WaitType.WaitUntilHealthy, wait.WaitType);
+        Assert.Null(wait.WaitBehavior);
+    }
+
+    [Fact]
+    public void WithReference_PreservesExplicitWaitBehavior()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var node = builder.AddExecutable("node", "node", ".")
+            .WaitFor(entra, WaitBehavior.StopOnResourceUnavailable)
+            .WithReference(entra);
+
+        var wait = Assert.Single(node.Resource.Annotations.OfType<WaitAnnotation>());
+        Assert.Same(entra.Resource, wait.Resource);
+        Assert.Equal(WaitBehavior.StopOnResourceUnavailable, wait.WaitBehavior);
+    }
+
+    [Fact]
+    public async Task WithReference_StopsOnProvisioningFailureWhenConfigured()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.Configure<ResourceNotificationServiceOptions>(options =>
+            options.DefaultWaitBehavior = WaitBehavior.StopOnResourceUnavailable);
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var node = builder.AddExecutable("node", "node", ".")
+            .WithReference(entra);
+
+        using var app = builder.Build();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with
+        {
+            State = KnownResourceStates.FailedToStart
+        });
+
+        await Assert.ThrowsAsync<DistributedApplicationException>(
+            () => notifications.WaitForDependenciesAsync(node.Resource, cts.Token));
     }
 
     [Fact]
