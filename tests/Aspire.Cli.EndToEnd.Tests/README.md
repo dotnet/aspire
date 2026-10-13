@@ -106,6 +106,22 @@ await sequence.ApplyAsync(Terminal);
 
 ## Running Tests Locally
 
+### Daily smoke version pinning
+
+`.github/workflows/tests-daily-smoke.yml` uses the acquisition script's
+`--resolve-only` mode once per run. It passes the returned product version as
+`ASPIRE_E2E_VERSION` and artifact build directory as `ASPIRE_E2E_BUILD_VERSION`.
+Every smoke test then invokes the script with `--version` and `--build-version`;
+artifact URLs are constructed only by the acquisition script.
+
+The resolved product/build pair takes precedence over `ASPIRE_E2E_QUALITY` in
+strategy detection; quality is passed to the script only to retain the requested
+install channel. Without a build pin, quality still takes precedence over a
+version. The two version values preserve
+stable-shaped staging artifacts whose build directory differs from their product
+version. The stable-channel AppHost smoke scenarios still explicitly request
+`channel: "stable"`; pinning the CLI does not pin their AppHost SDK.
+
 ### npm test dependencies
 
 The project-level `package.json` pins npm tools used to scaffold test fixtures.

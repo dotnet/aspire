@@ -9,6 +9,100 @@ namespace Aspire.Cli.EndToEnd.Tests.Helpers;
 [Collection(CliInstallEnvironmentCollection.Name)]
 public class CliInstallStrategyTests
 {
+    [Theory]
+    [InlineData("17.0.0-preview.1.26509.9", "17.0.0-preview.1.26509.9")]
+    [InlineData("13.6.1", "13.6.1-preview.1.26506.6")]
+    public void Detect_ResolvedVersionAndBuild_UsesPinnedInstallScript(string version, string buildVersion)
+    {
+        using var environment = new EnvironmentVariableScope(
+            ("ASPIRE_E2E_ARCHIVE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL_SOURCE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL", null),
+            ("ASPIRE_E2E_QUALITY", ""),
+            ("ASPIRE_E2E_VERSION", version),
+            ("ASPIRE_E2E_BUILD_VERSION", buildVersion));
+
+        var strategy = CliInstallStrategy.Detect();
+
+        Assert.Equal(CliInstallMode.InstallScript, strategy.Mode);
+        Assert.Null(strategy.Quality);
+        Assert.Equal(version, strategy.Version);
+        Assert.Equal(buildVersion, strategy.BuildVersion);
+        Assert.Equal(
+            $"/opt/aspire-scripts/get-aspire-cli.sh --version {version} --build-version {buildVersion}",
+            AspireCliShellCommandHelpers.GetInstallScriptCommand(strategy, AspireCliShellCommandHelpers.DockerInstallScriptCommandPrefix));
+    }
+
+    [Theory]
+    [InlineData("dev")]
+    [InlineData("staging")]
+    [InlineData("release")]
+    public void Detect_ResolvedBuildWithQuality_PinsDownloadsAndRetainsChannel(string quality)
+    {
+        using var environment = new EnvironmentVariableScope(
+            ("ASPIRE_E2E_ARCHIVE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL_SOURCE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL", null),
+            ("ASPIRE_E2E_QUALITY", quality),
+            ("ASPIRE_E2E_VERSION", "13.6.1"),
+            ("ASPIRE_E2E_BUILD_VERSION", "13.6.1-preview.1.26506.6"));
+
+        var strategy = CliInstallStrategy.Detect();
+
+        Assert.Equal(CliInstallMode.InstallScript, strategy.Mode);
+        Assert.Equal(Enum.Parse<CliInstallQuality>(quality, ignoreCase: true), strategy.Quality);
+        Assert.Equal("13.6.1", strategy.Version);
+        Assert.Equal("13.6.1-preview.1.26506.6", strategy.BuildVersion);
+        Assert.Equal(
+            $" --version 13.6.1 --build-version 13.6.1-preview.1.26506.6 --quality {quality}",
+            AspireCliShellCommandHelpers.GetInstallScriptArgs(strategy));
+    }
+
+    [Fact]
+    public void Detect_QualityWithoutBuildPin_PreservesQualityPrecedence()
+    {
+        using var environment = new EnvironmentVariableScope(
+            ("ASPIRE_E2E_ARCHIVE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL_SOURCE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL", null),
+            ("ASPIRE_E2E_QUALITY", "dev"),
+            ("ASPIRE_E2E_VERSION", "13.6.1"),
+            ("ASPIRE_E2E_BUILD_VERSION", null));
+
+        var strategy = CliInstallStrategy.Detect();
+
+        Assert.Equal(CliInstallQuality.Dev, strategy.Quality);
+        Assert.Null(strategy.Version);
+        Assert.Null(strategy.BuildVersion);
+        Assert.Equal(" --quality dev", AspireCliShellCommandHelpers.GetInstallScriptArgs(strategy));
+    }
+
+    [Fact]
+    public void Detect_BuildPinWithoutVersion_FailsInsteadOfResolvingQuality()
+    {
+        using var environment = new EnvironmentVariableScope(
+            ("ASPIRE_E2E_ARCHIVE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL_SOURCE", null),
+            ("ASPIRE_E2E_DOTNET_TOOL", null),
+            ("ASPIRE_E2E_QUALITY", "dev"),
+            ("ASPIRE_E2E_VERSION", null),
+            ("ASPIRE_E2E_BUILD_VERSION", "13.6.1-preview.1.26506.6"));
+
+        var exception = Assert.Throws<ArgumentException>(() => CliInstallStrategy.Detect());
+
+        Assert.Equal("ASPIRE_E2E_BUILD_VERSION requires ASPIRE_E2E_VERSION.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("bad/version")]
+    [InlineData("1.0.0;echo invalid")]
+    public void FromVersion_InvalidBuildVersion_Throws(string buildVersion)
+    {
+        var exception = Assert.Throws<ArgumentException>(() => CliInstallStrategy.FromVersion("13.6.1", buildVersion));
+
+        Assert.Equal("buildVersion", exception.ParamName);
+    }
+
     [Fact]
     public void GetPullRequestInstallArgs_ReturnsPrNumber()
     {
