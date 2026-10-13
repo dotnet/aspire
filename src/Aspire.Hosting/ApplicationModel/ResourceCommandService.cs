@@ -474,8 +474,11 @@ public class ResourceCommandService
             // Only competing starts of this dependency queue here. An unhealthy dependency must not block
             // unrelated starts or the force-start command that releases its readiness wait.
             await precedingStart.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Match lifecycle commands: a stopped container can report "Unknown".
+            // See https://github.com/microsoft/aspire/issues/5977.
             if (!_resourceNotificationService.TryGetCurrentState(name, out var current) ||
                 (current.Snapshot.State?.Text != KnownResourceStates.NotStarted &&
+                 current.Snapshot.State?.Text != "Unknown" &&
                  !KnownResourceStates.TerminalStates.Contains(current.Snapshot.State?.Text)))
             {
                 return CommandResults.Success();

@@ -66,21 +66,27 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
     [InlineData("Exited", 0, true, false)]
     [InlineData("Exited", 1, true, true)]
     [InlineData("Finished", null, true, true)]
+    [InlineData("Unknown", null, false, true)]
+    [InlineData("Unknown", null, true, true)]
     public async Task LaunchGroupLateStartsRestartStoppedServicesButPreserveCompletedJobs(string state, int? exitCode, bool completionDependency, bool shouldStart)
     {
         using var builder = CreateBuilder();
         builder.AddLaunchGroups("selected", "other");
         builder.Configuration["LaunchGroup"] = "selected";
-        var starts = 0;
+        var started = new ConcurrentQueue<string>();
         var dependency = builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("other")
-            .WithCommand(KnownResourceCommands.StartCommand, "Start", _ =>
+            .WithCommand(KnownResourceCommands.StartCommand, "Start", context =>
             {
-                Interlocked.Increment(ref starts);
+                started.Enqueue(context.ResourceName);
                 return Task.FromResult(CommandResults.Success());
             });
         var root = builder.AddResource(new CustomResource("root")).WithLaunchGroup("other")
             .WithReferenceRelationship(dependency)
-            .WithCommand(KnownResourceCommands.StartCommand, "Start", _ => Task.FromResult(CommandResults.Success()));
+            .WithCommand(KnownResourceCommands.StartCommand, "Start", context =>
+            {
+                started.Enqueue(context.ResourceName);
+                return Task.FromResult(CommandResults.Success());
+            });
         if (completionDependency)
         {
             root.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion));
@@ -92,7 +98,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         var result = await app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
-        Assert.Equal(shouldStart ? 1 : 0, starts);
+        Assert.Equal(shouldStart ? ["dependency", "root"] : ["root"], started);
     }
 
     [Theory]
