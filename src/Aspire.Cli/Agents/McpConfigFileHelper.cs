@@ -94,13 +94,13 @@ internal static class McpConfigFileHelper
         // command: ["aspire", "mcp", "start"]. Only these exact deprecated forms are repaired;
         // custom commands and version-pinned server definitions are left intact.
         if (aspire["args"] is JsonArray { Count: 2 } args &&
-            args[0]?.GetValue<string>() == "mcp" && args[1]?.GetValue<string>() == "start")
+            MatchesArgument(args[0], "mcp") && MatchesArgument(args[1], "start"))
         {
             aspire["args"] = new JsonArray("agent", "mcp");
         }
         else if (aspire["command"] is JsonArray { Count: 3 } command &&
-            command[0]?.GetValue<string>() == "aspire" &&
-            command[1]?.GetValue<string>() == "mcp" && command[2]?.GetValue<string>() == "start")
+            MatchesArgument(command[0], "aspire") &&
+            MatchesArgument(command[1], "mcp") && MatchesArgument(command[2], "start"))
         {
             aspire["command"] = new JsonArray("aspire", "agent", "mcp");
         }
@@ -110,5 +110,10 @@ internal static class McpConfigFileHelper
         }
 
         return true;
+    }
+
+    private static bool MatchesArgument(JsonNode? argument, string expected)
+    {
+        return argument is JsonValue value && value.TryGetValue<string>(out var text) && text == expected;
     }
 }

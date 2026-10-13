@@ -909,9 +909,11 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("copilot", "global")]
-    [InlineData("opencode", "project")]
-    public async Task AgentInit_CustomizedDeprecatedMcpCommand_IsPreserved(string clientId, string scopeName)
+    [InlineData("copilot", "global", """["mcp","start","--custom"]""")]
+    [InlineData("opencode", "project", """["aspire","mcp","start","--custom"]""")]
+    [InlineData("copilot", "project", """["mcp",42]""")]
+    [InlineData("opencode", "global", """["aspire",{},"start"]""")]
+    public async Task AgentInit_CustomizedDeprecatedMcpCommand_IsPreserved(string clientId, string scopeName, string arguments)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var homeDirectory = workspace.CreateDirectory("fake-home");
@@ -921,8 +923,8 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
         var path = client.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
         var original = clientId == "opencode"
-            ? """{ "preference": true, "mcp": { "aspire": { "type": "local", "command": ["aspire", "mcp", "start", "--custom"], "enabled": false } } }"""
-            : """{ "preference": true, "mcpServers": { "aspire": { "command": "aspire", "args": ["mcp", "start", "--custom"], "env": { "CUSTOM": "keep" } } } }""";
+            ? $$"""{ "preference": true, "mcp": { "aspire": { "type": "local", "command": {{arguments}}, "enabled": false } } }"""
+            : $$"""{ "preference": true, "mcpServers": { "aspire": { "command": "aspire", "args": {{arguments}}, "env": { "CUSTOM": "keep" } } } }""";
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(path, original);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
