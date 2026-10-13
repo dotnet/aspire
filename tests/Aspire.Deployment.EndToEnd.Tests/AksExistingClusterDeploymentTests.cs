@@ -43,9 +43,13 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
                 az group create --subscription "$TEST_SUBSCRIPTION" --name "$CLUSTER_RG" --location westus3 -o none
                 az group create --subscription "$TEST_SUBSCRIPTION" --name "$DEPLOY_RG" --location westus3 -o none
                 ssh-keygen -t rsa -b 2048 -N '' -f "$BOOTSTRAP_DIR/aks-key"
+                # New AKS 1.34+ clusters enable OIDC by default and cannot disable it afterward.
+                # Use the last pre-default version with LTS to exercise a cluster without OIDC.
+                # https://learn.microsoft.com/azure/aks/use-oidc-issuer
                 az aks create --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" \
                     --name existing-aks --location westus3 --nodepool-name system --node-count 1 \
                     --node-vm-size Standard_D2as_v5 --enable-managed-identity \
+                    --kubernetes-version 1.33 --tier premium --k8s-support-plan AKSLongTermSupport \
                     --ssh-key-value "$BOOTSTRAP_DIR/aks-key.pub" \
                     --query id -o tsv > "$BOOTSTRAP_DIR/cluster-id"
                 az aks show --subscription "$TEST_SUBSCRIPTION" --resource-group "$CLUSTER_RG" --name existing-aks \
