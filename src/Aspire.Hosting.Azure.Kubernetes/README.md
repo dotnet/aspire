@@ -73,7 +73,7 @@ Aspire grants the AKS kubelet identity `AcrPull` at the registry's scope. The de
 
 ### Cluster identities and permissions
 
-Aspire provisions separate user-assigned managed identities for the control plane and kubelets. Neither is a workload identity:
+Aspire provisions separate user-assigned managed identities for the control plane and kubelets. Both inherit the cluster's resource-group and subscription scope, including scopes set through provisioning customization. Neither is a workload identity:
 
 | Identity | Permissions |
 | --- | --- |

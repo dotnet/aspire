@@ -127,6 +127,13 @@ public static class AzureKubernetesEnvironmentExtensions
                     }
                 }
 
+                // Configuration callbacks can set the cluster's scope. Resolve it before preparing
+                // identity roles without caching the template: publishing must regenerate it after
+                // workload identities have been prepared.
+                using var template = resource.GetBicepTemplateFile();
+                controlPlaneIdentity.Resource.Scope = resource.Scope;
+                kubeletIdentity.Resource.Scope = resource.Scope;
+
                 // Resolve the final registry and subnet selections after model configuration.
                 // Standard Azure role preparation handles assignment scope and deployment ordering.
                 if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&

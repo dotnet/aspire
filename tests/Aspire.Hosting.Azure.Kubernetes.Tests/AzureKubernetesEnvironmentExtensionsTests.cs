@@ -568,6 +568,59 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         Assert.Empty(model.Resources.OfType<AzureRoleAssignmentResource>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ClusterScope_IsInheritedByIdentitiesAndOperatorRole(bool configuredScope)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var aks = builder.AddAzureKubernetesEnvironment("aks");
+        var scope = configuredScope
+            ? new AzureBicepResourceScope(
+                builder.AddParameter("cluster-group", "cluster-rg").Resource,
+                builder.AddParameter("cluster-subscription", "00000000-0000-0000-0000-000000000001").Resource)
+            : new AzureBicepResourceScope("cluster-rg", "00000000-0000-0000-0000-000000000001");
+        if (configuredScope)
+        {
+            aks.ConfigureInfrastructure(infrastructure => infrastructure.AspireResource.Scope = scope);
+        }
+        else
+        {
+            aks.Resource.Scope = scope;
+        }
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        Assert.Same(scope, aks.Resource.ControlPlaneIdentity!.Scope);
+        Assert.Same(scope, aks.Resource.KubeletIdentity!.Scope);
+        var operatorRole = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>()
+            .Resources.OfType<AzureRoleAssignmentResource>(),
+            role => role.TargetAzureResource == aks.Resource.KubeletIdentity);
+        Assert.Same(scope, operatorRole.Scope);
+        var registryRole = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>()
+            .Resources.OfType<AzureRoleAssignmentResource>(),
+            role => role.TargetAzureResource == aks.Resource.DefaultContainerRegistry);
+        Assert.Null(registryRole.Scope);
+
+        var mainBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep"));
+        var aksBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks", "aks.bicep"));
+        var operatorBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, operatorRole.Name, $"{operatorRole.Name}.bicep"));
+        var registryBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-acr", "aks-acr.bicep"));
+        var controlPlaneBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-control-plane-identity", "aks-control-plane-identity.bicep"));
+        var kubeletBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-kubelet-identity", "aks-kubelet-identity.bicep"));
+        var registryRoleBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, registryRole.Name, $"{registryRole.Name}.bicep"));
+        await Verify(mainBicep, "bicep")
+            .UseParameters(configuredScope)
+            .AppendContentAsFile(aksBicep, "bicep")
+            .AppendContentAsFile(operatorBicep, "bicep")
+            .AppendContentAsFile(registryBicep, "bicep")
+            .AppendContentAsFile(controlPlaneBicep, "bicep")
+            .AppendContentAsFile(kubeletBicep, "bicep")
+            .AppendContentAsFile(registryRoleBicep, "bicep");
+    }
+
     [Fact]
     public async Task IdentityNameCollisionFailsBeforeRegisteringEitherIdentity()
     {
