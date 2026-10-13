@@ -51,6 +51,8 @@ Global telemetry hooks are eligible only for selected, actually detected
 environments. Copilot CLI and App share a hook target; VS Code hints do not invent
 CLI/App detection. New registrations execute the CLI directly, while embedded
 scripts remain available to refresh existing compatible registrations.
+See [telemetry hook maintenance](Hooks/README.md) for synchronization and
+provenance verification.
 
 ## Installation onboarding
 
