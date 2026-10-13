@@ -20,7 +20,8 @@ internal sealed class McpInitCommand : BaseCommand
         : base("init", McpCommandStrings.InitCommand_Description, services)
     {
         _agentInitCommand = agentInitCommand;
-        foreach (var option in agentInitCommand.Options)
+
+        foreach (var option in _agentInitCommand.Options)
         {
             Options.Add(option);
         }
