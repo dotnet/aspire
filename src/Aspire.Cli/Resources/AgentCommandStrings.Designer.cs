@@ -331,7 +331,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Project (Install in the current directory; committed with your project).
+        ///   Looks up a localized string similar to Project (Install in your workspace root; committed with your project).
         /// </summary>
         internal static string InitCommand_ProjectScope {
             get {

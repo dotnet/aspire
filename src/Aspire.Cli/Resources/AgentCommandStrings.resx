@@ -121,7 +121,7 @@
     <value>No agent configuration selected. Existing configuration was left unchanged.</value>
   </data>
   <data name="InitCommand_ProjectScope" xml:space="preserve">
-    <value>Project (Install in the current directory; committed with your project)</value>
+    <value>Project (Install in your workspace root; committed with your project)</value>
   </data>
   <data name="InitCommand_GlobalScope" xml:space="preserve">
     <value>Global (Install in your home directory; available across all projects)</value>

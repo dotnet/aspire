@@ -218,8 +218,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ProjectScope">
-        <source>Project (Install in the current directory; committed with your project)</source>
-        <target state="new">Project (Install in the current directory; committed with your project)</target>
+        <source>Project (Install in your workspace root; committed with your project)</source>
+        <target state="new">Project (Install in your workspace root; committed with your project)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ScopeOptionDescription">
