@@ -85,9 +85,11 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var entra = builder.AddEntraIdApplication("entra-web")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
             .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
+        entra.Resource.Parameters["enableIdTokenIssuance"] = true;
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var manifest = await ManifestUtils.GetManifest(entra.Resource, workspace.Path);
+        Assert.True(manifest["params"]!["enableIdTokenIssuance"]!.GetValue<bool>());
         await Verify(manifest.ToJsonString(), "json")
             .AppendContentAsFile(entra.Resource.GetBicepTemplateString(), "bicep");
     }

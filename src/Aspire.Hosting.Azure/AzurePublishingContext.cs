@@ -158,17 +158,6 @@ public sealed class AzurePublishingContext(
         var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
 
-        ProvisioningParameter? deploymentPrincipalType = null;
-        if (bicepResourcesToPublish.Any(resource =>
-            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
-            userPrincipalId is null &&
-            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) &&
-            principalType is null))
-        {
-            deploymentPrincipalType = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            MainInfrastructure.Add(deploymentPrincipalType);
-        }
-
         var rg = new ResourceGroup("rg")
         {
             Name = resourceGroupParam,
@@ -197,6 +186,25 @@ public sealed class AzurePublishingContext(
             moduleMap[resource] = module;
         }
 
+        // Resolve callbacks once after template generation so dependency discovery and module arguments
+        // use the same values, including parameters added by infrastructure callbacks.
+        var moduleParameters = bicepResourcesToPublish.ToDictionary(
+            resource => resource,
+            resource => resource.Parameters.ToDictionary(
+                parameter => parameter.Key,
+                parameter => parameter.Value is Func<object?> callback ? callback() : parameter.Value));
+
+        ProvisioningParameter? deploymentPrincipalType = null;
+        if (moduleParameters.Values.Any(parameters =>
+            parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
+            userPrincipalId is null &&
+            parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) &&
+            principalType is null))
+        {
+            deploymentPrincipalType = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            MainInfrastructure.Add(deploymentPrincipalType);
+        }
+
         foreach (var resource in bicepResourcesToPublish)
         {
             // Map parameters from existing resources
@@ -217,7 +225,7 @@ public sealed class AzurePublishingContext(
             }
 
             // Map parameters for the resource itself
-            foreach (var parameter in resource.Parameters)
+            foreach (var parameter in moduleParameters[resource])
             {
                 await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
             }
@@ -272,7 +280,8 @@ public sealed class AzurePublishingContext(
             ReferenceExpression { IsConditional: true } re => EvalConditionalExpr(re),
             ReferenceExpression re => EvalExpr(re),
             string s => s,
-            _ => ""
+            null => "",
+            _ => throw new NotSupportedException($"The parameter value type {value.GetType()} is not supported.")
         };
 
         static BicepValue<string> ResolveValue(object val)
@@ -357,7 +366,7 @@ public sealed class AzurePublishingContext(
             module.Scope = GetScopeExpression(resource);
             module.Parameters.Add("location", locationParam);
 
-            foreach (var parameter in resource.Parameters)
+            foreach (var parameter in moduleParameters[resource])
             {
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
@@ -371,7 +380,7 @@ public sealed class AzurePublishingContext(
                 }
                 if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalType &&
                     parameter.Value is null &&
-                    resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
+                    moduleParameters[resource].TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
                     userPrincipalId is null)
                 {
                     module.Parameters.Add(parameter.Key, deploymentPrincipalType!);

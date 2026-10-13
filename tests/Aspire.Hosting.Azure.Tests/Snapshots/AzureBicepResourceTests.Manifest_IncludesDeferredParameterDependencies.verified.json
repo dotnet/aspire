@@ -1,0 +1,1 @@
+﻿{"resources":{"consumer":{"type":"azure.bicep.v0","path":"consumer.module.bicep","params":{"secret":"{secret.value}","clientId":"{source.outputs.clientId}"}},"secret":{"type":"parameter.v0","value":"{secret.inputs.value}","inputs":{"value":{"type":"string","secret":true}}},"source":{"type":"azure.bicep.v0","path":"source.module.bicep"}}}

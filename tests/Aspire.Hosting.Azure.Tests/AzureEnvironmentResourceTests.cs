@@ -235,6 +235,100 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AzurePublishingContext_ResolvesDeferredModuleParameters()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        builder.AddAzureEnvironment();
+        var suffix = builder.AddParameter("suffix", "web", publishValueAsDefault: true);
+        var secret = builder.AddParameter("secret", secret: true);
+        var source = builder.AddBicepTemplateString("source",
+            """
+            param location string
+            output clientId string = '00001111-aaaa-2222-bbbb-3333cccc4444'
+            """);
+        var module = builder.AddBicepTemplateString("mod",
+            """
+            param location string
+            param displayName string
+            param redirectUris array
+            param options object
+            param enabled bool
+            param count int
+            param identifier string
+            param suffix string
+            @secure()
+            param secret string
+            param clientId string
+            param combined string
+            param optional string
+            """);
+        var values = new Dictionary<string, object?>
+        {
+            ["displayName"] = "Contoso's web application",
+            ["redirectUris"] = new[] { "https://localhost:7123/signin-oidc", "https://localhost:7252/callback" },
+            ["options"] = new JsonObject { ["scopes"] = new JsonArray("access_as_user"), ["enabled"] = true },
+            ["enabled"] = false,
+            ["count"] = 2,
+            ["identifier"] = Guid.Parse("00001111-aaaa-2222-bbbb-3333cccc4444"),
+            ["suffix"] = suffix.Resource,
+            ["secret"] = secret.Resource,
+            ["clientId"] = source.GetOutput("clientId"),
+            ["combined"] = ReferenceExpression.Create($"{suffix.Resource}-{source.GetOutput("clientId")}"),
+            ["optional"] = null
+        };
+        var evaluations = 0;
+        foreach (var (name, value) in values)
+        {
+            module.WithParameter(name, () =>
+            {
+                evaluations++;
+                return value;
+            });
+        }
+
+        using var app = builder.Build();
+        Assert.Equal(0, evaluations);
+        var context = await CreatePublishingContextAsync(app, workspace.Path);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+
+        await context.WriteModelAsync(model, environment);
+
+        Assert.Equal(values.Count, evaluations);
+        Assert.True(context.ParameterLookup[secret.Resource].IsSecure);
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AzurePublishingContext_RejectsUnsupportedParameterTypes(bool deferred)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        builder.AddAzureEnvironment();
+        var module = builder.AddBicepTemplateString("mod", "param location string\nparam value string");
+        if (deferred)
+        {
+            module.WithParameter("value", () => new object());
+        }
+        else
+        {
+            module.Resource.Parameters["value"] = new object();
+        }
+
+        using var app = builder.Build();
+        var context = await CreatePublishingContextAsync(app, workspace.Path);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() => context.WriteModelAsync(model, environment));
+
+        Assert.Equal("The parameter value type System.Object is not supported.", exception.Message);
+    }
+
+    [Fact]
     public async Task AzurePublishingContext_WritesScopedModuleExpressions()
     {
         using var workspace = TemporaryWorkspace.Create(output);

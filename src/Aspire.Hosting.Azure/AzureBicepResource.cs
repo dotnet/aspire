@@ -252,10 +252,12 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 // Used for deferred evaluation of parameter.
                 object? inputValue = input.Value is Func<object?> f ? f() : input.Value;
 
-                if (inputValue is JsonNode || inputValue is IEnumerable<string>)
+                context.TryAddDependentResources(inputValue);
+
+                if (inputValue is JsonNode or IEnumerable<string> or bool or int)
                 {
                     context.Writer.WritePropertyName(input.Key);
-                    // Write JSON objects to the manifest for JSON node parameters
+                    // Keep the parameter's JSON type so Boolean and integer Bicep parameters bind correctly.
                     JsonSerializer.Serialize(context.Writer, inputValue);
                     continue;
                 }
@@ -268,8 +270,6 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 };
 
                 context.Writer.WriteString(input.Key, value);
-
-                context.TryAddDependentResources(input.Value);
             }
             context.Writer.WriteEndObject();
         }
