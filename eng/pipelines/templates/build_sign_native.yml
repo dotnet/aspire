@@ -288,9 +288,14 @@ jobs:
           - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
             - pwsh: |
                 Remove-Item -LiteralPath "$(Build.SourcesDirectory)/artifacts/bin/Aspire.Dashboard/${{ targetRid }}/Release/net11.0/${{ targetRid }}/publish/Aspire.Dashboard.dSYM" -Recurse -Force
-                $symbols = "$(Build.SourcesDirectory)/artifacts/bin/Aspire.TerminalHost/Release/net11.0/${{ targetRid }}/publish/Aspire.TerminalHost.dSYM"
-                if (Test-Path -LiteralPath $symbols) {
-                  Remove-Item -LiteralPath $symbols -Recurse -Force
+                $optionalSymbols = @(
+                  "$(Build.SourcesDirectory)/artifacts/bin/Aspire.TerminalHost/Release/net11.0/${{ targetRid }}/publish/Aspire.TerminalHost.dSYM"
+                  "$(Build.SourcesDirectory)/artifacts/bin/Aspire.Hosting.Native.Server/Release/net11.0/${{ targetRid }}/publish/Aspire.Hosting.Native.Server.dSYM"
+                )
+                foreach ($symbols in $optionalSymbols) {
+                  if (Test-Path -LiteralPath $symbols) {
+                    Remove-Item -LiteralPath $symbols -Recurse -Force
+                  }
                 }
               displayName: 🟣Remove Native AOT bundle debug symbols
 

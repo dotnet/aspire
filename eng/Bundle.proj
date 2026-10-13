@@ -133,7 +133,10 @@
 
   <!-- Official builds reuse the signed publish output instead of republishing it. -->
   <Target Name="_PublishAppHostServer" Condition="'$(SkipAppHostServerBuild)' != 'true'">
-    <Exec Command="dotnet publish &quot;$(AppHostServerProjectPath)&quot; -c $(Configuration) -r $(TargetRid) /p:UseLdClassicXCodeLinker=false $(_VersionSuffixArg) $(_OfficialBuildIdArg) $(_BinlogArg)" />
+    <PropertyGroup>
+      <_AppHostServerBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:&quot;$(ArtifactsLogDir)PublishAppHostServer.binlog&quot;</_AppHostServerBinlog>
+    </PropertyGroup>
+    <Exec Command="dotnet publish &quot;$(AppHostServerProjectPath)&quot; -c $(Configuration) -r $(TargetRid) /p:UseLdClassicXCodeLinker=false $(_VersionSuffixArg) $(_OfficialBuildIdArg) $(_AppHostServerBinlog)" />
   </Target>
 
   <!-- SkipNativeBuild skips the outer CLI publish, not native payload components.
