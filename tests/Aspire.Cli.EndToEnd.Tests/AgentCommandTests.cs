@@ -308,9 +308,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliAsync(strategy, counter);
 
-        // Provide editor detection evidence for the client defaults.
-        // The chained flow must leave this MCP configuration target untouched.
+        // Provide editor detection evidence for the client defaults, but check Copilot's
+        // canonical project MCP destination rather than its repair-only editor location.
         var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
+        var mcpConfigPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
+        const string originalMcpConfig = """{"mcpServers":{"custom":{"command":"custom"}}}""";
 
         // Pass --language so the interactive language prompt is skipped, then accept the chained
         // agent init prompt (instead of declining it) to reach skill selection.
@@ -323,6 +325,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             timeout: TimeSpan.FromSeconds(30),
             description: "agent init prompt after aspire init");
         Directory.CreateDirectory(vscodePath);
+        await File.WriteAllTextAsync(mcpConfigPath, originalMcpConfig);
         await auto.WaitAsync(500);
         await auto.TypeAsync("y");
 
@@ -345,14 +348,13 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.EnterAsync();
 
         // The chained flow never registers --mcp. It completes after client and scope selection
-        // without an MCP prompt, leaving the detected `.vscode` configuration untouched.
+        // without an MCP prompt, leaving the selected project MCP configuration untouched.
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         var completionScreen = auto.CreateSnapshot().GetScreenText();
         Assert.DoesNotContain("Configure the Aspire MCP server", completionScreen);
         await auto.WaitForSuccessPromptAsync(counter);
 
-        var mcpConfigPath = Path.Combine(vscodePath, "mcp.json");
-        Assert.False(File.Exists(mcpConfigPath), $"Expected {mcpConfigPath} to not be written since MCP is unreachable from the chained flow.");
+        Assert.Equal(originalMcpConfig, await File.ReadAllTextAsync(mcpConfigPath));
     }
 
     /// <summary>
@@ -379,22 +381,16 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliAsync(strategy, counter);
 
-        // The chained agent-init scan starts from the CLI process's working directory (the
-        // workspace root the Docker terminal is launched in) and only walks upward looking for a
-        // `.vscode` folder — it never walks down into the newly scaffolded project directory. So
-        // the detectable `.vscode` folder must be seeded at the workspace root, not inside the new
-        // project, for the scan to find it.
-        var vscodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
+        // Explicit Claude selection bypasses discovery. Seed its MCP destination inside the
+        // selected project so any unintended chained MCP configuration changes this file.
+        var mcpConfigPath = Path.Combine(workspace.WorkspaceRoot.FullName, "StarterApp", ".mcp.json");
+        const string originalMcpConfig = """{"mcpServers":{"custom":{"command":"custom"}}}""";
 
         // Explicit client and scope skip those prompts so the skill defaults can be inspected.
         await auto.AspireNewAcceptingAgentInitAsync(
             "StarterApp",
             extraArguments: "--agents claude --scope project",
-            beforeAcceptingAgentInit: () =>
-            {
-                Directory.CreateDirectory(vscodePath);
-                return Task.CompletedTask;
-            });
+            beforeAcceptingAgentInit: () => File.WriteAllTextAsync(mcpConfigPath, originalMcpConfig));
 
         // The flow lands directly on skill selection. aspireify must be pre-checked (aspire new
         // pre-selects the complete default skill set), and the retired "Install Aspire MCP server"
@@ -408,15 +404,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.EnterAsync();
 
         // aspire new never registers --mcp, so it goes straight from skill selection to
-        // "configuration complete" — no MCP prompt is ever shown, and the detected `.vscode`
-        // target (created above) is left untouched.
+        // "configuration complete" — no MCP prompt is ever shown, and Claude's selected
+        // project MCP configuration is left untouched.
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         var completionScreen = auto.CreateSnapshot().GetScreenText();
         Assert.DoesNotContain("Configure the Aspire MCP server", completionScreen);
         await auto.WaitForSuccessPromptAsync(counter);
 
-        var mcpConfigPath = Path.Combine(vscodePath, "mcp.json");
-        Assert.False(File.Exists(mcpConfigPath), $"Expected {mcpConfigPath} to not be written since MCP is unreachable from the chained flow.");
+        Assert.Equal(originalMcpConfig, await File.ReadAllTextAsync(mcpConfigPath));
     }
 
     private static void RequireCurrentAspireSkillsBundle(CliInstallStrategy strategy)
