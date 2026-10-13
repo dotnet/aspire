@@ -33,6 +33,9 @@ internal abstract class UnixMachineInformationProvider(ILogger<UnixMachineInform
             return null;
         }
 
+        // Many apps share this DeveloperTools ID, so concurrent first-time initialization
+        // can generate different IDs. This race is expected to be rare; after initialization,
+        // later calls reuse the cached ID, which stays constant unless removed or changed.
         var existingValue = await ReadValueFromDisk(cachePath, DeviceId).ConfigureAwait(false);
         if (existingValue != null)
         {
