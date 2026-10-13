@@ -1,0 +1,601 @@
+{
+  "run_id": 38423510292,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38423510292",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-13T16:29:54Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "266483abe1a335e371672fba0eba32dfa542fd02",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Run VS Code extension unit tests (Windows) / Run VS Code extension unit tests (Windows)",
+      "id": 115390588883,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115390588883",
+      "classification": "transient-infra",
+      "reason": "Install dependencies failed due to NPM registry 429 Too Many Requests from the dnceng-mirrored feed, cascading to VSIX packaging/assert steps failing.",
+      "failed_steps": [
+        "Install dependencies",
+        "Package VSIX",
+        "Assert E2E VSIX contains bridge",
+        "Package production VSIX",
+        "Assert production VSIX excludes bridge"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 115390601258,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115390601258",
+      "classification": "main-repository-breakage",
+      "reason": "KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay deterministically fails asserting recorded HTTP methods; matches a tracked main-repository-breakage with 14 prior occurrences tied to the DCP recovery-budget feature.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "id": 115390608730,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115390608730",
+      "classification": "flaky-test",
+      "reason": "ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput failed with a build-count race (expected 2, actual 3), matching a known flaky test with 8 prior occurrences on Windows.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 115390627792,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115390627792",
+      "classification": "flaky-test",
+      "reason": "TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Local) timed out waiting for a RemoteExecutor child process, consistent with known CPU-contention-related flakiness in this test family on macOS.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115395122441,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115395122441",
+      "classification": "main-repository-breakage",
+      "reason": "The Nuxt integration Docker build deterministically fails at 'RUN npm ci' after all 59 TypeScript validation AppHosts pass; matches a tracked repository-level breakage with 22 prior occurrences.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, discovery-configuration)",
+      "id": 115398800270,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800270",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, apphost-tree)",
+      "id": 115398800307,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800307",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, dynamic-debug-configuration)",
+      "id": 115398800327,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800327",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, command-palette)",
+      "id": 115398800334,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800334",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, debug-dashboard)",
+      "id": 115398800343,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800343",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, discovery-configuration)",
+      "id": 115398800367,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800367",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, command-palette)",
+      "id": 115398800368,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800368",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, apphost-lifecycle-tools)",
+      "id": 115398800370,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800370",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, tree-actions)",
+      "id": 115398800378,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800378",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, diagnostic-logs)",
+      "id": 115398800414,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800414",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-lifecycle-tools)",
+      "id": 115398800419,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800419",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, debug-dashboard)",
+      "id": 115398800432,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800432",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, diagnostic-logs)",
+      "id": 115398800449,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800449",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, dynamic-debug-configuration)",
+      "id": 115398800461,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800461",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-tree)",
+      "id": 115398800480,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800480",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, package-surface)",
+      "id": 115398800530,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800530",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, settings-files)",
+      "id": 115398800542,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800542",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, settings-files)",
+      "id": 115398800582,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800582",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-apphost)",
+      "id": 115398800714,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800714",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, zero-to-running)",
+      "id": 115398800762,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800762",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-apphost-debug-startup-timeout)",
+      "id": 115398800768,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800768",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, debug-startup-timeout)",
+      "id": 115398800805,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800805",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, tree-actions)",
+      "id": 115398800809,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800809",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, package-surface)",
+      "id": 115398800814,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800814",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-codelens)",
+      "id": 115398800838,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800838",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, winui-debug)",
+      "id": 115398800853,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800853",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, zero-to-running)",
+      "id": 115398800866,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800866",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, launch-profiles)",
+      "id": 115398800869,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800869",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, cli-path-rejection)",
+      "id": 115398800888,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398800888",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, edge-cases)",
+      "id": 115398801004,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801004",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, edge-cases)",
+      "id": 115398801092,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801092",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
+      "id": 115398801104,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801104",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-starter-project-model)",
+      "id": 115398801124,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801124",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, cli-path-rejection)",
+      "id": 115398801155,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801155",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, debug-startup-timeout)",
+      "id": 115398801178,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801178",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, browser-debugger)",
+      "id": 115398801270,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801270",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, launch-profiles)",
+      "id": 115398801311,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801311",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, cli-path-resolution)",
+      "id": 115398801330,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801330",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, coordinated-build)",
+      "id": 115398801424,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801424",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, coordinated-build)",
+      "id": 115398801425,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801425",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, workspace-target-proof)",
+      "id": 115398801569,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801569",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions)",
+      "id": 115398801663,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801663",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, browser-debugger)",
+      "id": 115398801809,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115398801809",
+      "classification": "transient-infra",
+      "reason": "Download of the 'aspire-extension' artifact failed because the upstream VS Code extension unit test job failed to produce the VSIX due to NPM registry rate limiting, cascading this failure to all E2E jobs.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115400297437,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38423510292/job/115400297437",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregator job reports overall failure because the TypeScript SDK validation sub-job failed deterministically; Python, Go, and Java validations all succeeded.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Local\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Half-way through waiting for remote process.\nTimed out at 10/13/2026 3:49:50 PM after 60000ms waiting for remote process.\n\tProcess ID: 7006\n\tName: dotnet\n\tMainModule: /Users/runner/work/aspire/aspire/.dotnet/dotnet\n\tStartTime: 10/13/2026 3:48:49 PM\n\tTotalProcessorTime: 00:00:00.4837708",
+      "stack_trace": "at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose(Boolean disposing) in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 157\n   at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose() in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 58\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 262\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 113\n   at InvokeStub_TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)",
+      "standard_output": "Temporary workspace created at: /var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/Aspire.Cli.Tests/Workspace/vnm5bid5.ykk\nDisposing temporary workspace at: /var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/Aspire.Cli.Tests/Workspace/vnm5bid5.ykk",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "RemoteExecutor process timeout under CPU contention on macOS, consistent with multiple other TelemetryShutdownTests scenario flakes already tracked."
+    },
+    {
+      "name": "Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   3",
+      "stack_trace": "at Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput() in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\ResourceCommandServiceTests.cs:line 1770\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Hosting.TestUtilities\\Workspace\\0x32ebxr.0yk\n| [2026-10-13T15:49:23] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-13T15:49:23] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-13T15:49:23] Aspire.Hosting.DistributedApplication Information: Application host directory is: D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.TestUtilities\n| [2026-10-13T15:49:23] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-13T15:49:23] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-13T15:49:23] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-13T15:49:23] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFAkeQkS0R9.9848\n| [2026-10-13T15:49:23] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFAkeQkS0R9.9848\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpHost Warning: No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.\n| [2026-10-13T15:49:23] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcp1s31zulx.si3\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 9848 --detach --kubeconfig \"C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcp1s31zulx.si3\\kubeconfig\"\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpHost Debug: A complete bundled ConPTY provider was not found; DCP will use the inbox Windows provider.\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-13T15:49:23] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject/myProject-kzsraffw update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-13T15:49:23] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject-rebuilder/myProject-rebuilder-nerqnaub update published: ResourceType = Executable, CreationTimeStamp = (null), State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = { resource.parentName = myProject-kzsraffw }, HealthReports = {  }, Commands = {  }\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Endpoint resources.\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Executable resources.\n| [2026-10-13T15:49:23] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Container resources.\n| [2026-10-13T15:49:23] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject-rebuilder'.\n| [2026-10-13T15:49:23] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Added total of 0 URLs to resource 'myProject-rebuilder'\n| [2026-10-13T15:49:23] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Resource myProject-rebuilder/myProject-rebuilder-nerqnaub update skipped because the snapshot is unchanged.\n| [2026-10-13T15:49:23] Aspire.Hosting.Orchestrator.ApplicationO",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a known build-count race condition with 8 prior occurrences on Windows (expected 2, actual 3 build invocations recorded)."
+    },
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic failure tied to a repository feature regression (DCP recovery-budget retry handling) rather than flakiness; matches a tracked main-repository-breakage with 14 prior occurrences."
+    }
+  ],
+  "causes": [
+    "npm-registry-rate-limit",
+    "vscode-extension-e2e-vsix-artifact-not-found",
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "aspire-hosting-resourcecommandservice-rebuild-buildcount-race",
+    "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-local-macos"
+  ]
+}

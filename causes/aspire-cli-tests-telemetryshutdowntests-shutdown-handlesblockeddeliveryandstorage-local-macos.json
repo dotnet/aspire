@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-local-macos",
+  "type": "flaky-test",
+  "title": "Flaky: TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Local) RemoteExecutor times out on macOS under CPU contention",
+  "test_name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Local\")",
+  "error_pattern": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Half-way through waiting for remote process.\nTimed out at 10/13/2026 3:49:50 PM after 60000ms waiting for remote process.\n\tProcess ID: 7006\n\tName: dotnet\n   at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose(Boolean disposing)",
+  "occurrences": [
+    {
+      "run_id": 38423510292,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38423510292",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-13T16:29:54Z"
+    }
+  ]
+}
