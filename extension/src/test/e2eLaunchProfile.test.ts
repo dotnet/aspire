@@ -684,6 +684,8 @@ suite('E2E launch profile', () => {
 
         assert.ok(workflow.includes('shardName: azure-functions'));
         assert.ok(workflow.includes('installAzureFunctions: true'));
+        assert.ok(workflow.includes('shardName: azure-functions-node'));
+        assert.ok(workflow.includes('installAzureFunctionsCoreTools: true'));
         assert.ok(dotNetSetupIndex >= 0);
         assert.ok(dotNetSetupIndex < debuggerPrerequisitesIndex);
         assert.ok(debuggerPrerequisitesIndex < azureFunctionsPrerequisitesIndex);
@@ -707,7 +709,7 @@ suite('E2E launch profile', () => {
         assert.strictEqual(debuggerPrerequisiteStep.includes('Azure.Functions.Cli'), false);
         assert.strictEqual(debuggerPrerequisiteStep.includes('vscode-azureresourcegroups'), false);
         assert.strictEqual(debuggerPrerequisiteStep.includes('vscode-azurefunctions'), false);
-        assert.ok(azureFunctionsPrerequisiteStep.includes('if: ${{ matrix.installAzureFunctions }}'));
+        assert.ok(azureFunctionsPrerequisiteStep.includes('if: ${{ matrix.installAzureFunctions || matrix.installAzureFunctionsCoreTools }}'));
         assert.ok(azureFunctionsPrerequisiteStep.includes("core_tools_version='4.12.1'"));
         assert.ok(azureFunctionsPrerequisiteStep.includes('faf8fb8d50b5293df338bec70594b12f45730e9fe251805298859b2238cf627e'));
         assert.ok(azureFunctionsPrerequisiteStep.includes('vscode-azureresourcegroups/0.12.7/vspackage'));
@@ -715,6 +717,8 @@ suite('E2E launch profile', () => {
         assert.ok(azureFunctionsPrerequisiteStep.includes('vscode-azurefunctions/1.22.0/vspackage'));
         assert.ok(azureFunctionsPrerequisiteStep.includes('146aede06f941b07a55c5aebd28c5e3df684d57b07cf6f9ebf90d7bb8ecd41a2'));
         assert.ok(azureFunctionsPrerequisiteStep.includes('ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS=true'));
+        assert.ok(azureFunctionsPrerequisiteStep.includes("if [ '${{ matrix.installAzureFunctions }}' = 'true' ]; then"));
+        assert.ok(azureFunctionsPrerequisiteStep.includes('ASPIRE_EXTENSION_E2E_INSTALL_AZURE_FUNCTIONS_VSIX=true'));
         assert.ok(azureFunctionsPrerequisiteStep.includes('ASPIRE_EXTENSION_E2E_AZURE_RESOURCE_GROUPS_VSIX='));
         assert.ok(azureFunctionsPrerequisiteStep.includes('ASPIRE_EXTENSION_E2E_AZURE_FUNCTIONS_VSIX='));
         assert.strictEqual(azureFunctionsPrerequisiteStep.includes('ASPIRE_EXTENSION_E2E_DOTNET_RUNTIME_VSIX='), false);
@@ -753,7 +757,8 @@ suite('E2E launch profile', () => {
         assert.ok(runner.includes("const enableBrowserDebuggerE2E = shardName === 'browser-debugger';"));
         assert.ok(runner.includes(`const browserDebuggerTargetFramework = '${repositoryTargetFramework}';`));
         assert.ok(runner.includes("const e2eBrowser = process.platform === 'win32' ? 'msedge' : 'chrome';"));
-        assert.ok(runner.includes('const enableDebuggerExtensions = enableAzureFunctionsE2E || enableBrowserDebuggerE2E || enableWinUiE2E;'));
+        assert.ok(runner.includes("const enableNodeFunctionsE2E = shardName === 'azure-functions-node';"));
+        assert.ok(runner.includes('const enableDebuggerExtensions = installAzureFunctionsVsix || enableBrowserDebuggerE2E || enableNodeFunctionsE2E || enableWinUiE2E;'));
         assert.ok(compactRunner.includes("runDotnetForFixture(['new', 'blazorwasm', '--name', 'StandaloneClient', '--output', standaloneDirectory, '--framework', browserDebuggerTargetFramework, '--no-https', '--no-restore']);"));
         assert.ok(compactRunner.includes("runDotnetForFixture(['new', 'blazor', '--name', 'HostedGlobal', '--output', hostedGlobalDirectory, '--framework', browserDebuggerTargetFramework, '--interactivity', 'WebAssembly', '--all-interactive', '--no-https', '--no-restore']);"));
         assert.ok(compactRunner.includes("runDotnetForFixture(['new', 'blazor', '--name', 'HostedPerPage', '--output', hostedPerPageDirectory, '--framework', browserDebuggerTargetFramework, '--interactivity', 'WebAssembly', '--no-https', '--no-restore']);"));
@@ -996,7 +1001,7 @@ builder.Build().Run();
         assert.ok(debuggerVsixStart >= 0);
         assert.ok(debuggerVsixResolver.includes("path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_DOTNET_RUNTIME_VSIX')"));
         assert.ok(debuggerVsixResolver.includes("path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_CSHARP_VSIX')"));
-        assert.ok(debuggerVsixResolver.includes('if (enableAzureFunctionsE2E)'));
+        assert.ok(debuggerVsixResolver.includes('if (installAzureFunctionsVsix)'));
         assert.ok(debuggerVsixResolver.includes("path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_AZURE_RESOURCE_GROUPS_VSIX')"));
         assert.ok(debuggerVsixResolver.includes("path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_AZURE_FUNCTIONS_VSIX')"));
         assert.ok(runner.includes('is required when a debugger-backed E2E shard is enabled.'));
@@ -1005,13 +1010,17 @@ builder.Build().Run();
     test('keeps browser selection platform-specific without changing default or Azure Functions fixture gates', () => {
         const extensionRoot = path.resolve(__dirname, '..', '..');
         const runner = fs.readFileSync(path.join(extensionRoot, 'scripts', 'run-e2e.js'), 'utf8');
+        const nodeFunctionsSpec = fs.readFileSync(path.join(extensionRoot, 'src', 'test-e2e', 'azureFunctionsNode.e2e.test.ts'), 'utf8');
 
         assert.ok(runner.includes("const e2eBrowser = process.platform === 'win32' ? 'msedge' : 'chrome';"));
         assert.ok(runner.includes("const enableAzureFunctionsE2E = process.env.ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS === 'true';"));
+        assert.ok(runner.includes("const installAzureFunctionsVsix = process.env.ASPIRE_EXTENSION_E2E_INSTALL_AZURE_FUNCTIONS_VSIX === 'true';"));
         assert.ok(runner.includes('if (enableBrowserDebuggerE2E) {'));
         assert.ok(runner.includes("writeBrowserDebuggerAppHostProject('AspireE2E.Blazor.AppHost', resolvedAppHostSdkVersion);"));
         assert.ok(runner.includes("writeWorkerProject('AspireE2E.Worker');"));
         assert.ok(runner.includes("writeAppHostProject('AspireE2E.AppHost', resolvedAppHostSdkVersion, enableAzureFunctionsE2E, enableWinUiE2E);"));
+        assert.ok(nodeFunctionsSpec.includes('<PackageReference Include="Aspire.Hosting.Azure.Functions" Version="${sdkVersion}" />'));
+        assert.ok(!nodeFunctionsSpec.includes('Aspire.Hosting.Azure.Functions.csproj'));
     });
 
     test('pins the unpackaged WinUI debugger regression environment for its Windows E2E shard', () => {
