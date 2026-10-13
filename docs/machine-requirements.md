@@ -14,6 +14,12 @@ Whether you want to contribute to Aspire, or just use the latest build of Aspire
 * [macOS](https://podman.io/docs/installation#macos)
 * [Linux](https://podman.io/docs/installation#installing-on-linux)
 
+### WSLc (Windows only)
+
+WSLc version 3.0.2.0 or later is supported for local development on Windows. `aspire doctor` checks the explicitly configured runtime, or reports all installed runtimes among Docker, Podman, and WSLc. Configured runtimes are marked "explicitly selected" in the report. Unhealthy alternatives are non-blocking when a healthy runtime is available. When multiple healthy runtimes are available, Docker remains the default; set `ASPIRE_CONTAINER_RUNTIME=wslc` to select WSLc explicitly. WSLc is not supported when Aspire runs inside a Linux WSL distribution.
+
+WSLc is currently only supported for local development. Publish and deployment support will be added soon. See the [container runtime prerequisites](https://aka.ms/aspire/containers).
+
 Then you can use either VS Code, Visual Studio, or Codespaces:
 
 ## Using VS Code with DevContainers

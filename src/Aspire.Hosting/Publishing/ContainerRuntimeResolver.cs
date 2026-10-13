@@ -75,7 +75,11 @@ internal sealed class ContainerRuntimeResolver : IContainerRuntimeResolver
 
         // Auto-detect: probe available runtimes asynchronously.
         // See https://github.com/microsoft/dcp/blob/main/internal/containers/runtimes/runtime.go
-        var detected = await ContainerRuntimeDetector.FindAvailableRuntimeAsync(logger: _logger, cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Only Docker and Podman have publishing implementations and SDK local image-store support.
+        var detected = await ContainerRuntimeDetector.FindAvailableRuntimeAsync(
+            logger: _logger,
+            cancellationToken: cancellationToken,
+            supportedRuntimes: [KnownContainerRuntimes.Docker, KnownContainerRuntimes.Podman]).ConfigureAwait(false);
         var runtimeKey = detected?.Executable ?? KnownContainerRuntimes.Docker;
 
         if (detected is { IsHealthy: true })
