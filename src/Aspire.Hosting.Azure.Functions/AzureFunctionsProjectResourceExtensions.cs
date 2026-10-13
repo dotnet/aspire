@@ -43,6 +43,7 @@ public static class AzureFunctionsProjectResourceExtensions
         aspire-output
         .env
         .env.*
+        .npmrc
         npm-debug.log*
         yarn-debug.log*
         yarn-error.log*

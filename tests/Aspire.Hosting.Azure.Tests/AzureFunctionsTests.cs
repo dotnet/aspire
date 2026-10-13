@@ -502,6 +502,7 @@ public class AzureFunctionsTests(ITestOutputHelper outputHelper)
         Assert.Contains("local.settings.json", dockerBuildAnnotation.BuildContextIgnoreContent);
         Assert.Contains("node_modules", dockerBuildAnnotation.BuildContextIgnoreContent);
         Assert.Contains(".aspire", dockerBuildAnnotation.BuildContextIgnoreContent);
+        Assert.Contains(".npmrc", dockerBuildAnnotation.BuildContextIgnoreContent!.Split('\n'));
         Assert.Contains("\ndist\n", dockerBuildAnnotation.BuildContextIgnoreContent);
 
         var dockerIgnorePath = $"{dockerfilePath}.dockerignore";
@@ -538,6 +539,7 @@ public class AzureFunctionsTests(ITestOutputHelper outputHelper)
         Assert.DoesNotContain("npm run build", dockerfileContents);
 
         var dockerBuildAnnotation = funcApp.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+        Assert.Contains(".npmrc", dockerBuildAnnotation.BuildContextIgnoreContent!.Split('\n'));
         Assert.DoesNotContain("dist", dockerBuildAnnotation.BuildContextIgnoreContent);
     }
 
