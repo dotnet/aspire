@@ -65,6 +65,8 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
 
                 var appHostDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, projectName, $"{projectName}.AppHost");
                 await File.WriteAllTextAsync(Path.Combine(appHostDirectory, "AppHost.cs"), $$"""
+                    #pragma warning disable ASPIREAZURE003 // Azure networking APIs are experimental.
+
                     var builder = DistributedApplication.CreateBuilder(args);
 
                     var registry = builder.AddAzureContainerRegistry("registry")
@@ -86,6 +88,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                     $"unset ASPIRE_PLAYGROUND Azure__Location Azure__ResourceGroup Azure__SubscriptionId && " +
                     $"export AZURE__LOCATION=westus3 AZURE__RESOURCEGROUP={resourceGroup} AZURE__SUBSCRIPTIONID={subscriptionId}",
                     counter);
+                await auto.RunCommandAsync("dotnet build --no-restore", counter, TimeSpan.FromMinutes(5));
 
                 // Only Aspire grants kubelet AcrPull. Attaching ACR through az aks or adding
                 // image-pull credentials here would make the broken generated scope pass.
