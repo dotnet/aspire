@@ -67,6 +67,16 @@
         <target state="translated">업데이트를 확인하는 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConditionalSdkEvaluationRequiredFormat">
+        <source>Cannot determine active conditional Aspire.AppHost.Sdk declarations for '{0}' without successful MSBuild evaluation; update the conditional SDK version explicitly.</source>
+        <target state="new">Cannot determine active conditional Aspire.AppHost.Sdk declarations for '{0}' without successful MSBuild evaluation; update the conditional SDK version explicitly.</target>
+        <note>{0} = AppHost project path.</note>
+      </trans-unit>
+      <trans-unit id="ConditionalSdkExplicitEditRequiredFormat">
+        <source>Cannot safely update conditional Aspire.AppHost.Sdk declarations for '{0}'; update the conditional SDK version explicitly.</source>
+        <target state="new">Cannot safely update conditional Aspire.AppHost.Sdk declarations for '{0}'; update the conditional SDK version explicitly.</target>
+        <note>{0} = AppHost project path.</note>
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">{1}에서 '{0}'에 대한 PackageVersion 요소를 찾을 수 없습니다.</target>

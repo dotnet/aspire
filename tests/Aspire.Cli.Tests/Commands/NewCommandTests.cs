@@ -1594,6 +1594,43 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, exitCode);
     }
 
+    [Theory]
+    [InlineData("13.6.1", false)]
+    [InlineData("17.0.0-preview.1", true)]
+    [InlineData("17.0.0", true)]
+    public async Task NewCommandCSharpTemplateUsesVersionCompatibleDirectives(string version, bool packageOnly)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var cache = new FakeNuGetPackageCache
+        {
+            GetTemplatePackagesAsyncCallback = (_, _, _, _) =>
+                Task.FromResult<IEnumerable<NuGetPackage>>(
+                [
+                    new NuGetPackage { Id = TemplateNuGetConfigService.TemplatesPackageName, Source = "nuget", Version = version }
+                ])
+        };
+        var services = CreateServiceCollection(workspace, options => options.NuGetPackageCacheFactory = _ => cache);
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse($"new aspire-empty --name TestApp --output ./output --version {version} --localhost-tld false --suppress-agent-init");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        var content = await File.ReadAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "output", "apphost.cs"));
+        Assert.Contains("#:property AspireUseCliBundle=true", content);
+        Assert.DoesNotContain("{{", content);
+        if (packageOnly)
+        {
+            Assert.Contains($"#:package Aspire.Hosting.AppHost@{version}", content);
+            Assert.Contains($"#:package Aspire.Hosting.Dotnet@{version}", content);
+            Assert.DoesNotContain("#:sdk", content);
+        }
+        else
+        {
+            Assert.Contains($"#:sdk Aspire.AppHost.Sdk@{version}", content);
+            Assert.DoesNotContain("#:package", content);
+        }
+    }
+
     [Fact]
     public async Task NewCommandWithCSharpEmptyTemplateEmitsAppHostRunJsonAndAspireConfigJsonWithoutDuplicateProfiles()
     {

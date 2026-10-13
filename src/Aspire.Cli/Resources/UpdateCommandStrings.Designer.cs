@@ -196,6 +196,24 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cannot determine active conditional Aspire.AppHost.Sdk declarations for &apos;{0}&apos; without successful MSBuild evaluation; update the conditional SDK version explicitly.
+        /// </summary>
+        internal static string ConditionalSdkEvaluationRequiredFormat {
+            get {
+                return ResourceManager.GetString("ConditionalSdkEvaluationRequiredFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot safely update conditional Aspire.AppHost.Sdk declarations for &apos;{0}&apos;; update the conditional SDK version explicitly.
+        /// </summary>
+        internal static string ConditionalSdkExplicitEditRequiredFormat {
+            get {
+                return ResourceManager.GetString("ConditionalSdkExplicitEditRequiredFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Update integrations and repository Aspire CLI references.
         /// </summary>
         internal static string Description {

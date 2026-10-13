@@ -110,7 +110,8 @@ public sealed class KubernetesDeployBasicApiServiceTests(ITestOutputHelper outpu
                 apiClientPackages: [],
                 appHostCode: appHostCode,
                 apiProgramCode: apiProgramCode,
-                output: output);
+                output: output,
+                useLegacyProjectResources: !useProjectV2);
 
             // =====================================================================
             // Phase 3: Run aspire deploy interactively

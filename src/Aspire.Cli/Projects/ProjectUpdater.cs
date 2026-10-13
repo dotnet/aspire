@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -262,7 +263,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             var candidateSteps = projectUpdateSteps.Where(static step => step is PackageUpdateStep).ToArray();
             var requiresRestore = candidateSteps.Length > 0 || configurationCandidate is not null;
 
-            if (requiresRestore && updatePlan.TargetSdkVersion is { } targetSdkVersion)
+            if (requiresRestore && updatePlan.UsesAppHostSdk && updatePlan.TargetSdkVersion is { } targetSdkVersion)
             {
                 // SDK acquisition precedes MSBuild targets. Install only the selected SDK through
                 // the candidate policy into the ambient resolver's cache; do not restore old project
@@ -581,7 +582,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -610,7 +611,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -692,10 +693,55 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             await CaptureFileAsync(context, file, cancellationToken);
         }
 
+        // The evaluated marker also recognizes SDKs imported from Directory.Build.props.
+        // Older SDKs do not set it, so retain source detection for their declarations.
+        using var sourceDocument = fallbackParser.ParseProject(context.AppHostProjectFile);
+        var sourceRoot = sourceDocument.RootElement;
+        var usesSdk = sourceRoot.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString() == "true";
+        var hasSourceSdk = usesSdk;
+        XDocument? sourceXml = null;
+        if (!string.Equals(context.AppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            sourceXml = XDocument.Load(context.AppHostProjectFile.FullName);
+            hasSourceSdk = GetUnconditionalSdkDeclarations(sourceXml).Any();
+            usesSdk = hasSourceSdk;
+        }
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
+        if (context.FallbackParsing && sourceXml is not null
+            && GetSdkDeclarations(sourceXml).Any(element => !IsUnconditionalSdkDeclaration(element)))
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                UpdateCommandStrings.ConditionalSdkEvaluationRequiredFormat, context.AppHostProjectFile.FullName));
+        }
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
-        var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
-        var sdkVersion = sdkVersionElement.GetString();
+        usesSdk |= propertiesElement.TryGetProperty("_UsingAspireAppHostSdk", out var marker)
+            && string.Equals(marker.GetString(), "true", StringComparison.OrdinalIgnoreCase);
+        var sdkVersion = propertiesElement.GetProperty("AspireHostingSDKVersion").GetString();
+        // Package-only targets synthesize this version from their own package. An older SDK
+        // supplies a separate version without the newer marker; locate its imported declaration.
+        var hasLegacySdkVersion = !string.IsNullOrEmpty(sdkVersion)
+            && (!propertiesElement.TryGetProperty("_AspireAppHostPackageVersion", out var packageVersion)
+                || !string.Equals(sdkVersion, packageVersion.GetString(), StringComparison.OrdinalIgnoreCase));
+        var importedSdkFile = hasSourceSdk
+            || (!usesSdk && !hasLegacySdkVersion)
+            ? null
+            : FindImportedSdkDeclaration(context.AppHostProjectFile, propertiesElement, required: usesSdk);
+        if (importedSdkFile is not null)
+        {
+            await CaptureFileAsync(context, importedSdkFile, cancellationToken);
+        }
+        usesSdk |= importedSdkFile is not null;
+        var items = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
+        var hasAppHostPackage = items.TryGetProperty("PackageReference", out var packages)
+            && packages.EnumerateArray().Any(package => string.Equals(package.GetProperty("Identity").GetString(),
+                "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase));
+        if (!usesSdk && hasAppHostPackage)
+        {
+            context.UsesAppHostSdk = false;
+            context.TargetSdkVersion = (await GetLatestVersionOfPackageAsync(context,
+                "Aspire.Hosting.AppHost", cancellationToken: cancellationToken))?.Version;
+            return;
+        }
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken: cancellationToken);
         context.TargetSdkVersion = latestSdkPackage?.Version;
@@ -725,15 +771,94 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var sdkUpdateStep = new PackageUpdateStep(
             string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!, interactionService, migrationInfo),
+            async () =>
+            {
+                if (importedSdkFile is not null)
+                {
+                    await UpdateImportedSdkVersionAsync(importedSdkFile, latestSdkPackage!.Version);
+                    var (hasPackageReference, hasPackageVersion) = DetectLegacyAppHostReferences(context.AppHostProjectFile);
+                    await RemoveLegacyAppHostPackageReferencesAsync(context.AppHostProjectFile, hasPackageReference, hasPackageVersion);
+                }
+                else
+                {
+                    await UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!, interactionService, migrationInfo);
+                }
+            },
             "Aspire.AppHost.Sdk",
             sdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
-            context.AppHostProjectFile)
+            importedSdkFile ?? context.AppHostProjectFile)
         {
-            Files = GetSdkUpdateFiles(context.AppHostProjectFile)
+            Files = importedSdkFile is null
+                ? GetSdkUpdateFiles(context.AppHostProjectFile)
+                : [.. GetSdkUpdateFiles(context.AppHostProjectFile), importedSdkFile]
         };
         context.UpdateSteps.Enqueue(sdkUpdateStep);
+    }
+
+    private static FileInfo? FindImportedSdkDeclaration(FileInfo projectFile, JsonElement properties, bool required)
+    {
+        var candidates = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        if (!string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            candidates.Add(projectFile.FullName);
+        }
+        foreach (var property in new[] { "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects" })
+        {
+            if (properties.TryGetProperty(property, out var value) && value.GetString() is { } paths)
+            {
+                foreach (var path in paths.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    candidates.Add(Path.GetFullPath(path, projectFile.Directory!.FullName));
+                }
+            }
+        }
+
+        var documents = candidates.Where(File.Exists)
+            .Select(path => (Path: path, Document: XDocument.Load(path))).ToArray();
+        var declarations = documents.Where(file => GetUnconditionalSdkDeclarations(file.Document).Any())
+            .Select(file => file.Path).ToArray();
+        if (declarations.Length == 0 && documents.Any(file => GetSdkDeclarations(file.Document).Any()))
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                UpdateCommandStrings.ConditionalSdkExplicitEditRequiredFormat, projectFile.FullName));
+        }
+        if (declarations.Length > 1 || (required && declarations.Length == 0))
+        {
+            throw new ProjectUpdaterException($"Could not uniquely locate the imported Aspire.AppHost.Sdk declaration for '{projectFile.FullName}'. Found {declarations.Length} declaring files; update the imported SDK version explicitly.");
+        }
+        return declarations.Length == 0 ? null : new FileInfo(declarations[0]);
+    }
+
+    private static IEnumerable<XElement> GetSdkDeclarations(XDocument document)
+        => document.Descendants().Where(element =>
+            (element == document.Root && element.Name.LocalName == "Project"
+                && ContainsAspireAppHostSdk(element.Attribute("Sdk")?.Value ?? string.Empty))
+            || (element.Parent == document.Root
+                && ((element.Name.LocalName == "Import" && ContainsAspireAppHostSdk(element.Attribute("Sdk")?.Value ?? string.Empty))
+                    || (element.Name.LocalName == "Sdk" && string.Equals(element.Attribute("Name")?.Value, AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase)))));
+
+    private static bool IsUnconditionalSdkDeclaration(XElement element)
+        => element.AncestorsAndSelf().All(node => string.IsNullOrWhiteSpace(node.Attribute("Condition")?.Value));
+
+    private static IEnumerable<XElement> GetUnconditionalSdkDeclarations(XDocument document)
+        => GetSdkDeclarations(document).Where(IsUnconditionalSdkDeclaration);
+
+    private static async Task UpdateImportedSdkVersionAsync(FileInfo file, string version)
+    {
+        var document = XDocument.Load(file.FullName, LoadOptions.PreserveWhitespace);
+        foreach (var element in GetUnconditionalSdkDeclarations(document))
+        {
+            if (element.Name.LocalName == "Project" && element.Attribute("Sdk") is { } sdk && ContainsAspireAppHostSdk(sdk.Value))
+            {
+                sdk.Value = UpdateAspireAppHostSdkVersion(sdk.Value, version);
+            }
+            else
+            {
+                element.SetAttributeValue("Version", version);
+            }
+        }
+        await File.WriteAllTextAsync(file.FullName, document.ToString(SaveOptions.DisableFormatting));
     }
 
     private static void EnqueueLegacyAppHostCleanupStepIfNeeded(UpdateContext context)
@@ -1006,10 +1131,27 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         {
             // Migrate from old format to new format
             // Old format: <Sdk Name="Aspire.AppHost.Sdk" Version="..." />
-            var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+            var sdkNode = projectNode.SelectNodes("Sdk[@Name='Aspire.AppHost.Sdk']")!.Cast<XmlNode>()
+                .FirstOrDefault(node => string.IsNullOrWhiteSpace(node.Attributes?["Condition"]?.Value));
             if (sdkNode is null)
             {
-                throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+                var imports = projectNode.SelectNodes("Import")!.Cast<XmlNode>()
+                    .Where(node => ContainsAspireAppHostSdk(node.Attributes?["Sdk"]?.Value ?? string.Empty)
+                        && string.IsNullOrWhiteSpace(node.Attributes?["Condition"]?.Value)).ToArray();
+                if (imports.Length == 0)
+                {
+                    throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+                }
+                foreach (var import in imports)
+                {
+                    var version = projectDocument.CreateAttribute("Version");
+                    version.Value = package.Version;
+                    import.Attributes!.SetNamedItem(version);
+                }
+                RemovePackageReference(projectNode, "Aspire.Hosting.AppHost");
+                projectDocument.Save(projectFile.FullName);
+                RemovePackageVersionFromDirectoryPackagesProps(projectFile, "Aspire.Hosting.AppHost");
+                return;
             }
 
             // Set the new format: <Project Sdk="Aspire.AppHost.Sdk/version">
@@ -1166,7 +1308,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var fileContent = await File.ReadAllTextAsync(projectFile.FullName);
 
         // Look for the #:sdk Aspire.AppHost.Sdk@<version> directive
-        var match = SdkDirectiveRegex().Match(fileContent);
+        var match = SdkDirectiveRegex().Match(FallbackProjectParser.GetDirectivePreamble(fileContent));
 
         if (!match.Success)
         {
@@ -1176,26 +1318,28 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Replace the matched SDK directive with the new version
         var newDirective = $"#:sdk Aspire.AppHost.Sdk@{package.Version}";
-        var updatedContent = SdkDirectiveRegex().Replace(fileContent, newDirective, 1);
+        var directiveOffset = match.Value.IndexOf("#:sdk", StringComparison.Ordinal);
+        var directiveLength = match.Value.TrimEnd().Length - directiveOffset;
+        var directiveStart = match.Index + directiveOffset;
+        var updatedContent = fileContent.Remove(directiveStart, directiveLength).Insert(directiveStart, newDirective);
 
         // The new SDK pulls Aspire.Hosting.AppHost in implicitly, so a leftover
         // explicit `#:package Aspire.Hosting.AppHost@<version>` directive in the
         // same file is redundant. Strip it here so the SDK-bump path matches
         // the csproj migration in UpdateSdkVersionInProjectAppHostAsync. The
         // SDK-already-current path goes through EnqueueLegacyAppHostCleanupStepIfNeeded.
-        updatedContent = LegacyAppHostPackageDirectiveRegex().Replace(updatedContent, string.Empty);
+        updatedContent = RemoveLegacyAppHostPackageDirectives(updatedContent);
 
         await File.WriteAllTextAsync(projectFile.FullName, updatedContent);
     }
 
-    [GeneratedRegex(@"#:sdk\s+Aspire\.AppHost\.Sdk@(?:[\d\.\-a-zA-Z]+|\*)")]
-    internal static partial Regex SdkDirectiveRegex();
+    internal static Regex SdkDirectiveRegex() => FallbackProjectParser.SdkDirectiveRegex();
 
     // Matches a whole line of the form "#:package Aspire.Hosting.AppHost@<version>"
     // (case-insensitive on the package id), including trailing line break, so the
     // whole directive can be removed without leaving a blank line behind. NuGet
     // package IDs are case-insensitive (https://learn.microsoft.com/nuget/concepts/package-identifier).
-    [GeneratedRegex(@"^[ \t]*#:package\s+Aspire\.Hosting\.AppHost@\S+[ \t]*\r?\n?", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+    [GeneratedRegex(@"^[ \t]*#:package[ \t]+(?i:Aspire\.Hosting\.AppHost)@(?:[\d.\-+a-zA-Z]+|\*)[ \t]*\r?$(?:\n)?", RegexOptions.Multiline)]
     internal static partial Regex LegacyAppHostPackageDirectiveRegex();
 
     private static bool HasLegacyAppHostPackageDirective(FileInfo projectFile)
@@ -1203,7 +1347,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         try
         {
             var fileContent = File.ReadAllText(projectFile.FullName);
-            return LegacyAppHostPackageDirectiveRegex().IsMatch(fileContent);
+            return LegacyAppHostPackageDirectiveRegex().IsMatch(FallbackProjectParser.GetDirectivePreamble(fileContent));
         }
         catch
         {
@@ -1216,12 +1360,23 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     private static async Task RemoveLegacyAppHostPackageDirectiveAsync(FileInfo projectFile)
     {
         var fileContent = await File.ReadAllTextAsync(projectFile.FullName);
-        var updatedContent = LegacyAppHostPackageDirectiveRegex().Replace(fileContent, string.Empty);
+        var updatedContent = RemoveLegacyAppHostPackageDirectives(fileContent);
 
         if (!string.Equals(fileContent, updatedContent, StringComparison.Ordinal))
         {
             await File.WriteAllTextAsync(projectFile.FullName, updatedContent);
         }
+    }
+
+    private static string RemoveLegacyAppHostPackageDirectives(string content)
+    {
+        var matches = LegacyAppHostPackageDirectiveRegex().Matches(FallbackProjectParser.GetDirectivePreamble(content));
+        foreach (var match in matches.Reverse())
+        {
+            var offset = match.Value.IndexOf("#:package", StringComparison.Ordinal);
+            content = content.Remove(match.Index + offset, Math.Min(match.Length - offset, content.Length - match.Index - offset));
+        }
+        return content;
     }
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
@@ -1291,7 +1446,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             {
                 var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
 
-                if (!IsUpdatablePackage(packageId))
+                if (!IsUpdatablePackage(packageId)
+                    && !(string.Equals(packageId, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase)
+                        && IsAppHostProject(projectFile, context.AppHostProjectFile) && !context.UsesAppHostSdk))
                 {
                     continue;
                 }
@@ -1302,12 +1459,19 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 }
                 else
                 {
+                    var definingFile = projectFile;
+                    if (packageReference.TryGetProperty("DefiningProjectFullPath", out var definingPath)
+                        && definingPath.GetString() is { Length: > 0 } path)
+                    {
+                        definingFile = new FileInfo(path);
+                    }
+                    await CaptureFileAsync(context, definingFile, cancellationToken);
                     // Traditional package management - Version should be in PackageReference
                     if (!packageReference.TryGetProperty("Version", out var versionElement))
                     {
                         // Version attribute is missing - treat as wildcard
                         var packageVersion = "*";
-                        await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                        await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, definingFile, context, cancellationToken);
                     }
                     else
                     {
@@ -1317,7 +1481,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                             // Version is * or empty - treat as wildcard
                             packageVersion = "*";
                         }
-                        await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                        await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, definingFile, context, cancellationToken);
                     }
                 }
             }
@@ -1350,7 +1514,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         return new CentralPackageManagementInfo(false, null);
     }
 
-    private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, FileInfo definingFile, UpdateContext context, CancellationToken cancellationToken)
     {
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, throwIfNotFound: false, cancellationToken: cancellationToken);
 
@@ -1370,11 +1534,16 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var updateStep = new PackageUpdateStep(
             string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage.Version),
-            () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
+            () => IsAppHostProject(definingFile, projectFile)
+                ? UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken)
+                : UpdateImportedPackageReferenceAsync(definingFile, latestPackage),
             packageId,
             packageVersion,
             latestPackage.Version,
-            projectFile);
+            projectFile)
+        {
+            Files = [definingFile]
+        };
         context.UpdateSteps.Enqueue(updateStep);
     }
 
@@ -1553,6 +1722,31 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         {
             throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
         }
+    }
+
+    private static Task UpdateImportedPackageReferenceAsync(FileInfo definingFile, NuGetPackageCli package)
+    {
+        // dotnet package add only rewrites the project itself. Updating an imported declaration
+        // there would leave its old version in the shared props file and introduce a duplicate.
+        var document = XDocument.Load(definingFile.FullName, LoadOptions.PreserveWhitespace);
+        var references = document.Descendants().Where(element => element.Name.LocalName == "PackageReference"
+            && string.Equals(element.Attribute("Include")?.Value, package.Id, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (references.Length != 1)
+        {
+            throw new ProjectUpdaterException($"Expected one declaration of '{package.Id}' in '{definingFile.FullName}', found {references.Length}.");
+        }
+        var reference = references[0];
+        var versionElement = reference.Elements().FirstOrDefault(element => element.Name.LocalName == "Version");
+        if (versionElement is not null && reference.Attribute("Version") is null)
+        {
+            versionElement.Value = package.Version;
+        }
+        else
+        {
+            reference.SetAttributeValue("Version", package.Version);
+        }
+        document.Save(definingFile.FullName);
+        return Task.CompletedTask;
     }
 
     private async Task<bool> AnalyzeAndConfirmNuGetConfigChanges(UpdatePackagesContext context, XmlDocument? originalDocument, XmlDocument proposedDocument, CancellationToken cancellationToken)
@@ -1818,6 +2012,7 @@ internal sealed class UpdateContext(FileInfo appHostProjectFile, PackageChannel 
     public Dictionary<string, string> AmbientPolicies { get; } = new(StringComparers.FileSystemPath);
     public Dictionary<string, byte[]?> OriginalFiles { get; } = new(StringComparers.FileSystemPath);
     public bool FallbackParsing { get; set; }
+    public bool UsesAppHostSdk { get; set; } = true;
     public string? TargetSdkVersion { get; set; }
 }
 

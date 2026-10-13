@@ -4911,6 +4911,8 @@ public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
         var layoutRoot = workspace.CreateDirectory("layout");
         var managedDirectory = layoutRoot.CreateSubdirectory(BundleDiscovery.ManagedDirectoryName);
         layoutRoot.CreateSubdirectory(BundleDiscovery.DashboardDirectoryName);
+        var terminalDirectory = layoutRoot.CreateSubdirectory(BundleDiscovery.TerminalHostDirectoryName);
+        File.WriteAllText(Path.Combine(terminalDirectory.FullName, BundleDiscovery.GetExecutableFileName(BundleDiscovery.TerminalHostExecutableName)), "native");
         File.WriteAllText(
             Path.Combine(
                 managedDirectory.FullName,
@@ -5222,8 +5224,8 @@ public class PrebuiltAppHostServerTests(ITestOutputHelper outputHelper)
         var startInfo = server.CreateStartInfo(123);
 
         Assert.Equal(dashboardPath, startInfo.Environment[BundleDiscovery.DashboardPathEnvVar]);
-        Assert.Equal(layout.GetManagedPath(), startInfo.Environment[BundleDiscovery.TerminalHostPathEnvVar]);
-        Assert.Equal("terminalhost", startInfo.Environment[BundleDiscovery.TerminalHostInvocationArgsEnvVar]);
+        Assert.Equal(layout.GetTerminalHostPath(), startInfo.Environment[BundleDiscovery.TerminalHostPathEnvVar]);
+        Assert.Equal(string.Empty, startInfo.Environment[BundleDiscovery.TerminalHostInvocationArgsEnvVar]);
     }
 
     [Theory]

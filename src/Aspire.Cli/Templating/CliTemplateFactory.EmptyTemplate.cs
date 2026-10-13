@@ -5,6 +5,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Microsoft.Extensions.Logging;
+using Semver;
 using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
@@ -172,9 +173,18 @@ internal sealed partial class CliTemplateFactory
         var projectNameLower = projectName.ToLowerInvariant();
         var ports = GenerateRandomPorts();
         var hostName = useLocalhostTld ? $"{projectNameLower}.dev.localhost" : "localhost";
-        string ApplyAllTokens(string content) => ApplyTokens(content, projectName, projectNameLower, aspireVersion, ports, hostName);
+        string ApplyAllTokens(string content) => ApplyTokens(content, projectName, projectNameLower, aspireVersion, ports, hostName)
+            .Replace("{{appHostDirectives}}", GetCSharpAppHostDirectives(aspireVersion), StringComparison.Ordinal);
 
         _logger.LogDebug("Writing C# empty AppHost template files to '{OutputPath}' with Aspire version '{AspireVersion}'.", outputPath, aspireVersion);
         await CopyTemplateTreeToDiskAsync("empty-apphost", outputPath, ApplyAllTokens, cancellationToken);
+    }
+
+    internal static string GetCSharpAppHostDirectives(string aspireVersion)
+    {
+        // The Dotnet integration and package-only AppHosts ship in Aspire 17.
+        return SemVersion.Parse(aspireVersion, SemVersionStyles.Strict).Major >= 17
+            ? $"#:package Aspire.Hosting.AppHost@{aspireVersion}\n#:package Aspire.Hosting.Dotnet@{aspireVersion}"
+            : $"#:sdk Aspire.AppHost.Sdk@{aspireVersion}";
     }
 }
