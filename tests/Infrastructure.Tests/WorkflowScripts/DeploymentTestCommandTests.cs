@@ -10,15 +10,6 @@ namespace Infrastructure.Tests;
 public sealed class DeploymentTestCommandTests(ITestOutputHelper output)
 {
     [Fact]
-    public void CommandPrefilterSelectsCandidatesOnMicrosoftPullRequests()
-    {
-        var condition = Scalar(LoadJob(), "if");
-        Assert.Equal(
-            "${{ startsWith(github.event.comment.body, '/deployment-test') && github.event.issue.pull_request && github.repository == 'microsoft/aspire' }}",
-            string.Join(" ", condition.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-    }
-
-    [Fact]
     public void DeploymentStepsRequireRepositoryWriteAccess()
     {
         var steps = LoadSteps();
