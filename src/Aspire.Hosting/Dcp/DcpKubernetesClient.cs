@@ -329,39 +329,51 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
             // {"type":"MODIFIED","object":{"kind":"Executable","metadata":{...},...}}
             // An ERROR can contain a Status instead; BOOKMARK objects contain only metadata.
             // https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes
-            try
+            if (!terminated)
             {
-                var envelope = KubernetesJson.Deserialize<Watcher<KubernetesObject>.WatchEvent>(line);
-                if (envelope?.Object is null)
+                // A missing newline does not make a complete payload such as null truncated.
+                // Validate syntax separately so resource shape errors remain non-retryable.
+                try
                 {
-                    throw new JsonException("DCP watch event does not contain an object.");
+                    using var document = JsonDocument.Parse(line);
                 }
-                if (envelope.Object.Kind == "Status")
+                catch (JsonException ex)
                 {
-                    var status = KubernetesJson.Deserialize<Watcher<V1Status>.WatchEvent>(line).Object;
-                    if (status.Status == "Failure")
+                    var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(line), isFinalBlock: false, state: default);
+                    if (!JsonDocument.TryParseValue(ref reader, out var document))
                     {
-                        throw new KubernetesException(status);
+                        // EOF can leave a partial record such as {"type":"MODIFIED","object":
+                        throw new EndOfStreamException("DCP watch ended in an incomplete event.", ex);
                     }
-                    if (status.Status != "Success")
-                    {
-                        throw new JsonException("DCP watch Status does not report Success or Failure.");
-                    }
-
-                    // A successful Status is not a resource update and must not be deserialized as T.
-                    return null;
+                    document.Dispose();
+                    throw;
                 }
-
-                var watchEvent = KubernetesJson.Deserialize<Watcher<T>.WatchEvent>(line);
-
-                return (watchEvent.Type, watchEvent.Object);
             }
-            catch (JsonException ex) when (!terminated)
+
+            var envelope = KubernetesJson.Deserialize<Watcher<KubernetesObject>.WatchEvent>(line);
+            if (envelope?.Object is null)
             {
-                // EOF can leave a partial record such as {"type":"MODIFIED","object":
-                // Retry that interrupted stream, while complete malformed records remain errors.
-                throw new EndOfStreamException("DCP watch ended in an incomplete event.", ex);
+                throw new JsonException("DCP watch event does not contain an object.");
             }
+            if (envelope.Object.Kind == "Status")
+            {
+                var status = KubernetesJson.Deserialize<Watcher<V1Status>.WatchEvent>(line).Object;
+                if (status.Status == "Failure")
+                {
+                    throw new KubernetesException(status);
+                }
+                if (status.Status != "Success")
+                {
+                    throw new JsonException("DCP watch Status does not report Success or Failure.");
+                }
+
+                // A successful Status is not a resource update and must not be deserialized as T.
+                return null;
+            }
+
+            var watchEvent = KubernetesJson.Deserialize<Watcher<T>.WatchEvent>(line);
+
+            return (watchEvent.Type, watchEvent.Object);
         }
     }
 

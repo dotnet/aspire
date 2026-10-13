@@ -3,6 +3,7 @@
 
 using System.Net;
 using k8s;
+using k8s.Autorest;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -69,14 +70,8 @@ internal static class DcpPipelineBuilder
         {
             ShouldHandle = new PredicateBuilder()
                 .HandleInner<EndOfStreamException>()
-                .HandleInner<KubernetesException>(ex => ex.Status.Code is
-                    (int)HttpStatusCode.Gone or
-                    (int)HttpStatusCode.RequestTimeout or
-                    (int)HttpStatusCode.TooManyRequests or
-                    (int)HttpStatusCode.InternalServerError or
-                    (int)HttpStatusCode.BadGateway or
-                    (int)HttpStatusCode.ServiceUnavailable or
-                    (int)HttpStatusCode.GatewayTimeout),
+                .HandleInner<KubernetesException>(ex => IsRetryableWatchStatusCode(ex.Status.Code))
+                .HandleInner<HttpOperationException>(ex => IsRetryableWatchStatusCode((int)ex.Response.StatusCode)),
             BackoffType = DelayBackoffType.Exponential,
             MaxRetryAttempts = int.MaxValue,
             UseJitter = true,
@@ -96,4 +91,13 @@ internal static class DcpPipelineBuilder
         var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
         return pipeline;
     }
+
+    private static bool IsRetryableWatchStatusCode(int? statusCode) => statusCode is
+        (int)HttpStatusCode.Gone or
+        (int)HttpStatusCode.RequestTimeout or
+        (int)HttpStatusCode.TooManyRequests or
+        (int)HttpStatusCode.InternalServerError or
+        (int)HttpStatusCode.BadGateway or
+        (int)HttpStatusCode.ServiceUnavailable or
+        (int)HttpStatusCode.GatewayTimeout;
 }
