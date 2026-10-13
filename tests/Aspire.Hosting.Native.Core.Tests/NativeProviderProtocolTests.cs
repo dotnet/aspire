@@ -8,6 +8,51 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderProtocolTests
 {
+    [Theory]
+    [InlineData("primitive")]
+    [InlineData("handle")]
+    [InlineData("Callback")]
+    [InlineData("Dto")]
+    public void CategoryIdentifiersAreExactAndUnsupportedShapesNeverBecomePrimitive(string category)
+    {
+        var metadata = JsonNode.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"example.protocol/value","method":"value",
+            "parameters":[],"returnType":{"typeId":"string","category":"Primitive"}}]}
+            """);
+        metadata!["capabilities"]![0]!["returnType"]!["category"] = category;
+        var fault = Assert.Throws<RpcFault>(() => new NativeProviderProtocol(NativeRpcConnection.CoreContract)
+            .ParseManifest("example.protocol", metadata));
+        Assert.Equal("PROVIDER_METADATA_UNSUPPORTED", fault.FaultCode);
+    }
+
+    [Fact]
+    public void OnlyValidatedResultAndCallbackProjectionsDeclareOwnedTypes()
+    {
+        var metadata = JsonNode.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"example.protocol/value","method":"value",
+            "parameters":[{"name":"callback","isCallback":true,"type":{"typeId":"callback","category":"Callback"},
+            "callbackParameters":[{"name":"value","type":{"typeId":"example.protocol/Argument","category":"Handle"}}],
+            "callbackReturnType":{"typeId":"example.protocol/Writeback","category":"Handle"}}],
+            "returnType":{"typeId":"example.protocol/Result","category":"Handle"}}]}
+            """);
+        var manifest = new NativeProviderProtocol(NativeRpcConnection.CoreContract).ParseManifest("example.protocol", metadata);
+        Assert.Equal(["example.protocol/Argument", "example.protocol/Result", "example.protocol/Writeback"],
+            manifest.OwnedTypes.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void DiscoveryExtensionsDoNotContributeUnvalidatedOwnedTypes()
+    {
+        var metadata = JsonNode.Parse("""
+            {"protocolVersion":2,"capabilities":[{"id":"example.protocol/value","method":"value",
+            "parameters":[],"returnType":{"typeId":"string","category":"Primitive"},
+            "extension":{"typeId":"foreign/Resource","category":"Handle"}}]}
+            """);
+        var manifest = new NativeProviderProtocol(NativeRpcConnection.CoreContract).ParseManifest("example.protocol", metadata);
+        Assert.Empty(manifest.OwnedTypes);
+        Assert.Equal("foreign/Resource", Assert.Single(manifest.Capabilities).Value.Metadata["extension"]!["typeId"]!.GetValue<string>());
+    }
+
     [Fact]
     public void ManifestProducesTypedReceiverAndCallbackProjections()
     {

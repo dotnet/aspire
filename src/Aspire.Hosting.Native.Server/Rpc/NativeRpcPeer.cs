@@ -155,27 +155,22 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
 
     private void AcceptResponse(JsonElement response)
     {
-        if (response.ValueKind != JsonValueKind.Object || !response.TryGetProperty("jsonrpc", out var version) ||
-            version.ValueKind != JsonValueKind.String || version.GetString() != "2.0" ||
-            !response.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String ||
-            response.TryGetProperty("result", out _) == response.TryGetProperty("error", out _))
-        {
-            throw new InvalidDataException("Invalid RPC response envelope.");
-        }
+        var envelope = NativeRpcProtocol.ParseResponse(response);
         // Late replies after local cancellation are ignored, never treated as calls.
-        if (!_pending.TryRemove(id.GetString()!, out var completion))
+        if (!_pending.TryRemove(envelope.Id, out var completion))
         {
             return;
         }
-        if (response.TryGetProperty("error", out _))
+        if (envelope.Error is { } error)
         {
-            var error = response.GetProperty("error");
-            if (error.ValueKind != JsonValueKind.Object || !error.TryGetProperty("code", out var code) ||
-                code.ValueKind != JsonValueKind.Number || !code.TryGetInt32(out _) ||
-                !error.TryGetProperty("message", out var message) || message.ValueKind != JsonValueKind.String)
+            try
+            {
+                NativeRpcProtocol.ValidateResponseError(error);
+            }
+            catch (InvalidDataException)
             {
                 completion.TrySetCanceled();
-                throw new InvalidDataException("Invalid RPC failure envelope.");
+                throw;
             }
             completion.TrySetException(RpcFault.ProviderFailed("The provider rejected the invocation."));
             // Observe a fault if the initiating caller concurrently stopped waiting.
@@ -183,7 +178,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         }
         else
         {
-            completion.TrySetResult(NativeRpcProtocol.ToNode(response.GetProperty("result")));
+            completion.TrySetResult(NativeRpcProtocol.ToNode(envelope.Result));
         }
     }
 

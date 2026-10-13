@@ -32,6 +32,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     private readonly Dictionary<string, Expectation> _activationWaits = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Registration> _capabilities = new(StringComparer.Ordinal);
     private readonly Dictionary<NativeRpcConnection, Registration> _providers = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<Guid, Registration> _providersById = new();
     private readonly HashSet<string> _providerTypes = new(StringComparer.Ordinal);
     private readonly NativeProviderProtocol _protocol = new(coreContract);
 
@@ -80,9 +81,9 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             using var deadline = new CancellationTokenSource(options.ProviderRegistrationTimeout, options.TimeProvider);
             using var discovery = CancellationTokenSource.CreateLinkedTokenSource(connection.Closed, deadline.Token);
-            var manifest = await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false);
-            var projection = _protocol.ParseManifest(expected.PackageName, manifest);
-            var projected = projection.Capabilities;
+            NativeProviderManifest manifest = _protocol.ParseManifest(expected.PackageName,
+                await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false));
+            var projected = manifest.Capabilities;
             var registration = new Registration(expected.Owner, connection, peer, projected);
             lock (_gate)
             {
@@ -93,7 +94,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 if (expected.Owner.IsClosed || connection.IsClosed || peer.Closed.IsCancellationRequested ||
                     _capabilities.Count + projected.Count > 4096 ||
                     projected.Keys.Any(id => _protocol.CoreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
-                    projection.OwnedTypes.Overlaps(_providerTypes) ||
+                    manifest.OwnedTypes.Overlaps(_providerTypes) ||
                     _providers.ContainsKey(connection))
                 {
                     throw RpcFault.ProviderConflict("The provider registration conflicts with an existing capability.");
@@ -103,7 +104,8 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                     _capabilities.Add(id, registration);
                 }
                 _providers.Add(connection, registration);
-                _providerTypes.UnionWith(projection.OwnedTypes);
+                _providersById.Add(registration.Id, registration);
+                _providerTypes.UnionWith(manifest.OwnedTypes);
             }
             logger.LogInformation("Native provider activated with {CapabilityCount} capabilities.", projected.Count);
             expected.Completion.TrySetResult();
@@ -257,7 +259,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
 
             return translated;
         }
-        catch (RpcFault fault) when (fault.FaultCode == "PROVIDER_TIMEOUT")
+        catch (RpcFault fault) when (fault.FaultCode == RpcFault.ProviderTimeoutCode)
         {
             Disconnect(registration.Connection);
             throw;
@@ -469,6 +471,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                     registration.Disconnected = true;
                     peers.Add(registration.Peer);
                     _providers.Remove(provider);
+                    _providersById.Remove(registration.Id);
                     registration.Release();
                 }
             }
@@ -491,6 +494,10 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         public NativeRpcConnection Connection => _connection ?? throw Unavailable();
         public INativeRpcPeer Peer => _peer ?? throw Unavailable();
         public Dictionary<string, NativeProviderCapability> Capabilities { get; } = capabilities;
+        public Dictionary<string, NativeProviderCapability[]> LifecycleCapabilities { get; } = capabilities.Values
+            .Where(capability => capability.LifecyclePhase is not null)
+            .GroupBy(capability => capability.TargetTypeId!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         public Guid Id { get; } = Guid.NewGuid();
         public Dictionary<string, PublishedResource> Resources { get; } = new(StringComparer.Ordinal);
         public bool Disconnected { get; set; }

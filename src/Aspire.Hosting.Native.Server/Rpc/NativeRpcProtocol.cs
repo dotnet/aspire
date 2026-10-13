@@ -5,14 +5,41 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text;
+using Aspire.Hosting.Native.Server;
 
 namespace Aspire.Hosting.Native.Rpc;
 
 internal sealed record NativeRpcRequest(JsonNode? Id, string Method, JsonNode? Parameters, bool IsNotification);
+internal readonly record struct NativeRpcResponseEnvelope(string Id, JsonElement Result, JsonElement? Error);
 
 /// <summary>Parses JSON-RPC envelopes and bounded trace context independently of dispatch.</summary>
 internal static class NativeRpcProtocol
 {
+    public static NativeRpcResponseEnvelope ParseResponse(JsonElement response)
+    {
+        // A reply has exactly one of result/error, with a string outbound ID:
+        // {"jsonrpc":"2.0","id":"native:1","result":null}.
+        if (response.ValueKind != JsonValueKind.Object || !response.TryGetProperty("jsonrpc", out var version) ||
+            version.ValueKind != JsonValueKind.String || !version.ValueEquals("2.0") ||
+            !response.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String ||
+            response.TryGetProperty("result", out var result) == response.TryGetProperty("error", out var error))
+        {
+            throw new InvalidDataException("Invalid RPC response envelope.");
+        }
+
+        return new(id.GetString()!, result, error.ValueKind == JsonValueKind.Undefined ? null : error);
+    }
+
+    public static void ValidateResponseError(JsonElement error)
+    {
+        if (error.ValueKind != JsonValueKind.Object || !error.TryGetProperty("code", out var code) ||
+            code.ValueKind != JsonValueKind.Number || !code.TryGetInt32(out _) ||
+            !error.TryGetProperty("message", out var message) || message.ValueKind != JsonValueKind.String)
+        {
+            throw new InvalidDataException("Invalid RPC failure envelope.");
+        }
+    }
+
     public static void ValidateAuthenticationToken(string token)
     {
         ArgumentException.ThrowIfNullOrEmpty(token);
@@ -24,7 +51,7 @@ internal static class NativeRpcProtocol
 
     public static NativeRpcRequest ParseRequest(ReadOnlyMemory<byte> payload)
     {
-        if (payload.Length > NativeRpcConnection.MaximumRequestBytes)
+        if (payload.Length > NativeServerOptions.DefaultMaximumRequestBytes)
         {
             throw InvalidRequest();
         }
@@ -163,7 +190,7 @@ internal static class NativeRpcProtocol
         }
     }
 
-    private static RpcFault InvalidRequest() => new("INVALID_REQUEST", "The request shape is invalid.");
+    private static RpcFault InvalidRequest() => RpcFault.InvalidRequest("The request shape is invalid.");
     private static bool IsValidId(JsonElement id) => id.ValueKind switch
     {
         JsonValueKind.Undefined or JsonValueKind.Null => true,

@@ -29,10 +29,10 @@ internal sealed partial class NativeProviderRegistry
             {
                 throw RpcFault.ProviderLimit("Provider object capacity was reached.");
             }
-            var hooks = registration.Capabilities.Values.Where(metadata =>
-                metadata.TargetTypeId == typeId && metadata.LifecyclePhase is not null).ToArray();
-            var bindings = hooks.Select(metadata => new ProviderLifecycleBinding(registration.Id, id, typeId,
-                metadata.LifecyclePhase!, metadata.Id)).ToImmutableArray();
+            var bindings = registration.LifecycleCapabilities.TryGetValue(typeId, out var hooks)
+                ? hooks.Select(metadata => new ProviderLifecycleBinding(registration.Id, id, typeId,
+                    metadata.LifecyclePhase!, metadata.Id)).ToImmutableArray()
+                : ImmutableArray<ProviderLifecycleBinding>.Empty;
             declaration.Composition.Model.SetProviderLifecycle(declaration.Handle, bindings);
             var resource = new PublishedResource(this, registration, owner, declaration, id, typeId);
             declaration.Composition.TrackProviderResource(resource);
@@ -49,8 +49,10 @@ internal sealed partial class NativeProviderRegistry
         PublishedResource resource;
         lock (_gate)
         {
-            registration = _providers.Values.SingleOrDefault(candidate => candidate.Id == binding.ProviderId)
-                ?? throw RpcFault.ProviderDisconnected("The lifecycle provider is unavailable.");
+            if (!_providersById.TryGetValue(binding.ProviderId, out registration!))
+            {
+                throw RpcFault.ProviderDisconnected("The lifecycle provider is unavailable.");
+            }
             if (!registration.Resources.TryGetValue(binding.ObjectId, out resource!) || resource.IsRetired ||
                 resource.TypeId != binding.TypeId || !registration.Capabilities.TryGetValue(binding.CapabilityId, out var metadata) ||
                 metadata.LifecyclePhase != authority.Phase)
@@ -97,9 +99,9 @@ internal sealed partial class NativeProviderRegistry
                     Disconnect(connection);
                 }
             }
-            throw new RpcFault(cancellationToken.IsCancellationRequested ? "PROVIDER_LIFECYCLE_CANCELLED" :
-                deadline.IsCancellationRequested ? "PROVIDER_LIFECYCLE_TIMEOUT" : "PROVIDER_LIFECYCLE_FAILED",
-                "The provider lifecycle phase did not complete; it will not be replayed.");
+            const string message = "The provider lifecycle phase did not complete; it will not be replayed.";
+            throw cancellationToken.IsCancellationRequested ? RpcFault.ProviderLifecycleCancelled(message) :
+                deadline.IsCancellationRequested ? RpcFault.ProviderLifecycleTimeout(message) : RpcFault.ProviderLifecycleFailed(message);
         }
         finally
         {

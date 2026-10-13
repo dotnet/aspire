@@ -8,6 +8,13 @@ namespace Aspire.Cli.Tests.Utils;
 public class DcpKubeconfigDataTests
 {
     [Fact]
+    public void KeepsFirstNonemptyScalarAndExactCaseSensitiveKeys()
+    {
+        var data = DcpKubeconfigData.Parse("Server: ignored\r\nserver : ignored\r\nserver:\r\nserver: first\r\nserver: second\r\ntoken: ''\r\ntoken: later");
+        Assert.Equal(new DcpKubeconfigData("first", "", null, null, null), data);
+    }
+
+    [Fact]
     public void ReadsGeneratedDcpScalarsWithoutInterpretingColonsInValues()
     {
         var data = DcpKubeconfigData.Parse("""

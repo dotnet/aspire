@@ -10,6 +10,7 @@ namespace Aspire.Hosting.Native.Server;
 /// <summary>Defines validated server policies with named defaults, not scenario-dependent settings.</summary>
 internal sealed class NativeServerOptions
 {
+    public const int DefaultMaximumRequestBytes = 256 * 1024;
     [JsonIgnore]
     public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
     public NativeRuntimeOptions Runtime { get; set; } = new();
@@ -24,7 +25,7 @@ internal sealed class NativeServerOptions
     public TimeSpan DashboardShutdownTimeout { get; set; } = TimeSpan.FromSeconds(10);
     public int MaximumConcurrentRequests { get; set; } = 64;
     public int MaximumConnections { get; set; } = 32;
-    public int MaximumRequestBytes { get; set; } = 256 * 1024;
+    public int MaximumRequestBytes { get; set; } = DefaultMaximumRequestBytes;
     public int MaximumHandlesPerConnection { get; set; } = 4096;
     public int MaximumCliStreams { get; set; } = 64;
     public int RetainedAppHostLogEntries { get; set; } = 256;

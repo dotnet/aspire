@@ -6,6 +6,7 @@ namespace Aspire.Hosting.Native.Rpc;
 /// <summary>Creates classified failures without disclosing caller inputs or implementation exception messages.</summary>
 internal sealed class RpcFault(string faultCode, string message) : InvalidOperationException(message)
 {
+    public const string ProviderTimeoutCode = "PROVIDER_TIMEOUT";
     public string FaultCode { get; } = faultCode;
 
     public static RpcFault InvalidArgument(string message) => new("INVALID_ARGUMENT", message);
@@ -23,7 +24,11 @@ internal sealed class RpcFault(string faultCode, string message) : InvalidOperat
     public static RpcFault ProviderLimit(string message) => new("PROVIDER_LIMIT", message);
     public static RpcFault ProviderRegistrationRejected(string message) => new("PROVIDER_REGISTRATION_REJECTED", message);
     public static RpcFault ProviderConflict(string message) => new("PROVIDER_CONFLICT", message);
-    public static RpcFault ProviderTimeout(string message) => new("PROVIDER_TIMEOUT", message);
+    public static RpcFault ProviderTimeout(string message) => new(ProviderTimeoutCode, message);
+    public static RpcFault InvalidRequest(string message) => new("INVALID_REQUEST", message);
+    public static RpcFault ProviderLifecycleCancelled(string message) => new("PROVIDER_LIFECYCLE_CANCELLED", message);
+    public static RpcFault ProviderLifecycleTimeout(string message) => new("PROVIDER_LIFECYCLE_TIMEOUT", message);
+    public static RpcFault ProviderLifecycleFailed(string message) => new("PROVIDER_LIFECYCLE_FAILED", message);
     public static RpcFault ProviderDisconnected(string message) => new("PROVIDER_DISCONNECTED", message);
     public static RpcFault ProviderFailed(string message) => new("PROVIDER_FAILED", message);
     public static RpcFault LifecycleAuthorityRequired(string message) => new("LIFECYCLE_AUTHORITY_REQUIRED", message);

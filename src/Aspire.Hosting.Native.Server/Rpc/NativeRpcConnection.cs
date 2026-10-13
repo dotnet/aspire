@@ -15,9 +15,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Aspire.Hosting.Native.Rpc;
 
 /// <summary>Processes authenticated JSON-RPC requests using generated ATS dispatch and scoped handles.</summary>
-internal sealed class NativeRpcConnection : IDisposable
+internal sealed partial class NativeRpcConnection : IDisposable
 {
-    public const int MaximumRequestBytes = 256 * 1024;
     private static readonly JsonObject s_contract = LoadContract();
     private static readonly HashSet<string> s_coreCapabilities = s_contract["Capabilities"]!.AsArray()
         .Select(capability => capability!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
@@ -55,7 +54,7 @@ internal sealed class NativeRpcConnection : IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             _handles.RemoveRevoked();
 
-            return _handles.Add(scope, "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope");
+            return _handles.Add(scope, NativeRpcContract.LifecycleScopeTypeId);
         }
     }
 
@@ -393,134 +392,24 @@ internal sealed class NativeRpcConnection : IDisposable
     {
         if (method == "authenticate")
         {
-            if (parameters is not JsonArray { Count: 1 } authentication)
-            {
-                throw RpcFault.InvalidArgument("Authentication requires one token.");
-            }
-            var supplied = Encoding.UTF8.GetBytes(RpcArguments.String(authentication[0]));
-            try
-            {
-                _authenticated = CryptographicOperations.FixedTimeEquals(supplied, _token);
-
-                return JsonValue.Create(_authenticated);
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(supplied);
-            }
+            return Authenticate(parameters);
         }
         if (!_authenticated)
         {
             throw RpcFault.Unauthenticated("Authenticate before using capabilities.");
         }
-        if (method == "ping")
+        return method switch
         {
-            return JsonValue.Create("pong");
-        }
-        if (method == "expectIntegrationHost")
-        {
-            if (_providers is null || parameters is not JsonArray { Count: 1 } expectation ||
-                _providers.IsProvider(this))
-            {
-                throw RpcFault.InvalidArgument("Expected registration requires an application connection and one package identity.");
-            }
-            return JsonValue.Create(_providers.Expect(this, RpcArguments.String(expectation[0])));
-        }
-        if (method == "registerAsIntegrationHost")
-        {
-            if (_providers is null || _peer is null || parameters is not JsonArray { Count: 1 } registration)
-            {
-                throw RpcFault.InvalidArgument("Provider registration requires one expected authority.");
-            }
-            await _providers.RegisterAsync(this, RpcArguments.String(registration[0]), _peer).ConfigureAwait(false);
-            return JsonValue.Create(true);
-        }
-        if (method == "waitIntegrationHostRegistration")
-        {
-            if (_providers is null || parameters is not JsonArray { Count: 1 } activation)
-            {
-                throw RpcFault.InvalidArgument("Provider activation requires one expected authority.");
-            }
-            await _providers.WaitRegistrationAsync(this, RpcArguments.String(activation[0])).ConfigureAwait(false);
-            return JsonValue.Create(true);
-        }
-        if (method == "abandonIntegrationHostRegistration")
-        {
-            if (_providers is null || parameters is not JsonArray { Count: 1 } activation)
-            {
-                throw RpcFault.InvalidArgument("Abandoning activation requires one expected authority.");
-            }
-
-            return JsonValue.Create(_providers.AbandonRegistration(this, RpcArguments.String(activation[0])));
-        }
-        if (method == "invokeGuestCallback")
-        {
-            if (_providers is null || parameters is not JsonArray { Count: 2 } callback || callback[1] is not JsonObject callbackArguments)
-            {
-                throw RpcFault.InvalidArgument("Callback invocation requires its authority and arguments.");
-            }
-            return await _providers.InvokeCallbackAsync(this, RpcArguments.String(callback[0]), callbackArguments).ConfigureAwait(false);
-        }
-        if (_languages is not null && method is "getRuntimeSpec" or "generateCode")
-        {
-            if (parameters is not JsonArray { Count: > 0 and <= 2 } bootstrapArgs ||
-                method == "getRuntimeSpec" && bootstrapArgs.Count != 1 ||
-                bootstrapArgs.Count == 2 && bootstrapArgs[1] is not null)
-            {
-                throw RpcFault.InvalidArgument("Bootstrap requires a language and does not support assembly filtering.");
-            }
-            return method == "getRuntimeSpec"
-                ? _languages.RuntimeSpec(RpcArguments.String(bootstrapArgs[0]))
-                : _languages.GeneratedSdk(RpcArguments.String(bootstrapArgs[0]));
-        }
-        if (method == "getCapabilities")
-        {
-            if (parameters is not null and not JsonArray { Count: 0 })
-            {
-                throw RpcFault.InvalidArgument("Capability discovery takes no arguments.");
-            }
-
-            return s_contract.DeepClone();
-        }
-        if (method == "getIntegrationCapabilities")
-        {
-            if (_providers is null || parameters is not null and not JsonArray { Count: 0 })
-            {
-                throw RpcFault.InvalidArgument("Provider discovery takes no arguments.");
-            }
-            return _providers.InspectCapabilities();
-        }
-        if (method == "getApplicationServer")
-        {
-            if (parameters is not null and not JsonArray { Count: 0 })
-            {
-                throw RpcFault.InvalidArgument("Server entry-point discovery takes no arguments.");
-            }
-
-            return _handles.Add(_server, "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer");
-        }
-        if (method != "invokeCapability")
-        {
-            throw RpcFault.MethodNotFound("The RPC method is not implemented.");
-        }
-        if (parameters is not JsonArray { Count: 2 } arguments || arguments[1] is not JsonObject capabilityArguments)
-        {
-            throw RpcFault.InvalidArgument("Capability invocation requires an ID and an argument object.");
-        }
-
-        var capabilityId = RpcArguments.String(arguments[0]);
-        if (_providers is not null)
-        {
-            if (_providers.IsProvider(this))
-            {
-                return await _providers.InvokeCoreAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
-            }
-            if (!s_coreCapabilities.Contains(capabilityId))
-            {
-                return await _providers.InvokeAsync(this, capabilityId, capabilityArguments).ConfigureAwait(false);
-            }
-        }
-        return await NativeDispatch.InvokeAsync(_server, _handles, capabilityId, capabilityArguments).ConfigureAwait(false);
+            "ping" => JsonValue.Create("pong"),
+            "getApplicationServer" => GetApplicationServer(parameters),
+            "getCapabilities" => GetCapabilities(parameters),
+            "getRuntimeSpec" or "generateCode" => Bootstrap(method, parameters),
+            "expectIntegrationHost" or "registerAsIntegrationHost" or "waitIntegrationHostRegistration" or
+                "abandonIntegrationHostRegistration" or "getIntegrationCapabilities" or "invokeGuestCallback" =>
+                await InvokeProviderControlAsync(method, parameters).ConfigureAwait(false),
+            "invokeCapability" => await InvokeCapabilityAsync(parameters).ConfigureAwait(false),
+            _ => throw RpcFault.MethodNotFound("The RPC method is not implemented.")
+        };
     }
 
     private static Activity? StartIncomingTrace(JsonElement envelope)

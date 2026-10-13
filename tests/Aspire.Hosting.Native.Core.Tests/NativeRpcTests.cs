@@ -198,7 +198,7 @@ public class NativeRpcTests
     public void RequestSizeAndHandleCapacityAreExplicitAndAtomic()
     {
         using var connection = new NativeRpcConnection(Token);
-        Assert.Equal("REQUEST_TOO_LARGE", Error(JsonNode.Parse(connection.Process(new byte[NativeRpcConnection.MaximumRequestBytes + 1])!)!.AsObject()));
+        Assert.Equal("REQUEST_TOO_LARGE", Error(JsonNode.Parse(connection.Process(new byte[Aspire.Hosting.Native.Server.NativeServerOptions.DefaultMaximumRequestBytes + 1])!)!.AsObject()));
         using var client = new RpcTestClient(authenticate: true);
         var composition = client.StartGeneration(client.CreateSession());
         for (var index = 0; index < 4094; index++)

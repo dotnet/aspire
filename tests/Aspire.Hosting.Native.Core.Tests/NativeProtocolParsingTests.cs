@@ -15,6 +15,28 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeProtocolParsingTests
 {
     [Theory]
+    [InlineData("""{"jsonrpc":"2.0","id":"native:1"}""")]
+    [InlineData("""{"jsonrpc":"2.0","id":1,"result":null}""")]
+    [InlineData("""{"jsonrpc":"2.0","id":"native:1","result":null,"error":{}}""")]
+    [InlineData("""{"jsonrpc":"1.0","id":"native:1","result":null}""")]
+    public void PeerResponseEnvelopesAreValidatedIndependentlyOfCorrelation(string response)
+    {
+        using var document = JsonDocument.Parse(response);
+        Assert.Throws<InvalidDataException>(() => NativeRpcProtocol.ParseResponse(document.RootElement));
+    }
+
+    [Theory]
+    [InlineData("""{"code":"bad","message":"private-payload"}""")]
+    [InlineData("""{"code":1.5,"message":"private-payload"}""")]
+    [InlineData("""{"code":-32603,"message":false}""")]
+    [InlineData("null")]
+    public void PeerFailureShapesCannotBypassTheirTypedProtocolBoundary(string response)
+    {
+        using var document = JsonDocument.Parse(response);
+        Assert.Throws<InvalidDataException>(() => NativeRpcProtocol.ValidateResponseError(document.RootElement));
+    }
+
+    [Theory]
     [InlineData("null")]
     [InlineData("true")]
     [InlineData("9223372036854775807")]
@@ -253,8 +275,8 @@ public class NativeProtocolParsingTests
             Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"{{method}}x"}""")));
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(
             Encoding.UTF8.GetBytes($$"""{"jsonrpc":"2.0","method":"a","id":"{{id}}x"}""")));
-        var padded = valid.Replace("\"data\":\"\"", $"\"data\":\"{new string('x', NativeRpcConnection.MaximumRequestBytes - Encoding.UTF8.GetByteCount(valid))}\"");
-        Assert.Equal(NativeRpcConnection.MaximumRequestBytes, Encoding.UTF8.GetByteCount(padded));
+        var padded = valid.Replace("\"data\":\"\"", $"\"data\":\"{new string('x', Aspire.Hosting.Native.Server.NativeServerOptions.DefaultMaximumRequestBytes - Encoding.UTF8.GetByteCount(valid))}\"");
+        Assert.Equal(Aspire.Hosting.Native.Server.NativeServerOptions.DefaultMaximumRequestBytes, Encoding.UTF8.GetByteCount(padded));
         Assert.Equal(method, NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded)).Method);
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(Encoding.UTF8.GetBytes(padded + " ")));
         Assert.Throws<RpcFault>(() => NativeRpcProtocol.ParseRequest(

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Server;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -10,6 +11,50 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeFramingTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(7)]
+    [InlineData(16)]
+    public async Task HeaderAndBodyFragmentationPreservesTheNextCoalescedFrame(int maximumReadBytes)
+    {
+        using var stream = new FragmentedReadStream(
+            "Content-Length: 4\r\nContent-Type: application/json\r\n\r\n\"\u00e9\"Content-Length: 2\r\n\r\n{}"u8.ToArray(),
+            maximumReadBytes);
+        var framing = new NativeRpcFraming(stream);
+        Assert.Equal("\"\u00e9\"", Encoding.UTF8.GetString((await framing.ReadAsync(TestContext.Current.CancellationToken))!));
+        Assert.Equal("{}", Encoding.UTF8.GetString((await framing.ReadAsync(TestContext.Current.CancellationToken))!));
+        Assert.Null(await framing.ReadAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExactHeaderLimitIsAcceptedButAnExtraByteIsRejected(bool overflow)
+    {
+        const string prefix = "Content-Type: ";
+        const string suffix = "\r\nContent-Length: 2\r\n\r\n";
+        var header = prefix + new string('x', NativeRpcFrameProtocol.MaximumHeaderBytes - prefix.Length - suffix.Length + (overflow ? 1 : 0)) + suffix;
+        using var stream = new FragmentedReadStream(Encoding.ASCII.GetBytes(header + "{}"), 7);
+        var framing = new NativeRpcFraming(stream);
+        if (overflow)
+        {
+            await Assert.ThrowsAsync<InvalidDataException>(() => framing.ReadAsync(TestContext.Current.CancellationToken));
+        }
+        else
+        {
+            Assert.Equal("{}", Encoding.UTF8.GetString((await framing.ReadAsync(TestContext.Current.CancellationToken))!));
+        }
+    }
+
+    [Fact]
+    public async Task NonAsciiHeaderValuesRemainInvalid()
+    {
+        using var stream = new FragmentedReadStream("Content-Type: \u00e9\r\nContent-Length: 2\r\n\r\n{}"u8.ToArray(), 1);
+        await Assert.ThrowsAsync<InvalidDataException>(() => new NativeRpcFraming(stream).ReadAsync(TestContext.Current.CancellationToken));
+    }
+
     [Fact]
     public async Task PeerKeepsBorrowedEnvelopeAliveUntilAsyncDispatchCompletes()
     {

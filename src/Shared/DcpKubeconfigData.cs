@@ -20,34 +20,38 @@ internal sealed record DcpKubeconfigData(
         //   token: <bearer token>
         // It can instead use client-certificate-data / client-key-data. This is
         // not a general YAML or multi-context kubeconfig parser.
-        foreach (var line in content.Split('\n'))
+        var lines = content.AsSpan();
+        foreach (var range in lines.Split('\n'))
         {
-            server ??= ReadScalar(line, "server");
-            token ??= ReadScalar(line, "token");
-            authority ??= ReadScalar(line, "certificate-authority-data");
-            certificate ??= ReadScalar(line, "client-certificate-data");
-            key ??= ReadScalar(line, "client-key-data");
+            var line = lines[range].Trim();
+            var separator = line.IndexOf(':');
+            if (separator <= 0)
+            {
+                continue;
+            }
+            switch (line[..separator])
+            {
+                case "server": server ??= ReadScalar(line[(separator + 1)..]); break;
+                case "token": token ??= ReadScalar(line[(separator + 1)..]); break;
+                case "certificate-authority-data": authority ??= ReadScalar(line[(separator + 1)..]); break;
+                case "client-certificate-data": certificate ??= ReadScalar(line[(separator + 1)..]); break;
+                case "client-key-data": key ??= ReadScalar(line[(separator + 1)..]); break;
+            }
         }
 
         return new(server, token, authority, certificate, key);
     }
 
-    private static string? ReadScalar(string line, string key)
+    private static string? ReadScalar(ReadOnlySpan<char> value)
     {
-        var text = line.Trim();
-        if (!text.StartsWith(key + ":", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var value = text[(key.Length + 1)..].Trim();
+        value = value.Trim();
         if (value.Length == 0)
         {
             return null;
         }
 
         return value.Length >= 2 && ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\''))
-            ? value[1..^1]
-            : value;
+            ? value[1..^1].ToString()
+            : value.ToString();
     }
 }

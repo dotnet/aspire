@@ -8,8 +8,6 @@ namespace Aspire.Hosting.Native.Rpc;
 /// <summary>Validates provider wire data and produces the projections consumed by invocation and lifecycle routing.</summary>
 internal sealed class NativeProviderProtocol(JsonObject coreContract)
 {
-    private const string LifecycleScopeType = "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ResourceLifecycleScope";
-
     public IReadOnlySet<string> CoreCapabilities { get; } = coreContract["Capabilities"]!.AsArray()
         .Select(value => value!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
     public IReadOnlySet<string> CoreHandles { get; } = coreContract["HandleTypes"]!.AsArray()
@@ -26,76 +24,43 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
 
     public NativeProviderManifest ParseManifest(string packageName, JsonNode? manifest)
     {
-        // Providers advertise {"protocolVersion":2,"capabilities":[{"id":"package/method",
-        // "method":"method","parameters":[{"name":"resource","type":{"typeId":"package/Resource",
-        // "category":"Handle"}}],"returnType":{"typeId":"void","category":"Primitive"}}]}.
-        // Keep the original metadata for discovery, but route only through validated projections.
-        if (manifest is not JsonObject envelope || envelope["protocolVersion"] is not JsonValue version ||
-            !version.TryGetValue<int>(out var number) || number != 2 ||
-            envelope["capabilities"] is not JsonArray { Count: > 0 and <= 128 } capabilities)
-        {
-            throw RpcFault.ProviderMetadataInvalid("Provider metadata requires protocol version 2 and bounded capabilities.");
-        }
+        var capabilities = NativeProviderMetadata.Read(manifest);
         var projected = new Dictionary<string, NativeProviderCapability>(StringComparer.Ordinal);
-        foreach (var node in capabilities)
+        var ownTypes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var metadata in capabilities)
         {
-            if (node is not JsonObject metadata || metadata["id"] is not JsonValue ||
-                metadata["parameters"] is not JsonArray { Count: <= 32 } parameters ||
-                metadata["returnType"] is not JsonObject returnType)
-            {
-                throw RpcFault.ProviderMetadataInvalid("Provider capability projection is incomplete.");
-            }
-            var id = RpcArguments.String(metadata["id"]);
+            var id = metadata.Id;
             if (!id.StartsWith(packageName + "/", StringComparison.Ordinal) || id.Length > 256 ||
-                string.IsNullOrWhiteSpace(RpcArguments.String(metadata["method"])) || projected.ContainsKey(id))
+                string.IsNullOrWhiteSpace(metadata.Method) || projected.ContainsKey(id))
             {
                 throw RpcFault.ProviderConflict("The provider capability identity is duplicate or outside its package.");
             }
-            var resultType = ParseType(returnType, packageName);
+            var resultType = ProjectType(metadata.ReturnType);
             var arguments = new List<NativeProviderParameter>();
             var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var parameter in parameters)
+            foreach (var parameter in metadata.Parameters)
             {
-                if (parameter is not JsonObject argument || argument["type"] is not JsonObject type ||
-                    !names.Add(RpcArguments.String(argument["name"])) ||
-                    string.IsNullOrWhiteSpace(RpcArguments.String(argument["name"])) ||
-                    ReadFlag(argument, "isOptional") || ReadFlag(argument, "isNullable"))
+                if (!names.Add(parameter.Name) || string.IsNullOrWhiteSpace(parameter.Name))
                 {
                     throw RpcFault.ProviderMetadataInvalid("Provider arguments require distinct required names and types.");
                 }
-                var name = RpcArguments.String(argument["name"]);
-                if (ReadFlag(argument, "isCallback"))
+                if (parameter.Callback is { } callback)
                 {
-                    if (type["category"] is not JsonValue category || !category.TryGetValue<string>(out var categoryName) || categoryName != "Callback" ||
-                        argument["callbackParameters"] is not JsonArray { Count: <= 16 } callbackParameters ||
-                        argument["callbackReturnType"] is not JsonObject callbackReturn)
-                    {
-                        throw RpcFault.ProviderMetadataInvalid("Callback projection is incomplete.");
-                    }
-                    var callbackResult = ParseType(callbackReturn, packageName);
+                    var callbackResult = ProjectType(callback.ReturnType);
                     if (callbackResult.Kind == NativeProviderValueKind.Void)
                     {
                         throw RpcFault.ProviderMetadataUnsupported("Void callback writeback is not implemented by this provider protocol phase.");
                     }
-                    var callbackTypes = new List<NativeProviderType>();
-                    foreach (var callbackParameter in callbackParameters)
-                    {
-                        if (callbackParameter is not JsonObject projectedParameter || projectedParameter["type"] is not JsonObject projectedType)
-                        {
-                            throw RpcFault.ProviderMetadataInvalid("Callback projection is incomplete.");
-                        }
-                        callbackTypes.Add(ParseType(projectedType, packageName));
-                    }
-                    arguments.Add(new(name, new("callback", NativeProviderValueKind.Callback),
-                        new(callbackTypes.ToArray(), callbackResult)));
+                    arguments.Add(new(parameter.Name, new("callback", NativeProviderValueKind.Callback),
+                        new(callback.Parameters.Select(ProjectType).ToArray(), callbackResult)));
                 }
                 else
                 {
-                    arguments.Add(new(name, ParseType(type, packageName), null));
+                    arguments.Add(new(parameter.Name, ProjectType(parameter.Type), null));
                 }
             }
-            var targetType = metadata["targetTypeId"] is { } targetId ? RpcArguments.String(targetId) : null;
-            var receiver = metadata["targetParameterName"] is { } targetName ? RpcArguments.String(targetName) : null;
+            var targetType = metadata.TargetTypeId;
+            var receiver = metadata.TargetParameterName;
             if (targetType is not null)
             {
                 var target = arguments.SingleOrDefault(parameter => parameter.Name == receiver);
@@ -104,52 +69,45 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
                     throw RpcFault.ProviderMetadataInvalid("The provider receiver must match its projected handle parameter.");
                 }
             }
-            var phase = metadata["lifecyclePhase"] is { } lifecycle ? RpcArguments.String(lifecycle) : null;
+            var phase = metadata.LifecyclePhase;
             if (phase is not null && (phase is not ("initialize" or "allocated" or "ready" or "retiring") ||
                 targetType is null || CoreHandles.Contains(targetType) || arguments.Count != 2 ||
                 arguments.Any(parameter => parameter.Callback is not null) ||
-                arguments.SingleOrDefault(parameter => parameter.Name == "scope")?.Type.TypeId != LifecycleScopeType ||
+                arguments.SingleOrDefault(parameter => parameter.Name == "scope")?.Type.TypeId != NativeRpcContract.LifecycleScopeTypeId ||
                 resultType.Kind != NativeProviderValueKind.Void))
             {
                 throw RpcFault.ProviderMetadataInvalid("Lifecycle metadata requires an owned receiver, one native scope and a void result.");
             }
-            projected.Add(id, new(id, arguments.ToArray(), resultType, targetType, receiver, phase, metadata.DeepClone().AsObject()));
+            projected.Add(id, new(id, arguments.ToArray(), resultType, targetType, receiver, phase, metadata.Wire.DeepClone().AsObject()));
         }
         if (projected.Values.Where(capability => capability.LifecyclePhase is not null)
             .GroupBy(capability => (capability.TargetTypeId, capability.LifecyclePhase)).Any(group => group.Count() > 1))
         {
             throw RpcFault.ProviderMetadataInvalid("A provider resource phase cannot have duplicate capabilities.");
         }
-        var ownTypes = projected.Values.SelectMany(capability => EnumerateTypes(capability.Metadata))
-            .Where(type => type["category"]?.GetValue<string>() == "Handle")
-            .Select(type => RpcArguments.String(type["typeId"])).Where(type => !CoreHandles.Contains(type)).ToHashSet(StringComparer.Ordinal);
-
         return new(projected, ownTypes);
+
+        NativeProviderType ProjectType(NativeProviderMetadataType metadataType)
+        {
+            var type = ParseType(metadataType, packageName);
+            if (type.Kind == NativeProviderValueKind.Handle && !CoreHandles.Contains(type.TypeId))
+            {
+                ownTypes.Add(type.TypeId);
+            }
+
+            return type;
+        }
     }
 
-    private static bool ReadFlag(JsonObject metadata, string name)
+    private NativeProviderType ParseType(NativeProviderMetadataType type, string packageName)
     {
-        if (metadata[name] is null)
-        {
-            return false;
-        }
-        if (metadata[name] is JsonValue value && value.TryGetValue<bool>(out var flag))
-        {
-            return flag;
-        }
-        throw RpcFault.ProviderMetadataInvalid("Provider parameter flags must be Boolean values.");
-    }
-
-    private NativeProviderType ParseType(JsonObject type, string packageName)
-    {
-        var id = RpcArguments.String(type["typeId"]);
-        var category = RpcArguments.String(type["category"]);
-        if (category == "Handle" && (CoreHandles.Contains(id) ||
+        var id = type.TypeId;
+        if (type.Category == NativeProviderTypeCategory.Handle && (CoreHandles.Contains(id) ||
             id.StartsWith(packageName + "/", StringComparison.Ordinal) && id.Length <= 256))
         {
             return new(id, NativeProviderValueKind.Handle);
         }
-        var kind = category == "Primitive" ? id switch
+        var kind = type.Category == NativeProviderTypeCategory.Primitive ? id switch
         {
             "void" => NativeProviderValueKind.Void,
             "string" => NativeProviderValueKind.String,
@@ -199,27 +157,6 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
         return new(id, handle, handle["$lifetime"] as JsonObject);
     }
 
-    private static IEnumerable<JsonObject> EnumerateTypes(JsonNode? node)
-    {
-        if (node is JsonObject obj)
-        {
-            if (obj.ContainsKey("typeId") && obj.ContainsKey("category"))
-            {
-                yield return obj;
-            }
-            foreach (var nested in obj.SelectMany(pair => EnumerateTypes(pair.Value)))
-            {
-                yield return nested;
-            }
-        }
-        else if (node is JsonArray array)
-        {
-            foreach (var nested in array.SelectMany(EnumerateTypes))
-            {
-                yield return nested;
-            }
-        }
-    }
 }
 
 internal enum NativeProviderValueKind
