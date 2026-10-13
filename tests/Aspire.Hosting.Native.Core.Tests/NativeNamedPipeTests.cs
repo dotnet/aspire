@@ -16,7 +16,7 @@ public class NativeNamedPipeTests
     public async Task AuthenticatesIndependentClientsAndDrainsConnectionsOnShutdown()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        using var listener = new NativeRpcListener(new NamedPipeEndPoint($"aspire-v2-{Guid.NewGuid():N}"),
+        using var listener = new NativeRpcListener(CreateEndpoint(),
             Token, NullLogger.Instance);
         var run = listener.RunAsync(timeout.Token);
         try
@@ -47,8 +47,12 @@ public class NativeNamedPipeTests
     [Fact]
     public void ExistingPipeCannotBeReplacedByAnotherListener()
     {
-        var endpoint = new NamedPipeEndPoint($"aspire-v2-{Guid.NewGuid():N}");
+        var endpoint = CreateEndpoint();
         using var listener = new NativeRpcListener(endpoint, Token, NullLogger.Instance);
         Assert.Throws<UnauthorizedAccessException>(() => new NativeRpcListener(endpoint, Token, NullLogger.Instance));
     }
+
+    // Unix emulates pipes as TMPDIR/CoreFxPipe_<name>. Keep names compact so
+    // repository-local temp directories do not exceed the Unix socket path limit.
+    private static NamedPipeEndPoint CreateEndpoint() => new($"v2-{Guid.NewGuid():N}"[..19]);
 }
