@@ -137,6 +137,16 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
 
     protected override IReadOnlyList<KeyValuePair<string, object?>> GetDefaultTags() => _tagsSource.GetResolvedTags();
 
+    internal override IEnumerable<KeyValuePair<string, object?>> GetActivityDefaultTags(Activity activity)
+    {
+        var tags = GetDefaultTags();
+        // Detector-health telemetry reports only bounded outcome metadata. Raw alias and domain
+        // belong on ordinary product telemetry, not the event measuring their availability.
+        return activity.OperationName == TelemetryConstants.Activities.InternalMicrosoftDetector
+            ? tags.Where(tag => tag.Key is not (TelemetryConstants.Tags.InternalMicrosoftAlias or TelemetryConstants.Tags.InternalMicrosoftDomain))
+            : tags;
+    }
+
     protected override bool IsReportedTelemetryEnabled => _telemetryConfiguration.ReportedTelemetryEnabled;
 
     /// <inheritdoc />
@@ -221,10 +231,7 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
             CancellationTokenSource? internalMicrosoftTimeoutSource = null;
             try
             {
-                var tagsList = new List<KeyValuePair<string, object?>>();
-
-                var macAddressHashTask = _machineInformationProvider.GetMacAddressHash();
-                var deviceIdTask = _machineInformationProvider.GetOrCreateDeviceId();
+                var machineTagsTask = TelemetryMetadata.GetMachineTagsAsync(_machineInformationProvider);
 
                 Task<InternalMicrosoftDetectionResult>? internalMicrosoftTask = null;
                 if (_telemetryConfiguration.ReportedTelemetryEnabled)
@@ -240,7 +247,7 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
                     internalMicrosoftTask = GetInternalMicrosoftResultAsync(internalMicrosoftTimeoutSource, TimeProvider.System);
                 }
 
-                await Task.WhenAll(new Task[] { macAddressHashTask, deviceIdTask }).ConfigureAwait(false);
+                var machineTags = await machineTagsTask.ConfigureAwait(false);
 
                 if (internalMicrosoftTask is not null)
                 {
@@ -248,27 +255,7 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
                 }
 
                 var isCIEnvironment = _ciEnvironmentDetector.IsCIEnvironment();
-                tagsList.Add(new(TelemetryConstants.Tags.MacAddressHash, macAddressHashTask.Result));
-                tagsList.Add(new(TelemetryConstants.Tags.DeviceId, deviceIdTask.Result));
-                if (internalMicrosoftResult is not null)
-                {
-                    tagsList.Add(new(TelemetryConstants.Tags.InternalMicrosoft, internalMicrosoftResult.IsInternalMicrosoft));
-
-                    if (internalMicrosoftResult.IsInternalMicrosoft && !string.IsNullOrEmpty(internalMicrosoftResult.Source))
-                    {
-                        tagsList.Add(new(TelemetryConstants.Tags.InternalMicrosoftSource, internalMicrosoftResult.Source));
-                    }
-
-                    if (!isCIEnvironment && internalMicrosoftResult.IsInternalMicrosoft && !string.IsNullOrEmpty(internalMicrosoftResult.Alias))
-                    {
-                        tagsList.Add(new(TelemetryConstants.Tags.InternalMicrosoftAlias, internalMicrosoftResult.Alias));
-                    }
-
-                    if (!isCIEnvironment && internalMicrosoftResult.IsInternalMicrosoft && !string.IsNullOrEmpty(internalMicrosoftResult.Domain))
-                    {
-                        tagsList.Add(new(TelemetryConstants.Tags.InternalMicrosoftDomain, internalMicrosoftResult.Domain));
-                    }
-                }
+                var tagsList = TelemetryMetadata.CreateDefaultTags(machineTags, isCIEnvironment, internalMicrosoftResult, "aspire.cli");
 
                 // This is consistent with dashboard version data.
                 tagsList.Add(new(TelemetryConstants.Tags.CliVersion, GetCliVersion()));
@@ -289,12 +276,6 @@ internal sealed class AspireCliTelemetry : AspireTelemetryBase, IHostedService
                 {
                     tagsList.Add(new(TelemetryConstants.Tags.CodingAgent, codingAgent));
                 }
-
-                tagsList.Add(new(TelemetryConstants.Tags.DeploymentEnvironmentName, isCIEnvironment ? "ci" : "local"));
-
-                tagsList.Add(new(TelemetryConstants.Tags.OsName, OperatingSystemTelemetry.GetOsName()));
-                tagsList.Add(new(TelemetryConstants.Tags.OsType, OperatingSystemTelemetry.GetOsType()));
-                tagsList.Add(new(TelemetryConstants.Tags.OsVersion, OperatingSystemTelemetry.GetOsVersion()));
 
                 return (IReadOnlyList<KeyValuePair<string, object?>>)tagsList;
             }

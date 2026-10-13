@@ -31,7 +31,7 @@ public class DashboardStartupTelemetryTests
             Data = new DashboardDataOptions { PersistenceMode = persistenceMode }
         };
         var startupTimestamp = Stopwatch.GetTimestamp() - Stopwatch.Frequency;
-        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, startupTimestamp, isCIEnvironment: false);
+        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, startupTimestamp);
 
         if (success)
         {
@@ -77,7 +77,7 @@ public class DashboardStartupTelemetryTests
     {
         using var fixture = new DashboardTelemetryFixture();
         var options = new DashboardOptions { LaunchContext = launchContext };
-        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, Stopwatch.GetTimestamp(), isCIEnvironment: false);
+        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, Stopwatch.GetTimestamp());
 
         startupTelemetry.RecordSuccess();
 
@@ -94,9 +94,9 @@ public class DashboardStartupTelemetryTests
     [InlineData(false, false, "local")]
     public void Record_RecordsDeploymentEnvironment(bool success, bool isCIEnvironment, string expectedEnvironment)
     {
-        using var fixture = new DashboardTelemetryFixture();
+        using var fixture = new DashboardTelemetryFixture(isCIEnvironment: isCIEnvironment);
         var startupTelemetry = new DashboardStartupTelemetry(
-            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp(), isCIEnvironment);
+            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp());
 
         if (success)
         {
@@ -121,7 +121,7 @@ public class DashboardStartupTelemetryTests
     {
         using var fixture = new DashboardTelemetryFixture();
         var startupTelemetry = new DashboardStartupTelemetry(
-            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp(), isCIEnvironment: false);
+            fixture.Telemetry, new DashboardOptions(), Stopwatch.GetTimestamp());
 
         if (success)
         {

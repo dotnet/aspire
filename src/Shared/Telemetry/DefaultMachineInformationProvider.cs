@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 // This is copied from https://github.com/microsoft/mcp/tree/6bb4d76a63d24854efe0fa0bd96f5ab6f699ed3a/core/Azure.Mcp.Core/src/Services/Telemetry
 // Keep in sync with updates there.

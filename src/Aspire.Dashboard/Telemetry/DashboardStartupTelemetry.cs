@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Shared;
-using Aspire.Shared.Telemetry;
 
 namespace Aspire.Dashboard.Telemetry;
 
@@ -15,14 +14,12 @@ internal sealed class DashboardStartupTelemetry
     private readonly string _launchContext;
     private readonly string _persistenceMode;
     private readonly long _startTimestamp;
-    private readonly bool _isCIEnvironment;
     private int _recorded;
 
-    public DashboardStartupTelemetry(DashboardTelemetryService telemetry, DashboardOptions options, long startTimestamp, bool isCIEnvironment)
+    public DashboardStartupTelemetry(DashboardTelemetryService telemetry, DashboardOptions options, long startTimestamp)
     {
         _telemetry = telemetry;
         _startTimestamp = startTimestamp;
-        _isCIEnvironment = isCIEnvironment;
         // Failed startup can supply unvalidated options, so keep this dimension bounded.
         _persistenceMode = options.Data.PersistenceMode switch
         {
@@ -54,10 +51,6 @@ internal sealed class DashboardStartupTelemetry
         Dictionary<string, AspireTelemetryProperty> properties = new()
         {
             [TelemetryPropertyKeys.DashboardIsAot] = new(VersionHelpers.IsNativeAot),
-            [TelemetryPropertyKeys.DeploymentEnvironmentName] = new(_isCIEnvironment ? "ci" : "local"),
-            [TelemetryPropertyKeys.OsName] = new(OperatingSystemTelemetry.GetOsName()),
-            [TelemetryPropertyKeys.OsType] = new(OperatingSystemTelemetry.GetOsType()),
-            [TelemetryPropertyKeys.OsVersion] = new(OperatingSystemTelemetry.GetOsVersion()),
             [TelemetryPropertyKeys.StartupSuccess] = new(success),
             [TelemetryPropertyKeys.StartupLaunchContext] = new(_launchContext),
             [TelemetryPropertyKeys.StartupPersistenceMode] = new(_persistenceMode),

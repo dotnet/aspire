@@ -12,13 +12,19 @@ public static class TelemetryPropertyKeys
     // Default properties
     public const string DashboardVersion = AspireDashboardPropertyPrefix + "version";
     public const string DashboardBuildId = AspireDashboardPropertyPrefix + "build_id";
-
-    // Startup properties
-    public const string DashboardIsAot = AspireDashboardPropertyPrefix + "is_aot";
     public const string DeploymentEnvironmentName = "deployment.environment.name";
     public const string OsName = "os.name";
     public const string OsType = "os.type";
     public const string OsVersion = "os.version";
+    public const string MacAddressHash = "machine.mac_address_hash";
+    public const string DeviceId = "machine.device_id";
+    public const string InternalMicrosoft = AspireDashboardPropertyPrefix + "is_microsoft_internal";
+    public const string InternalMicrosoftSource = AspireDashboardPropertyPrefix + "microsoft_internal_source";
+    public const string InternalMicrosoftAlias = AspireDashboardPropertyPrefix + "microsoft_internal_alias";
+    public const string InternalMicrosoftDomain = AspireDashboardPropertyPrefix + "microsoft_internal_domain";
+
+    // Startup properties
+    public const string DashboardIsAot = AspireDashboardPropertyPrefix + "is_aot";
     public const string StartupSuccess = AspireDashboardPropertyPrefix + "startup.success";
     public const string StartupLaunchContext = AspireDashboardPropertyPrefix + "startup.launch_context";
     public const string StartupPersistenceMode = AspireDashboardPropertyPrefix + "startup.persistence_mode";

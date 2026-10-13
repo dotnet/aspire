@@ -1215,7 +1215,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
         Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
-        Assert.Equal(CIEnvironmentDetector.IsCIEnvironment(Environment.GetEnvironmentVariable) ? "ci" : "local",
+        Assert.Equal("local",
             Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
         Assert.Equal(OperatingSystemTelemetry.GetOsName(), attributes[TelemetryPropertyKeys.OsName]);
         Assert.Equal(OperatingSystemTelemetry.GetOsType(), attributes[TelemetryPropertyKeys.OsType]);

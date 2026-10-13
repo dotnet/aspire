@@ -3,18 +3,19 @@
 
 using System.Diagnostics;
 using Aspire.Cli.Telemetry;
+using Aspire.Shared.Telemetry;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Telemetry;
 
-public class CliTagEnrichmentProcessorTests
+public class ActivityTagEnrichmentProcessorTests
 {
     [Fact]
     public void OnEnd_AppliesResolvedTagsToActivity()
     {
         using var fixture = new TelemetryFixture();
 
-        var processor = new CliTagEnrichmentProcessor(fixture.TagsSource, fixture.Telemetry);
+        var processor = new ActivityTagEnrichmentProcessor(fixture.Telemetry);
 
         using var source = new ActivitySource($"Test.{Path.GetRandomFileName()}");
         using var listener = new ActivityListener
@@ -60,7 +61,7 @@ public class CliTagEnrichmentProcessorTests
             return expectedTags;
         });
 
-        var processor = new CliTagEnrichmentProcessor(tagsSource, fixture.Telemetry);
+        var processor = new ActivityTagEnrichmentProcessor(fixture.Telemetry);
 
         using var source = new ActivitySource($"Test.{Path.GetRandomFileName()}");
         using var listener = new ActivityListener
@@ -101,7 +102,7 @@ public class CliTagEnrichmentProcessorTests
             new(TelemetryConstants.Tags.InternalMicrosoftDomain, "REDMOND")
         ]));
         await tagsSource.TagsTask;
-        var processor = new CliTagEnrichmentProcessor(tagsSource, fixture.Telemetry);
+        var processor = new ActivityTagEnrichmentProcessor(fixture.Telemetry);
 
         using var source = new ActivitySource($"Test.{Path.GetRandomFileName()}");
         using var listener = new ActivityListener
