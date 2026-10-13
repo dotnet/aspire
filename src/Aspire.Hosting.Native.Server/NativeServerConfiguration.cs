@@ -75,6 +75,23 @@ internal sealed record NativeDashboardCredentials(string ResourceServiceApiKey, 
 /// <summary>Parses the CLI's optional process identity metadata without ambient environment reads.</summary>
 internal sealed record NativeCliProcessMetadata(int? ProcessId, DateTimeOffset? StartedAt, DateTimeOffset? StableStartedAt, string? LogFilePath)
 {
+    /// <summary>Disarms parent detection on disposal and prefers the stable PID-reuse identity.</summary>
+    public IAsyncDisposable? MonitorParent(Action onParentExited, TimeProvider timeProvider)
+    {
+        if (ProcessId is not { } pid)
+        {
+            return null;
+        }
+
+        return ParentProcessLivenessMonitor.Start(pid,
+            StableStartedAt?.ToUnixTimeMilliseconds() ?? StartedAt?.ToUnixTimeSeconds(),
+            _ =>
+            {
+                onParentExited();
+                return Task.CompletedTask;
+            }, timeProvider, useRuntimeStartTime: StableStartedAt is null && StartedAt is not null);
+    }
+
     public static NativeCliProcessMetadata Parse(IConfiguration configuration) => new(
         int.TryParse(configuration["ASPIRE_CLI_PID"], NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid) ? pid : null,
         ParseTimestamp(configuration["ASPIRE_CLI_STARTED"], milliseconds: false),

@@ -122,7 +122,7 @@ internal sealed class ResourceWorkload(
     private readonly TaskCompletionSource<WorkloadEndpoint> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task? _completion;
     private Task? _stop;
-    private IWorkloadLease? _lease;
+    private readonly List<IWorkloadLease> _cleanupLeases = [];
     private bool _cleanupFailed;
     private readonly Lock _lifetimeGate = new();
     private bool _finished;
@@ -175,7 +175,7 @@ internal sealed class ResourceWorkload(
         {
             // Retain the original task: a possibly side-effecting retirement
             // command must never be replayed by a later cleanup attempt.
-            _retirement ??= retire();
+            _retirement ??= RetireAsync();
             try
             {
                 await _retirement.ConfigureAwait(false);
@@ -183,22 +183,46 @@ internal sealed class ResourceWorkload(
             finally
             {
                 // A failed/disconnected provider cannot fence removal of native
-                // workloads. Report the phase fault, but remove its main lease.
-                if (_lease is not null)
+                // workloads. Drain every lease even if one deletion fails, retaining
+                // only the failed obligations for the next cleanup attempt.
+                IWorkloadLease[] leases;
+                lock (_lifetimeGate)
                 {
-                    await _lease.DisposeAsync().ConfigureAwait(false);
+                    leases = [.. _cleanupLeases];
                 }
-                _lease = null;
+                await Task.WhenAll(leases.Select(CleanupLeaseAsync)).ConfigureAwait(false);
             }
             _cleanupFailed = false;
         }
         catch (Exception exception)
         {
-            _cleanupFailed = _lease is not null;
+            _cleanupFailed = _cleanupLeases.Count > 0;
             log(LogStream.Stderr, _cleanupFailed ?
                 $"Workload cleanup failed: {exception.GetType().Name}; cleanup remains pending." :
                 $"Integration retirement failed: {exception.GetType().Name}; native workload removed.");
             throw;
+        }
+    }
+
+    private async Task RetireAsync()
+    {
+        try
+        {
+            await retire().ConfigureAwait(false);
+        }
+        catch (WorkloadCleanupException exception)
+        {
+            _cleanupLeases.Add(exception.Lease);
+            throw;
+        }
+    }
+
+    private async Task CleanupLeaseAsync(IWorkloadLease lease)
+    {
+        await lease.DisposeAsync().ConfigureAwait(false);
+        lock (_lifetimeGate)
+        {
+            _cleanupLeases.Remove(lease);
         }
     }
 
@@ -227,7 +251,7 @@ internal sealed class ResourceWorkload(
             var plan = resolvePlan();
             WorkloadDefinition.Validate(plan);
             var lease = await executor.StartAsync(identity, plan, startup.Token).ConfigureAwait(false);
-            _lease = lease;
+            _cleanupLeases.Add(lease);
             publish(ResourceState.Running, lease.Endpoint);
             await allocated(lease.Endpoint, startup.Token).ConfigureAwait(false);
             startup.StopTimeout();
@@ -260,7 +284,9 @@ internal sealed class ResourceWorkload(
             operation.ErrorType = exception.GetType().FullName;
             if (exception is WorkloadCleanupException cleanupFailure)
             {
-                _lease = cleanupFailure.Lease;
+                // A lifecycle command can fail after the primary workload starts.
+                // Its partial lease is an additional obligation, not a replacement.
+                _cleanupLeases.Add(cleanupFailure.Lease);
                 _cleanupFailed = true;
             }
             if (exception is WorkloadStartupException startupFailure)

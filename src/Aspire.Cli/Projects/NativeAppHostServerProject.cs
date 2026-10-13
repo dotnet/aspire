@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Processes;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Aspire.Shared;
@@ -190,6 +191,11 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             }
         }
         LayoutLease?.AddEnvironment(startInfo);
+        var parentStarted = ProcessStartTimeHelper.TryGetProcessStartTimeUnixMilliseconds(hostPid);
+        OrphanDetectionEnvironment.Apply(startInfo.Environment, hostPid, parentStarted,
+            KnownConfigNames.RemoteAppHostProcessId, KnownConfigNames.RemoteAppHostProcessStarted);
+        OrphanDetectionEnvironment.Apply(startInfo.Environment, hostPid, parentStarted,
+            KnownConfigNames.CliProcessId, KnownConfigNames.CliProcessStarted);
         var bootstrap = environmentVariables?.GetValueOrDefault(KnownConfigNames.IntegrationHostBootstrap) == "true";
         if (bootstrap)
         {

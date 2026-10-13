@@ -140,6 +140,47 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunReplacesInheritedParentIdentityWithTheLaunchingProcess()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var executable = Path.Combine(workspace.Path, "server");
+        await File.WriteAllTextAsync(executable, "");
+        var processes = new TestProcessExecutionFactory();
+        var pid = Environment.ProcessId;
+        var started = ProcessStartTimeHelper.TryGetProcessStartTimeUnixMilliseconds(pid);
+        Assert.NotNull(started);
+        processes.CreateExecutionFromStartInfoCallback = (start, options) =>
+        {
+            Assert.Equal(pid.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                start.Environment[KnownConfigNames.CliProcessId]);
+            Assert.Equal(start.Environment[KnownConfigNames.CliProcessId],
+                start.Environment[KnownConfigNames.RemoteAppHostProcessId]);
+            Assert.Equal(started.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                start.Environment[KnownConfigNames.CliProcessStartedStable]);
+            Assert.Equal(start.Environment[KnownConfigNames.CliProcessStartedStable],
+                start.Environment[KnownConfigNames.RemoteAppHostProcessStarted]);
+            Assert.Equal(ProcessStartTimeHelper.TryGetRuntimeProcessStartTimeUnixSeconds(pid)!.Value
+                .ToString(System.Globalization.CultureInfo.InvariantCulture), start.Environment[KnownConfigNames.CliProcessStarted]);
+            return new TestProcessExecution(start.FileName, [], null, options,
+                (_, _, _) => Task.FromResult((0, (string?)null)), () => 1);
+        };
+        using var project = new NativeAppHostServerProject(workspace.Path, executable, processes, NullLogger.Instance);
+        var result = await project.RunAsync(pid, new Dictionary<string, string>
+        {
+            [KnownConfigNames.CliProcessId] = "123",
+            [KnownConfigNames.CliProcessStarted] = "1",
+            [KnownConfigNames.CliProcessStartedStable] = "1000",
+            [KnownConfigNames.RemoteAppHostProcessId] = "456",
+            [KnownConfigNames.RemoteAppHostProcessStarted] = "2000"
+        }, [], false, null);
+        await result.Execution.DisposeAsync();
+    }
+
+    [Fact]
     public async Task BootstrapDoesNotLaunchBundledRuntimeComponents()
     {
         if (OperatingSystem.IsWindows())

@@ -167,6 +167,54 @@ public class DcpWorkloadCleanupTests
     }
 
     [Fact]
+    public async Task FailedAllocatedCommandRetainsPrimaryLeaseAndDrainsIndependentCleanupFailures()
+    {
+        var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromSeconds(10) };
+        using var handler = new DcpCleanupTestHandler();
+        var commandAttempts = 0;
+        var primaryAttempts = 0;
+        handler.BeforeDelete = (key, _) =>
+            key.StartsWith("executables/", StringComparison.Ordinal)
+                ? Interlocked.Increment(ref commandAttempts) == 1
+                    ? Task.FromException(new HttpRequestException("Command cleanup failure"))
+                    : Task.CompletedTask
+                : Interlocked.Increment(ref primaryAttempts) == 1
+                    ? Task.FromException(new HttpRequestException("Primary cleanup failure"))
+                    : Task.CompletedTask;
+        await using var client = handler.CreateClient(options);
+        var executor = new DcpWorkloadExecutor(client, Task.CompletedTask, options);
+        var retirementCalls = 0;
+        using var workload = new ResourceWorkload(new(Guid.NewGuid(), Guid.NewGuid()),
+            () => new ContainerWorkload("example:1", 6379, [], []), executor, options.Runtime,
+            _ => Task.CompletedTask, (_, _) => { }, (_, _) => { }, _ => Task.CompletedTask,
+            async (_, token) =>
+            {
+                handler.Exited = true;
+                await executor.StartAsync(new(Guid.NewGuid(), Guid.NewGuid()),
+                    new ExecutableWorkload(Environment.ProcessPath!, AppContext.BaseDirectory, "", [], []), token);
+            },
+            () =>
+            {
+                Interlocked.Increment(ref retirementCalls);
+                return Task.CompletedTask;
+            });
+
+        await Assert.ThrowsAsync<WorkloadCleanupException>(workload.Start);
+        await Assert.ThrowsAsync<WorkloadCleanupException>(() => workload.Completion);
+        Assert.Equal(3, handler.Resources.Count);
+        await Assert.ThrowsAsync<HttpRequestException>(workload.StopAsync);
+        Assert.Equal(2, handler.Resources.Count);
+        Assert.All(handler.Resources.Keys, key =>
+            Assert.True(key.StartsWith("containers/", StringComparison.Ordinal) ||
+                key.StartsWith("services/", StringComparison.Ordinal)));
+        await workload.StopAsync();
+        Assert.Empty(handler.Resources);
+        Assert.Equal(1, retirementCalls);
+        Assert.Equal(2, commandAttempts);
+        Assert.Equal(3, primaryAttempts);
+    }
+
+    [Fact]
     public async Task PartialDeletionIsRetriedAndConcurrentDisposalsAreSerialized()
     {
         var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromSeconds(10) };

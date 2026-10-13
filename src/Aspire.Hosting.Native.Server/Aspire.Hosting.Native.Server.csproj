@@ -29,6 +29,7 @@
     <Compile Include="../Shared/DirectoryHelper.cs" Link="Auxiliary/DirectoryHelper.cs" />
     <Compile Include="../Shared/StringComparers.cs" Link="Auxiliary/StringComparers.cs" />
     <Compile Include="../Shared/ProcessStartTimeHelper.cs" Link="Auxiliary/ProcessStartTimeHelper.cs" />
+    <Compile Include="../Shared/ParentProcessLivenessMonitor.cs" Link="Auxiliary/ParentProcessLivenessMonitor.cs" />
     <Compile Include="../Shared/BundleDiscovery.cs" Link="Auxiliary/BundleDiscovery.cs" />
     <Compile Include="../Shared/BundleVersionLease.cs" Link="Auxiliary/BundleVersionLease.cs" />
     <Compile Include="../Shared/HeldFileLease.cs" Link="Auxiliary/HeldFileLease.cs" />

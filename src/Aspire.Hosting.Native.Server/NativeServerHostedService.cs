@@ -19,6 +19,15 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Unix helpers cannot rely on an OS kill-on-parent-exit job. Keep the
+        // launcher identity alive through teardown so abrupt CLI exit follows
+        // the same bounded controller/workload cleanup as ordinary shutdown.
+        var parentMonitor = settings.CliProcess.MonitorParent(() =>
+        {
+            loggerFactory.CreateLogger<NativeServerHostedService>()
+                .LogInformation("The launching CLI has exited; stopping AppHost Server v2.");
+            applicationLifetime.StopApplication();
+        }, settings.Options.TimeProvider);
         try
         {
             await RunServerAsync(stoppingToken).ConfigureAwait(false);
@@ -33,7 +42,17 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
         }
         finally
         {
-            applicationLifetime.StopApplication();
+            try
+            {
+                if (parentMonitor is not null)
+                {
+                    await parentMonitor.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                applicationLifetime.StopApplication();
+            }
         }
     }
 

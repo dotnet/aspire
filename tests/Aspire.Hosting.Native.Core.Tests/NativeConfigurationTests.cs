@@ -130,6 +130,24 @@ public class NativeConfigurationTests
     }
 
     [Fact]
+    public async Task ParentMonitorStopsForAReusedPidAndPrefersStableIdentity()
+    {
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var metadata = new NativeCliProcessMetadata(Environment.ProcessId, DateTimeOffset.UtcNow,
+            DateTimeOffset.UnixEpoch, null);
+        await using var monitor = metadata.MonitorParent(() => stopped.TrySetResult(), TimeProvider.System);
+        await stopped.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public void DirectLaunchWithoutParentDoesNotCreateMonitor()
+    {
+        var metadata = new NativeCliProcessMetadata(null, null, null, null);
+        Assert.Null(metadata.MonitorParent(() => throw new InvalidOperationException("No parent was supplied"),
+            TimeProvider.System));
+    }
+
+    [Fact]
     public void ConfigurationCannotDeserializeClockObjectsIntoTheKernel()
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
