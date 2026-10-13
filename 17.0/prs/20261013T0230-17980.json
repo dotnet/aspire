@@ -1,0 +1,9 @@
+{
+  "author": "davidfowl",
+  "comment": "New feature: TypeScript/JavaScript Azure Functions app hosting, run, publish, and deploy support",
+  "mergedAt": "2026-10-13T02:30:31Z",
+  "number": 17980,
+  "runDate": "2026-10-13T06:06:30Z",
+  "status": "included",
+  "title": "Add TypeScript Azure Functions app support"
+}
