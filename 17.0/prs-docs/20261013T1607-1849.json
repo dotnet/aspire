@@ -1,0 +1,9 @@
+{
+  "author": "alistairmatthews",
+  "comment": "Aspire.dev site-wide component propagation (API Reference Astro component); not tied to a specific changelog entry.",
+  "mergedAt": "2026-10-13T16:07:34Z",
+  "number": 1849,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "Propagate the API Reference Astro component"
+}

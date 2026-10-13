@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Aspire.dev website performance/build tooling change (Lighthouse score, HTTP/2); not documentation of a specific product change.",
+  "mergedAt": "2026-10-13T13:27:50Z",
+  "number": 1836,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "Restore landing page performance and serve the site over HTTP/2"
+}

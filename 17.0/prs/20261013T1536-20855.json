@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Dependency bump that fixes a Front Door resource-name regression introduced in Azure.Provisioning.Cdn beta.3",
+  "mergedAt": "2026-10-13T15:36:22Z",
+  "number": 20855,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "included",
+  "title": "Update Azure.Provisioning.Cdn to beta.4"
+}

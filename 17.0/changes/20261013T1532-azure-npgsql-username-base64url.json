@@ -1,0 +1,21 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [
+    "@enhancer13"
+  ],
+  "description": "The Azure Npgsql integration now correctly resolves the username from Microsoft Entra access tokens that use Base64Url encoding (containing `-` or `_` characters). Previously these tokens failed to decode, causing the database connection to fail.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🔑",
+  "firstMergedAt": "2026-10-13T15:32:56Z",
+  "lastMergedAt": "2026-10-13T15:32:56Z",
+  "name": "Fix Azure Npgsql username resolution for Base64Url tokens",
+  "owner": "eerhardt",
+  "prs": [
+    20880
+  ]
+}

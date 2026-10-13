@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "CI test-infrastructure change moving Dashboard Playwright tests to a non-blocking outerloop lane; no user-facing product behavior change.",
+  "mergedAt": "2026-10-13T16:28:43Z",
+  "number": 20642,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "test(dashboard): run Playwright tests as non-blocking outerloop"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "mauri0686",
+  "comment": "Test-only change adding coverage for AzureProvisioningController; no product code or user-facing behavior change.",
+  "mergedAt": "2026-10-13T15:02:00Z",
+  "number": 20771,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "Add test that a fully cached run does not create a provisioning context"
+}

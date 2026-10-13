@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Adds new conceptual documentation (CORS, console apps, resource naming, networking) for existing long-standing App Model features; no matching changelog entry for a specific recent product PR.",
+  "mergedAt": "2026-10-13T17:07:32Z",
+  "number": 454,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "docs: Add App Model API documentation for CORS, console apps, resource naming, and networking"
+}

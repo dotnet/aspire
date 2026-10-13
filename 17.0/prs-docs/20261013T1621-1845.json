@@ -1,0 +1,9 @@
+{
+  "author": "alistairmatthews",
+  "comment": "Adds JavaScript examples to an in-progress docs branch (targets copilot/add-docs-for-app-model, not main); not tied to a specific changelog entry.",
+  "mergedAt": "2026-10-13T16:21:31Z",
+  "number": 1845,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "excluded",
+  "title": "Add JavaScript code for non-AppHost examples"
+}

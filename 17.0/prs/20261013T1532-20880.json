@@ -1,0 +1,9 @@
+{
+  "author": "enhancer13",
+  "comment": "Fixes username resolution for Base64Url-encoded JWT tokens in Azure Npgsql integration",
+  "mergedAt": "2026-10-13T15:32:56Z",
+  "number": 20880,
+  "runDate": "2026-10-13T18:06:33Z",
+  "status": "included",
+  "title": "Fix Azure Npgsql username resolution for Base64Url token payloads"
+}
