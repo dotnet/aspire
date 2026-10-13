@@ -1,0 +1,79 @@
+{
+  "run_id": 38324240564,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38324240564",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-13T00:41:28Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "3569705eb1e06a5a1097795d837964a3817ac237",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 115059602213,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38324240564/job/115059602213",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic test assertion failure in KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay expecting recorded HTTP methods [POST, GET] but got none; matches a prior recurring main-repository-breakage cause tied to the DCP retry-delay feature.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 115059608525,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38324240564/job/115059608525",
+      "classification": "transient-infra",
+      "reason": "Test host process was killed with exit code 137 (SIGKILL) after all 3654 completed tests passed (0 failed); matches a recurring infra-failure cause affecting macos-latest Aspire.Cli.Tests runs.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115061296292,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38324240564/job/115061296292",
+      "classification": "main-repository-breakage",
+      "reason": "After all 59 TypeScript validation AppHosts passed, the Nuxt integration Docker build deterministically fails at 'RUN npm ci' with exit code 1; matches a repeatedly recurring main-repository-breakage cause already tracked in issue #20866.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115064185586,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38324240564/job/115064185586",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails solely because the TypeScript SDK Validation leg failed (npm ci Docker build issue); no independent failure, so it shares the same root cause.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic assertion failure repeating identically across many main-branch runs since 2026-10-10, directly tied to the merged 'Recover ambiguous DCP creates with configurable timeouts' feature; this is a repository-level test/code defect, not flakiness or a PR-local issue."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "aspire-cli-tests-macos-testhost-sigkill-137",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
