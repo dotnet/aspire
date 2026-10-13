@@ -132,6 +132,56 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
         app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LaunchGroupsSerializeRebuildersWithOtherProjectBuilds(bool rebuilderStartsFirst)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.ProjectDirectory = workspace.Path, outputHelper);
+        builder.AddLaunchGroups("empty", "workers");
+        builder.Configuration["LaunchGroup"] = "empty";
+        var first = builder.AddDotnetProject("first", CreateProject(workspace.Path, "First", "First.csproj"),
+            options => options.ExcludeLaunchProfile = true).WithLaunchGroup("workers");
+        var second = builder.AddDotnetProject("second", CreateProject(workspace.Path, "Second", "Second.csproj"),
+            options => options.ExcludeLaunchProfile = true).WithLaunchGroup("workers");
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        var rebuilder = Assert.Single(builder.Resources.OfType<ProjectRebuilderResource>(),
+            resource => ReferenceEquals(resource.Parent, first.Resource));
+        var otherBuild = Assert.IsType<DotnetProjectBuildResource>(Assert.Single(
+            second.Resource.Annotations.OfType<WaitAnnotation>(),
+            annotation => annotation.Resource is DotnetProjectBuildResource).Resource);
+        IResource runningBuild = rebuilderStartsFirst ? rebuilder : otherBuild;
+        IResource queuedBuild = rebuilderStartsFirst ? otherBuild : rebuilder;
+        await builder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(runningBuild, app.Services), TestContext.Current.CancellationToken);
+        var queuedStart = builder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(queuedBuild, app.Services), TestContext.Current.CancellationToken);
+        Assert.False(queuedStart.IsCompleted);
+
+        await app.ResourceNotifications.PublishUpdateAsync(runningBuild, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Finished,
+            ExitCode = null
+        });
+        Assert.False(queuedStart.IsCompleted);
+        await app.ResourceNotifications.PublishUpdateAsync(runningBuild, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Finished,
+            ExitCode = 0
+        });
+        await queuedStart.DefaultTimeout();
+        await app.ResourceNotifications.PublishUpdateAsync(queuedBuild, snapshot => snapshot with
+        {
+            State = KnownResourceStates.Finished,
+            ExitCode = 0
+        });
+        app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+    }
+
     [Fact]
     public async Task MultipleProjectsCreateOneCoordinatedBuild()
     {

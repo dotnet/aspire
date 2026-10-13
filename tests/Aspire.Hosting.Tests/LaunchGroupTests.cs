@@ -160,17 +160,29 @@ public class LaunchGroupTests
     }
 
     [Theory]
+    [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(" catalog")]
+    [InlineData("catalog ")]
     [InlineData("catalog,basket")]
-    public void InvalidNamesAreRejected(string name)
+    [InlineData("catalog;basket")]
+    public void InvalidNamesAreRejectedWithPublicParameterNames(string? name)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddExecutable("worker", "unused", ".");
 
-        Assert.Throws<ArgumentException>(() => builder.AddLaunchGroups(name));
-        Assert.Throws<ArgumentException>(() => resource.WithLaunchGroup(name));
+        var annotationException = Assert.ThrowsAny<ArgumentException>(() => new LaunchGroupAnnotation(name!));
+        var declarationException = Assert.ThrowsAny<ArgumentException>(() => builder.AddLaunchGroups("valid", name!));
+        var singleGroupException = Assert.ThrowsAny<ArgumentException>(() => resource.WithLaunchGroup(name!));
+        var multipleGroupsException = Assert.ThrowsAny<ArgumentException>(() => resource.WithLaunchGroups("valid", name!));
+
+        Assert.Equal("launchGroupName", annotationException.ParamName);
+        Assert.Equal("launchGroupNames", declarationException.ParamName);
+        Assert.Equal("launchGroupName", singleGroupException.ParamName);
+        Assert.Equal("launchGroupNames", multipleGroupsException.ParamName);
+        Assert.All(new[] { annotationException, declarationException, singleGroupException, multipleGroupsException },
+            exception => Assert.Equal(name is null ? typeof(ArgumentNullException) : typeof(ArgumentException), exception.GetType()));
         Assert.Empty(resource.Resource.Annotations.OfType<LaunchGroupAnnotation>());
     }
 

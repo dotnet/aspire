@@ -34,7 +34,7 @@ public static class LaunchGroupExtensions
     /// builder.AddContainer("catalog", "catalog-image").WithLaunchGroup("catalog");
     /// </code>
     /// </example>
-    /// <exception cref="ArgumentNullException">The builder or group names array is null.</exception>
+    /// <exception cref="ArgumentNullException">The builder, group names array, or a group name is null.</exception>
     /// <exception cref="ArgumentException">A group name is empty, has surrounding whitespace, or contains a group separator.</exception>
     [AspireExport]
     public static IDistributedApplicationBuilder AddLaunchGroups(this IDistributedApplicationBuilder builder, params string[] launchGroupNames)
@@ -43,7 +43,7 @@ public static class LaunchGroupExtensions
         ArgumentNullException.ThrowIfNull(launchGroupNames);
         foreach (var name in launchGroupNames)
         {
-            LaunchGroupAnnotation.ValidateName(name);
+            LaunchGroupAnnotation.ValidateName(name, nameof(launchGroupNames));
         }
 
         EnsureSupport(builder);
@@ -69,11 +69,14 @@ public static class LaunchGroupExtensions
     /// builder.AddExecutable("worker", "worker", ".").WithLaunchGroup("background");
     /// </code>
     /// </example>
-    /// <exception cref="ArgumentNullException">The builder is null.</exception>
+    /// <exception cref="ArgumentNullException">The builder or group name is null.</exception>
     /// <exception cref="ArgumentException">The group name is invalid.</exception>
     [AspireExport]
     public static IResourceBuilder<T> WithLaunchGroup<T>(this IResourceBuilder<T> builder, string launchGroupName) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        LaunchGroupAnnotation.ValidateName(launchGroupName, nameof(launchGroupName));
+
         return builder.WithLaunchGroups(launchGroupName);
     }
 
@@ -93,13 +96,18 @@ public static class LaunchGroupExtensions
     /// builder.AddContainer("cache", "redis").WithLaunchGroups("catalog", "basket");
     /// </code>
     /// </example>
-    /// <exception cref="ArgumentNullException">The builder or group names array is null.</exception>
+    /// <exception cref="ArgumentNullException">The builder, group names array, or a group name is null.</exception>
     /// <exception cref="ArgumentException">A group name is invalid.</exception>
     [AspireExport]
     public static IResourceBuilder<T> WithLaunchGroups<T>(this IResourceBuilder<T> builder, params string[] launchGroupNames) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(launchGroupNames);
+        foreach (var name in launchGroupNames)
+        {
+            LaunchGroupAnnotation.ValidateName(name, nameof(launchGroupNames));
+        }
+
         var annotations = launchGroupNames.Select(name => new LaunchGroupAnnotation(name)).ToArray();
         EnsureSupport(builder.ApplicationBuilder);
         foreach (var annotation in annotations)

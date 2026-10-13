@@ -32,7 +32,7 @@ internal sealed class LaunchGroupService(
                 throw new DistributedApplicationException($"LaunchGroups configuration entry '{entry.Key}' must be a group name.");
             }
 
-            declaredGroups.Add(LaunchGroupAnnotation.ValidateName(name));
+            declaredGroups.Add(LaunchGroupAnnotation.ValidateName(name, nameof(LaunchGroupsOptions.LaunchGroups)));
         }
 
         var memberships = model.Resources.SelectMany(resource => resource.Annotations.OfType<LaunchGroupAnnotation>()).ToArray();
