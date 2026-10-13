@@ -601,7 +601,7 @@ public class KubernetesServiceTests
     public async Task CreateAsync_RecoveryBudgetIncludesServerRequestedRetryDelay(bool useHttpDate, int retryAfterSeconds)
     {
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
-        var recoveryTimeout = TestConstants.DefaultTimeoutTimeSpan;
+        var recoveryTimeout = TimeSpan.FromSeconds(5);
         var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
