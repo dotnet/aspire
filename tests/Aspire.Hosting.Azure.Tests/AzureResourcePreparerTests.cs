@@ -18,6 +18,37 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureResourcePreparerTests(ITestOutputHelper testOutputHelper)
 {
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run)]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    public async Task ExplicitResourceScopeIsPreservedForResourceAndRoleAssignments(DistributedApplicationOperation operation)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation, testOutputHelper);
+        builder.AddAzureContainerAppEnvironment("env");
+        var storage = builder.AddAzureStorage("storage").AsExisting(
+            builder.AddParameter("storage-name", "existingstorage"),
+            builder.AddParameter("storage-group", "annotation-rg"));
+        var scope = new AzureBicepResourceScope("explicit-rg", "00000000-0000-0000-0000-000000000001");
+        storage.Resource.Scope = scope;
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var roles = Assert.Single(model.Resources.OfType<AzureRoleAssignmentResource>(),
+            resource => resource.TargetAzureResource == storage.Resource);
+        Assert.Same(scope, roles.Scope);
+
+        var storageManifest = await GetManifestWithBicep(storage.Resource, skipPreparer: true);
+        var roleManifest = await GetManifestWithBicep(roles, skipPreparer: true);
+        Assert.Same(scope, storage.Resource.Scope);
+        Assert.Same(scope, roles.Scope);
+        await Verify(storageManifest.BicepText, "bicep")
+            .UseParameters(operation)
+            .AppendContentAsFile(roleManifest.BicepText, "bicep");
+    }
+
     [Fact]
     public void AzureRoleAssignmentResourceThrowsWhenOwnerAndIdentityAreInconsistent()
     {

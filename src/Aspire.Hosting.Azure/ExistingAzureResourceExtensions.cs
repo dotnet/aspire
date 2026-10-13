@@ -164,14 +164,6 @@ public static class ExistingAzureResourceExtensions
     /// can still create role assignments on the existing resource. Role assignments outside the application's
     /// resource group are not removed by <c>aspire destroy</c> and must be removed separately when no longer needed.
     /// </para>
-    /// <para>
-    /// When an existing Azure Container Registry is used by Azure Kubernetes Service (AKS), the kubelet
-    /// managed identity receives <c>AcrPull</c> access to all repositories in the registry, not just the application's
-    /// images. This is the same permission granted for an automatically created registry. The role assignment
-    /// does not prevent workloads from obtaining kubelet identity tokens through the node's Instance Metadata
-    /// Service (IMDS). Workload Identity alone does not block this access; enforce workload isolation as described
-    /// in <see href="https://learn.microsoft.com/azure/aks/imds-restriction">the AKS IMDS restriction guidance</see>.
-    /// </para>
     /// </remarks>
     [AspireExportIgnore(Reason = "Use the polyglot asExisting overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)

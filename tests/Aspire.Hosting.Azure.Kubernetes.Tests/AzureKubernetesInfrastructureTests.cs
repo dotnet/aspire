@@ -205,9 +205,14 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
         await using var app = builder.Build();
         await app.RunAsync();
 
-        await Verify(string.Join('\n', reporter.LoggedMessages
+        var diagnostics = string.Join('\n', reporter.LoggedMessages
             .Where(message => message.StepTitle == "diagnostics")
-            .Select(message => message.Message)), "txt");
+            .Select(message => message.Message));
+        var lines = diagnostics.Split('\n').Select(line => line.Trim()).ToList();
+        Assert.Equal(
+            "Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry",
+            GetDirectDependencies(lines, "provision-aks"));
+        await Verify(diagnostics, "txt");
     }
 
     [Fact]

@@ -1,7 +1,17 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param acrName string
+param aks_control_plane_identity_outputs_principalname string
+
+param aks_kubelet_identity_outputs_principalname string
+
+resource aks_control_plane_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: aks_control_plane_identity_outputs_principalname
+}
+
+resource aks_kubelet_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: aks_kubelet_identity_outputs_principalname
+}
 
 resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
   name: take('aks-${uniqueString(resourceGroup().id)}', 63)
@@ -36,6 +46,13 @@ resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
     oidcIssuerProfile: {
       enabled: true
     }
+    identityProfile: {
+      kubeletidentity: {
+        resourceId: aks_kubelet_identity.id
+        clientId: aks_kubelet_identity.properties.clientId
+        objectId: aks_kubelet_identity.properties.principalId
+      }
+    }
     securityProfile: {
       workloadIdentity: {
         enabled: true
@@ -47,22 +64,11 @@ resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
     tier: 'Free'
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${aks_control_plane_identity.id}': { }
+    }
   }
-}
-
-resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
-  name: acrName
-}
-
-resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, aks.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
-  properties: {
-    principalId: aks.properties.identityProfile.kubeletidentity.objectId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-    principalType: 'ServicePrincipal'
-  }
-  scope: acr
 }
 
 output id string = aks.id

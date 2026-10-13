@@ -589,7 +589,11 @@ internal sealed class AzureResourcePreparer(
 
     private static void ApplyExistingResourceScope(AzureBicepResource roleAssignmentResource, AzureProvisioningResource targetResource)
     {
-        if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
+        if (targetResource.Scope is { } explicitScope)
+        {
+            roleAssignmentResource.Scope = explicitScope;
+        }
+        else if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
             AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation) is { } scope)
         {
             roleAssignmentResource.Scope = scope;

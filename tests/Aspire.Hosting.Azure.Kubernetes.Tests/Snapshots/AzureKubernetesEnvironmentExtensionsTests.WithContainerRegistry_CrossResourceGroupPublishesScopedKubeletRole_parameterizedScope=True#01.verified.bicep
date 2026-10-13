@@ -1,6 +1,18 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
+param aks_control_plane_identity_outputs_principalname string
+
+param aks_kubelet_identity_outputs_principalname string
+
+resource aks_control_plane_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: aks_control_plane_identity_outputs_principalname
+}
+
+resource aks_kubelet_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: aks_kubelet_identity_outputs_principalname
+}
+
 resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
   name: take('aks-${uniqueString(resourceGroup().id)}', 63)
   tags: {
@@ -34,6 +46,13 @@ resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
     oidcIssuerProfile: {
       enabled: true
     }
+    identityProfile: {
+      kubeletidentity: {
+        resourceId: aks_kubelet_identity.id
+        clientId: aks_kubelet_identity.properties.clientId
+        objectId: aks_kubelet_identity.properties.principalId
+      }
+    }
     securityProfile: {
       workloadIdentity: {
         enabled: true
@@ -45,7 +64,10 @@ resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
     tier: 'Free'
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${aks_control_plane_identity.id}': { }
+    }
   }
 }
 

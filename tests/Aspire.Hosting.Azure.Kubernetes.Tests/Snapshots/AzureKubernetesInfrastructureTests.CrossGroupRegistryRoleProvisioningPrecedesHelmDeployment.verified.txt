@@ -5,7 +5,7 @@ PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 This diagnostic output shows the complete pipeline dependency graph structure.
 Use this to understand step relationships and troubleshoot execution issues.
 
-Total steps defined: 42
+Total steps defined: 45
 
 Analysis for full pipeline execution (showing all steps and their relationships)
 
@@ -19,43 +19,46 @@ Steps with no dependencies run first, followed by steps that depend on them.
   3. deploy-prereq
   4. validate-azure-login
   5. create-provisioning-context
-  6. provision-aks
-  7. provision-registry
-  8. provision-aks-acr-pull
-  9. provision-azure-bicep-resources
- 10. aks-get-credentials-aks
- 11. destroy-prereq
- 12. aks-get-credentials-for-destroy-aks
- 13. prepare-aks-acr-pull-aks
- 14. azure-prepare-resources
- 15. validate-compute-environments
- 16. prepare-aks-aks
- 17. prepare-deployment-targets-aks
- 18. validate-kubernetes
- 19. before-start
- 20. build
- 21. build-prereq
- 22. check-container-runtime
- 23. check-helm-prereqs-aks
- 24. publish-prereq
- 25. publish-aks
- 26. publish-azure-environment
- 27. publish
- 28. prepare-aks
- 29. helm-deploy-aks
- 30. print-aks-dashboard-summary
- 31. print-aks-instructions
- 32. print-api-summary
- 33. deploy
- 34. destroy-helm-aks
- 35. destroy-azure-azure-environment
- 36. destroy
- 37. diagnostics
- 38. helm-uninstall-aks
- 39. login-to-acr-registry
- 40. publish-manifest
- 41. push-prereq
- 42. push
+  6. provision-aks-control-plane-identity
+  7. provision-aks-kubelet-identity
+  8. provision-aks-control-plane-identity-roles-aks-kubelet-identity
+  9. provision-aks-kubelet-identity-roles-registry
+ 10. provision-aks
+ 11. provision-registry
+ 12. provision-azure-bicep-resources
+ 13. aks-get-credentials-aks
+ 14. destroy-prereq
+ 15. aks-get-credentials-for-destroy-aks
+ 16. prepare-aks-identities-aks
+ 17. azure-prepare-resources
+ 18. validate-compute-environments
+ 19. prepare-aks-aks
+ 20. prepare-deployment-targets-aks
+ 21. validate-kubernetes
+ 22. before-start
+ 23. build
+ 24. build-prereq
+ 25. check-container-runtime
+ 26. check-helm-prereqs-aks
+ 27. publish-prereq
+ 28. publish-aks
+ 29. publish-azure-environment
+ 30. publish
+ 31. prepare-aks
+ 32. helm-deploy-aks
+ 33. print-aks-dashboard-summary
+ 34. print-aks-instructions
+ 35. print-api-summary
+ 36. deploy
+ 37. destroy-helm-aks
+ 38. destroy-azure-azure-environment
+ 39. destroy
+ 40. diagnostics
+ 41. helm-uninstall-aks
+ 42. login-to-acr-registry
+ 43. publish-manifest
+ 44. push-prereq
+ 45. push
 
 DETAILED STEP ANALYSIS
 ======================
@@ -74,7 +77,7 @@ Step: aks-get-credentials-for-destroy-aks
 
 Step: azure-prepare-resources
     Description: Prepares the Azure resources.
-    Dependencies: ✓ prepare-aks-acr-pull-aks
+    Dependencies: ✓ prepare-aks-identities-aks
     Resource: azure-environment (AzureEnvironmentResource)
 
 Step: before-start
@@ -156,13 +159,13 @@ Step: prepare-aks
     Dependencies: ✓ aks-get-credentials-aks, ✓ build, ✓ check-helm-prereqs-aks, ✓ publish
     Resource: aks (AzureKubernetesEnvironmentResource)
 
-Step: prepare-aks-acr-pull-aks
-    Dependencies: none
-
 Step: prepare-aks-aks
     Description: Prepares Azure Kubernetes Service environment aks.
     Dependencies: ✓ validate-compute-environments
     Resource: aks (AzureKubernetesEnvironmentResource)
+
+Step: prepare-aks-identities-aks
+    Dependencies: none
 
 Step: prepare-deployment-targets-aks
     Description: Prepares Kubernetes deployment targets for aks.
@@ -193,19 +196,37 @@ Step: process-parameters
 
 Step: provision-aks
     Description: Provisions the Azure Bicep resource aks using Azure infrastructure.
-    Dependencies: ✓ create-provisioning-context
+    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-control-plane-identity, ✓ provision-aks-control-plane-identity-roles-aks-kubelet-identity, ✓ provision-aks-kubelet-identity, ✓ provision-aks-kubelet-identity-roles-registry
     Resource: aks (AzureKubernetesEnvironmentResource)
     Tags: provision-infra
 
-Step: provision-aks-acr-pull
-    Description: Provisions the Azure Bicep resource aks-acr-pull using Azure infrastructure.
-    Dependencies: ✓ create-provisioning-context, ✓ provision-aks, ✓ provision-registry
-    Resource: aks-acr-pull (AzureProvisioningResource)
+Step: provision-aks-control-plane-identity
+    Description: Provisions the Azure Bicep resource aks-control-plane-identity using Azure infrastructure.
+    Dependencies: ✓ create-provisioning-context
+    Resource: aks-control-plane-identity (AzureUserAssignedIdentityResource)
+    Tags: provision-infra
+
+Step: provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    Description: Provisions the Azure Bicep resource aks-control-plane-identity-roles-aks-kubelet-identity using Azure infrastructure.
+    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-control-plane-identity, ✓ provision-aks-kubelet-identity
+    Resource: aks-control-plane-identity-roles-aks-kubelet-identity (AzureRoleAssignmentResource)
+    Tags: provision-infra
+
+Step: provision-aks-kubelet-identity
+    Description: Provisions the Azure Bicep resource aks-kubelet-identity using Azure infrastructure.
+    Dependencies: ✓ create-provisioning-context
+    Resource: aks-kubelet-identity (AzureUserAssignedIdentityResource)
+    Tags: provision-infra
+
+Step: provision-aks-kubelet-identity-roles-registry
+    Description: Provisions the Azure Bicep resource aks-kubelet-identity-roles-registry using Azure infrastructure.
+    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-kubelet-identity
+    Resource: aks-kubelet-identity-roles-registry (AzureRoleAssignmentResource)
     Tags: provision-infra
 
 Step: provision-azure-bicep-resources
     Description: Aggregation step for all Azure infrastructure provisioning operations.
-    Dependencies: ✓ create-provisioning-context, ✓ deploy-prereq, ✓ provision-aks, ✓ provision-aks-acr-pull, ✓ provision-registry
+    Dependencies: ✓ create-provisioning-context, ✓ deploy-prereq, ✓ provision-aks, ✓ provision-aks-control-plane-identity, ✓ provision-aks-control-plane-identity-roles-aks-kubelet-identity, ✓ provision-aks-kubelet-identity, ✓ provision-aks-kubelet-identity-roles-registry, ✓ provision-registry
     Resource: azure-environment (AzureEnvironmentResource)
     Tags: provision-infra
 
@@ -275,16 +296,17 @@ Steps at the same level can run concurrently.
 ─────────────────────────────────────────────────────────────────────────────
 If targeting 'aks-get-credentials-aks':
   Direct dependencies: provision-azure-bicep-resources
-  Total steps: 10
+  Total steps: 13
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
 
 If targeting 'aks-get-credentials-for-destroy-aks':
   Direct dependencies: destroy-prereq
@@ -294,17 +316,17 @@ If targeting 'aks-get-credentials-for-destroy-aks':
     [1] aks-get-credentials-for-destroy-aks
 
 If targeting 'azure-prepare-resources':
-  Direct dependencies: prepare-aks-acr-pull-aks
+  Direct dependencies: prepare-aks-identities-aks
   Total steps: 2
   Execution order:
-    [0] prepare-aks-acr-pull-aks
+    [0] prepare-aks-identities-aks
     [1] azure-prepare-resources
 
 If targeting 'before-start':
   Direct dependencies: azure-prepare-resources, prepare-aks-aks, prepare-deployment-targets-aks, validate-compute-environments, validate-kubernetes
   Total steps: 7
   Execution order:
-    [0] prepare-aks-acr-pull-aks | validate-compute-environments (parallel)
+    [0] prepare-aks-identities-aks | validate-compute-environments (parallel)
     [1] azure-prepare-resources | prepare-aks-aks | validate-kubernetes (parallel)
     [2] prepare-deployment-targets-aks
     [3] before-start
@@ -345,20 +367,21 @@ If targeting 'create-provisioning-context':
 
 If targeting 'deploy':
   Direct dependencies: create-provisioning-context, helm-deploy-aks, print-aks-dashboard-summary, print-aks-instructions, print-api-summary, provision-azure-bicep-resources, validate-azure-login
-  Total steps: 22
+  Total steps: 25
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-    [9] helm-deploy-aks
-    [10] print-aks-dashboard-summary | print-aks-instructions | print-api-summary (parallel)
-    [11] deploy
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
+    [10] helm-deploy-aks
+    [11] print-aks-dashboard-summary | print-aks-instructions | print-api-summary (parallel)
+    [12] deploy
 
 If targeting 'deploy-prereq':
   Direct dependencies: process-parameters, validate-build-only-container-references
@@ -408,18 +431,19 @@ If targeting 'diagnostics':
 
 If targeting 'helm-deploy-aks':
   Direct dependencies: prepare-aks
-  Total steps: 18
+  Total steps: 21
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-    [9] helm-deploy-aks
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
+    [10] helm-deploy-aks
 
 If targeting 'helm-uninstall-aks':
   Direct dependencies: aks-get-credentials-for-destroy-aks
@@ -442,23 +466,18 @@ If targeting 'login-to-acr-registry':
 
 If targeting 'prepare-aks':
   Direct dependencies: aks-get-credentials-aks, build, check-helm-prereqs-aks, publish
-  Total steps: 17
+  Total steps: 20
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-
-If targeting 'prepare-aks-acr-pull-aks':
-  Direct dependencies: none
-  Total steps: 1
-  Execution order:
-    [0] prepare-aks-acr-pull-aks
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
 
 If targeting 'prepare-aks-aks':
   Direct dependencies: validate-compute-environments
@@ -466,6 +485,12 @@ If targeting 'prepare-aks-aks':
   Execution order:
     [0] validate-compute-environments
     [1] prepare-aks-aks
+
+If targeting 'prepare-aks-identities-aks':
+  Direct dependencies: none
+  Total steps: 1
+  Execution order:
+    [0] prepare-aks-identities-aks
 
 If targeting 'prepare-deployment-targets-aks':
   Direct dependencies: prepare-aks-aks, validate-compute-environments
@@ -477,51 +502,54 @@ If targeting 'prepare-deployment-targets-aks':
 
 If targeting 'print-aks-dashboard-summary':
   Direct dependencies: helm-deploy-aks
-  Total steps: 19
+  Total steps: 22
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-    [9] helm-deploy-aks
-    [10] print-aks-dashboard-summary
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
+    [10] helm-deploy-aks
+    [11] print-aks-dashboard-summary
 
 If targeting 'print-aks-instructions':
   Direct dependencies: helm-deploy-aks
-  Total steps: 19
+  Total steps: 22
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-    [9] helm-deploy-aks
-    [10] print-aks-instructions
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
+    [10] helm-deploy-aks
+    [11] print-aks-instructions
 
 If targeting 'print-api-summary':
   Direct dependencies: helm-deploy-aks
-  Total steps: 19
+  Total steps: 22
   Execution order:
     [0] build | check-helm-prereqs-aks | process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq | publish-prereq (parallel)
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
-    [7] aks-get-credentials-aks
-    [8] prepare-aks
-    [9] helm-deploy-aks
-    [10] print-api-summary
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
+    [8] aks-get-credentials-aks
+    [9] prepare-aks
+    [10] helm-deploy-aks
+    [11] print-api-summary
 
 If targeting 'process-parameters':
   Direct dependencies: none
@@ -530,6 +558,18 @@ If targeting 'process-parameters':
     [0] process-parameters
 
 If targeting 'provision-aks':
+  Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry
+  Total steps: 10
+  Execution order:
+    [0] process-parameters | validate-build-only-container-references (parallel)
+    [1] deploy-prereq
+    [2] validate-azure-login
+    [3] create-provisioning-context
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+
+If targeting 'provision-aks-control-plane-identity':
   Direct dependencies: create-provisioning-context
   Total steps: 6
   Execution order:
@@ -537,30 +577,52 @@ If targeting 'provision-aks':
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks
+    [4] provision-aks-control-plane-identity
 
-If targeting 'provision-aks-acr-pull':
-  Direct dependencies: create-provisioning-context, provision-aks, provision-registry
+If targeting 'provision-aks-control-plane-identity-roles-aks-kubelet-identity':
+  Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-kubelet-identity
   Total steps: 8
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity
 
-If targeting 'provision-azure-bicep-resources':
-  Direct dependencies: create-provisioning-context, deploy-prereq, provision-aks, provision-aks-acr-pull, provision-registry
-  Total steps: 9
+If targeting 'provision-aks-kubelet-identity':
+  Direct dependencies: create-provisioning-context
+  Total steps: 6
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks | provision-registry (parallel)
-    [5] provision-aks-acr-pull
-    [6] provision-azure-bicep-resources
+    [4] provision-aks-kubelet-identity
+
+If targeting 'provision-aks-kubelet-identity-roles-registry':
+  Direct dependencies: create-provisioning-context, provision-aks-kubelet-identity
+  Total steps: 7
+  Execution order:
+    [0] process-parameters | validate-build-only-container-references (parallel)
+    [1] deploy-prereq
+    [2] validate-azure-login
+    [3] create-provisioning-context
+    [4] provision-aks-kubelet-identity
+    [5] provision-aks-kubelet-identity-roles-registry
+
+If targeting 'provision-azure-bicep-resources':
+  Direct dependencies: create-provisioning-context, deploy-prereq, provision-aks, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry, provision-registry
+  Total steps: 12
+  Execution order:
+    [0] process-parameters | validate-build-only-container-references (parallel)
+    [1] deploy-prereq
+    [2] validate-azure-login
+    [3] create-provisioning-context
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
+    [6] provision-aks
+    [7] provision-azure-bicep-resources
 
 If targeting 'provision-registry':
   Direct dependencies: create-provisioning-context

@@ -140,7 +140,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             provisionedResource = createExisting(infrastructure.AspireResource.GetBicepIdentifier(), existingResourceName);
             if (AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation) is { } scope)
             {
-                infrastructure.AspireResource.Scope = scope;
+                infrastructure.AspireResource.Scope ??= scope;
             }
         }
         else
@@ -186,7 +186,9 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         ((IBicepValue)existingResourceName).Self = new BicepValueReference(provisionableResource, "Name", ["name"]);
         provisionableResource.ProvisionableProperties["name"] = existingResourceName;
 
-        if (AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation) is { } scope &&
+        var resourceScope = (aspireResource as AzureBicepResource)?.Scope ??
+            AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation);
+        if (resourceScope is { } scope &&
             !ScopeEquals(scope, infra.AspireResource.Scope))
         {
             SetScopeProperty(provisionableResource, CreateScopeExpression(scope, infra));

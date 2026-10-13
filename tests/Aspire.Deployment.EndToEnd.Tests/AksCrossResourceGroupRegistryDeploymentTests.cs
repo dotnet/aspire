@@ -29,7 +29,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
             Assert.Skip("Azure authentication is unavailable. Run 'az login'.");
         }
 
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(60));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(90));
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
             timeout.Token, TestContext.Current.CancellationToken);
         using var workspace = TemporaryWorkspace.Create(output);
@@ -69,8 +69,11 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
 
                     var registry = builder.AddAzureContainerRegistry("registry")
                         .PublishAsExisting("{{registryName}}", "{{registryGroup}}");
+                    var network = builder.AddAzureVirtualNetwork("network", "10.240.0.0/16");
+                    var nodes = network.AddSubnet("nodes", "10.240.0.0/22");
                     var aks = builder.AddAzureKubernetesEnvironment("aks")
                         .WithSystemNodePool("Standard_D2as_v5")
+                        .WithSubnet(nodes)
                         .WithContainerRegistry(registry);
                     aks.AddNodePool("workload", "Standard_D2as_v5", minCount: 1, maxCount: 1);
                     builder.AddProject<Projects.{{projectName}}_ApiService>("apiservice");
@@ -95,7 +98,18 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                 await auto.RunCommandAsync(
                     $"AKS_NAME=$(az aks list --resource-group {resourceGroup} --query '[0].name' -o tsv) && " +
                     $"test -n \"$AKS_NAME\" && " +
-                    $"KUBELET_ID=$(az aks show --resource-group {resourceGroup} --name \"$AKS_NAME\" --query identityProfile.kubeletidentity.objectId -o tsv) && " +
+                    $"az aks show --resource-group {resourceGroup} --name \"$AKS_NAME\" -o json > cross-registry-cluster.json && " +
+                    "jq -e '.identity.type == \"UserAssigned\" and (.identity.userAssignedIdentities | length == 1)' cross-registry-cluster.json && " +
+                    "KUBELET_ID=$(jq -er '.identityProfile.kubeletidentity.objectId' cross-registry-cluster.json) && " +
+                    "KUBELET_RESOURCE_ID=$(jq -er '.identityProfile.kubeletidentity.resourceId' cross-registry-cluster.json) && " +
+                    "CONTROL_PLANE_RESOURCE_ID=$(jq -er '.identity.userAssignedIdentities | keys[0]' cross-registry-cluster.json) && " +
+                    "CONTROL_PLANE_ID=$(az identity show --ids \"$CONTROL_PLANE_RESOURCE_ID\" --query principalId -o tsv) && " +
+                    "test \"$CONTROL_PLANE_ID\" != \"$KUBELET_ID\" && " +
+                    $"az identity list --resource-group {resourceGroup} -o json | " +
+                    "jq -e --arg kubelet \"$KUBELET_ID\" --arg control \"$CONTROL_PLANE_ID\" " +
+                    "'[.[] | select(.principalId == $kubelet or .principalId == $control)] | length == 2' && " +
+                    "az identity show --ids \"$KUBELET_RESOURCE_ID\" -o json | " +
+                    "jq -e --arg principal \"$KUBELET_ID\" '(.principalId == $principal)' && " +
                     $"ACR_ID=$(az acr show --resource-group {registryGroup} --name {registryName} --query id -o tsv) && " +
                     "test -n \"$KUBELET_ID\" && test -n \"$ACR_ID\" && " +
                     "az role assignment list --scope \"$ACR_ID\" --fill-principal-name false -o json > cross-registry-role-assignments.json && " +
@@ -105,6 +119,26 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                     "'[.[] | select((.principalId | ascii_downcase) == ($principal | ascii_downcase) and " +
                     ".roleDefinitionName == \"AcrPull\" and (.scope | ascii_downcase) == ($scope | ascii_downcase))] | length == 1' " +
                     "cross-registry-role-assignments.json",
+                    counter, TimeSpan.FromMinutes(2));
+
+                // Check the complete direct role set for each identity, not just one expected
+                // grant. AKS supplies node-group Contributor; Aspire supplies scoped prerequisites.
+                await auto.RunCommandAsync(
+                    "NODE_GROUP=$(jq -er '.nodeResourceGroup' cross-registry-cluster.json) && " +
+                    "NODE_GROUP_ID=$(az group show --name \"$NODE_GROUP\" --query id -o tsv) && " +
+                    $"NETWORK_ID=$(az network vnet list --resource-group {resourceGroup} --query '[0].id' -o tsv) && " +
+                    "az role assignment list --all --fill-principal-name false -o json > cross-registry-all-roles.json && " +
+                    "jq -e --arg principal \"$KUBELET_ID\" --arg scope \"$ACR_ID\" " +
+                    "'[.[] | select(.principalId == $principal) | {role: .roleDefinitionName, scope: (.scope | ascii_downcase)}] == " +
+                    "[{role: \"AcrPull\", scope: ($scope | ascii_downcase)}]' cross-registry-all-roles.json && " +
+                    "jq -e --arg principal \"$CONTROL_PLANE_ID\" --arg identity \"$KUBELET_RESOURCE_ID\" " +
+                    "--arg nodes \"$NODE_GROUP_ID\" --arg network \"$NETWORK_ID\" " +
+                    "'[.[] | select(.principalId == $principal) | {role: .roleDefinitionName, scope: (.scope | ascii_downcase)}] | " +
+                    "sort_by(.role, .scope) == " +
+                    "([{role: \"Contributor\", scope: ($nodes | ascii_downcase)}, " +
+                    "{role: \"Managed Identity Operator\", scope: ($identity | ascii_downcase)}, " +
+                    "{role: \"Network Contributor\", scope: ($network | ascii_downcase)}] | sort_by(.role, .scope))' " +
+                    "cross-registry-all-roles.json",
                     counter, TimeSpan.FromMinutes(2));
 
                 await auto.RunCommandAsync(
@@ -146,6 +180,28 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                 {
                     await auto.RunCommandAsync("kill \"$PORT_FORWARD_PID\" && { wait \"$PORT_FORWARD_PID\" || test $? -eq 143; }", counter);
                 }
+
+                // An unchanged redeploy must reuse both identities and all role assignment IDs.
+                await auto.RunCommandAsync(
+                    "jq -S --arg kubelet \"$KUBELET_ID\" --arg control \"$CONTROL_PLANE_ID\" " +
+                    "'[.[] | select(.principalId == $kubelet or .principalId == $control) | .id] | sort' " +
+                    "cross-registry-all-roles.json > cross-registry-original-role-ids.json",
+                    counter);
+                await auto.TypeAsync("aspire deploy");
+                await auto.EnterAsync();
+                await auto.WaitForPipelineSuccessAsync(timeout: TimeSpan.FromMinutes(30));
+                await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
+                await auto.RunCommandAsync(
+                    $"az aks show --resource-group {resourceGroup} --name \"$AKS_NAME\" -o json | " +
+                    "jq -e --arg kubelet \"$KUBELET_ID\" --arg control \"$CONTROL_PLANE_RESOURCE_ID\" " +
+                    "'.identityProfile.kubeletidentity.objectId == $kubelet and (.identity.userAssignedIdentities | keys) == [$control]' && " +
+                    "az role assignment list --all --fill-principal-name false -o json | " +
+                    "jq -S --arg kubelet \"$KUBELET_ID\" --arg control \"$CONTROL_PLANE_ID\" " +
+                    "'[.[] | select(.principalId == $kubelet or .principalId == $control) | .id] | sort' " +
+                    "> cross-registry-redeployed-role-ids.json && " +
+                    "diff -u cross-registry-original-role-ids.json cross-registry-redeployed-role-ids.json && " +
+                    "kubectl rollout status deployment/\"$DEPLOYMENT\" -n \"$NS\" --timeout=600s",
+                    counter, TimeSpan.FromMinutes(11));
 
                 await auto.AspireDestroyAsync(counter);
                 // Aspire must not delete a registry supplied through PublishAsExisting.
