@@ -4,6 +4,7 @@ import type { AspireExtendedDebugConfiguration } from '../dcp/types';
 import { compareAppHostIdentity, type AppHostIdentityRelation } from '../utils/appHostIdentity';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { isCommandCancellation } from '../utils/telemetry';
+import { createAppHostOperationTarget, type AppHostOperationTarget } from '../utils/appHostOperationTarget';
 import {
     ResourceAttachConfigurationError,
     type ResourceAttachProvider,
@@ -60,7 +61,7 @@ const safeAttachDebuggerOverrideProperties = {
 
 export interface ResourceDebugAppHostRepository {
     fetchRunningAppHostsOnce(cancellationToken?: vscode.CancellationToken): Promise<readonly AppHostDisplayInfo[]>;
-    fetchAppHostResourcesOnce(appHostPath: string, cancellationToken?: vscode.CancellationToken, appHostPid?: number): Promise<readonly ResourceJson[]>;
+    fetchAppHostResourcesOnce(appHost: AppHostOperationTarget, cancellationToken?: vscode.CancellationToken, appHostPid?: number): Promise<readonly ResourceJson[]>;
 }
 
 export type ResourceDebugAppHostIdentityComparer =
@@ -223,7 +224,7 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
         let resources: readonly ResourceJson[];
         try {
             resources = await this._dependencies.appHostRepository.fetchAppHostResourcesOnce(
-                resolvedTarget.absolutePath,
+                createAppHostOperationTarget(resolvedTarget.absolutePath, request.appHost.absolutePath),
                 request.cancellationToken,
                 resolvedTarget.appHostPid);
         }

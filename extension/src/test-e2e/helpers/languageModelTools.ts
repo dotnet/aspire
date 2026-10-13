@@ -3,6 +3,8 @@ import { executeE2eControlCommand } from './fixtures';
 import { acceptModalDialog, type AcceptedModalDialog } from './vscode';
 
 export interface PreparedLanguageModelToolInvocation {
+    registered: boolean;
+    supportsPreparation: boolean;
     invocationMessage?: string;
     confirmationTitle?: string;
     confirmationMessage?: string;
@@ -15,12 +17,16 @@ export interface LanguageModelToolInvocationOptions {
     timeoutMs?: number;
     times?: number;
     cancelAfterMs?: number;
+    cancelBeforeInvocation?: boolean;
+    invokeRegisteredToolDirectly?: boolean;
 }
 
 export interface LanguageModelToolInvocation<T> {
     results: T[];
     dialogs: AcceptedModalDialog[];
     cancelled: boolean;
+    cancellations: number;
+    unexpectedFailures: number;
 }
 
 export async function prepareLanguageModelToolInvocation(
@@ -46,12 +52,14 @@ export async function invokeLanguageModelTool<T>(
     options: LanguageModelToolInvocationOptions = {},
 ): Promise<LanguageModelToolInvocation<T>> {
     const expectedConfirmations = options.expectedConfirmations ?? 1;
-    const invocation = invokeControlCommand<{ results: string[]; cancelled?: boolean }>({
+    const invocation = invokeControlCommand<{ results: string[]; cancelled?: boolean; cancellations: number; unexpectedFailures: number }>({
         name: 'invokeLanguageModelTool',
         toolName,
         input,
         times: options.times,
         cancelAfterMs: options.cancelAfterMs,
+        cancelBeforeInvocation: options.cancelBeforeInvocation,
+        invokeRegisteredToolDirectly: options.invokeRegisteredToolDirectly,
     }, options.timeoutMs ?? 120000);
     invocation.catch(() => undefined);
 
@@ -102,6 +110,8 @@ export async function invokeLanguageModelTool<T>(
         results: result.results.map(item => JSON.parse(item) as T),
         dialogs,
         cancelled: result.cancelled === true,
+        cancellations: result.cancellations,
+        unexpectedFailures: result.unexpectedFailures,
     };
 }
 

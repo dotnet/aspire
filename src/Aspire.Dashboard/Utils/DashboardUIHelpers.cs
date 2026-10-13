@@ -3,10 +3,9 @@
 
 using System.Collections.Concurrent;
 using System.Text;
-using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Utils;
@@ -32,6 +31,7 @@ internal static class DashboardUIHelpers
     public const string JavascriptFormat = "javascript";
     public const string PlaintextFormat = "plaintext";
     public const string MarkdownFormat = "markdown";
+    public const string SqlFormat = "sql";
     public const string PropertiesFormat = "properties";
 
     // The initial data fetch for a FluentDataGrid doesn't include a count of items to return.
@@ -50,27 +50,6 @@ internal static class DashboardUIHelpers
     public const int MaxHighlightedCommands = 2;
 
     public static readonly TimeSpan ToastTimeout = TimeSpan.FromMilliseconds(5000);
-
-    public static (ColumnResizeLabels resizeLabels, ColumnSortLabels sortLabels) CreateGridLabels(IStringLocalizer<ControlsStrings> loc)
-    {
-        var resizeLabels = ColumnResizeLabels.Default with
-        {
-            ExactLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeLabel)],
-            ResizeMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)],
-            DiscreteLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeDiscreteLabel)],
-            GrowAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellGrowAriaLabelText)],
-            ResetAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellResetAriaLabelText)],
-            ShrinkAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellShrinkAriaLabelText)],
-            SubmitAriaLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSubmitAriaLabelText)]
-        };
-        var sortLabels = ColumnSortLabels.Default with
-        {
-            SortMenu = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)],
-            SortMenuAscendingLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)],
-            SortMenuDescendingLabel = loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)]
-        };
-        return (resizeLabels, sortLabels);
-    }
 
     private static readonly ConcurrentDictionary<int, TextMask> s_cachedMasking = new();
 
@@ -92,21 +71,21 @@ internal static class DashboardUIHelpers
         });
     }
 
-    public static async Task<Message> DisplayMaxLimitMessageAsync(IMessageService messageService, string title, string message, Action onClose)
+    public static Task<DashboardMessageBarReference> DisplayMaxLimitMessageAsync(DashboardMessageBarService messageService, string title, string message, Action onClose)
     {
-        return await messageService.ShowMessageBarAsync(options =>
-        {
-            options.Title = title;
-            options.Body = message;
-            options.Intent = MessageIntent.Info;
-            options.Section = "MessagesTop";
-            options.AllowDismiss = true;
-            options.OnClose = m =>
+        return messageService.ShowAsync(
+            new DashboardMessageBarContent
+            {
+                Title = title,
+                Message = message
+            },
+            MessageBarIntent.Info,
+            MessageBarSection,
+            _ =>
             {
                 onClose();
                 return Task.CompletedTask;
-            };
-        }).ConfigureAwait(false);
+            });
     }
 
     public static string? ResolveTooltip(string value)

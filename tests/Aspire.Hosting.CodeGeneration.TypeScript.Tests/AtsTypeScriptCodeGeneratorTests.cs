@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDENO001 // Type is for evaluation purposes only
 #pragma warning disable ASPIREBROWSERLOGS001 // Type is for evaluation purposes only
 #pragma warning disable ASPIRECOMPUTE002
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RemoteHost;
 using Aspire.TypeSystem;
@@ -61,6 +64,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // would have to be regenerated on every change to the source resource.
         Assert.Equal(EmbeddedResources.Read("base.mts"), files["base.mts"]);
         Assert.Equal(EmbeddedResources.Read("transport.mts"), files["transport.mts"]);
+        Assert.Equal(EmbeddedResources.Read("integration-host.mts"), files["integration-host.mts"]);
     }
 
     [Fact]
@@ -226,6 +230,109 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.Contains("withSuppressedSummary()", aspireTs);
         Assert.DoesNotContain("Description fallback should not be emitted.", aspireTs);
+    }
+
+    [Fact]
+    public void GenerateDistributedApplication_WithExperimentalCapability_EmitsExperimentalMetadata()
+    {
+        var context = CreateContextFromTestAssembly();
+        var capability = CreateDistributedApplicationBuilderCapability(
+            context,
+            methodName: "withExperimentalFeature",
+            description: null,
+            documentation: new AtsDocumentationInfo { Summary = "Configures an experimental feature." },
+            isExperimental: true);
+        context = WithAdditionalCapabilities(context, capability);
+
+        var aspireTs = _generator.GenerateDistributedApplication(context)["aspire.mts"];
+        Assert.Contains(
+            "     * @experimental\n     */\n    withExperimentalFeature(",
+            aspireTs.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+
+        var model = ProjectApi(context, "Aspire.Hosting");
+        var member = Assert.Single(
+            model.Modules.SelectMany(static module => module.Items)
+                .SelectMany(static item => item.Members),
+            static member => member.Name == "withExperimentalFeature");
+        Assert.True(member.IsExperimental);
+
+        using var document = System.Text.Json.JsonDocument.Parse(TypeScriptApiExportWriter.WriteToJson(model));
+        var exportedMember = Assert.Single(
+            document.RootElement.GetProperty("modules")[0].GetProperty("items")
+                .EnumerateArray()
+                .Where(static item => item.TryGetProperty("members", out _))
+                .SelectMany(static item => item.GetProperty("members").EnumerateArray()),
+            static member => member.GetProperty("name").GetString() == "withExperimentalFeature");
+        Assert.True(exportedMember.GetProperty("experimental").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GenerateDistributedApplication_WithExperimentalProperty_EmitsExperimentalMetadata()
+    {
+        var targetType = new AtsTypeRef
+        {
+            TypeId = $"{ApiExportPackageName}/PropertyContext",
+            Category = AtsTypeCategory.Handle
+        };
+        var stringType = new AtsTypeRef
+        {
+            TypeId = AtsConstants.String,
+            Category = AtsTypeCategory.Primitive
+        };
+        var context = CreateApiContext(
+            new AtsCapabilityInfo
+            {
+                CapabilityId = $"{ApiExportPackageName}/PropertyContext.name",
+                MethodName = "name",
+                OwningTypeName = "PropertyContext",
+                Parameters = [],
+                ReturnType = stringType,
+                TargetTypeId = targetType.TypeId,
+                TargetType = targetType,
+                CapabilityKind = AtsCapabilityKind.PropertyGetter,
+                IsExperimental = true
+            },
+            new AtsCapabilityInfo
+            {
+                CapabilityId = $"{ApiExportPackageName}/PropertyContext.setName",
+                MethodName = "setName",
+                OwningTypeName = "PropertyContext",
+                Parameters = [new AtsParameterInfo { Name = "value", Type = stringType }],
+                ReturnType = targetType,
+                TargetTypeId = targetType.TypeId,
+                TargetType = targetType,
+                CapabilityKind = AtsCapabilityKind.PropertySetter,
+                IsExperimental = true
+            });
+
+        var model = ProjectApi(context, ApiExportPackageName);
+        var member = Assert.Single(
+            model.Modules.SelectMany(static module => module.Items).SelectMany(static item => item.Members),
+            static member => member.Name == "name");
+        Assert.Equal(TypeScriptApiItemKind.Property, member.Kind);
+        Assert.True(member.IsExperimental);
+
+        using var document = System.Text.Json.JsonDocument.Parse(TypeScriptApiExportWriter.WriteToJson(model));
+        var exportedMember = Assert.Single(
+            document.RootElement.GetProperty("modules")[0].GetProperty("items").EnumerateArray()
+                .Where(static item => item.TryGetProperty("members", out _))
+                .SelectMany(static item => item.GetProperty("members").EnumerateArray()),
+            static member => member.GetProperty("name").GetString() == "name");
+        Assert.True(exportedMember.GetProperty("experimental").GetBoolean());
+
+        var source = _generator.GenerateDistributedApplication(context)["aspire.mts"].ReplaceLineEndings("\n");
+        var interfaceStart = source.IndexOf("export interface PropertyContext {", StringComparison.Ordinal);
+        Assert.True(interfaceStart >= 0);
+        // The property has nested accessors, so find the interface's unindented closing brace.
+        var interfaceEnd = source.IndexOf("\n}", interfaceStart, StringComparison.Ordinal);
+        Assert.True(interfaceEnd >= 0);
+
+        await Verify(new
+        {
+            Source = source[interfaceStart..(interfaceEnd + 2)],
+            Api = exportedMember.GetRawText()
+        }).UseFileName("AtsExperimentalProperty");
     }
 
     [Fact]
@@ -492,9 +599,8 @@ public class AtsTypeScriptCodeGeneratorTests
         // The public fluent method must return TestDatabaseResourcePromise, not TestRedisResourcePromise.
         Assert.Matches(@"addTestChildDatabase\([^)]*\):\s*TestDatabaseResourcePromise", aspireTs);
 
-        // Verify the thenable class also uses the child type's promise class.
-        // In TestRedisResourcePromise, addTestChildDatabase should return TestDatabaseResourcePromise.
-        Assert.Contains("new TestDatabaseResourcePromiseImpl(this._promise.then(obj => obj.addTestChildDatabase(", aspireTs);
+        // The compact transition table must wrap this factory with the child promise implementation.
+        Assert.Contains("[\"addTestChildDatabase\"]: () => TestDatabaseResourcePromiseImpl", aspireTs);
     }
 
     [Fact]
@@ -531,6 +637,60 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.NotNull(addContainer);
 
         await Verify(addContainer).UseFileName("HostingAddContainerCapability");
+    }
+
+    [Fact]
+    public void Scanner_HostingAssembly_ParameterResourceValueManagementCapabilities()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var setValue = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting.ApplicationModel/ParameterResource.setValueAsync");
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, setValue.CapabilityKind);
+        Assert.Equal("setValueAsync", setValue.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", setValue.TargetTypeId);
+        Assert.Equal(AtsConstants.Void, setValue.ReturnType.TypeId);
+        Assert.NotEqual(true, setValue.ReturnType.IsNullable);
+
+        var valueParameter = Assert.Single(setValue.Parameters, p => p.Name == "value");
+        Assert.True(valueParameter.IsOptional);
+        // Reference-type parameter nullability is not surfaced in the ATS model. This parameter
+        // is still omittable because it has a C# default (= null), which IsOptional captures above.
+        Assert.False(valueParameter.IsNullable);
+        Assert.NotNull(valueParameter.Type);
+        Assert.Equal("string", valueParameter.Type.TypeId);
+        // AtsTypeRef.IsNullable is bool? and is left unset (null) for non-nullable types; assert it is not true.
+        Assert.NotEqual(true, valueParameter.Type.IsNullable);
+
+        var tryGetCurrentValue = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting.ApplicationModel/ParameterResource.tryGetCurrentValue");
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, tryGetCurrentValue.CapabilityKind);
+        Assert.Equal("tryGetCurrentValue", tryGetCurrentValue.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", tryGetCurrentValue.TargetTypeId);
+        Assert.DoesNotContain(tryGetCurrentValue.Parameters, p => p.Name != "context");
+        Assert.NotNull(tryGetCurrentValue.ReturnType);
+        Assert.Equal("string", tryGetCurrentValue.ReturnType.TypeId);
+        Assert.True(tryGetCurrentValue.ReturnType.IsNullable);
+    }
+
+    [Theory]
+    [InlineData("getNullableString", "string", true)]
+    [InlineData("getNullableStringTaskAsync", "string", true)]
+    [InlineData("getNullableStringValueTaskAsync", "string", true)]
+    [InlineData("getString", "string", false)]
+    [InlineData("getStringTaskAsync", "string", false)]
+    [InlineData("getStringValueTaskAsync", "string", false)]
+    [InlineData("getNullableInt", "number", true)]
+    [InlineData("getNullableIntTaskAsync", "number", true)]
+    [InlineData("getNullableIntValueTaskAsync", "number", true)]
+    [InlineData("getInt", "number", false)]
+    [InlineData("getIntTaskAsync", "number", false)]
+    [InlineData("getIntValueTaskAsync", "number", false)]
+    [InlineData("getStaticNullableStringAsync", "string", true)]
+    public void Scanner_MethodReturnTypes_PreserveNullability(string methodName, string typeId, bool nullable)
+    {
+        var capability = Assert.Single(ScanCapabilitiesFromTestAssembly(), c => c.MethodName == methodName);
+
+        Assert.Equal(typeId, capability.ReturnType.TypeId);
+        Assert.Equal(nullable, capability.ReturnType.IsNullable == true);
     }
 
     [Fact]
@@ -847,6 +1007,62 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void GenerateCallbackTypeSignature_MapsCollectionsAsJsonData()
+    {
+        var projector = new TypeScriptApiProjector(CreateContextFromTestAssembly());
+
+        var stringType = new AtsTypeRef
+        {
+            TypeId = "string",
+            Category = AtsTypeCategory.Primitive
+        };
+        var listType = new AtsTypeRef
+        {
+            TypeId = "list",
+            Category = AtsTypeCategory.List,
+            ElementType = stringType
+        };
+        var dictionaryType = new AtsTypeRef
+        {
+            TypeId = "dictionary",
+            Category = AtsTypeCategory.Dict,
+            KeyType = stringType,
+            ValueType = stringType
+        };
+
+        Assert.Equal("() => Promise<string[]>", projector.GenerateCallbackTypeSignature([], listType));
+        Assert.Equal("() => Promise<Record<string, string>>", projector.GenerateCallbackTypeSignature([], dictionaryType));
+    }
+
+    [Fact]
+    public void GenerateCallbackTypeSignature_MapsNestedNullableCollectionsAsJsonData()
+    {
+        var projector = new TypeScriptApiProjector(CreateContextFromTestAssembly());
+        var nullableNumber = new AtsTypeRef
+        {
+            TypeId = AtsConstants.Number,
+            Category = AtsTypeCategory.Primitive,
+            IsNullable = true
+        };
+        var returnType = new AtsTypeRef
+        {
+            TypeId = "dictionary",
+            Category = AtsTypeCategory.Dict,
+            KeyType = new AtsTypeRef { TypeId = AtsConstants.String, Category = AtsTypeCategory.Primitive },
+            ValueType = new AtsTypeRef
+            {
+                TypeId = "list",
+                Category = AtsTypeCategory.List,
+                ElementType = nullableNumber
+            }
+        };
+
+        Assert.Equal(
+            "() => Promise<Record<string, (number | null)[]>>",
+            projector.GenerateCallbackTypeSignature([], returnType));
+    }
+
+    [Fact]
     public async Task Scanner_BaseTypeHierarchy_IsCollected()
     {
         // Verify that AtsTypeInfo includes base type hierarchy for inheritance expansion.
@@ -1063,6 +1279,40 @@ public class AtsTypeScriptCodeGeneratorTests
                     StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Generate_KubernetesPersistentVolume_WithPersistentVolumeNameExposesCapability()
+    {
+        var scanResult = AtsCapabilityScanner.ScanAssemblies(
+        [
+            typeof(DistributedApplication).Assembly,
+            typeof(global::Aspire.Hosting.Kubernetes.KubernetesPersistentVolumeResource).Assembly
+        ]);
+        var files = _generator.GenerateDistributedApplication(scanResult.ToAtsContext());
+        var generatedCode = files["aspire.mts"];
+
+        var capability = Assert.Single(
+            scanResult.Capabilities,
+            c => c.CapabilityId == "Aspire.Hosting.Kubernetes/withPersistentVolumeName");
+        Assert.Equal("withPersistentVolumeName", capability.MethodName);
+        Assert.Equal("string", capability.Parameters.Single().Type?.TypeId);
+        Assert.DoesNotContain("withConfiguration", generatedCode);
+
+        Assert.Contains(
+            generatedCode.Split('\n'),
+            line => line.Contains("withPersistentVolumeName(", StringComparison.Ordinal) &&
+                line.Contains("persistentVolumeName: string", StringComparison.Ordinal));
+
+        var withoutStorageClassCapability = Assert.Single(
+            scanResult.Capabilities,
+            c => c.CapabilityId == "Aspire.Hosting.Kubernetes/withoutStorageClass");
+        Assert.Equal("withoutStorageClass", withoutStorageClassCapability.MethodName);
+        Assert.Empty(withoutStorageClassCapability.Parameters);
+
+        Assert.Contains(
+            generatedCode.Split('\n'),
+            line => line.Contains("withoutStorageClass()", StringComparison.Ordinal));
+    }
+
     // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
 
     [Fact]
@@ -1139,7 +1389,7 @@ public class AtsTypeScriptCodeGeneratorTests
             "export interface TestMarkerResourcePromise extends PromiseLike<TestMarkerResource>",
             aspireTs);
         Assert.Contains(
-            "class TestMarkerResourcePromiseImpl implements TestMarkerResourcePromise",
+            "const TestMarkerResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestMarkerResource, TestMarkerResourcePromise>",
             aspireTs);
     }
 
@@ -1210,7 +1460,7 @@ public class AtsTypeScriptCodeGeneratorTests
             "export interface TestVaultResourcePromise extends PromiseLike<TestVaultResource>"));
         Assert.Equal(1, CountOccurrences(
             aspireTs,
-            "class TestVaultResourcePromiseImpl implements TestVaultResourcePromise"));
+            "const TestVaultResourcePromiseImpl = $aspireCreateFluentPromiseClass<TestVaultResource, TestVaultResourcePromise>"));
         var returnedAliasTypeId = fixtureCapabilities
             .Single(capability => capability.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault")
             .ReturnType!.TypeId;
@@ -1336,9 +1586,10 @@ public class AtsTypeScriptCodeGeneratorTests
             $"Generated aspire.mts references Promise wrapper type(s) that are never declared: {string.Join(", ", dangling)}");
     }
 
-    // Declarations: "export interface FooPromise extends ...", "class FooPromiseImpl implements ...".
+    // Declarations: "export interface FooPromise extends ..." and
+    // "const FooPromiseImpl = $aspireCreateFluentPromiseClass(...)".
     private static readonly Regex s_promiseDeclarationPattern =
-        new(@"\b(?:interface|class|type)\s+(\w*Promise(?:Impl)?)\b", RegexOptions.Compiled);
+        new(@"\b(?:interface|class|type|const)\s+(\w*Promise(?:Impl)?)\b", RegexOptions.Compiled);
 
     // Uses of a wrapper type name: return types, "new FooPromiseImpl(", type arguments. Anchored on
     // a leading capital so "PromiseLike", bare "Promise" and "trackPromise" are not matched.
@@ -1553,6 +1804,21 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void GenerateDistributedApplication_WithAzureContainerAppExpress_EmitsTypeScriptMethod()
+    {
+        var result = AtsCapabilityScanner.ScanAssemblies(LoadAzureAssemblies());
+
+        var capability = Assert.Single(result.Capabilities, c => c.CapabilityId == "Aspire.Hosting.Azure.AppContainers/asExpress");
+        Assert.Equal(GetAtsTypeId(typeof(AzureContainerAppEnvironmentResource)), capability.TargetTypeId);
+        Assert.True(capability.ReturnsBuilder);
+        Assert.Empty(capability.Parameters);
+
+        var files = _generator.GenerateDistributedApplication(result.ToAtsContext());
+
+        Assert.Contains("asExpress(): AzureContainerAppEnvironmentResourcePromise;", files["aspire.mts"]);
+    }
+
+    [Fact]
     public void Scanner_AzureExistingResourceScopes_ExposeTypeScriptCapabilities()
     {
         var capabilities = ScanCapabilitiesFromAzureAssemblies();
@@ -1644,7 +1910,8 @@ public class AtsTypeScriptCodeGeneratorTests
         AtsContext context,
         string methodName,
         string? description,
-        AtsDocumentationInfo documentation)
+        AtsDocumentationInfo documentation,
+        bool isExperimental = false)
     {
         var addTestRedis = context.Capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
 
@@ -1654,6 +1921,7 @@ public class AtsTypeScriptCodeGeneratorTests
             MethodName = methodName,
             Description = description,
             Documentation = documentation,
+            IsExperimental = isExperimental,
             Parameters = [],
             ReturnType = new AtsTypeRef
             {
@@ -1968,8 +2236,9 @@ public class AtsTypeScriptCodeGeneratorTests
         var code = GenerateTwoPassCode();
 
         // TestResourceContext has ExposeMethods=true - gets Promise wrapper
-        Assert.Contains("class TestResourceContextPromiseImpl implements TestResourceContextPromise", code);
-        Assert.Contains("implements TestResourceContextPromise", code);
+        Assert.Contains(
+            "const TestResourceContextPromiseImpl = $aspireCreateFluentPromiseClass<TestResourceContext, TestResourceContextPromise>",
+            code);
     }
 
     [Fact]
@@ -2096,6 +2365,62 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     // ===== DTO Generation Tests =====
+
+    [Fact]
+    public async Task Generate_DotnetProjectOptions_UsesDtoWithoutChangingLegacyOptions()
+    {
+        var context = AtsCapabilityScanner.ScanAssemblies(
+            [typeof(DistributedApplication).Assembly, typeof(DotnetProjectHostingExtensions).Assembly]).ToAtsContext();
+        var addDotnetProject = Assert.Single(context.Capabilities, capability => capability.CapabilityId == "Aspire.Hosting.Dotnet/addDotnetProject");
+        var options = Assert.Single(addDotnetProject.Parameters, parameter => parameter.Name == "options");
+
+        Assert.NotNull(options.Type);
+        Assert.Equal(AtsTypeCategory.Dto, options.Type.Category);
+        Assert.Equal("Aspire.Hosting.Dotnet/Aspire.Hosting.Dotnet.DotnetProjectOptions", options.Type.TypeId);
+        var dto = Assert.Single(context.DtoTypes, dto => dto.TypeId == options.Type.TypeId);
+        Assert.Equal(
+            ["ExcludeKestrelEndpoints", "ExcludeLaunchProfile", "LaunchProfileName"],
+            dto.Properties.Select(property => property.Name).Order(StringComparer.Ordinal));
+        Assert.All(dto.Properties, property => Assert.True(property.IsOptional));
+
+        var legacyTypeId = AtsTypeMapping.DeriveTypeId(typeof(ProjectResourceOptions));
+        Assert.Single(context.HandleTypes, type => type.AtsTypeId == legacyTypeId);
+        var addCSharpApp = Assert.Single(context.Capabilities, capability => capability.CapabilityId == "Aspire.Hosting/addCSharpApp");
+        Assert.True(addCSharpApp.IsObsolete);
+        Assert.False(addCSharpApp.IsExperimental);
+        Assert.Equal("Use addDotnetProject from the Aspire.Hosting.Dotnet package instead.", addCSharpApp.ObsoleteMessage);
+        var legacyOptions = Assert.Single(addCSharpApp.Parameters, parameter => parameter.Name == "options");
+        Assert.NotNull(legacyOptions.Type);
+        Assert.Equal(AtsTypeCategory.Handle, legacyOptions.Type.Category);
+        Assert.Equal(legacyTypeId, legacyOptions.Type.TypeId);
+
+        var code = _generator.GenerateDistributedApplication(context)["aspire.mts"];
+        var builderMethods = code.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => line.EndsWith(';') &&
+                (line.StartsWith("addDotnetProject(", StringComparison.Ordinal) ||
+                 line.StartsWith("addCSharpApp(", StringComparison.Ordinal) ||
+                 line.StartsWith("addProject(", StringComparison.Ordinal)))
+            .Distinct()
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(3, builderMethods.Length);
+
+        await Verify(new
+        {
+            ProjectV2Options = GetInterface("DotnetProjectOptions"),
+            LegacyOptions = GetInterface(nameof(ProjectResourceOptions)),
+            LegacyAddOptions = GetInterface("AddProjectOptions"),
+            BuilderMethods = builderMethods
+        });
+
+        string GetInterface(string name)
+        {
+            var match = Regex.Match(code, $@"^export interface {Regex.Escape(name)} \{{.*?^\}}", RegexOptions.Multiline | RegexOptions.Singleline);
+            Assert.True(match.Success, $"Generated interface '{name}' was not found.");
+
+            return match.Value;
+        }
+    }
 
     [Fact]
     public void Scanner_AspireDtoType_IsDiscovered()
@@ -2409,6 +2734,38 @@ public class AtsTypeScriptCodeGeneratorTests
                && !id.Contains("ViteApp", StringComparison.Ordinal));
         Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.NodeAppResource), StringComparison.Ordinal));
         Assert.Contains(expandedTypeIds, id => id.Contains(nameof(JavaScript.ViteAppResource), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DenoPublicApis_AreExperimental()
+    {
+        var denoMethods = typeof(JavaScriptHostingExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method => method.Name == nameof(JavaScriptHostingExtensions.AddDenoApp) ||
+                method.Name.StartsWith("WithDeno", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.NotEmpty(denoMethods);
+        Assert.Contains(denoMethods, method => method.Name == nameof(JavaScriptHostingExtensions.AddDenoApp));
+        Assert.Contains(denoMethods, method => method.Name.StartsWith("WithDeno", StringComparison.Ordinal));
+
+        Assert.All(denoMethods, method =>
+        {
+            var experimental = Assert.Single(method.GetCustomAttributes<ExperimentalAttribute>());
+            Assert.Equal("ASPIREDENO001", experimental.DiagnosticId);
+        });
+
+        foreach (var type in new[]
+        {
+            typeof(Aspire.Hosting.JavaScript.DenoAppResource),
+            typeof(Aspire.Hosting.JavaScript.DenoInspectMode),
+            typeof(Aspire.Hosting.JavaScript.DenoNodeModulesDirMode),
+            typeof(Aspire.Hosting.JavaScript.DenoPermissionKind),
+        })
+        {
+            var experimental = Assert.Single(type.GetCustomAttributes<ExperimentalAttribute>());
+            Assert.Equal("ASPIREDENO001", experimental.DiagnosticId);
+        }
     }
 
     private const string ApiExportPackageName = "Aspire.Hosting.CodeGeneration.TypeScript.Tests";

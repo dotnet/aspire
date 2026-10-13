@@ -14,6 +14,7 @@ using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Exceptions;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Layout;
 using Aspire.Cli.Processes;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -24,6 +25,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Shared;
 using Aspire.Shared.UserSecrets;
 using Microsoft.Extensions.Logging;
+using Semver;
 
 namespace Aspire.Cli.Projects;
 
@@ -52,6 +54,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
     private readonly IProcessTreeGracefulShutdownSignaler _gracefulShutdownSignaler;
     private readonly CliExecutionContext _executionContext;
     private readonly IEnvironment _environment;
+    private readonly AppHostConfigurationProjector _appHostConfigurationProjector;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
     private const string DirectLaunchDisabledConfigKey = "dotnetAppHostDirectLaunchDisabled";
@@ -66,11 +69,11 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         Array.AsReadOnly([".csproj", ".fsproj", ".vbproj"]);
 
     /// <summary>
-    /// Test seam: overrides <see cref="TryGetRepoLocalManagedPath"/>. When set, the override
+    /// Test seam: overrides <see cref="TryGetRepoLocalTerminalHostPath"/>. When set, the override
     /// is invoked instead of probing the real Aspire repo checkout. Tests use this so the
     /// in-repo build artifact doesn't shadow the fake bundle layout they set up.
     /// </summary>
-    internal static Func<string?>? RepoLocalManagedPathProviderOverride { get; set; }
+    internal static Func<string?>? RepoLocalTerminalHostPathProviderOverride { get; set; }
 
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
@@ -83,6 +86,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         IDotNetSdkInstaller sdkInstaller,
         IBundleService bundleService,
         IEnvironment environment,
+        AppHostConfigurationProjector appHostConfigurationProjector,
         ILogger<DotNetAppHostProject> logger,
         Diagnostics.FileLoggerProvider fileLoggerProvider,
         Program.CliLoggingOptions loggingOptions,
@@ -103,6 +107,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         _sdkInstaller = sdkInstaller;
         _bundleService = bundleService;
         _environment = environment;
+        _appHostConfigurationProjector = appHostConfigurationProjector;
         _logger = logger;
         _fileLoggerProvider = fileLoggerProvider;
         _loggingOptions = loggingOptions;
@@ -173,20 +178,12 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         // Check for #:sdk Aspire.AppHost.Sdk directive
         try
         {
-            using var reader = candidateFile.OpenText();
-            string? line;
-            while ((line = reader.ReadLine()) is not null)
-            {
-                var trimmedLine = line.TrimStart();
-                if (trimmedLine.StartsWith("#:sdk Aspire.AppHost.Sdk", StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
+            var content = File.ReadAllText(candidateFile.FullName);
+            return FallbackProjectParser.HasAppHostSdkDirective(content)
+                || FallbackProjectParser.HasAppHostPackageDirective(content);
         }
         catch
         {
-            return false;
         }
 
         return false;
@@ -1295,6 +1292,13 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             return true;
         }
 
+        if (root.Descendants().Any(e => e.Name.LocalName.Equals("PackageReference", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(e.Attribute("Include")?.Value,
+                "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
         // 4) Explicit <IsAspireHost>true</IsAspireHost> property element. The Aspire.AppHost.Sdk sets this
         //    during evaluation, but it can also appear literally in a project or build file. Matching on the
         //    element (rather than a substring) means a consumer condition such as
@@ -1333,7 +1337,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                 .Any(file => file.Name.Equals(ProjectAppHostSourceFileName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool ContainsAspireAppHostSdk(string sdkAttribute)
+    internal static bool ContainsAspireAppHostSdk(string sdkAttribute)
     {
         // SDK references resolve through NuGet, whose package IDs are case-insensitive, so a project could
         // legitimately write the SDK name in any casing (e.g. "aspire.apphost.sdk") and still build as an
@@ -1489,16 +1493,19 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
 
         var cliBundleLease = await AcquireCliBundleLayoutAsync(cancellationToken);
         using var cliBundleLeaseScope = cliBundleLease;
-        ConfigureCliBundleEnvironment(env, cliBundleLease, injectDcpAndDashboard: false);
+        // The build needs the bundle path and lease, but launch selection must wait for
+        // the Hosting version so a temporary compatibility path cannot become an override.
+        ConfigureCliBundleBuildEnvironment(env, cliBundleLease);
 
         var watch = !isSingleFileAppHost && _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
-        var preparationExitCode = await PrepareAppHostAsync(
+        var (preparationExitCode, builtByCli, deferBuildCompletion) = await PrepareAppHostAsync(
             context,
             effectiveAppHostFile,
             isSingleFileAppHost,
             isExtensionHost,
             extensionBackchannel,
             buildOutputCollector,
+            env,
             cancellationToken);
         if (preparationExitCode is { } exitCode)
         {
@@ -1512,12 +1519,11 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         //    no per-RID NuGet ships the terminal host today. Skipping ResolveAspireCliBundle
         //    is fine for non-CliBundle AppHosts that don't use WithTerminal() — the lease
         //    is best-effort and a missing layout just means no terminal host env vars.
-        var canQueryCliBundleProperty = !isSingleFileAppHost || !context.NoBuild;
-        var appHostInfo = canQueryCliBundleProperty
-            ? await _appHostInfoResolver.GetAppHostInfoAsync(effectiveAppHostFile, cancellationToken)
-            : null;
-        var injectDcpAndDashboard = appHostInfo?.IsUsingCliBundle == true;
-        ConfigureCliBundleEnvironment(env, cliBundleLease, injectDcpAndDashboard);
+        // File-based AppHosts also complete a safety build for --no-build, so their
+        // Hosting version is available before selecting the terminal launch contract.
+        var appHostInfo = await _appHostInfoResolver.GetAppHostInfoAsync(effectiveAppHostFile, cancellationToken);
+        var injectDcpAndDashboard = appHostInfo.IsUsingCliBundle;
+        ConfigureCliBundleEnvironment(env, cliBundleLease, injectDcpAndDashboard, appHostInfo.AspireHostingVersion);
 
         // RunCommand may display captured AppHost output as soon as BuildCompletionSource is signaled.
         // Store the collector first so failures that occur immediately after preparation are not lost
@@ -1525,9 +1531,16 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         var runOutputCollector = new OutputCollector(_fileLoggerProvider, CliLogFormat.Categories.AppHost);
         context.OutputCollector = runOutputCollector;
 
-        // Signal that build/preparation is complete
-        context.BuildCompletionSource?.TrySetResult(true);
-        activity.AddAppHostBuildReadyEvent();
+        void SignalBuildCompletion()
+        {
+            context.BuildCompletionSource?.TrySetResult(true);
+            activity.AddAppHostBuildReadyEvent();
+        }
+
+        if (!deferBuildCompletion)
+        {
+            SignalBuildCompletion();
+        }
 
         var runOptions = new ProcessInvocationOptions
         {
@@ -1537,15 +1550,30 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             Debug = context.Debug,
             KillEntireProcessTreeOnCancel = ShouldKillEntireProcessTreeOnCancel(_environment.IsWindows()),
             // Run path opts into the shared shutdown ladder so pure .NET AppHosts get the
-            // same graceful-then-tree-kill semantics as TypeScript AppHosts (which already
+            // same graceful-then-escalate semantics as TypeScript AppHosts (which already
             // route through AppHostServerSession/ProcessGuestLauncher). Build, restore,
             // package add, layout, and other short-lived invocations leave these unset so
             // they continue to use the shared ladder's force-kill mode.
             IsolateConsole = true,
-            KillOnParentExit = true,
+            // dotnet run nests its own non-breakaway job inside the CLI job, preventing DCP
+            // from escaping the CLI job to finish resource cleanup. Direct launches have no
+            // intervening job and opt back into the CLI job below.
+            KillOnParentExit = false,
+            Lifetime = ChildProcessLifetime.AppHost,
             GracefulShutdownSignaler = _gracefulShutdownSignaler,
             ShutdownService = _shutdownService,
-            LaunchProfile = context.LaunchProfile,
+            // The bundled AppHost run hook delegates dotnet run to aspire run. The SDK passes
+            // its selected profile through DOTNET_LAUNCH_PROFILE rather than a CLI argument.
+            // Preserve that selection for both direct launch and the dotnet run fallback,
+            // while allowing an explicit Aspire CLI option to take precedence.
+            LaunchProfile = context.LaunchProfile ?? GetEffectiveEnvironmentValue(env, "DOTNET_LAUNCH_PROFILE"),
+            ExtensionAppHostLaunchCompletedAsync = deferBuildCompletion
+                ? () =>
+                {
+                    SignalBuildCompletion();
+                    return Task.CompletedTask;
+                }
+                : null,
         };
 
         // The backchannel completion source is the contract with RunCommand
@@ -1577,14 +1605,28 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             //
             // noRestore is only relevant when noBuild is false because --no-build implies --no-restore.
             var noBuild = !watch || context.NoBuild;
-            using var runDotnetActivity = _profilingTelemetry.StartAppHostRunDotnetLifetime(watch, noBuild, context.NoRestore);
+            var noRestore = context.NoRestore;
+            if (isSingleFileAppHost && !builtByCli)
+            {
+                // File-based RunCommand metadata is only safe to reuse when the CLI's pre-build
+                // generated it with run-hook suppression. Preserve the extension-owned rebuild
+                // fallback rather than trusting ambient output.
+                noBuild = false;
+                noRestore = false;
+            }
+
+            using var runDotnetActivity = _profilingTelemetry.StartAppHostRunDotnetLifetime(watch, noBuild, noRestore);
+            var appHostDirectory = effectiveAppHostFile.Directory ?? _executionContext.WorkingDirectory;
             if (directRun is not null)
             {
+                await _appHostConfigurationProjector.ApplyEnvironmentVariablesAsync(directRun.Environment, appHostDirectory, cancellationToken);
+
                 // The direct command line has no "--" separator, so the forwarded-argument boundary
                 // has to be carried alongside it for logging. Clone rather than mutate because the
                 // caller may reuse runOptions for other invocations.
                 var directRunOptions = runOptions.Clone();
                 directRunOptions.AppHostArgumentStartIndex = directRun.AppHostArgumentStartIndex;
+                directRunOptions.KillOnParentExit = true;
 
                 return await _runner.RunAppHostCommandAsync(
                     effectiveAppHostFile,
@@ -1597,11 +1639,13 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                     cancellationToken);
             }
 
+            await _appHostConfigurationProjector.ApplyEnvironmentVariablesAsync(env, appHostDirectory, cancellationToken);
+
             return await _runner.RunAsync(
                 effectiveAppHostFile,
                 watch,
                 noBuild,
-                context.NoRestore,
+                noRestore,
                 context.UnmatchedTokens,
                 env,
                 backchannelCompletionSource,
@@ -1650,37 +1694,40 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         }
     }
 
-    private async Task<int?> PrepareAppHostAsync(
+    private async Task<(int? ExitCode, bool BuiltByCli, bool DeferBuildCompletion)> PrepareAppHostAsync(
         AppHostProjectContext context,
         FileInfo effectiveAppHostFile,
         bool isSingleFileAppHost,
         bool isExtensionHost,
         IExtensionBackchannel? extensionBackchannel,
         OutputCollector buildOutputCollector,
+        IDictionary<string, string> buildEnvironment,
         CancellationToken cancellationToken)
     {
         try
         {
-            var buildExitCode = await BuildAppHostIfNeededAsync(
+            var (buildExitCode, builtByCli, deferBuildCompletion) = await BuildAppHostIfNeededAsync(
                 context,
                 effectiveAppHostFile,
+                isSingleFileAppHost,
                 isExtensionHost,
                 extensionBackchannel,
                 buildOutputCollector,
+                buildEnvironment,
                 cancellationToken);
             if (buildExitCode is not null)
             {
-                return buildExitCode;
+                return (buildExitCode, builtByCli, deferBuildCompletion);
             }
 
             var compatibilityCheck = await CheckAppHostCompatibilityAsync(effectiveAppHostFile, isSingleFileAppHost, cancellationToken);
             if (!compatibilityCheck.IsCompatibleAppHost)
             {
                 context.BuildCompletionSource?.TrySetResult(false);
-                return CliExitCodes.FailedToDotnetRunAppHost;
+                return (CliExitCodes.FailedToDotnetRunAppHost, builtByCli, deferBuildCompletion);
             }
 
-            return null;
+            return (null, builtByCli, deferBuildCompletion);
         }
         catch
         {
@@ -1692,29 +1739,35 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         }
     }
 
-    private async Task<int?> BuildAppHostIfNeededAsync(
+    private async Task<(int? ExitCode, bool BuiltByCli, bool DeferBuildCompletion)> BuildAppHostIfNeededAsync(
         AppHostProjectContext context,
         FileInfo effectiveAppHostFile,
+        bool isSingleFileAppHost,
         bool isExtensionHost,
         IExtensionBackchannel? extensionBackchannel,
         OutputCollector buildOutputCollector,
+        IDictionary<string, string> buildEnvironment,
         CancellationToken cancellationToken)
     {
-        if (context.NoBuild)
+        if (context.NoBuild && !isSingleFileAppHost)
         {
-            return null;
+            return (null, false, false);
         }
 
         var extensionHasBuildCapability = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.BuildDotnetUsingCli, cancellationToken);
-        if (isExtensionHost && !extensionHasBuildCapability)
+        var extensionCanLaunchProject = extensionBackchannel is not null && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken);
+        if (isExtensionHost && extensionCanLaunchProject && !extensionHasBuildCapability)
         {
             // Older extension hosts own the AppHost build themselves. Building again in the CLI would
             // duplicate work and could race the extension's diagnostics/launch pipeline. Newer hosts
             // opt in with build-dotnet-using-cli when they want the CLI to own this pre-build.
-            return null;
+            return (null, false, true);
         }
 
-        using var buildActivity = _profilingTelemetry.StartAppHostBuild(context.NoRestore, isExtensionHost, extensionHasBuildCapability);
+        // File-based AppHosts cannot safely reuse ambient RunCommand metadata, including for explicit
+        // --no-build. Build them here so startup reuses output generated with run-hook suppression.
+        var noRestore = isSingleFileAppHost && context.NoBuild ? false : context.NoRestore;
+        using var buildActivity = _profilingTelemetry.StartAppHostBuild(noRestore, isExtensionHost, extensionHasBuildCapability);
 
         var buildOptions = new ProcessInvocationOptions
         {
@@ -1722,12 +1775,12 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             StandardErrorCallback = buildOutputCollector.AppendError,
         };
 
-        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, context.NoRestore, buildOptions, context.WorkingDirectory, cancellationToken);
+        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, noRestore, buildEnvironment, buildOptions, context.WorkingDirectory, cancellationToken);
         buildActivity.SetAppHostBuildExitCode(buildExitCode);
 
         if (buildExitCode == 0)
         {
-            return null;
+            return (null, true, false);
         }
 
         // Preserve the build output before signaling failure. RunCommand reads this collector after
@@ -1735,7 +1788,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         // generic "project could not be built" message.
         context.OutputCollector = buildOutputCollector;
         context.BuildCompletionSource?.TrySetResult(false);
-        return CliExitCodes.FailedToBuildArtifacts;
+        return (CliExitCodes.FailedToBuildArtifacts, false, false);
     }
 
     private async Task<(bool IsCompatibleAppHost, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(
@@ -1746,7 +1799,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
         if (isSingleFileAppHost)
         {
             // A single-file apphost pins its Aspire.Hosting version via the
-            // `#:sdk Aspire.AppHost.Sdk@<version>` directive, which uses IdentitySdkVersion (the
+            // `#:package Aspire.Hosting.AppHost@<version>` directive, which uses IdentitySdkVersion (the
             // identity version with build metadata stripped, matching the published NuGet package
             // version). Report that same value here so the compatibility check reflects what the
             // apphost actually pins, honoring ASPIRE_CLI_VERSION / sidecar overrides rather than
@@ -2376,8 +2429,11 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             }
         }
 
-        // Build the apphost (unless --no-build is specified)
-        if (!isSingleFileAppHost && !context.NoBuild)
+        var builtByCli = false;
+
+        // Project AppHosts honor --no-build. File-based AppHosts always require a CLI-owned safety
+        // build before local or extension launch so run-api metadata cannot be missing or stale.
+        if (!context.NoBuild || isSingleFileAppHost)
         {
             var buildOutputCollector = new OutputCollector(_fileLoggerProvider, CliLogFormat.Categories.Build);
             var buildOptions = new ProcessInvocationOptions
@@ -2391,6 +2447,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                 _interactionService,
                 effectiveAppHostFile,
                 noRestore: false,
+                env: env,
                 buildOptions,
                 context.WorkingDirectory,
                 cancellationToken);
@@ -2404,6 +2461,8 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                     new InvalidOperationException("The app host build failed."));
                 return CliExitCodes.FailedToBuildArtifacts;
             }
+
+            builtByCli = true;
         }
 
         // Create collector and store in context for exception handling
@@ -2423,10 +2482,14 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             ConfigureSingleFilePublishEnvironment(effectiveAppHostFile, env, args: context.Arguments);
         }
 
+        // Single-file RunCommand metadata is safe to reuse because the CLI-owned build above
+        // generated it with run-hook suppression.
+        var noBuild = !isSingleFileAppHost || builtByCli;
+
         return await _runner.RunAsync(
             effectiveAppHostFile,
             watch: false,
-            noBuild: true,
+            noBuild,
             noRestore: false,
             context.Arguments,
             env,
@@ -2538,10 +2601,21 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
     private Task<BundleLayoutLease?> AcquireCliBundleLayoutAsync(CancellationToken cancellationToken)
         => _bundleService.EnsureExtractedAndAcquireLayoutAsync("cli", "dotnet-apphost", cancellationToken);
 
+    private void ConfigureCliBundleBuildEnvironment(Dictionary<string, string> env, BundleLayoutLease? layoutLease)
+    {
+        if (!HasEnvironmentOverride(env, "AspireCliBundlePath") && !string.IsNullOrEmpty(layoutLease?.Layout.LayoutPath))
+        {
+            env["AspireCliBundlePath"] = layoutLease.Layout.LayoutPath;
+        }
+
+        layoutLease?.AddEnvironment(env);
+    }
+
     private void ConfigureCliBundleEnvironment(
         Dictionary<string, string> env,
         BundleLayoutLease? layoutLease,
-        bool injectDcpAndDashboard)
+        bool injectDcpAndDashboard,
+        string? aspireHostingVersion)
     {
         var layout = layoutLease?.Layout;
         if (layout is null)
@@ -2558,11 +2632,6 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             // no bundle layout exists at all (e.g. clean dev machine with no `aspire` install).
         }
 
-        if (!HasEnvironmentOverride(env, "AspireCliBundlePath") && !string.IsNullOrEmpty(layout?.LayoutPath))
-        {
-            env["AspireCliBundlePath"] = layout.LayoutPath;
-        }
-
         if (injectDcpAndDashboard && layout is not null)
         {
             if (!IsUsableDcpDirectory(GetEffectiveEnvironmentValue(env, BundleDiscovery.DcpPathEnvVar)) &&
@@ -2572,48 +2641,36 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                 env[BundleDiscovery.DcpPathEnvVar] = layoutDcpPath;
             }
 
-            if (!IsUsableDashboardPath(GetEffectiveEnvironmentValue(env, BundleDiscovery.DashboardPathEnvVar)) &&
-                layout.GetManagedPath() is { } layoutManagedPath &&
-                IsUsableDashboardPath(layoutManagedPath))
+            if (!IsUsableExecutablePath(GetEffectiveEnvironmentValue(env, BundleDiscovery.DashboardPathEnvVar)))
             {
-                env[BundleDiscovery.DashboardPathEnvVar] = layoutManagedPath;
-            }
-        }
-
-        // Terminal host injection is unconditional: aspire-managed in the bundle exposes
-        // the `terminalhost` subcommand regardless of whether the AppHost opted into
-        // AspireUseCliBundle, and no per-RID NuGet stamps the metadata path today. This
-        // is what lets `aspire run` light up WithTerminal() for AppHosts created by
-        // `aspire new` (which default to per-RID NuGets, not the bundle).
-        //
-        // Path and args are treated as a pair: if a user pre-populated the path env var
-        // (e.g. side-loading a custom terminal host build), don't overwrite the args —
-        // their binary may not understand the "terminalhost" dispatcher arg.
-        //
-        // Preference order for the terminal host binary:
-        //  1) Pre-populated env var — user override always wins.
-        //  2) Repo-local built artifact when running `dotnet run` inside the Aspire repo
-        //     (DEBUG only — AspireRepositoryDetector walks for Aspire.slnx in DEBUG builds).
-        //     Without this, repo-mode runs pick up the bundle layout cached at the user's
-        //     installed CLI location (e.g. ~/.aspire/bundle/), whose aspire-managed predates
-        //     the `terminalhost` subcommand and fails the AppHost launch with a confusing
-        //     "older CLI" diagnostic. Installed CLIs are unaffected because DetectRepositoryRoot
-        //     only resolves via env var in release builds.
-        //  3) Bundle layout aspire-managed (normal `aspire run` install path).
-        if (!HasEnvironmentOverride(env, BundleDiscovery.TerminalHostPathEnvVar))
-        {
-            var terminalHostPath = TryGetRepoLocalManagedPath() ?? layout?.GetManagedPath();
-            if (terminalHostPath is not null && IsUsableDashboardPath(terminalHostPath))
-            {
-                env[BundleDiscovery.TerminalHostPathEnvVar] = terminalHostPath;
-                if (!HasEnvironmentOverride(env, BundleDiscovery.TerminalHostInvocationArgsEnvVar))
+                SemVersion.TryParse(aspireHostingVersion, out var hostingVersion);
+                var supportsNativeDashboard = DashboardLaunchHelper.SupportsNativeDashboard(hostingVersion);
+                if (DashboardLaunchHelper.GetDashboardPath(layout, supportsNativeDashboard) is { } dashboardPath)
                 {
-                    env[BundleDiscovery.TerminalHostInvocationArgsEnvVar] = "terminalhost";
+                    env[BundleDiscovery.DashboardPathEnvVar] = dashboardPath;
                 }
             }
         }
 
-        layoutLease?.AddEnvironment(env);
+        // Terminal hosting also works for AppHosts not using bundled DCP/Dashboard.
+        // Preserve explicit overrides, prefer the freshly built repo host, and select
+        // the native or compatibility contract according to the AppHost's Hosting version.
+        if (!HasEnvironmentOverride(env, BundleDiscovery.TerminalHostPathEnvVar))
+        {
+            SemVersion.TryParse(aspireHostingVersion, out var hostingVersion);
+            var repoPath = TryGetRepoLocalTerminalHostPath();
+            var launch = repoPath is not null
+                ? (Path: repoPath, InvocationArgs: string.Empty)
+                : layout is not null ? TerminalHostLaunchHelper.GetLaunch(layout, TerminalHostLaunchHelper.SupportsDirectLaunch(hostingVersion)) : null;
+            if (launch is { } terminalHost && IsUsableExecutablePath(terminalHost.Path))
+            {
+                env[BundleDiscovery.TerminalHostPathEnvVar] = terminalHost.Path;
+                if (GetEffectiveEnvironmentValue(env, BundleDiscovery.TerminalHostInvocationArgsEnvVar) is null)
+                {
+                    env[BundleDiscovery.TerminalHostInvocationArgsEnvVar] = terminalHost.InvocationArgs;
+                }
+            }
+        }
     }
 
     private bool HasEnvironmentOverride(IReadOnlyDictionary<string, string> env, string name)
@@ -2627,23 +2684,23 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
             Directory.Exists(path) &&
             File.Exists(BundleDiscovery.GetDcpExecutablePath(path));
 
-    private static bool IsUsableDashboardPath(string? path)
+    private static bool IsUsableExecutablePath(string? path)
         => !string.IsNullOrWhiteSpace(path) && File.Exists(path);
 
     /// <summary>
-    /// Resolves the repo-local <c>aspire-managed</c> binary when the CLI is running from
+    /// Resolves the repo-local terminal host when the CLI is running from
     /// an Aspire repo checkout (typically <c>dotnet run --project src/Aspire.Cli</c>).
     /// Returns <c>null</c> in release builds and when no repo-local build exists.
     /// </summary>
-    private static string? TryGetRepoLocalManagedPath()
+    private static string? TryGetRepoLocalTerminalHostPath()
     {
-        if (RepoLocalManagedPathProviderOverride is { } overrideProvider)
+        if (RepoLocalTerminalHostPathProviderOverride is { } overrideProvider)
         {
             return overrideProvider();
         }
 
         var repoRoot = AspireRepositoryDetector.DetectRepositoryRoot();
-        return BundleDiscovery.TryGetRepoLocalManagedPath(repoRoot);
+        return BundleDiscovery.TryGetRepoLocalTerminalHostPath(repoRoot);
     }
 
     /// <summary>

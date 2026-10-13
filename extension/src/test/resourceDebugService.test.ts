@@ -196,9 +196,9 @@ function createService(options: {
 } {
     const repository: ResourceDebugAppHostRepository = {
         fetchRunningAppHostsOnce: async () => options.appHosts ?? [createAppHost()],
-        fetchAppHostResourcesOnce: async (appHostPath, _cancellationToken, appHostPid) =>
+        fetchAppHostResourcesOnce: async (target, _cancellationToken, appHostPid) =>
             (options.appHosts ?? [createAppHost()]).find(appHost =>
-                appHost.appHostPath === appHostPath &&
+                appHost.appHostPath === target.operationPath &&
                 (appHostPid === undefined || appHost.appHostPid === appHostPid))?.resources ?? [],
     };
     const events = new TestDebugSessionEvents();
@@ -473,7 +473,7 @@ suite('Resource debug service', () => {
 
     test('resolves the running AppHost before fetching only its resource snapshot', async () => {
         const cancellation = new vscode.CancellationTokenSource();
-        const fetchedPaths: string[] = [];
+        const fetchedTargets: Array<{ operationPath: string; scopePath: string }> = [];
         const receivedTokens: Array<vscode.CancellationToken | undefined> = [];
         const repository: ResourceDebugAppHostRepository = {
             fetchRunningAppHostsOnce: async token => {
@@ -483,8 +483,8 @@ suite('Resource debug service', () => {
                     createAppHost({ appHostPath: '/repo/resolved/AppHost.csproj', resources: null }),
                 ];
             },
-            fetchAppHostResourcesOnce: async (appHostPath, token) => {
-                fetchedPaths.push(appHostPath);
+            fetchAppHostResourcesOnce: async (appHost, token) => {
+                fetchedTargets.push(appHost);
                 receivedTokens.push(token);
                 return [createResource()];
             },
@@ -509,7 +509,10 @@ suite('Resource debug service', () => {
             }));
 
             assert.deepStrictEqual(result, { outcome: 'started', providerId: 'dotnet' });
-            assert.deepStrictEqual(fetchedPaths, ['/repo/resolved/AppHost.csproj']);
+            assert.deepStrictEqual(fetchedTargets, [{
+                operationPath: '/repo/resolved/AppHost.csproj',
+                scopePath: '/repo/alias/AppHost.csproj',
+            }]);
             assert.deepStrictEqual(receivedTokens, [cancellation.token]);
         }
         finally {
@@ -624,7 +627,10 @@ suite('Resource debug service', () => {
                 appHostPid: 2222,
             },
         })), { outcome: 'started', providerId: 'dotnet' });
-        assert.deepStrictEqual(fetchResources.firstCall.args, [target.absolutePath, undefined, 2222]);
+        assert.deepStrictEqual(fetchResources.firstCall.args, [{
+            operationPath: target.absolutePath,
+            scopePath: target.absolutePath,
+        }, undefined, 2222]);
         sessions.dispose();
     });
 

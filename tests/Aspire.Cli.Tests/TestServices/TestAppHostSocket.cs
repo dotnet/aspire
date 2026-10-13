@@ -14,6 +14,8 @@ internal sealed class TestAppHostSocket(string socketPath) : IAppHostSocket
 
     public Func<CancellationToken, ValueTask<Socket>>? ConnectAsyncCallback { get; init; }
 
+    public int TryDeleteCallCount { get; private set; }
+
     public async ValueTask<Socket> ConnectAsync(CancellationToken cancellationToken)
     {
         if (ConnectAsyncCallback is not null)
@@ -36,6 +38,7 @@ internal sealed class TestAppHostSocket(string socketPath) : IAppHostSocket
 
     public bool TryDelete()
     {
+        TryDeleteCallCount++;
         if (!File.Exists(SocketPath))
         {
             return false;

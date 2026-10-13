@@ -7,15 +7,15 @@ import {
     resourceDebugToolUnresolvedConfirmationMessage,
     resourceDebugToolUnavailableInvocationMessage,
 } from '../loc/strings';
-import { extensionLogOutputChannel } from '../utils/logging';
 import {
     aspireResourceDebugToolName,
     type AspireResourceDebugToolInput,
     type AspireResourceDebugToolRegistration,
-    type AspireResourceDebugToolResult,
 } from './resourceDebugToolContracts';
 import { AspireResourceDebugToolService } from './resourceDebugToolService';
 import { escapeMarkdownForConfirmation } from './markdown';
+import { createJsonToolResult } from './languageModelToolUi';
+import { registerLanguageModelTools } from './languageModelToolRegistration';
 
 export class AspireResourceDebugLanguageModelTool implements vscode.LanguageModelTool<AspireResourceDebugToolInput> {
     constructor(private readonly _service: AspireResourceDebugToolService) {
@@ -54,47 +54,15 @@ export class AspireResourceDebugLanguageModelTool implements vscode.LanguageMode
         options: vscode.LanguageModelToolInvocationOptions<AspireResourceDebugToolInput>,
         token: vscode.CancellationToken,
     ): Promise<vscode.LanguageModelToolResult> {
-        return createToolResult(await this._service.debug(options.input, token));
+        return createJsonToolResult(await this._service.debug(options.input, token));
     }
 }
 
 export function registerAspireResourceDebugTool(service: AspireResourceDebugToolService): AspireResourceDebugToolRegistration {
-    const registrations: vscode.Disposable[] = [];
     const tool = new AspireResourceDebugLanguageModelTool(service);
-    const tools = new Map([
-        [aspireResourceDebugToolName, {
-            prepareInvocation: (options: { readonly input: Record<string, unknown> }, token: vscode.CancellationToken) =>
-                tool.prepareInvocation({ input: options.input as unknown as AspireResourceDebugToolInput }, token),
-            invoke: (
-                options: { readonly input: Record<string, unknown>; readonly toolInvocationToken: undefined },
-                token: vscode.CancellationToken,
-            ) => tool.invoke({
-                input: options.input as unknown as AspireResourceDebugToolInput,
-                toolInvocationToken: options.toolInvocationToken,
-            }, token),
-        }],
+    const tools = new Map<string, vscode.LanguageModelTool<unknown>>([
+        [aspireResourceDebugToolName, tool],
     ]);
 
-    if (typeof vscode.lm?.registerTool !== 'function') {
-        extensionLogOutputChannel.info('Skipping Aspire resource debug language model tool: the language model tool API is unavailable.');
-    }
-    else {
-        registrations.push(vscode.lm.registerTool(aspireResourceDebugToolName, tool));
-        extensionLogOutputChannel.info('Registered Aspire resource debug language model tool.');
-    }
-
-    return {
-        get registered() {
-            return registrations.length > 0;
-        },
-        tools,
-        dispose() {
-            registrations.forEach(registration => registration.dispose());
-            registrations.length = 0;
-        },
-    };
-}
-
-function createToolResult(result: AspireResourceDebugToolResult): vscode.LanguageModelToolResult {
-    return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(JSON.stringify(result))]);
+    return registerLanguageModelTools(tools, 'resource debug');
 }

@@ -270,7 +270,7 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         if (param.IsCallback)
         {
-            return $"self._client.register_callback({paramName})";
+            return $"self._client.register_callback({paramName}{GetCallbackParameterTypeIds(param)})";
         }
         if (param.Type?.TypeId == AtsConstants.CancellationToken)
         {
@@ -283,13 +283,30 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
     {
         if (param.IsCallback)
         {
-            return $"client.register_callback({paramName})";
+            return $"client.register_callback({paramName}{GetCallbackParameterTypeIds(param)})";
         }
         if (param.Type?.TypeId == AtsConstants.CancellationToken)
         {
             return $"client.register_cancellation_token({paramName})";
         }
         return paramName;
+    }
+
+    private static string GetCallbackParameterTypeIds(AtsParameterInfo parameter)
+    {
+        if (parameter.CallbackParameters is not { Count: > 0 } callbackParameters ||
+            !callbackParameters.Any(callbackParameter => IsHandleType(callbackParameter.Type)))
+        {
+            return string.Empty;
+        }
+
+        var typeIds = callbackParameters.Select(callbackParameter =>
+            IsHandleType(callbackParameter.Type)
+                ? JsonValue.Create(callbackParameter.Type.TypeId)!.ToJsonString()
+                : "None");
+        var tupleSuffix = callbackParameters.Count == 1 ? "," : string.Empty;
+
+        return $", ({string.Join(", ", typeIds)}{tupleSuffix})";
     }
 
     /// <summary>
@@ -809,12 +826,10 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         }
 
         // Collect enum type names
+        _enumTypeNames.Clear();
         foreach (var enumType in enumTypes)
         {
-            if (!_enumTypeNames.ContainsKey(enumType.TypeId))
-            {
-                _enumTypeNames[enumType.TypeId] = ExtractSimpleTypeName(enumType.TypeId);
-            }
+            _enumTypeNames[enumType.TypeId] = enumType.Name;
         }
 
         // Separate builders into categories:
@@ -2674,7 +2689,19 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         {
             // This will be a big if/elif/else clause, so we start with if on the first type variation.
             clause = "if";
-            builder.AppendLine(CultureInfo.InvariantCulture, $"        if _{optionName} := kwargs.pop(\"{optionName}\", None):");
+            if (variations.All(v => v.OptionType == "typing.Literal[True]"))
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture, $"        if _{optionName} := kwargs.pop(\"{optionName}\", None):");
+            }
+            else
+            {
+                // Falsy parameter values must reach the RPC, but False still disables opt-in flags
+                // unless the option also accepts an actual boolean parameter.
+                var hasFlag = variations.Any(v => v.OptionType == "typing.Literal[True]");
+                var hasBooleanParameter = variations.Any(v => v.OptionType.Split(" | ").Contains("bool"));
+                var flagGuard = hasFlag && !hasBooleanParameter ? $" and _{optionName} is not False" : string.Empty;
+                builder.AppendLine(CultureInfo.InvariantCulture, $"        if (_{optionName} := kwargs.pop(\"{optionName}\", None)) is not None{flagGuard}:");
+            }
         }
 
         // Resolve the correct capability ID for this variation.

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Aspire.Cli.Commands.Sdk;
 using Aspire.Cli.Processes;
@@ -83,7 +84,28 @@ internal sealed class FakeAppHostServerSessionFactory : IAppHostServerSessionFac
 {
     public IAppHostServerSession? Session { get; init; }
 
+    public Func<IAppHostServerSession>? CreateCallback { get; init; }
+
     public Dictionary<string, string>? CapturedEnvironmentVariables { get; private set; }
+
+    public ConcurrentQueue<Dictionary<string, string>?> CreatedSessionEnvironments { get; } = new();
+
+    public static FakeAppHostServerSessionFactory CreateForScaffolding(
+        IReadOnlyDictionary<string, string>? scaffoldFiles = null)
+    {
+        var rpcClient = new FakeAppHostRpcClient
+        {
+            ScaffoldAppHostAsyncCallback = (_, _, _, _) =>
+                Task.FromResult(scaffoldFiles is null
+                    ? new Dictionary<string, string>()
+                    : new Dictionary<string, string>(scaffoldFiles))
+        };
+
+        return new FakeAppHostServerSessionFactory
+        {
+            Session = new FakeAppHostServerSession(rpcClient)
+        };
+    }
 
     public IAppHostServerSession Create(
         IAppHostServerProject appHostServerProject,
@@ -95,7 +117,8 @@ internal sealed class FakeAppHostServerSessionFactory : IAppHostServerSessionFac
         CancellationToken stopRequested)
     {
         CapturedEnvironmentVariables = environmentVariables is null ? null : new Dictionary<string, string>(environmentVariables);
-        return Session ?? new FakeAppHostServerSession();
+        CreatedSessionEnvironments.Enqueue(CapturedEnvironmentVariables);
+        return CreateCallback?.Invoke() ?? Session ?? new FakeAppHostServerSession();
     }
 }
 
@@ -106,8 +129,12 @@ internal sealed class FakeAppHostServerSessionFactory : IAppHostServerSessionFac
 /// </summary>
 internal class FakeAppHostRpcClient : IAppHostRpcClient
 {
+    public RuntimeSpec? RuntimeSpec { get; init; }
+    public Func<string, string, string?, CancellationToken, Task<Dictionary<string, string>>>? ScaffoldAppHostAsyncCallback { get; init; }
+    public Func<string, CancellationToken, Task<Dictionary<string, string>>>? GenerateCodeAsyncCallback { get; init; }
+
     public virtual Task<RuntimeSpec> GetRuntimeSpecAsync(string languageId, CancellationToken cancellationToken)
-        => Task.FromResult(new RuntimeSpec
+        => Task.FromResult(RuntimeSpec ?? new RuntimeSpec
         {
             Language = languageId,
             DisplayName = "Fake",
@@ -117,10 +144,13 @@ internal class FakeAppHostRpcClient : IAppHostRpcClient
         });
 
     public virtual Task<Dictionary<string, string>> ScaffoldAppHostAsync(string languageId, string targetPath, string? projectName, CancellationToken cancellationToken)
-        => throw new NotSupportedException();
+        => ScaffoldAppHostAsyncCallback is not null
+            ? ScaffoldAppHostAsyncCallback(languageId, targetPath, projectName, cancellationToken)
+            : throw new NotSupportedException();
 
     public virtual Task<Dictionary<string, string>> GenerateCodeAsync(string languageId, CancellationToken cancellationToken)
-        => Task.FromResult(new Dictionary<string, string>());
+        => GenerateCodeAsyncCallback?.Invoke(languageId, cancellationToken)
+            ?? Task.FromResult(new Dictionary<string, string>());
 
     public virtual Task<Dictionary<string, string>> GenerateCodeForAssemblyAsync(string languageId, string assemblyName, CancellationToken cancellationToken)
         => Task.FromResult(new Dictionary<string, string>());

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +8,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Kubernetes.Annotations;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Pipelines;
@@ -130,6 +130,10 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// fetched via <c>az aks get-credentials</c> from the user's default kubectl context.
     /// </remarks>
     public string? KubeConfigPath { get; set; }
+
+    // AKS destroy sets this when persisted state points to a cluster that no longer exists.
+    // Cluster-scoped cleanup must then no-op instead of falling back to ambient credentials.
+    internal bool SkipDestroyCleanup { get; set; }
 
     /// <summary>
     /// Gets or sets the parent compute environment resource that owns this Kubernetes environment.
@@ -493,9 +497,9 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
             }
 
             // Configure OTLP for resources if dashboard is enabled
-            if (DashboardEnabled && Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
+            if (DashboardEnabled && Dashboard?.Resource is KubernetesAspireDashboardResource dashboardResource)
             {
-                ConfigureOtlp(r, otlpGrpcEndpoint);
+                ConfigureOtlp(r, dashboardResource);
             }
 
             // Create a Kubernetes compute resource for the resource
@@ -542,19 +546,48 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
         return null;
     }
 
-    private static void ConfigureOtlp(IResource resource, EndpointReference otlpEndpoint)
+    private static void ConfigureOtlp(IResource resource, KubernetesAspireDashboardResource dashboard)
     {
-        if (resource is IResourceWithEnvironment resourceWithEnv && resource.Annotations.OfType<OtlpExporterAnnotation>().Any())
+        var otlpExporter = GetEffectiveOtlpExporterAnnotation(resource);
+
+        if (resource is IResourceWithEnvironment resourceWithEnv &&
+            otlpExporter is not null)
         {
+            var (otlpEndpoint, protocol) = otlpExporter.RequiredProtocol switch
+            {
+                OtlpProtocol.HttpProtobuf => (dashboard.OtlpHttpEndpoint, "http/protobuf"),
+                OtlpProtocol.HttpJson => (dashboard.OtlpHttpEndpoint, "http/json"),
+                _ => (dashboard.OtlpGrpcEndpoint, "grpc"),
+            };
+
             resourceWithEnv.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
             {
                 context.EnvironmentVariables[KnownOtelConfigNames.ExporterOtlpEndpoint] = otlpEndpoint;
-                context.EnvironmentVariables[KnownOtelConfigNames.ExporterOtlpProtocol] = "grpc";
+                context.EnvironmentVariables[KnownOtelConfigNames.ExporterOtlpProtocol] = protocol;
                 context.EnvironmentVariables[KnownOtelConfigNames.ServiceName] = resource.Name;
+                ApplyActivationEnvironmentVariables(resource, context.EnvironmentVariables);
                 return Task.CompletedTask;
             }));
         }
     }
+
+    private static void ApplyActivationEnvironmentVariables(
+        IResource resource,
+        IDictionary<string, object> environmentVariables)
+    {
+        if (GetEffectiveOtlpExporterAnnotation(resource) is not IReadOnlyDictionary<string, string> activationEnvironmentVariables)
+        {
+            return;
+        }
+
+        foreach (var (name, value) in activationEnvironmentVariables)
+        {
+            environmentVariables.TryAdd(name, value);
+        }
+    }
+
+    private static OtlpExporterAnnotation? GetEffectiveOtlpExporterAnnotation(IResource resource)
+        => resource.Annotations.OfType<OtlpExporterAnnotation>().LastOrDefault();
 
     /// <summary>
     /// Resolves a <see cref="ReferenceExpression"/> at deploy time. Used by pipeline steps
@@ -1007,20 +1040,57 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
             : DefaultStorageSize;
         claim.Spec.Resources.Requests.Add("storage", capacity);
 
-        if (volumeResource.StorageClassName is { } storageClassExpression)
+        if (volumeResource.PersistentVolumeName is { } volumeNameExpression)
         {
-            var storageClass = await ResolveExpressionAsync(storageClassExpression, volumeResource.Name, cancellationToken).ConfigureAwait(false);
-            if (!string.IsNullOrWhiteSpace(storageClass))
-            {
-                claim.Spec.StorageClassName = storageClass;
-            }
+            claim.Spec.VolumeName = await ResolveExpressionAsync(volumeNameExpression, volumeResource.Name, cancellationToken).ConfigureAwait(false);
         }
-        else if (!string.IsNullOrEmpty(DefaultStorageClassName))
+
+        claim.Spec.StorageClassName = await ResolveStorageClass(volumeResource, cancellationToken).ConfigureAwait(false);
+
+        foreach (var annotation in volumeResource.Annotations.OfType<KubernetesPersistentVolumeCustomizationAnnotation>())
         {
-            claim.Spec.StorageClassName = DefaultStorageClassName;
+            annotation.Configure(claim);
         }
 
         return claim;
+    }
+
+    private async Task<string?> ResolveStorageClass(KubernetesPersistentVolumeResource volumeResource, CancellationToken cancellationToken)
+    {
+        if (!volumeResource.ShouldRequestStorageClassName)
+        {
+            return null;
+        }
+
+        string? storageClassName;
+        if (volumeResource.StorageClassName is { } storageClassExpression)
+        {  
+            if (storageClassExpression.Format.Length == 0)
+            {
+                storageClassName = string.Empty;
+            }
+            else
+            {
+                storageClassName = await ResolveExpressionAsync(storageClassExpression, volumeResource.Name, cancellationToken).ConfigureAwait(false);
+                if (storageClassName is { Length: > 0 } && string.IsNullOrWhiteSpace(storageClassName))
+                {
+                    storageClassName = null;
+                }
+            }
+        }
+        else if (DefaultStorageClassName == "")
+        {
+            // Preserve behavior of legacy PVCs. When DefaultStorageClassName
+            // was set to an empty string and volumeResource.StorageClassName
+            // was empty or null, legacy PVCs would omit the storageClassName entirely.
+            storageClassName = null;
+        }
+        else
+        {
+            storageClassName = DefaultStorageClassName;
+        }
+
+        return storageClassName;
     }
 
     private async Task BuildGatewayObjects(

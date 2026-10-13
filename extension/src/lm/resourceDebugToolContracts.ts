@@ -5,7 +5,7 @@ import type {
     ResourceDebugStrategy,
 } from '../debugger/resourceDebugContracts';
 import type { AppHostTarget, AppHostTargetResolver } from './appHostTargetResolverContracts';
-import type { PreparableLanguageModelToolRegistration } from './languageModelToolContracts';
+import type { LanguageModelToolRegistration } from './languageModelToolRegistration';
 
 export const aspireResourceDebugToolName = 'aspire_resource_debug';
 
@@ -69,7 +69,7 @@ export type AspireResourceDebugToolPreparation =
         readonly result: AspireResourceDebugToolResult;
     };
 
-export type AspireResourceDebugToolRegistration = PreparableLanguageModelToolRegistration;
+export type AspireResourceDebugToolRegistration = LanguageModelToolRegistration;
 
 export type {
     AppHostTarget as SafeAppHostTarget,

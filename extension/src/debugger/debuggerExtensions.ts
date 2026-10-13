@@ -1,10 +1,10 @@
 import path from "path";
 import * as vscode from 'vscode';
-import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration, AspireResourceDebugSession } from "../dcp/types";
+import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration, AspireResourceDebugSession, getLaunchConfigurationExecutablePaths, getLaunchConfigurationTargetPath, isProjectLaunchConfiguration } from "../dcp/types";
 import { debugProject, runProject } from "../loc/strings";
 import { getEnvironmentForChildProcess, mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
-import { projectDebuggerExtension } from "./languages/dotnet";
+import { externalBuildProjectDebuggerExtension, projectDebuggerExtension } from "./languages/dotnet";
 import { isAzureFunctionsExtensionInstalled, isBunInstalled, isCsharpInstalled, isGoInstalled, isJavaInstalled, isMauiInstalled, isPythonInstalled, isRustInstalled } from '../capabilities';
 import { pythonDebuggerExtension } from "./languages/python";
 import { nodeDebuggerExtension } from "./languages/node";
@@ -13,6 +13,7 @@ import { azureFunctionsDebuggerExtension } from "./languages/azureFunctions";
 import { goDebuggerExtension } from "./languages/go";
 import { createDefaultRustDebuggerExtension } from "./languages/rust";
 import { bunDebuggerExtension } from "./languages/bun";
+import { denoDebuggerExtension } from "./languages/deno";
 import { javaDebuggerExtension } from "./languages/java";
 import { mauiDebuggerExtension } from "./languages/maui";
 import { isDirectory } from "../utils/io";
@@ -56,7 +57,11 @@ export function applyDebuggerConfigurationOverrides(
         Object.assign(configuration, debugSessionConfig.debuggers['apphost']);
     }
 
-    if (debugSessionConfig.debuggers[launchConfigurationType]) {
+    if (isProjectLaunchConfiguration({ type: launchConfigurationType }) && debugSessionConfig.debuggers['project']) {
+        Object.assign(configuration, debugSessionConfig.debuggers['project']);
+    }
+
+    if (launchConfigurationType !== 'project' && debugSessionConfig.debuggers[launchConfigurationType]) {
         Object.assign(configuration, debugSessionConfig.debuggers[launchConfigurationType]);
     }
 }
@@ -88,10 +93,28 @@ export async function prepareDebugSession(debugSessionConfig: AspireExtendedDebu
 
     applyDebuggerConfigurationOverrides(configuration, debugSessionConfig, launchConfig.type, launchOptions.isApphost);
 
+    // These fields identify and control the Aspire run, so workspace debugger settings cannot
+    // override them. `resourceType` also lets lifecycle code distinguish browser sessions from
+    // process-backed sessions without duplicating a termination policy across every debugger.
+    configuration.runId = launchOptions.runId;
+    configuration.debugSessionId = launchOptions.debugSessionId;
+    configuration.isApphost = launchOptions.isApphost;
+    configuration.resourceType = debuggerExtension.resourceType;
 
     let alreadyStartedSession: AlreadyStartedResourceDebugSession | undefined;
     if (debuggerExtension.createDebugSessionConfigurationCallback) {
         alreadyStartedSession = await debuggerExtension.createDebugSessionConfigurationCallback(launchConfig, args, env, launchOptions, configuration) ?? undefined;
+    }
+
+    // Debugger-specific callbacks can replace `program` with an output binary,
+    // runtime executable, or package-manager command. Keep the source target and
+    // resource executable identity from DCP's typed launch metadata so editor
+    // assistance never has to inspect the final debug configuration or infer
+    // identity from free-form args/environment.
+    configuration.targetPath = getLaunchConfigurationTargetPath(launchConfig);
+    const resourceExecutablePaths = getLaunchConfigurationExecutablePaths(launchConfig);
+    if (resourceExecutablePaths.length > 0) {
+        configuration.resourceExecutablePaths = resourceExecutablePaths;
     }
 
     return {
@@ -104,6 +127,7 @@ export function getResourceDebuggerExtensions(platform: NodeJS.Platform = proces
     const extensions = [];
     if (isCsharpInstalled()) {
         extensions.push(projectDebuggerExtension);
+        extensions.push(externalBuildProjectDebuggerExtension);
 
         if (isAzureFunctionsExtensionInstalled()) {
             extensions.push(azureFunctionsDebuggerExtension);
@@ -134,6 +158,8 @@ export function getResourceDebuggerExtensions(platform: NodeJS.Platform = proces
     if (isBunInstalled()) {
         extensions.push(bunDebuggerExtension);
     }
+
+    extensions.push(denoDebuggerExtension);
 
     if (isMauiInstalled()) {
         extensions.push(mauiDebuggerExtension);

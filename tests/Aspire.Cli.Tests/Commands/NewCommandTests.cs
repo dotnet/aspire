@@ -1295,10 +1295,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("typescript", null, "apphost.mts")]
-    [InlineData("java", "experimentalPolyglot:java", "AppHost.java")]
-    [InlineData("python", "experimentalPolyglot:python", "apphost.py")]
-    [InlineData("go", "experimentalPolyglot:go", "apphost.go")]
-    [InlineData("rust", "experimentalPolyglot:rust", "apphost.rs")]
+    [InlineData("java", "experimentalPolyglotJava", "AppHost.java")]
+    [InlineData("python", "experimentalPolyglotPython", "apphost.py")]
+    [InlineData("go", "experimentalPolyglotGo", "apphost.go")]
+    [InlineData("rust", "experimentalPolyglotRust", "apphost.rs")]
     public async Task NewCommandWithEmptyTemplateAndSourceOverridePersistsSourceForLaterRestore(string language, string? featureFlag, string scaffoldFileName)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -1595,6 +1595,43 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.True(appHostCreated);
         Assert.False(commandCompletedBeforeExtraction);
         Assert.Equal(CliExitCodes.Success, exitCode);
+    }
+
+    [Theory]
+    [InlineData("13.6.1", false)]
+    [InlineData("17.0.0-preview.1", true)]
+    [InlineData("17.0.0", true)]
+    public async Task NewCommandCSharpTemplateUsesVersionCompatibleDirectives(string version, bool packageOnly)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var cache = new FakeNuGetPackageCache
+        {
+            GetTemplatePackagesAsyncCallback = (_, _, _, _) =>
+                Task.FromResult<IEnumerable<NuGetPackage>>(
+                [
+                    new NuGetPackage { Id = TemplateNuGetConfigService.TemplatesPackageName, Source = "nuget", Version = version }
+                ])
+        };
+        var services = CreateServiceCollection(workspace, options => options.NuGetPackageCacheFactory = _ => cache);
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse($"new aspire-empty --name TestApp --output ./output --version {version} --localhost-tld false --suppress-agent-init");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        var content = await File.ReadAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "output", "apphost.cs"));
+        Assert.Contains("#:property AspireUseCliBundle=true", content);
+        Assert.DoesNotContain("{{", content);
+        if (packageOnly)
+        {
+            Assert.Contains($"#:package Aspire.Hosting.AppHost@{version}", content);
+            Assert.Contains($"#:package Aspire.Hosting.Dotnet@{version}", content);
+            Assert.DoesNotContain("#:sdk", content);
+        }
+        else
+        {
+            Assert.Contains($"#:sdk Aspire.AppHost.Sdk@{version}", content);
+            Assert.DoesNotContain("#:package", content);
+        }
     }
 
     [Fact]
@@ -3220,6 +3257,59 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task NewCommandAgentInit_IncludesAspireifyAndDoesNotOfferMcpServer()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interactionService = new TestInteractionService
+        {
+            ConfirmCallback = (_, defaultValue) => defaultValue,
+        };
+        var promptedSkills = new List<SkillDefinition>();
+        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
+        {
+            var items = choices.Cast<object>().ToList();
+            if (items.FirstOrDefault() is SkillLocation)
+            {
+                return [SkillLocation.Standard];
+            }
+
+            Assert.All(items, static item => Assert.IsType<SkillDefinition>(item));
+            promptedSkills.AddRange(items.Cast<SkillDefinition>());
+            return items
+                .Cast<SkillDefinition>()
+                .Where(static skill => skill.IsDefault)
+                .Cast<object>()
+                .ToList();
+        };
+
+        var mcpApplicator = new AgentEnvironmentApplicator(
+            AgentCommandStrings.InitCommand_ConfigureMcpServer,
+            _ => Task.CompletedTask);
+        var services = CreateServiceCollection(workspace, options =>
+        {
+            options.InteractionServiceFactory = _ => interactionService;
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new aspire-empty --name TestApp --output ./output --localhost-tld false");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Contains(promptedSkills, static skill => skill.HasName(CommonAgentApplicators.AspireifySkillName));
+        var aspireifySkillPath = Path.Combine(
+            workspace.WorkspaceRoot.FullName,
+            "output",
+            ".agents",
+            "skills",
+            CommonAgentApplicators.AspireifySkillName,
+            "SKILL.md");
+        Assert.True(File.Exists(aspireifySkillPath));
+    }
+
+    [Fact]
     public async Task NewCommandNonInteractive_SuppressAgentInitTrue_SkipsAgentInit()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -3270,7 +3360,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var skillPath = Path.Combine(workspace.WorkspaceRoot.FullName, "output", ".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
         Assert.True(File.Exists(skillPath));
         var aspireifySkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, "output", ".agents", "skills", CommonAgentApplicators.AspireifySkillName, "SKILL.md");
-        Assert.False(File.Exists(aspireifySkillPath));
+        Assert.True(File.Exists(aspireifySkillPath));
     }
 
     [Fact]
@@ -3298,7 +3388,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var skillPath = Path.Combine(workspace.WorkspaceRoot.FullName, "output", ".agents", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
         Assert.True(File.Exists(skillPath));
         var aspireifySkillPath = Path.Combine(workspace.WorkspaceRoot.FullName, "output", ".agents", "skills", CommonAgentApplicators.AspireifySkillName, "SKILL.md");
-        Assert.False(File.Exists(aspireifySkillPath));
+        Assert.True(File.Exists(aspireifySkillPath));
     }
 
     [Fact]

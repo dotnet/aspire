@@ -35,6 +35,7 @@ import { stripResourceSuffix } from '../utils/urlSchemes';
 import {
     AppHostDataRepository,
     AppHostDisplayInfo,
+    isResourceNameMatch,
     ResourceCommandArgumentInputJson,
     ResourceJson,
     ViewMode,
@@ -52,6 +53,7 @@ import { pipelineInteractionCapability, pipelineStepListJsonCapability } from '.
 import { isAppHostSourceFile, isProjectFile } from '../utils/paths/comparison';
 import { isCommandCancellation } from '../utils/telemetry';
 import type { ResourceDebugger } from '../debugger/resourceDebugContracts';
+import { isWebDashboardUrl } from '../debugger/session/dashboardLauncher';
 import {
     getParentResourceName,
     getTerminalReplicaIndex,
@@ -669,7 +671,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     private _findResourceInTreeCore(elements: TreeElement[], resourceName: string, includeDisplayName: boolean): TreeElement | undefined {
         for (const element of elements) {
             if (element instanceof ResourceItem) {
-                if (resourceMatchesName(element.resource, resourceName, includeDisplayName)) {
+                if (isResourceNameMatch(element.resource, resourceName, includeDisplayName)) {
                     return element;
                 }
             }
@@ -1834,15 +1836,6 @@ function getBaseDashboardUrl(resourceDashboardUrl: string | null): string | null
     return idx >= 0 ? resourceDashboardUrl.substring(0, idx) : resourceDashboardUrl;
 }
 
-function isWebDashboardUrl(url: string): boolean {
-    try {
-        const parsed = new URL(url);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-        return false;
-    }
-}
-
 async function openDashboardUrlToSide(url: string): Promise<void> {
     const commands = await vscode.commands.getCommands(true);
     if (commands.includes(integratedBrowserOpenCommand)) {
@@ -1865,8 +1858,4 @@ function isProjectFileToSourceFileMatch(left: string, right: string): boolean {
     return isSamePath(path.dirname(normalizedLeft), path.dirname(normalizedRight)) &&
         ((isProjectFile(normalizedLeft) && isAppHostSourceFile(normalizedRight)) ||
             (isAppHostSourceFile(normalizedLeft) && isProjectFile(normalizedRight)));
-}
-
-function resourceMatchesName(resource: ResourceJson, resourceName: string, includeDisplayName: boolean): boolean {
-    return resource.name === resourceName || (includeDisplayName && resource.displayName === resourceName);
 }

@@ -10,6 +10,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.Shared;
 using Aspire.Shared.Model.Serialization;
@@ -88,7 +89,7 @@ internal sealed class DescribeCommand : BaseCommand
     {
         Description = DescribeCommandStrings.FollowOptionDescription
     };
-    private static readonly Option<OutputFormat> s_formatOption = new("--format")
+    private static readonly Option<ResourceOutputFormat> s_formatOption = new("--format")
     {
         Description = DescribeCommandStrings.JsonOptionDescription
     };
@@ -140,6 +141,9 @@ internal sealed class DescribeCommand : BaseCommand
         });
     }
 
+    protected override bool IsMachineReadableFormatRequested(ParseResult parseResult) =>
+        parseResult.GetValue(s_formatOption) is ResourceOutputFormat.Json or ResourceOutputFormat.Mermaid;
+
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = Telemetry.StartDiagnosticActivity(Name);
@@ -151,6 +155,11 @@ internal sealed class DescribeCommand : BaseCommand
         var includeHidden = parseResult.GetValue(s_includeHiddenOption);
         var includeDisabledCommands = parseResult.GetValue(s_includeDisabledCommandsOption);
         var appHostPid = parseResult.GetValue(s_appHostPidOption);
+
+        if (follow && format == ResourceOutputFormat.Mermaid)
+        {
+            return CommandResult.Failure(CliExitCodes.InvalidCommand, DescribeCommandStrings.MermaidFollowNotSupported);
+        }
 
         var result = await _connectionResolver.ResolveConnectionAsync(
             passedAppHostProjectFile,
@@ -196,7 +205,7 @@ internal sealed class DescribeCommand : BaseCommand
             {
                 return CommandResult.Success();
             }
-            catch (Exception ex) when (AppHostFollowDisconnectHelpers.IsExpectedDisconnect(ex))
+            catch (Exception ex) when (BackchannelDisconnectHelpers.IsExpectedDisconnect(ex))
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -218,8 +227,10 @@ internal sealed class DescribeCommand : BaseCommand
         }
     }
 
-    private int ExecuteSnapshot(IReadOnlyList<ResourceSnapshot> snapshots, string? dashboardBaseUrl, string? resourceName, OutputFormat format, bool includeDisabledCommands)
+    private int ExecuteSnapshot(IReadOnlyList<ResourceSnapshot> snapshots, string? dashboardBaseUrl, string? resourceName, ResourceOutputFormat format, bool includeDisabledCommands)
     {
+        var allSnapshots = snapshots;
+
         // Filter by resource name if specified
         if (resourceName is not null)
         {
@@ -233,10 +244,23 @@ internal sealed class DescribeCommand : BaseCommand
             return CliExitCodes.FailedToFindProject;
         }
 
-        var resourceList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl, includeDisabledCommands: includeDisabledCommands);
-
-        if (format == OutputFormat.Json)
+        if (format == ResourceOutputFormat.Mermaid)
         {
+            var graphResources = snapshots.Where(r => r.ResourceType != KnownResourceTypes.Parameter).ToList();
+            var resourcesByDisplayName = graphResources.ToLookup(r => r.DisplayName, StringComparers.ResourceName);
+            var diagram = MermaidGraphExporter.Export(
+                graphResources,
+                r => r.Name,
+                r => ResourceSnapshotMapper.GetResourceName(r, allSnapshots),
+                r => r.Relationships
+                    .Where(relationship => !string.Equals(relationship.ResourceName, r.DisplayName, StringComparisons.ResourceName))
+                    .SelectMany(relationship => resourcesByDisplayName[relationship.ResourceName])
+                    .Select(target => target.Name));
+            InteractionService.DisplayRawText(diagram, ConsoleOutput.Standard);
+        }
+        else if (format == ResourceOutputFormat.Json)
+        {
+            var resourceList = ResourceSnapshotMapper.MapToResourceJsonList(snapshots, dashboardBaseUrl, includeDisabledCommands: includeDisabledCommands);
             var output = new ResourcesOutput { Resources = resourceList.ToArray() };
             var json = JsonSerializer.Serialize(output, ResourcesCommandJsonContext.RelaxedEscaping.ResourcesOutput);
             // Structured output always goes to stdout.
@@ -250,7 +274,7 @@ internal sealed class DescribeCommand : BaseCommand
         return CliExitCodes.Success;
     }
 
-    private async Task<int> ExecuteWatchAsync(ResourceSnapshotWatcher resourceWatcher, string? dashboardBaseUrl, string? resourceName, OutputFormat format, bool includeDisabledCommands, CancellationToken cancellationToken)
+    private async Task<int> ExecuteWatchAsync(ResourceSnapshotWatcher resourceWatcher, string? dashboardBaseUrl, string? resourceName, ResourceOutputFormat format, bool includeDisabledCommands, CancellationToken cancellationToken)
     {
         // Cache the last displayed content per resource to avoid duplicate output.
         // Values are either a string (JSON mode) or a ResourceDisplayState (non-JSON mode).
@@ -274,7 +298,7 @@ internal sealed class DescribeCommand : BaseCommand
                 }
             }
 
-            if (format == OutputFormat.Json)
+            if (format == ResourceOutputFormat.Json)
             {
                 var resourceJson = ResourceSnapshotMapper.MapToResourceJson(
                     snapshot,
@@ -461,6 +485,13 @@ internal sealed class DescribeCommand : BaseCommand
         "DEGRADED" => $"[yellow]{health}[/]",
         _ => health
     };
+
+    private enum ResourceOutputFormat
+    {
+        Table,
+        Json,
+        Mermaid
+    }
 
     /// <summary>
     /// Represents the display state of a resource for deduplication during watch mode.
