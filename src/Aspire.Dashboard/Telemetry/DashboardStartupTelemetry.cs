@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Utils;
 using Aspire.Shared;
 
 namespace Aspire.Dashboard.Telemetry;
@@ -20,12 +19,14 @@ internal sealed class DashboardStartupTelemetry
     {
         _telemetry = telemetry;
         _startTimestamp = startTimestamp;
-        // Failed startup can supply unvalidated options, so keep this dimension bounded.
-        _persistenceMode = options.Data.PersistenceMode switch
+        // Failed startup can supply unvalidated options. Parse errors leave the enum at its
+        // previous value, so check the error before mapping the enum to a bounded telemetry value.
+        _persistenceMode = options.Data switch
         {
-            DashboardPersistenceMode.None => "none",
-            DashboardPersistenceMode.Run => "run",
-            DashboardPersistenceMode.Resume => "resume",
+            { PersistenceModeParseError: not null } => "unknown",
+            { PersistenceMode: DashboardPersistenceMode.None } => "none",
+            { PersistenceMode: DashboardPersistenceMode.Run } => "run",
+            { PersistenceMode: DashboardPersistenceMode.Resume } => "resume",
             _ => "unknown"
         };
         _launchContext = options.LaunchContext?.Trim().ToLowerInvariant() switch
@@ -50,7 +51,6 @@ internal sealed class DashboardStartupTelemetry
 
         Dictionary<string, AspireTelemetryProperty> properties = new()
         {
-            [TelemetryPropertyKeys.DashboardIsAot] = new(VersionHelpers.IsNativeAot),
             [TelemetryPropertyKeys.StartupSuccess] = new(success),
             [TelemetryPropertyKeys.StartupLaunchContext] = new(_launchContext),
             [TelemetryPropertyKeys.StartupPersistenceMode] = new(_persistenceMode),

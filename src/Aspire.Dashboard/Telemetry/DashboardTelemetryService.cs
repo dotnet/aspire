@@ -202,7 +202,6 @@ public sealed class DashboardTelemetryService : AspireTelemetryBase
     }
 
     private static bool IsAllowedProperty(string key) => key is
-        TelemetryPropertyKeys.DashboardIsAot or
         TelemetryPropertyKeys.StartupSuccess or TelemetryPropertyKeys.StartupLaunchContext or
         TelemetryPropertyKeys.StartupPersistenceMode or TelemetryPropertyKeys.StartupDurationMilliseconds or TelemetryPropertyKeys.ErrorType or
         TelemetryPropertyKeys.DashboardComponentId or TelemetryPropertyKeys.DashboardComponentType or

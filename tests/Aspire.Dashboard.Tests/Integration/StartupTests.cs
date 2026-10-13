@@ -10,7 +10,6 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Aspire.Otlp.Serialization;
 using Aspire.Shared;
@@ -1170,10 +1169,15 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(true, DashboardPersistenceMode.Run, "run")]
-    [InlineData(false, DashboardPersistenceMode.Resume, "resume")]
-    [InlineData(false, (DashboardPersistenceMode)999, "unknown")]
-    public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode)
+    [InlineData(true, DashboardPersistenceMode.Run, "run", null)]
+    [InlineData(false, DashboardPersistenceMode.Resume, "resume", null)]
+    [InlineData(false, (DashboardPersistenceMode)999, "unknown", null)]
+    [InlineData(false, DashboardPersistenceMode.None, "unknown", "invalid")]
+    [InlineData(false, DashboardPersistenceMode.None, "unknown", "999")]
+    [InlineData(false, DashboardPersistenceMode.Resume, "unknown", "invalid")]
+    [InlineData(true, DashboardPersistenceMode.Run, "resume", "ReSuMe")]
+    public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(
+        bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode, string? environmentPersistenceMode)
     {
         using var fixture = new DashboardTelemetryFixture();
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);
@@ -1183,8 +1187,9 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             {
                 data[DashboardConfigNames.DashboardLaunchContextName.ConfigKey] = " CLI ";
                 data[DashboardConfigNames.DashboardPersistenceModeName.ConfigKey] = persistenceMode.ToString();
+                data[DashboardConfigNames.DashboardPersistenceModeName.EnvVarName] = environmentPersistenceMode;
                 data[DashboardConfigNames.DashboardDataDirectoryName.ConfigKey] = workspace.Path;
-                if (!validOptions && Enum.IsDefined(persistenceMode))
+                if (!validOptions && Enum.IsDefined(persistenceMode) && environmentPersistenceMode is null)
                 {
                     data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = null;
                 }
@@ -1200,7 +1205,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         else
         {
             var exception = Assert.Throws<OptionsValidationException>(() => app.DashboardOptionsMonitor.CurrentValue);
-            if (!Enum.IsDefined(persistenceMode))
+            if (environmentPersistenceMode is not null)
+            {
+                Assert.Equal(
+                    $"Failed to parse dashboard persistence mode '{environmentPersistenceMode}'. Possible values: None, Run, Resume.",
+                    Assert.Single(exception.Failures));
+            }
+            else if (!Enum.IsDefined(persistenceMode))
             {
                 Assert.Equal($"Unexpected dashboard persistence mode: {persistenceMode}", Assert.Single(exception.Failures));
             }
@@ -1214,7 +1225,6 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
         Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
         Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
-        Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
         Assert.Equal("local",
             Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
         Assert.Equal(OperatingSystemTelemetry.GetOsName(), attributes[TelemetryPropertyKeys.OsName]);

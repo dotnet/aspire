@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Utils;
 using Aspire.Shared;
 using Xunit;
 
@@ -47,20 +46,49 @@ public class DashboardStartupTelemetryTests
         Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
         Assert.Equal(TelemetryEventKeys.Startup, log.Message);
         var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
-        Assert.Equal(VersionHelpers.IsNativeAot, Assert.IsType<bool>(attributes[TelemetryPropertyKeys.DashboardIsAot]));
-        Assert.Equal("local", Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
-        Assert.Equal(success, attributes[TelemetryPropertyKeys.StartupSuccess]);
-        Assert.Equal(KnownDashboardLaunchContexts.AppHost, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
-        Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
-        Assert.True(Assert.IsType<double>(attributes[TelemetryPropertyKeys.StartupDurationMilliseconds]) >= 900);
-        if (errorType is null)
+        var duration = Assert.IsType<double>(attributes[TelemetryPropertyKeys.StartupDurationMilliseconds]);
+        Assert.True(duration >= 900);
+        List<KeyValuePair<string, object?>> expectedEventProperties =
+        [
+            new("microsoft.operation_name", TelemetryEventKeys.Startup),
+            new("{OriginalFormat}", TelemetryEventKeys.Startup),
+            new(TelemetryPropertyKeys.StartupSuccess, success),
+            new(TelemetryPropertyKeys.StartupLaunchContext, KnownDashboardLaunchContexts.AppHost),
+            new(TelemetryPropertyKeys.StartupPersistenceMode, expectedPersistenceMode),
+            new(TelemetryPropertyKeys.StartupDurationMilliseconds, duration)
+        ];
+        if (errorType is not null)
         {
-            Assert.False(attributes.ContainsKey(TelemetryPropertyKeys.ErrorType));
+            expectedEventProperties.Add(new(TelemetryPropertyKeys.ErrorType, errorType));
         }
-        else
+        fixture.AssertAttributes(log.Attributes, [.. expectedEventProperties]);
+        Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
+    }
+
+    [Theory]
+    [InlineData(DashboardPersistenceMode.None)]
+    [InlineData(DashboardPersistenceMode.Run)]
+    [InlineData(DashboardPersistenceMode.Resume)]
+    public void Record_RecordsUnknownPersistenceModeWhenParsingFails(DashboardPersistenceMode persistenceMode)
+    {
+        using var fixture = new DashboardTelemetryFixture();
+        var options = new DashboardOptions
         {
-            Assert.Equal(errorType, attributes[TelemetryPropertyKeys.ErrorType]);
-        }
+            Data = new DashboardDataOptions
+            {
+                PersistenceMode = persistenceMode,
+                PersistenceModeParseError = "Invalid persistence mode."
+            }
+        };
+        var startupTelemetry = new DashboardStartupTelemetry(fixture.Telemetry, options, Stopwatch.GetTimestamp());
+
+        startupTelemetry.RecordFailure(KnownDashboardStartupFailureReasons.ConfigurationValidation);
+
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+        var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
+        Assert.Equal("unknown", attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
+        Assert.Equal(false, attributes[TelemetryPropertyKeys.StartupSuccess]);
+        Assert.Equal(KnownDashboardStartupFailureReasons.ConfigurationValidation, attributes[TelemetryPropertyKeys.ErrorType]);
         Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
     }
 
