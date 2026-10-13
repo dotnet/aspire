@@ -90,10 +90,11 @@ internal static class McpConfigFileHelper
             return false;
         }
 
-        // Legacy MCP entries use args: ["mcp", "start"], or OpenCode's
+        // Legacy MCP entries use command: "aspire", args: ["mcp", "start"], or OpenCode's
         // command: ["aspire", "mcp", "start"]. Only these exact deprecated forms are repaired;
         // custom commands and version-pinned server definitions are left intact.
-        if (aspire["args"] is JsonArray { Count: 2 } args &&
+        if (MatchesArgument(aspire["command"], "aspire") &&
+            aspire["args"] is JsonArray { Count: 2 } args &&
             MatchesArgument(args[0], "mcp") && MatchesArgument(args[1], "start"))
         {
             aspire["args"] = new JsonArray("agent", "mcp");
