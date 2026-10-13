@@ -232,14 +232,14 @@ internal sealed partial class RuntimeGeneration
         async Task Allocated(WorkloadEndpoint endpoint, CancellationToken cancellationToken)
         {
             retirementValues = CaptureLifecycleValues(resourceId, true);
-            await InvokeProvider("allocated", retirementValues, cancellationToken).ConfigureAwait(false);
+            await InvokeProvider(ProviderLifecyclePhases.Allocated, retirementValues, cancellationToken).ConfigureAwait(false);
             // Resolve retirement while allocation and desired values are still
             // authoritative. Retirement can then run after handle revocation.
-            if (lifecycle.SingleOrDefault(command => command.Phase == "retire") is { } retirementCommand)
+            if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Retire) is { } retirementCommand)
             {
                 retirement = (ExecutableWorkload)Resolve(retirementCommand, true);
             }
-            if (lifecycle.SingleOrDefault(command => command.Phase == "health") is { } health)
+            if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Health) is { } health)
             {
                 var plan = Resolve(health, true);
                 while (!await RunLifecycleCommandAsync(plan, cancellationToken).ConfigureAwait(false))
@@ -247,8 +247,8 @@ internal sealed partial class RuntimeGeneration
                     await Task.Delay(options.ObservationInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
-            await Execute("ready", true, cancellationToken).ConfigureAwait(false);
-            await InvokeProvider("ready", retirementValues, cancellationToken).ConfigureAwait(false);
+            await Execute(LifecycleCommandPhases.Ready, true, cancellationToken).ConfigureAwait(false);
+            await InvokeProvider(ProviderLifecyclePhases.Ready, retirementValues, cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
                 EnsureAlive();
@@ -267,7 +267,7 @@ internal sealed partial class RuntimeGeneration
             using var deadline = new CancellationTokenSource(options.WorkloadStartupTimeout, options.TimeProvider);
             try
             {
-                if (lifecycle.SingleOrDefault(command => command.Phase == "retire") is not null)
+                if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Retire) is not null)
                 {
                     if (retirement is null)
                     {
@@ -283,7 +283,7 @@ internal sealed partial class RuntimeGeneration
             {
                 // Public declaration handles have already been revoked. This
                 // phase grants only captured native input execution and logging.
-                await InvokeProvider("retiring", retirementValues, deadline.Token).ConfigureAwait(false);
+                await InvokeProvider(ProviderLifecyclePhases.Retiring, retirementValues, deadline.Token).ConfigureAwait(false);
             }
         }
 
@@ -291,8 +291,8 @@ internal sealed partial class RuntimeGeneration
         {
             entered = true;
             retirementValues = CaptureLifecycleValues(resourceId, false);
-            await InvokeProvider("initialize", retirementValues, token).ConfigureAwait(false);
-            if (lifecycle.SingleOrDefault(command => command.Phase == "retire") is { } retirementCommand &&
+            await InvokeProvider(ProviderLifecyclePhases.Initialize, retirementValues, token).ConfigureAwait(false);
+            if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Retire) is { } retirementCommand &&
                 retirementCommand.Bindings.Environment.Select(binding => binding.ConfigurationKey)
                     .Concat(retirementCommand.Bindings.Arguments.Select(binding => binding.ConfigurationKey))
                     .All(key => resource.Declaration.SymbolicConfiguration.Single(entry => entry.Name == key).Value.References
@@ -300,7 +300,7 @@ internal sealed partial class RuntimeGeneration
             {
                 retirement = (ExecutableWorkload)Resolve(retirementCommand, false);
             }
-            await Execute("initialize", false, token).ConfigureAwait(false);
+            await Execute(LifecycleCommandPhases.Initialize, false, token).ConfigureAwait(false);
         }
 
         return (Initialize, Allocated, Retire);

@@ -15,10 +15,14 @@ reference without reading the credential in either integration language.
 AppHost Server v2 ships as an additive bundle component. Existing AppHosts keep
 using the managed server unless their target `aspire.config.json` explicitly
 sets `"features": { "appHostServerV2": true }`. Global configuration does not
-select v2. The initial CLI boundary supports TypeScript/Node.js on Unix,
+select v2. The initial CLI boundary supports TypeScript/Node.js on Unix and Windows,
 core resources and qualified protocol-v2 npm providers. The C# examples below
 remain standalone provider/contract examples, not compatible managed NuGet
 integrations for the product path.
+
+The C# Redis provider uses StackExchange.Redis for health checks, SAVE and
+consumer commands. Integration implementations are ordinary managed code and
+may use service-client libraries; only the server core must remain AOT-friendly.
 
 A qualified npm entry point has an adjacent `aspire.apphost-server.json`:
 

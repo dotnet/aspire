@@ -121,6 +121,11 @@ the repo-built CLI/Dashboard, and headless Chromium. Building `AotSmoke` through
 a project reference is not a substitute for executing this lane. Its existing
 cleanup assertions remain enabled. Evidence is uploaded even on failure.
 
+Both Linux and Windows run a fresh, opted-in TypeScript AppHost through the
+repo-built CLI and published server, including `aspire describe` over the
+existing CLI backchannels and clean guest/server exit. Windows additionally
+exercises authenticated named-pipe RPC and listener ownership.
+
 Run the same harness locally with Node.js 24+, Docker, and Native AOT build
 prerequisites:
 

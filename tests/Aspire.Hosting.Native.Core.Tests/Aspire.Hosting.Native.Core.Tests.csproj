@@ -20,5 +20,9 @@
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />
     <Compile Remove="AotSmoke/**/*.cs" />
     <None Update="AotSmoke/SymbolicRedisConsumer.mts" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json"
+          Link="Fixtures/package.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/Aspire.Cli/Templating/Templates/ts-starter/tsconfig.apphost.json"
+          Link="Fixtures/tsconfig.apphost.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

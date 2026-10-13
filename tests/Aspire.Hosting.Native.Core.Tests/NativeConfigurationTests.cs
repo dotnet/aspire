@@ -5,6 +5,7 @@ using System.Net;
 using System.Text.Json;
 using Aspire.Hosting.Native.Server;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Connections;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
@@ -161,6 +162,17 @@ public class NativeConfigurationTests
         Assert.Equal(IPAddress.Loopback, endpoint.Address);
         Assert.Equal(0, endpoint.Port);
         Assert.Throws<ArgumentException>(() => NativeStartupArguments.Parse(["--port", "65536"], configuredSocket: null));
-        Assert.Throws<ArgumentException>(() => NativeStartupArguments.Parse(["--socket", "relative"], configuredSocket: null));
+        Assert.Throws<ArgumentException>(() => NativeStartupArguments.Parse(["--socket", ""], configuredSocket: null));
+        if (OperatingSystem.IsWindows())
+        {
+            var pipe = Assert.IsType<NamedPipeEndPoint>(NativeStartupArguments.Parse(["--socket", "apphost.sock.test"], configuredSocket: null));
+            Assert.Equal("apphost.sock.test", pipe.PipeName);
+            Assert.Equal(".", pipe.ServerName);
+            Assert.Throws<ArgumentException>(() => NativeStartupArguments.Parse(["--socket", @"\\remote\pipe\test"], configuredSocket: null));
+        }
+        else
+        {
+            Assert.Throws<ArgumentException>(() => NativeStartupArguments.Parse(["--socket", "relative"], configuredSocket: null));
+        }
     }
 }

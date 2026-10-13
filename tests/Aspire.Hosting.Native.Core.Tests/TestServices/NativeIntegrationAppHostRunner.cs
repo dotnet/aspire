@@ -15,6 +15,12 @@ internal static class NativeIntegrationAppHostRunner
             start.ArgumentList.Add(argument);
         }
         start.Environment["ASPIRE_NATIVE_RPC_TOKEN"] = token;
+
+        return await RunAsync(start, clock).ConfigureAwait(false);
+    }
+
+    public static async Task<string> RunAsync(ProcessStartInfo start, TimeProvider clock)
+    {
         using var process = Process.Start(start) ?? throw new InvalidOperationException("The AppHost did not start.");
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();

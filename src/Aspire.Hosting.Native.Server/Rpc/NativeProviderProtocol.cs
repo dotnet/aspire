@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Rpc;
 
@@ -70,7 +71,7 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
                 }
             }
             var phase = metadata.LifecyclePhase;
-            if (phase is not null && (phase is not ("initialize" or "allocated" or "ready" or "retiring") ||
+            if (phase is not null && (phase is not (ProviderLifecyclePhases.Initialize or ProviderLifecyclePhases.Allocated or ProviderLifecyclePhases.Ready or ProviderLifecyclePhases.Retiring) ||
                 targetType is null || CoreHandles.Contains(targetType) || arguments.Count != 2 ||
                 arguments.Any(parameter => parameter.Callback is not null) ||
                 arguments.SingleOrDefault(parameter => parameter.Name == "scope")?.Type.TypeId != NativeRpcContract.LifecycleScopeTypeId ||

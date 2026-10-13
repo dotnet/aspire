@@ -243,7 +243,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
             }
         }
         const socket = typeof options.endpoint === 'string'
-            ? createConnection(options.endpoint)
+            ? createConnection(process.platform === 'win32' ? `\\\\.\\pipe\\${options.endpoint}` : options.endpoint)
             : createConnection(options.endpoint);
         const connection = rpc.createMessageConnection(new rpc.StreamMessageReader(socket), new rpc.StreamMessageWriter(socket));
         const timeout = setTimeout(() => socket.destroy(new Error('Native server authentication timed out.')),

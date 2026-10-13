@@ -69,6 +69,12 @@ test -x "$cli"
 test -x "$ASPIRE_NATIVE_DCP_PATH"
 test -f "$ASPIRE_NATIVE_DASHBOARD_DLL"
 
+run_logged product-cli-tests env ASPIRE_NATIVE_PRODUCT_CLI="$cli" \
+    ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
+    --filter-class '*.NativeNamedPipeTests' --filter-class '*.NativeProductCliTests' \
+    --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
+
 sdk="$work/runtime-sdk"
 fixtures="$repo_root/tests/Aspire.Hosting.Native.Core.Tests/AotSmoke"
 generated="$repo_root/artifacts/obj/Aspire.Hosting.Native.Server/Release/native-ats"

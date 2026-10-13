@@ -210,10 +210,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         DirectoryInfo directory,
         CancellationToken cancellationToken)
     {
-        if (KnownFeatures.IsAppHostServerV2Enabled(config) && OperatingSystem.IsWindows())
-        {
-            throw new PlatformNotSupportedException("AppHost Server v2 currently requires Unix-domain sockets.");
-        }
         if (KnownFeatures.IsAppHostServerV2Enabled(config) &&
             _resolvedLanguage.LanguageId != "typescript/nodejs")
         {
@@ -300,7 +296,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// <summary>
     /// Prepares the AppHost server (creates files and builds for dev mode, restores packages for prebuilt mode).
     /// </summary>
-    internal static async Task<(bool Success, OutputCollector? Output, string? ChannelName, bool NeedsCodeGen)> PrepareAppHostServerAsync(
+    private static async Task<(bool Success, OutputCollector? Output, string? ChannelName, bool NeedsCodeGen)> PrepareAppHostServerAsync(
         IAppHostServerProject appHostServerProject,
         string sdkVersion,
         List<IntegrationReference> integrations,
@@ -309,13 +305,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         CancellationToken cancellationToken = default)
     {
         var result = await appHostServerProject.PrepareAsync(sdkVersion, integrations, requestedChannel, packageSourceOverride, cancellationToken);
-        // A managed restore cache can still be valid after opting out of v2, but
-        // its generated SDK is not. Regenerate before starting the guest process.
-        var switchingToManaged = appHostServerProject is not NativeAppHostServerProject &&
-            (File.Exists(Path.Combine(appHostServerProject.AppDirectoryPath, LanguageInfo.GeneratedFolderName, "apphost-server.json")) ||
-             File.Exists(Path.Combine(appHostServerProject.AppDirectoryPath, LanguageInfo.LegacyGeneratedFolderName, "apphost-server.json")));
-
-        return (result.Success, result.Output, result.ChannelName, result.NeedsCodeGeneration || switchingToManaged);
+        return (result.Success, result.Output, result.ChannelName, result.NeedsCodeGeneration);
     }
 
     /// <summary>
@@ -436,14 +426,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             bootstrapEnvironment = serverEnvironmentVariables is null ? [] : new(serverEnvironmentVariables);
             bootstrapEnvironment[KnownConfigNames.IntegrationHostBootstrap] = "true";
         }
-        if (appHostServerProject is NativeAppHostServerProject && bootstrapEnvironment is not null)
-        {
-            // Only the final execution session owns the CLI backchannel address.
-            // A bootstrap killed after codegen can leave its socket behind.
-            bootstrapEnvironment = new(bootstrapEnvironment);
-            bootstrapEnvironment.Remove(KnownConfigNames.UnixSocketPath);
-        }
-
         await using var serverSession = _serverSessionFactory.Create(
             appHostServerProject,
             bootstrapEnvironment,
@@ -2065,7 +2047,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         }
 
         // Write generation hash for caching
-        SaveGenerationHash(outputPath, integrationsList, files.GetValueOrDefault("apphost-server.json") ?? "managed");
+        SaveGenerationHash(outputPath, integrationsList);
 
         await PruneObsoleteGeneratedFilesAsync(outputPath, files.Keys, cancellationToken);
 
@@ -2364,10 +2346,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     private static StringComparison PathComparison =>
         OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
-    private static void SaveGenerationHash(string generatedPath, List<IntegrationReference> integrations, string serverIdentity)
+    private static void SaveGenerationHash(string generatedPath, List<IntegrationReference> integrations)
     {
         var hashPath = Path.Combine(generatedPath, ".codegen-hash");
-        var hash = ComputeIntegrationsHash(integrations, serverIdentity);
+        var hash = ComputeIntegrationsHash(integrations);
         File.WriteAllText(hashPath, hash);
     }
 
@@ -2376,11 +2358,9 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
     /// If any project references are present, includes a timestamp to force regeneration
     /// since project outputs can change between builds.
     /// </summary>
-    private static string ComputeIntegrationsHash(List<IntegrationReference> integrations, string serverIdentity)
+    private static string ComputeIntegrationsHash(List<IntegrationReference> integrations)
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append(serverIdentity);
-        sb.Append(';');
         foreach (var integration in integrations.OrderBy(p => p.Name))
         {
             sb.Append(integration.Name);

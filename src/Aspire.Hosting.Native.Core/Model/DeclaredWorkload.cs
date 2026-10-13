@@ -49,3 +49,11 @@ internal sealed record DeclaredWorkload(WorkloadPlan Plan, SymbolicWorkloadBindi
 
 /// <summary>Names a portable provider-owned one-shot executable and its native late-bound input slots.</summary>
 internal sealed record DeclaredLifecycleCommand(string Phase, ExecutableWorkload Plan, SymbolicWorkloadBindings Bindings);
+
+internal static class LifecycleCommandPhases
+{
+    public const string Initialize = "initialize";
+    public const string Health = "health";
+    public const string Ready = "ready";
+    public const string Retire = "retire";
+}

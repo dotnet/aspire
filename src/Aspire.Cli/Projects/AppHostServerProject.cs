@@ -44,7 +44,8 @@ internal sealed class AppHostServerProjectFactory(
         var configDirectory = ConfigurationHelper.GetConfigRootDirectory(new DirectoryInfo(appPath));
         if (KnownFeatures.IsAppHostServerV2Enabled(AspireConfigFile.Load(configDirectory.FullName)))
         {
-            return await CreateAppHostServerV2Async(appPath, cancellationToken).ConfigureAwait(false);
+            return await NativeAppHostServerProject.CreateAsync(appPath, bundleService, environment,
+                processExecutionFactory, loggerFactory.CreateLogger<NativeAppHostServerProject>(), cancellationToken).ConfigureAwait(false);
         }
 
         var socketPath = CliPathHelper.CreateGuestAppHostSocketPath("apphost.sock");
@@ -80,43 +81,6 @@ internal sealed class AppHostServerProjectFactory(
         throw new InvalidOperationException(
             "No Aspire AppHost server is available. Ensure the Aspire CLI is installed " +
             "with a valid bundle layout, or reinstall using 'aspire setup --force'.");
-    }
-
-    private async Task<IAppHostServerProject> CreateAppHostServerV2Async(string appPath, CancellationToken cancellationToken)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            throw new PlatformNotSupportedException("AppHost Server v2 currently requires Unix-domain sockets.");
-        }
-
-        // Overriding the server executable still requires available bundle tooling
-        // for provider SDK preparation and bundled runtime components.
-        var lease = await bundleService.EnsureExtractedAndAcquireLayoutAsync("cli", "apphost-server-v2", cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var path = environment.GetEnvironmentVariable(NativeAppHostServerProject.ExecutableEnvironmentVariable);
-            if (string.IsNullOrEmpty(path))
-            {
-                path = lease?.Layout.GetAppHostServerPath();
-                if (path is null || !File.Exists(path))
-                {
-                    throw new InvalidOperationException(
-                        "This Aspire bundle does not contain AppHost Server v2. Update or reinstall the CLI, " +
-                        "or disable features.appHostServerV2 in this AppHost's aspire.config.json.");
-                }
-            }
-
-            return new NativeAppHostServerProject(appPath, path, processExecutionFactory,
-                loggerFactory.CreateLogger<NativeAppHostServerProject>())
-            {
-                LayoutLease = lease
-            };
-        }
-        catch
-        {
-            lease?.Dispose();
-            throw;
-        }
     }
 
     internal PrebuiltAppHostServer CreatePrebuiltAppHostServer(

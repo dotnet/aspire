@@ -167,7 +167,7 @@ internal sealed partial class DeclaredResource
     [AspireExport]
     public DeclaredResource WithLifecycleExecutable(string phase, ExecutableWorkloadLaunch launch, SymbolicLaunchBindings bindings)
     {
-        if (phase is not ("initialize" or "health" or "ready" or "retire"))
+        if (phase is not (LifecycleCommandPhases.Initialize or LifecycleCommandPhases.Health or LifecycleCommandPhases.Ready or LifecycleCommandPhases.Retire))
         {
             throw new ArgumentException("Unsupported declared lifecycle phase.", nameof(phase));
         }

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Configuration;
 using Aspire.Hosting.Native.Rpc;
 
@@ -124,11 +125,32 @@ internal static class NativeStartupArguments
     public static EndPoint Parse(string[] arguments, string? configuredSocket) => arguments switch
     {
         ["server", "--contentRoot", var contentRoot] when Directory.Exists(contentRoot) &&
-            configuredSocket is { } path && Path.IsPathFullyQualified(path) => new UnixDomainSocketEndPoint(path),
-        [] when configuredSocket is { } socketPath && Path.IsPathFullyQualified(socketPath) => new UnixDomainSocketEndPoint(socketPath),
-        ["--socket", var path] when Path.IsPathFullyQualified(path) => new UnixDomainSocketEndPoint(path),
+            configuredSocket is { } path => LocalEndpoint(path),
+        [] when configuredSocket is { } socketPath => LocalEndpoint(socketPath),
+        ["--socket", var path] => LocalEndpoint(path),
         ["--port", var port] when int.TryParse(port, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) &&
             number is >= 0 and <= 65535 => new IPEndPoint(IPAddress.Loopback, number),
-        _ => throw new ArgumentException("Use --socket <absolute-path> or --port <loopback-port>.")
+        _ => throw new ArgumentException("Use --socket <Unix socket path or Windows pipe name> or --port <loopback-port>.")
     };
+
+    private static EndPoint LocalEndpoint(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // The guest RPC address is a pipe name such as apphost.sock.<random-id>,
+            // not a filesystem path. Node and the CLI add their native pipe prefix.
+            if (string.IsNullOrWhiteSpace(path) || path.Length > 128 || path.IndexOfAny(['/', '\\', ':', '\0']) >= 0)
+            {
+                throw new ArgumentException("The Windows RPC endpoint must be a local pipe name.");
+            }
+
+            return new NamedPipeEndPoint(path);
+        }
+        if (!Path.IsPathFullyQualified(path))
+        {
+            throw new ArgumentException("The Unix RPC socket path must be absolute.");
+        }
+
+        return new UnixDomainSocketEndPoint(path);
+    }
 }

@@ -7,6 +7,7 @@
     <IsAspirePolyglotCompatible>false</IsAspirePolyglotCompatible>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" />
     <ProjectReference Include="../RedisContracts/NativeIntegrations.Redis.Contracts.csproj" />
   </ItemGroup>
 </Project>

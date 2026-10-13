@@ -114,7 +114,7 @@ public sealed class NativeHostingWorkflowTests
         var permissions = (YamlMappingNode)root.Children[new YamlScalarNode("permissions")];
         Assert.Equal("read", permissions.Children[new YamlScalarNode("contents")].ToString());
         var jobs = (YamlMappingNode)root.Children[new YamlScalarNode("jobs")];
-        var job = Assert.IsType<YamlMappingNode>(Assert.Single(jobs.Children).Value);
+        var job = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode("native_hosting")]);
         Assert.Equal("ubuntu-latest", job.Children[new YamlScalarNode("runs-on")].ToString());
         Assert.False(job.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
         var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
@@ -134,6 +134,23 @@ public sealed class NativeHostingWorkflowTests
             step => step.Children.TryGetValue(new YamlScalarNode("uses"), out var uses)
                 && uses.ToString().StartsWith("actions/upload-artifact@", StringComparison.Ordinal));
         Assert.Equal("always()", evidence.Children[new YamlScalarNode("if")].ToString());
+    }
+
+    [Fact]
+    public void WindowsLaneExercisesThePublishedServerThroughTheRealCli()
+    {
+        var jobs = (YamlMappingNode)Workflow().Children[new YamlScalarNode("jobs")];
+        var job = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode("windows_rpc")]);
+        Assert.Equal("windows-latest", job.Children[new YamlScalarNode("runs-on")].ToString());
+        Assert.False(job.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
+        var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
+        var validation = Assert.Single(steps.Cast<YamlMappingNode>(),
+            step => step.Children.ContainsKey(new YamlScalarNode("run")));
+        var script = validation.Children[new YamlScalarNode("run")].ToString();
+        Assert.Contains("ASPIRE_NATIVE_PRODUCT_CLI", script);
+        Assert.Contains("ASPIRE_NATIVE_CSHARP_TEST_SERVER", script);
+        Assert.Contains("*.NativeProductCliTests", script);
+        Assert.False(validation.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
     }
 
     private static string[] Paths(YamlMappingNode events, string eventName)

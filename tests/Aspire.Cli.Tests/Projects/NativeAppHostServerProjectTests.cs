@@ -21,10 +21,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task FactoryUsesTheTargetAppHostConfigAndIgnoresOverrideWithoutOptIn()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var enabled = Directory.CreateDirectory(Path.Combine(workspace.Path, "enabled"));
         var nested = enabled.CreateSubdirectory("nested");
@@ -48,10 +44,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task FactoryDoesNotFallBackWhenOptedInBundleLacksV2()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         new AspireConfigFile { Features = new() { [KnownFeatures.AppHostServerV2] = true } }.Save(workspace.Path);
         var factory = CreateFactory(new TestEnvironment(), new NullBundleService(), new TestProcessExecutionFactory());
@@ -63,10 +55,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task FactoryOverrideRetainsBundleToolingForProviderPreparation()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         new AspireConfigFile { Features = new() { [KnownFeatures.AppHostServerV2] = true } }.Save(workspace.Path);
         var serverDirectory = workspace.CreateDirectory("developer-server");
@@ -75,7 +63,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(executable, "");
         await File.WriteAllTextAsync(contract, "{}");
         var managedDirectory = workspace.CreateDirectory("managed");
-        var managed = Path.Combine(managedDirectory.FullName, "aspire-managed");
+        var managed = Path.Combine(managedDirectory.FullName, BundleDiscovery.GetExecutableFileName("aspire-managed"));
         await File.WriteAllTextAsync(managed, "");
         var providerDirectory = workspace.CreateDirectory("provider");
         var entryPoint = Path.Combine(providerDirectory.FullName, "host.mjs");
@@ -114,10 +102,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public void RejectsMissingExecutable()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         Assert.Throws<ArgumentException>(() => new NativeAppHostServerProject(workspace.Path,
             Path.Combine(workspace.Path, "missing"), new TestProcessExecutionFactory(), NullLogger.Instance));
@@ -126,10 +110,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task PreparesSupportedToolingAndRejectsUnportedIntegrations()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         await File.WriteAllTextAsync(executable, "");
@@ -147,10 +127,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task UsesProcessFactoryAuthenticationPrivateSocketAndRunLifetime()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         await File.WriteAllTextAsync(executable, "");
@@ -162,10 +138,14 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             Assert.Equal(workspace.Path, start.WorkingDirectory);
             Assert.Equal(["server", "--contentRoot", workspace.Path], start.ArgumentList);
             Assert.Equal("test-token", start.Environment["ASPIRE_REMOTE_APPHOST_TOKEN"]);
-            directory = Path.GetDirectoryName(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"])!;
             if (!OperatingSystem.IsWindows())
             {
+                directory = Path.GetDirectoryName(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"])!;
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(directory));
+            }
+            else
+            {
+                Assert.False(Path.IsPathFullyQualified(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"]!));
             }
             Assert.Equal(ChildProcessLifetime.AppHost, options.Lifetime);
             Assert.True(options.IsolateConsole);
@@ -177,14 +157,21 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         {
             var result = await project.RunAsync(42, new Dictionary<string, string> { ["ASPIRE_REMOTE_APPHOST_TOKEN"] = "test-token" },
                 [], false, new AppHostServerRunControl(IsolateConsole: true));
-            Assert.Equal(Path.Combine(directory!, "apphost-1.sock"), result.SocketPath);
             await result.Execution.DisposeAsync();
-            await File.WriteAllTextAsync(result.SocketPath, "stale bootstrap socket");
+            if (!OperatingSystem.IsWindows())
+            {
+                Assert.Equal(Path.Combine(directory!, "apphost-1.sock"), result.SocketPath);
+                await File.WriteAllTextAsync(result.SocketPath, "stale bootstrap socket");
+            }
             var finalSession = await project.RunAsync(42,
                 new Dictionary<string, string> { ["ASPIRE_REMOTE_APPHOST_TOKEN"] = "test-token" },
                 [], false, new AppHostServerRunControl(IsolateConsole: true));
-            Assert.Equal(Path.Combine(directory!, "apphost-2.sock"), finalSession.SocketPath);
-            Assert.True(File.Exists(result.SocketPath));
+            Assert.NotEqual(result.SocketPath, finalSession.SocketPath);
+            if (!OperatingSystem.IsWindows())
+            {
+                Assert.Equal(Path.Combine(directory!, "apphost-2.sock"), finalSession.SocketPath);
+                Assert.True(File.Exists(result.SocketPath));
+            }
             await finalSession.Execution.DisposeAsync();
         }
         Assert.False(Directory.Exists(directory));
@@ -193,10 +180,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task RunReplacesInheritedParentIdentityWithTheLaunchingProcess()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         await File.WriteAllTextAsync(executable, "");
@@ -234,10 +217,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task BootstrapDoesNotLaunchBundledRuntimeComponents()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         await File.WriteAllTextAsync(executable, "");
@@ -247,6 +226,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DCP_PATH"));
             Assert.False(start.Environment.ContainsKey("ASPIRE_DASHBOARD_PATH"));
             Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DASHBOARD_PORT"));
+            Assert.False(start.Environment.ContainsKey(KnownConfigNames.UnixSocketPath));
             return new TestProcessExecution(start.FileName, [], null, options,
                 (_, _, _) => Task.FromResult((0, (string?)null)), () => 1);
         };
@@ -260,7 +240,8 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             [KnownConfigNames.IntegrationHostBootstrap] = "true",
             ["ASPIRE_NATIVE_DCP_PATH"] = "inherited-dcp",
             ["ASPIRE_DASHBOARD_PATH"] = "inherited-dashboard",
-            ["ASPIRE_NATIVE_DASHBOARD_PORT"] = "0"
+            ["ASPIRE_NATIVE_DASHBOARD_PORT"] = "0",
+            [KnownConfigNames.UnixSocketPath] = "final-backchannel"
         }, [], false, null);
         await result.Execution.DisposeAsync();
     }
@@ -270,10 +251,6 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [InlineData(2, "../outside.json")]
     public async Task RejectsIncompatibleOrEscapingProviderDescriptors(int protocolVersion, string metadata)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         await File.WriteAllTextAsync(executable, "");
@@ -301,15 +278,11 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [InlineData(7)]
     public async Task ProviderPreparationResetsSdkSelectionAndDoesNotAdvertiseFailedOutput(int exitCode)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
         var managedDirectory = Directory.CreateDirectory(Path.Combine(workspace.Path, "managed"));
         await File.WriteAllTextAsync(executable, "");
-        await File.WriteAllTextAsync(Path.Combine(managedDirectory.FullName, "aspire-managed"), "");
+        await File.WriteAllTextAsync(Path.Combine(managedDirectory.FullName, BundleDiscovery.GetExecutableFileName("aspire-managed")), "");
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "ats-contract.json"), "{}");
         var providerDirectory = Directory.CreateDirectory(Path.Combine(workspace.Path, "provider"));
         var entryPoint = Path.Combine(providerDirectory.FullName, "host.mjs");

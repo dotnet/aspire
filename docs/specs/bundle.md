@@ -94,9 +94,12 @@ explicitly instead of falling back to the managed server. Disable the flag to
 return to the managed server; the CLI regenerates its SDK and prunes v2-only
 generated files.
 
-The initial boundary is TypeScript/Node.js AppHosts on Unix-domain sockets,
-running core resources and qualified protocol-v2 npm providers. Managed
-integration assemblies, other guest runtimes, Windows, publishing and server
+The initial boundary is TypeScript/Node.js AppHosts on Unix and Windows,
+running core resources and qualified protocol-v2 npm providers. Guest RPC uses
+Unix-domain sockets on Unix and current-user-only named pipes on Windows,
+matching the managed server's transports. CLI backchannels retain their existing
+Unix-domain socket protocol on both platforms. Managed
+integration assemblies, other guest runtimes, publishing and server
 debugging are rejected. Existing managed packages are not automatically ported.
 NativeAOT is an implementation detail, not the feature's name.
 

@@ -3,12 +3,14 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.IO.Pipes;
 using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Rpc;
 using Aspire.Hosting.Native.Server;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.Connections;
 
 namespace Aspire.Hosting.Native.Core.Tests.TestServices;
 
@@ -64,16 +66,34 @@ internal sealed class NativeSocketTestHost : IAsyncDisposable
 /// <summary>Exchanges framed JSON-RPC requests on an actual socket.</summary>
 internal sealed class NativeSocketTestClient : IDisposable
 {
-    private readonly NetworkStream _stream;
+    private readonly Stream _stream;
     private readonly NativeRpcFraming _framing;
     private int _id;
-    public Socket Socket { get; }
+    private readonly Socket? _socket;
+    public Socket Socket => _socket ?? throw new InvalidOperationException("This client uses a named pipe.");
 
     public NativeSocketTestClient(EndPoint endPoint)
     {
-        Socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
-        Socket.Connect(endPoint);
-        _stream = new NetworkStream(Socket, ownsSocket: true);
+        if (endPoint is NamedPipeEndPoint pipe)
+        {
+            var stream = new NamedPipeClientStream(pipe.ServerName, pipe.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            try
+            {
+                stream.Connect(10000);
+                _stream = stream;
+            }
+            catch
+            {
+                stream.Dispose();
+                throw;
+            }
+        }
+        else
+        {
+            _socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
+            _socket.Connect(endPoint);
+            _stream = new NetworkStream(_socket, ownsSocket: true);
+        }
         // Bootstrap responses contain the complete offline-generated bundle and
         // can exceed the server's separate 256 KiB inbound request limit.
         _framing = new NativeRpcFraming(_stream, 4 * 1024 * 1024);

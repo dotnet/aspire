@@ -28,10 +28,6 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
 
     public NativeAppHostServerProject(string appPath, string executable, IProcessExecutionFactory processes, ILogger logger)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            throw new PlatformNotSupportedException("AppHost Server v2 currently requires Unix-domain sockets.");
-        }
         if (!Path.IsPathFullyQualified(executable) || !File.Exists(executable))
         {
             throw new ArgumentException("AppHost Server v2 requires an existing absolute executable path.", nameof(executable));
@@ -45,6 +41,34 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
     public string AppDirectoryPath { get; }
     internal BundleLayoutLease? LayoutLease { get; init; }
     public string GetInstanceIdentifier() => AppDirectoryPath;
+
+    internal static async Task<NativeAppHostServerProject> CreateAsync(string appPath, IBundleService bundleService,
+        IEnvironment environment, IProcessExecutionFactory processes, ILogger logger, CancellationToken cancellationToken)
+    {
+        // Developer overrides still borrow bundle tooling for provider SDK preparation.
+        var lease = await bundleService.EnsureExtractedAndAcquireLayoutAsync("cli", "apphost-server-v2", cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var path = environment.GetEnvironmentVariable(ExecutableEnvironmentVariable);
+            if (string.IsNullOrEmpty(path))
+            {
+                path = lease?.Layout.GetAppHostServerPath();
+                if (path is null || !File.Exists(path))
+                {
+                    throw new InvalidOperationException(
+                        "This Aspire bundle does not contain AppHost Server v2. Update or reinstall the CLI, " +
+                        "or disable features.appHostServerV2 in this AppHost's aspire.config.json.");
+                }
+            }
+
+            return new(appPath, path, processes, logger) { LayoutLease = lease };
+        }
+        catch
+        {
+            lease?.Dispose();
+            throw;
+        }
+    }
 
     public async Task<AppHostServerPrepareResult> PrepareAsync(string sdkVersion, IEnumerable<IntegrationReference> integrations,
         string? requestedChannel = null, string? packageSourceOverride = null, CancellationToken cancellationToken = default)
@@ -205,6 +229,7 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             startInfo.Environment.Remove("ASPIRE_DASHBOARD_PATH");
             startInfo.Environment.Remove("ASPIRE_NATIVE_DASHBOARD_PORT");
             startInfo.Environment.Remove("AppHost__FilePath");
+            startInfo.Environment.Remove(KnownConfigNames.UnixSocketPath);
         }
         if (!bootstrap && LayoutLease?.Layout.GetDcpPath() is { } dcpDirectory)
         {
@@ -227,7 +252,9 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
         }
         // A bootstrap process can be killed before unlinking its socket. Never
         // reuse that pathname for the final execution session.
-        var socketPath = Path.Combine(_directory.FullName, $"apphost-{++_runCount}.sock");
+        var socketPath = OperatingSystem.IsWindows()
+            ? CliPathHelper.CreateGuestAppHostSocketPath("apphost.sock")
+            : Path.Combine(_directory.FullName, $"apphost-{++_runCount}.sock");
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         var output = new OutputCollector();
         var execution = _processes.CreateExecution(startInfo, new ProcessInvocationOptions

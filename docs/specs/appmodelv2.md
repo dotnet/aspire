@@ -80,6 +80,32 @@ controllers. Those dependencies do not become dependencies of the native core.
 The execution backend starts generic containers and executables; the core does
 not need a Redis implementation to run a Redis resource.
 
+### Code Generation and JSON Boundaries
+
+The TypeScript SDK uses the existing ATS TypeScript generator, not a separate
+SDK-generation system. `Aspire.Hosting.Native.CodeGeneration` is a nonshipping
+build tool: the server's MSBuild target scans ATS declarations offline, emits
+static C# dispatch and embeds its contract and core SDK. Roslyn and reflection
+stay in that build tool, not in the execution server.
+
+For provider-backed product AppHosts, the CLI invokes
+`aspire-managed apphost-codegen-v2` during preparation. This combines the bundled
+core contract and provider metadata with the same ATS TypeScript generator.
+The execution server exposes these prepared SDK files through its ordinary
+code-generation RPC.
+
+The core model has no JSON dependency. At the server boundary, `JsonElement`
+reads and validates immutable wire data, including rejecting duplicate keys.
+`JsonObject`/`JsonArray` are used where replies or delegated handle arguments
+must be constructed or rewritten. These representations serve different
+purposes; mutable JSON does not become authoritative model state.
+
+`SymbolicValue` is the core's immutable representation of a reference
+expression. It retains endpoint and parameter dependencies, secret
+classification and generation ownership until the runtime can resolve a value.
+The familiar authoring `ReferenceExpression` is a client facade over this
+server-owned expression, not a second independently authoritative model.
+
 ### Core Baseline Versus In-Process Conveniences
 
 The existing hosting model mixes portable semantics with useful .NET

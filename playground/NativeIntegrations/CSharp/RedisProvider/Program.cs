@@ -12,7 +12,7 @@ if (args.FirstOrDefault() is "--redis-health" or "--redis-save" or "--redis-cons
 {
     try
     {
-        await using var redis = new RedisProtocol(TimeProvider.System);
+        await using var redis = new RedisClient();
         if (args[0] is "--redis-health" or "--redis-save")
         {
             await redis.ConnectAsync(Environment.GetEnvironmentVariable("REDIS_HOST")!,

@@ -3,17 +3,22 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.IO.Pipes;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
 using Aspire.Shared;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Connections;
 
 namespace Aspire.Hosting.Native.Rpc;
 
 /// <summary>Hosts authenticated, independently owned capability connections over local sockets.</summary>
 internal sealed class NativeRpcListener : IDisposable
 {
-    private readonly Socket _listener;
+    private readonly Socket? _listener;
+    private readonly NamedPipeEndPoint? _pipeEndpoint;
+    private readonly Lock _acceptGate = new();
+    private NamedPipeServerStream? _pendingPipe;
     private readonly string _token;
     private readonly NativeApplicationServer _server;
     private readonly NativeLanguageCatalog? _languages;
@@ -25,7 +30,7 @@ internal sealed class NativeRpcListener : IDisposable
     private int _running;
     private int _disposed;
 
-    public EndPoint EndPoint => _listener.LocalEndPoint!;
+    public EndPoint EndPoint => _listener?.LocalEndPoint ?? _pipeEndpoint!;
 
     public NativeRpcListener(EndPoint endPoint, string token, ILogger logger)
         : this(endPoint, token, logger, new NativeApplicationServer())
@@ -59,7 +64,7 @@ internal sealed class NativeRpcListener : IDisposable
         _providers = providers;
         _server = server;
         _languages = languages;
-        if (endPoint is not UnixDomainSocketEndPoint &&
+        if (endPoint is not UnixDomainSocketEndPoint and not NamedPipeEndPoint { ServerName: "." } &&
             (endPoint is not IPEndPoint ip || !IPAddress.IsLoopback(ip.Address)))
         {
             throw new ArgumentException("The native server requires a local endpoint.", nameof(endPoint));
@@ -68,6 +73,12 @@ internal sealed class NativeRpcListener : IDisposable
         NativeRpcProtocol.ValidateAuthenticationToken(token);
         _token = token;
         _logger = logger;
+        if (endPoint is NamedPipeEndPoint pipe)
+        {
+            _pipeEndpoint = pipe;
+            _pendingPipe = CreatePipe(firstInstance: true);
+            return;
+        }
         _listener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Unspecified);
         try
         {
@@ -110,20 +121,20 @@ internal sealed class NativeRpcListener : IDisposable
             {
                 await Task.WhenAll(connections.Where(task => task.IsCompleted)).ConfigureAwait(false);
                 connections.RemoveAll(task => task.IsCompletedSuccessfully);
-                var socket = await _listener.AcceptAsync(lifetime.Token).ConfigureAwait(false);
+                var stream = await AcceptAsync(lifetime.Token).ConfigureAwait(false);
                 if (connections.Count >= _options.MaximumConnections)
                 {
                     _logger.LogWarning("Native connection rejected: connection capacity reached.");
-                    socket.Dispose();
+                    stream.Dispose();
                     continue;
                 }
-                connections.Add(RunConnectionAsync(socket, lifetime.Token));
+                connections.Add(RunConnectionAsync(stream, lifetime.Token));
             }
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (Volatile.Read(ref _disposed) != 0 && exception is ObjectDisposedException or SocketException)
+        catch (Exception exception) when (Volatile.Read(ref _disposed) != 0 && exception is ObjectDisposedException or SocketException or IOException)
         {
         }
         finally
@@ -143,9 +154,38 @@ internal sealed class NativeRpcListener : IDisposable
         }
     }
 
-    private async Task RunConnectionAsync(Socket socket, CancellationToken cancellationToken)
+    private NamedPipeServerStream CreatePipe(bool firstInstance) =>
+        new(_pipeEndpoint!.PipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly |
+            (firstInstance ? PipeOptions.FirstPipeInstance : PipeOptions.None));
+
+    private async Task<Stream> AcceptAsync(CancellationToken cancellationToken)
     {
-        using var stream = new NetworkStream(socket, ownsSocket: true);
+        if (_listener is not null)
+        {
+            return new NetworkStream(await _listener.AcceptAsync(cancellationToken).ConfigureAwait(false), ownsSocket: true);
+        }
+        NamedPipeServerStream pipe;
+        lock (_acceptGate)
+        {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+            pipe = _pendingPipe!;
+        }
+        await pipe.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+        lock (_acceptGate)
+        {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+            // Keep a listening instance published before transferring this connected
+            // stream. The gate prevents disposal from missing its replacement.
+            _pendingPipe = CreatePipe(firstInstance: false);
+        }
+
+        return pipe;
+    }
+
+    private async Task RunConnectionAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        using var streamLifetime = stream;
         using var connection = new NativeRpcConnection(_token, _server, _languages, _options, _logger);
         using var lifetime = new Aspire.Hosting.Native.Runtime.TimeProviderCancellation(
             _options.AuthenticationTimeout, _options.TimeProvider, cancellationToken);
@@ -176,7 +216,12 @@ internal sealed class NativeRpcListener : IDisposable
         {
             return;
         }
-        _listener.Dispose();
+        _listener?.Dispose();
+        lock (_acceptGate)
+        {
+            _pendingPipe?.Dispose();
+            _pendingPipe = null;
+        }
         if (_socketPath is not null)
         {
             File.Delete(_socketPath);

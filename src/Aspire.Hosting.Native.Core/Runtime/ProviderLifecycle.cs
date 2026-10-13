@@ -5,6 +5,14 @@ using System.Collections.Immutable;
 
 namespace Aspire.Hosting.Native.Runtime;
 
+internal static class ProviderLifecyclePhases
+{
+    public const string Initialize = "initialize";
+    public const string Allocated = "allocated";
+    public const string Ready = "ready";
+    public const string Retiring = "retiring";
+}
+
 /// <summary>Identifies an offline-validated provider callback without transport or language objects.</summary>
 internal sealed record ProviderLifecycleBinding(Guid ProviderId, string ObjectId, string TypeId,
     string Phase, string CapabilityId);
