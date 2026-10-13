@@ -600,13 +600,21 @@ public class KubernetesServiceTests
     public async Task CreateAsync_RecoveryBudgetIncludesServerRequestedRetryDelay(bool useHttpDate, int retryAfterSeconds)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var recoveryTimeout = TimeSpan.FromMilliseconds(500);
+        var recoveryTimeout = TimeSpan.FromSeconds(5);
         var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
         var requests = new ConcurrentQueue<string>();
         await using var server = await TestDcpApiServer.StartAsync(cts.Token, requestHandler: async context =>
         {
+            if (HttpMethods.IsGet(context.Request.Method) &&
+                context.Request.Path.Value!.EndsWith("/containers", StringComparison.Ordinal))
+            {
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync("""{"apiVersion":"usvc-dev.developer.microsoft.com/v1","kind":"ContainerList","items":[]}""");
+                return;
+            }
+
             requests.Enqueue(context.Request.Method);
             if (HttpMethods.IsGet(context.Request.Method))
             {
@@ -620,6 +628,10 @@ public class KubernetesServiceTests
             await WriteStatusAsync(context, StatusCodes.Status504GatewayTimeout, "Timeout");
         });
         WriteKubeconfig(kubeconfigPath, server.Port);
+
+        // Initialize the client and connection outside the recovery budget so the timeout tests
+        // the retry delay, not cold-start overhead on a busy CI runner.
+        Assert.Empty(await service.ListAsync<Container>(cancellationToken: cts.Token));
 
         var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(
             () => service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token));
@@ -635,13 +647,21 @@ public class KubernetesServiceTests
     public async Task CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(bool useHttpDate, int retryAfterSeconds)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var recoveryTimeout = TimeSpan.FromMilliseconds(500);
+        var recoveryTimeout = TimeSpan.FromSeconds(5);
         var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
         var requests = new ConcurrentQueue<string>();
         await using var server = await TestDcpApiServer.StartAsync(cts.Token, requestHandler: async context =>
         {
+            if (HttpMethods.IsGet(context.Request.Method) &&
+                context.Request.Path.Value!.EndsWith("/containers", StringComparison.Ordinal))
+            {
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync("""{"apiVersion":"usvc-dev.developer.microsoft.com/v1","kind":"ContainerList","items":[]}""");
+                return;
+            }
+
             requests.Enqueue(context.Request.Method);
             if (HttpMethods.IsPost(context.Request.Method))
             {
@@ -655,6 +675,10 @@ public class KubernetesServiceTests
             await WriteStatusAsync(context, StatusCodes.Status429TooManyRequests, "TooManyRequests");
         });
         WriteKubeconfig(kubeconfigPath, server.Port);
+
+        // Initialize the client and connection outside the recovery budget so the timeout tests
+        // the retry delay, not cold-start overhead on a busy CI runner.
+        Assert.Empty(await service.ListAsync<Container>(cancellationToken: cts.Token));
 
         var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(
             () => service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token));
