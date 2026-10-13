@@ -198,6 +198,9 @@ contents stop reconciliation before the agent can propose a duplicate fix.
   the configured Aspire bot identity; the branch name alone cannot authorize reuse.
   uv local-source descriptors count as delivery sources,
   and pnpm tarball binding covers both inline and block-style resolution tables.
+  Before backend startup, the runner exclusively creates the safe-output file
+  with mode `0600`. Container appends therefore preserve runner ownership so
+  the post-agent scrub can rewrite it; an existing file blocks initialization.
   The writable framework directory retains only validated safe outputs and patches:
   all other entries, including prompts and telemetry, are removed before summaries
   can consume them. Telemetry-dependent framework steps report that telemetry is

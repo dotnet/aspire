@@ -4326,6 +4326,38 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         }),
     };
 
+    [Theory]
+    [RequiresTools(["node", "bash"])]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SafeOutputsInitializationIsRestrictiveAndExclusive(bool existing)
+    {
+        var source = ReadWorkflow("auto-sec.md");
+        var section = GetSection(source, "^  - name: Initialize runner-owned safe outputs", "^  # Pin the exact uv");
+        var script = section[(section.IndexOf("    run: |", StringComparison.Ordinal) + "    run: |".Length)..];
+        script = string.Join('\n', script.Trim('\r', '\n').Split('\n').Select(line => line.Length >= 6 ? line[6..] : line));
+        var setup = "root=$(mktemp -d)\ntrap 'rm -f \"$root/output\"; rmdir \"$root\"' EXIT\nexport GH_AW_SAFE_OUTPUTS=\"$root/output\"\n"
+            + (existing ? "printf 'preserved' > \"$GH_AW_SAFE_OUTPUTS\"\n" : "");
+        var result = await RunHarnessAsync(new JsonObject
+        {
+            ["mode"] = "private-shell",
+            ["script"] = setup + "(\n" + script + "\n) 2>/dev/null && initialized=true || initialized=false\n"
+                + "if [ \"$initialized\" = true ]; then "
+                // Git Bash runs on NTFS, where POSIX mode bits do not reflect umask.
+                + (OperatingSystem.IsWindows() ? "printf 'created\\n'; " : "printf 'created '; stat -c '%a' \"$GH_AW_SAFE_OUTPUTS\"; ")
+                + "printf 'append' >> \"$GH_AW_SAFE_OUTPUTS\"; fi\n"
+                + "cat \"$GH_AW_SAFE_OUTPUTS\"\n",
+        });
+
+        Assert.Equal(0, result["exitCode"]!.GetValue<int>());
+        Assert.Equal(existing ? "preserved" : OperatingSystem.IsWindows() ? "created\nappend" : "created 600\nappend", result["stdout"]!.GetValue<string>().ReplaceLineEndings("\n"));
+        Assert.Equal("", result["stderr"]!.GetValue<string>());
+        var compiled = ReadWorkflow("auto-sec.lock.yml");
+        var initialization = compiled.IndexOf("name: Initialize runner-owned safe outputs", StringComparison.Ordinal);
+        var execution = compiled.IndexOf("name: Execute GitHub Copilot CLI", StringComparison.Ordinal);
+        Assert.True(initialization >= 0 && execution > initialization);
+    }
+
     private static JsonObject CreateApprovalScenario() => new()
     {
         ["mode"] = "approve",

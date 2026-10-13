@@ -76,6 +76,16 @@ tools:
       - microsoft/aspire
 
 pre-agent-steps:
+  # The container backend appends to this file. Creating it as the runner keeps
+  # the post-agent scrub able to rewrite it without relaxing access permissions.
+  - name: Initialize runner-owned safe outputs
+    env:
+      GH_AW_SAFE_OUTPUTS: ${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}
+    run: |
+      set -euo pipefail
+      umask 077
+      set -o noclobber
+      : > "${GH_AW_SAFE_OUTPUTS}"
   # Pin the exact uv release so each run executes reviewed tooling; bump deliberately.
   - name: Install uv
     run: pipx install uv==0.12.22
