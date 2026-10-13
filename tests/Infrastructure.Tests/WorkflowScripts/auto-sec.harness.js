@@ -397,6 +397,12 @@ async function main() {
             const failures = [];
             const stepOutputs = {};
             const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-'));
+            const runnerTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-runner-'));
+            fs.mkdirSync(path.join(runnerTemp, 'auto-sec-gate'));
+            if (!request.missingCollectedCounts) {
+                fs.writeFileSync(path.join(runnerTemp, 'auto-sec-gate', 'collected-counts.json'),
+                    request.collectedCountsText ?? JSON.stringify(request.collectedCounts ?? { alerts: 1, codeFindings: 0 }));
+            }
             const outputPath = path.join(workDir, request.outputRelativePath ?? 'outputs.jsonl');
             const checkout = request.useGitSnapshot ? fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-checkout-')) : null;
             let baseSha = '0123456789abcdef0123456789abcdef01234567';
@@ -493,7 +499,7 @@ async function main() {
                         },
                     } } },
                     context: { repo: { owner: 'microsoft', repo: 'aspire' } },
-                    env: { GH_AW_SAFE_OUTPUTS: outputPath, GITHUB_WORKSPACE: checkout ?? undefined, GITHUB_SHA: baseSha },
+                    env: { GH_AW_SAFE_OUTPUTS: outputPath, RUNNER_TEMP: runnerTemp, GITHUB_WORKSPACE: checkout ?? undefined, GITHUB_SHA: baseSha },
                     workDir,
                     readBaseTexts: request.useGitSnapshot ? null : file => [request.baseFiles?.[file]],
                 });
@@ -513,6 +519,7 @@ async function main() {
                 result = { value, info, failures, remaining, outputs, stepOutputs, publications };
             } finally {
                 fs.rmSync(workDir, { recursive: true, force: true });
+                fs.rmSync(runnerTemp, { recursive: true, force: true });
                 if (checkout) {
                     fs.rmSync(checkout, { recursive: true, force: true });
                 }

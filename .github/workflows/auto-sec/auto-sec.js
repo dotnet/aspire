@@ -3336,17 +3336,47 @@ const PUBLIC_BLOCKED_REASONS = new Set([
 // A noop report is counts only, for example:
 //   alerts=12 dependabot-pr=3 auto-sec-pr=6 blocked=3 (nuget-not-mirrored=1, breaking-upgrade-required=2) code-findings-out-of-scope=344
 // The parenthesized breakdown is omitted when nothing is blocked.
-function checkPublicNoopMessage(text) {
-    const match = /^alerts=\d{1,6} dependabot-pr=\d{1,6} auto-sec-pr=\d{1,6} blocked=(\d{1,6})(?: \(([a-z-]+=\d{1,6}(?:, [a-z-]+=\d{1,6})*)\))? code-findings-out-of-scope=\d{1,6}$/.exec(String(text ?? '').trim());
-    if (!match) {
-        return false;
+function parsePublicNoopMessage(text) {
+    const match = /^alerts=(\d{1,6}) dependabot-pr=(\d{1,6}) auto-sec-pr=(\d{1,6}) blocked=(\d{1,6})(?: \(([a-z-]+=\d{1,6}(?:, [a-z-]+=\d{1,6})*)\))? code-findings-out-of-scope=(\d{1,6})$/.exec(String(text ?? ''));
+    if (!match || match[0] !== text) {
+        return null;
     }
-    const blocked = Number(match[1]);
-    const reasons = match[2] ? match[2].split(', ').map(pair => pair.split('=')) : [];
-    return (blocked > 0) === (reasons.length > 0)
+    const [, alerts, dependabot, autoSec, blockedText, breakdown, codeFindings] = match;
+    const blocked = Number(blockedText);
+    const reasons = breakdown ? breakdown.split(', ').map(pair => pair.split('=')) : [];
+    const valid = [alerts, dependabot, autoSec, blockedText, codeFindings, ...reasons.map(([, count]) => count)]
+        .every(count => String(Number(count)) === count)
+        && Number(alerts) === Number(dependabot) + Number(autoSec) + blocked
+        && (blocked > 0) === (reasons.length > 0)
         && reasons.every(([code, count]) => PUBLIC_BLOCKED_REASONS.has(code) && Number(count) > 0)
         && new Set(reasons.map(([code]) => code)).size === reasons.length
         && reasons.reduce((total, [, count]) => total + Number(count), 0) === blocked;
+    return valid ? { alerts: Number(alerts), codeFindings: Number(codeFindings) } : null;
+}
+
+function checkPublicNoopMessage(text) {
+    return parsePublicNoopMessage(text) !== null;
+}
+
+function isValidCollectedReportCounts(counts) {
+    return counts && ['alerts', 'codeFindings'].every(field =>
+        Number.isSafeInteger(counts[field]) && counts[field] >= 0 && counts[field] <= 999999);
+}
+
+function collectReportCounts(alerts, codeScanning) {
+    if (!Array.isArray(alerts) || !Array.isArray(codeScanning?.version_alerts)
+        || !Array.isArray(codeScanning?.other_rule_counts)
+        || !codeScanning.other_rule_counts.every(item => Number.isSafeInteger(item?.count) && item.count >= 0)) {
+        throw new Error('Invalid collected report data');
+    }
+    const counts = {
+        alerts: alerts.length + codeScanning.version_alerts.length,
+        codeFindings: codeScanning.other_rule_counts.reduce((total, item) => total + item.count, 0),
+    };
+    if (!isValidCollectedReportCounts(counts)) {
+        throw new Error('Invalid collected report counts');
+    }
+    return counts;
 }
 
 // Safe-output types whose agent-authored text the conclusion job would publish in issues
@@ -3397,14 +3427,15 @@ function projectPublicOutput(item) {
 /**
  * Checks the raw safe-output items before they leave the agent job: every item must be a
  * template-checked type, retained fields must be validated primitives, a `noop` must be
- * counts only, and PR text and patches must pass `checkPublicText`. Unknown properties
+ * counts only, its totals must match trusted collection and its dispositions must
+ * sum to its alert total, and PR text and patches must pass `checkPublicText`. Unknown properties
  * are dropped from every retained type before publication.
  * Patch contents must also pass reconstruction and content policy plus
  * `checkPatchUploadSafety`, since patches are uploaded before the safe_outputs job's
  * content gate runs. Returns the items to keep and
  * `{ source, reason }` violations.
  */
-function checkAgentOutputs(lines, patches, readBaseTexts = () => []) {
+function checkAgentOutputs(lines, patches, readBaseTexts, collectedCounts) {
     const violations = [];
     const kept = [];
     for (const [index, line] of lines.entries()) {
@@ -3424,14 +3455,23 @@ function checkAgentOutputs(lines, patches, readBaseTexts = () => []) {
             continue;
         }
         item = projected.output;
-        if (item.type === 'noop' && !checkPublicNoopMessage(item.message)) {
-            violations.push({ source: 'noop.message', reason: 'non-template-text' });
+        if (item.type === 'noop') {
+            const report = parsePublicNoopMessage(item.message);
+            if (!report) {
+                violations.push({ source: 'noop.message', reason: 'non-template-text' });
+            } else if (!isValidCollectedReportCounts(collectedCounts)
+                || report.alerts !== collectedCounts.alerts || report.codeFindings !== collectedCounts.codeFindings) {
+                violations.push({ source: 'noop.message', reason: 'collected-counts-mismatch' });
+            }
         }
         kept.push(item);
     }
     violations.push(...checkPublicText(kept, patches, readBaseTexts));
     if (kept.filter(item => ['create_pull_request', 'push_to_pull_request_branch'].includes(item.type)).length > 1) {
         violations.push({ source: 'code-writing-outputs', reason: 'conflicting-requests' });
+    }
+    if (kept.filter(item => item.type === 'noop').length > 1) {
+        violations.push({ source: 'noop.message', reason: 'duplicate-report' });
     }
     for (const [name, text] of patches) {
         // Handler-time rejection is too late: the agent artifact is already public then.
@@ -3581,7 +3621,13 @@ async function scrubAgentOutputs({ core, github, context, fs, env, workDir, read
         }
         return [...branch, snapshots.get(file)];
     });
-    const { kept, violations } = checkAgentOutputs(lines, patches, bases);
+    // Collection happens before the agent starts. Keep this snapshot alongside the
+    // trusted gate module, outside the writable checkout and framework mounts.
+    const counts = JSON.parse(fs.readFileSync(path.join(env.RUNNER_TEMP, 'auto-sec-gate', 'collected-counts.json'), 'utf8'));
+    if (!isValidCollectedReportCounts(counts)) {
+        return reject([{ source: 'collected-counts', reason: 'invalid-snapshot' }]);
+    }
+    const { kept, violations } = checkAgentOutputs(lines, patches, bases, counts);
     if (violations.length > 0) {
         return reject(violations);
     }
@@ -3678,6 +3724,7 @@ module.exports = {
     checkPatchUploadSafety,
     checkPatchVersionPolicy,
     checkPublicNoopMessage,
+    collectReportCounts,
     checkPublicText,
     selectNuGetSources,
 };

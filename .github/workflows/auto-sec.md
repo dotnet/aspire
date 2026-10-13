@@ -206,6 +206,18 @@ pre-agent-steps:
       gh pr list --repo "${REPO}" --label auto-sec --state open --limit 20 \
         --json number,title,headRefName,headRefOid,author > .auto-sec/auto-sec-prs.json
 
+      # Bind public totals to collection, not the agent-writable copies of these files.
+      node -e '
+        const fs = require("node:fs");
+        const path = require("node:path");
+        const m = require("./.github/workflows/auto-sec/auto-sec.js");
+        const counts = m.collectReportCounts(
+          JSON.parse(fs.readFileSync(".auto-sec/alerts.json", "utf8")),
+          JSON.parse(fs.readFileSync(".auto-sec/code-scanning.json", "utf8")));
+        fs.writeFileSync(path.join(process.env.RUNNER_TEMP, "auto-sec-gate", "collected-counts.json"),
+          JSON.stringify(counts), { flag: "wx", mode: 0o600 });
+      '
+
       echo "Alerts: $(jq length .auto-sec/alerts.json) (malware: $(jq length .auto-sec/malware-alert-numbers.json))"
       echo "Version-mapped code scanning alerts: $(jq '.version_alerts | length' .auto-sec/code-scanning.json)"
       echo "Open Dependabot PRs: $(jq length .auto-sec/dependabot-prs.json)"
@@ -618,6 +630,11 @@ Finish with a single `noop` message containing counts only, in exactly this form
 `alerts=12 dependabot-pr=3 auto-sec-pr=6 blocked=3 (nuget-not-mirrored=1, breaking-upgrade-required=2) code-findings-out-of-scope=344`.
 Omit the parenthesized breakdown only when `blocked=0`. Otherwise include unique
 reason codes with positive counts summing exactly to `blocked`, using only the codes
-defined above. Do not list package names, alert numbers, or advisory ids in this
+defined above. Every in-scope alert must have exactly one disposition:
+`alerts = dependabot-pr + auto-sec-pr + blocked`. The alert total includes both
+Dependabot alerts (including malware) and version-mapped code scanning alerts.
+The scrub binds both totals to a runner-owned snapshot from collection; editing
+the input files or inventing totals fails publication.
+Do not list package names, alert numbers, or advisory ids in this
 message; any other text fails the run. Do not emit `missing_tool`, `missing_data`,
 or `report_incomplete`; they are dropped.

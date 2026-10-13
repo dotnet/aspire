@@ -1154,6 +1154,13 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
     [InlineData("alerts=2 dependabot-pr=0 auto-sec-pr=0 blocked=2 (update-failed=1, update-failed=1) code-findings-out-of-scope=0", false)]
     [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0 lodash 4.17.21", false)]
     [InlineData("Reviewed alert 42 for lodash", false)]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=0 blocked=0 code-findings-out-of-scope=0", false)]
+    [InlineData("alerts=1 dependabot-pr=1 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", false)]
+    [InlineData("alerts=0 dependabot-pr=1 auto-sec-pr=0 blocked=0 code-findings-out-of-scope=0", false)]
+    [InlineData("alerts=01 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", false)]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=0 blocked=1 (update-failed=01) code-findings-out-of-scope=0", false)]
+    [InlineData(" alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", false)]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0\n", false)]
     public async Task NoopReportAcceptsOnlyCounts(string message, bool expected)
     {
         var result = await RunHarnessAsync(new JsonObject
@@ -1164,6 +1171,122 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         });
 
         Assert.Equal(expected, result["value"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task CollectedReportCountsIncludeVersionAlertsAndExcludedCodeFindings()
+    {
+        var result = await RunHarnessAsync(new JsonObject
+        {
+            ["mode"] = "call",
+            ["fn"] = "collectReportCounts",
+            ["args"] = new JsonArray(
+                new JsonArray(new JsonObject { ["malware"] = true }, new JsonObject()),
+                new JsonObject
+                {
+                    ["version_alerts"] = new JsonArray(new JsonObject()),
+                    ["other_rule_counts"] = new JsonArray(new JsonObject { ["count"] = 2 }, new JsonObject { ["count"] = 3 }),
+                }),
+        });
+
+        Assert.Equal(3, result["value"]!["alerts"]!.GetValue<int>());
+        Assert.Equal(5, result["value"]!["codeFindings"]!.GetValue<int>());
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=0 blocked=0 code-findings-out-of-scope=0", 1, 0, false)]
+    [InlineData("alerts=1 dependabot-pr=1 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", 1, 0, false)]
+    [InlineData("alerts=0 dependabot-pr=0 auto-sec-pr=0 blocked=0 code-findings-out-of-scope=0", 1, 0, false)]
+    [InlineData("alerts=2 dependabot-pr=1 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", 1, 0, false)]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=1", 1, 0, false)]
+    [InlineData("alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0", 1, 0, true)]
+    [InlineData("alerts=0 dependabot-pr=0 auto-sec-pr=0 blocked=0 code-findings-out-of-scope=0", 0, 0, true)]
+    [InlineData("alerts=3 dependabot-pr=1 auto-sec-pr=1 blocked=1 (update-failed=1) code-findings-out-of-scope=5", 3, 5, true)]
+    public async Task AgentOutputScrubBindsReportToTrustedCollection(string message, int alerts, int codeFindings, bool accepted)
+    {
+        var output = new JsonObject { ["type"] = "noop", ["message"] = message }.ToJsonString();
+        var result = await RunHarnessAsync(new JsonObject
+        {
+            ["mode"] = "agent-scrub",
+            ["collectedCounts"] = new JsonObject { ["alerts"] = alerts, ["codeFindings"] = codeFindings },
+            ["publicationConditions"] = CompiledPublicationConditions(),
+            ["outputLines"] = new JsonArray(output),
+            ["patchFiles"] = new JsonObject { ["aw-auto-sec-security-updates.patch"] = PublicTextPatch.ReplaceLineEndings("\n") },
+            // Agent-written lookalikes must not replace the runner's collection snapshot.
+            ["workFiles"] = new JsonObject
+            {
+                ["auto-sec-gate/collected-counts.json"] = "{\"alerts\":2,\"codeFindings\":1}",
+                [".auto-sec/alerts.json"] = "[{},{}]",
+            },
+        });
+
+        Assert.Equal(accepted ? "true" : null, result["stepOutputs"]!["publication_ready"]?.GetValue<string>());
+        Assert.Equal(accepted ? CompiledPublicationConditions().Count : 0, result["publications"]!.AsArray().Count);
+        Assert.Equal(accepted ? [output] : [], result["outputs"]!.AsArray().Select(item => item!.GetValue<string>()));
+        Assert.Equal(accepted ? ["aw-auto-sec-security-updates.patch"] : [], result["remaining"]!.AsArray().Select(item => item!.GetValue<string>()));
+        Assert.Equal(accepted ? 0 : 1, result["failures"]!.AsArray().Count);
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
+    [InlineData("missing")]
+    [InlineData("malformed")]
+    [InlineData("negative")]
+    [InlineData("string")]
+    [InlineData("oversized")]
+    public async Task AgentOutputScrubRejectsUnavailableOrInvalidCollectedCounts(string scenario)
+    {
+        var result = await RunHarnessAsync(new JsonObject
+        {
+            ["mode"] = "agent-scrub",
+            ["missingCollectedCounts"] = scenario == "missing",
+            ["collectedCountsText"] = scenario switch
+            {
+                "malformed" => "synthetic private count snapshot",
+                "negative" => "{\"alerts\":-1,\"codeFindings\":0}",
+                "string" => "{\"alerts\":\"1\",\"codeFindings\":0}",
+                "oversized" => "{\"alerts\":1000000,\"codeFindings\":0}",
+                _ => "{\"alerts\":1,\"codeFindings\":0}",
+            },
+            ["publicationConditions"] = CompiledPublicationConditions(),
+            ["outputLines"] = new JsonArray(new JsonObject
+            {
+                ["type"] = "noop",
+                ["message"] = "alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0",
+            }.ToJsonString()),
+        });
+
+        Assert.Null(result["stepOutputs"]!["publication_ready"]);
+        Assert.Empty(result["publications"]!.AsArray());
+        Assert.Equal(
+            scenario is "missing" or "malformed"
+                ? "auto-sec agent output scrub failed: filesystem io-error"
+                : "auto-sec agent output scrub failed: collected-counts invalid-snapshot",
+            Assert.Single(result["failures"]!.AsArray())!.GetValue<string>());
+    }
+
+    [Fact]
+    [RequiresTools(["node"])]
+    public async Task AgentOutputScrubRejectsDuplicateReports()
+    {
+        var output = new JsonObject
+        {
+            ["type"] = "noop",
+            ["message"] = "alerts=1 dependabot-pr=0 auto-sec-pr=1 blocked=0 code-findings-out-of-scope=0",
+        }.ToJsonString();
+        var result = await RunHarnessAsync(new JsonObject
+        {
+            ["mode"] = "agent-scrub",
+            ["publicationConditions"] = CompiledPublicationConditions(),
+            ["outputLines"] = new JsonArray(output, output),
+        });
+
+        Assert.Equal("auto-sec agent output scrub failed: noop.message duplicate-report",
+            Assert.Single(result["failures"]!.AsArray())!.GetValue<string>());
+        Assert.Empty(result["outputs"]!.AsArray());
+        Assert.Empty(result["publications"]!.AsArray());
     }
 
     [Theory]
@@ -1476,6 +1599,7 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         {
             ["mode"] = "agent-scrub",
             ["publicationConditions"] = CompiledPublicationConditions(),
+            ["collectedCounts"] = new JsonObject { ["alerts"] = 2, ["codeFindings"] = 5 },
             ["outputLines"] = new JsonArray(
                 new JsonObject { ["type"] = "create_pull_request", ["branch"] = "auto-sec/security-updates", ["title"] = "Automated dependency updates", ["body"] = PublicTextBody.Replace("\r\n", "\n") }.ToJsonString(),
                 new JsonObject { ["type"] = "approve_dependabot_pr", ["pr_number"] = 101, ["head_sha"] = headSha, ["note"] = "fixes alert 42" }.ToJsonString(),
