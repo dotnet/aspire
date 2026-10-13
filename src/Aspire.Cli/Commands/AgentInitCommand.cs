@@ -112,7 +112,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
     private static Option<string?> CreateAgentsOption()
     {
-        var supportedClients = string.Join(",", AgentClient.All.Select(static client => client.DisplayName));
+        var supportedClients = string.Join(",", AgentClient.All.Select(static client => client.Id));
         var option = new Option<string?>("--agents")
         {
             HelpName = "agents",
@@ -128,7 +128,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 }
 
                 var value = result.Tokens[0].Value;
-                var selected = ConsoleInteractionService.MatchChoices(value, AgentClient.All, static client => client.DisplayName);
+                var selected = ConsoleInteractionService.MatchChoices(value, AgentClient.All, static client => client.Id);
                 if (selected is null || selected.Count == 0 &&
                     !string.Equals(value, ConsoleInteractionService.NoneChoice, StringComparison.OrdinalIgnoreCase))
                 {
@@ -141,7 +141,7 @@ internal sealed class AgentInitCommand : BaseCommand
         };
         option.CompletionSources.Clear();
         option.CompletionSources.Add(static _ =>
-            [.. AgentClient.All.Select(static client => new CompletionItem(client.DisplayName)),
+            [.. AgentClient.All.Select(static client => new CompletionItem(client.Id)),
                 new CompletionItem(ConsoleInteractionService.AllChoice), new CompletionItem(ConsoleInteractionService.NoneChoice)]);
         return option;
     }
@@ -253,21 +253,17 @@ internal sealed class AgentInitCommand : BaseCommand
             RepositoryRoot = workspaceRoot
         };
 
-        var applicators = await InteractionService.ShowStatusAsync(
-            McpCommandStrings.InitCommand_DetectingAgentEnvironments,
-            async () => await _agentEnvironmentDetector.DetectAsync(context, cancellationToken),
-            emoji: KnownEmojis.Robot);
-        var configUpdates = applicators.Where(static applicator => applicator.PromptGroup == McpInitPromptGroup.ConfigUpdates).ToList();
+        AgentEnvironment? detectedEnvironments = null;
 
         var (agentsProvided, requestedAgents) = agentsBinding.Resolve();
         IReadOnlyList<AgentClient> selectedClients;
         if (agentsProvided && requestedAgents is not null)
         {
-            var matchedClients = ConsoleInteractionService.MatchChoices(requestedAgents, AgentClient.All, static client => client.DisplayName);
+            var matchedClients = ConsoleInteractionService.MatchChoices(requestedAgents, AgentClient.All, static client => client.Id);
             if (matchedClients is null)
             {
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidEnvironments,
-                    requestedAgents, string.Join(",", AgentClient.All.Select(static client => client.DisplayName)),
+                    requestedAgents, string.Join(",", AgentClient.All.Select(static client => client.Id)),
                     ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice));
                 return new(CliExitCodes.InvalidCommand, [], []);
             }
@@ -276,10 +272,15 @@ internal sealed class AgentInitCommand : BaseCommand
         }
         else
         {
+            detectedEnvironments = await InteractionService.ShowStatusAsync(
+                McpCommandStrings.InitCommand_DetectingAgentEnvironments,
+                async () => await _agentEnvironmentDetector.DetectAsync(context, cancellationToken),
+                emoji: KnownEmojis.Robot);
+
             // Shared discovery does not authorize configuring another agent. Defaults
             // express detected agent use, independently of assets and their destinations.
             var defaultClients = AgentClient.All
-                .Where(client => client.Includes(context.DetectedEnvironments)).ToArray();
+                .Where(client => client.Includes(detectedEnvironments.Value)).ToArray();
             if (defaultClients.Length == 0)
             {
                 defaultClients = [AgentClient.Copilot];
@@ -291,7 +292,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 static client => client.DisplayName.EscapeMarkup(),
                 preSelected: defaultClients,
                 optional: true,
-                binding: agentsBinding.WithDefault(string.Join(",", defaultClients.Select(static client => client.DisplayName))),
+                binding: agentsBinding.WithDefault(string.Join(",", defaultClients.Select(static client => client.Id))),
                 echoSelected: false,
                 cancellationToken: cancellationToken);
         }
@@ -392,6 +393,15 @@ internal sealed class AgentInitCommand : BaseCommand
                 cancellationToken: cancellationToken);
         }
 
+        if (scope is AgentConfigurationScope.Global && detectedEnvironments is null)
+        {
+            // Capture hook evidence before configuration can create new detection markers.
+            detectedEnvironments = await InteractionService.ShowStatusAsync(
+                McpCommandStrings.InitCommand_DetectingAgentEnvironments,
+                async () => await _agentEnvironmentDetector.DetectAsync(context, cancellationToken),
+                emoji: KnownEmojis.Robot);
+        }
+
         DisplayInstallationLocations(selectedClients, scope, workspaceRoot, installSkills, configureMcp);
 
         // The selected clients determine destinations; defaults never fabricate detection.
@@ -474,52 +484,53 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         // --- Phase 5: Apply MCP server configuration if the user confirmed ---
-        // Preserve the legacy applicators, but apply only selected, scoped targets.
         if (configureMcp)
         {
-            var mcpPaths = selectedClients
-                .SelectMany(client => client.GetMcpRepairPaths(scope, workspaceRoot, ExecutionContext, _environment))
-                .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-            // Repairs are not choices, but still require selected-client, scope, and MCP consent.
-            foreach (var update in configUpdates.Where(applicator =>
-                applicator.TargetPath is { } path && mcpPaths.Contains(path)))
+            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var configuredPaths = new HashSet<string>(pathComparer);
+            foreach (var client in selectedClients)
             {
-                try
+                // Legacy repairs share the same selection, scope, and consent as new configuration.
+                foreach (var (path, serversPropertyName, configureServer) in client.GetMcpConfigPaths(scope, workspaceRoot, ExecutionContext, _environment))
                 {
-                    await update.ApplyAsync(cancellationToken);
-                    InteractionService.DisplayMessage(KnownEmojis.Wrench, update.Description);
-                }
-                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
-                {
-                    InteractionService.DisplayError(ex.Message);
-                    hasErrors = true;
-                }
-            }
-
-            var mcpConfigurationTargets = selectedClients
-                .Select(client => client.CreateMcpApplicator(client.GetMcpConfigPath(scope, workspaceRoot, ExecutionContext, _environment), scope))
-                .OfType<AgentEnvironmentApplicator>()
-                .DistinctBy(static target => target.TargetPath, OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-            foreach (var target in mcpConfigurationTargets)
-            {
-                try
-                {
-                    await target.ApplyAsync(cancellationToken);
-                    InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton, target.Description);
-                }
-                // InvalidOperationException is thrown by scanner-generated applicators
-                // (e.g., MCP config writers) when the underlying operation fails.
-                // JsonException as InnerException indicates a malformed config file
-                // (e.g., invalid JSON in .copilot/mcp-config.json or .vscode/mcp.json).
-                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
-                {
-                    InteractionService.DisplayError(ex.Message);
-                    if (ex.InnerException is JsonException)
+                    if (!configuredPaths.Add(path))
                     {
-                        InteractionService.DisplaySubtleMessage(
-                            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, target.Description));
+                        continue;
                     }
-                    hasErrors = true;
+
+                    var description = string.Format(CultureInfo.CurrentCulture,
+                        AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, path);
+                    try
+                    {
+                        var config = await McpConfigFileHelper.ReadConfigAsync(path, client.McpJsonDocumentOptions, cancellationToken);
+                        var updated = McpConfigFileHelper.UpdateDeprecatedCommand(config, serversPropertyName);
+                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(config, client, scope);
+                        if (updated || configured)
+                        {
+                            await ConfigurationHelper.WriteSettingsFileAsync(path, config, cancellationToken);
+                        }
+
+                        if (updated)
+                        {
+                            InteractionService.DisplayMessage(KnownEmojis.Wrench,
+                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.DeprecatedConfigUpdate_Description, client.DisplayName));
+                        }
+
+                        if (configured)
+                        {
+                            InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton, description);
+                        }
+                    }
+                    catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+                    {
+                        InteractionService.DisplayError(ex.Message);
+                        if (ex.InnerException is JsonException)
+                        {
+                            InteractionService.DisplaySubtleMessage(
+                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, description));
+                        }
+                        hasErrors = true;
+                    }
                 }
             }
         }
@@ -532,7 +543,7 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             var selectedEnvironments = selectedClients.Aggregate(AgentEnvironment.None,
                 static (environments, client) => environments | client.Environments);
-            await ConfigureTelemetryHooksAsync(context.DetectedEnvironments & selectedEnvironments, cancellationToken);
+            await ConfigureTelemetryHooksAsync(detectedEnvironments.GetValueOrDefault() & selectedEnvironments, cancellationToken);
         }
 
         if (hasErrors)
@@ -869,15 +880,13 @@ internal sealed class AgentInitCommand : BaseCommand
         var hasSharedLocation = false;
         if (installSkills)
         {
-            var sharedDirectory = AgentClient.GetUniversalSkillBaseDirectory(scope, workspaceRoot, ExecutionContext);
             var directories = clients.Select(client => client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment))
                 .Distinct(pathComparer);
             foreach (var directory in directories)
             {
                 AddLocation(AgentCommandStrings.InitCommand_SkillsLocationHint, directory,
-                    pathComparer.Equals(directory, sharedDirectory)
-                        ? [.. AgentClient.All.Where(static client => client.UsesUniversalSkills)]
-                        : []);
+                    [.. AgentClient.All.Where(client => pathComparer.Equals(directory,
+                        client.GetSkillBaseDirectory(scope, workspaceRoot, ExecutionContext, _environment)))]);
             }
         }
 
@@ -888,9 +897,8 @@ internal sealed class AgentInitCommand : BaseCommand
             foreach (var path in paths)
             {
                 AddLocation(AgentCommandStrings.InitCommand_McpLocationHint, path,
-                    scope is AgentConfigurationScope.Project
-                        ? [.. AgentClient.All.Where(client => pathComparer.Equals(path, Path.Combine(workspaceRoot.FullName, client.ProjectMcpFileName)))]
-                        : []);
+                    [.. AgentClient.All.Where(client => pathComparer.Equals(path,
+                        client.GetMcpConfigPath(scope, workspaceRoot, ExecutionContext, _environment)))]);
             }
         }
 

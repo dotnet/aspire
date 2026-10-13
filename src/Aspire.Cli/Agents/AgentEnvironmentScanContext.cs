@@ -4,12 +4,10 @@
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Context passed to agent environment scanners to collect detected applicators.
+/// The directories searched by agent environment scanners.
 /// </summary>
-internal sealed class AgentEnvironmentScanContext
+internal sealed record AgentEnvironmentScanContext
 {
-    private readonly List<AgentEnvironmentApplicator> _applicators = [];
-
     /// <summary>
     /// Gets the working directory being scanned.
     /// </summary>
@@ -22,34 +20,28 @@ internal sealed class AgentEnvironmentScanContext
     /// </summary>
     public required DirectoryInfo RepositoryRoot { get; init; }
 
-    /// <summary>
-    /// Adds an applicator to the collection of detected agent environments.
-    /// </summary>
-    /// <param name="applicator">The applicator to add.</param>
-    public void AddApplicator(AgentEnvironmentApplicator applicator)
+    public DirectoryInfo? FindProjectDirectory(string directoryName, DirectoryInfo homeDirectory)
     {
-        ArgumentNullException.ThrowIfNull(applicator);
-        _applicators.Add(applicator);
+        var currentDirectory = WorkingDirectory;
+        while (currentDirectory is not null)
+        {
+            // Home-level agent settings do not establish use in this project, and
+            // project discovery must not walk above the selected repository root.
+            var path = Path.Combine(currentDirectory.FullName, directoryName);
+            if (Directory.Exists(path) &&
+                !string.Equals(currentDirectory.FullName, homeDirectory.FullName, StringComparison.OrdinalIgnoreCase))
+            {
+                return new DirectoryInfo(path);
+            }
+
+            if (string.Equals(currentDirectory.FullName, RepositoryRoot.FullName, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            currentDirectory = currentDirectory.Parent;
+        }
+
+        return null;
     }
-
-    /// <summary>
-    /// Gets the collection of detected applicators.
-    /// </summary>
-    public IReadOnlyList<AgentEnvironmentApplicator> Applicators => _applicators;
-
-    /// <summary>
-    /// Records a detected agent environment. Used to scope
-    /// telemetry hook registration to the environments the user actually has, independent of whether the
-    /// Aspire MCP server still needs configuring.
-    /// </summary>
-    /// <param name="environment">The detected agent environment.</param>
-    public void AddDetectedEnvironment(AgentEnvironment environment)
-    {
-        DetectedEnvironments |= environment;
-    }
-
-    /// <summary>
-    /// Gets the detected agent environments.
-    /// </summary>
-    public AgentEnvironment DetectedEnvironments { get; private set; }
 }

@@ -619,38 +619,11 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host)..
-        /// </summary>
-        internal static string Agent_CopilotPlatforms {
-            get {
-                return ResourceManager.GetString("Agent_CopilotPlatforms", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Installed Playwright CLI (some locations failed to mirror)..
         /// </summary>
         internal static string PlaywrightCliInstaller_InstalledWithMirrorWarnings {
             get {
                 return ResourceManager.GetString("PlaywrightCliInstaller_InstalledWithMirrorWarnings", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Claude Code CLI and Claude Code editor integrations; not Claude Desktop..
-        /// </summary>
-        internal static string Agent_ClaudePlatforms {
-            get {
-                return ResourceManager.GetString("Agent_ClaudePlatforms", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to OpenCode using its native configuration and skill locations..
-        /// </summary>
-        internal static string Agent_OpenCodePlatforms {
-            get {
-                return ResourceManager.GetString("Agent_OpenCodePlatforms", resourceCulture);
             }
         }
 
@@ -736,7 +709,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected.
+        ///   Looks up a localized string similar to Comma-separated agent IDs ({0}), '{1}', or '{2}'. Defaults to detected agents, or Copilot when none are detected.
         /// </summary>
         internal static string InitCommand_EnvironmentsOptionDescription {
             get {

@@ -41,7 +41,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents \"GitHub Copilot\" --scope global");
+        var result = command.Parse("agent init --agents copilot --scope global");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -74,7 +74,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents \"GitHub Copilot\"");
+        var result = command.Parse("agent init --agents copilot");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -664,7 +664,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("agent init --agents \"GitHub Copilot\"");
+        var result = command.Parse("agent init --agents copilot");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -803,19 +803,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     public async Task AgentInitCommand_NonInteractive_DoesNotConfigureMcpByDefault()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var mcpConfigured = false;
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ =>
-            {
-                mcpConfigured = true;
-                return Task.CompletedTask;
-            });
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -824,26 +812,15 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.False(mcpConfigured);
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc")));
     }
 
     [Fact]
     public async Task AgentInitCommand_NonInteractive_WithMcpTrue_ConfiguresMcp()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var mcpConfigured = false;
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ =>
-            {
-                mcpConfigured = true;
-                return Task.CompletedTask;
-            });
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -852,7 +829,6 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.False(mcpConfigured);
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc")));
     }
@@ -861,19 +837,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     public async Task AgentInitCommand_NonInteractive_WithMcpFalse_DoesNotConfigureMcp()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var mcpConfigured = false;
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ =>
-            {
-                mcpConfigured = true;
-                return Task.CompletedTask;
-            });
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -882,7 +846,8 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.False(mcpConfigured);
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc")));
     }
 
     [Fact]
@@ -914,7 +879,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --skills {CommonAgentApplicators.AspireSkillName}");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --skills {CommonAgentApplicators.AspireSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1011,7 +976,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --scope global --skills aspire");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --scope global --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
@@ -1045,7 +1010,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents \"GitHub Copilot\" --scope global --skills aspire");
+        var result = command.Parse($"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents copilot --scope global --skills aspire");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 

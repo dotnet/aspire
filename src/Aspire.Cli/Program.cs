@@ -627,7 +627,6 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, CopilotAgentEnvironmentScanner>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, DeprecatedMcpCommandScanner>());
 
         // Agent telemetry hook installation/configuration.
         builder.Services.AddSingleton<Aspire.Cli.Agents.Hooks.ITelemetryHookInstaller, Aspire.Cli.Agents.Hooks.TelemetryHookInstaller>();

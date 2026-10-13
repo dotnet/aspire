@@ -121,7 +121,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Step 2: Explicit standalone MCP setup repairs the selected client's deprecated config.
         // Skill installation is not part of this migration coverage, so keep it disabled
         // to avoid depending on the external Aspire skills package.
-        await auto.TypeAsync("aspire agent init --workspace-root . --agents \"Claude Code\" --scope project --skills none --mcp");
+        await auto.TypeAsync("aspire agent init --workspace-root . --agents claude --scope project --skills none --mcp");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -270,7 +270,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         var bundleOnlySkills = new[] { "aspire-init", "aspire-monitoring", "aspire-orchestration" };
         var skillsArg = string.Join(",", bundleOnlySkills);
 
-        await auto.TypeAsync($"aspire agent init --workspace-root . --agents \"GitHub Copilot\" --scope project --skills {skillsArg} --mcp=false");
+        await auto.TypeAsync($"aspire agent init --workspace-root . --agents copilot --scope project --skills {skillsArg} --mcp=false");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync("configuration complete", timeout: TimeSpan.FromSeconds(60));
         await auto.WaitForSuccessPromptAsync(counter);
@@ -389,7 +389,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         // Explicit client and scope skip those prompts so the skill defaults can be inspected.
         await auto.AspireNewAcceptingAgentInitAsync(
             "StarterApp",
-            extraArguments: "--agents \"Claude Code\" --scope project",
+            extraArguments: "--agents claude --scope project",
             beforeAcceptingAgentInit: () =>
             {
                 Directory.CreateDirectory(vscodePath);

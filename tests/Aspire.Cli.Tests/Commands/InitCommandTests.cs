@@ -9,7 +9,6 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -656,15 +655,6 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         {
             ConfirmCallback = (_, _) => true
         };
-        var mcpConfigured = false;
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ =>
-            {
-                mcpConfigured = true;
-                return Task.CompletedTask;
-            });
-
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
@@ -689,7 +679,6 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             options.InteractionServiceFactory = _ => interactionService;
             options.CliHostEnvironmentFactory = _ => global::Aspire.Cli.Tests.TestHelpers.CreateInteractiveHostEnvironment();
             options.ScaffoldingServiceFactory = _ => new TestScaffoldingService();
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
         });
 
         using var serviceProvider = services.BuildServiceProvider();
@@ -703,7 +692,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(
             ["  claude \"run the aspireify skill\"", "  opencode --prompt \"run the aspireify skill\""],
             subtleMessages.Where(static message => message.StartsWith("  ", StringComparison.Ordinal)));
-        Assert.False(mcpConfigured);
+        Assert.Empty(Directory.GetFiles(workspace.WorkspaceRoot.FullName, "*mcp*.json*", SearchOption.AllDirectories));
     }
 
     [Fact]
@@ -805,7 +794,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var command = serviceProvider.GetRequiredService<RootCommand>();
 
-        var parseResult = command.Parse($"init --non-interactive --agents \"GitHub Copilot\" --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
+        var parseResult = command.Parse($"init --non-interactive --agents copilot --scope {scope} --skills {CommonAgentApplicators.AspireSkillName}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);

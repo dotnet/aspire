@@ -42,21 +42,6 @@
         <target state="new">The Aspire MCP tool name for a tool_invocation event</target>
         <note />
       </trans-unit>
-      <trans-unit id="Agent_ClaudePlatforms">
-        <source>Claude Code CLI and Claude Code editor integrations; not Claude Desktop.</source>
-        <target state="new">Claude Code CLI and Claude Code editor integrations; not Claude Desktop.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Agent_CopilotPlatforms">
-        <source>Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host).</source>
-        <target state="new">Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Agent_OpenCodePlatforms">
-        <source>OpenCode using its native configuration and skill locations.</source>
-        <target state="new">OpenCode using its native configuration and skill locations.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="AspireSkillsInstaller_ArchiveHashVerificationFailed">
         <source>Embedded Aspire skills archive failed SHA-512 verification. Expected '{0}', got '{1}'.</source>
         <target state="new">Embedded Aspire skills archive failed SHA-512 verification. Expected '{0}', got '{1}'.</target>
@@ -158,8 +143,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_EnvironmentsOptionDescription">
-        <source>Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected</source>
-        <target state="new">Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected</target>
+        <source>Comma-separated agent IDs ({0}), '{1}', or '{2}'. Defaults to detected agents, or Copilot when none are detected</source>
+        <target state="new">Comma-separated agent IDs ({0}), '{1}', or '{2}'. Defaults to detected agents, or Copilot when none are detected</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_FailedToInstallSkill">

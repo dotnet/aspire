@@ -161,7 +161,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 
     private async Task<TelemetryHookSkipReason?> ConfigureClaudeAsync(CancellationToken cancellationToken)
     {
-        var claudeDirectory = ClaudeCodeAgentEnvironmentScanner.GetConfigDirectory(_executionContext, _environment);
+        var claudeDirectory = ClaudeCodePaths.GetConfigDirectory(_executionContext, _environment);
         var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
 
         JsonObject settings;

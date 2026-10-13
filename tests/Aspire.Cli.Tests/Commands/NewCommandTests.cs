@@ -2308,7 +2308,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
-        var result = command.Parse($"new aspire-empty --name TestApp --output ./output --agents \"GitHub Copilot\" --skills {CommonAgentApplicators.AspireSkillName}");
+        var result = command.Parse($"new aspire-empty --name TestApp --output ./output --agents copilot --skills {CommonAgentApplicators.AspireSkillName}");
 
         var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(CliExitCodes.Success, exitCode);
@@ -3246,13 +3246,9 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 .ToList();
         };
 
-        var mcpApplicator = new AgentEnvironmentApplicator(
-            AgentCommandStrings.InitCommand_ConfigureMcpServer,
-            _ => Task.CompletedTask);
         var services = CreateServiceCollection(workspace, options =>
         {
             options.InteractionServiceFactory = _ => interactionService;
-            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector(mcpApplicator);
         });
         using var provider = services.BuildServiceProvider();
 
@@ -3370,7 +3366,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var result = provider.GetRequiredService<NewCommand>().Parse(
-            "new aspire-empty --name TestApp --output ./output --agents \"Claude Code\" --scope global --skills aspireify");
+            "new aspire-empty --name TestApp --output ./output --agents claude --scope global --skills aspireify");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(
             [Path.Combine(homeDirectory.FullName, ".claude", "skills", CommonAgentApplicators.AspireifySkillName, "SKILL.md")],

@@ -192,15 +192,6 @@
   <data name="Environment_OpenCode" xml:space="preserve">
     <value>OpenCode</value>
   </data>
-  <data name="Agent_CopilotPlatforms" xml:space="preserve">
-    <value>Copilot CLI, Copilot App, and Copilot in VS Code (Agent Host).</value>
-  </data>
-  <data name="Agent_ClaudePlatforms" xml:space="preserve">
-    <value>Claude Code CLI and Claude Code editor integrations; not Claude Desktop.</value>
-  </data>
-  <data name="Agent_OpenCodePlatforms" xml:space="preserve">
-    <value>OpenCode using its native configuration and skill locations.</value>
-  </data>
   <data name="AspireSkillsInstaller_InstallingStatus" xml:space="preserve">
     <value>Installing Aspire skills...</value>
   </data>
@@ -262,7 +253,7 @@
     <value>Path to the workspace root directory</value>
   </data>
   <data name="InitCommand_EnvironmentsOptionDescription" xml:space="preserve">
-    <value>Comma-separated agent names ({0}), '{1}', or '{2}'. Quote names containing spaces. Defaults to detected agents, or Copilot when none are detected</value>
+    <value>Comma-separated agent IDs ({0}), '{1}', or '{2}'. Defaults to detected agents, or Copilot when none are detected</value>
   </data>
   <data name="InitCommand_InvalidEnvironments" xml:space="preserve">
     <value>Invalid agent selection '{0}'. Use {1}, '{2}', or '{3}'.</value>
