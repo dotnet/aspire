@@ -15,6 +15,51 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeProviderClientTests
 {
     [Fact]
+    public async Task AbandonedDiscoveryCannotPublishProviderCapabilitiesAfterItsReplyArrives()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        using var provider = new NativeSocketTestClient(host.Endpoint);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await provider.CallAsync("authenticate", new JsonArray(host.Token), cancellationToken);
+        var authority = await app.ExpectIntegrationHostAsync("example.pending", cancellationToken);
+        await provider.SendAsync("registerAsIntegrationHost", new JsonArray(authority), cancellationToken);
+        var discovery = JsonNode.Parse((await provider.ReadAsync(cancellationToken))!)!.AsObject();
+        Assert.Equal("getCapabilities", discovery["method"]!.GetValue<string>());
+        Assert.True(await app.AbandonIntegrationHostRegistrationAsync(authority, cancellationToken));
+        var response = new JsonObject
+        {
+            ["jsonrpc"] = "2.0",
+            ["id"] = discovery["id"]!.DeepClone(),
+            ["result"] = JsonNode.Parse(PrimitiveDefinition((_, _, _) =>
+                Task.FromResult(JsonSerializer.SerializeToElement("unused"))).Metadata.GetRawText())
+        }.ToJsonString();
+        await provider.SendRawAsync($"Content-Length: {Encoding.UTF8.GetByteCount(response)}\r\n\r\n{response}", cancellationToken);
+        var rejection = JsonNode.Parse((await provider.ReadAsync(cancellationToken))!)!.AsObject();
+        Assert.Equal("PROVIDER_REGISTRATION_REJECTED", rejection["error"]!["data"]!["code"]!.GetValue<string>());
+        var capabilities = await app.GetIntegrationCapabilitiesAsync(cancellationToken);
+        Assert.Equal(0, capabilities.GetProperty("capabilities").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task AbandonedProviderAuthorityIsOwnerScopedOneUseAndWakesPendingWaits()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var app = await ConnectAsync(host);
+        await using var foreign = await ConnectAsync(host);
+        var authority = await app.ExpectIntegrationHostAsync("example.pending", TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+            foreign.AbandonIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+        var waiting = app.WaitIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken);
+        Assert.True(await app.AbandonIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() => waiting);
+        Assert.False(await app.AbandonIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<StreamJsonRpc.RemoteInvocationException>(() =>
+            foreign.RegisterIntegrationHostAsync(authority, PrimitiveDefinition((_, _, _) =>
+                Task.FromResult(JsonSerializer.SerializeToElement("unused"))), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task ProviderHostUsesInjectedConfigurationWithoutAmbientEnvironment()
     {
         await using var host = await NativeClientTestHost.StartAsync();

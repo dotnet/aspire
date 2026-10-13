@@ -16,6 +16,7 @@ internal interface INativeProviderRegistry : IProviderLifecycleDispatcher
     string Expect(NativeRpcConnection owner, string packageName);
     Task RegisterAsync(NativeRpcConnection connection, string authority, INativeRpcPeer peer);
     Task WaitRegistrationAsync(NativeRpcConnection owner, string authority);
+    bool AbandonRegistration(NativeRpcConnection owner, string authority);
     bool IsProvider(NativeRpcConnection connection);
     JsonObject InspectCapabilities();
     Task<JsonNode?> InvokeAsync(NativeRpcConnection caller, string capability, JsonObject arguments);
@@ -50,7 +51,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             }
             if (_activationWaits.Count >= 64 || _providers.Count >= 32)
             {
-                throw new RpcFault("PROVIDER_LIMIT", "Provider registration capacity was reached.");
+                throw RpcFault.ProviderLimit("Provider registration capacity was reached.");
             }
             var token = RandomNumberGenerator.GetHexString(64);
             var pending = new Expectation(owner, packageName, options.TimeProvider.GetTimestamp());
@@ -72,7 +73,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 ReferenceEquals(expected.Owner, connection) || _providers.ContainsKey(connection) ||
                 options.TimeProvider.GetElapsedTime(expected.Created) >= options.ProviderRegistrationTimeout)
             {
-                throw new RpcFault("PROVIDER_REGISTRATION_REJECTED", "The expected provider registration is unavailable.");
+                throw RpcFault.ProviderRegistrationRejected("The expected provider registration is unavailable.");
             }
         }
         try
@@ -85,13 +86,17 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             var registration = new Registration(expected.Owner, connection, peer, projected);
             lock (_gate)
             {
+                if (!_activationWaits.TryGetValue(authority, out var pending) || !ReferenceEquals(pending, expected))
+                {
+                    throw RpcFault.ProviderRegistrationRejected("The expected activation authority is unavailable.");
+                }
                 if (expected.Owner.IsClosed || connection.IsClosed || peer.Closed.IsCancellationRequested ||
                     _capabilities.Count + projected.Count > 4096 ||
                     projected.Keys.Any(id => _protocol.CoreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
                     projection.OwnedTypes.Overlaps(_providerTypes) ||
                     _providers.ContainsKey(connection))
                 {
-                    throw new RpcFault("PROVIDER_CONFLICT", "The provider registration conflicts with an existing capability.");
+                    throw RpcFault.ProviderConflict("The provider registration conflicts with an existing capability.");
                 }
                 foreach (var id in projected.Keys)
                 {
@@ -105,7 +110,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         }
         catch
         {
-            expected.Completion.TrySetException(new RpcFault("PROVIDER_REGISTRATION_REJECTED", "The provider activation failed."));
+            expected.Completion.TrySetException(RpcFault.ProviderRegistrationRejected("The provider activation failed."));
             _ = expected.Completion.Task.Exception;
             throw;
         }
@@ -118,7 +123,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             if (!_activationWaits.TryGetValue(authority, out expected!) || !ReferenceEquals(owner, expected.Owner))
             {
-                throw new RpcFault("PROVIDER_REGISTRATION_REJECTED", "The expected activation authority is unavailable.");
+                throw RpcFault.ProviderRegistrationRejected("The expected activation authority is unavailable.");
             }
         }
         try
@@ -127,7 +132,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         }
         catch (TimeoutException)
         {
-            throw new RpcFault("PROVIDER_TIMEOUT", "The provider activation deadline was reached.");
+            throw RpcFault.ProviderTimeout("The provider activation deadline was reached.");
         }
         finally
         {
@@ -136,6 +141,27 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 _activationWaits.Remove(authority);
                 _expected.Remove(authority);
             }
+        }
+    }
+
+    public bool AbandonRegistration(NativeRpcConnection owner, string authority)
+    {
+        lock (_gate)
+        {
+            if (!_activationWaits.TryGetValue(authority, out var expected))
+            {
+                return false;
+            }
+            if (!ReferenceEquals(owner, expected.Owner))
+            {
+                throw RpcFault.ProviderRegistrationRejected("The activation authority belongs to another connection.");
+            }
+            _expected.Remove(authority);
+            _activationWaits.Remove(authority);
+            expected.Completion.TrySetException(RpcFault.ProviderRegistrationRejected("The provider activation was abandoned."));
+            _ = expected.Completion.Task.Exception;
+
+            return true;
         }
     }
 
@@ -170,14 +196,14 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             if (!_capabilities.TryGetValue(capability, out registration!))
             {
-                throw new RpcFault("UNKNOWN_CAPABILITY", "The capability is not implemented.");
+                throw RpcFault.UnknownCapability("The capability is not implemented.");
             }
         }
         EnsureAvailable(registration);
         var metadata = registration.Capabilities[capability];
         if (metadata.LifecyclePhase is not null)
         {
-            throw new RpcFault("LIFECYCLE_AUTHORITY_REQUIRED", "Lifecycle capabilities require native phase authority.");
+            throw RpcFault.LifecycleAuthorityRequired("Lifecycle capabilities require native phase authority.");
         }
         var parameters = metadata.Parameters;
         RpcArguments.Validate(arguments, parameters.Select(parameter => parameter.Name).ToArray());
@@ -239,7 +265,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         catch (OperationCanceledException)
         {
             Disconnect(registration.Connection);
-            throw new RpcFault("PROVIDER_DISCONNECTED", "The provider invocation did not complete; it will not be replayed.");
+            throw RpcFault.ProviderDisconnected("The provider invocation did not complete; it will not be replayed.");
         }
         finally
         {
@@ -258,7 +284,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             if (!_providers.TryGetValue(provider, out registration!))
             {
-                throw new RpcFault("PROVIDER_DISCONNECTED", "The provider authority is no longer available.");
+                throw RpcFault.ProviderDisconnected("The provider authority is no longer available.");
             }
         }
         EnsureAvailable(registration);
@@ -272,7 +298,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 {
                     if (origin is not null && !ReferenceEquals(origin, provider))
                     {
-                        throw new RpcFault("INVALID_HANDLE", "A lifecycle scope cannot combine general declaration authority.");
+                        throw RpcFault.InvalidHandle("A lifecycle scope cannot combine general declaration authority.");
                     }
                     origin = provider;
 
@@ -280,11 +306,11 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 }
                 if (reference is not DelegatedCoreReference delegated)
                 {
-                    throw new RpcFault("TYPE_MISMATCH", "Core calls require delegated core authority.");
+                    throw RpcFault.TypeMismatch("Core calls require delegated core authority.");
                 }
                 if (origin is not null && !ReferenceEquals(origin, delegated.Owner))
                 {
-                    throw new RpcFault("INVALID_HANDLE", "A core call cannot combine different connection authorities.");
+                    throw RpcFault.InvalidHandle("A core call cannot combine different connection authorities.");
                 }
                 origin = delegated.Owner;
                 delegated.Owner.ReadReference(delegated.Handle);
@@ -301,7 +327,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         var translated = (JsonObject)Translate(arguments)!;
         if (origin is null)
         {
-            throw new RpcFault("INVALID_HANDLE", "Provider core calls require delegated connection authority.");
+            throw RpcFault.InvalidHandle("Provider core calls require delegated connection authority.");
         }
         var result = await origin.InvokeCoreAsync(capability, translated).ConfigureAwait(false);
         return DelegateResult(result);
@@ -332,7 +358,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             if (!_providers.TryGetValue(provider, out registration!))
             {
-                throw new RpcFault("INVALID_HANDLE", "Callbacks require a registered provider.");
+                throw RpcFault.InvalidHandle("Callbacks require a registered provider.");
             }
         }
         EnsureAvailable(registration);
@@ -359,21 +385,21 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             NativeProviderProtocol.ValidatePrimitive(value, type);
             return value?.DeepClone();
         }
-        var handle = value as JsonObject ?? throw new RpcFault("INVALID_HANDLE", "A typed handle is required.");
+        var handle = value as JsonObject ?? throw RpcFault.InvalidHandle("A typed handle is required.");
         var expectedType = type.TypeId;
         var reference = caller.ReadReference(handle, expectedType);
         if (reference is ProviderResourceReference external)
         {
             if (!ReferenceEquals(external.Provider, registration) || !ReferenceEquals(external.Owner, caller))
             {
-                throw new RpcFault("INVALID_HANDLE", "The provider resource belongs to another authority.");
+                throw RpcFault.InvalidHandle("The provider resource belongs to another authority.");
             }
             resource = external.Resource;
             return external.Handle.DeepClone();
         }
         if (!_protocol.CoreHandles.Contains(expectedType))
         {
-            throw new RpcFault("TYPE_MISMATCH", "The value is not an integration-owned resource.");
+            throw RpcFault.TypeMismatch("The value is not an integration-owned resource.");
         }
         return registration.Connection.AddReference(new DelegatedCoreReference(caller, handle.DeepClone().AsObject()), expectedType);
     }
@@ -394,7 +420,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             if (registration.Connection.ReadReference(handle.Wire, expectedType) is not DelegatedCoreReference delegated ||
                 !ReferenceEquals(delegated.Owner, caller))
             {
-                throw new RpcFault("INVALID_HANDLE", "The returned core handle is not delegated by this caller.");
+                throw RpcFault.InvalidHandle("The returned core handle is not delegated by this caller.");
             }
             caller.ReadReference(delegated.Handle, expectedType);
             return delegated.Handle.DeepClone();
@@ -403,11 +429,11 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             registration.Connection.ReadReference(lifetime) is not DelegatedCoreReference backing ||
             !ReferenceEquals(backing.Owner, caller))
         {
-            throw new RpcFault("INVALID_HANDLE", "Integration resource lifetime must be delegated by its caller.");
+            throw RpcFault.InvalidHandle("Integration resource lifetime must be delegated by its caller.");
         }
         if (caller.ReadReference(backing.Handle) is not DeclaredResource declaration)
         {
-            throw new RpcFault("INVALID_HANDLE", "Integration resource lifetime must be a native resource declaration.");
+            throw RpcFault.InvalidHandle("Integration resource lifetime must be a native resource declaration.");
         }
         resource = TrackProviderObject(registration, caller, handle.Id, declaration, expectedType);
         return caller.AddReference(new ProviderResourceReference(registration, caller, handle.Wire.DeepClone().AsObject(),
@@ -418,7 +444,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     {
         if (registration.Disconnected || registration.Owner.IsClosed || registration.Connection.IsClosed || registration.Peer.Closed.IsCancellationRequested)
         {
-            throw new RpcFault("PROVIDER_DISCONNECTED", "The provider is no longer available.");
+            throw RpcFault.ProviderDisconnected("The provider is no longer available.");
         }
     }
 
@@ -484,7 +510,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             }
             Resources.Clear();
         }
-        private static RpcFault Unavailable() => new("PROVIDER_DISCONNECTED", "The integration provider is unavailable.");
+        private static RpcFault Unavailable() => RpcFault.ProviderDisconnected("The integration provider is unavailable.");
     }
 
     private sealed record Expectation(NativeRpcConnection Owner, string PackageName, long Created)

@@ -137,7 +137,7 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
     code.AppendLine("            }");
 }
 code.AppendLine("""
-                default: throw new RpcFault("CAPABILITY_NOT_FOUND", "The capability is not implemented.");
+                default: throw RpcFault.CapabilityNotFound("The capability is not implemented.");
             }
             }
             catch (SymbolicValueException exception)
@@ -259,17 +259,29 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                 client,
                 server: wrapIfHandle(root, client) as NativeApplicationServer,
                 async activateProvider(packageName: string, executable: string, args: readonly string[]) {
-                    if (typeof options.endpoint === 'string') {
+                    const endpoint = options.endpoint;
+                    if (typeof endpoint === 'string') {
                         throw new Error('This explicit activation entry point requires loopback TCP.');
                     }
                     const authority = await connection.sendRequest<string>('expectIntegrationHost', packageName);
-                    const process = spawn(executable, [...args], {
-                        env: { ...globalThis.process.env,
-                            ASPIRE_NATIVE_RPC_ENDPOINT: `${options.endpoint.host}:${options.endpoint.port}`,
-                            ASPIRE_NATIVE_RPC_TOKEN: options.authenticationToken,
-                            ASPIRE_INTEGRATION_HOST_REGISTRATION_ID: authority },
-                        stdio: ['ignore', 'pipe', 'pipe']
-                    });
+                    const process = await (async () => {
+                        try {
+                            return spawn(executable, [...args], {
+                                env: { ...globalThis.process.env,
+                                    ASPIRE_NATIVE_RPC_ENDPOINT: `${endpoint.host}:${endpoint.port}`,
+                                    ASPIRE_NATIVE_RPC_TOKEN: options.authenticationToken,
+                                    ASPIRE_INTEGRATION_HOST_REGISTRATION_ID: authority },
+                                stdio: ['ignore', 'pipe', 'pipe']
+                            });
+                        } catch (error) {
+                            try {
+                                await connection.sendRequest('abandonIntegrationHostRegistration', authority);
+                            } catch (cleanupError) {
+                                throw new AggregateError([error, cleanupError], 'Provider activation and cleanup failed.');
+                            }
+                            throw error;
+                        }
+                    })();
                     // Drain both pipes without logging untrusted provider payloads.
                     process.stdout.resume();
                     process.stderr.resume();
@@ -308,16 +320,29 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                         }
                     })();
                     try {
-                        await connection.sendRequest('waitIntegrationHostRegistration', authority);
+                        // A failed spawn must not wait for the server activation deadline.
+                        await Promise.race([
+                            connection.sendRequest('waitIntegrationHostRegistration', authority),
+                            released.then(() => { throw new Error('The provider disconnected during activation.'); })
+                        ]);
                         if (process.exitCode !== null || process.signalCode !== null) {
                             throw new Error('The provider disconnected during activation.');
                         }
                         return { close };
                     } catch (error) {
+                        const failures: unknown[] = [error];
+                        try {
+                            await connection.sendRequest('abandonIntegrationHostRegistration', authority);
+                        } catch (cleanupError) {
+                            failures.push(cleanupError);
+                        }
                         try {
                             await close();
                         } catch (cleanupError) {
-                            throw new AggregateError([error, cleanupError], 'Provider activation and cleanup failed.');
+                            failures.push(cleanupError);
+                        }
+                        if (failures.length > 1) {
+                            throw new AggregateError(failures, 'Provider activation and cleanup failed.');
                         }
                         throw error;
                     }

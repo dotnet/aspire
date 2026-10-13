@@ -19,7 +19,7 @@ internal sealed class NativeHandles(int capacity) : IDisposable
     {
         if (_entries.Count >= capacity)
         {
-            throw new RpcFault("HANDLE_LIMIT", "The connection handle limit was reached.");
+            throw RpcFault.HandleLimit("The connection handle limit was reached.");
         }
     }
 
@@ -32,7 +32,7 @@ internal sealed class NativeHandles(int capacity) : IDisposable
                 // A newly constructed session has no handle yet. Release it
                 // rather than leaking ownership when publication is rejected.
                 (value as ICapabilityOwner)?.Close();
-                throw new RpcFault("HANDLE_LIMIT", "The connection handle limit was reached.");
+                throw RpcFault.HandleLimit("The connection handle limit was reached.");
             }
             id = $"{typeId}:{RandomNumberGenerator.GetHexString(32, lowercase: true)}";
             _entries.Add(id, new Entry(value, typeId));
@@ -46,18 +46,18 @@ internal sealed class NativeHandles(int capacity) : IDisposable
     {
         if (value is not JsonObject reference)
         {
-            throw new RpcFault("INVALID_HANDLE", "A capability handle is required.");
+            throw RpcFault.InvalidHandle("A capability handle is required.");
         }
         RpcArguments.Validate(reference, ["$handle", "$type"]);
         var id = RpcArguments.String(reference["$handle"]);
         var typeId = RpcArguments.String(reference["$type"]);
         if (!_entries.TryGetValue(id, out var entry) || entry.Value is ICapabilityLifetime { IsRevoked: true })
         {
-            throw new RpcFault("HANDLE_NOT_FOUND", "The capability handle is unknown or retired.");
+            throw RpcFault.HandleNotFound("The capability handle is unknown or retired.");
         }
         if (typeId != expectedTypeId || entry.TypeId != expectedTypeId || entry.Value is not T typed)
         {
-            throw new RpcFault("TYPE_MISMATCH", "The capability handle is not applicable.");
+            throw RpcFault.TypeMismatch("The capability handle is not applicable.");
         }
 
         return typed;
@@ -70,11 +70,11 @@ internal sealed class NativeHandles(int capacity) : IDisposable
         var typeId = RpcArguments.String(reference["$type"]);
         if (!_entries.TryGetValue(id, out var entry) || entry.Value is ICapabilityLifetime { IsRevoked: true })
         {
-            throw new RpcFault("HANDLE_NOT_FOUND", "The capability handle is unknown or retired.");
+            throw RpcFault.HandleNotFound("The capability handle is unknown or retired.");
         }
         if (typeId != entry.TypeId || expectedTypeId is not null && typeId != expectedTypeId)
         {
-            throw new RpcFault("TYPE_MISMATCH", "The capability handle is not applicable.");
+            throw RpcFault.TypeMismatch("The capability handle is not applicable.");
         }
 
         return entry.Value;

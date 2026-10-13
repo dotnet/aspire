@@ -24,49 +24,16 @@ internal sealed class DcpDashboard(ILogger logger)
     public async Task StartAsync(DcpApiClient client, string dashboardPath, Uri resourceService,
         NativeDashboardCredentials credentials, NativeServerOptions options, CancellationToken cancellationToken)
     {
-        if (!Path.IsPathFullyQualified(dashboardPath) || !File.Exists(dashboardPath))
-        {
-            throw new ArgumentException("The Dashboard path must identify an existing absolute executable or assembly.", nameof(dashboardPath));
-        }
         var name = "dashboard-" + Guid.NewGuid().ToString("N");
         var service = name + "-frontend";
+        var spec = DcpDashboardConfiguration.Create(dashboardPath, service, resourceService, credentials);
         _name = name;
         _service = service;
         var browserToken = credentials.BrowserToken;
-        ArgumentException.ThrowIfNullOrWhiteSpace(browserToken);
-        var otlpToken = credentials.OtlpApiKey;
         var dashboardApiToken = credentials.DashboardApiKey;
-        ArgumentException.ThrowIfNullOrWhiteSpace(dashboardApiToken);
         await client.CreateAsync(DcpResourceCollection.Services, service, JsonSerializer.SerializeToElement(
             new DcpServiceSpec(WorkloadProtocol.Tcp, DcpAddressAllocationMode.Localhost), DcpJsonContext.Default.DcpServiceSpec),
             null, cancellationToken).ConfigureAwait(false);
-        var assembly = dashboardPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
-        var bundled = Path.GetFileNameWithoutExtension(dashboardPath) == "aspire-managed";
-        var spec = new DcpWorkloadSpec
-        {
-            ExecutablePath = assembly ? "dotnet" : dashboardPath,
-            WorkingDirectory = Path.GetDirectoryName(dashboardPath)!,
-            ExecutionType = DcpExecutionType.Process,
-            Args = assembly ? [dashboardPath] : bundled ? ["dashboard"] : [],
-            Env =
-            [
-                // DCP allocates and substitutes the frontend port before process
-                // launch, exactly as it does for other executable producers.
-                new("ASPNETCORE_URLS", "http://127.0.0.1:{{- portForServing \"" + service + "\" -}}"),
-                new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://127.0.0.1:0"),
-                new("ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL", resourceService.AbsoluteUri),
-                new("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", "ApiKey"),
-                new("DASHBOARD__RESOURCESERVICECLIENT__APIKEY", credentials.ResourceServiceApiKey),
-                new("DASHBOARD__FRONTEND__AUTHMODE", "BrowserToken"),
-                new("DASHBOARD__FRONTEND__BROWSERTOKEN", browserToken),
-                // Frontend API authentication is separate from the browser and resource-service credentials.
-                new("DASHBOARD__API__AUTHMODE", "ApiKey"),
-                new("DASHBOARD__API__PRIMARYAPIKEY", dashboardApiToken),
-                new("DASHBOARD__OTLP__AUTHMODE", "ApiKey"),
-                new("DASHBOARD__OTLP__PRIMARYAPIKEY", otlpToken),
-                new("ASPIRE_DASHBOARD_SUPPRESS_BROWSER_TOKEN_IN_OUTPUT", "true")
-            ]
-        };
         await client.CreateAsync(DcpResourceCollection.Executables, name, JsonSerializer.SerializeToElement(spec, DcpJsonContext.Default.DcpWorkloadSpec),
             new Dictionary<string, string>
             {

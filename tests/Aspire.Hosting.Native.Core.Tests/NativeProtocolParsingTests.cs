@@ -133,7 +133,31 @@ public class NativeProtocolParsingTests
             "ready\r\n\npartial" => ["ready\r", ""],
             _ => []
         };
-        Assert.Equal(expected, DcpProtocol.ParseCompleteLogLines(Encoding.UTF8.GetBytes(text)));
+        Assert.Equal(expected, DcpProtocol.ParseCompleteLogLines(text));
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("[true]")]
+    [InlineData("[{}]")]
+    [InlineData("[\"1\"]")]
+    [InlineData("[1.5]")]
+    [InlineData("[9223372036854775808]")]
+    [InlineData("[1,2]")]
+    public void BackchannelEnumeratorTokensRejectInvalidKindsAndShapes(string parameters) =>
+        Assert.Throws<ArgumentException>(() => NativeBackchannelProtocol.ReadEnumeratorToken(Request(parameters)));
+
+    [Fact]
+    public void BackchannelParsingOwnsItsRequestPayloadAndPreservesCorrelationIdentity()
+    {
+        NativeCliRequest request;
+        using (var document = JsonDocument.Parse("""{"jsonrpc":"2.0","id":"request","method":"test","params":{"nested":42}}"""))
+        {
+            request = NativeBackchannelProtocol.ParseRequest(document.RootElement);
+        }
+        Assert.Equal("request", request.Id!.Value.GetString());
+        Assert.Equal(42, request.Params!.Value.GetProperty("nested").GetInt32());
+        Assert.Equal(JsonValueKind.Null, NativeBackchannelProtocol.NullResult.ValueKind);
     }
 
     [Theory]

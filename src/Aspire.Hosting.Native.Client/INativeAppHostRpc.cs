@@ -27,6 +27,9 @@ internal partial interface INativeAppHostRpc
     [JsonRpcMethod("waitIntegrationHostRegistration")]
     Task<bool> WaitIntegrationHostRegistrationAsync(string authority);
 
+    [JsonRpcMethod("abandonIntegrationHostRegistration")]
+    Task<bool> AbandonIntegrationHostRegistrationAsync(string authority);
+
     [JsonRpcMethod("getIntegrationCapabilities")]
     Task<JsonElement> GetIntegrationCapabilitiesAsync();
 

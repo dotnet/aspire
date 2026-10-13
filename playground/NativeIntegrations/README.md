@@ -55,6 +55,8 @@ provider, discovers its offline metadata, and routes calls through bidirectional
 RPC. Native core handles remain delegated to their original connection; a
 provider-owned resource must declare an authorized native lifetime. Disconnects
 fail pending calls without retries and do not retire the application's model.
+Failed activation immediately abandons its pending registration authority,
+including process-launch failures; late discovery cannot register afterward.
 Portable provider metadata is available through `getIntegrationCapabilities`;
 the static `getCapabilities` contract remains separate from integration APIs.
 
@@ -134,6 +136,8 @@ credential and a real protocol consumer. Separate
 the shared application `UpdateAsync`/`update` API to rotate an explicit password,
 replace the container and affected consumer, and read retained AOF data. The
 native workspace—not the recorder—owns revision identity and retention decisions.
+The C# validation entry point keeps ordinary fluent composition; its separate
+`RedisPersistenceValidation` helper owns the rejected-revision and persistence checks.
 Validation removes only its uniquely named volume after retirement.
 
 ```bash

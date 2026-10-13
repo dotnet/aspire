@@ -32,7 +32,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
         var id = $"native:{Interlocked.Increment(ref _nextId)}";
         if (!_outbound.Wait(0, cancellationToken))
         {
-            throw new RpcFault("RPC_BUSY", "The peer request limit was reached.");
+            throw RpcFault.RpcBusy("The peer request limit was reached.");
         }
         _pending.TryAdd(id, completion);
         try
@@ -48,7 +48,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
             }, NativeRpcMessageJsonContext.Default.JsonNode);
             if (payload.Length > options.MaximumRequestBytes)
             {
-                throw new RpcFault("REQUEST_TOO_LARGE", "The request exceeds the size limit.");
+                throw RpcFault.RequestTooLarge("The request exceeds the size limit.");
             }
             try
             {
@@ -60,7 +60,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
             {
                 // Stop accepting replies, not replaying a call whose side effects may
                 // already have occurred. The provider registry revokes this peer.
-                throw new RpcFault("PROVIDER_TIMEOUT", "The provider invocation deadline was reached.");
+                throw RpcFault.ProviderTimeout("The provider invocation deadline was reached.");
             }
         }
         finally
@@ -177,7 +177,7 @@ internal sealed class NativeRpcPeer(Stream stream, NativeServerOptions options, 
                 completion.TrySetCanceled();
                 throw new InvalidDataException("Invalid RPC failure envelope.");
             }
-            completion.TrySetException(new RpcFault("PROVIDER_FAILED", "The provider rejected the invocation."));
+            completion.TrySetException(RpcFault.ProviderFailed("The provider rejected the invocation."));
             // Observe a fault if the initiating caller concurrently stopped waiting.
             _ = completion.Task.Exception;
         }

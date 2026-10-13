@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Aspire.Shared;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
@@ -94,9 +97,8 @@ internal sealed class DcpApiClient : IAsyncDisposable
 
     public async Task<DcpResource?> GetAsync(DcpResourceCollection collection, string name, CancellationToken cancellationToken)
     {
-        var response = await SendAsync(HttpMethod.Get, Api + collection.ToPath() + "/" + name, null, cancellationToken).ConfigureAwait(false);
-
-        return response?.Deserialize(DcpJsonContext.Default.DcpResource);
+        return await SendAsync(HttpMethod.Get, Api + collection.ToPath() + "/" + name, null,
+            DcpJsonContext.Default.DcpResource, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task CreateAsync(DcpResourceCollection collection, string name, JsonElement spec, Dictionary<string, string>? annotations,
@@ -105,12 +107,14 @@ internal sealed class DcpApiClient : IAsyncDisposable
         var kind = collection.ToKind();
         var envelope = new DcpResourceEnvelope("usvc-dev.developer.microsoft.com/v1", kind, new DcpMetadata(name, annotations), spec);
         await SendAsync(HttpMethod.Post, Api + collection.ToPath(),
-            JsonSerializer.SerializeToElement(envelope, DcpJsonContext.Default.DcpResourceEnvelope), cancellationToken).ConfigureAwait(false);
+            JsonSerializer.SerializeToElement(envelope, DcpJsonContext.Default.DcpResourceEnvelope),
+            DcpJsonContext.Default.JsonElement, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(DcpResourceCollection collection, string name, CancellationToken cancellationToken)
     {
-        await SendAsync(HttpMethod.Delete, Api + collection.ToPath() + "/" + name, null, cancellationToken).ConfigureAwait(false);
+        await SendAsync(HttpMethod.Delete, Api + collection.ToPath() + "/" + name, null,
+            DcpJsonContext.Default.JsonElement, cancellationToken).ConfigureAwait(false);
         while (await GetAsync(collection, name, cancellationToken).ConfigureAwait(false) is not null)
         {
             await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
@@ -126,13 +130,27 @@ internal sealed class DcpApiClient : IAsyncDisposable
         {
             throw new InvalidOperationException($"DCP log read failed ({(int)response.StatusCode}).");
         }
-        var bytes = await ReadBoundedBodyAsync(response, 65536, timeout.Token).ConfigureAwait(false);
-        return DcpProtocol.ParseCompleteLogLines(bytes);
+        using var input = new DcpResponseStream(await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false), 65536);
+        // Preserve a UTF-8 BOM as message content. The byte cap also bounds
+        // decoded UTF-16 length; one extra character ensures the read reaches EOF
+        // and detects overflow rather than accepting an exactly full buffer.
+        using var reader = new StreamReader(input, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false);
+        var text = ArrayPool<char>.Shared.Rent(65537);
+        try
+        {
+            var length = await reader.ReadBlockAsync(text.AsMemory(0, 65537), timeout.Token).ConfigureAwait(false);
+
+            return DcpProtocol.ParseCompleteLogLines(text.AsSpan(0, length));
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(text);
+        }
     }
 
     private HttpClient Client => _client ?? throw new InvalidOperationException("DCP is not ready.");
 
-    private async Task<JsonElement?> SendAsync(HttpMethod method, string path, JsonElement? body, CancellationToken cancellationToken,
+    private async Task<T?> SendAsync<T>(HttpMethod method, string path, JsonElement? body, JsonTypeInfo<T> responseType, CancellationToken cancellationToken,
         DcpResponseMode responseMode = DcpResponseMode.Json)
     {
         using var request = new HttpRequestMessage(method, path);
@@ -145,7 +163,7 @@ internal sealed class DcpApiClient : IAsyncDisposable
         using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound && method != HttpMethod.Post)
         {
-            return null;
+            return default;
         }
         if (!response.IsSuccessStatusCode)
         {
@@ -154,31 +172,11 @@ internal sealed class DcpApiClient : IAsyncDisposable
         }
         if (response.StatusCode == HttpStatusCode.NoContent || responseMode == DcpResponseMode.Empty)
         {
-            return null;
+            return default;
         }
-        var payload = await ReadBoundedBodyAsync(response, 1024 * 1024, timeout.Token).ConfigureAwait(false);
+        using var input = new DcpResponseStream(await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false), 1024 * 1024);
 
-        using var document = JsonDocument.Parse(payload, new JsonDocumentOptions { MaxDepth = 32 });
-
-        return document.RootElement.Clone();
-    }
-
-    private static async Task<byte[]> ReadBoundedBodyAsync(HttpResponseMessage response, int limit, CancellationToken cancellationToken)
-    {
-        using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using var body = new MemoryStream();
-        var buffer = new byte[8192];
-        int count;
-        while ((count = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
-        {
-            if (body.Length + count > limit)
-            {
-                throw new InvalidDataException("The DCP response exceeds the size limit.");
-            }
-            body.Write(buffer, 0, count);
-        }
-
-        return body.ToArray();
+        return await JsonSerializer.DeserializeAsync(input, responseType, timeout.Token).ConfigureAwait(false);
     }
 
     /// <summary>Starts dependency-aware shutdown cleanup while resource owners retire.</summary>
@@ -199,9 +197,9 @@ internal sealed class DcpApiClient : IAsyncDisposable
     {
         await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
             new DcpExecutionRequest(DcpExecutionState.CleaningResources, DcpResourceCleanup.Full), DcpJsonContext.Default.DcpExecutionRequest),
-            cancellationToken).ConfigureAwait(false);
-        while ((await SendAsync(HttpMethod.Get, "admin/execution", null, cancellationToken).ConfigureAwait(false))?
-            .Deserialize(DcpJsonContext.Default.DcpExecutionResponse)?.Status != DcpExecutionState.CleanupComplete)
+            DcpJsonContext.Default.JsonElement, cancellationToken).ConfigureAwait(false);
+        while ((await SendAsync(HttpMethod.Get, "admin/execution", null, DcpJsonContext.Default.DcpExecutionResponse,
+            cancellationToken).ConfigureAwait(false))?.Status != DcpExecutionState.CleanupComplete)
         {
             await Task.Delay(_options.RetryInterval, _options.TimeProvider, cancellationToken).ConfigureAwait(false);
         }
@@ -219,7 +217,7 @@ internal sealed class DcpApiClient : IAsyncDisposable
                 await CleanupResourcesAsync(cleanup.Token).ConfigureAwait(false);
                 await SendAsync(HttpMethod.Patch, "admin/execution", JsonSerializer.SerializeToElement(
                     new DcpExecutionRequest(DcpExecutionState.Stopping, DcpResourceCleanup.Full), DcpJsonContext.Default.DcpExecutionRequest),
-                    cleanup.Token, DcpResponseMode.Empty).ConfigureAwait(false);
+                    DcpJsonContext.Default.JsonElement, cleanup.Token, DcpResponseMode.Empty).ConfigureAwait(false);
                 await _process.WaitForExitStatusAsync().WaitAsync(cleanup.Token).ConfigureAwait(false);
             }
         }

@@ -21,13 +21,13 @@ internal sealed partial class NativeProviderRegistry
                 if (!ReferenceEquals(existing.Owner, owner) || !ReferenceEquals(existing.Declaration.Composition, declaration.Composition) ||
                     existing.Declaration.Handle != declaration.Handle || existing.TypeId != typeId || existing.IsRetired)
                 {
-                    throw new RpcFault("INVALID_HANDLE", "An integration object cannot change its original declaration authority.");
+                    throw RpcFault.InvalidHandle("An integration object cannot change its original declaration authority.");
                 }
                 return existing;
             }
             if (registration.Resources.Count >= 4096)
             {
-                throw new RpcFault("PROVIDER_LIMIT", "Provider object capacity was reached.");
+                throw RpcFault.ProviderLimit("Provider object capacity was reached.");
             }
             var hooks = registration.Capabilities.Values.Where(metadata =>
                 metadata.TargetTypeId == typeId && metadata.LifecyclePhase is not null).ToArray();
@@ -50,12 +50,12 @@ internal sealed partial class NativeProviderRegistry
         lock (_gate)
         {
             registration = _providers.Values.SingleOrDefault(candidate => candidate.Id == binding.ProviderId)
-                ?? throw new RpcFault("PROVIDER_DISCONNECTED", "The lifecycle provider is unavailable.");
+                ?? throw RpcFault.ProviderDisconnected("The lifecycle provider is unavailable.");
             if (!registration.Resources.TryGetValue(binding.ObjectId, out resource!) || resource.IsRetired ||
                 resource.TypeId != binding.TypeId || !registration.Capabilities.TryGetValue(binding.CapabilityId, out var metadata) ||
                 metadata.LifecyclePhase != authority.Phase)
             {
-                throw new RpcFault("INVALID_HANDLE", "The lifecycle object or phase authority is unavailable.");
+                throw RpcFault.InvalidHandle("The lifecycle object or phase authority is unavailable.");
             }
         }
         EnsureAvailable(registration);
@@ -145,7 +145,7 @@ internal sealed partial class NativeProviderRegistry
                 new JsonArray(JsonValue.Create(resource.ObjectId)), deadline.Token).ConfigureAwait(false);
             if (result is not JsonValue success || !success.TryGetValue<bool>(out var released) || !released)
             {
-                throw new RpcFault("PROVIDER_DISPOSAL_FAILED", "The provider did not release its retired object.");
+                throw RpcFault.ProviderDisposalFailed("The provider did not release its retired object.");
             }
         }
         catch
@@ -156,7 +156,7 @@ internal sealed partial class NativeProviderRegistry
             {
                 Disconnect(connection);
             }
-            throw new RpcFault("PROVIDER_DISPOSAL_FAILED", "The provider object release did not complete.");
+            throw RpcFault.ProviderDisposalFailed("The provider object release did not complete.");
         }
     }
 

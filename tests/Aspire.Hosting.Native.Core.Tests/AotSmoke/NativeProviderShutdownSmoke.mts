@@ -51,6 +51,8 @@ globalThis.clearTimeout = ((timer: ReturnType<typeof setTimeout>) => {
 let ready!: () => void;
 let registered = Promise.resolve();
 let rejectRegistration = false;
+let nextAuthority = 0;
+const pending = new Map<string, { abandoned: Promise<void>; abandon: () => void }>();
 const sockets: Socket[] = [];
 const connections: rpc.MessageConnection[] = [];
 const server = createServer(socket => {
@@ -59,10 +61,28 @@ const server = createServer(socket => {
     connections.push(connection);
     connection.onRequest('authenticate', () => true);
     connection.onRequest('getApplicationServer', () => ({ $handle: 'test-root', $type: nativeTypes.NativeApplicationServer.typeId }));
-    connection.onRequest('expectIntegrationHost', () => 'test-registration');
-    connection.onRequest('waitIntegrationHostRegistration', async () => {
-        await registered;
+    connection.onRequest('expectIntegrationHost', () => {
+        assert(pending.size < 64, 'activation capacity must be released after failed spawn');
+        const authority = `registration-${nextAuthority++}`;
+        let abandon!: () => void;
+        const abandoned = new Promise<void>(resolve => { abandon = resolve; });
+        pending.set(authority, { abandoned, abandon });
+        return authority;
+    });
+    connection.onRequest('abandonIntegrationHostRegistration', (authority: string) => {
+        const activation = pending.get(authority);
+        if (!activation) return false;
+        pending.delete(authority);
+        activation.abandon();
+        return true;
+    });
+    connection.onRequest('waitIntegrationHostRegistration', async (authority: string) => {
+        const activation = pending.get(authority);
+        assert(activation);
+        await Promise.race([registered, activation.abandoned]);
+        if (!pending.has(authority)) throw new Error('activation abandoned');
         if (rejectRegistration) throw new Error('registration rejected');
+        pending.delete(authority);
         return true;
     });
     connection.listen();
@@ -124,9 +144,24 @@ try {
         .then(() => { throw new Error('Missing executable cannot activate.'); }, error => error);
     assert(failure instanceof AggregateError);
     assert.equal(failure.errors.length, 2, 'activation and spawn/release failures must both remain visible');
-    assert.match(String(failure.errors[0]), /registration rejected/);
+    assert.match(String(failure.errors[0]), /registration rejected|ENOENT/);
     assert.match(String(failure.errors[1]), /ENOENT/);
     assert.equal(timers.size, 0);
+
+    rejectRegistration = false;
+    registered = new Promise<void>(() => {});
+    for (let index = 0; index < 80; index++) {
+        const spawnError = await native.activateProvider('test-provider', `${process.execPath}.does-not-exist`, [])
+            .then(() => { throw new Error('Missing executable cannot activate.'); }, error => error);
+        assert(spawnError instanceof AggregateError);
+        assert.equal(spawnError.errors.length, 2);
+        assert.match(String(spawnError.errors[0]), /ENOENT/);
+        assert.match(String(spawnError.errors[1]), /ENOENT/);
+        assert.equal(pending.size, 0);
+        assert.equal(timers.size, 0);
+    }
+    await assert.rejects(native.activateProvider('test-provider', '\0', []), TypeError);
+    assert.equal(pending.size, 0, 'synchronous spawn errors must also abandon authority');
 } finally {
     for (const child of children) {
         if (child.pid && child.exitCode === null && child.signalCode === null) {

@@ -63,7 +63,6 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         {
             throw new NotSupportedException("This provider activation entry point currently requires loopback TCP.");
         }
-        var authority = await client.ExpectIntegrationHostAsync(packageName, cancellationToken).ConfigureAwait(false);
         var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         // Kernel-enforced parent ownership survives abrupt host termination.
         // .NET does not support this option on macOS; explicit disposal still applies.
@@ -78,10 +77,12 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         }
         start.Environment["ASPIRE_NATIVE_RPC_ENDPOINT"] = endpoint.ToString();
         start.Environment["ASPIRE_NATIVE_RPC_TOKEN"] = client.AuthenticationToken;
-        start.Environment["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"] = authority;
-        var activation = new NativeProviderActivation(Process.Start(start) ?? throw new InvalidOperationException("The provider process did not start."), clock);
+        var authority = await client.ExpectIntegrationHostAsync(packageName, cancellationToken).ConfigureAwait(false);
+        NativeProviderActivation? activation = null;
         try
         {
+            start.Environment["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"] = authority;
+            activation = new NativeProviderActivation(Process.Start(start) ?? throw new InvalidOperationException("The provider process did not start."), clock);
             await client.WaitIntegrationHostRegistrationAsync(authority, cancellationToken).ConfigureAwait(false);
             if (activation._process.HasExited)
             {
@@ -91,9 +92,34 @@ public sealed class NativeProviderActivation : IAsyncDisposable
 
             return activation;
         }
-        catch
+        catch (Exception activationError)
         {
-            await activation.DisposeAsync().ConfigureAwait(false);
+            List<Exception> failures = [activationError];
+            try
+            {
+                // The original cancellation may already be signalled. Authority
+                // cleanup must still reach the server, including when spawn throws.
+                await client.AbandonIntegrationHostRegistrationAsync(authority, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception cleanupError)
+            {
+                failures.Add(cleanupError);
+            }
+            if (activation is not null)
+            {
+                try
+                {
+                    await activation.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception cleanupError)
+                {
+                    failures.Add(cleanupError);
+                }
+            }
+            if (failures.Count > 1)
+            {
+                throw new AggregateException("Provider activation and cleanup failed.", failures);
+            }
             throw;
         }
     }

@@ -3,11 +3,37 @@
 
 using Aspire.Hosting.Native.Client;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeProviderActivationTests
 {
+    [Fact]
+    public async Task RepeatedSpawnFailuresDoNotConsumePendingProviderCapacity()
+    {
+        await using var host = await NativeClientTestHost.StartAsync();
+        await using var client = await NativeClient.ConnectAsync(host.Endpoint, host.Token,
+            TimeSpan.FromSeconds(15), TimeProvider.System, TestContext.Current.CancellationToken);
+        var directory = Directory.CreateTempSubdirectory("aspire-native-provider-failure-");
+        try
+        {
+            var missing = Path.Combine(directory.FullName, "missing-provider");
+            for (var index = 0; index < 80; index++)
+            {
+                await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(() =>
+                    NativeProviderActivation.StartAsync(client, "example.failure", missing, [],
+                        TimeProvider.System, NullLogger.Instance, TestContext.Current.CancellationToken));
+            }
+            var authority = await client.ExpectIntegrationHostAsync("example.next", TestContext.Current.CancellationToken);
+            Assert.True(await client.AbandonIntegrationHostRegistrationAsync(authority, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
     [Fact]
     public async Task ExitedProviderDisposesProcessAfterDrainingOutput()
     {

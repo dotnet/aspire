@@ -90,7 +90,7 @@ internal sealed class NativeRpcConnection : IDisposable
                 if (value is ProviderResourceReference next && existing is ProviderResourceReference previous &&
                     !JsonNode.DeepEquals(next.Lifetime, previous.Lifetime))
                 {
-                    throw new RpcFault("INVALID_HANDLE", "The provider resource lifetime cannot change.");
+                    throw RpcFault.InvalidHandle("The provider resource lifetime cannot change.");
                 }
                 value = existing;
             }
@@ -133,7 +133,7 @@ internal sealed class NativeRpcConnection : IDisposable
             }
             if (_callbacks.Count >= _options.MaximumHandlesPerConnection)
             {
-                throw new RpcFault("HANDLE_LIMIT", "The callback authority limit was reached.");
+                throw RpcFault.HandleLimit("The callback authority limit was reached.");
             }
             var id = RandomNumberGenerator.GetHexString(32);
             _callbacks.Add(id, callback);
@@ -155,14 +155,14 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (!_callbacks.TryGetValue(id, out var callback) || callback.IsRevoked)
             {
-                throw new RpcFault("HANDLE_NOT_FOUND", "The callback authority is unknown or retired.");
+                throw RpcFault.HandleNotFound("The callback authority is unknown or retired.");
             }
             return callback;
         }
     }
 
     internal Task<JsonNode?> RequestAsync(string method, JsonArray arguments) =>
-        (_peer ?? throw new RpcFault("NOT_SUPPORTED", "Bidirectional RPC is not configured."))
+        (_peer ?? throw RpcFault.NotSupported("Bidirectional RPC is not configured."))
         .RequestAsync(method, arguments, Closed);
 
     internal async Task<JsonNode?> InvokeCoreAsync(string capability, JsonObject arguments)
@@ -395,7 +395,7 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (parameters is not JsonArray { Count: 1 } authentication)
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Authentication requires one token.");
+                throw RpcFault.InvalidArgument("Authentication requires one token.");
             }
             var supplied = Encoding.UTF8.GetBytes(RpcArguments.String(authentication[0]));
             try
@@ -411,7 +411,7 @@ internal sealed class NativeRpcConnection : IDisposable
         }
         if (!_authenticated)
         {
-            throw new RpcFault("UNAUTHENTICATED", "Authenticate before using capabilities.");
+            throw RpcFault.Unauthenticated("Authenticate before using capabilities.");
         }
         if (method == "ping")
         {
@@ -422,7 +422,7 @@ internal sealed class NativeRpcConnection : IDisposable
             if (_providers is null || parameters is not JsonArray { Count: 1 } expectation ||
                 _providers.IsProvider(this))
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Expected registration requires an application connection and one package identity.");
+                throw RpcFault.InvalidArgument("Expected registration requires an application connection and one package identity.");
             }
             return JsonValue.Create(_providers.Expect(this, RpcArguments.String(expectation[0])));
         }
@@ -430,7 +430,7 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (_providers is null || _peer is null || parameters is not JsonArray { Count: 1 } registration)
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Provider registration requires one expected authority.");
+                throw RpcFault.InvalidArgument("Provider registration requires one expected authority.");
             }
             await _providers.RegisterAsync(this, RpcArguments.String(registration[0]), _peer).ConfigureAwait(false);
             return JsonValue.Create(true);
@@ -439,16 +439,25 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (_providers is null || parameters is not JsonArray { Count: 1 } activation)
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Provider activation requires one expected authority.");
+                throw RpcFault.InvalidArgument("Provider activation requires one expected authority.");
             }
             await _providers.WaitRegistrationAsync(this, RpcArguments.String(activation[0])).ConfigureAwait(false);
             return JsonValue.Create(true);
+        }
+        if (method == "abandonIntegrationHostRegistration")
+        {
+            if (_providers is null || parameters is not JsonArray { Count: 1 } activation)
+            {
+                throw RpcFault.InvalidArgument("Abandoning activation requires one expected authority.");
+            }
+
+            return JsonValue.Create(_providers.AbandonRegistration(this, RpcArguments.String(activation[0])));
         }
         if (method == "invokeGuestCallback")
         {
             if (_providers is null || parameters is not JsonArray { Count: 2 } callback || callback[1] is not JsonObject callbackArguments)
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Callback invocation requires its authority and arguments.");
+                throw RpcFault.InvalidArgument("Callback invocation requires its authority and arguments.");
             }
             return await _providers.InvokeCallbackAsync(this, RpcArguments.String(callback[0]), callbackArguments).ConfigureAwait(false);
         }
@@ -458,7 +467,7 @@ internal sealed class NativeRpcConnection : IDisposable
                 method == "getRuntimeSpec" && bootstrapArgs.Count != 1 ||
                 bootstrapArgs.Count == 2 && bootstrapArgs[1] is not null)
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Bootstrap requires a language and does not support assembly filtering.");
+                throw RpcFault.InvalidArgument("Bootstrap requires a language and does not support assembly filtering.");
             }
             return method == "getRuntimeSpec"
                 ? _languages.RuntimeSpec(RpcArguments.String(bootstrapArgs[0]))
@@ -468,7 +477,7 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (parameters is not null and not JsonArray { Count: 0 })
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Capability discovery takes no arguments.");
+                throw RpcFault.InvalidArgument("Capability discovery takes no arguments.");
             }
 
             return s_contract.DeepClone();
@@ -477,7 +486,7 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (_providers is null || parameters is not null and not JsonArray { Count: 0 })
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Provider discovery takes no arguments.");
+                throw RpcFault.InvalidArgument("Provider discovery takes no arguments.");
             }
             return _providers.InspectCapabilities();
         }
@@ -485,18 +494,18 @@ internal sealed class NativeRpcConnection : IDisposable
         {
             if (parameters is not null and not JsonArray { Count: 0 })
             {
-                throw new RpcFault("INVALID_ARGUMENT", "Server entry-point discovery takes no arguments.");
+                throw RpcFault.InvalidArgument("Server entry-point discovery takes no arguments.");
             }
 
             return _handles.Add(_server, "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer");
         }
         if (method != "invokeCapability")
         {
-            throw new RpcFault("METHOD_NOT_FOUND", "The RPC method is not implemented.");
+            throw RpcFault.MethodNotFound("The RPC method is not implemented.");
         }
         if (parameters is not JsonArray { Count: 2 } arguments || arguments[1] is not JsonObject capabilityArguments)
         {
-            throw new RpcFault("INVALID_ARGUMENT", "Capability invocation requires an ID and an argument object.");
+            throw RpcFault.InvalidArgument("Capability invocation requires an ID and an argument object.");
         }
 
         var capabilityId = RpcArguments.String(arguments[0]);

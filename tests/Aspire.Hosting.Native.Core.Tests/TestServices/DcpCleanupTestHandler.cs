@@ -19,6 +19,7 @@ internal sealed class DcpCleanupTestHandler : HttpMessageHandler
     public ConcurrentQueue<(string ContentType, string Body)> RequestContents { get; } = new();
     public Func<CancellationToken, Task>? BeforeCleanup { get; set; }
     public Func<CancellationToken, Task>? BeforeResponse { get; set; }
+    public Func<HttpRequestMessage, HttpResponseMessage>? ResponseFactory { get; set; }
 
     public DcpApiClient CreateClient(NativeServerOptions options)
     {
@@ -30,6 +31,10 @@ internal sealed class DcpCleanupTestHandler : HttpMessageHandler
         if (BeforeResponse is { } beforeResponse)
         {
             await beforeResponse(cancellationToken);
+        }
+        if (ResponseFactory is { } responseFactory)
+        {
+            return responseFactory(request);
         }
         var path = request.RequestUri!.AbsolutePath;
         var key = string.Join('/', path.Split('/')[^2..]);

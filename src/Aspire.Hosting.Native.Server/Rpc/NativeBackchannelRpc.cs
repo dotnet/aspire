@@ -32,20 +32,13 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
         {
             await peer.RunAsync(async envelope =>
             {
-                var request = envelope.Deserialize(NativeCliJsonContext.Default.NativeCliRequest)
-                    ?? throw new InvalidDataException("Invalid backchannel request.");
-                if (request.Jsonrpc != "2.0" ||
-                    request.Id is { ValueKind: not (JsonValueKind.String or JsonValueKind.Number) })
-                {
-                    throw new InvalidDataException("Invalid backchannel envelope.");
-                }
+                var request = NativeBackchannelProtocol.ParseRequest(envelope);
                 if (request.Method == "$/cancelRequest")
                 {
-                    var cancel = request.Params?.Deserialize(NativeCliJsonContext.Default.NativeCliCancellation)
-                        ?? throw new InvalidDataException("Cancellation requires a request ID.");
+                    var id = NativeBackchannelProtocol.ReadCancellationId(request);
                     lock (gate)
                     {
-                        if (requests.TryGetValue(cancel.Id.GetRawText(), out var pending))
+                        if (requests.TryGetValue(id, out var pending))
                         {
                             pending.Cancel();
                         }
@@ -90,18 +83,14 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
         {
             NativeBackchannelReply? reply = null;
             NativeCliError? error = null;
-            var result = JsonSerializer.SerializeToElement((string?)null, NativeCliJsonContext.Default.String);
+            var result = NativeBackchannelProtocol.NullResult;
             try
             {
                 try
                 {
                     if (request.Method is "$/enumerator/next" or "$/enumerator/abort")
                     {
-                        if (request.Params is not { ValueKind: JsonValueKind.Array } arguments ||
-                            arguments.GetArrayLength() != 1 || !arguments[0].TryGetInt64(out var token))
-                        {
-                            throw new ArgumentException("An enumerator requires one integer token.");
-                        }
+                        var token = NativeBackchannelProtocol.ReadEnumeratorToken(request);
                         Cursor cursor;
                         lock (gate)
                         {
@@ -129,8 +118,7 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                                 }
                                 await cursor.DisposeAsync().ConfigureAwait(false);
                             }
-                            result = JsonSerializer.SerializeToElement(next,
-                                NativeCliJsonContext.Default.NativeCliEnumeratorResult);
+                            result = NativeBackchannelProtocol.EnumeratorResult(next);
                         }
                     }
                     else
@@ -147,8 +135,7 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                                 }
                                 var token = checked(++nextToken);
                                 cursors.Add(token, new Cursor(reply.Stream, lifetime.Token));
-                                result = JsonSerializer.SerializeToElement(new NativeCliStreamDescriptor(token),
-                                    NativeCliJsonContext.Default.NativeCliStreamDescriptor);
+                                result = NativeBackchannelProtocol.StreamDescriptor(token);
                             }
                         }
                     }
@@ -192,12 +179,7 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
                 {
                     return;
                 }
-                await peer.SendAsync(JsonSerializer.SerializeToUtf8Bytes(new NativeCliResponse
-                {
-                    Id = request.Id.Value,
-                    Result = error is null ? result : null,
-                    Error = error
-                }, NativeCliJsonContext.Default.NativeCliResponse), lifetime.Token).ConfigureAwait(false);
+                await peer.SendAsync(NativeBackchannelProtocol.EncodeResponse(request.Id.Value, result, error), lifetime.Token).ConfigureAwait(false);
                 // A stop response must be flushed before cancellation closes either backchannel.
                 if (error is null)
                 {

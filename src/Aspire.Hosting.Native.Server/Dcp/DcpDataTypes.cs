@@ -57,5 +57,5 @@ internal sealed record DcpExecutionResponse(DcpExecutionState Status);
 [JsonSerializable(typeof(DcpExecutionRequest))]
 [JsonSerializable(typeof(DcpExecutionResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, RespectNullableAnnotations = true)]
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, RespectNullableAnnotations = true, MaxDepth = 32)]
 internal sealed partial class DcpJsonContext : JsonSerializerContext;

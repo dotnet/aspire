@@ -219,6 +219,13 @@ public sealed class NativeClient : IAsyncDisposable
     /// <summary>Waits for explicit provider activation without log-based readiness or retries.</summary>
     public Task<bool> WaitIntegrationHostRegistrationAsync(string authority, CancellationToken cancellationToken) =>
         RequestAsync(() => _serverRpc.WaitIntegrationHostRegistrationAsync(authority), cancellationToken);
+
+    /// <summary>Releases pending provider activation authority owned by this connection.</summary>
+    /// <param name="authority">The authority returned by expected provider registration.</param>
+    /// <param name="cancellationToken">Cancels the abandonment request.</param>
+    /// <returns>Whether pending authority was removed; already removed authority returns false.</returns>
+    public Task<bool> AbandonIntegrationHostRegistrationAsync(string authority, CancellationToken cancellationToken) =>
+        RequestAsync(() => _serverRpc.AbandonIntegrationHostRegistrationAsync(authority), cancellationToken);
     /// <summary>Reads portable metadata for registered integration APIs without changing the static native contract.</summary>
     public Task<JsonElement> GetIntegrationCapabilitiesAsync(CancellationToken cancellationToken) =>
         RequestAsync(_serverRpc.GetIntegrationCapabilitiesAsync, cancellationToken);

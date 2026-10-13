@@ -385,6 +385,11 @@ Current Redis integrations demonstrate typed fluent authoring, symbolic
 credentials, authenticated readiness, references and retained data. This does
 not establish full parity with existing hosting integrations.
 
+The native executor consumes generic workload plans, not the managed resource
+graph. Watched reconciliation, replicas, shared container networks and
+prelaunch endpoint allocation remain gaps. Integration-specific preparation
+belongs in providers rather than service-specific branches in the executor.
+
 The remaining design work includes general resource schemas, portable
 annotations, supported integration packaging, consumer-network resolution,
 automatic guest reload and publishing. These should extend the shared model,
