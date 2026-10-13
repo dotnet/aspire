@@ -43,6 +43,12 @@ then supplies activation coordinates over authenticated RPC. Ordinary AppHosts
 import `createBuilder` and the selected integration APIs from the generated
 `aspire.mjs`; they do not pass provider commands or set server overrides.
 
+For local server development, `ASPIRE_CLI_NATIVE_APPHOST_SERVER` overrides only
+the executable and still requires project opt-in. The CLI retains any available
+bundle layout for managed provider-codegen tooling, DCP and Dashboard. Put the
+matching `ats-contract.json` beside the overridden executable; provider-backed
+AppHosts require both that contract and the bundle's managed tooling.
+
 ## Source layout
 
 - `CSharp/ExternalApi`: ordinary resource class and `[AspireExport]` methods.

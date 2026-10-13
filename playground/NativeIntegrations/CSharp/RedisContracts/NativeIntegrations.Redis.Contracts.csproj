@@ -17,7 +17,7 @@
     <MSBuild Projects="../../../../src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
       <Output TaskParameter="TargetOutputs" ItemName="_ProviderGenerator" />
     </MSBuild>
-    <Exec Command="dotnet &quot;@(_ProviderGenerator)&quot; --provider &quot;@(_ProviderAssembly)&quot; example.csharp.redis &quot;$(NativeProviderGeneratedDirectory)&quot;" />
+    <Exec Command="&quot;$(DotNetTool)&quot; exec &quot;@(_ProviderGenerator)&quot; --provider &quot;@(_ProviderAssembly)&quot; example.csharp.redis &quot;$(NativeProviderGeneratedDirectory)&quot;" />
     <ItemGroup>
       <Compile Include="$(NativeProviderGeneratedDirectory)ProviderContract.g.cs" />
     </ItemGroup>

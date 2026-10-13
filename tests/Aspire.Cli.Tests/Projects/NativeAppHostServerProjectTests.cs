@@ -36,7 +36,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         var factory = CreateFactory(new TestEnvironment(new Dictionary<string, string?>
         {
             [NativeAppHostServerProject.ExecutableEnvironmentVariable] = executable
-        }));
+        }), new NullBundleService(), new TestProcessExecutionFactory());
 
         using var project = Assert.IsType<NativeAppHostServerProject>(await factory.CreateAsync(nested.FullName));
         Assert.Equal(nested.FullName, project.AppDirectoryPath);
@@ -54,10 +54,61 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         }
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         new AspireConfigFile { Features = new() { [KnownFeatures.AppHostServerV2] = true } }.Save(workspace.Path);
-        var factory = CreateFactory(new TestEnvironment());
+        var factory = CreateFactory(new TestEnvironment(), new NullBundleService(), new TestProcessExecutionFactory());
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.CreateAsync(workspace.Path));
         Assert.Contains("does not contain AppHost Server v2", exception.Message);
+    }
+
+    [Fact]
+    public async Task FactoryOverrideRetainsBundleToolingForProviderPreparation()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        new AspireConfigFile { Features = new() { [KnownFeatures.AppHostServerV2] = true } }.Save(workspace.Path);
+        var serverDirectory = workspace.CreateDirectory("developer-server");
+        var executable = Path.Combine(serverDirectory.FullName, "server");
+        var contract = Path.Combine(serverDirectory.FullName, "ats-contract.json");
+        await File.WriteAllTextAsync(executable, "");
+        await File.WriteAllTextAsync(contract, "{}");
+        var managedDirectory = workspace.CreateDirectory("managed");
+        var managed = Path.Combine(managedDirectory.FullName, "aspire-managed");
+        await File.WriteAllTextAsync(managed, "");
+        var providerDirectory = workspace.CreateDirectory("provider");
+        var entryPoint = Path.Combine(providerDirectory.FullName, "host.mjs");
+        await File.WriteAllTextAsync(entryPoint, "");
+        await File.WriteAllTextAsync(Path.Combine(providerDirectory.FullName, "metadata.json"), "{}");
+        await File.WriteAllTextAsync(Path.Combine(providerDirectory.FullName, "aspire.apphost-server.json"),
+            """{"protocolVersion":2,"packageName":"example.provider","metadata":"metadata.json","sdkFiles":{},"exports":[]}""");
+        var layout = new LayoutConfiguration { LayoutPath = workspace.Path };
+        var lease = new BundleLayoutLease(layout, null);
+        var bundle = new TestBundleService(true) { CreateLayoutLease = () => lease };
+        var processes = new TestProcessExecutionFactory();
+        var invocations = 0;
+        processes.CreateExecutionFromStartInfoCallback = (start, options) =>
+        {
+            invocations++;
+            Assert.Equal(managed, start.FileName);
+            Assert.Equal("apphost-codegen-v2", start.ArgumentList[0]);
+            var request = JsonNode.Parse(File.ReadAllText(start.ArgumentList[1]))!;
+            Assert.Equal(contract, request["coreContract"]!.GetValue<string>());
+            Directory.CreateDirectory(request["output"]!.GetValue<string>());
+            return new TestProcessExecution(start.FileName, [], null, options,
+                (_, _, _) => Task.FromResult((0, (string?)null)), () => 1);
+        };
+        var factory = CreateFactory(new TestEnvironment(new Dictionary<string, string?>
+        {
+            [NativeAppHostServerProject.ExecutableEnvironmentVariable] = executable
+        }), bundle, processes);
+        using var project = Assert.IsType<NativeAppHostServerProject>(await factory.CreateAsync(workspace.Path));
+
+        Assert.Same(lease, project.LayoutLease);
+        Assert.Equal(1, bundle.AcquireLayoutCallCount);
+        Assert.True((await project.PrepareAsync("17.0", [IntegrationReference.FromNpm("example.provider", entryPoint)])).Success);
+        Assert.Equal(1, invocations);
     }
 
     [Fact]
@@ -309,9 +360,10 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         await finalRun.Execution.DisposeAsync();
     }
 
-    private static AppHostServerProjectFactory CreateFactory(TestEnvironment environment)
-        => new(new TestDotNetCliRunner(), MockPackagingServiceFactory.Create(), new NullBundleService(),
+    private static AppHostServerProjectFactory CreateFactory(TestEnvironment environment, IBundleService bundle,
+        TestProcessExecutionFactory processes)
+        => new(new TestDotNetCliRunner(), MockPackagingServiceFactory.Create(), bundle,
             new BundleNuGetService(NullLogger<BundleNuGetService>.Instance, new FakeNuGetClient()),
             new TestDotNetSdkInstaller(), TestExecutionContextFactory.CreateTestContext(), environment,
-            new TestProcessExecutionFactory(), NullLoggerFactory.Instance);
+            processes, NullLoggerFactory.Instance);
 }

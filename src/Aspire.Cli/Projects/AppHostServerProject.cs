@@ -89,22 +89,21 @@ internal sealed class AppHostServerProjectFactory(
             throw new PlatformNotSupportedException("AppHost Server v2 currently requires Unix-domain sockets.");
         }
 
-        // The developer override uses the same opt-in and preparation path as an installed bundle.
-        if (environment.GetEnvironmentVariable(NativeAppHostServerProject.ExecutableEnvironmentVariable) is { Length: > 0 } executable)
-        {
-            return new NativeAppHostServerProject(appPath, executable, processExecutionFactory,
-                loggerFactory.CreateLogger<NativeAppHostServerProject>());
-        }
-
+        // Overriding the server executable still requires available bundle tooling
+        // for provider SDK preparation and bundled runtime components.
         var lease = await bundleService.EnsureExtractedAndAcquireLayoutAsync("cli", "apphost-server-v2", cancellationToken).ConfigureAwait(false);
         try
         {
-            var path = lease?.Layout.GetAppHostServerPath();
-            if (path is null || !File.Exists(path))
+            var path = environment.GetEnvironmentVariable(NativeAppHostServerProject.ExecutableEnvironmentVariable);
+            if (string.IsNullOrEmpty(path))
             {
-                throw new InvalidOperationException(
-                    "This Aspire bundle does not contain AppHost Server v2. Update or reinstall the CLI, " +
-                    "or disable features.appHostServerV2 in this AppHost's aspire.config.json.");
+                path = lease?.Layout.GetAppHostServerPath();
+                if (path is null || !File.Exists(path))
+                {
+                    throw new InvalidOperationException(
+                        "This Aspire bundle does not contain AppHost Server v2. Update or reinstall the CLI, " +
+                        "or disable features.appHostServerV2 in this AppHost's aspire.config.json.");
+                }
             }
 
             return new NativeAppHostServerProject(appPath, path, processExecutionFactory,
