@@ -483,7 +483,7 @@ public class DotnetProjectResourceTests(ITestOutputHelper outputHelper)
         File.WriteAllText(projectPath, "<Project />");
 
         var appHostDirectory = Directory.CreateDirectory(Path.Combine(workspace.Path, "AppHost"));
-        using var builder = TestDistributedApplicationBuilder.Create(options => options.AppHostDirectory = appHostDirectory.FullName);
+        using var builder = TestDistributedApplicationBuilder.Create(options => options.ProjectDirectory = appHostDirectory.FullName);
         var resourcePath = relativePath ? "../MyService" : projectDir.FullName;
         var app = builder.AddDotnetProject("svc", trailingSlash ? resourcePath + "/" : resourcePath, o => o.ExcludeLaunchProfile = true);
 
