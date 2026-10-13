@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,8 @@ public class ResourceCommandService
     private readonly ResourceNotificationService _resourceNotificationService;
     private readonly ResourceLoggerService _resourceLoggerService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly object _launchGroupStartLock = new();
+    private readonly Dictionary<string, Task> _launchGroupDependencyStarts = new(StringComparers.ResourceName);
 
     // Constructor is pureposefully internal so adding new dependencies in the future isn't a public API change.
     internal ResourceCommandService(ResourceNotificationService resourceNotificationService, ResourceLoggerService resourceLoggerService, IServiceProvider serviceProvider)
@@ -323,7 +326,10 @@ public class ResourceCommandService
         return await ExecuteCommandAsync(resource, commandName, result.Arguments, cancellationToken).ConfigureAwait(false);
     }
 
-    internal async Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string commandName, InteractionInputCollection arguments, bool argumentsProvided, bool nonInteractive, CancellationToken cancellationToken)
+    internal Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string commandName, InteractionInputCollection arguments, bool argumentsProvided, bool nonInteractive, CancellationToken cancellationToken) =>
+        ExecuteCommandCoreAsync(resourceId, resource, commandName, arguments, argumentsProvided, nonInteractive, expandLaunchGroupDependencies: true, cancellationToken);
+
+    private async Task<ExecuteCommandResult> ExecuteCommandCoreAsync(string resourceId, IResource resource, string commandName, InteractionInputCollection arguments, bool argumentsProvided, bool nonInteractive, bool expandLaunchGroupDependencies, CancellationToken cancellationToken)
     {
         var logger = _resourceLoggerService.GetLogger(resourceId);
 
@@ -377,7 +383,11 @@ public class ResourceCommandService
                 // not attempt to prompt the user.
                 using var _ = nonInteractive ? InteractionService.StartNonInteractiveScope() : default;
 
-                var result = await ExecuteCommandWithOptionalProgressAsync(annotation, context, cancellationToken).ConfigureAwait(false);
+                var result = expandLaunchGroupDependencies &&
+                    commandName == KnownResourceCommands.StartCommand &&
+                    _serviceProvider.GetService<LaunchGroupService>() is { IsActive: true }
+                    ? await ExecuteLaunchGroupStartAsync(resource, annotation, context, cancellationToken).ConfigureAwait(false)
+                    : await ExecuteCommandWithOptionalProgressAsync(annotation, context, cancellationToken).ConfigureAwait(false);
                 if (result.Success)
                 {
                     logger.LogInformation("Successfully executed command '{CommandName}'.", commandName);
@@ -408,6 +418,110 @@ public class ResourceCommandService
 
         logger.LogInformation("Command '{CommandName}' not available.", commandName);
         return new ExecuteCommandResult { Success = false, Message = $"Command '{commandName}' not available for resource '{resource.GetResolvedDisplayResourceName(resourceId)}'." };
+    }
+
+    private async Task<ExecuteCommandResult> ExecuteLaunchGroupStartAsync(
+        IResource resource,
+        ResourceCommandAnnotation annotation,
+        ExecuteCommandContext context,
+        CancellationToken cancellationToken)
+    {
+        // Start on a waiting resource is an explicit force-start. It must reach the lifecycle handler even
+        // while an earlier start is blocked on readiness, without expanding dependencies again.
+        if (_resourceNotificationService.TryGetCurrentState(context.ResourceName, out var current) &&
+            current.Snapshot.State?.Text == KnownResourceStates.Waiting)
+        {
+            return await ExecuteCommandWithOptionalProgressAsync(annotation, context, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Expand at the command boundary, not in DCP, so custom resources with a start command participate too.
+        var closure = LaunchGroupService.GetClosure([resource]);
+        foreach (var dependency in closure)
+        {
+            if (ReferenceEquals(dependency, resource))
+            {
+                continue;
+            }
+
+            foreach (var name in dependency.GetResolvedResourceNames())
+            {
+                var result = await ExecuteLaunchGroupDependencyStartAsync(dependency, name, closure, cancellationToken).ConfigureAwait(false);
+                if (!result.Success)
+                {
+                    return result;
+                }
+            }
+        }
+
+        return await ExecuteCommandWithOptionalProgressAsync(annotation, context, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ExecuteCommandResult> ExecuteLaunchGroupDependencyStartAsync(
+        IResource dependency,
+        string name,
+        IReadOnlyList<IResource> closure,
+        CancellationToken cancellationToken)
+    {
+        Task precedingStart;
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_launchGroupStartLock)
+        {
+            precedingStart = _launchGroupDependencyStarts.GetValueOrDefault(name, Task.CompletedTask);
+            _launchGroupDependencyStarts[name] = completion.Task;
+        }
+        try
+        {
+            // Only competing starts of this dependency queue here. An unhealthy dependency must not block
+            // unrelated starts or the force-start command that releases its readiness wait.
+            await precedingStart.WaitAsync(cancellationToken).ConfigureAwait(false);
+            if (!_resourceNotificationService.TryGetCurrentState(name, out var current) ||
+                (current.Snapshot.State?.Text != KnownResourceStates.NotStarted &&
+                 !KnownResourceStates.TerminalStates.Contains(current.Snapshot.State?.Text)))
+            {
+                return CommandResults.Success();
+            }
+
+            var waits = closure.SelectMany(resource => resource.Annotations.OfType<WaitAnnotation>())
+                .Where(wait => ReferenceEquals(wait.Resource, dependency)).ToArray();
+            if (current.Snapshot.State?.Text != KnownResourceStates.FailedToStart &&
+                current.Snapshot.ExitCode is { } exitCode &&
+                waits.Length > 0 &&
+                waits.All(wait => wait.WaitType == WaitType.WaitForCompletion && wait.ExitCode == exitCode))
+            {
+                return CommandResults.Success();
+            }
+
+            var commandName = KnownResourceCommands.StartCommand;
+            if (ResolveCommandAnnotation(dependency, ref commandName) is not { } startCommand)
+            {
+                return CommandResults.Success();
+            }
+
+            var result = await ExecuteCommandCoreAsync(
+                name, dependency, commandName, CreateArguments(startCommand.Arguments, argumentValues: null),
+                argumentsProvided: false, nonInteractive: true, expandLaunchGroupDependencies: false,
+                cancellationToken).ConfigureAwait(false);
+            if (result.Success)
+            {
+                // DCP's watcher may not have reported Starting yet. Do not restart this dependency in
+                // that gap, or overwrite a synchronous custom-resource update.
+                await _resourceNotificationService.PublishUpdateAsync(dependency, name, snapshot =>
+                    ReferenceEquals(snapshot, current.Snapshot) ? snapshot with { State = KnownResourceStates.Starting } : snapshot).ConfigureAwait(false);
+            }
+
+            return result;
+        }
+        finally
+        {
+            // A canceled queued request must not let its successor overtake the still-running predecessor.
+            _ = CompleteAfterAsync(precedingStart, completion);
+        }
+    }
+
+    private static async Task CompleteAfterAsync(Task precedingStart, TaskCompletionSource completion)
+    {
+        await precedingStart.ConfigureAwait(false);
+        completion.TrySetResult();
     }
 
     private async Task<ExecuteCommandResult> ExecuteCommandWithOptionalProgressAsync(
