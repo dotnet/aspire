@@ -1,0 +1,9 @@
+{
+  "author": "davidfowl",
+  "comment": "Breaking deprecation of Aspire.AppHost.Sdk (ASPIRE012) in favor of explicit packages and AddDotnetProject",
+  "mergedAt": "2026-10-12T23:50:37Z",
+  "number": 20867,
+  "runDate": "2026-10-13T00:07:59Z",
+  "status": "included",
+  "title": "Deprecate Aspire.AppHost.Sdk (ASPIRE012)"
+}

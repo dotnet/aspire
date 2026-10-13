@@ -1,0 +1,9 @@
+{
+  "author": "jmprieur",
+  "comment": "New Entra ID application hosting integration; community contribution, tested and merged by eerhardt",
+  "mergedAt": "2026-10-12T22:26:53Z",
+  "number": 14668,
+  "runDate": "2026-10-13T00:07:59Z",
+  "status": "included",
+  "title": "Entra ID integration API proposal for discussion"
+}

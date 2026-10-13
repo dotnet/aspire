@@ -1,0 +1,9 @@
+{
+  "author": "AdamDotNet",
+  "comment": "Breaking change adding IServiceProvider to Cosmos DB client configuration callback; community contribution",
+  "mergedAt": "2026-10-12T21:46:46Z",
+  "number": 19349,
+  "runDate": "2026-10-13T00:07:59Z",
+  "status": "included",
+  "title": "Add IServiceProvider support to Cosmos DB extensions"
+}

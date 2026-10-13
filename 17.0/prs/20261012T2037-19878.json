@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Internal cleanup removing unreachable scanner-side code with no consumer-facing behavior change",
+  "mergedAt": "2026-10-12T20:37:08Z",
+  "number": 19878,
+  "runDate": "2026-10-13T00:07:59Z",
+  "status": "excluded",
+  "title": "Remove dead Playwright scanner applicators"
+}
