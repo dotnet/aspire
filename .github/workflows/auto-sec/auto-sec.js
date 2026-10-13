@@ -1694,15 +1694,11 @@ function readApprovalRequests(agentOutput) {
 }
 
 async function getFileText(github, owner, repo, path, ref) {
-    try {
-        const response = await github.rest.repos.getContent({ owner, repo, path, ref, mediaType: { format: 'raw' } });
-        return typeof response.data === 'string' ? response.data : '';
-    } catch (error) {
-        if (error?.status === 404) {
-            return '';
-        }
-        throw error;
+    const response = await github.rest.repos.getContent({ owner, repo, path, ref, mediaType: { format: 'raw' } });
+    if (typeof response.data !== 'string') {
+        throw new Error('Invalid manifest contents');
     }
+    return response.data;
 }
 
 function normalizeAlert(alert) {
@@ -1757,7 +1753,7 @@ async function collectGateInput(github, owner, repo, request, { fetchImpl, now, 
     const baseIsAncestor = await baseIsAncestorOfHead(github, owner, repo, pr.base_sha, pr.head_sha);
 
     const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 }))
-        .map(file => ({ filename: file.filename, status: file.status }));
+        .map(file => ({ filename: file.filename, status: file.status, previous_filename: file.previous_filename }));
     const commits = (await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: pr.number, per_page: 100 }))
         .map(commit => ({ author_login: commit.author?.login ?? '', verified: commit.commit?.verification?.verified === true }));
 
@@ -1770,8 +1766,20 @@ async function collectGateInput(github, owner, repo, request, { fetchImpl, now, 
     const versionChangesByKey = new Map();
     const ecosystem = ecosystemFromBranch(pr.head_ref);
     for (const file of files.filter(entry => isAllowedManifest(entry.filename))) {
-        const baseText = await getFileText(github, owner, repo, file.filename, pr.base_sha);
-        const headText = await getFileText(github, owner, repo, file.filename, pr.head_sha);
+        // REST file metadata identifies which side is absent and the original path
+        // of a rename: { filename: "new/yarn.lock", status: "renamed",
+        // previous_filename: "old/yarn.lock" }. A 404 on an expected side is not
+        // evidence of absence; losing its old versions would hide major upgrades.
+        // https://docs.github.com/rest/pulls/pulls#list-pull-requests-files
+        if (!['added', 'removed', 'modified', 'renamed', 'changed', 'copied'].includes(file.status)
+            || (file.status === 'renamed' && (typeof file.previous_filename !== 'string'
+                || !isCanonicalRepoPath(file.previous_filename) || !isAllowedManifest(file.previous_filename)
+                || basenameOf(file.previous_filename) !== basenameOf(file.filename)))) {
+            throw new Error('Invalid manifest file status');
+        }
+        const basePath = file.status === 'renamed' ? file.previous_filename : file.filename;
+        const baseText = file.status === 'added' ? '' : await getFileText(github, owner, repo, basePath, pr.base_sha);
+        const headText = file.status === 'removed' ? '' : await getFileText(github, owner, repo, file.filename, pr.head_sha);
         headContents[file.filename] = headText;
         baseContents[file.filename] = baseText;
         sourceChanges.push({ filename: file.filename, newSources: findNewSources(baseText, headText, file.filename) });
@@ -1988,6 +1996,61 @@ async function runPushTargetGate({ github, context, core, fs = require('node:fs'
         core.setFailed(`auto-sec pushes may only target the open ${AUTO_SEC_BRANCH} pull request: ${violations.map(v => `${v.pr === null ? 'unknown' : `#${v.pr}`} ${v.reason}`).join('; ')}`);
     } else {
         core.info(`Push target gate passed for ${items.length} request(s).`);
+    }
+    return { requests: items.length, violations };
+}
+
+/**
+ * Prevents the create handler from recreating a live or unowned branch. A stale ref
+ * is reusable only when it still names the exact head of a closed bot-authored PR.
+ */
+async function runCreateTargetGate({ github, context, core, fs = require('node:fs'), env = process.env }) {
+    const outputPath = env.GH_AW_AGENT_OUTPUT;
+    const output = outputPath && fs.existsSync(outputPath) ? JSON.parse(fs.readFileSync(outputPath, 'utf8')) : {};
+    const items = (Array.isArray(output?.items) ? output.items : []).filter(item => item?.type === 'create_pull_request');
+    const { owner, repo } = context.repo;
+    const fullName = `${owner}/${repo}`.toLowerCase();
+    const botLogin = env.AUTO_SEC_BOT_LOGIN || DEFAULT_BOT_LOGIN;
+    const violations = [];
+    for (const item of items) {
+        if (item.branch !== AUTO_SEC_BRANCH) {
+            violations.push('wrong-head-branch');
+            continue;
+        }
+        try {
+            // Do not filter by author, label, or base: any open PR using this branch
+            // must block deletion, including a mislabeled or unexpectedly owned PR.
+            const open = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', head: `${owner}:${AUTO_SEC_BRANCH}`, per_page: 100 });
+            if (open.length > 0) {
+                violations.push('open-pull-request-exists');
+                continue;
+            }
+            let branch;
+            try {
+                ({ data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: AUTO_SEC_BRANCH }));
+            } catch (error) {
+                if (error?.status === 404) {
+                    continue;
+                }
+                throw error;
+            }
+            const closed = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'closed', head: `${owner}:${AUTO_SEC_BRANCH}`, per_page: 100 });
+            if (branch.protected || !/^[0-9a-f]{40}$/.test(branch.commit?.sha ?? '')
+                || !closed.some(pr => pr.state === 'closed' && pr.head?.ref === AUTO_SEC_BRANCH
+                    && pr.head?.sha === branch.commit.sha
+                    && String(pr.head?.repo?.full_name ?? '').toLowerCase() === fullName
+                    && pr.base?.ref === BASE_BRANCH && pr.user?.login === botLogin
+                    && pr.title?.startsWith('[auto-sec]') && pr.labels?.some(label => label.name === 'auto-sec'))) {
+                violations.push('untrusted-existing-branch');
+            }
+        } catch {
+            violations.push('gate-evaluation-failed');
+        }
+    }
+    if (violations.length > 0) {
+        core.setFailed(`auto-sec create target gate failed: ${[...new Set(violations)].join('; ')}`);
+    } else {
+        core.info(`Create target gate passed for ${items.length} request(s).`);
     }
     return { requests: items.length, violations };
 }
@@ -3719,6 +3782,7 @@ module.exports = {
     runPatchContentGate,
     runPublicTextGate,
     runPushTargetGate,
+    runCreateTargetGate,
     checkAgentOutputs,
     checkPatchContents,
     checkPatchUploadSafety,

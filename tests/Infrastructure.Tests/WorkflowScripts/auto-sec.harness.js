@@ -46,7 +46,7 @@ function createFetch(responses, urls) {
     };
 }
 
-function createGitHub(request, created, comparisons = []) {
+function createGitHub(request, created, comparisons = [], contentCalls = []) {
     const notFound = () => Object.assign(new Error('Not Found'), { status: 404 });
     const fail = phase => {
         if (request.approvalFailure === phase) {
@@ -57,7 +57,7 @@ function createGitHub(request, created, comparisons = []) {
     let checkCalls = 0;
     let statusCalls = 0;
     const pages = {
-        files: () => request.files.map(filename => ({ filename, status: 'modified' })),
+        files: () => request.files.map(file => typeof file === 'string' ? { filename: file, status: 'modified' } : file),
         commits: () => (request.commits ?? [{ author_login: 'dependabot[bot]', verified: true }])
             .map(commit => ({ author: { login: commit.author_login }, commit: { verification: { verified: commit.verified } } })),
         // `liveCheckRuns` / `liveStatuses` simulate CI changing after the gates read it.
@@ -123,6 +123,10 @@ function createGitHub(request, created, comparisons = []) {
             },
             getContent: async ({ path: filePath, ref }) => {
                 const key = `${filePath}@${ref === request.pr.head_sha ? 'head' : 'base'}`;
+                contentCalls.push(key);
+                if (request.contentFailure?.key === key) {
+                    throw Object.assign(new Error('synthetic private contents failure'), { status: request.contentFailure.status });
+                }
                 if (!(key in (request.contents ?? {}))) {
                     throw notFound();
                 }
@@ -250,6 +254,7 @@ async function main() {
         case 'approve': {
             const reviews = [];
             const comparisons = [];
+            const contentCalls = [];
             const info = [];
             const warnings = [];
             const failures = [];
@@ -273,7 +278,7 @@ async function main() {
             };
             try {
                 const value = await gate.runApprovalJob({
-                    github: createGitHub(request, [], comparisons),
+                    github: createGitHub(request, [], comparisons, contentCalls),
                     approver: createGitHub(request, reviews),
                     context: { repo: { owner: 'microsoft', repo: 'aspire' } },
                     core,
@@ -286,7 +291,7 @@ async function main() {
                     fetchImpl: createFetch(request.responses, []),
                     now: new Date(request.now),
                 });
-                result = { value, reviews, comparisons, summary, info, warnings, failures };
+                result = { value, reviews, comparisons, contentCalls, summary, info, warnings, failures };
             } finally {
                 fs.rmSync(outputDir, { recursive: true, force: true });
             }
@@ -306,6 +311,52 @@ async function main() {
                     env: { GH_AW_AGENT_OUTPUT: outputPath, AUTO_SEC_BOT_LOGIN: request.botLogin },
                 });
                 result = { value, info, failures };
+            } finally {
+                fs.rmSync(outputDir, { recursive: true, force: true });
+            }
+            break;
+        }
+        case 'create-gate': {
+            const info = [];
+            const failures = [];
+            const calls = [];
+            const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-'));
+            const outputPath = path.join(outputDir, 'agent_output.json');
+            fs.writeFileSync(outputPath, JSON.stringify({ items: request.agentItems ?? [] }));
+            const list = async () => {};
+            try {
+                const value = await gate.runCreateTargetGate({
+                    github: {
+                        rest: { pulls: { list }, repos: {
+                            getBranch: async () => {
+                                calls.push('branch');
+                                if (request.failure === 'branch') {
+                                    throw new Error('synthetic private branch failure');
+                                }
+                                if (!request.branch) {
+                                    throw Object.assign(new Error('Not Found'), { status: 404 });
+                                }
+                                return { data: request.branch };
+                            },
+                        } },
+                        paginate: async (method, args) => {
+                            if (method !== list || args.owner !== 'microsoft' || args.repo !== 'aspire'
+                                || args.head !== 'microsoft:auto-sec/security-updates'
+                                || args.per_page !== 100 || Object.hasOwn(args, 'base')) {
+                                throw new Error('Unexpected pagination');
+                            }
+                            calls.push(args.state);
+                            if (request.failure === args.state) {
+                                throw new Error('synthetic private list failure');
+                            }
+                            return args.state === 'open' ? request.openPrs ?? [] : request.closedPrs ?? [];
+                        },
+                    },
+                    context: { repo: { owner: 'microsoft', repo: 'aspire' } },
+                    core: { info: message => info.push(message), setFailed: message => failures.push(message) },
+                    env: { GH_AW_AGENT_OUTPUT: outputPath, AUTO_SEC_BOT_LOGIN: request.botLogin },
+                });
+                result = { value, info, failures, calls };
             } finally {
                 fs.rmSync(outputDir, { recursive: true, force: true });
             }

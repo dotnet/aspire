@@ -151,6 +151,113 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
 
     [Theory]
     [RequiresTools(["node"])]
+    [InlineData("modified", "base", 404)]
+    [InlineData("modified", "head", 404)]
+    [InlineData("renamed", "base", 404)]
+    [InlineData("renamed", "head", 404)]
+    [InlineData("modified", "base", 403)]
+    [InlineData("modified", "head", 500)]
+    public async Task ApprovalFailsClosedWhenExpectedManifestContentsAreUnavailable(string status, string side, int httpStatus)
+    {
+        var scenario = CreateApprovalScenario();
+        scenario["files"] = new JsonArray(new JsonObject
+        {
+            ["filename"] = "extension/yarn.lock",
+            ["status"] = status,
+            ["previous_filename"] = "old/yarn.lock",
+        });
+        scenario["contents"]!["old/yarn.lock@base"] = YarnLockEntry("lodash", "4.17.20");
+        scenario["contentFailure"] = new JsonObject
+        {
+            ["key"] = $"{(status == "renamed" && side == "base" ? "old" : "extension")}/yarn.lock@{side}",
+            ["status"] = httpStatus,
+        };
+
+        var result = await RunHarnessAsync(scenario);
+
+        Assert.Empty(result["reviews"]!.AsArray());
+        Assert.Equal(["gate-evaluation-failed"], result["value"]![0]!["reasons"]!.AsArray().Select(item => item!.GetValue<string>()));
+        Assert.Equal(["Auto-sec approval failed: gate-evaluation-failed."], result["failures"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ApprovalUsesOriginalRenamedManifestToDetectUnlistedMajorUpgrades(bool breaking)
+    {
+        var scenario = CreateApprovalScenario();
+        scenario["files"] = new JsonArray("extension/package.json", new JsonObject
+        {
+            ["filename"] = "moved/yarn.lock",
+            ["status"] = "renamed",
+            ["previous_filename"] = "extension/yarn.lock",
+        });
+        scenario["alerts"]![0]!["manifest_path"] = "extension/package.json";
+        scenario["contents"]!["extension/yarn.lock@base"] = YarnLockEntry("lodash", "4.17.20") + YarnLockEntry("transitive", "4.0.0");
+        scenario["contents"]!["moved/yarn.lock@head"] = YarnLockEntry("lodash", "4.17.21") + YarnLockEntry("transitive", breaking ? "5.0.0" : "4.1.0");
+        scenario["responses"]!["https://registry.npmjs.org/transitive"] = Response(new JsonObject
+        {
+            ["time"] = new JsonObject { ["4.1.0"] = "2026-09-01T00:00:00Z", ["5.0.0"] = "2026-09-01T00:00:00Z" },
+        });
+
+        var result = await RunHarnessAsync(scenario);
+
+        Assert.Equal(breaking ? "skip" : "approve", result["value"]![0]!["decision"]!.GetValue<string>());
+        Assert.Equal(breaking ? ["breaking-change"] : [], result["value"]![0]!["reasons"]!.AsArray().Select(item => item!.GetValue<string>()));
+        Assert.Equal(
+            ["extension/package.json@base", "extension/package.json@head", "extension/yarn.lock@base", "moved/yarn.lock@head"],
+            result["contentCalls"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
+    [InlineData("added")]
+    [InlineData("removed")]
+    public async Task ApprovalTreatsOnlyStatusProvenMissingSidesAsEmpty(string status)
+    {
+        var scenario = CreateApprovalScenario();
+        scenario["files"] = new JsonArray("extension/package.json", new JsonObject { ["filename"] = "extension/yarn.lock", ["status"] = status });
+        scenario["alerts"]![0]!["manifest_path"] = "extension/package.json";
+        scenario["contents"]!.AsObject().Remove($"extension/yarn.lock@{(status == "added" ? "base" : "head")}");
+
+        var result = await RunHarnessAsync(scenario);
+
+        Assert.Equal("approve", result["value"]![0]!["decision"]!.GetValue<string>());
+        Assert.Equal(
+            ["extension/package.json@base", "extension/package.json@head", $"extension/yarn.lock@{(status == "added" ? "head" : "base")}"],
+            result["contentCalls"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
+    [InlineData("unsupported")]
+    [InlineData("missing-previous")]
+    [InlineData("protected-previous")]
+    [InlineData("different-format")]
+    public async Task ApprovalRejectsUnusableManifestStatusMetadata(string scenarioName)
+    {
+        var scenario = CreateApprovalScenario();
+        scenario["files"] = new JsonArray(new JsonObject
+        {
+            ["filename"] = "extension/yarn.lock",
+            ["status"] = scenarioName == "unsupported" ? "unknown" : "renamed",
+            ["previous_filename"] = scenarioName switch
+            {
+                "protected-previous" => "NuGet.config",
+                "different-format" => "extension/package.json",
+                _ => null,
+            },
+        });
+
+        var result = await RunHarnessAsync(scenario);
+
+        Assert.Empty(result["reviews"]!.AsArray());
+        Assert.Equal(["gate-evaluation-failed"], result["value"]![0]!["reasons"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
     [InlineData("evaluation")]
     [InlineData("live-pr")]
     [InlineData("live-checks")]
@@ -4237,6 +4344,89 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
 
     [Theory]
     [RequiresTools(["node"])]
+    [InlineData("new-branch", true)]
+    [InlineData("closed-bot-flow", true)]
+    [InlineData("open-pr", false)]
+    [InlineData("no-history", false)]
+    [InlineData("wrong-author", false)]
+    [InlineData("wrong-head", false)]
+    [InlineData("wrong-repo", false)]
+    [InlineData("wrong-base", false)]
+    [InlineData("moved-branch", false)]
+    [InlineData("missing-label", false)]
+    [InlineData("wrong-title", false)]
+    [InlineData("protected-branch", false)]
+    [InlineData("open-api-failure", false)]
+    [InlineData("branch-api-failure", false)]
+    [InlineData("closed-api-failure", false)]
+    [InlineData("custom-bot", true)]
+    [InlineData("configured-bot-mismatch", false)]
+    [InlineData("invalid-branch-sha", false)]
+    [InlineData("not-closed", false)]
+    public async Task CreateGateRecreatesOnlyUnusedOrClosedBotBranches(string scenarioName, bool accepted)
+    {
+        var closed = new JsonObject
+        {
+            ["state"] = "closed",
+            ["user"] = new JsonObject { ["login"] = "aspire-repo-bot[bot]" },
+            ["head"] = new JsonObject
+            {
+                ["ref"] = "auto-sec/security-updates",
+                ["sha"] = HeadSha,
+                ["repo"] = new JsonObject { ["full_name"] = "microsoft/aspire" },
+            },
+            ["base"] = new JsonObject { ["ref"] = "main" },
+            ["title"] = "[auto-sec] Automated dependency updates",
+            ["labels"] = new JsonArray(new JsonObject { ["name"] = "auto-sec" }),
+        };
+        var scenario = new JsonObject
+        {
+            ["mode"] = "create-gate",
+            ["agentItems"] = new JsonArray(new JsonObject { ["type"] = "create_pull_request", ["branch"] = "auto-sec/security-updates" }),
+            ["branch"] = new JsonObject { ["commit"] = new JsonObject { ["sha"] = HeadSha } },
+            ["closedPrs"] = new JsonArray(closed),
+        };
+        switch (scenarioName)
+        {
+            case "new-branch": scenario.Remove("branch"); break;
+            case "open-pr": scenario["openPrs"] = new JsonArray(new JsonObject { ["state"] = "open", ["user"] = new JsonObject { ["login"] = "someone" } }); break;
+            case "no-history": scenario["closedPrs"] = new JsonArray(); break;
+            case "wrong-author": closed["user"]!["login"] = "someone"; break;
+            case "wrong-head": closed["head"]!["ref"] = "another-branch"; break;
+            case "wrong-repo": closed["head"]!["repo"]!["full_name"] = "contoso/aspire"; break;
+            case "wrong-base": closed["base"]!["ref"] = "release/13.3"; break;
+            case "moved-branch": scenario["branch"]!["commit"]!["sha"] = new string('f', 40); break;
+            case "missing-label": closed["labels"] = new JsonArray(); break;
+            case "wrong-title": closed["title"] = "Unrelated PR"; break;
+            case "protected-branch": scenario["branch"]!["protected"] = true; break;
+            case "open-api-failure": scenario["failure"] = "open"; break;
+            case "branch-api-failure": scenario["failure"] = "branch"; break;
+            case "closed-api-failure": scenario["failure"] = "closed"; break;
+            case "custom-bot":
+                scenario["botLogin"] = "custom-auto-sec[bot]";
+                closed["user"]!["login"] = "custom-auto-sec[bot]";
+                break;
+            case "configured-bot-mismatch": scenario["botLogin"] = "custom-auto-sec[bot]"; break;
+            case "invalid-branch-sha": scenario["branch"]!["commit"]!["sha"] = "invalid"; break;
+            case "not-closed": closed["state"] = "open"; break;
+        }
+
+        var result = await RunHarnessAsync(scenario);
+
+        Assert.Equal(accepted ? 0 : 1, result["failures"]!.AsArray().Count);
+        Assert.Equal(accepted ? 0 : 1, result["value"]!["violations"]!.AsArray().Count);
+        if (scenarioName == "open-pr")
+        {
+            Assert.Equal(["open"], result["calls"]!.AsArray().Select(item => item!.GetValue<string>()));
+        }
+        if (scenarioName.EndsWith("api-failure", StringComparison.Ordinal))
+        {
+            Assert.Equal("auto-sec create target gate failed: gate-evaluation-failed", Assert.Single(result["failures"]!.AsArray())!.GetValue<string>());
+        }
+    }
+
+    [Theory]
+    [RequiresTools(["node"])]
     [InlineData("wrong-head-branch")]
     [InlineData("wrong-head-repository")]
     [InlineData("wrong-base-branch")]
@@ -4333,6 +4523,11 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         var gateSection = compiled[gateStep..handlerStep];
         Assert.Contains("GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}", gateSection, StringComparison.Ordinal);
         Assert.Contains("gate.runPushTargetGate({ github, context, core })", gateSection, StringComparison.Ordinal);
+        var createGateStep = compiled.IndexOf("name: Restrict creation to an unused or closed bot branch", StringComparison.Ordinal);
+        Assert.True(createGateStep >= 0 && handlerStep > createGateStep, "Create gate must run before Process Safe Outputs.");
+        var createGateSection = compiled[createGateStep..gateStep];
+        Assert.Contains("contains(needs.agent.outputs.output_types, 'create_pull_request')", createGateSection, StringComparison.Ordinal);
+        Assert.Contains("gate.runCreateTargetGate({ github, context, core })", createGateSection, StringComparison.Ordinal);
 
         // The file allowlist admits executable manifests, so the patch content gate must run
         // before the handlers apply any patch, and both outputs must use the `am` transport
@@ -4500,6 +4695,8 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         ["files"] = new JsonArray("extension/package.json", "extension/yarn.lock"),
         ["contents"] = new JsonObject
         {
+            ["extension/package.json@base"] = "{\n  \"dependencies\": {\n    \"lodash\": \"^4.17.20\"\n  }\n}\n",
+            ["extension/package.json@head"] = "{\n  \"dependencies\": {\n    \"lodash\": \"^4.17.21\"\n  }\n}\n",
             ["extension/yarn.lock@base"] = YarnLockEntry("lodash", "4.17.20"),
             ["extension/yarn.lock@head"] = YarnLockEntry("lodash", "4.17.21"),
         },

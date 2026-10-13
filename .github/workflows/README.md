@@ -196,6 +196,13 @@ contents stop reconciliation before the agent can propose a duplicate fix.
   bot-owned branch, not arbitrary agent-written blobs; unavailable bases block
   publication. Pushes to an existing auto-sec PR also require its author to match
   the configured Aspire bot identity; the branch name alone cannot authorize reuse.
+  Create requests also pass a live gate before the handler can recreate the ref:
+  any open PR using that branch blocks creation. An existing ref is reusable only
+  when its current SHA matches a closed bot-authored auto-sec PR in this repository
+  targeting main with the expected label and title; unowned or moved refs fail closed.
+  Approval comparisons preserve renamed manifests' original paths. Only explicit
+  added/removed file statuses permit an empty side; missing expected contents or
+  unsupported rename metadata blocks evaluation rather than hiding prior versions.
   uv local-source descriptors count as delivery sources,
   and pnpm tarball binding covers both inline and block-style resolution tables.
   Before backend startup, the runner exclusively creates the safe-output file
