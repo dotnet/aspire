@@ -64,6 +64,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
     private string? _integrationProbeManifestPath;
     private AppHostServerProjectLayout? _selectedProjectLayout;
     private bool _supportsNativeDashboard = true;
+    private bool _supportsDirectTerminalHost = true;
 
     /// <summary>
     /// Initializes a new instance of the PrebuiltAppHostServer class.
@@ -176,8 +177,9 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
         CancellationToken cancellationToken = default)
     {
         var integrationList = integrations.ToList();
-        var packageRefs = integrationList.Where(r => r.IsPackageReference).ToList();
-        var projectRefs = integrationList.Where(r => r.IsProjectReference).ToList();
+        var packageRefs = integrationList.Where(r => r.Source == IntegrationSource.Nuget).ToList();
+        var projectRefs = integrationList.Where(r => r.Source == IntegrationSource.Project).ToList();
+        var npmIntegrations = integrationList.Where(r => r.Source == IntegrationSource.Npm).ToList();
         // Lifted to outer scope so the failure footer reflects the source actually used by
         // restore — including the auto-discovered local hive resolved by
         // ResolveLocalPackageSourceOverrideAsync — rather than the unset --source the user
@@ -191,6 +193,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
             _integrationLibsPath = null;
             _integrationProbeManifestPath = null;
             _supportsNativeDashboard = false;
+            _supportsDirectTerminalHost = false;
 
             // Resolve the channel the project requests for restore (aspire.config.json#channel,
             // with a legacy .aspire/settings.json#channel fallback). This is independent of the
@@ -218,6 +221,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
                 var closureManifest = await BuildIntegrationClosureManifestAsync(
                     packageRefs,
                     projectRefs,
+                    npmIntegrations,
                     requestedChannel,
                     effectivePackageSourceOverride,
                     cancellationToken).ConfigureAwait(false);
@@ -248,7 +252,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
                         packageRefs, requestedChannel, effectivePackageSourceOverride, cancellationToken);
                 }
 
-                var appSettingsContent = CreateAppSettingsContent(packageRefs, []);
+                var appSettingsContent = CreateAppSettingsContent(packageRefs, [], npmIntegrations);
                 await WriteAppSettingsAsync(_workingDirectory, appSettingsContent, cancellationToken).ConfigureAwait(false);
             }
 
@@ -256,6 +260,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
             // Use the restored Hosting version: the server bundle does not contain its own Hosting assembly.
             _supportsNativeDashboard = TryGetHostingVersion(sdkVersion, out var hostingVersion) &&
                 DashboardLaunchHelper.SupportsNativeDashboard(hostingVersion);
+            _supportsDirectTerminalHost = TerminalHostLaunchHelper.SupportsDirectLaunch(hostingVersion);
 
             return new AppHostServerPrepareResult(
                 Success: true,
@@ -410,7 +415,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
 
         foreach (var projectRef in projectRefs)
         {
-            if (projectRef.ProjectPath is { } path)
+            if (projectRef.Path is { } path)
             {
                 pending.Enqueue(path);
             }
@@ -766,6 +771,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
     private async Task<AppHostServerClosureManifest> BuildIntegrationClosureManifestAsync(
         List<IntegrationReference> packageRefs,
         List<IntegrationReference> projectRefs,
+        List<IntegrationReference> npmIntegrations,
         string? requestedChannel,
         string? packageSourceOverride,
         CancellationToken cancellationToken)
@@ -857,7 +863,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
             restoreDir,
             _logger,
             cancellationToken).ConfigureAwait(false);
-        var appSettingsContent = CreateAppSettingsContent(packageRefs, projectRefAssemblyNames);
+        var appSettingsContent = CreateAppSettingsContent(packageRefs, projectRefAssemblyNames, npmIntegrations);
 
         var closureManifest = await IntegrationClosureBuilder.ReadClosureManifestAsync(
             restoreDir,
@@ -917,7 +923,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
         }
 
         projectFile.ProjectReferences.AddRange(projectRefs.Select(p => new CSharpProjectReference(
-            p.ProjectPath!,
+            p.Path!,
             IsAspireProjectResource: false,
             ReferenceOutputAssembly: true)));
 
@@ -1328,23 +1334,17 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
 
         void OnStdout(string line)
         {
-            // Promoted from LogTrace to LogDebug so that apphost-server stdout reaches the
-            // CLI's on-disk log under the default file-logger filter (Debug). Previously
-            // these lines were dropped entirely, which made apphost-side warnings
-            // (for example, "LoaderExceptions" from the type-discovery path) invisible to
-            // anyone diagnosing a "no code generator found" / "no language support found"
-            // error. See https://github.com/microsoft/aspire/issues/16729.
+            // Debug retains raw server output in the default CLI file log without
+            // printing routine diagnostics during normal usage.
             _logger.LogDebug("PrebuiltAppHostServer({ProcessId}) stdout: {Line}", execution.ProcessId, line);
             outputCollector.AppendOutput(line);
         }
 
         void OnStderr(string line)
         {
-            // Promoted from LogTrace to LogInformation so that apphost-server stderr is
-            // visible at the default console log level (Information). Stderr is reserved
-            // for genuine problems in well-behaved server processes, so surfacing it
-            // by default is appropriate. See https://github.com/microsoft/aspire/issues/16729.
-            _logger.LogInformation("PrebuiltAppHostServer({ProcessId}) stderr: {Line}", execution.ProcessId, line);
+            // The stream does not establish severity. Startup failures surface the
+            // collected output separately at Error.
+            _logger.LogDebug("PrebuiltAppHostServer({ProcessId}) stderr: {Line}", execution.ProcessId, line);
             outputCollector.AppendError(line);
         }
 
@@ -1354,6 +1354,7 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
             StandardErrorCallback = OnStderr,
             IsolateConsole = runControl?.IsolateConsole ?? false,
             KillOnParentExit = runControl?.KillOnParentExit ?? false,
+            Lifetime = ChildProcessLifetime.AppHost,
             GracefulShutdownSignaler = runControl?.GracefulShutdownSignaler,
             ShutdownService = runControl?.ShutdownService,
             KillEntireProcessTreeOnCancel = !_environment.IsWindows(),
@@ -1457,12 +1458,13 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
         }
 
         if (!HasEnvironmentOverride(BundleDiscovery.TerminalHostPathEnvVar) &&
-            _layout.GetManagedPath() is { } terminalHostPath)
+            TerminalHostLaunchHelper.GetLaunch(_layout, _supportsDirectTerminalHost) is { } terminalHost)
         {
-            startInfo.Environment[BundleDiscovery.TerminalHostPathEnvVar] = terminalHostPath;
-            if (!HasEnvironmentOverride(BundleDiscovery.TerminalHostInvocationArgsEnvVar))
+            startInfo.Environment[BundleDiscovery.TerminalHostPathEnvVar] = terminalHost.Path;
+            if (environmentVariables?.ContainsKey(BundleDiscovery.TerminalHostInvocationArgsEnvVar) != true &&
+                !startInfo.Environment.ContainsKey(BundleDiscovery.TerminalHostInvocationArgsEnvVar))
             {
-                startInfo.Environment[BundleDiscovery.TerminalHostInvocationArgsEnvVar] = "terminalhost";
+                startInfo.Environment[BundleDiscovery.TerminalHostInvocationArgsEnvVar] = terminalHost.InvocationArgs;
             }
         }
 
@@ -1500,7 +1502,8 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
 
     private static string CreateAppSettingsContent(
         List<IntegrationReference> packageRefs,
-        List<string> projectRefAssemblyNames)
+        List<string> projectRefAssemblyNames,
+        List<IntegrationReference> npmIntegrations)
     {
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
 
@@ -1526,21 +1529,8 @@ internal sealed partial class PrebuiltAppHostServer : IAppHostServerProject, IDi
             }
         }
 
-        var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
-        return $$"""
-            {
-              "Logging": {
-                "LogLevel": {
-                  "Default": "Information",
-                  "Microsoft.AspNetCore": "Warning",
-                  "Aspire.Hosting.Dcp": "Warning"
-                }
-              },
-              "AtsAssemblies": [
-                {{assembliesJson}}
-              ]
-            }
-            """;
+        var appSettingsJson = AppHostServerAppSettingsWriter.Generate(atsAssemblies, npmIntegrations);
+        return appSettingsJson;
     }
 
     private static async Task WriteAppSettingsAsync(string contentRootPath, string appSettingsContent, CancellationToken cancellationToken)

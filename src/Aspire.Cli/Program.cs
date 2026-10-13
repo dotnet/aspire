@@ -53,7 +53,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Sigstore;
 using Spectre.Console;
+using Tuf;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli;
@@ -330,8 +332,7 @@ public class Program
         }
 
 #if !DEBUG
-        // In release builds, limit shutdown wait time for telemetry flush to 200ms
-        // to ensure the CLI exits quickly even if waiting on shutdown tasks.
+        // Keep general hosted-service shutdown short. Product telemetry has its own awaited budget.
         builder.Services.Configure<HostOptions>(options =>
         {
             options.ShutdownTimeout = TimeSpan.FromMilliseconds(200);
@@ -578,6 +579,38 @@ public class Program
 
         // Npm and Playwright CLI operations.
         builder.Services.AddSingleton<INpmRunner, NpmRunner>();
+        builder.Services.AddSingleton<ITrustRootProvider>(serviceProvider =>
+        {
+            var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+            var logger = serviceProvider.GetRequiredService<ILogger<TufTrustRootProvider>>();
+            // Building the command tree resolves this provider even during completion.
+            // TUF initialization seeds the cache, so completion must use memory to avoid disk writes.
+            try
+            {
+                ITufCache cache = isCompletion
+                    ? new InMemoryTufCache()
+                    : new FileSystemTufCache(Path.Combine(executionContext.CacheDirectory.FullName, "tuf"));
+
+                return new TufTrustRootProvider(
+                    TufTrustRootProvider.ProductionUrl,
+                    new TufTrustRootProviderOptions { Cache = cache });
+            }
+            catch (Exception ex) when (!isCompletion && ex is IOException or UnauthorizedAccessException)
+            {
+                // Work around https://github.com/mitchdenny/sigstore-dotnet/issues/47.
+                // Tuf 1.1.0 can throw while seeding an existing Windows cache directory whose ACL
+                // denies file creation. Keep verification enabled and lose only disk persistence.
+                logger.LogWarning(
+                    ex,
+                    "Unable to initialize the TUF disk cache. Using an in-memory cache for this process.");
+
+                return new TufTrustRootProvider(
+                    TufTrustRootProvider.ProductionUrl,
+                    new TufTrustRootProviderOptions { Cache = new InMemoryTufCache() });
+            }
+        });
+        builder.Services.AddSingleton(serviceProvider =>
+            new SigstoreVerifier(serviceProvider.GetRequiredService<ITrustRootProvider>()));
         builder.Services.AddHttpClient<INpmProvenanceChecker, SigstoreNpmProvenanceChecker>();
         builder.Services.AddHttpClient<IGitHubArtifactAttestationVerifier, GitHubArtifactAttestationVerifier>();
         builder.Services.AddSingleton<IAspireSkillsBundleProvider, AspireSkillsBundleProvider>();
@@ -1063,12 +1096,20 @@ public class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
+        if (ProcessSupervisor.IsSupervisor)
+        {
+            await ProcessSupervisor.RunAsync().ConfigureAwait(false);
+            return Environment.ExitCode;
+        }
+
         if (CompletionInvocation.Matches(args))
         {
             return await InvokeCompletionAsync(args, Console.Out, Console.Error).ConfigureAwait(false);
         }
 
-        TelemetryManager.ConfigureExporterForProcess(AgentTelemetryInvocation.Matches(args));
+        var reportedTelemetryMode = TelemetryManager.ConfigureExporterForProcess(
+            AgentTelemetryInvocation.Matches(args),
+            CIEnvironmentDetector.IsCIEnvironment(new HostEnvironment()));
 
         // Re-enable CTRL+C delivery for ourselves and any process we subsequently spawn.
         // Per https://learn.microsoft.com/windows/console/setconsolectrlhandler, the "ignore
@@ -1144,7 +1185,7 @@ public class Program
         logger.LogInformation("CLI process ID: {ProcessId}", Environment.ProcessId);
 
         IHost? app = null;
-        TelemetryManager telemetryManager;
+        TelemetryManager? telemetryManager = null;
         ParseResult parseResult;
         try
         {
@@ -1157,10 +1198,19 @@ public class Program
         }
         catch (Exception ex)
         {
-            app?.Dispose();
-
             logger.LogError(ex, "Failed to load configuration or start CLI.");
             errorWriter.WriteLine(ex.Message);
+            try
+            {
+                if (telemetryManager is not null)
+                {
+                    await telemetryManager.TryShutdownAsync(CliExitCodes.FailedToStartCli, reportedTelemetryMode).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                app?.Dispose();
+            }
             return CliExitCodes.FailedToStartCli;
         }
 
@@ -1201,10 +1251,10 @@ public class Program
             ? null
             : StartMainActivity(telemetry, app.Services.GetRequiredService<InstallSourceDetector>());
         ProfileCaptureService.ProfileCaptureSession? profileCaptureSession = null;
+        var exitCode = CliExitCodes.Success;
 
         try
         {
-            var exitCode = CliExitCodes.Success;
             try
             {
                 if (profileCaptureOptions is not null)
@@ -1227,7 +1277,7 @@ public class Program
                 var commandName = GetCommandName(parseResult);
                 logger.LogDebug("Executing command: {CommandName}", commandName);
 
-                mainActivity?.SetTag(TelemetryConstants.Tags.CommandName, commandName);
+                telemetry.SetActivityProperty(mainActivity, TelemetryConstants.Tags.CommandName, commandName);
 
                 ProfilingTelemetry.ActivityScope profileCommandActivity = default;
                 try
@@ -1274,7 +1324,7 @@ public class Program
             }
             finally
             {
-                mainActivity?.SetTag(TelemetryConstants.Tags.ProcessExitCode, exitCode);
+                telemetry.SetActivityProperty(mainActivity, TelemetryConstants.Tags.ProcessExitCode, exitCode);
                 mainActivity?.Stop();
             }
 
@@ -1307,21 +1357,30 @@ public class Program
         }
         finally
         {
-            if (profileCaptureSession is not null)
+            try
             {
-                await profileCaptureSession.DisposeAsync().ConfigureAwait(false);
+                if (profileCaptureSession is not null)
+                {
+                    await profileCaptureSession.DisposeAsync().ConfigureAwait(false);
+                }
+
+                // Finish asynchronously-created detector activities before shutting down their provider.
+                await telemetry.CompleteInternalMicrosoftDiagnosticsAsync().ConfigureAwait(false);
             }
-
-            // Finish asynchronously-created detector activities before shutting down their provider.
-            await telemetry.CompleteInternalMicrosoftDiagnosticsAsync().ConfigureAwait(false);
-
-            // Shutting down telemetry manager to flush any remaining telemetry will take time.
-            // Run it concurrently with application shutdown after all asynchronously-created telemetry
-            // has been submitted to the providers.
-            var shutdownTelemetryTask = telemetryManager.TryShutdownAsync();
-
-            await app.StopAsync().ConfigureAwait(false);
-            await shutdownTelemetryTask;
+            finally
+            {
+                // Await product persistence even if another shutdown operation fails. It runs alongside
+                // host shutdown, but its local/CI budget is independent of the host's shutdown timeout.
+                var shutdownTelemetryTask = telemetryManager.TryShutdownAsync(exitCode, reportedTelemetryMode);
+                try
+                {
+                    await app.StopAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    await shutdownTelemetryTask.ConfigureAwait(false);
+                }
+            }
         }
     }
 
@@ -1332,9 +1391,12 @@ public class Program
         {
             using var currentProcess = Process.GetCurrentProcess();
             activity.SetStartTime(currentProcess.StartTime);
-            activity.AddTag(TelemetryConstants.Tags.ProcessPid, currentProcess.Id);
-            activity.AddTag(TelemetryConstants.Tags.ProcessExecutableName, "aspire");
-            activity.SetTag(TelemetryConstants.Tags.InstallSource, installSourceDetector.Detect());
+            telemetry.SetActivityProperties(activity,
+            [
+                new(TelemetryConstants.Tags.ProcessPid, currentProcess.Id),
+                new(TelemetryConstants.Tags.ProcessExecutableName, "aspire"),
+                new(TelemetryConstants.Tags.InstallSource, installSourceDetector.Detect())
+            ]);
         }
 
         return activity;

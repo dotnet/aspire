@@ -22,7 +22,6 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Dcp;
 
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 internal sealed class DcpHost
 {
@@ -437,7 +436,8 @@ internal sealed class DcpHost
             return false;
         }
 
-        // Shipped CLI bundles flatten the selected RID's native assets into managed/. Repo-local portable builds
+        // Shipped CLI bundles flatten the selected RID's native assets into terminalhost/ and retain the ConPTY
+        // provider in managed/ for compatibility launches. Repo-local portable builds
         // keep every RID under runtimes/<rid>/native. In both layouts conpty.dll must match the DCP/AppHost process
         // architecture, while OpenConsole.exe must match the native Windows architecture (for example, an x64
         // process running under emulation on ARM64 Windows uses win-x64/conpty.dll with arm64/OpenConsole.exe).

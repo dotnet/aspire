@@ -657,6 +657,7 @@ async function main() {
     const cliPath = enableJavaE2E ? bundledCliPath : isolateCliPath(bundledCliPath);
     cliPathForCleanup = cliPath;
     validateCliPath(cliPath);
+    prepareCliBundle(cliPath);
     const appHostSdkVersion = resolveAppHostSdkVersion(cliPath);
     prepareWorkspaceFixture(cliPath, appHostSdkVersion);
     prepareJavaWorkspace(bundledCliPath, appHostSdkVersion);
@@ -898,6 +899,33 @@ function validateCliPath(resolvedCliPath) {
 
   if (result.status !== 0) {
     throw new Error(`Aspire CLI at ${resolvedCliPath} failed --version with code ${result.status ?? `signal ${result.signal ?? 'unknown'}`}.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+  }
+}
+
+function prepareCliBundle(resolvedCliPath) {
+  // Each run has a fresh ASPIRE_HOME; direct dotnet fixture builds need its native bundle.
+  const result = spawnSync(resolvedCliPath, ['setup', '--install-path', getAspireCliEnvironment().ASPIRE_HOME], {
+    cwd: extensionRoot,
+    env: getAspireCliEnvironment(),
+    shell: false,
+    encoding: 'utf8',
+    timeout: 120000,
+  });
+  if (result.error || result.status !== 0) {
+    throw new Error(`Aspire CLI bundle setup failed for ${resolvedCliPath}: ${result.error?.message ?? `exit ${result.status ?? `signal ${result.signal}`}`}.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+  }
+  const home = getAspireCliEnvironment().ASPIRE_HOME;
+  const versionsDirectory = path.join(home, 'versions');
+  const executableSuffix = process.platform === 'win32' ? '.exe' : '';
+  const completeBundle = fs.existsSync(versionsDirectory)
+    && fs.readdirSync(versionsDirectory, { withFileTypes: true }).some(entry => entry.isDirectory()
+      && [
+        path.join('dcp', `dcp${executableSuffix}`),
+        path.join('managed', `aspire-managed${executableSuffix}`),
+        path.join('dashboard', `Aspire.Dashboard${executableSuffix}`),
+      ].every(relativePath => fs.existsSync(path.join(versionsDirectory, entry.name, relativePath))));
+  if (!completeBundle && (process.env.CI || fs.existsSync(path.join(home, '.aspire-bundle-version')))) {
+    throw new Error(`Aspire CLI setup did not provide a complete native bundle in ${home}.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
   }
 }
 
@@ -1707,7 +1735,7 @@ ${winUiProjectReference}${azureFunctionsPackageReference}  </ItemGroup>
     ? 'builder.AddProject<Projects.AspireE2E_WinUI>("e2e-winui", launchProfileName: "E2E");\n\n'
     : '';
   fs.writeFileSync(path.join(projectDirectory, 'AppHost.cs'), `${csharpFileHeader}#pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES001 // Older published SDKs still mark pipeline APIs experimental.
 #pragma warning disable ASPIRETERMINAL001
 
 using Aspire.Hosting.Pipelines;

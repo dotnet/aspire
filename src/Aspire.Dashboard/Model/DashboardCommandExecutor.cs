@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -22,6 +24,8 @@ public sealed class DashboardCommandExecutor(
     DashboardTelemetryService telemetryService,
     INotificationService notificationService)
 {
+    private const int MaxToastMessageLength = 250;
+
     private readonly HashSet<(string ResourceName, string CommandName)> _executingCommands = [];
     private readonly object _lock = new object();
 
@@ -41,29 +45,24 @@ public sealed class DashboardCommandExecutor(
             _executingCommands.Add(executingCommandKey);
         }
 
-        var startEvent = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
-            new Dictionary<string, AspireTelemetryProperty>
-            {
-                { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(resource.ResourceType, resource.SupportsDetailedTelemetry)) },
-                { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(TelemetryPropertyValues.GetCommandNameTelemetryValue(command.Name)) },
-            });
-
-        var operationId = startEvent.Properties.FirstOrDefault();
-
         try
         {
-            await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+            // End command telemetry before the UI's recovery delay in the finally block.
+            using var activity = telemetryService.StartOperation(TelemetryEventKeys.ExecuteCommand,
+                new Dictionary<string, AspireTelemetryProperty>
+                {
+                    { TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(resource.ResourceType, resource.SupportsDetailedTelemetry)) },
+                    { TelemetryPropertyKeys.CommandName, new AspireTelemetryProperty(TelemetryPropertyValues.GetCommandNameTelemetryValue(command.Name)) },
+                });
 
-            if (operationId is not null)
+            try
             {
-                telemetryService.EndOperation(operationId, TelemetryResult.Success);
+                await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+                telemetryService.SetOperationStatus(activity, ActivityStatusCode.Ok);
             }
-        }
-        catch (Exception ex)
-        {
-            if (operationId is not null)
+            catch (Exception)
             {
-                telemetryService.EndOperation(operationId, TelemetryResult.Failure, ex.Message);
+                telemetryService.SetOperationStatus(activity, ActivityStatusCode.Error);
             }
         }
         finally
@@ -209,7 +208,10 @@ public sealed class DashboardCommandExecutor(
                 navigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: getResourceName(resource)));
                 return Task.CompletedTask;
             };
-            toastOptions.Message = response.Message;
+            // Truncate plain-text command output before encoding it for Fluent's HTML-rendering toast,
+            // so the limit applies to displayed text rather than HTML entities.
+            var toastMessage = response.Message is null ? null : FormatHelpers.TruncateText(response.Message, MaxToastMessageLength);
+            toastOptions.Message = WebUtility.HtmlEncode(toastMessage);
 
             if (response.Result is not null)
             {

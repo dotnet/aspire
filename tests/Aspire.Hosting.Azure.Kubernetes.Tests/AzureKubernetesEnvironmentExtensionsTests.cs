@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only
-#pragma warning disable ASPIREPIPELINES001 // PipelineStepAnnotation is evaluation-only
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
@@ -11,6 +10,7 @@ using Aspire.Hosting.Azure.Kubernetes;
 using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.ContainerService;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -32,6 +32,29 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         Assert.Equal("{aks.outputs.id}", aks.Resource.Id.ValueExpression);
         Assert.Equal("{aks.outputs.clusterFqdn}", aks.Resource.ClusterFqdn.ValueExpression);
         Assert.Equal("{aks.outputs.oidcIssuerUrl}", aks.Resource.OidcIssuerUrl.ValueExpression);
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
+    public async Task AddAzureKubernetesEnvironment_ConfigureInfrastructureCanSelectFreeTier()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(
+            outputHelper,
+            workspace,
+            operation: DistributedApplicationOperation.Run);
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                var cluster = infrastructure.GetProvisionableResources()
+                    .OfType<ContainerServiceManagedCluster>()
+                    .Single();
+
+                cluster.Sku.Tier = ManagedClusterSkuTier.Free;
+            });
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
         await Verify(manifest.BicepText, extension: "bicep");
