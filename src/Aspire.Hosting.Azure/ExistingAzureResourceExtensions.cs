@@ -158,13 +158,6 @@ public static class ExistingAzureResourceExtensions
     /// <param name="nameParameter">The name of the existing resource.</param>
     /// <param name="resourceGroupParameter">The name of the existing resource group, or <see langword="null"/> to use the current resource group.</param>
     /// <returns>The resource builder with the existing resource annotation added.</returns>
-    /// <remarks>
-    /// <para>
-    /// Marking a resource as existing controls provisioning, not permissions. During deployment, integrations
-    /// can still create role assignments on the existing resource. Role assignments outside the application's
-    /// resource group are not removed by <c>aspire destroy</c> and must be removed separately when no longer needed.
-    /// </para>
-    /// </remarks>
     [AspireExportIgnore(Reason = "Use the polyglot asExisting overload that accepts string or ParameterResource values instead.")]
     public static IResourceBuilder<T> AsExisting<T>(this IResourceBuilder<T> builder, IResourceBuilder<ParameterResource> nameParameter, IResourceBuilder<ParameterResource>? resourceGroupParameter)
         where T : IAzureResource
