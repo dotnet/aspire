@@ -1,6 +1,6 @@
 # Aspire App Model v2: Concepts, Design, and Authoring Guidance
 
-> **Status:** Design exploration, not a supported API contract or replacement for managed Hosting.
+> **Status:** AppHost Server v2 implementation behind the default-off project feature `features.appHostServerV2`; not a replacement for managed Hosting.
 > **Audience:** Hosting integration authors and contributors exploring a language-neutral, NativeAOT-friendly application model.
 > **Baseline:** [Aspire Resource Model](appmodel.md).
 > **Related:** [Polyglot integrations](polyglot-integrations.md#single-runtime-representation).
@@ -12,7 +12,7 @@ configure them with fluent APIs, connect them through references, and let the
 runtime coordinate execution. The difference is where the model lives and how
 integrations participate.
 
-The application model is owned by a small native hosting core. Integrations use
+The application model is owned by a small AppHost Server v2 core. Integrations use
 language-neutral contracts through the Aspire Type System (ATS), rather than
 depending on live CLR objects inside the AppHost server. C# and TypeScript
 projections provide ordinary typed APIs over the same model.

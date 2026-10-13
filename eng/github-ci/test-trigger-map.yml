@@ -570,6 +570,9 @@ affected_project_rules:
   - projects: [CreateLayout]
     targets: [CLI_BUNDLE]
     reason: CreateLayout assembles the CLI bundle consumed by these tests and jobs
+  - projects: [Aspire.Hosting.Native.Server]
+    targets: [CLI_BUNDLE]
+    reason: AppHost Server v2 is embedded in the CLI bundle
   - projects:
       - Aspire.Cli
       - Aspire.Managed

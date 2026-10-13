@@ -169,6 +169,7 @@ internal sealed class LayoutBuilder : IDisposable
 
         // Copy components
         CopyManaged();
+        CopyAppHostServer();
         CopyDashboard();
         CopyTray();
         await CopyDcpAsync().ConfigureAwait(false);
@@ -277,6 +278,24 @@ internal sealed class LayoutBuilder : IDisposable
         }
 
         Log($"  Copied aspire-managed to managed/");
+    }
+
+    internal void CopyAppHostServer()
+    {
+        var publishPath = FindPublishPath("Aspire.Hosting.Native.Server", "net11.0", requireRidSpecific: true)
+            ?? throw new InvalidOperationException("AppHost Server v2 publish output not found.");
+        var extension = _rid.StartsWith("win-", StringComparison.Ordinal) ? ".exe" : "";
+        var source = Path.Combine(publishPath, "Aspire.Hosting.Native.Server" + extension);
+        if (!File.Exists(source) || new FileInfo(source).Length == 0)
+        {
+            throw new InvalidOperationException($"AppHost Server v2 executable not found at {source}");
+        }
+        var destination = Path.Combine(_outputPath, "apphost-server");
+        CopyDirectory(publishPath, destination, excludeSymbols: true);
+        // Product naming is independent of the assembly identity used in ATS type IDs.
+        File.Move(Path.Combine(destination, Path.GetFileName(source)),
+            Path.Combine(destination, "aspire-apphost-server" + extension), overwrite: true);
+        Log("Copied AppHost Server v2 to apphost-server/");
     }
 
     internal void CopyDashboard()

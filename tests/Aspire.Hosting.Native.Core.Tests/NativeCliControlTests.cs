@@ -21,10 +21,16 @@ public class NativeCliControlTests
         Assert.Equal("typescript/nodejs", spec["language"]!.GetValue<string>());
         Assert.Equal("npx", spec["execute"]!["command"]!.GetValue<string>());
         var sdk = Result(client.Call("generateCode", new JsonArray("TypeScript", null))).AsObject();
-        Assert.Equal(["aspire.mts", "base.mts", "integration-host.mts", "native-client.mts", "transport.mts"],
+        Assert.Equal(["apphost-server.json", "aspire.mts", "base.mts", "integration-host.mts", "native-builder.mts", "native-client.mts", "native-types.mts", "transport.mts"],
             sdk.Select(file => file.Key).Order(StringComparer.Ordinal));
         Assert.All(sdk, file => Assert.False(string.IsNullOrWhiteSpace(file.Value!.GetValue<string>())));
+        var identity = JsonNode.Parse(sdk["apphost-server.json"]!.GetValue<string>())!;
+        Assert.Equal(2, identity["generation"]!.GetValue<int>());
+        Assert.False(string.IsNullOrWhiteSpace(identity["contractId"]!.GetValue<string>()));
+        Assert.False(string.IsNullOrWhiteSpace(identity["version"]!.GetValue<string>()));
         Assert.NotEmpty(Result(client.Call("getCapabilities", null))["Capabilities"]!.AsArray());
+        Assert.Empty(Result(client.Call("getAppHostServerConfiguration", null)).AsArray());
+        Assert.Equal("INVALID_ARGUMENT", Error(client.Call("getAppHostServerConfiguration", new JsonArray("unexpected"))));
         Assert.Equal("INVALID_ARGUMENT", Error(client.Call("generateCode", new JsonArray("TypeScript", "Aspire.Hosting"))));
         Assert.Equal("NOT_SUPPORTED", Error(client.Call("getRuntimeSpec", new JsonArray("python"))));
     }

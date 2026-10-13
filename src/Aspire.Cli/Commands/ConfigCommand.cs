@@ -163,6 +163,12 @@ internal sealed class ConfigCommand : BaseCommand
 
         private async Task<int> ExecuteAsync(string key, string value, bool isGlobal, CancellationToken cancellationToken)
         {
+            if (isGlobal && key.StartsWith(KnownFeatures.FeaturePrefix + ".", StringComparison.Ordinal) &&
+                KnownFeatures.GetFeatureMetadata(key[(KnownFeatures.FeaturePrefix.Length + 1)..]) is { ProjectOnly: true } feature)
+            {
+                InteractionService.DisplayError(feature.Description);
+                return CliExitCodes.InvalidCommand;
+            }
             if (AppHostPathConfigurationPolicy.IsLegacyAppHostPathKey(key))
             {
                 InteractionService.DisplayError(ErrorStrings.LegacyAppHostPathCannotBeSetWithConfigCommand);
@@ -466,7 +472,7 @@ internal sealed class ConfigCommand : BaseCommand
             var globalPath = ConfigurationService.GetSettingsFilePath(isGlobal: true);
             var availableFeatures = KnownFeatures.GetAllFeatureMetadata()
                 .Where(m => !m.Hidden)
-                .Select(m => new FeatureInfo(m.Name, m.Description, m.DefaultValue))
+                .Select(m => new FeatureInfo(m.Name, m.Description, m.DefaultValue, m.ProjectOnly))
                 .ToList();
             var localSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: false);
             var globalSchema = SettingsSchemaBuilder.BuildSchema(excludeLocalOnly: true);

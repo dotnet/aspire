@@ -56,7 +56,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var info = new Aspire.Cli.Commands.ConfigInfo(
             LocalSettingsPath: "local.json",
             GlobalSettingsPath: "global.json",
-            AvailableFeatures: [new Aspire.Cli.Commands.FeatureInfo("featureA", "Description", DefaultValue: false)],
+            AvailableFeatures: [new Aspire.Cli.Commands.FeatureInfo("featureA", "Description", DefaultValue: false, ProjectOnly: false)],
             LocalSettingsSchema: new Aspire.Cli.Commands.SettingsSchema([]),
             GlobalSettingsSchema: new Aspire.Cli.Commands.SettingsSchema([]),
             ConfigFileSchema: new Aspire.Cli.Commands.SettingsSchema([]),
@@ -133,6 +133,19 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
         Assert.Equal("bar", settings["foo"]?.ToString());
+    }
+
+    [Fact]
+    public async Task ConfigSetCommand_RejectsGlobalAppHostServerV2()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+
+        var exitCode = await command.Parse("config set features.appHostServerV2 true --global").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
     }
 
     [Fact]

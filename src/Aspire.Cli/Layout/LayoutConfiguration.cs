@@ -20,7 +20,9 @@ public enum LayoutComponent
     /// <summary>Dashboard executable and static assets.</summary>
     Dashboard = 3,
     /// <summary>Optional native tray executable.</summary>
-    Tray = 4
+    Tray = 4,
+    /// <summary>Opt-in AppHost Server v2.</summary>
+    AppHostServer = 5
 }
 
 /// <summary>
@@ -71,6 +73,7 @@ public sealed class LayoutConfiguration
             LayoutComponent.Dashboard => Components.Dashboard,
             LayoutComponent.Managed => Components.Managed,
             LayoutComponent.Tray => Components.Tray,
+            LayoutComponent.AppHostServer => Components.AppHostServer,
             _ => null
         };
 
@@ -87,6 +90,15 @@ public sealed class LayoutConfiguration
     /// </summary>
     /// <returns>The executable path, or <see langword="null"/> when the layout has no tray.</returns>
     public string? GetTrayPath() => GetComponentPath(LayoutComponent.Tray);
+
+    /// <summary>Gets the AppHost Server v2 executable path, if the layout declares it.</summary>
+    public string? GetAppHostServerPath()
+    {
+        var directory = GetComponentPath(LayoutComponent.AppHostServer);
+
+        return directory is null ? null : Path.Combine(directory,
+            BundleDiscovery.GetExecutableFileName(BundleDiscovery.AppHostServerExecutableName));
+    }
 
     /// <summary>
     /// Gets the path to the aspire-managed executable.
@@ -145,6 +157,9 @@ public sealed class LayoutComponents
     /// Path to the unified managed binary directory.
     /// </summary>
     public string? Managed { get; set; } = BundleDiscovery.ManagedDirectoryName;
+
+    /// <summary>Path to the optional AppHost Server v2 component.</summary>
+    public string? AppHostServer { get; set; } = BundleDiscovery.AppHostServerDirectoryName;
 
     /// <summary>
     /// Path to the optional native tray executable, relative to the layout root.

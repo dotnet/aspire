@@ -61,7 +61,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
                 loggerFactory.CreateLogger<DcpWorkloadExecutor>()), options.Runtime);
         }
         using var listener = new NativeRpcListener(endPoint, token, loggerFactory.CreateLogger<NativeRpcListener>(), server,
-            NativeLanguageCatalog.LoadEmbedded(), options);
+            NativeLanguageCatalog.LoadEmbedded(settings.GeneratedSdkDirectory), options);
         NativeDashboardHost? dashboard = null;
         Task? dashboardCleanup = null;
         Task? controllerCleanup = null;

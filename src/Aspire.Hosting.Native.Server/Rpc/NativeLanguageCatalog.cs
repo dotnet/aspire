@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.IO.Hashing;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -13,6 +14,7 @@ internal sealed class NativeLanguageCatalog
 {
     private readonly NativeLanguageRegistration[] _languages;
     private readonly Func<string, JsonObject> _readSdk;
+    private JsonArray _providers = [];
 
     internal NativeLanguageCatalog(NativeLanguageRegistration[] languages, Func<string, JsonObject> readSdk)
     {
@@ -35,6 +37,9 @@ internal sealed class NativeLanguageCatalog
     }
 
     public static NativeLanguageCatalog LoadEmbedded()
+        => LoadEmbedded(null);
+
+    public static NativeLanguageCatalog LoadEmbedded(string? generatedSdkDirectory)
     {
         var assembly = typeof(NativeLanguageCatalog).Assembly;
         using var stream = assembly.GetManifestResourceStream("NativeLanguages.json")
@@ -42,8 +47,28 @@ internal sealed class NativeLanguageCatalog
         var languages = JsonSerializer.Deserialize(stream, NativeLanguageJsonContext.Default.NativeLanguageRegistrationArray)
             ?? throw new InvalidDataException("Invalid native language catalog.");
 
-        return new NativeLanguageCatalog(languages, prefix => ReadSdk(assembly, prefix));
+        var catalog = new NativeLanguageCatalog(languages, prefix =>
+        {
+            var files = ReadSdk(assembly, prefix);
+            if (generatedSdkDirectory is not null)
+            {
+                foreach (var path in Directory.GetFiles(generatedSdkDirectory, "*.mts"))
+                {
+                    files[Path.GetFileName(path)] = File.ReadAllText(path);
+                }
+            }
+
+            return files;
+        });
+        if (generatedSdkDirectory is not null)
+        {
+            catalog._providers = JsonNode.Parse(File.ReadAllText(Path.Combine(generatedSdkDirectory, "providers.json")))!.AsArray();
+        }
+
+        return catalog;
     }
+
+    public JsonArray ProviderConfiguration() => _providers.DeepClone().AsArray();
 
     public JsonObject RuntimeSpec(string language)
     {
@@ -84,6 +109,18 @@ internal sealed class NativeLanguageCatalog
         {
             throw new InvalidOperationException("The native executable is missing its generated SDK.");
         }
+
+        using var contract = assembly.GetManifestResourceStream("Aspire.Hosting.Native.Rpc.contract.json")
+            ?? throw new InvalidOperationException("AppHost Server v2 is missing its ATS contract.");
+        using var contents = new MemoryStream();
+        contract.CopyTo(contents);
+        files["apphost-server.json"] = new JsonObject
+        {
+            ["generation"] = 2,
+            ["contractId"] = Convert.ToHexString(XxHash3.Hash(contents.GetBuffer().AsSpan(0, checked((int)contents.Length)))),
+            ["version"] = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? throw new InvalidOperationException("AppHost Server v2 is missing its product version.")
+        }.ToJsonString();
 
         return files;
     }

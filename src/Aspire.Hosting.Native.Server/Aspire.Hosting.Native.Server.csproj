@@ -3,7 +3,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
-    <IsShipping>false</IsShipping>
+    <IsShipping>true</IsShipping>
     <IsAspirePolyglotCompatible>false</IsAspirePolyglotCompatible>
     <EnablePackageValidation>false</EnablePackageValidation>
     <PublishAot>true</PublishAot>
@@ -29,6 +29,9 @@
     <Compile Include="../Shared/DirectoryHelper.cs" Link="Auxiliary/DirectoryHelper.cs" />
     <Compile Include="../Shared/StringComparers.cs" Link="Auxiliary/StringComparers.cs" />
     <Compile Include="../Shared/ProcessStartTimeHelper.cs" Link="Auxiliary/ProcessStartTimeHelper.cs" />
+    <Compile Include="../Shared/BundleDiscovery.cs" Link="Auxiliary/BundleDiscovery.cs" />
+    <Compile Include="../Shared/BundleVersionLease.cs" Link="Auxiliary/BundleVersionLease.cs" />
+    <Compile Include="../Shared/HeldFileLease.cs" Link="Auxiliary/HeldFileLease.cs" />
     <Compile Include="../Shared/DcpKubeconfigData.cs" Link="Dcp/DcpKubeconfigData.cs" />
     <Compile Include="../Shared/DcpConnectionMaterial.cs" Link="Dcp/DcpConnectionMaterial.cs" />
     <Protobuf Include="../Aspire.Hosting/Dashboard/proto/dashboard_service.proto" GrpcServices="Both" Access="Internal" />
@@ -41,6 +44,9 @@
     <EmbeddedResource Include="$(NativeGeneratedDirectory)transport.mts" LogicalName="NativeSdk.transport.mts" />
     <EmbeddedResource Include="$(NativeGeneratedDirectory)integration-host.mts" LogicalName="NativeSdk.integration-host.mts" />
     <EmbeddedResource Include="$(NativeGeneratedDirectory)native-client.mts" LogicalName="NativeSdk.native-client.mts" />
+    <EmbeddedResource Include="$(NativeGeneratedDirectory)native-builder.mts" LogicalName="NativeSdk.native-builder.mts" />
+    <EmbeddedResource Include="$(NativeGeneratedDirectory)native-types.mts" LogicalName="NativeSdk.native-types.mts" />
+    <None Include="$(NativeGeneratedDirectory)contract.json" Link="ats-contract.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="GenerateNativeAts" BeforeTargets="PrepareResourceNames;CoreCompile" DependsOnTargets="ResolveProjectReferences">
     <MSBuild Projects="../Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj"

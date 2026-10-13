@@ -202,6 +202,17 @@ jobs:
               /bl:$(Build.Arcade.LogsPath)PublishManaged.binlog
             displayName: 🟣Prepare aspire-managed
 
+          - script: >-
+              $(Build.SourcesDirectory)/$(dotnetScript)
+              msbuild
+              $(Build.SourcesDirectory)/eng/Bundle.proj
+              /t:_PublishAppHostServer
+              /p:Configuration=$(_BuildConfig)
+              /p:TargetRid=${{ targetRid }}
+              ${{ parameters.extraBuildArgs }}
+              /bl:$(Build.Arcade.LogsPath)PublishAppHostServer.binlog
+            displayName: Prepare AppHost Server v2
+
           - pwsh: |
               $ErrorActionPreference = 'Stop'
               $buildLog = "$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
@@ -312,6 +323,7 @@ jobs:
             - script: |
                 chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.Managed/Release/net10.0/${{ targetRid }}/publish/aspire-managed
                 chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.Dashboard/${{ targetRid }}/Release/net11.0/${{ targetRid }}/publish/Aspire.Dashboard
+                chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.Hosting.Native.Server/Release/net11.0/${{ targetRid }}/publish/Aspire.Hosting.Native.Server
               displayName: 🟣Restore execute permissions on managed executables
 
           # Repack the already-published/signed Dashboard without republishing it,
@@ -392,6 +404,7 @@ jobs:
               -restore
               /p:SkipManagedBuild=true
               /p:TargetRids=${{ targetRid }}
+              /p:SkipAppHostServerBuild=true
               /p:BundlePayloadPath=$(Build.SourcesDirectory)/artifacts/bundle/aspire-ci-bundlepayload-${{ targetRid }}.tar.gz
               /p:AspireCliChannel=$(aspireCliChannel)
               $(_buildArgs)

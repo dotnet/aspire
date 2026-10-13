@@ -48,6 +48,17 @@ internal sealed partial class NativeRpcConnection
         return s_contract.DeepClone();
     }
 
+    private JsonNode GetAppHostServerConfiguration(JsonNode? parameters)
+    {
+        if (_languages is null || parameters is not null and not JsonArray { Count: 0 } ||
+            _providers?.IsProvider(this) == true)
+        {
+            throw RpcFault.InvalidArgument("AppHost configuration requires an application connection and no arguments.");
+        }
+
+        return _languages.ProviderConfiguration();
+    }
+
     private JsonNode Bootstrap(string method, JsonNode? parameters)
     {
         if (_languages is null)

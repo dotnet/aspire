@@ -2011,9 +2011,12 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("""
             // Re-export commonly used types
             export { Handle, AppHostUsageError, CancellationToken, CapabilityError, registerCallback } from './transport.mjs';
-            export { refExpr, ReferenceExpression } from './base.mjs';
-            export type { HandleReference, Awaitable } from './base.mjs';
             """);
+        if (includeManagedBootstrap)
+        {
+            WriteLine("export { refExpr, ReferenceExpression } from './base.mjs';");
+        }
+        WriteLine("export type { HandleReference, Awaitable } from './base.mjs';");
         WriteLine();
     }
 

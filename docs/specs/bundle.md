@@ -29,6 +29,7 @@ The Aspire Bundle distributes the CLI with its runtime components:
 |-----------|------------|---------|
 | `aspire[.exe]` | Native AOT | CLI, including native development-certificate management and in-process NuGet operations |
 | `managed/aspire-managed[.exe]` | Self-contained single-file executable | AppHost Server, terminal hosting, and a Dashboard compatibility forwarder |
+| `apphost-server/aspire-apphost-server[.exe]` and `ats-contract.json` | Native AOT and offline ATS metadata | AppHost Server v2, selected only by project opt-in; matching metadata is consumed by the managed SDK generator |
 | `dashboard/Aspire.Dashboard[.exe]` | Native AOT | Dashboard web application |
 | `dashboard/wwwroot/` and native dependencies | Publish assets | Dashboard scripts, styles, fonts, images, and SQLite native library |
 | `dcp/` | Platform-specific native binaries | Developer Control Plane |
@@ -67,6 +68,40 @@ Guest AppHost <---- JSON-RPC ----> AppHost Server
 
 For a guest-language AppHost, the CLI prepares integration dependencies, starts the AppHost Server, and starts the guest process that communicates with it. For a .NET AppHost, the CLI uses the .NET project workflow and supplies bundle component paths when available.
 
+### AppHost Server v2
+
+The default server and existing AppHosts remain unchanged. To select AppHost
+Server v2, set the following in the target project's `aspire.config.json`:
+
+```json
+{
+  "features": {
+    "appHostServerV2": true
+  }
+}
+```
+
+The CLI resolves this setting from the target AppHost's nearest configuration,
+including inherited configuration. Global settings and a development executable
+override do not opt a project in. An older bundle without the component fails
+explicitly instead of falling back to the managed server. Disable the flag to
+return to the managed server; the CLI regenerates its SDK and prunes v2-only
+generated files.
+
+The initial boundary is TypeScript/Node.js AppHosts on Unix-domain sockets,
+running core resources and qualified protocol-v2 npm providers. Managed
+integration assemblies, other guest runtimes, Windows, publishing and server
+debugging are rejected. Existing managed packages are not automatically ported.
+NativeAOT is an implementation detail, not the feature's name.
+
+The CLI leases one bundle for execution, SDK generation, DCP and Dashboard.
+`aspire-managed apphost-codegen-v2` combines its sibling server's offline ATS
+contract with provider metadata using the shared ATS TypeScript generator;
+reflection and integration dependencies do not move into the execution core.
+Provider packages declare their metadata, authoring modules and entry point in
+`aspire.apphost-server.json`. SDK provenance records the server generation,
+contract identity and product version.
+
 Standalone `aspire dashboard run` and CLI profile capture launch Dashboard directly. The Dashboard entry point sets `ContentRootPath = AppContext.BaseDirectory`, so its static assets are resolved beside the executable regardless of the caller's working directory.
 
 `aspire-managed dashboard` does **not** host Blazor in the managed helper. It forwards arguments to the sibling native Dashboard and propagates its exit status. This preserves a launch contract used by older AppHosts without bringing the Dashboard back into the managed helper's dependency graph.
@@ -81,6 +116,9 @@ Standalone `aspire dashboard run` and CLI profile capture launch Dashboard direc
 {payload}/
 ├── managed/
 │   └── aspire-managed[.exe]
+├── apphost-server/
+│   ├── aspire-apphost-server[.exe]
+│   └── ats-contract.json
 ├── dashboard/
 │   ├── Aspire.Dashboard[.exe]
 │   ├── e_sqlite3.dll             # Windows

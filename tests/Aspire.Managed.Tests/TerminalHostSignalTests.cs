@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Aspire.Hosting;
 using Aspire.TerminalHost;
-using Xunit;
 
 namespace Aspire.Managed.Tests;
 

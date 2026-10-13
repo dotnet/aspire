@@ -23,7 +23,8 @@ internal sealed record NativeServerConfiguration(
     string? BackchannelPath,
     string? AppHostPath,
     NativeDashboardCredentials DashboardCredentials,
-    NativeCliProcessMetadata CliProcess)
+    NativeCliProcessMetadata CliProcess,
+    string? GeneratedSdkDirectory)
 {
     public override string ToString() => nameof(NativeServerConfiguration);
 
@@ -58,7 +59,8 @@ internal sealed record NativeServerConfiguration(
             new(configuration["ASPIRE_NATIVE_DASHBOARD_API_KEY"] ?? NewCredential(),
                 configuration["AppHost:BrowserToken"] ?? NewCredential(),
                 configuration["AppHost:DashboardApiKey"] ?? NewCredential(), NewCredential()),
-            NativeCliProcessMetadata.Parse(configuration));
+            NativeCliProcessMetadata.Parse(configuration),
+            configuration["ASPIRE_APPHOST_SERVER_V2_SDK_DIRECTORY"]);
     }
 
     private static string NewCredential() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));

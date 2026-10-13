@@ -193,7 +193,10 @@ await File.WriteAllTextAsync(Path.Combine(output, "languages.json"), new JsonArr
 }).ToJsonString(new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
 foreach (var (name, content) in sdk)
 {
-    await File.WriteAllTextAsync(Path.Combine(output, name), content).ConfigureAwait(false);
+    var projectedContent = name == "aspire.mts"
+        ? content + "\nexport { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';\n"
+        : content;
+    await File.WriteAllTextAsync(Path.Combine(output, name), projectedContent).ConfigureAwait(false);
 }
 using (var builderSource = typeof(NativeProviderProjection).Assembly.GetManifestResourceStream(
     "Aspire.Hosting.Native.CodeGeneration.Resources.native-builder.mts")
@@ -230,6 +233,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
 
     export async function connectNativeAppHost(options: NativeConnectionOptions):
         Promise<{ client: AspireClient; server: NativeApplicationServer;
+            providerConfiguration(): Promise<{ packageName: string; executable: string; arguments: string[] }[]>;
             activateProvider(packageName: string, executable: string, args: readonly string[]): Promise<{ close(): Promise<void> }> }> {
         const providerCleanupTimeout = options.providerCleanupTimeoutMilliseconds ?? 15000;
         const providerShutdownTimeout = options.providerShutdownTimeoutMilliseconds ?? 5000;
@@ -263,11 +267,17 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
             return {
                 client,
                 server: wrapIfHandle(root, client) as NativeApplicationServer,
+                async providerConfiguration() {
+                    const value = await connection.sendRequest<unknown>('getAppHostServerConfiguration');
+                    if (!Array.isArray(value) || value.some(provider =>
+                        !provider || typeof provider.packageName !== 'string' || typeof provider.executable !== 'string' ||
+                        !Array.isArray(provider.arguments) || provider.arguments.some((argument: unknown) => typeof argument !== 'string'))) {
+                        throw new Error('The AppHost Server v2 provider configuration is invalid.');
+                    }
+                    return value;
+                },
                 async activateProvider(packageName: string, executable: string, args: readonly string[]) {
                     const endpoint = options.endpoint;
-                    if (typeof endpoint === 'string') {
-                        throw new Error('This explicit activation entry point requires loopback TCP.');
-                    }
                     const authority = await connection.sendRequest<string>('expectIntegrationHost', packageName);
                     const abandon = async (): Promise<void> => {
                         const cancellation = new rpc.CancellationTokenSource();
@@ -293,7 +303,8 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
                         try {
                             return spawn(executable, [...args], {
                                 env: { ...globalThis.process.env,
-                                    ASPIRE_NATIVE_RPC_ENDPOINT: `${endpoint.host}:${endpoint.port}`,
+                                    ASPIRE_NATIVE_RPC_ENDPOINT: typeof endpoint === 'string' ? undefined : `${endpoint.host}:${endpoint.port}`,
+                                    ASPIRE_NATIVE_RPC_SOCKET_PATH: typeof endpoint === 'string' ? endpoint : undefined,
                                     ASPIRE_NATIVE_RPC_TOKEN: options.authenticationToken,
                                     ASPIRE_INTEGRATION_HOST_REGISTRATION_ID: authority },
                                 stdio: ['ignore', 'pipe', 'pipe']

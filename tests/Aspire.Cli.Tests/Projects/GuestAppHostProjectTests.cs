@@ -53,6 +53,55 @@ public class GuestAppHostProjectTests : IDisposable
     }
 
     [Theory]
+    [InlineData(".aspire/modules", false)]
+    [InlineData(".aspire/modules", true)]
+    [InlineData(".modules", true)]
+    public async Task PrepareAppHostServerAsync_OptingOutRegeneratesPreviouslyGeneratedV2Sdk(string generatedFolder, bool hasV2Sdk)
+    {
+        var root = _workspace.WorkspaceRoot;
+        var output = Directory.CreateDirectory(Path.Combine(root.FullName, generatedFolder));
+        if (hasV2Sdk)
+        {
+            await File.WriteAllTextAsync(Path.Combine(output.FullName, "apphost-server.json"), """{"generation":2}""");
+        }
+
+        var result = await GuestAppHostProject.PrepareAppHostServerAsync(
+            new FakeSucceedingAppHostServerProject(root.FullName), "17.0", [], requestedChannel: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.True(result.Success);
+        Assert.Equal(hasV2Sdk, result.NeedsCodeGen);
+    }
+
+    [Fact]
+    public async Task BuildAndGenerateSdkAsync_V2BootstrapWithoutProvidersDoesNotStartWorkloads()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        var root = _workspace.WorkspaceRoot;
+        var executable = Path.Combine(root.FullName, "server");
+        await File.WriteAllTextAsync(executable, "");
+        new AspireConfigFile
+        {
+            Features = new() { [KnownFeatures.AppHostServerV2] = true }
+        }.Save(root.FullName);
+        var sessionFactory = new FakeAppHostServerSessionFactory();
+        var project = CreateGuestAppHostProject(
+            appHostServerProjectFactory: new TestAppHostServerProjectFactory
+            {
+                CreateAsyncCallback = (path, _) => Task.FromResult<IAppHostServerProject>(
+                    new NativeAppHostServerProject(path, executable, new TestProcessExecutionFactory(), NullLogger.Instance))
+            },
+            serverSessionFactory: sessionFactory);
+
+        Assert.True(await project.BuildAndGenerateSdkAsync(root, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Collection(sessionFactory.CreatedSessionEnvironments,
+            environment => Assert.Equal("true", environment![KnownConfigNames.IntegrationHostBootstrap]));
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("false")]
     public async Task NpmIntegrationHosts_DisabledFeatureRejectsBeforeSdkPreparation(string? enabled)

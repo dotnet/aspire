@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFile, unlink } from 'node:fs/promises';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { StartedWorkload } from './aspire.mjs';
@@ -13,6 +13,10 @@ import { NativeDashboardSmoke } from './NativeDashboardSmoke.mjs';
 
 const [cliPath, serverPath, workspace] = process.argv.slice(2);
 assert.ok(cliPath && serverPath && workspace && process.env.ASPIRE_NATIVE_DCP_PATH);
+const configurationPath = resolve(workspace, 'aspire.config.json');
+const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
+configuration.features = { ...configuration.features, appHostServerV2: true };
+await writeFile(configurationPath, JSON.stringify(configuration));
 const serverProcessPattern = new RegExp(`${basename(serverPath).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\((\\d+)\\) started`);
 const resultsPath = resolve(workspace, 'cli-apphost-proof.json');
 const dashboardKey = randomBytes(32).toString('hex');

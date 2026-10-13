@@ -10,6 +10,39 @@ implementation uses generated native composition methods, not managed
 service or perform an HTTP health check. `WithApiKey` stores a symbolic secret
 reference without reading the credential in either integration language.
 
+## Product opt-in
+
+AppHost Server v2 ships as an additive bundle component. Existing AppHosts keep
+using the managed server unless their target `aspire.config.json` explicitly
+sets `"features": { "appHostServerV2": true }`. Global configuration does not
+select v2. The initial CLI boundary supports TypeScript/Node.js on Unix,
+core resources and qualified protocol-v2 npm providers. The C# examples below
+remain standalone provider/contract examples, not compatible managed NuGet
+integrations for the product path.
+
+A qualified npm entry point has an adjacent `aspire.apphost-server.json`:
+
+```json
+{
+  "protocolVersion": 2,
+  "packageName": "example.ts.redis",
+  "metadata": "provider-contract.json",
+  "sdkFiles": {
+    "redis-builder.mts": "redis-builder.mts",
+    "provider-client.mts": "provider-client.mts"
+  },
+  "exports": ["redis-builder.mts"]
+}
+```
+
+Declare every authoring/runtime source needed by the exported modules in
+`sdkFiles`; the abbreviated example above is not the complete Redis payload.
+Assets must exist inside the entry point's package directory. The CLI prepares
+their SDK using the matching bundle's offline ATS contract and shared generator,
+then supplies activation coordinates over authenticated RPC. Ordinary AppHosts
+import `createBuilder` and the selected integration APIs from the generated
+`aspire.mjs`; they do not pass provider commands or set server overrides.
+
 ## Source layout
 
 - `CSharp/ExternalApi`: ordinary resource class and `[AspireExport]` methods.

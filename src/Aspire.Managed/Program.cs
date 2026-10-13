@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting;
+using Aspire.Managed;
 using Aspire.Shared;
 using Aspire.TerminalHost;
 
@@ -25,6 +26,7 @@ return args switch
     ["dashboard", .. var rest] => await RunDashboard(rest).ConfigureAwait(false),
     ["server", .. var rest] => await RunServer(rest).ConfigureAwait(false),
     ["terminalhost", .. var rest] => await RunTerminalHost(rest).ConfigureAwait(false),
+    ["apphost-codegen-v2", var requestPath] => await AppHostServerV2CodeGeneration.GenerateAsync(requestPath).ConfigureAwait(false),
     _ => ShowUsage()
 };
 
@@ -108,6 +110,6 @@ static async Task<int> RunTerminalHost(string[] args)
 
 static int ShowUsage()
 {
-    Console.Error.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} <dashboard|server|terminalhost> [args...]");
+    Console.Error.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} <dashboard|server|terminalhost|apphost-codegen-v2> [args...]");
     return 1;
 }

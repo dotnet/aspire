@@ -114,6 +114,7 @@ internal sealed class FakeAppHostServerSessionFactory : IAppHostServerSessionFac
         IProcessTreeGracefulShutdownSignaler? gracefulShutdownSignaler,
         IGracefulShutdownWindow? shutdownService,
         bool isolateConsole,
+        bool ownsProject,
         CancellationToken stopRequested)
     {
         CapturedEnvironmentVariables = environmentVariables is null ? null : new Dictionary<string, string>(environmentVariables);

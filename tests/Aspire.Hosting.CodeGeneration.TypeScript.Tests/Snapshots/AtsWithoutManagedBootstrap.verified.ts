@@ -85,7 +85,6 @@ export async function connect(): Promise<AspireClientRpc> {
 
 // Re-export commonly used types
 export { Handle, AppHostUsageError, CancellationToken, CapabilityError, registerCallback } from './transport.mjs';
-export { refExpr, ReferenceExpression } from './base.mjs';
 export type { HandleReference, Awaitable } from './base.mjs';
 
 // ============================================================================

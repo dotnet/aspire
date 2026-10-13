@@ -214,7 +214,8 @@ function defaultVolumePrefix(applicationRoot: string, applicationName?: string):
     return `aspire-${label}-${hash.toString(16).padStart(16, '0')}`;
 }
 function settingsFromArgs(args: readonly string[], options: NativeBuilderOptions = {}): NativeBuilderSettings {
-    const settings: NativeBuilderSettings = { options, endpoint: process.env.ASPIRE_NATIVE_RPC_ENDPOINT,
+    const settings: NativeBuilderSettings = { options,
+        endpoint: process.env.REMOTE_APP_HOST_SOCKET_PATH ?? process.env.ASPIRE_NATIVE_RPC_ENDPOINT,
         volumePrefix: '', providers: new Map(), configuration: {} };
     let applicationRoot = options.applicationRoot ?? process.cwd(), applicationName = options.applicationName;
     let volumePrefix: string | undefined;
@@ -337,16 +338,31 @@ export class NativeApplication {
         operation.throwIfAborted();
         if (this.closed || this.native) throw new Error('Application is already started or disposed.');
         const endpoint = this.initial.settings.endpoint;
-        const authenticationToken = process.env.ASPIRE_NATIVE_RPC_TOKEN;
+        const authenticationToken = process.env.REMOTE_APP_HOST_SOCKET_PATH
+            ? process.env.ASPIRE_REMOTE_APPHOST_TOKEN : process.env.ASPIRE_NATIVE_RPC_TOKEN;
         if (!endpoint || !authenticationToken) throw new Error('Framework native endpoint/authentication configuration is required.');
         const [host, port] = endpoint.split(':');
-        if (host !== '127.0.0.1' || !port) throw new Error('Native builder currently supports loopback TCP.');
+        let connectionEndpoint: string | { host: '127.0.0.1'; port: number };
+        if (process.env.REMOTE_APP_HOST_SOCKET_PATH === endpoint) {
+            connectionEndpoint = endpoint;
+        } else {
+            if (host !== '127.0.0.1' || !Number.isInteger(Number(port)) || Number(port) < 1 || Number(port) > 65535) {
+                throw new Error('The AppHost endpoint must be a CLI-owned socket or loopback TCP.');
+            }
+            connectionEndpoint = { host, port: Number(port) };
+        }
         try {
             this.native = await connectNativeAppHost({
-                endpoint: { host, port: Number(port) }, authenticationToken, authenticationTimeoutMilliseconds: 15000,
+                endpoint: connectionEndpoint, authenticationToken, authenticationTimeoutMilliseconds: 15000,
                 providerCleanupTimeoutMilliseconds: this.initial.settings.options.providerCleanupTimeoutMilliseconds,
                 providerShutdownTimeoutMilliseconds: this.initial.settings.options.providerShutdownTimeoutMilliseconds
             });
+            if (typeof connectionEndpoint === 'string') {
+                for (const provider of await this.native.providerConfiguration()) {
+                    this.initial.settings.providers.set(provider.packageName,
+                        { executable: provider.executable, arguments: provider.arguments });
+                }
+            }
             for (const packageName of this.initial.providers) {
                 const command = this.initial.settings.providers.get(packageName);
                 if (!command) throw new Error(`Framework provider configuration is missing for '${packageName}'.`);

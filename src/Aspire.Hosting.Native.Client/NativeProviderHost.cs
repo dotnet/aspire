@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -20,8 +21,10 @@ public sealed class NativeProviderHost(IConfiguration configuration, TimeProvide
     /// <returns>The provider lifetime.</returns>
     public async Task RunAsync(NativeProviderDefinition definition, CancellationToken cancellationToken)
     {
-        var endpoint = IPEndPoint.Parse(configuration["ASPIRE_NATIVE_RPC_ENDPOINT"]
-            ?? throw new InvalidOperationException("Provider activation requires a native endpoint."));
+        EndPoint endpoint = configuration["ASPIRE_NATIVE_RPC_SOCKET_PATH"] is { } socketPath
+            ? new UnixDomainSocketEndPoint(socketPath)
+            : IPEndPoint.Parse(configuration["ASPIRE_NATIVE_RPC_ENDPOINT"]
+                ?? throw new InvalidOperationException("Provider activation requires an AppHost endpoint."));
         var token = configuration["ASPIRE_NATIVE_RPC_TOKEN"]
             ?? throw new InvalidOperationException("Provider activation requires authentication.");
         var authority = configuration["ASPIRE_INTEGRATION_HOST_REGISTRATION_ID"]
@@ -83,9 +86,9 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         TimeProvider clock, ILogger logger, CancellationToken cancellationToken)
     {
         options.Validate();
-        if (client.Endpoint is not IPEndPoint endpoint)
+        if (client.Endpoint is not IPEndPoint and not UnixDomainSocketEndPoint)
         {
-            throw new NotSupportedException("This provider activation entry point currently requires loopback TCP.");
+            throw new NotSupportedException("Provider activation requires a local AppHost endpoint.");
         }
         var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         // Kernel-enforced parent ownership survives abrupt host termination.
@@ -99,7 +102,16 @@ public sealed class NativeProviderActivation : IAsyncDisposable
         {
             start.ArgumentList.Add(argument);
         }
-        start.Environment["ASPIRE_NATIVE_RPC_ENDPOINT"] = endpoint.ToString();
+        start.Environment.Remove("ASPIRE_NATIVE_RPC_ENDPOINT");
+        start.Environment.Remove("ASPIRE_NATIVE_RPC_SOCKET_PATH");
+        if (client.Endpoint is UnixDomainSocketEndPoint socket)
+        {
+            start.Environment["ASPIRE_NATIVE_RPC_SOCKET_PATH"] = socket.ToString();
+        }
+        else
+        {
+            start.Environment["ASPIRE_NATIVE_RPC_ENDPOINT"] = client.Endpoint.ToString();
+        }
         start.Environment["ASPIRE_NATIVE_RPC_TOKEN"] = client.AuthenticationToken;
         var authority = await client.ExpectIntegrationHostAsync(packageName, cancellationToken).ConfigureAwait(false);
         NativeProviderActivation? activation = null;

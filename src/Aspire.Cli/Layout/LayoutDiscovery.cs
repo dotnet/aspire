@@ -279,6 +279,7 @@ public sealed class LayoutDiscovery : ILayoutDiscovery
                         Dcp = Path.Combine(BundleDiscovery.BundleDirectoryName, BundleDiscovery.DcpDirectoryName),
                         Dashboard = Path.Combine(BundleDiscovery.BundleDirectoryName, BundleDiscovery.DashboardDirectoryName),
                         Managed = Path.Combine(BundleDiscovery.BundleDirectoryName, BundleDiscovery.ManagedDirectoryName),
+                        AppHostServer = Path.Combine(BundleDiscovery.BundleDirectoryName, BundleDiscovery.AppHostServerDirectoryName),
                         Tray = FindTrayRelativePath(layoutPath, BundleDiscovery.BundleDirectoryName),
                     }
                 };

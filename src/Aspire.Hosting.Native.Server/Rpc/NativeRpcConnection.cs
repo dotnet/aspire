@@ -403,6 +403,7 @@ internal sealed partial class NativeRpcConnection : IDisposable
             "ping" => JsonValue.Create("pong"),
             "getApplicationServer" => GetApplicationServer(parameters),
             "getCapabilities" => GetCapabilities(parameters),
+            "getAppHostServerConfiguration" => GetAppHostServerConfiguration(parameters),
             "getRuntimeSpec" or "generateCode" => Bootstrap(method, parameters),
             "expectIntegrationHost" or "registerAsIntegrationHost" or "waitIntegrationHostRegistration" or
                 "abandonIntegrationHostRegistration" or "getIntegrationCapabilities" or "invokeGuestCallback" =>
