@@ -12,6 +12,7 @@ using k8s.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -599,8 +600,8 @@ public class KubernetesServiceTests
     [InlineData(true, 0)]
     public async Task CreateAsync_RecoveryBudgetIncludesServerRequestedRetryDelay(bool useHttpDate, int retryAfterSeconds)
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var recoveryTimeout = TimeSpan.FromSeconds(5);
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var recoveryTimeout = TestConstants.DefaultTimeoutTimeSpan;
         var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
@@ -646,8 +647,8 @@ public class KubernetesServiceTests
     [InlineData(true, 0)]
     public async Task CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(bool useHttpDate, int retryAfterSeconds)
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var recoveryTimeout = TimeSpan.FromSeconds(5);
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var recoveryTimeout = TestConstants.DefaultTimeoutTimeSpan;
         var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
