@@ -1,0 +1,16 @@
+{
+  "id": "aspire-hosting-tests-withurlstests-withurlforendpoint-stopasync-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: WithUrlsTests.WithUrlForEndpointCanLinkToAnotherResourcesEndpoint host shutdown times out with TaskCanceledException in DistributedApplication.StopAsync",
+  "test_name": "Aspire.Hosting.Tests.WithUrlsTests.WithUrlForEndpointCanLinkToAnotherResourcesEndpoint",
+  "error_pattern": "System.Threading.Tasks.TaskCanceledException : A task was canceled.\n   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StopAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StopAsync(CancellationToken cancellationToken)",
+  "occurrences": [
+    {
+      "run_id": 38337214523,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38337214523",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-5, Hosting-5, tests/Aspire.Hosting.Te... / Hosting-5 (8-core-ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-13T03:46:41Z"
+    }
+  ]
+}
