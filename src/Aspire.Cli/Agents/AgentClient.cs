@@ -72,10 +72,6 @@ internal sealed class AgentClient
 
     public static IReadOnlyList<AgentClient> All { get; } = [Copilot, ClaudeCode, OpenCode];
 
-    private AgentClient()
-    {
-    }
-
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
     public required AgentEnvironment Environments { get; init; }

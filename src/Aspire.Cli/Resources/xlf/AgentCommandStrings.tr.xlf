@@ -292,6 +292,11 @@
         <target state="new">The Aspire skills bundle is invalid: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerContainerMustBeJsonObject">
+        <source>The MCP server container '{0}' in '{1}' must be a JSON object.</source>
+        <target state="new">The MCP server container '{0}' in '{1}' must be a JSON object.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlaywrightCliInstaller_FailedToDownload">
         <source>Failed to download {0}.</source>
         <target state="new">Failed to download {0}.</target>

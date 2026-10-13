@@ -764,6 +764,69 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgentInit_AliasedMcpDestinations_ConfigureEachSelectedServerContainer(bool pinned)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var client = AgentClient.Copilot;
+        var path = client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, new TestEnvironment());
+        var environment = new TestEnvironment(new Dictionary<string, string?> { ["OPENCODE_CONFIG"] = path });
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var original = pinned
+            ? """{"preference":true,"mcpServers":{"aspire":{"command":"pinned-aspire","args":["--pinned"]}}}"""
+            : """{"preference":true}""";
+        await File.WriteAllTextAsync(path, original);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents copilot,opencode --scope global --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+        await Verify(await File.ReadAllTextAsync(path), "json").UseParameters(pinned);
+    }
+
+    [Fact]
+    public async Task AgentInit_AliasedMalformedMcpContainer_FailsWithoutWriting()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var client = AgentClient.Copilot;
+        var path = client.GetMcpConfigPath(AgentConfigurationScope.Global, workspace.WorkspaceRoot, executionContext, new TestEnvironment());
+        var environment = new TestEnvironment(new Dictionary<string, string?> { ["OPENCODE_CONFIG"] = path });
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        const string original = """{ "preference": true, "mcp": [] }""";
+        await File.WriteAllTextAsync(path, original);
+        var interaction = new TestInteractionService();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents copilot,opencode --scope global --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+        Assert.Contains(path, Assert.Single(interaction.DisplayedErrors));
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Theory]
     [MemberData(nameof(MalformedMcpConfigurations))]
     public async Task AgentInit_MalformedSelectedMcp_FailsWithoutOverwriting(string clientId, string scopeName, string original)
     {
@@ -806,6 +869,9 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
                 }
             }
         }
+
+        yield return ["copilot", "project", """{"mcpServers":[]}"""];
+        yield return ["opencode", "global", """{"mcp":"custom"}"""];
     }
 
     [Theory]
@@ -840,6 +906,37 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
             $"agent init --agents {clientId} --scope {scopeName} --skills none --mcp");
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         await Verify(await File.ReadAllTextAsync(path), "json").UseParameters(clientId, scopeName);
+    }
+
+    [Theory]
+    [InlineData("copilot", "global")]
+    [InlineData("opencode", "project")]
+    public async Task AgentInit_CustomizedDeprecatedMcpCommand_IsPreserved(string clientId, string scopeName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var environment = new TestEnvironment();
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var client = AgentClient.All.Single(client => client.Id == clientId);
+        var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
+        var path = client.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
+        var original = clientId == "opencode"
+            ? """{ "preference": true, "mcp": { "aspire": { "type": "local", "command": ["aspire", "mcp", "start", "--custom"], "enabled": false } } }"""
+            : """{ "preference": true, "mcpServers": { "aspire": { "command": "aspire", "args": ["mcp", "start", "--custom"], "env": { "CUSTOM": "keep" } } } }""";
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, original);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents {clientId} --scope {scopeName} --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
     }
 
     [Theory]

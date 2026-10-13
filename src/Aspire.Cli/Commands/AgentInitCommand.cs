@@ -491,50 +491,58 @@ internal sealed class AgentInitCommand : BaseCommand
         if (configureMcp)
         {
             var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-            var configuredPaths = new HashSet<string>(pathComparer);
-            foreach (var client in selectedClients)
+            // Aliased paths can use distinct server keys; coalesce file I/O, not client formats.
+            var targetsByPath = selectedClients.SelectMany(client =>
+                client.GetMcpConfigPaths(scope, workspaceRoot, ExecutionContext, _environment)
+                    .Select(target => (Client: client, target.Path, target.ServersPropertyName, target.ConfigureServer)))
+                .GroupBy(static target => target.Path, pathComparer);
+            foreach (var targets in targetsByPath)
             {
-                // Legacy repairs share the same selection, scope, and consent as new configuration.
-                foreach (var (path, serversPropertyName, configureServer) in client.GetMcpConfigPaths(scope, workspaceRoot, ExecutionContext, _environment))
+                var firstTarget = targets.First();
+                var description = string.Format(CultureInfo.CurrentCulture,
+                    AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
+                try
                 {
-                    if (!configuredPaths.Add(path))
+                    var config = await McpConfigFileHelper.ReadConfigAsync(targets.Key, firstTarget.Client.McpJsonDocumentOptions, cancellationToken);
+                    var notifications = new List<(KnownEmoji Emoji, string Message)>();
+                    // Legacy repairs share the same selection, scope, and consent as new configuration.
+                    foreach (var (client, _, serversPropertyName, configureServer) in targets)
                     {
-                        continue;
-                    }
-
-                    var description = string.Format(CultureInfo.CurrentCulture,
-                        AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, path);
-                    try
-                    {
-                        var config = await McpConfigFileHelper.ReadConfigAsync(path, client.McpJsonDocumentOptions, cancellationToken);
                         var updated = McpConfigFileHelper.UpdateDeprecatedCommand(config, serversPropertyName);
-                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(config, client, scope);
-                        if (updated || configured)
-                        {
-                            await ConfigurationHelper.WriteSettingsFileAsync(path, config, cancellationToken);
-                        }
+                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(config, client, scope, targets.Key);
 
                         if (updated)
                         {
-                            InteractionService.DisplayMessage(KnownEmojis.Wrench,
-                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.DeprecatedConfigUpdate_Description, client.DisplayName));
+                            notifications.Add((KnownEmojis.Wrench,
+                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.DeprecatedConfigUpdate_Description, client.DisplayName)));
                         }
 
                         if (configured)
                         {
-                            InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton, description);
+                            notifications.Add((KnownEmojis.CheckMarkButton, string.Format(CultureInfo.CurrentCulture,
+                                AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, targets.Key)));
                         }
                     }
-                    catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+
+                    if (notifications.Count > 0)
                     {
-                        InteractionService.DisplayError(ex.Message);
-                        if (ex.InnerException is JsonException)
-                        {
-                            InteractionService.DisplaySubtleMessage(
-                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, description));
-                        }
-                        hasErrors = true;
+                        await ConfigurationHelper.WriteSettingsFileAsync(targets.Key, config, cancellationToken);
                     }
+
+                    foreach (var (emoji, message) in notifications)
+                    {
+                        InteractionService.DisplayMessage(emoji, message);
+                    }
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+                {
+                    InteractionService.DisplayError(ex.Message);
+                    if (ex.InnerException is JsonException)
+                    {
+                        InteractionService.DisplaySubtleMessage(
+                            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, description));
+                    }
+                    hasErrors = true;
                 }
             }
         }

@@ -49,9 +49,16 @@ internal static class McpConfigFileHelper
                 string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationFileMustBeJsonObject, configFilePath));
     }
 
-    public static bool ConfigureMcpServer(JsonObject config, AgentClient client, AgentConfigurationScope scope)
+    public static bool ConfigureMcpServer(JsonObject config, AgentClient client, AgentConfigurationScope scope, string configFilePath)
     {
-        if (config[client.McpServersPropertyName] is JsonObject existingServers && existingServers.ContainsKey("aspire"))
+        var serverContainer = config[client.McpServersPropertyName];
+        if (serverContainer is not null && serverContainer is not JsonObject)
+        {
+            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
+                AgentCommandStrings.McpServerContainerMustBeJsonObject, client.McpServersPropertyName, configFilePath));
+        }
+
+        if (serverContainer is JsonObject existingServers && existingServers.ContainsKey("aspire"))
         {
             return false;
         }
@@ -61,7 +68,7 @@ internal static class McpConfigFileHelper
             config["$schema"] = schema;
         }
 
-        if (config[client.McpServersPropertyName] is not JsonObject servers)
+        if (serverContainer is not JsonObject servers)
         {
             servers = new JsonObject();
             config[client.McpServersPropertyName] = servers;
@@ -84,14 +91,14 @@ internal static class McpConfigFileHelper
         }
 
         // Legacy MCP entries use args: ["mcp", "start"], or OpenCode's
-        // command: ["aspire", "mcp", "start"]. Only these deprecated forms are repaired;
+        // command: ["aspire", "mcp", "start"]. Only these exact deprecated forms are repaired;
         // custom commands and version-pinned server definitions are left intact.
-        if (aspire["args"] is JsonArray { Count: >= 2 } args &&
+        if (aspire["args"] is JsonArray { Count: 2 } args &&
             args[0]?.GetValue<string>() == "mcp" && args[1]?.GetValue<string>() == "start")
         {
             aspire["args"] = new JsonArray("agent", "mcp");
         }
-        else if (aspire["command"] is JsonArray { Count: >= 3 } command &&
+        else if (aspire["command"] is JsonArray { Count: 3 } command &&
             command[0]?.GetValue<string>() == "aspire" &&
             command[1]?.GetValue<string>() == "mcp" && command[2]?.GetValue<string>() == "start")
         {

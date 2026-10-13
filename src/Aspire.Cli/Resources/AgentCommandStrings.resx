@@ -84,6 +84,9 @@
   <data name="MalformedConfigFileError" xml:space="preserve">
     <value>The configuration file '{0}' contains malformed JSON. Please fix the file manually and re-run the command.</value>
   </data>
+  <data name="McpServerContainerMustBeJsonObject" xml:space="preserve">
+    <value>The MCP server container '{0}' in '{1}' must be a JSON object.</value>
+  </data>
   <data name="SkippedMalformedConfigFile" xml:space="preserve">
     <value>Skipping update of '{0}'.</value>
   </data>

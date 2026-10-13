@@ -556,6 +556,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The MCP server container &apos;{0}&apos; in &apos;{1}&apos; must be a JSON object..
+        /// </summary>
+        internal static string McpServerContainerMustBeJsonObject {
+            get {
+                return ResourceManager.GetString("McpServerContainerMustBeJsonObject", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed to download {0}..
         /// </summary>
         internal static string PlaywrightCliInstaller_FailedToDownload {
