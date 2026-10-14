@@ -357,51 +357,72 @@ internal class ContainerRuntimeProbe(string key, string executable, string name,
                 return default;
             }
 
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(s_processTimeout);
-
-            var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
-            async Task<RuntimeVersionInfo> ParseAndDrainAsync()
-            {
-                try
-                {
-                    return await parseOutput(process.StandardOutput.BaseStream, timeoutCts.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // A parser can reject malformed input before EOF; keep draining so the
-                    // child can finish writing and stderr collection can complete.
-                    await process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeoutCts.Token).ConfigureAwait(false);
-                }
-            }
-
-            var parseTask = ParseAndDrainAsync();
             try
             {
-                await Task.WhenAll(parseTask, errorTask, process.WaitForExitAsync(timeoutCts.Token)).ConfigureAwait(false);
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(s_processTimeout);
+
+                var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+                async Task<RuntimeVersionInfo> ParseAndDrainAsync()
+                {
+                    try
+                    {
+                        return await parseOutput(process.StandardOutput.BaseStream, timeoutCts.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        // A parser can reject malformed input before EOF; keep draining so the
+                        // child can finish writing and stderr collection can complete.
+                        await process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeoutCts.Token).ConfigureAwait(false);
+                    }
+                }
+
+                var parseTask = ParseAndDrainAsync();
+                try
+                {
+                    await Task.WhenAll(parseTask, errorTask, process.WaitForExitAsync(timeoutCts.Token)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    logger?.LogDebug("{Name} metadata command timed out.", name);
+                    return default;
+                }
+                catch (JsonException ex)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    logger?.LogDebug(ex, "Invalid {Name} version metadata. Stderr: {Error}", name, await errorTask.ConfigureAwait(false));
+                    return default;
+                }
+
+                if (process.ExitCode != 0)
+                {
+                    // Docker can return usable client metadata together with a daemon connection error.
+                    logger?.LogDebug("{Name} metadata command failed with exit code {ExitCode}: {Error}",
+                        name, process.ExitCode, await errorTask.ConfigureAwait(false));
+                }
+
+                return await parseTask.ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            finally
             {
-                try { process.Kill(); } catch { /* best effort */ }
+                // Process.Dispose closes handles but does not terminate a still-running child.
+                // Cleanup must not depend on which exception wins when concurrent tasks fail.
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                    }
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    logger?.LogDebug(ex, "Failed to terminate {Name} metadata process.", name);
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
-
-                logger?.LogDebug("{Name} metadata command timed out.", name);
-                return default;
             }
-            catch (JsonException ex)
-            {
-                logger?.LogDebug(ex, "Invalid {Name} version metadata. Stderr: {Error}", name, await errorTask.ConfigureAwait(false));
-                return default;
-            }
-
-            if (process.ExitCode != 0)
-            {
-                // Docker can return usable client metadata together with a daemon connection error.
-                logger?.LogDebug("{Name} metadata command failed with exit code {ExitCode}: {Error}",
-                    name, process.ExitCode, await errorTask.ConfigureAwait(false));
-            }
-
-            return await parseTask.ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
