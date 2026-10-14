@@ -67,10 +67,14 @@ internal sealed class ContainerRuntimeResolver : IContainerRuntimeResolver
     {
         var configuredRuntime = _dcpOptions.Value.ContainerRuntime;
 
-        if (configuredRuntime is not null)
+        if (!string.IsNullOrEmpty(configuredRuntime))
         {
             _logger.LogInformation("Container runtime '{RuntimeKey}' configured via ASPIRE_CONTAINER_RUNTIME.", configuredRuntime);
-            return _serviceProvider.GetRequiredKeyedService<IContainerRuntime>(configuredRuntime);
+            // Canonicalize built-in keys while preserving custom keyed IContainerRuntime registrations.
+            var configuredKey = ContainerRuntimeDetector.GetKnownRuntimes(isWindows: true)
+                .FirstOrDefault(runtime => string.Equals(runtime.Key, configuredRuntime, StringComparison.OrdinalIgnoreCase))?.Key
+                ?? configuredRuntime;
+            return _serviceProvider.GetRequiredKeyedService<IContainerRuntime>(configuredKey);
         }
 
         // Auto-detect: probe available runtimes asynchronously.
@@ -80,7 +84,7 @@ internal sealed class ContainerRuntimeResolver : IContainerRuntimeResolver
             logger: _logger,
             cancellationToken: cancellationToken,
             supportedRuntimes: [KnownContainerRuntimes.Docker, KnownContainerRuntimes.Podman]).ConfigureAwait(false);
-        var runtimeKey = detected?.Executable ?? KnownContainerRuntimes.Docker;
+        var runtimeKey = detected?.Key ?? KnownContainerRuntimes.Docker;
 
         if (detected is { IsHealthy: true })
         {

@@ -15,6 +15,11 @@ namespace Aspire.Shared;
 internal sealed class ContainerRuntimeInfo
 {
     /// <summary>
+    /// The registered runtime key used by configuration and service resolution.
+    /// </summary>
+    public required string Key { get; init; }
+
+    /// <summary>
     /// The executable name (e.g., "docker", "podman").
     /// </summary>
     public required string Executable { get; init; }
@@ -73,10 +78,11 @@ internal sealed class ContainerRuntimeInfo
 /// <summary>
 /// Shares availability probing and Docker-compatible version parsing between container runtimes.
 /// </summary>
-internal class ContainerRuntimeProbe(string executable, string name, int priority)
+internal class ContainerRuntimeProbe(string key, string executable, string name, int priority)
 {
     private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(10);
 
+    public string Key => key;
     public string Executable => executable;
     public string Name => name;
     public int Priority => priority;
@@ -98,6 +104,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             logger?.LogDebug("{Name}: {Error}", name, hostError);
             return new ContainerRuntimeInfo
             {
+                Key = key,
                 Executable = executable,
                 Name = name,
                 Priority = priority,
@@ -124,6 +131,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             {
                 return new ContainerRuntimeInfo
                 {
+                    Key = key,
                     Executable = executable,
                     Name = name,
                     IsInstalled = false,
@@ -136,9 +144,14 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(s_processTimeout);
 
+            var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
             try
             {
-                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+                // Consume both pipes while waiting so child writes cannot block process completion.
+                await Task.WhenAll(
+                    process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeoutCts.Token),
+                    errorTask,
+                    process.WaitForExitAsync(timeoutCts.Token)).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -147,6 +160,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
 
                 return new ContainerRuntimeInfo
                 {
+                    Key = key,
                     Executable = executable,
                     Name = name,
                     IsInstalled = true,
@@ -165,6 +179,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
 
                 return new ContainerRuntimeInfo
                 {
+                    Key = key,
                     Executable = executable,
                     Name = name,
                     IsInstalled = true,
@@ -178,7 +193,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             }
 
             // Non-zero exit code: CLI exists (we started it) but daemon may not be running.
-            var isInstalled = await IsCliInstalledAsync(executable, cancellationToken).ConfigureAwait(false);
+            var isInstalled = await IsCliInstalledAsync(logger, cancellationToken).ConfigureAwait(false);
             logger?.LogDebug("{Name}: exit code {ExitCode}, installed={IsInstalled}", name, process.ExitCode, isInstalled);
 
             var partialVersionInfo = isInstalled
@@ -188,10 +203,16 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             var error = isInstalled
                 ? $"{name} is installed but the daemon is not running."
                 : $"{name} CLI not found on PATH.";
+            var stderr = (await errorTask.ConfigureAwait(false)).Trim();
+            if (stderr.Length > 0)
+            {
+                error += $"{Environment.NewLine}{stderr}";
+            }
             logger?.LogDebug("{Name}: {Error}", name, error);
 
             return new ContainerRuntimeInfo
             {
+                Key = key,
                 Executable = executable,
                 Name = name,
                 IsInstalled = isInstalled,
@@ -207,6 +228,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             logger?.LogDebug("{Name}: not found on PATH ({ExceptionMessage})", name, ex.Message);
             return new ContainerRuntimeInfo
             {
+                Key = key,
                 Executable = executable,
                 Name = name,
                 IsInstalled = false,
@@ -217,7 +239,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
         }
     }
 
-    private static async Task<bool> IsCliInstalledAsync(string executable, CancellationToken cancellationToken)
+    private async Task<bool> IsCliInstalledAsync(ILogger? logger, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -244,7 +266,16 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
 
             try
             {
-                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+                var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+                await Task.WhenAll(
+                    process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeoutCts.Token),
+                    errorTask,
+                    process.WaitForExitAsync(timeoutCts.Token)).ConfigureAwait(false);
+                if (process.ExitCode != 0)
+                {
+                    logger?.LogDebug("{Name} installation probe failed with exit code {ExitCode}: {Error}",
+                        name, process.ExitCode, await errorTask.ConfigureAwait(false));
+                }
                 return process.ExitCode == 0;
             }
             catch (OperationCanceledException)
@@ -257,6 +288,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            logger?.LogDebug(ex, "Failed to check {Name} CLI installation.", name);
             return false;
         }
     }
@@ -266,14 +298,44 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
     /// </summary>
     protected virtual async Task<RuntimeVersionInfo> ReadVersionInfoAsync(bool isRunning, ILogger? logger, CancellationToken cancellationToken)
     {
-        var output = await ReadVersionOutputAsync("version -f json", logger, cancellationToken).ConfigureAwait(false);
-        return ParseVersionOutput(output);
+        var nonJsonOutput = false;
+        var info = await ReadVersionOutputAsync("version -f json", async (stream, token) =>
+        {
+            try
+            {
+                var json = await JsonSerializer.DeserializeAsync(stream, ContainerRuntimeJsonContext.Default.ContainerRuntimeVersionJson, token).ConfigureAwait(false);
+                return NormalizeVersionInfo(json);
+            }
+            catch (JsonException ex)
+            {
+                logger?.LogDebug(ex, "{Name} did not return JSON version metadata.", name);
+                nonJsonOutput = true;
+                return default;
+            }
+        }, logger, cancellationToken).ConfigureAwait(false);
+
+        if (nonJsonOutput)
+        {
+            // Streaming JSON consumes its input before rejecting text. Retrieve the existing
+            // text-version fallback separately with `<runtime> --version` (e.g. "podman version 5.0.0").
+            return await ReadVersionOutputAsync("--version", async (stream, token) =>
+            {
+                using var reader = new StreamReader(stream, leaveOpen: true);
+                return ParseVersionOutput(await reader.ReadToEndAsync(token).ConfigureAwait(false));
+            }, logger, cancellationToken).ConfigureAwait(false);
+        }
+
+        return info;
     }
 
     /// <summary>
-    /// Captures output from a runtime metadata command using the common process and timeout handling.
+    /// Parses streamed metadata while capturing stderr and waiting for process completion.
     /// </summary>
-    protected async Task<string?> ReadVersionOutputAsync(string arguments, ILogger? logger, CancellationToken cancellationToken)
+    protected async Task<RuntimeVersionInfo> ReadVersionOutputAsync(
+        string arguments,
+        Func<Stream, CancellationToken, Task<RuntimeVersionInfo>> parseOutput,
+        ILogger? logger,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -292,17 +354,31 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             using var process = Process.Start(startInfo);
             if (process is null)
             {
-                return null;
+                return default;
             }
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(s_processTimeout);
 
-            string output;
+            var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+            async Task<RuntimeVersionInfo> ParseAndDrainAsync()
+            {
+                try
+                {
+                    return await parseOutput(process.StandardOutput.BaseStream, timeoutCts.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // A parser can reject malformed input before EOF; keep draining so the
+                    // child can finish writing and stderr collection can complete.
+                    await process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, timeoutCts.Token).ConfigureAwait(false);
+                }
+            }
+
+            var parseTask = ParseAndDrainAsync();
             try
             {
-                output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token).ConfigureAwait(false);
-                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+                await Task.WhenAll(parseTask, errorTask, process.WaitForExitAsync(timeoutCts.Token)).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -310,15 +386,27 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
                 cancellationToken.ThrowIfCancellationRequested();
 
                 logger?.LogDebug("{Name} metadata command timed out.", name);
-                return null;
+                return default;
+            }
+            catch (JsonException ex)
+            {
+                logger?.LogDebug(ex, "Invalid {Name} version metadata. Stderr: {Error}", name, await errorTask.ConfigureAwait(false));
+                return default;
             }
 
-            return output;
+            if (process.ExitCode != 0)
+            {
+                // Docker can return usable client metadata together with a daemon connection error.
+                logger?.LogDebug("{Name} metadata command failed with exit code {ExitCode}: {Error}",
+                    name, process.ExitCode, await errorTask.ConfigureAwait(false));
+            }
+
+            return await parseTask.ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             logger?.LogDebug(ex, "Failed to read {Name} version metadata.", name);
-            return null;
+            return default;
         }
     }
 
@@ -345,18 +433,7 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
         try
         {
             var json = JsonSerializer.Deserialize(output, ContainerRuntimeJsonContext.Default.ContainerRuntimeVersionJson);
-            if (json is null)
-            {
-                return default;
-            }
-
-            Version.TryParse(json.Client?.Version, out var clientVersion);
-            Version.TryParse(json.Server?.Version, out var serverVersion);
-            var context = json.Client?.Context;
-            var isDockerDesktop = context is not null &&
-                context.Contains("desktop", StringComparison.OrdinalIgnoreCase);
-
-            return new RuntimeVersionInfo(clientVersion, serverVersion, isDockerDesktop, json.Server?.Os);
+            return NormalizeVersionInfo(json);
         }
         catch (JsonException)
         {
@@ -369,6 +446,15 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
 
             return default;
         }
+    }
+
+    private static RuntimeVersionInfo NormalizeVersionInfo(ContainerRuntimeVersionJson? json)
+    {
+        Version.TryParse(json?.Client?.Version, out var clientVersion);
+        Version.TryParse(json?.Server?.Version, out var serverVersion);
+        var isDockerDesktop = json?.Client?.Context?.Contains("desktop", StringComparison.OrdinalIgnoreCase) == true;
+
+        return new RuntimeVersionInfo(clientVersion, serverVersion, isDockerDesktop, json?.Server?.Os);
     }
 
     internal readonly record struct RuntimeVersionInfo(

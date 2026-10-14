@@ -14,8 +14,8 @@ internal static class ContainerRuntimeDetector
     // https://github.com/microsoft/dcp/blob/main/internal/containers/runtimes/runtime.go
     private static readonly ContainerRuntimeProbe[] s_knownRuntimes =
     [
-        new(KnownContainerRuntimes.Docker, "Docker", 0),
-        new(KnownContainerRuntimes.Podman, "Podman", 1),
+        new(KnownContainerRuntimes.Docker, "docker", "Docker", 0),
+        new(KnownContainerRuntimes.Podman, "podman", "Podman", 1),
         new WslcContainerRuntimeProbe()
     ];
 
@@ -36,15 +36,16 @@ internal static class ContainerRuntimeDetector
         CancellationToken cancellationToken = default,
         IReadOnlyCollection<string>? supportedRuntimes = null)
     {
-        if (configuredRuntime is not null)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!string.IsNullOrEmpty(configuredRuntime))
         {
             logger?.LogDebug("Checking explicitly configured runtime: {Runtime}", configuredRuntime);
-            var runtime = FindProbe(configuredRuntime) ?? new ContainerRuntimeProbe(configuredRuntime, configuredRuntime, int.MaxValue);
+            var runtime = GetProbe(configuredRuntime);
             return await runtime.CheckAsync(logger, cancellationToken).ConfigureAwait(false);
         }
 
         var runtimes = GetKnownRuntimes(OperatingSystem.IsWindows())
-            .Where(runtime => supportedRuntimes is null || supportedRuntimes.Contains(runtime.Executable, StringComparer.OrdinalIgnoreCase))
+            .Where(runtime => supportedRuntimes is null || supportedRuntimes.Contains(runtime.Key, StringComparer.OrdinalIgnoreCase))
             .ToArray();
         logger?.LogDebug("Auto-detecting container runtime, probing {Count} known runtimes...", runtimes.Length);
         var results = await Task.WhenAll(runtimes.Select(runtime => runtime.CheckAsync(logger, cancellationToken))).ConfigureAwait(false);
@@ -53,15 +54,15 @@ internal static class ContainerRuntimeDetector
     }
 
     /// <summary>
-    /// Checks a runtime using its registered probe or the common Docker-compatible probe.
+    /// Checks a runtime using its registered probe.
     /// </summary>
     public static Task<ContainerRuntimeInfo> CheckRuntimeAsync(
-        string executable,
-        string name,
+        string runtimeKey,
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
-        var runtime = FindProbe(executable) ?? new ContainerRuntimeProbe(executable, name, int.MaxValue);
+        cancellationToken.ThrowIfCancellationRequested();
+        var runtime = GetProbe(runtimeKey);
         return runtime.CheckAsync(logger, cancellationToken);
     }
 
@@ -98,9 +99,12 @@ internal static class ContainerRuntimeDetector
         return best;
     }
 
-    private static ContainerRuntimeProbe? FindProbe(string executable)
+    internal static ContainerRuntimeProbe GetProbe(string runtimeKey)
     {
         return s_knownRuntimes.FirstOrDefault(runtime =>
-            string.Equals(runtime.Executable, executable, StringComparison.OrdinalIgnoreCase));
+            string.Equals(runtime.Key, runtimeKey, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException(
+                $"Unsupported container runtime '{runtimeKey}'. Supported runtimes: {string.Join(", ", s_knownRuntimes.Select(runtime => runtime.Key))}.",
+                nameof(runtimeKey));
     }
 }

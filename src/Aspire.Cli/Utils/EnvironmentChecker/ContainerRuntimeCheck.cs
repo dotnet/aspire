@@ -35,6 +35,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         {
             var configuredRuntime = environment.GetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME")
                 ?? environment.GetEnvironmentVariable("DOTNET_ASPIRE_CONTAINER_RUNTIME");
+            configuredRuntime = string.IsNullOrEmpty(configuredRuntime) ? null : configuredRuntime;
 
             if (!environment.IsWindows() &&
                 string.Equals(configuredRuntime, KnownContainerRuntimes.Wslc, StringComparison.OrdinalIgnoreCase))
@@ -58,10 +59,10 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 return [BuildRuntimeResult(runtime, isSelected: true, hasHealthyRuntime: false, configuredRuntime, cancellationToken)];
             }
 
-            var dockerTask = ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Docker, "Docker", logger, cancellationToken);
-            var podmanTask = ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Podman, "Podman", logger, cancellationToken);
+            var dockerTask = ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Docker, logger, cancellationToken);
+            var podmanTask = ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Podman, logger, cancellationToken);
             var runtimes = environment.IsWindows()
-                ? await Task.WhenAll(dockerTask, podmanTask, ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Wslc, "WSLc", logger, cancellationToken))
+                ? await Task.WhenAll(dockerTask, podmanTask, ContainerRuntimeDetector.CheckRuntimeAsync(KnownContainerRuntimes.Wslc, logger, cancellationToken))
                 : await Task.WhenAll(dockerTask, podmanTask);
 
             // Select best from already-probed results (no re-probing)
@@ -77,7 +78,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 }
 
                 var isSelected = selected is not null &&
-                    string.Equals(info.Executable, selected.Executable, StringComparison.OrdinalIgnoreCase);
+                    string.Equals(info.Key, selected.Key, StringComparison.OrdinalIgnoreCase);
 
                 results.Add(BuildRuntimeResult(info, isSelected, healthyRuntime is not null, configuredRuntime, cancellationToken));
             }
@@ -183,7 +184,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             return new EnvironmentCheckResult
             {
                 Category = EnvironmentCheckCategories.Container,
-                Name = info.Executable,
+                Name = info.Key,
                 Status = EnvironmentCheckStatus.Fail,
                 Message = $"{info.Name}: not found (configured via ASPIRE_CONTAINER_RUNTIME={configuredRuntime}){selectedSuffix}",
                 Fix = GetContainerRuntimeInstallationLink(info.Name)
@@ -195,9 +196,10 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             return new EnvironmentCheckResult
             {
                 Category = EnvironmentCheckCategories.Container,
-                Name = info.Executable,
+                Name = info.Key,
                 Status = EnvironmentCheckStatus.Warning,
                 Message = $"{info.Name}: installed but not running{selectedSuffix}",
+                Details = info.Error,
                 Fix = GetContainerRuntimeStartupAdvice(info.Name, info.IsDockerDesktop)
             };
         }
@@ -211,7 +213,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             {
                 Category = policyResult.Category,
                 Name = policyResult.Name,
-                Status = hasHealthyRuntime && policyResult.Status == EnvironmentCheckStatus.Fail
+                Status = !isSelected && hasHealthyRuntime && policyResult.Status == EnvironmentCheckStatus.Fail
                     ? EnvironmentCheckStatus.Warning
                     : policyResult.Status,
                 Message = policyResult.Message + selectedSuffix,
@@ -226,7 +228,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         return new EnvironmentCheckResult
         {
             Category = EnvironmentCheckCategories.Container,
-            Name = info.Executable,
+            Name = info.Key,
             Status = EnvironmentCheckStatus.Pass,
             Message = $"{info.Name}{versionSuffix}: running{selectedSuffix}"
         };

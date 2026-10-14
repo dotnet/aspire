@@ -27,14 +27,17 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
     };
 
     [Theory]
-    [InlineData(null, null, true)]
-    [InlineData(null, null, false)]
-    [InlineData("ASPIRE_CONTAINER_RUNTIME", "docker", true)]
-    [InlineData("ASPIRE_CONTAINER_RUNTIME", "podman", true)]
-    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "docker", true)]
-    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "podman", true)]
+    [InlineData(null, null, true, "linux")]
+    [InlineData(null, null, false, "linux")]
+    [InlineData(null, null, true, "windows")]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "docker", true, "linux")]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "podman", true, "linux")]
+    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "docker", true, "linux")]
+    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "podman", true, "linux")]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "docker", true, "windows")]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "podman", true, "windows")]
     [CaptureWorkspaceOnFailure]
-    public async Task DoctorCommand_RuntimeSelectionIndicators(string? variableName, string? configuredRuntime, bool dockerRunning)
+    public async Task DoctorCommand_RuntimeSelectionIndicators(string? variableName, string? configuredRuntime, bool dockerRunning, string dockerOs)
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var strategy = CliInstallStrategy.Detect(output.WriteLine);
@@ -54,11 +57,12 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         {
             var version = runtime == "docker" ? "29.0.0" : "5.0.0";
             var healthExitCode = runtime == "docker" && !dockerRunning ? 1 : 0;
+            var serverOs = runtime == "docker" ? dockerOs : "linux";
             var script = $$$"""
                 #!/bin/sh
                 case "$*" in
                   "container ls -n 1") exit {{{healthExitCode}}} ;;
-                  "version -f json") printf '%s\n' '{"Client":{"Version":"{{{version}}}"},"Server":{"Version":"{{{version}}}","Os":"linux"}}' ;;
+                  "version -f json") printf '%s\n' '{"Client":{"Version":"{{{version}}}"},"Server":{"Version":"{{{version}}}","Os":"{{{serverOs}}}"}}' ;;
                   "--version") printf '%s\n' '{{{runtime}}} version {{{version}}}' ;;
                   *) exit 1 ;;
                 esac
@@ -81,18 +85,20 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         // Other prerequisite checks may fail independently of runtime selection. Accept doctor's
         // documented 0/1 exit codes, then verify the complete runtime section below.
         await auto.RunCommandAsync(
-            "aspire doctor --non-interactive --nologo > doctor-runtime.txt; result=$?; cat doctor-runtime.txt; test \"$result\" -le 1",
+            "aspire doctor --non-interactive --nologo > doctor-runtime.txt; result=$?; printf '%s' \"$result\" > doctor-text.exit; cat doctor-runtime.txt; test \"$result\" -le 1",
             counter,
             TimeSpan.FromMinutes(2));
         await auto.RunCommandAsync(
-            "aspire doctor --format json --non-interactive --nologo > doctor-runtime.json; result=$?; test \"$result\" -le 1",
+            "aspire doctor --format json --non-interactive --nologo > doctor-runtime.json; result=$?; printf '%s' \"$result\" > doctor-json.exit; test \"$result\" -le 1",
             counter,
             TimeSpan.FromMinutes(2));
 
         string[] expectedMessages = configuredRuntime switch
         {
+            "docker" when dockerOs == "windows" => ["Docker is running in Windows container mode \u2190 explicitly selected"],
             "docker" => ["Docker v29.0.0: running \u2190 explicitly selected"],
             "podman" => ["Podman v5.0.0: running \u2190 explicitly selected"],
+            _ when dockerOs == "windows" => ["Docker is running in Windows container mode \u2190 active", "Podman v5.0.0: running"],
             _ when !dockerRunning => ["Docker: installed but not running", "Podman v5.0.0: running \u2190 active"],
             _ => ["Docker v29.0.0: running \u2190 active", "Podman v5.0.0: running"]
         };
@@ -101,7 +107,7 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             TestContext.Current.CancellationToken);
         // Match runtime rows such as "Docker v29.0.0: running" and
         // "Docker: installed but not running", including any selection suffix.
-        var renderedRuntimeMessages = Regex.Matches(text, @"(?:Docker|Podman)(?: v\d+\.\d+\.\d+)?: (?:running|installed but not running)[^\r\n]*")
+        var renderedRuntimeMessages = Regex.Matches(text, @"(?:(?:Docker|Podman)(?: v\d+\.\d+\.\d+)?: (?:running|installed but not running)|Docker is running in Windows container mode)[^\r\n]*")
             .Select(match => match.Value.Trim())
             .ToArray();
         Assert.Equal(expectedMessages, renderedRuntimeMessages);
@@ -113,12 +119,20 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
             .Where(check => check.GetProperty("category").GetString() == "container")
             .ToArray();
         Assert.Equal(
-            configuredRuntime is null ? ["docker", "podman"] : new[] { configuredRuntime },
+            configuredRuntime == "podman" ? ["podman"]
+                : dockerOs == "windows" ? configuredRuntime is null ? ["container-runtime", "podman"] : ["container-runtime"]
+                : configuredRuntime is null ? ["docker", "podman"] : new[] { configuredRuntime },
             runtimeChecks.Select(check => check.GetProperty("name").GetString()));
         Assert.All(runtimeChecks, check => Assert.Equal(
-            !dockerRunning && check.GetProperty("name").GetString() == "docker" ? "warning" : "pass",
+            check.GetProperty("name").GetString() == "container-runtime" ? "fail"
+                : !dockerRunning && check.GetProperty("name").GetString() == "docker" ? "warning" : "pass",
             check.GetProperty("status").GetString()));
         Assert.Equal(expectedMessages, runtimeChecks.Select(check => check.GetProperty("message").GetString()));
+        if (dockerOs == "windows" && configuredRuntime != "podman")
+        {
+            Assert.Equal("1", await File.ReadAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "doctor-text.exit")));
+            Assert.Equal("1", await File.ReadAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "doctor-json.exit")));
+        }
     }
 
     [Fact]

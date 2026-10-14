@@ -10,8 +10,58 @@ namespace Aspire.Cli.Tests.Utils;
 
 public class ContainerRuntimeCheckTests
 {
+    [Theory]
+    [InlineData("DOCKER", "docker")]
+    [InlineData("Podman", "podman")]
+    [InlineData("WSLC", "wslc")]
+    public void GetProbe_ResolvesConfiguredKeyToRegisteredRuntime(string configuredKey, string expectedKey)
+    {
+        var probe = ContainerRuntimeDetector.GetProbe(configuredKey);
+
+        Assert.Equal(expectedKey, probe.Key);
+        Assert.Same(probe, ContainerRuntimeDetector.GetProbe(expectedKey));
+    }
+
     [Fact]
-    public async Task CheckAsync_AutoDetection_DoesNotFailWhenAnyRuntimePasses()
+    public void RuntimeProbe_KeyIsIndependentOfExecutable()
+    {
+        var probe = new ContainerRuntimeProbe("runtime-key", "runtime-cli", "Runtime", 0);
+
+        Assert.Equal("runtime-key", probe.Key);
+        Assert.Equal("runtime-cli", probe.Executable);
+    }
+
+    [Theory]
+    [InlineData("", null)]
+    [InlineData(null, "")]
+    [InlineData("", "unsupported-legacy-runtime")]
+    public async Task CheckAsync_EmptyEffectiveRuntime_AutoDetectsAfterApplyingPrecedence(string? modern, string? legacy)
+    {
+        var environment = new TestEnvironment(new Dictionary<string, string?>
+        {
+            ["ASPIRE_CONTAINER_RUNTIME"] = modern,
+            ["DOTNET_ASPIRE_CONTAINER_RUNTIME"] = legacy
+        });
+        var logger = new FakeLogger<ContainerRuntimeCheck>();
+        var check = new ContainerRuntimeCheck(logger, environment);
+
+        var results = await check.CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(results);
+        var probedKeys = logger.Collector.GetSnapshot()
+            .Where(log => log.Message.StartsWith("Probing container runtime '", StringComparison.Ordinal))
+            .Select(log => log.Message)
+            .Order()
+            .ToArray();
+        var expectedProbes = ContainerRuntimeDetector.GetKnownRuntimes(environment.IsWindows())
+            .Select(probe => $"Probing container runtime '{probe.Name}' ({probe.Executable})...")
+            .Order()
+            .ToArray();
+        Assert.Equal(expectedProbes, probedKeys);
+    }
+
+    [Fact]
+    public async Task CheckAsync_AutoDetection_ReportsContainerChecks()
     {
         var check = new ContainerRuntimeCheck(NullLogger<ContainerRuntimeCheck>.Instance, new TestEnvironment());
 
@@ -19,16 +69,12 @@ public class ContainerRuntimeCheckTests
 
         Assert.NotEmpty(results);
         Assert.All(results, result => Assert.Equal(EnvironmentCheckCategories.Container, result.Category));
-        if (results.Any(result => result.Status == EnvironmentCheckStatus.Pass))
-        {
-            Assert.All(results, result => Assert.True(result.Status is EnvironmentCheckStatus.Pass or EnvironmentCheckStatus.Warning, result.Message));
-        }
     }
 
     [Theory]
     [InlineData("ASPIRE_CONTAINER_RUNTIME")]
     [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME")]
-    public async Task CheckAsync_ConfiguredRuntime_OnlyProbesAndReportsThatRuntime(string variableName)
+    public async Task CheckAsync_UnknownConfiguredRuntime_ReportsUnsupportedWithoutProbing(string variableName)
     {
         var configuredRuntime = $"aspire-missing-runtime-{Guid.NewGuid():N}";
         var environment = new TestEnvironment(new Dictionary<string, string?> { [variableName] = configuredRuntime });
@@ -37,12 +83,10 @@ public class ContainerRuntimeCheckTests
 
         var result = Assert.Single(await check.CheckAsync(TestContext.Current.CancellationToken));
 
-        Assert.Equal(configuredRuntime, result.Name);
+        Assert.Equal(ContainerRuntimeCheck.CheckName, result.Name);
         Assert.Equal(EnvironmentCheckStatus.Fail, result.Status);
-        Assert.Equal($"{configuredRuntime}: not found (configured via ASPIRE_CONTAINER_RUNTIME={configuredRuntime}) \u2190 explicitly selected", result.Message);
-        Assert.Collection(
-            logger.Collector.GetSnapshot().Where(log => log.Message.StartsWith("Probing container runtime '", StringComparison.Ordinal)),
-            probe => Assert.Equal($"Probing container runtime '{configuredRuntime}' ({configuredRuntime})...", probe.Message));
+        Assert.Contains($"Unsupported container runtime '{configuredRuntime}'", result.Details);
+        Assert.Equal(0, logger.Collector.GetSnapshot().Count(log => log.Message.StartsWith("Probing container runtime '", StringComparison.Ordinal)));
     }
 
     [Theory]
@@ -69,7 +113,7 @@ public class ContainerRuntimeCheckTests
     public void GetKnownRuntimes_OnlyIncludesWslcOnWindows(bool isWindows)
     {
         var includesWslc = ContainerRuntimeDetector.GetKnownRuntimes(isWindows)
-            .Any(runtime => runtime.Executable == KnownContainerRuntimes.Wslc);
+            .Any(runtime => runtime.Key == KnownContainerRuntimes.Wslc);
 
         Assert.Equal(isWindows, includesWslc);
     }

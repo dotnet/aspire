@@ -15,7 +15,7 @@ public class ContainerRuntimeDetectorTests
         var executable = $"aspire-missing-runtime-{Guid.NewGuid():N}";
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            ContainerRuntimeDetector.CheckRuntimeAsync(executable, executable, cancellationToken: cancellation.Token));
+            ContainerRuntimeDetector.CheckRuntimeAsync(executable, cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -23,8 +23,8 @@ public class ContainerRuntimeDetectorTests
     {
         var runtimes = new[]
         {
-            new ContainerRuntimeInfo { Executable = "docker", Name = "Docker", IsInstalled = true, IsRunning = false, Priority = 0 },
-            new ContainerRuntimeInfo { Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
+            new ContainerRuntimeInfo { Key = "docker", Executable = "docker", Name = "Docker", IsInstalled = true, IsRunning = false, Priority = 0 },
+            new ContainerRuntimeInfo { Key = "podman", Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
         };
 
         var best = ContainerRuntimeDetector.FindBestRuntime(runtimes);
@@ -37,8 +37,8 @@ public class ContainerRuntimeDetectorTests
     {
         var runtimes = new[]
         {
-            new ContainerRuntimeInfo { Executable = "docker", Name = "Docker", IsInstalled = false, IsRunning = false, Priority = 0 },
-            new ContainerRuntimeInfo { Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = false, Priority = 1 }
+            new ContainerRuntimeInfo { Key = "docker", Executable = "docker", Name = "Docker", IsInstalled = false, IsRunning = false, Priority = 0 },
+            new ContainerRuntimeInfo { Key = "podman", Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = false, Priority = 1 }
         };
 
         var best = ContainerRuntimeDetector.FindBestRuntime(runtimes);
@@ -51,8 +51,8 @@ public class ContainerRuntimeDetectorTests
     {
         var runtimes = new[]
         {
-            new ContainerRuntimeInfo { Executable = "docker", Name = "Docker", IsInstalled = true, IsRunning = true, Priority = 0 },
-            new ContainerRuntimeInfo { Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
+            new ContainerRuntimeInfo { Key = "docker", Executable = "docker", Name = "Docker", IsInstalled = true, IsRunning = true, Priority = 0 },
+            new ContainerRuntimeInfo { Key = "podman", Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
         };
 
         var best = ContainerRuntimeDetector.FindBestRuntime(runtimes);
@@ -73,7 +73,7 @@ public class ContainerRuntimeDetectorTests
     {
         var runtimes = new[]
         {
-            new ContainerRuntimeInfo { Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
+            new ContainerRuntimeInfo { Key = "podman", Executable = "podman", Name = "Podman", IsInstalled = true, IsRunning = true, Priority = 1 }
         };
 
         var best = ContainerRuntimeDetector.FindBestRuntime(runtimes);
@@ -86,8 +86,8 @@ public class ContainerRuntimeDetectorTests
     {
         var runtimes = new[]
         {
-            new ContainerRuntimeInfo { Executable = "docker", Name = "Docker", IsInstalled = false, IsRunning = false, Priority = 0 },
-            new ContainerRuntimeInfo { Executable = "podman", Name = "Podman", IsInstalled = false, IsRunning = false, Priority = 1 }
+            new ContainerRuntimeInfo { Key = "docker", Executable = "docker", Name = "Docker", IsInstalled = false, IsRunning = false, Priority = 0 },
+            new ContainerRuntimeInfo { Key = "podman", Executable = "podman", Name = "Podman", IsInstalled = false, IsRunning = false, Priority = 1 }
         };
 
         var best = ContainerRuntimeDetector.FindBestRuntime(runtimes);

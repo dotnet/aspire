@@ -10,7 +10,7 @@ namespace Aspire.Shared;
 /// <summary>
 /// Handles Windows-only WSLc support and its session-manager metadata protocol.
 /// </summary>
-internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownContainerRuntimes.Wslc, "WSLc", 2)
+internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownContainerRuntimes.Wslc, "wslc", "WSLc", 2)
 {
     public override string? GetUnsupportedHostError(bool isWindows)
     {
@@ -25,8 +25,11 @@ internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownC
             return default;
         }
 
-        var output = await ReadVersionOutputAsync("info --format json", logger, cancellationToken).ConfigureAwait(false);
-        return ParseInfoOutput(output);
+        return await ReadVersionOutputAsync("info --format json", async (stream, token) =>
+        {
+            var info = await JsonSerializer.DeserializeAsync(stream, WslcRuntimeJsonContext.Default.WslcRuntimeInfoJson, token).ConfigureAwait(false);
+            return NormalizeInfo(info);
+        }, logger, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -44,15 +47,21 @@ internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownC
             // `wslc info --format json` reports:
             // {"Client":{"Version":"3.0.3.0"},"Server":{"SessionManagerVersion":"3.0.3"}}
             var info = JsonSerializer.Deserialize(output, WslcRuntimeJsonContext.Default.WslcRuntimeInfoJson);
-            Version.TryParse(info?.Client?.Version, out var clientVersion);
-            Version.TryParse(info?.Server?.SessionManagerVersion, out var serverVersion);
-
-            return new RuntimeVersionInfo(clientVersion, serverVersion, false, null);
+            return NormalizeInfo(info);
         }
         catch (JsonException)
         {
             return default;
         }
+
+    }
+
+    private static RuntimeVersionInfo NormalizeInfo(WslcRuntimeInfoJson? info)
+    {
+        Version.TryParse(info?.Client?.Version, out var clientVersion);
+        Version.TryParse(info?.Server?.SessionManagerVersion, out var serverVersion);
+
+        return new RuntimeVersionInfo(clientVersion, serverVersion, false, null);
     }
 }
 
