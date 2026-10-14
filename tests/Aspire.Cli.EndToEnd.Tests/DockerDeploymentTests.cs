@@ -213,8 +213,11 @@ builder.Build().Run();
 
     private static async Task VerifyDashboardTelemetryOptOutAsync(Hex1bTerminalAutomator auto, SequenceCounter counter)
     {
+        // Select the deployed container without reloading Compose's parameterized configuration.
         await auto.RunCommandAsync(
-            "dashboard=$(docker compose -f deploy-output/docker-compose.yaml ps -q compose-dashboard) && " +
+            "dashboard=$(docker ps --filter 'label=com.docker.compose.service=compose-dashboard' " +
+            "--filter \"label=com.docker.compose.project.config_files=$PWD/deploy-output/docker-compose.yaml\" " +
+            "--format '{{.ID}}') && " +
             "test -n \"$dashboard\" && " +
             "docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' \"$dashboard\" | " +
             "grep -Fx 'ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true'",
