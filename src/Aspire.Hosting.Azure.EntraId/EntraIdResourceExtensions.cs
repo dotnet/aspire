@@ -803,12 +803,6 @@ public static class EntraIdResourceExtensions
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// <para>
-    /// Consuming resources that support dependency waits automatically wait for the Entra ID application to be ready
-    /// before resolving authentication configuration. Created registrations wait for provisioning; existing registrations
-    /// wait for validation. An explicit <c>WaitFor</c> call is not required. The wait uses the application's default
-    /// wait behavior unless an explicit wait for this registration is already configured.
-    /// </para>
-    /// <para>
     /// .NET program resources use <c>__</c> between keys and array indexes; other resources use <c>_</c>.
     /// Non-.NET environment variable names, including custom connection names, use uppercase snake case,
     /// such as <c>ENTRA_API_CLIENT_ID</c> and <c>ENTRA_API_CLIENT_CREDENTIALS_0_SOURCE_TYPE</c>.
@@ -871,14 +865,6 @@ public static class EntraIdResourceExtensions
 
         // Create a reference relationship so the dashboard shows the connection
         builder.WithReferenceRelationship(entra);
-
-        // Missing Azure settings fault the first provisioning attempt before the dashboard prompts for them.
-        // Wait for readiness so consumers resolve outputs from the successful retry, not the faulted attempt.
-        if (builder.Resource is IResourceWithWaitSupport waitSupport &&
-            !builder.Resource.Annotations.OfType<WaitAnnotation>().Any(annotation => annotation.Resource == entra))
-        {
-            builder.ApplicationBuilder.CreateResourceBuilder(waitSupport).WaitFor(source);
-        }
 
         builder.WithEnvironment(context =>
         {

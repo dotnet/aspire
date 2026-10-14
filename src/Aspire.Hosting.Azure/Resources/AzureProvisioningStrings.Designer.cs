@@ -331,7 +331,7 @@ namespace Aspire.Hosting.Azure.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Resource-group deletion completed. The following non-ARM resources were not deleted: {0}. Their cached identification state was retained for manual cleanup..
+        ///   Looks up a localized string similar to Resource-group deletion completed. These resources were not deleted: {0}..
         /// </summary>
         internal static string DeleteAzureResourcesRemainingResourcesFormat {
             get {
@@ -340,7 +340,7 @@ namespace Aspire.Hosting.Azure.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Non-ARM resources are outside the resource group&apos;s lifetime and were not deleted. The listed IDs are last-known provisioning outputs, not a live provider verification. Missing IDs are unknown; inspect the provider for cleanup. Their cached state was retained..
+        ///   Looks up a localized string similar to The listed resources were not deleted because they exist outside the resource group. Delete them separately using their service&apos;s portal or API..
         /// </summary>
         internal static string DeleteAzureResourcesRemainingResourcesWarning {
             get {

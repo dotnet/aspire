@@ -436,35 +436,22 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithReference_WaitsForAzureConfigurationRecoveryBeforeResolvingOutputs()
+    public async Task WithReference_EnvironmentResolutionWaitsForProvisionedOutputs()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.Configure<ResourceNotificationServiceOptions>(options =>
-            options.DefaultWaitBehavior = WaitBehavior.WaitOnResourceUnavailable);
         var entra = builder.AddEntraIdApplication("entra-web");
         var node = builder.AddExecutable("node", "node", ".")
             .WithReference(entra);
 
         using var app = builder.Build();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
-        entra.Resource.ProvisioningTaskCompletionSource!.SetException(
-            new InvalidOperationException("Azure provisioning options were not provided."));
-        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with
-        {
-            State = KnownResourceStates.FailedToStart
-        });
-
-        var environmentTask = ResolveEnvironmentAfterDependenciesAsync();
+        var environmentTask = EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            node.Resource, DistributedApplicationOperation.Run, app.Services).AsTask();
 
         Assert.False(environmentTask.IsCompleted);
-        await notifications.WaitForResourceAsync(node.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        entra.Resource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         entra.Resource.Outputs["tenantId"] = TenantId;
         entra.Resource.Outputs["clientId"] = ClientId;
-        entra.Resource.ProvisioningTaskCompletionSource.SetResult();
-        await ResourceNotificationServiceTestHelpers.PublishReadyAsync(notifications, entra.Resource);
+        entra.Resource.ProvisioningTaskCompletionSource!.SetResult();
 
         Assert.Equal(new Dictionary<string, string>
         {
@@ -472,13 +459,6 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
             ["ENTRA_WEB_TENANT_ID"] = TenantId,
             ["ENTRA_WEB_CLIENT_ID"] = ClientId
         }, await environmentTask.WaitAsync(cts.Token));
-
-        async Task<Dictionary<string, string>> ResolveEnvironmentAfterDependenciesAsync()
-        {
-            await notifications.WaitForDependenciesAsync(node.Resource, cts.Token);
-            return await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-                node.Resource, DistributedApplicationOperation.Run, app.Services);
-        }
     }
 
     [Theory]
@@ -488,7 +468,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     [InlineData(nameof(ProjectResource), true)]
     [InlineData(nameof(ExecutableResource), true)]
     [InlineData(nameof(ContainerResource), true)]
-    public void WithReference_AddsReadinessDependency(string resourceType, bool existing)
+    public void WithReference_DoesNotAddImplicitWaits(string resourceType, bool existing)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-web");
@@ -508,10 +488,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.Same(consumer, consumer.WithReference(entra));
         consumer.WithReference(entra, connectionName: "OTHER");
 
-        var wait = Assert.Single(consumer.Resource.Annotations.OfType<WaitAnnotation>());
-        Assert.Same(entra.Resource, wait.Resource);
-        Assert.Equal(WaitType.WaitUntilHealthy, wait.WaitType);
-        Assert.Null(wait.WaitBehavior);
+        Assert.Empty(consumer.Resource.Annotations.OfType<WaitAnnotation>());
     }
 
     [Fact]
@@ -529,25 +506,25 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithReference_StopsOnProvisioningFailureWhenConfigured()
+    public async Task WithReference_EnvironmentResolutionPropagatesProvisioningFailure()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.Configure<ResourceNotificationServiceOptions>(options =>
-            options.DefaultWaitBehavior = WaitBehavior.StopOnResourceUnavailable);
         var entra = builder.AddEntraIdApplication("entra-web");
         var node = builder.AddExecutable("node", "node", ".")
             .WithReference(entra);
 
         using var app = builder.Build();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
-        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with
-        {
-            State = KnownResourceStates.FailedToStart
-        });
+        var failure = new InvalidOperationException("Deployment failed.");
+        var environmentTask = EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            node.Resource, DistributedApplicationOperation.Run, app.Services).AsTask();
+        Assert.False(environmentTask.IsCompleted);
+        entra.Resource.ProvisioningTaskCompletionSource!.SetException(failure);
 
-        await Assert.ThrowsAsync<DistributedApplicationException>(
-            () => notifications.WaitForDependenciesAsync(node.Resource, cts.Token));
+        var exception = await Assert.ThrowsAsync<AggregateException>(() => environmentTask.WaitAsync(cts.Token));
+        Assert.Collection(exception.InnerExceptions,
+            error => Assert.Same(failure, error),
+            error => Assert.Same(failure, error));
     }
 
     [Fact]
@@ -563,5 +540,22 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         entra.Resource.ProvisioningTaskCompletionSource!.SetResult();
 
         Assert.Equal(ClientId, await value);
+    }
+
+    [Fact]
+    public async Task ClientIdOutputReference_CancelingAWaitDoesNotCancelProvisioning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        using var cts = new CancellationTokenSource();
+        var value = entra.Resource.ClientIdOutputReference.GetValueAsync(cts.Token).AsTask();
+
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => value);
+        Assert.False(entra.Resource.ProvisioningTaskCompletionSource!.Task.IsCompleted);
+        entra.Resource.Outputs["clientId"] = ClientId;
+        entra.Resource.ProvisioningTaskCompletionSource.SetResult();
+
+        Assert.Equal(ClientId, await entra.Resource.ClientIdOutputReference.GetValueAsync());
     }
 }

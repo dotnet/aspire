@@ -37,7 +37,7 @@ Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the 
 
 For .NET program resources, `WithReference` injects environment variables in the form `AzureAd__{Key}` — for example `AzureAd__Instance`, `AzureAd__TenantId`, and `AzureAd__ClientId`. .NET's configuration system maps these to the `AzureAd` configuration section, so the referencing resource reads them as ordinary configuration with no glue code.
 
-When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why. `WithReference` automatically makes consuming workloads wait for the registration to be ready before resolving their authentication configuration; no explicit `WaitFor` is required.
+When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why.
 
 ### Create registrations
 
@@ -63,7 +63,7 @@ The module is generated in C# using `Azure.Provisioning`, including the Graph ap
 
 The resource derives from `AzureProvisioningResource`, so `ConfigureInfrastructure` callbacks can customize the generated infrastructure or add provisioning outputs.
 
-The client ID and tenant ID are deployment outputs. `WithReference` automatically makes consuming workloads wait for provisioning and injects those outputs into their configuration. With the dashboard's default wait behavior, workloads remain waiting while missing Azure settings are supplied and provisioning is retried. The wait respects the application's default wait behavior or an explicit wait configured before `WithReference`. Multi-tenant registrations still receive the appropriate sign-in keyword and `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
+The client ID and home tenant ID are deployment outputs. For multi-tenant registrations, consumers receive the appropriate sign-in keyword as `TenantId` and the home tenant as `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
 
 By default, the registration's display name and directory-wide `uniqueName` are the name passed to `AddEntraIdApplication`.
 When the AppHost creates registrations, the Azure provisioning dialog includes an optional **Tenant-scoped resource suffix**.

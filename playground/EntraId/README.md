@@ -25,8 +25,8 @@ var useExistingApplication = true;
 | `false` | Create new | Aspire provisions a registration and service principal using Bicep. Supply Azure provisioning settings and permissions; the AppHost configures both front ends' callbacks and enables ID-token issuance. |
 
 The switch is an AppHost code choice, not a command-line option or configuration setting. Stop the AppHost before changing it,
-then rebuild and run. Both front ends use `WithReference` to automatically wait for the same `entra-web` resource in either mode;
-an explicit `WaitFor` is not required.
+then rebuild and run. Both front ends use `WithReference` to receive the same `entra-web` configuration. In creation mode,
+environment resolution awaits the provisioned outputs without an implicit or explicit `WaitFor`.
 
 ## Mode 1: Use an existing registration
 
