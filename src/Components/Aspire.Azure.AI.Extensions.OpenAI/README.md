@@ -240,11 +240,27 @@ SDK consumers must replace `AzureOpenAIClient`, `ChatCompletionsClient`, or `Emb
 with `OpenAIClient` for account access, or `ProjectOpenAIClient` for project access.
 Inference SDK request/response types are not interchangeable with the OpenAI SDK types.
 
-`AddOpenAIClientFromConfiguration` and its keyed counterpart are not carried forward.
-Select explicitly: `AddOpenAIClient` for generic API-key endpoints, `AddAzureOpenAIClient`
-for Azure OpenAI accounts, or `AddAzureProjectOpenAIClient` for Foundry projects.
+`AddOpenAIClientFromConfiguration` and `AddKeyedOpenAIClientFromConfiguration` are
+available in this replacement package. They select generic OpenAI-compatible, Azure
+account, or Foundry project registration from the connection string. Existing
+OpenAI-versus-Azure applications can retain their registration code:
 
-For Foundry Local, use `Aspire.OpenAI` with the connection supplied by `RunAsFoundryLocal`.
+```csharp
+builder.AddOpenAIClientFromConfiguration("chat").AddChatClient();
+```
+
+The same registration consumes the model connection supplied by
+`Aspire.Hosting.Foundry` for both Foundry Local and Azure Foundry. Local connections
+use their API key and `Model`; Azure account connections use Entra authentication
+(or a supplied key) and `Deployment`. No application-side emulator flag or switch
+is needed. Azure account endpoints use v1 routes; project endpoints use the project SDK.
+An explicit `IsAzure=true` or `IsAzure=false` field overrides endpoint-host detection,
+including custom Azure domains. An invalid `IsAzure` value is rejected.
+
+Without a connection string, the helper preserves the original default of reading
+`Aspire:OpenAI` settings. Use the explicit Azure registration methods when configuring
+Azure clients entirely through settings or delegates.
+
 See [Azure's OpenAI SDK migration guide](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/openai/Azure.AI.OpenAI/migration-guidance.md)
 for v1 API differences and scenario-specific limitations.
 
