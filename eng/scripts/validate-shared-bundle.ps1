@@ -105,8 +105,21 @@ switch ($Stage) {
         $cli = Join-Path $cliDirectory "aspire$exeSuffix"
         if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) { throw 'Native CLI executable is missing.' }
         $installed = Join-Path $evidence 'installed'
-        & $cli setup --install-path $installed --force
-        if ($LASTEXITCODE -ne 0) { throw 'Actual native CLI embedded payload extraction failed.' }
+        $priorLayout = $env:ASPIRE_LAYOUT_PATH
+        try {
+            # Setup's post-flip check uses normal layout discovery. Its documented
+            # non-default install path therefore also needs ASPIRE_LAYOUT_PATH.
+            $env:ASPIRE_LAYOUT_PATH = $installed
+            & $cli setup --install-path $installed --force
+            if ($LASTEXITCODE -ne 0) { throw 'Actual native CLI embedded payload extraction failed.' }
+        }
+        finally {
+            $env:ASPIRE_LAYOUT_PATH = $priorLayout
+            $cliLogs = Join-Path $HOME '.aspire/logs'
+            if (Test-Path -LiteralPath $cliLogs) {
+                Copy-Item -LiteralPath $cliLogs -Destination (Join-Path $evidence 'cli-diagnostics') -Recurse -Force
+            }
+        }
         $bundle = Join-Path $installed 'bundle'
         $dashboard = Join-Path $bundle 'dashboard'
         Assert-WindowsMachine $dashboard
@@ -122,7 +135,7 @@ switch ($Stage) {
         Assert-EqualManifest (Get-Manifest (Join-Path $tarDirectory $Rid)) $bundleManifest 'Complete tar payload / native CLI embedded payload'
         Save-Manifest (Get-Manifest artifacts/input) 'complete-input-artifacts.json'
         [pscustomobject]@{
-            productionBase = '9cd16d09c85446d72931e83d3494a10fd4222a69'
+            productionBase = '9c281bfde08884fee3c6d42d66139c4ad9e481ed'
             testedHead = (& git --no-pager rev-parse HEAD)
             rid = $Rid
             runtimeArchitecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()

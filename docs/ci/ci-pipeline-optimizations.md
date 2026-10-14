@@ -160,6 +160,13 @@ Child processes explicitly receive configuration, RID, CI identity, version
 suffix, official build ID, release-version policy, and CLI channel. Orchestration
 switches are not propagated into component builds.
 
+On cold CI agents without `NUGET_PACKAGES`, child restores use the repository
+`.packages` cache that Arcade selects for package-target imports. Otherwise,
+NuGet's user-cache default can leave build targets such as Grpc.Tools unimported
+even after restore succeeds. CreateLayout receives that same effective cache
+through `NUGET_PACKAGES`, so DCP discovery does not depend on a warm user cache.
+Caller-supplied `NUGET_PACKAGES` remains respected.
+
 Packaging validates the expected RID/configuration publish files before doing
 work. Missing files fail rather than trigger a fallback publish.
 Dashboard packages, standalone ZIPs, and the bundle consume the same prepared

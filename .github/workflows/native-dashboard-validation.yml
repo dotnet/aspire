@@ -3,6 +3,10 @@ name: Shared bundle phase validation
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        type: choice
+        options: [focused, full]
+        default: focused
       targets:
         type: string
         default: >-
@@ -21,13 +25,14 @@ permissions:
 
 jobs:
   build:
+    if: inputs.mode == 'full'
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
       configuration: Release
       targets: ${{ inputs.targets }}
 
   validate:
-    if: always() && !cancelled()
+    if: always() && !cancelled() && inputs.mode == 'full'
     needs: build
     name: Validate actual shared payload (${{ matrix.target.rids }})
     runs-on: ${{ matrix.target.validationRunner }}
@@ -117,5 +122,51 @@ jobs:
             artifacts/log/shared-bundle/
             artifacts/log/Release/*compile.txt
             artifacts/TestResults/
+          if-no-files-found: error
+          retention-days: 7
+
+  focused_cache:
+    if: inputs.mode == 'focused'
+    name: Cold shared cache checks (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    env:
+      TMPDIR: ${{ github.workspace }}/artifacts/tmp
+      TEMP: ${{ github.workspace }}/artifacts/tmp
+      TMP: ${{ github.workspace }}/artifacts/tmp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore repository toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/tmp | Out-Null
+          ./restore.sh -ci /p:SkipNativeBuild=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test real cold restore imports and layout cache consumption
+        shell: pwsh
+        run: |
+          ./dotnet.sh test --project tests/Infrastructure.Tests/Infrastructure.Tests.csproj -c Release --no-launch-profile --results-directory artifacts/TestResults/focused-cache /p:SkipNativeBuild=true -- --filter-class "*.BundleBuildPhaseTests" --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true" --report-trx --report-trx-filename focused-cache.trx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $reports = @(Get-ChildItem artifacts/TestResults/focused-cache -File -Filter focused-cache.trx)
+          if ($reports.Count -ne 1) { throw 'Focused cache test report missing or ambiguous.' }
+          [xml]$report = Get-Content $reports[0].FullName
+          $counts = $report.TestRun.ResultSummary.Counters
+          if ([int]$counts.total -eq 0 -or $counts.passed -ne $counts.total -or $counts.executed -ne $counts.total -or $counts.failed -ne '0') {
+            throw 'Focused cache checks must execute and pass every selected case without failures or skips.'
+          }
+      - name: Upload focused cold-cache evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: focused-shared-cache-${{ matrix.runner }}
+          path: |
+            artifacts/TestResults/focused-cache/
+            artifacts/log/
           if-no-files-found: error
           retention-days: 7

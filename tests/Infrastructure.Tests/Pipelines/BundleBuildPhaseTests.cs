@@ -189,6 +189,91 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.Equal(["restore", "layout", "verify"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
+    [Fact]
+    public async Task ColdCiPublishRestoresAndImportsRealProtobufBuildTargets()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.Path;
+        const string rid = "linux-x64";
+        var project = CreateProject(root, rid);
+        var dashboardProject = Path.Combine(root, "ColdProtobufFixture.csproj");
+        var generatedDirectory = Path.Combine(root, "generated");
+        File.WriteAllText(Path.Combine(root, "fixture.proto"), """
+            syntax = "proto3";
+            option csharp_namespace = "ColdBundle";
+            message PreparedComponent { string name = 1; }
+            """);
+        new XDocument(new XElement("Project",
+            new XElement("PropertyGroup",
+                Property("BaseIntermediateOutputPath", Path.Combine(root, "obj") + Path.DirectorySeparatorChar),
+                Property("NuGetPackageRoot", Path.Combine(root, ".packages") + Path.DirectorySeparatorChar)),
+            new XElement("Import", new XAttribute("Project", "Sdk.props"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
+            new XElement("PropertyGroup",
+                Property("TargetFramework", "net11.0"),
+                Property("Protobuf_OutputPath", generatedDirectory)),
+            new XElement("ItemGroup",
+                new XElement("PackageReference", new XAttribute("Include", "Grpc.Tools"), new XAttribute("PrivateAssets", "all")),
+                new XElement("Protobuf", new XAttribute("Include", Path.Combine(root, "fixture.proto")),
+                    new XAttribute("ProtoRoot", root), new XAttribute("GrpcServices", "None"))),
+            new XElement("Import", new XAttribute("Project", "Sdk.targets"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
+            // Execute the real restored Grpc.Tools target without making this regression
+            // test compile the full Dashboard or invoke its Native AOT toolchain.
+            new XElement("Target", new XAttribute("Name", "Publish"), new XAttribute("DependsOnTargets", "Protobuf_Compile"))))
+            .Save(dashboardProject);
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Element("PropertyGroup")!.Element("DashboardProjectPath")!.Value = dashboardProject;
+        bundle.Save(project);
+
+        // Isolate Arcade's import cache so a previous native build cannot hide a
+        // restore/import mismatch by leaving Grpc.Tools in the repository cache.
+        await RunAsync(project, "PublishBundleComponents", rid,
+            "RepoRoot=" + root + Path.DirectorySeparatorChar, "NUGET_PACKAGES=");
+
+        var generated = Assert.Single(Directory.GetFiles(generatedDirectory, "*.cs"));
+        Assert.Contains("sealed partial class PreparedComponent", File.ReadAllText(generated));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RealLayoutUsesTheRestoreCacheWhenTheUserDcpCacheIsCold(bool customCache)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.Path;
+        const string rid = "linux-x64";
+        var project = CreateProject(root, rid);
+        await RunAsync(project, "PublishBundleComponents", rid);
+        foreach (var file in Aspire.Shared.TerminalHostPayload.GetRequiredFiles(rid))
+        {
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(TerminalHostPath(root, rid))!, file), "terminal payload");
+        }
+        var cache = Path.Combine(root, customCache ? "caller-cache" : ".packages");
+        var dcpDirectory = Path.Combine(cache, "microsoft.developercontrolplane.linux-amd64", "1.2.3", "tools");
+        Directory.CreateDirectory(dcpDirectory);
+        File.WriteAllText(Path.Combine(dcpDirectory, "dcp"), "DCP from the restore cache");
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout").Remove();
+        bundle.Root.Element("PropertyGroup")!.Add(
+            Property("CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")));
+        bundle.Save(project);
+        var home = workspace.CreateDirectory("cold-home").FullName;
+        var environment = new Dictionary<string, string?>
+        {
+            ["NUGET_PACKAGES"] = customCache ? cache : null,
+            ["HOME"] = home,
+            ["USERPROFILE"] = home,
+            ["DOTNET_CLI_HOME"] = home
+        };
+
+        var result = await ExecuteAsync(project, "PackageBundlePayload", rid, environment,
+            "RepoRoot=" + root + Path.DirectorySeparatorChar, "BundleVersion=cold-cache");
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.Equal("DCP from the restore cache",
+            File.ReadAllText(Path.Combine(root, "artifacts", "bundle", rid, "dcp", "dcp")));
+        Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", "aspire-cold-cache-linux-x64.tar.gz")));
+    }
+
     private static string CreateProject(string root, string rid)
     {
         var events = Path.Combine(root, "events");
@@ -308,7 +393,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.True(result.ExitCode == 0, result.Output);
     }
 
-    private async Task<(int ExitCode, string Output)> ExecuteAsync(string project, string target, string rid, params string[] properties)
+    private Task<(int ExitCode, string Output)> ExecuteAsync(string project, string target, string rid, params string[] properties) =>
+        ExecuteAsync(project, target, rid, new Dictionary<string, string?>(), properties);
+
+    private async Task<(int ExitCode, string Output)> ExecuteAsync(string project, string target, string rid,
+        IReadOnlyDictionary<string, string?> environment, params string[] properties)
     {
         var dotnet = Path.Combine(RepoRoot.Path, ".dotnet", OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet");
         var start = new ProcessStartInfo(dotnet)
@@ -320,6 +409,17 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         };
         // Bundle's Exec children must use the same SDK as this MSBuild invocation.
         start.Environment["PATH"] = Path.GetDirectoryName(dotnet) + Path.PathSeparator + start.Environment["PATH"];
+        foreach (var (name, value) in environment)
+        {
+            if (value is null)
+            {
+                start.Environment.Remove(name);
+            }
+            else
+            {
+                start.Environment[name] = value;
+            }
+        }
         foreach (var argument in new[] { "msbuild", project, "-nologo", $"-t:{target}", "-p:Configuration=Release",
             "-p:ContinuousIntegrationBuild=true", $"-p:TargetRid={rid}", "-p:VersionPrefix=42.0.0",
             "-p:VersionSuffix=ci.test", "-p:OfficialBuildId=20261014.1", "-p:AspireCliChannel=staging",
