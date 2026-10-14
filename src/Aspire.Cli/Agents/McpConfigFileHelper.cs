@@ -49,7 +49,13 @@ internal static class McpConfigFileHelper
                 string.Format(CultureInfo.CurrentCulture, ErrorStrings.ConfigurationFileMustBeJsonObject, configFilePath));
     }
 
-    public static bool ConfigureMcpServer(JsonObject config, AgentClient client, AgentConfigurationScope scope, string configFilePath)
+    public static async Task<bool> ConfigureMcpServerAsync(
+        JsonObject config,
+        AgentClient client,
+        AgentConfigurationScope scope,
+        string configFilePath,
+        IEnvironment environment,
+        CancellationToken cancellationToken)
     {
         var serverContainer = config[client.McpServersPropertyName];
         if (serverContainer is not null && serverContainer is not JsonObject)
@@ -61,6 +67,23 @@ internal static class McpConfigFileHelper
         if (serverContainer is JsonObject existingServers && existingServers.ContainsKey("aspire"))
         {
             return false;
+        }
+
+        if (client == AgentClient.OpenCode &&
+            Path.GetFileName(configFilePath) == "opencode.jsonc" &&
+            (scope is AgentConfigurationScope.Project ||
+                environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 }))
+        {
+            // OpenCode merges JSON before JSONC: {"mcp":{"aspire":...}} in opencode.json
+            // must not be shadowed by a default added to opencode.jsonc. An explicit
+            // OPENCODE_CONFIG remains a single destination, not a pair of sibling files.
+            // https://opencode.ai/docs/config/#locations
+            var jsonConfig = await ReadConfigAsync(
+                Path.ChangeExtension(configFilePath, ".json"), client.McpJsonDocumentOptions, cancellationToken);
+            if (jsonConfig[client.McpServersPropertyName] is JsonObject jsonServers && jsonServers.ContainsKey("aspire"))
+            {
+                return false;
+            }
         }
 
         if (client.McpSchema is { } schema && !config.ContainsKey("$schema"))

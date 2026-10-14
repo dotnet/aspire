@@ -656,11 +656,13 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("project", "opencode.json")]
-    [InlineData("project", "both")]
-    [InlineData("global", "opencode.json")]
-    [InlineData("global", "both")]
-    public async Task AgentInit_OpenCodeConfiguration_PreservesPinnedServers(string scopeName, string existingFileName)
+    [InlineData("project", false, false)]
+    [InlineData("project", true, true)]
+    [InlineData("project", true, false)]
+    [InlineData("global", false, false)]
+    [InlineData("global", true, true)]
+    [InlineData("global", true, false)]
+    public async Task AgentInit_OpenCodeConfiguration_PreservesPinnedServers(string scopeName, bool jsoncExists, bool jsoncPinned)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var homeDirectory = workspace.CreateDirectory("fake-home");
@@ -670,14 +672,22 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var configDirectory = Path.GetDirectoryName(AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment))!;
         Directory.CreateDirectory(configDirectory);
         var originals = new Dictionary<string, string>();
-        foreach (var fileName in existingFileName == "both" ? new[] { "opencode.json", "opencode.jsonc" } : [existingFileName])
+        foreach (var fileName in jsoncExists ? new[] { "opencode.json", "opencode.jsonc" } : ["opencode.json"])
         {
             var path = Path.Combine(configDirectory, fileName);
-            var original = $$"""
-                {
-                    "mcp": { "aspire": { "command": ["pinned-{{fileName}}"], "enabled": false } }
-                }
-                """;
+            var original = fileName == "opencode.jsonc" && !jsoncPinned
+                ? """
+                    {
+                        // Unrelated settings must not shadow the Aspire pin in opencode.json.
+                        "model": "keep-jsonc",
+                        "mcp": { "other": { "command": ["other"], }, },
+                    }
+                    """
+                : $$"""
+                    {
+                        "mcp": { "aspire": { "command": ["pinned-{{fileName}}"], "enabled": false } }
+                    }
+                    """;
             originals.Add(path, original);
             await File.WriteAllTextAsync(path, original);
         }
@@ -697,6 +707,73 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             Assert.Equal(original, await File.ReadAllTextAsync(path));
         }
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Fact]
+    public async Task AgentInit_OpenCodeExplicitConfigFile_DoesNotUseSiblingJsonPin()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var jsonPath = Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.json");
+        const string pinned = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
+        await File.WriteAllTextAsync(jsonPath, pinned);
+        var interaction = new TestInteractionService();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        services.AddSingleton<IEnvironment>(new TestEnvironment(
+            new Dictionary<string, string?> { ["OPENCODE_CONFIG"] = "opencode.jsonc" }));
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+        var jsoncPath = Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc");
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents opencode --scope global --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(pinned, await File.ReadAllTextAsync(jsonPath));
+        Assert.Equal(before.Append(jsoncPath).Order(StringComparer.Ordinal), GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_McpConfigurationDescription,
+                AgentClient.OpenCode.DisplayName, jsoncPath),
+            Assert.Single(interaction.DisplayedMessages).Message);
+    }
+
+    [Theory]
+    [InlineData("project")]
+    [InlineData("global")]
+    public async Task AgentInit_OpenCodeMalformedSiblingJson_FailsWithoutWriting(string scopeName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var environment = new TestEnvironment();
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
+        var jsoncPath = AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
+        var jsonPath = Path.ChangeExtension(jsoncPath, ".json");
+        const string original = """{"model":"keep-jsonc"}""";
+        const string malformed = "{ malformed";
+        Directory.CreateDirectory(Path.GetDirectoryName(jsoncPath)!);
+        await File.WriteAllTextAsync(jsoncPath, original);
+        await File.WriteAllTextAsync(jsonPath, malformed);
+        var interaction = new TestInteractionService();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents opencode --scope {scopeName} --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+        Assert.Contains(jsonPath, Assert.Single(interaction.DisplayedErrors));
+        Assert.Equal(original, await File.ReadAllTextAsync(jsoncPath));
+        Assert.Equal(malformed, await File.ReadAllTextAsync(jsonPath));
         Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
     }
 

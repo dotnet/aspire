@@ -509,7 +509,8 @@ internal sealed class AgentInitCommand : BaseCommand
                     foreach (var (client, _, serversPropertyName, configureServer) in targets)
                     {
                         var updated = McpConfigFileHelper.UpdateDeprecatedCommand(config, serversPropertyName);
-                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(config, client, scope, targets.Key);
+                        var configured = configureServer && await McpConfigFileHelper.ConfigureMcpServerAsync(
+                            config, client, scope, targets.Key, _environment, cancellationToken);
 
                         if (updated)
                         {
