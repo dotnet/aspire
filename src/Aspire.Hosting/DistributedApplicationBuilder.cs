@@ -619,7 +619,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             // Locations now uses IFileSystemService for DCP session storage
             _innerBuilder.Services.AddSingleton<Locations>();
-            _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+            // DCP retries follow an external process and must progress even when the
+            // application replaces TimeProvider with a clock that is not advancing.
+            _innerBuilder.Services.AddSingleton<IKubernetesService>(static sp =>
+                ActivatorUtilities.CreateInstance<KubernetesService>(sp, TimeProvider.System));
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.WarnPersistentContainersWithoutUserSecrets);
