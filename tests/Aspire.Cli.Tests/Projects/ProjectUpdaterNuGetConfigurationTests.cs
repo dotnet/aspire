@@ -14,6 +14,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
 using Aspire.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -504,6 +505,107 @@ public class ProjectUpdaterNuGetConfigurationTests(ITestOutputHelper outputHelpe
         Assert.Equal(newVersion, package.GetProperty("Version").GetString());
         Assert.True(File.Exists(Path.Combine(globalPackagesFolder, "aspire.apphost.sdk", newVersion, "Sdk", "Sdk.props")));
         Assert.Equal([newFeed.FullName], NuGetTestHelper.GetEligiblePackageSources(appHostDirectory.FullName, packageId));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UpdateAsync_FileBasedNativePackageMetadataEditsSourceAndRollsBackOnFailure(bool succeeds)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var feed = workspace.CreateDirectory("feed");
+        var suffix = Guid.NewGuid().ToString("N");
+        var oldVersion = $"99.0.0-native-{suffix}";
+        var newVersion = $"99.0.1-native-{suffix}";
+        const string packageId = "Aspire.Hosting.AppHost";
+        foreach (var version in new[] { oldVersion, newVersion })
+        {
+            NuGetTestHelper.CreatePackage(feed, packageId, version,
+                new Dictionary<string, string> { ["lib/net10.0/_._"] = "" });
+        }
+        var configFile = new FileInfo(Path.Combine(workspace.Path, "NuGet.Config"));
+        await File.WriteAllTextAsync(configFile.FullName, $$"""
+            <configuration>
+              <packageSources><clear /><add key="fixture" value="{{feed.FullName}}" /></packageSources>
+              <config><add key="globalPackagesFolder" value="{{workspace.CreateDirectory("packages").FullName}}" /></config>
+            </configuration>
+            """);
+        var originalConfig = await File.ReadAllBytesAsync(configFile.FullName);
+        var projectFile = new FileInfo(Path.Combine(workspace.Path, "apphost.cs"));
+        await File.WriteAllTextAsync(projectFile.FullName, $$"""
+            #:package {{packageId}}@{{oldVersion}}
+            #:property TargetFramework=net10.0
+            #:property DisableImplicitFrameworkReferences=true
+            #:property PublishAot=false
+            #:property UseAppHost=false
+            #:property NuGetAudit=false
+            """);
+        var originalProject = await File.ReadAllBytesAsync(projectFile.FullName);
+        var aspireConfigPath = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        var originalAspireConfig = $$"""{ "sdk": { "version": "{{oldVersion}}" } }""";
+        await File.WriteAllTextAsync(aspireConfigPath, originalAspireConfig);
+        using var nativeProvider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.DotNetCliExecutionFactoryFactory = _ =>
+                new ProcessExecutionFactory(new TestEnvironment(), NullLogger<ProcessExecutionFactory>.Instance);
+        }).BuildServiceProvider();
+        var nativeRunner = nativeProvider.GetRequiredService<IDotNetCliRunner>();
+        var evaluatedMetadata = false;
+        var restoreCount = 0;
+        var runner = CreateRunner(projectFile, hasExplicitChannel: false);
+        runner.GetProjectItemsAndPropertiesAsyncCallbackWithTargetsAsync = async (file, items, properties, targets, options, token) =>
+        {
+            var result = await nativeRunner.GetProjectItemsAndPropertiesAsync(file, items, properties, targets, options, token);
+            Assert.Equal(0, result.ExitCode);
+            Assert.NotNull(result.Output);
+            if (items.Contains("PackageReference", StringComparer.Ordinal))
+            {
+                var package = Assert.Single(result.Output.RootElement.GetProperty("Items").GetProperty("PackageReference").EnumerateArray());
+                var evaluatedPath = result.Output.RootElement.GetProperty("Properties").GetProperty("MSBuildProjectFullPath").GetString();
+                Assert.Equal(projectFile.FullName + ".csproj", evaluatedPath);
+                Assert.Equal(evaluatedPath, package.GetProperty("DefiningProjectFullPath").GetString());
+                evaluatedMetadata = true;
+            }
+            return result;
+        };
+        runner.SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _, _) =>
+            (0, [new NuGetPackageCli { Id = query, Version = newVersion, Source = feed.FullName }]);
+        runner.AddPackageAsyncCallbackAsync = (file, id, version, source, noRestore, options, token) =>
+        {
+            Assert.Equal(projectFile.FullName, file.FullName);
+            Assert.True(noRestore);
+            return nativeRunner.AddPackageAsync(file, id, version, source, noRestore, options, token);
+        };
+        runner.RestoreAsyncCallbackAsync = async (file, options, token) =>
+        {
+            restoreCount++;
+            var output = new OutputCollector();
+            options.StandardOutputCallback = output.AppendOutput;
+            options.StandardErrorCallback = output.AppendError;
+            var exitCode = await nativeRunner.RestoreAsync(file, options, token);
+            Assert.True(exitCode == 0, string.Join(Environment.NewLine, output.GetLines().Select(static line => line.Line)));
+            return succeeds ? 0 : 1;
+        };
+        using var provider = CreateServices(workspace, runner).BuildServiceProvider();
+        var context = await CreateContextAsync(provider, projectFile, "default", hasExplicitChannel: false);
+        if (succeeds)
+        {
+            var result = await provider.GetRequiredService<IProjectUpdater>().UpdateProjectAsync(context, TestContext.Current.CancellationToken);
+            Assert.True(result.UpdatedApplied);
+            Assert.Equal(newVersion, AspireConfigFile.Load(workspace.Path)!.SdkVersion);
+            Assert.Equal(System.Text.Encoding.UTF8.GetString(originalProject).Replace(oldVersion, newVersion, StringComparison.Ordinal),
+                await File.ReadAllTextAsync(projectFile.FullName));
+        }
+        else
+        {
+            await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
+                provider.GetRequiredService<IProjectUpdater>().UpdateProjectAsync(context, TestContext.Current.CancellationToken));
+            Assert.Equal(originalProject, await File.ReadAllBytesAsync(projectFile.FullName));
+            Assert.Equal(originalAspireConfig, await File.ReadAllTextAsync(aspireConfigPath));
+        }
+        Assert.True(evaluatedMetadata);
+        Assert.Equal(1, restoreCount);
+        Assert.Equal(originalConfig, await File.ReadAllBytesAsync(configFile.FullName));
     }
 
     private static async Task<FileInfo> CreateAppHostAsync(TemporaryWorkspace workspace, string fileName)

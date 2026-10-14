@@ -295,6 +295,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Update failed regenerating the SDK code for project {0}. Configuration changes were not persisted..
+        /// </summary>
+        internal static string FailedToRegenerateSdkAfterUpdateFormat {
+            get {
+                return ResourceManager.GetString("FailedToRegenerateSdkAfterUpdateFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed to restore packages for project {0} after update..
         /// </summary>
         internal static string FailedToRestoreAfterUpdateFormat {

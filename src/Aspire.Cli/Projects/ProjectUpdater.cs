@@ -582,7 +582,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects", "MSBuildProjectFullPath"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -611,7 +611,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally", "NuGetRestoreTargets", "_UsingAspireAppHostSdk", "_AspireAppHostPackageVersion", "DirectoryBuildPropsPath", "DirectoryBuildTargetsPath", "MSBuildAllProjects", "MSBuildProjectFullPath"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -1404,8 +1404,18 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Check if this project has ManagePackageVersionsCentrally set to false
         var usesCentralPackageManagement = true;
+        var evaluatedProjectFile = projectFile;
         if (itemsAndPropertiesDocument.RootElement.TryGetProperty("Properties", out var propertiesElement))
         {
+            if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase) &&
+                propertiesElement.TryGetProperty("MSBuildProjectFullPath", out var evaluatedPath) &&
+                evaluatedPath.GetString() is { Length: > 0 } path)
+            {
+                // File-based evaluation reports apphost.cs.csproj as both MSBuildProjectFullPath
+                // and a direct package's DefiningProjectFullPath. Its directives belong to apphost.cs,
+                // while packages defined by any other file must still update their real import.
+                evaluatedProjectFile = new FileInfo(path);
+            }
             context.ProjectRestoreTargets[projectFile.FullName] =
                 propertiesElement.TryGetProperty("NuGetRestoreTargets", out var restoreTargets)
                     ? restoreTargets.GetString() ?? string.Empty
@@ -1463,7 +1473,8 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                     if (packageReference.TryGetProperty("DefiningProjectFullPath", out var definingPath)
                         && definingPath.GetString() is { Length: > 0 } path)
                     {
-                        definingFile = new FileInfo(path);
+                        var declaredFile = new FileInfo(path);
+                        definingFile = IsAppHostProject(declaredFile, evaluatedProjectFile) ? projectFile : declaredFile;
                     }
                     await CaptureFileAsync(context, definingFile, cancellationToken);
                     // Traditional package management - Version should be in PackageReference

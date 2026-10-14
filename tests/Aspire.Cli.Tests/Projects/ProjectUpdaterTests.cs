@@ -171,6 +171,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     [InlineData(false, true, false, false, ".csproj")]
     [InlineData(true, false, false, false, ".csproj")]
     [InlineData(true, true, false, false, ".csproj")]
+    [InlineData(true, false, false, true, ".csproj")]
     [InlineData(false, false, true, false, ".csproj")]
     [InlineData(false, true, true, false, ".csproj")]
     [InlineData(false, false, false, true, ".csproj")]
@@ -250,6 +251,12 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     document.WithSdkVersion("17.0.0");
                     document.WithProperty("_AspireAppHostPackageVersion", "17.0.0");
                     document.WithPackageReference("Aspire.Hosting.AppHost", "17.0.0");
+                    if (fileBased)
+                    {
+                        var syntheticProject = Path.Combine(workspace.Path, "generated", "apphost.cs.csproj");
+                        document.WithProperty("MSBuildProjectFullPath", syntheticProject);
+                        document["Items"]!["PackageReference"]!.AsArray()[0]!["DefiningProjectFullPath"] = syntheticProject;
+                    }
                     if (imported)
                     {
                         document.WithProperty("DirectoryBuildPropsPath", Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Build.props"));

@@ -13,6 +13,7 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestDotNetCliRunner : IDotNetCliRunner
 {
     public Func<FileInfo, string, string, string?, bool, ProcessInvocationOptions, CancellationToken, int>? AddPackageAsyncCallback { get; set; }
+    public Func<FileInfo, string, string, string?, bool, ProcessInvocationOptions, CancellationToken, Task<int>>? AddPackageAsyncCallbackAsync { get; set; }
     public Func<FileInfo, FileInfo, ProcessInvocationOptions, CancellationToken, int>? AddProjectToSolutionAsyncCallback { get; set; }
     public Func<FileInfo, bool, ProcessInvocationOptions, CancellationToken, int>? BuildAsyncCallback { get; set; }
     public Func<FileInfo, bool, IDictionary<string, string>?, ProcessInvocationOptions, CancellationToken, int>? BuildAsyncWithEnvironmentCallback { get; set; }
@@ -36,6 +37,11 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
 
     public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, bool noRestore, ProcessInvocationOptions options, CancellationToken cancellationToken)
     {
+        if (AddPackageAsyncCallbackAsync is not null)
+        {
+            return AddPackageAsyncCallbackAsync(projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken);
+        }
+
         return AddPackageAsyncCallback != null
             ? Task.FromResult(AddPackageAsyncCallback(projectFilePath, packageName, packageVersion, nugetSource, noRestore, options, cancellationToken))
             : throw new NotImplementedException();

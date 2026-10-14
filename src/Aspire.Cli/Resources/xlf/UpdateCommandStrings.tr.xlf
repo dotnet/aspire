@@ -137,6 +137,11 @@
         <target state="new">Could not resolve @microsoft/aspire-cli@{0} from npm. Check that npm is available and this version is published. Repository tool manifests were not changed.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedToRegenerateSdkAfterUpdateFormat">
+        <source>Update failed regenerating the SDK code for project {0}. Configuration changes were not persisted.</source>
+        <target state="new">Update failed regenerating the SDK code for project {0}. Configuration changes were not persisted.</target>
+        <note>{0} = AppHost file path.</note>
+      </trans-unit>
       <trans-unit id="FailedToRestoreAfterUpdateFormat">
         <source>Failed to restore packages for project {0} after update.</source>
         <target state="new">Failed to restore packages for project {0} after update.</target>

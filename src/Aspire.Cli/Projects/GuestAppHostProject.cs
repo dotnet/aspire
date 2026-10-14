@@ -1945,7 +1945,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             // Regeneration also installs guest dependencies. Complete it before saving
             // config or editing CLI pins so failure leaves both update plans unapplied.
             _interactionService.DisplayEmptyLine();
-            var regenerateResult = await _interactionService.ShowStatusAsync(
+            await _interactionService.ShowStatusAsync(
                 UpdateCommandStrings.RegeneratingSdkCode,
                 async () =>
                 {
@@ -1962,16 +1962,14 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
                     if (!regenerateSuccess)
                     {
-                        return new UpdatePackagesResult { UpdatesApplied = false };
+                        throw new ProjectUpdaterException(string.Format(
+                            CultureInfo.CurrentCulture,
+                            UpdateCommandStrings.FailedToRegenerateSdkAfterUpdateFormat,
+                            context.AppHostFile.FullName));
                     }
 
-                    return new UpdatePackagesResult { UpdatesApplied = true };
+                    return 0;
                 });
-
-            if (!regenerateResult.UpdatesApplied)
-            {
-                return regenerateResult;
-            }
 
             SaveConfiguration(config, directory);
         }

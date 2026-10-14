@@ -373,6 +373,58 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_GuestRegenerationFailureStopsBeforeMigrationsAndSelfUpdate()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHost = new FileInfo(Path.Combine(workspace.Path, "apphost.ts"));
+        await File.WriteAllTextAsync(appHost.FullName, "// test apphost");
+        var configPath = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        const string originalConfig = """{ "sdk": { "version": "0.9.0" }, "packages": { "Aspire.Hosting": "0.9.0" } }""";
+        await File.WriteAllTextAsync(configPath, originalConfig);
+        var migration = new TestMigration("after-update", 100, descriptor: null);
+        var interaction = new TestInteractionService();
+        var message = string.Format(UpdateCommandStrings.FailedToRegenerateSdkAfterUpdateFormat, appHost.FullName);
+        var serverProject = new FakeFailingAppHostServerProject(workspace.Path);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (_, _, _) => Task.FromResult<FileInfo?>(appHost)
+            };
+            options.AppHostProjectFactory = sp => ActivatorUtilities.CreateInstance<AppHostProjectFactory>(sp);
+            options.InteractionServiceFactory = _ => interaction;
+            options.PackagingServiceFactory = _ => new TestPackagingService
+            {
+                GetChannelsAsyncCallback = _ => Task.FromResult<IEnumerable<PackageChannel>>(
+                    [CreatePackageChannelWithGuestSdkVersion("1.0.0", cliDownloadBaseUrl: "https://example.test/aspire")])
+            };
+            options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier
+            {
+                IsUpdateAvailableCallback = () => true
+            };
+        });
+        services.AddSingleton<IAppHostServerProjectFactory>(new TestAppHostServerProjectFactory
+        {
+            CreateAsyncCallback = (_, _) => Task.FromResult<IAppHostServerProject>(serverProject)
+        });
+        services.AddSingleton<IMigration>(migration);
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        var exitCode = await command.Parse("update --apphost apphost.ts --channel stable --migrate --yes")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal("stable", serverProject.RequestedChannel);
+        Assert.Equal(CliExitCodes.FailedToUpgradeProject, exitCode);
+        Assert.Equal(["Failed to prepare AppHost server.", message], interaction.DisplayedErrors);
+        Assert.Equal(originalConfig, await File.ReadAllTextAsync(configPath));
+        Assert.Null(migration.DetectedContext);
+        Assert.False(migration.ApplyInvoked);
+        Assert.Empty(interaction.BooleanPromptCalls);
+        Assert.Empty(interaction.DisplayedSuccess);
+    }
+
+    [Fact]
     public async Task UpdateCommand_GuestProject_WhenTargetSdkNewerThanCli_PromptsForCliUpdateBeforeProjectUpdateAndSkipsWhenAccepted()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);

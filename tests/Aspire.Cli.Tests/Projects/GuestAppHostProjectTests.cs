@@ -1299,9 +1299,10 @@ public class GuestAppHostProjectTests : IDisposable
             ]
         };
 
-        var result = await project.UpdatePackagesAsync(context, CancellationToken.None);
+        var failure = await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
+            project.UpdatePackagesAsync(context, CancellationToken.None));
 
-        Assert.False(result.UpdatesApplied);
+        Assert.Contains(appHostPath, failure.Message);
         Assert.False(additionalStepApplied);
         Assert.Equal(originalConfig, await File.ReadAllBytesAsync(configPath));
         Assert.Empty(interaction.DisplayedSuccess);
@@ -1620,9 +1621,10 @@ public class GuestAppHostProjectTests : IDisposable
             NuGetConfigDirBinding = PromptBinding.CreateDefault<string?>(null),
         };
 
-        var result = await project.UpdatePackagesAsync(context, CancellationToken.None);
+        var failure = await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
+            project.UpdatePackagesAsync(context, CancellationToken.None));
 
-        Assert.False(result.UpdatesApplied);
+        Assert.Contains(appHostPath, failure.Message);
         Assert.Equal(PackageChannelNames.Stable, serverProject.RequestedChannel);
         var reloaded = AspireConfigFile.Load(_workspace.WorkspaceRoot.FullName);
         Assert.NotNull(reloaded);
@@ -1794,9 +1796,10 @@ public class GuestAppHostProjectTests : IDisposable
             NuGetConfigDirBinding = PromptBinding.CreateDefault<string?>(null),
         };
 
-        var result = await project.UpdatePackagesAsync(context, CancellationToken.None);
+        var failure = await Assert.ThrowsAsync<ProjectUpdaterException>(() =>
+            project.UpdatePackagesAsync(context, CancellationToken.None));
 
-        Assert.False(result.UpdatesApplied);
+        Assert.Contains(appHostPath, failure.Message);
         Assert.Equal(PackageChannelNames.Stable, serverProject.RequestedChannel);
         var reloaded = AspireConfigFile.Load(_workspace.WorkspaceRoot.FullName);
         Assert.NotNull(reloaded);
