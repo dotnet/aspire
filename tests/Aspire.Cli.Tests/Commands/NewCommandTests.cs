@@ -2494,9 +2494,10 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         Assert.NotNull(capturedOutputPath);
         Assert.Contains("my-project", capturedOutputPath);
 
-        // Agent init runs by default after project creation
-        var skillPath = Path.Combine(capturedOutputPath, ".agents", "skills", "aspire", "SKILL.md");
-        Assert.True(File.Exists(skillPath));
+        // Agent init runs by default after project creation using native registration.
+        var settingsPath = Path.Combine(capturedOutputPath, ".github", "copilot", "settings.json");
+        Assert.True(File.Exists(settingsPath));
+        Assert.False(File.Exists(Path.Combine(capturedOutputPath, ".agents", "skills", "aspire", "SKILL.md")));
     }
 
     [Fact]

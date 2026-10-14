@@ -22,7 +22,10 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             $"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents none");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
-        Assert.Empty(workspace.WorkspaceRoot.EnumerateFileSystemInfos());
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".github")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".claude")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc")));
+        Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
     }
 
     [Fact]
@@ -70,7 +73,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents all");
+            $"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents all --aspire-skills none");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
@@ -98,7 +101,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents all --mcp=false");
+            $"agent init --workspace-root {workspace.WorkspaceRoot.FullName} --agents all --aspire-skills none --mcp=false");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.False(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json")));
