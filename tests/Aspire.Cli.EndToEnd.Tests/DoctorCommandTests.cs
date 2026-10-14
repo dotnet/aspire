@@ -3,6 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Resources;
 using Hex1b.Automation;
@@ -11,8 +12,7 @@ using Xunit;
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for Aspire CLI doctor command, specifically testing
-/// certificate trust level detection on Linux.
+/// End-to-end tests for Aspire CLI doctor prerequisite checks and reporting on Linux.
 /// </summary>
 public sealed class DoctorCommandTests(ITestOutputHelper output)
 {
@@ -25,6 +25,101 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
         "pnpm",
         "deno"
     };
+
+    [Theory]
+    [InlineData(null, null, true)]
+    [InlineData(null, null, false)]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "docker", true)]
+    [InlineData("ASPIRE_CONTAINER_RUNTIME", "podman", true)]
+    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "docker", true)]
+    [InlineData("DOTNET_ASPIRE_CONTAINER_RUNTIME", "podman", true)]
+    [CaptureWorkspaceOnFailure]
+    public async Task DoctorCommand_RuntimeSelectionIndicators(string? variableName, string? configuredRuntime, bool dockerRunning)
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var strategy = CliInstallStrategy.Detect(output.WriteLine);
+        var workspace = TemporaryWorkspace.Create(output);
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(repoRoot, strategy, output, workspace: workspace);
+        var counter = new SequenceCounter();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
+        await using var terminalRun = CliE2ETestHelpers.StartRun(terminal, workspace, auto, counter, output, TestContext.Current.CancellationToken);
+
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliAsync(strategy, counter);
+
+        // Controlled CLI responses set runtime availability without depending on a second daemon.
+        // The packaged Aspire executable still performs discovery, configuration, and rendering.
+        var runtimeDirectory = workspace.CreateDirectory("runtime-probes");
+        foreach (var runtime in new[] { "docker", "podman" })
+        {
+            var version = runtime == "docker" ? "29.0.0" : "5.0.0";
+            var healthExitCode = runtime == "docker" && !dockerRunning ? 1 : 0;
+            var script = $$$"""
+                #!/bin/sh
+                case "$*" in
+                  "container ls -n 1") exit {{{healthExitCode}}} ;;
+                  "version -f json") printf '%s\n' '{"Client":{"Version":"{{{version}}}"},"Server":{"Version":"{{{version}}}","Os":"linux"}}' ;;
+                  "--version") printf '%s\n' '{{{runtime}}} version {{{version}}}' ;;
+                  *) exit 1 ;;
+                esac
+                """;
+            await File.WriteAllTextAsync(
+                Path.Combine(runtimeDirectory.FullName, runtime),
+                script.ReplaceLineEndings("\n") + "\n",
+                TestContext.Current.CancellationToken);
+        }
+
+        await auto.RunCommandAsync(
+            "chmod +x runtime-probes/* && export PATH=\"$PWD/runtime-probes:$PATH\" && " +
+            "unset ASPIRE_CONTAINER_RUNTIME DOTNET_ASPIRE_CONTAINER_RUNTIME",
+            counter);
+        if (variableName is not null)
+        {
+            await auto.RunCommandAsync($"export {variableName}={configuredRuntime}", counter);
+        }
+
+        // Other prerequisite checks may fail independently of runtime selection. Accept doctor's
+        // documented 0/1 exit codes, then verify the complete runtime section below.
+        await auto.RunCommandAsync(
+            "aspire doctor --non-interactive --nologo > doctor-runtime.txt; result=$?; cat doctor-runtime.txt; test \"$result\" -le 1",
+            counter,
+            TimeSpan.FromMinutes(2));
+        await auto.RunCommandAsync(
+            "aspire doctor --format json --non-interactive --nologo > doctor-runtime.json; result=$?; test \"$result\" -le 1",
+            counter,
+            TimeSpan.FromMinutes(2));
+
+        string[] expectedMessages = configuredRuntime switch
+        {
+            "docker" => ["Docker v29.0.0: running \u2190 explicitly selected"],
+            "podman" => ["Podman v5.0.0: running \u2190 explicitly selected"],
+            _ when !dockerRunning => ["Docker: installed but not running", "Podman v5.0.0: running \u2190 active"],
+            _ => ["Docker v29.0.0: running \u2190 active", "Podman v5.0.0: running"]
+        };
+        var text = await File.ReadAllTextAsync(
+            Path.Combine(workspace.WorkspaceRoot.FullName, "doctor-runtime.txt"),
+            TestContext.Current.CancellationToken);
+        // Match runtime rows such as "Docker v29.0.0: running" and
+        // "Docker: installed but not running", including any selection suffix.
+        var renderedRuntimeMessages = Regex.Matches(text, @"(?:Docker|Podman)(?: v\d+\.\d+\.\d+)?: (?:running|installed but not running)[^\r\n]*")
+            .Select(match => match.Value.Trim())
+            .ToArray();
+        Assert.Equal(expectedMessages, renderedRuntimeMessages);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            Path.Combine(workspace.WorkspaceRoot.FullName, "doctor-runtime.json"),
+            TestContext.Current.CancellationToken));
+        var runtimeChecks = document.RootElement.GetProperty("checks").EnumerateArray()
+            .Where(check => check.GetProperty("category").GetString() == "container")
+            .ToArray();
+        Assert.Equal(
+            configuredRuntime is null ? ["docker", "podman"] : new[] { configuredRuntime },
+            runtimeChecks.Select(check => check.GetProperty("name").GetString()));
+        Assert.All(runtimeChecks, check => Assert.Equal(
+            !dockerRunning && check.GetProperty("name").GetString() == "docker" ? "warning" : "pass",
+            check.GetProperty("status").GetString()));
+        Assert.Equal(expectedMessages, runtimeChecks.Select(check => check.GetProperty("message").GetString()));
+    }
 
     [Fact]
     public async Task DoctorCommand_WithoutSslCertDir_ShowsPartiallyTrusted()
