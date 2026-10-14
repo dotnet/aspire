@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001 // Existing registrations remove the framework's provisioning annotations.
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.EntraId.Provisioning;
@@ -47,7 +48,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     public EntraIdApplicationResource(string name)
         : base(name, ConfigureApplicationInfrastructure)
     {
-        Annotations.Add(new NonArmResourceAnnotation(new Dictionary<string, string>
+        Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>
         {
             ["Microsoft.Graph/applications"] = "objectId",
             ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
@@ -148,6 +149,9 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     {
         var resource = (EntraIdApplicationResource)infrastructure.AspireResource;
         resource.ValidateProvisioningConfiguration();
+        // Directory objects have no Azure location, so omit the default location parameter.
+        infrastructure.Remove(infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>()
+            .Single(parameter => parameter.BicepIdentifier == KnownParameters.Location));
         infrastructure.BicepExtensions["microsoftGraphV1"] = "br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0";
 
         var principalId = new ProvisioningParameter("principalId", typeof(string));

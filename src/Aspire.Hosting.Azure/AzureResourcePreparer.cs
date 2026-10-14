@@ -82,7 +82,7 @@ internal sealed class AzureResourcePreparer(
 
             foreach (var command in AzureProvisioningController.ResourceCommandDefinitions)
             {
-                if (bicepResource.HasAnnotationOfType<NonArmResourceAnnotation>() &&
+                if (bicepResource.HasAnnotationOfType<TenantScopedResourceAnnotation>() &&
                     command.Command is AzureProvisioningController.AzureResourceCommand.ChangeLocation or
                         AzureProvisioningController.AzureResourceCommand.GetAzureResource or
                         AzureProvisioningController.AzureResourceCommand.DeleteAzureResource)
@@ -117,8 +117,7 @@ internal sealed class AzureResourcePreparer(
 
     internal static bool RequiresTenantResourceSuffix(DistributedApplicationModel model) =>
         GetAzureResourcesFromAppModel(model).Any(resource =>
-            resource.AzureResource is AzureBicepResource bicepResource &&
-            bicepResource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.TenantResourceSuffix));
+            resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>());
 
     private static void AddTenantResourceSuffixCommandArgument(DistributedApplicationModel model)
     {

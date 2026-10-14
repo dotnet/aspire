@@ -86,6 +86,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         EnsureParametersAlign(infrastructure);
 
         var plan = infrastructure.Build(ProvisioningBuildOptions);
+        HasLocationParameter = infrastructure.GetParameters().Any(parameter => parameter.BicepIdentifier == KnownParameters.Location);
         var compilation = plan.Compile();
         Debug.Assert(compilation.Count == 1);
         var compiledBicep = compilation.First();

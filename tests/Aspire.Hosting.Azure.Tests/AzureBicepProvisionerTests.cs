@@ -11,6 +11,7 @@ using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Azure;
 using Azure.Core;
+using Azure.Provisioning;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources.Deployments;
 using Azure.ResourceManager.Resources.Deployments.Models;
@@ -431,6 +432,40 @@ public class AzureBicepProvisionerTests(ITestOutputHelper testOutputHelper)
         Assert.False(tenant.Deployments.WasCreateOrUpdateCalled);
         Assert.Null(resourceGroup.Deployments.Content!.Location);
         Assert.StartsWith("defaultScoped-", resourceGroup.Deployments.DeploymentName);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task GetOrCreateResourceAsync_OnlyBindsDeclaredLocationParameter(bool hasLocation, bool explicitlyBound)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
+        var resource = builder.AddAzureInfrastructure("infrastructure", infrastructure =>
+        {
+            if (!hasLocation)
+            {
+                infrastructure.Remove(infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>()
+                    .Single(parameter => parameter.BicepIdentifier == AzureBicepResource.KnownParameters.Location));
+            }
+        }).WithParameter("registrationName", "registration");
+        if (explicitlyBound)
+        {
+            resource.WithParameter(AzureBicepResource.KnownParameters.Location, "eastus");
+        }
+        using var services = builder.Services.BuildServiceProvider();
+        var resourceGroup = new TestResourceGroupResource("deploy-rg");
+        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
+            resourceGroup: resourceGroup,
+            location: AzureLocation.WestUS2,
+            executionContext: new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish));
+
+        await CreateProvisioner(services).GetOrCreateResourceAsync(resource.Resource, context, CancellationToken.None);
+
+        Assert.Equal(hasLocation || explicitlyBound, resource.Resource.HasLocationParameter);
+        await Verify(resourceGroup.Deployments.Content!.Properties.Parameters.ToString(), "json");
     }
 
     [Fact]

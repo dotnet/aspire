@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Azure environment resources are experimental.
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
 #pragma warning disable ASPIREPIPELINES001 // Verifies provisioning annotations on existing resources.
 
 using Aspire.Hosting.ApplicationModel;
@@ -29,12 +30,12 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var entra = builder.AddEntraIdApplication("entra-web");
 
         Assert.IsAssignableFrom<AzureProvisioningResource>(entra.Resource);
-        var nonArm = Assert.Single(entra.Resource.Annotations.OfType<NonArmResourceAnnotation>());
+        var tenantScoped = Assert.Single(entra.Resource.Annotations.OfType<TenantScopedResourceAnnotation>());
         Assert.Equal(new Dictionary<string, string>
         {
             ["Microsoft.Graph/applications"] = "objectId",
             ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
-        }, nonArm.ResourceIdOutputs);
+        }, tenantScoped.ResourceIdOutputs);
         Assert.NotNull(entra.Resource.ProvisioningTaskCompletionSource);
         Assert.False(entra.Resource.ProvisioningTaskCompletionSource.Task.IsCompleted);
         Assert.Null(entra.Resource.Parameters["principalId"]);
@@ -82,6 +83,21 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(firstContents, secondContents);
         Assert.Equal(firstContents, entra.Resource.GetBicepTemplateString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GetBicepTemplateString_RejectsNonResourceGroupScope(bool tenantScoped)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        entra.Resource.Scope = tenantScoped
+            ? AzureBicepResourceScope.CreateForTenant()
+            : AzureBicepResourceScope.CreateForSubscription("11111111-2222-3333-4444-555555555555");
+
+        var exception = Assert.Throws<InvalidOperationException>(entra.Resource.GetBicepTemplateString);
+        Assert.Equal("Entra ID application templates must be deployed at resource-group scope.", exception.Message);
     }
 
     [Fact]

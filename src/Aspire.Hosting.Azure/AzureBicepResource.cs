@@ -75,6 +75,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 
     internal string? TemplateResourceName { get; }
 
+    internal bool HasLocationParameter { get; set; } = true;
+
     internal HashSet<IAzureResource> GetAzureReferences()
     {
         // Force evaluation of the Bicep template to ensure parameters are expanded.

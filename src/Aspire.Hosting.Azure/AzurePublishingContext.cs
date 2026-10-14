@@ -359,7 +359,10 @@ public sealed class AzurePublishingContext(
 
             var module = moduleMap[resource];
             module.Scope = GetScopeExpression(resource);
-            module.Parameters.Add("location", locationParam);
+            if (resource.HasLocationParameter)
+            {
+                module.Parameters.Add("location", locationParam);
+            }
 
             foreach (var parameter in resource.Parameters)
             {

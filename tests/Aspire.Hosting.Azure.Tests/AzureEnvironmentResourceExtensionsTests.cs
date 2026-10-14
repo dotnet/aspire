@@ -2,6 +2,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
+
 using System.Collections.Immutable;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -26,17 +28,17 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public void NonArmResourceAnnotation_CopiesAndValidatesObjectIdMetadata()
+    public void TenantScopedResourceAnnotation_CopiesAndValidatesObjectIdMetadata()
     {
         var outputs = new Dictionary<string, string> { ["Microsoft.Graph/applications"] = "objectId" };
-        var annotation = new NonArmResourceAnnotation(outputs);
+        var annotation = new TenantScopedResourceAnnotation(outputs);
         outputs.Clear();
 
         Assert.Equal("objectId", Assert.Single(annotation.ResourceIdOutputs).Value);
-        Assert.Throws<ArgumentNullException>(() => new NonArmResourceAnnotation(null!));
-        Assert.Throws<ArgumentException>(() => new NonArmResourceAnnotation(
+        Assert.Throws<ArgumentNullException>(() => new TenantScopedResourceAnnotation(null!));
+        Assert.Throws<ArgumentException>(() => new TenantScopedResourceAnnotation(
             new Dictionary<string, string> { [""] = "objectId" }));
-        Assert.Throws<ArgumentException>(() => new NonArmResourceAnnotation(
+        Assert.Throws<ArgumentException>(() => new TenantScopedResourceAnnotation(
             new Dictionary<string, string> { ["Microsoft.Graph/applications"] = "" }));
     }
 
@@ -55,13 +57,13 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
         AddTestAzureProvisioning(builder, armClientProvider: new TestArmClientProvider(resourceGroup), deploymentStateManager: deploymentState);
         var storage = builder.AddBicepTemplateString("storage", "param location string");
         var directory = builder.AddBicepTemplateString("directory", "param location string")
-            .WithAnnotation(new NonArmResourceAnnotation(new Dictionary<string, string>
+            .WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>
             {
                 ["Microsoft.Graph/applications"] = "objectId",
                 ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
             }));
         builder.AddBicepTemplateString("existing", "param location string")
-            .WithAnnotation(new NonArmResourceAnnotation(new Dictionary<string, string>
+            .WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>
             {
                 ["Microsoft.Graph/applications"] = "objectId"
             }))
@@ -145,7 +147,7 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
         var builder = CreateBuilder(isRunMode: true);
         AddTestAzureProvisioning(builder);
         var directory = builder.AddBicepTemplateString("directory", "param location string");
-        directory.WithAnnotation(new NonArmResourceAnnotation(new Dictionary<string, string>
+        directory.WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>
         {
             ["Microsoft.Graph/applications"] = "objectId"
         }));
@@ -211,6 +213,7 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
 
         Assert.Equal(AzureProvisioningController.ResourceCommandDefinitions.Select(command => command.Name).Order(),
             arm.Resource.Annotations.OfType<ResourceCommandAnnotation>().Select(command => command.Name).Order());
+        Assert.False(AzureResourcePreparer.RequiresTenantResourceSuffix(model));
     }
 
     [Theory]
@@ -221,7 +224,7 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
         var builder = CreateBuilder(isRunMode: true);
         AddTestAzureProvisioning(builder);
         var directory = builder.AddBicepTemplateString("directory", "param location string");
-        directory.WithAnnotation(new NonArmResourceAnnotation(new Dictionary<string, string>()));
+        directory.WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var controller = app.Services.GetRequiredService<AzureProvisioningController>();
@@ -234,14 +237,26 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ChangeAzureContextCommand_ConditionallyIncludesTenantResourceSuffix(bool excluded)
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public async Task ChangeAzureContextCommand_ConditionallyIncludesTenantResourceSuffix(
+        bool tenantScoped, bool hasSuffixParameter, bool excluded)
     {
         var builder = CreateBuilder(isRunMode: true);
         builder.Configuration["Azure:TenantResourceSuffix"] = "configured";
-        var registration = builder.AddBicepTemplateString("registration", "param tenantResourceSuffix string = ''")
-            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix);
+        var registration = builder.AddBicepTemplateString("registration", "param tenantResourceSuffix string = ''");
+        if (hasSuffixParameter)
+        {
+            registration.WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix);
+        }
+        if (tenantScoped)
+        {
+            registration.WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
+        }
         if (excluded)
         {
             registration.ExcludeFromManifest();
@@ -256,8 +271,8 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
         var environment = Assert.Single(model.Resources.OfType<AzureEnvironmentResource>());
         var command = Assert.Single(environment.Annotations.OfType<ResourceCommandAnnotation>(),
             command => command.Name == AzureProvisioningController.ChangeAzureContextCommandName);
-        Assert.Equal(excluded ? 4 : 5, command.Arguments.Count);
-        if (!excluded)
+        Assert.Equal(tenantScoped && !excluded ? 5 : 4, command.Arguments.Count);
+        if (tenantScoped && !excluded)
         {
             var inputs = CloneInputs(command.Arguments);
             var suffix = inputs[AzureBicepResource.KnownParameters.TenantResourceSuffix];
@@ -277,7 +292,8 @@ public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutpu
         var deploymentState = new TestDeploymentStateManager();
         AddTestAzureProvisioning(builder, deploymentStateManager: deploymentState);
         builder.AddBicepTemplateString("registration", "param tenantResourceSuffix string = ''")
-            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix);
+            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix)
+            .WithAnnotation(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var environment = Assert.Single(model.Resources.OfType<AzureEnvironmentResource>());

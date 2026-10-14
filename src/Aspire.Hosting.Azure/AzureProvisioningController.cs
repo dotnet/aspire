@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
+
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.Json;
@@ -958,7 +960,7 @@ internal sealed class AzureProvisioningController(
 
     private static void ThrowIfNonArmTarget(IReadOnlyList<(IResource Resource, IAzureResource AzureResource)> resources)
     {
-        if (resources.Any(resource => resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()))
+        if (resources.Any(resource => resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>()))
         {
             throw new InvalidOperationException(
                 "This operation cannot manage non-ARM extension resources. Manage those resources through their provider.");
@@ -972,7 +974,7 @@ internal sealed class AzureProvisioningController(
 
         if (command is AzureResourceCommand.ChangeLocation or AzureResourceCommand.GetAzureResource or AzureResourceCommand.DeleteAzureResource &&
             GetTargetAzureResources(context.Services.GetRequiredService<DistributedApplicationModel>(), resourceName, includeAnnotationParentRelationships: true)
-                .Any(resource => resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()))
+                .Any(resource => resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>()))
         {
             return ResourceCommandState.Hidden;
         }
@@ -1882,7 +1884,7 @@ internal sealed class AzureProvisioningController(
             // Directory/extension objects outlive the resource group. Keep their outputs, state, and links
             // so the user can locate them after the ARM deployment record has been deleted.
             await ResetResourcesAsync(model,
-                azureResources.Where(resource => !resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()).ToArray(),
+                azureResources.Where(resource => !resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>()).ToArray(),
                 preserveOverrides: true, cancellationToken).ConfigureAwait(false);
             await PublishAzureEnvironmentStateAsync(model, KnownResourceStates.NotStarted, cancellationToken).ConfigureAwait(false);
         }
@@ -1915,7 +1917,7 @@ internal sealed class AzureProvisioningController(
         foreach (var (resource, azureResource) in resources)
         {
             if (azureResource is not AzureBicepResource bicepResource ||
-                !bicepResource.TryGetLastAnnotation<NonArmResourceAnnotation>(out var annotation))
+                !bicepResource.TryGetLastAnnotation<TenantScopedResourceAnnotation>(out var annotation))
             {
                 continue;
             }
@@ -2273,7 +2275,7 @@ internal sealed class AzureProvisioningController(
 
         foreach (var resource in GetProvisionableAzureResources(model))
         {
-            if (resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>() ||
+            if (resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>() ||
                 !ShouldCheckForDrift(resource.Resource) ||
                 await TryGetResourceIdFromDeploymentStateAsync((AzureBicepResource)resource.AzureResource, cancellationToken).ConfigureAwait(false) is not { } resourceId)
             {
@@ -3658,7 +3660,7 @@ internal sealed class AzureProvisioningController(
 
     private async Task<bool> IsMissingCachedResourceAsync(AzureBicepResource resource, CancellationToken cancellationToken)
     {
-        if (resource.HasAnnotationOfType<NonArmResourceAnnotation>())
+        if (resource.HasAnnotationOfType<TenantScopedResourceAnnotation>())
         {
             return false;
         }

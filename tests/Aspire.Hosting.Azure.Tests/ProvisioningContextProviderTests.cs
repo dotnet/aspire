@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
+
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
@@ -32,7 +34,7 @@ public class ProvisioningContextProviderTests
         var resource = new AzureBicepResource("registration", templateString: "param tenantResourceSuffix string = ''");
         if (usesSuffix)
         {
-            resource.Parameters[AzureBicepResource.KnownParameters.TenantResourceSuffix] = null;
+            resource.Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
         }
         if (excluded)
         {
