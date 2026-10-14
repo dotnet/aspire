@@ -1,0 +1,78 @@
+{
+  "run_id": 38604302168,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38604302168",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T18:22:22Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "6bcd0302e2fb4a6dea2b1c3eedb8ab1caa4bb75c",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 116002551451,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38604302168/job/116002551451",
+      "classification": "flaky-test",
+      "reason": "Two tests timed out under CI load on macOS: TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Dashboard) RemoteExecutor timeout and ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates timeout, both matching known macOS CPU-contention timeout patterns.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 116007181905,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38604302168/job/116007181905",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed; job fails later during the generated Nuxt 'web' publish image docker build (test-nuxt-integration.sh), matching a recurring deterministic Nuxt integration npm ci/build failure (29 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 116011804258,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38604302168/job/116011804258",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic downstream aggregation failure: this job explicitly reports 'TypeScript: failure' and exits 1 because the TypeScript SDK Validation job failed due to the Nuxt integration docker build issue.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Dashboard\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Half-way through waiting for remote process.\nTimed out at 10/14/2026 5:39:18 PM after 60000ms waiting for remote process.\n\tProcess ID: 6137\n\tName: dotnet\n\tMainModule: /Users/runner/work/aspire/aspire/.dotnet/dotnet\n\tStartTime: 10/14/2026 5:38:18 PM\n\tTotalProcessorTime: 00:00:00.6522583",
+      "stack_trace": "at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose(Boolean disposing) in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 157\n   at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose() in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 58\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 262\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 113\n   at InvokeStub_TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)",
+      "standard_output": "Temporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/2lwtvow2.ve2\nDisposing temporary workspace at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/2lwtvow2.ve2",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a prior recurring cause: RemoteExecutor process timeout on macOS under CPU contention for the same test and scenario, with identical 60000ms timeout pattern."
+    },
+    {
+      "name": "Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(dispose: True, signalFailure: True, ownedTree: True)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation has timed out.",
+      "stack_trace": "at Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(Boolean dispose, Boolean signalFailure, Boolean ownedTree) in /Users/runner/work/aspire/aspire/tests/Shared/Processes/ChildProcessTests.cs:line 318\n   at Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(Boolean dispose, Boolean signalFailure, Boolean ownedTree) in /Users/runner/work/aspire/aspire/tests/Shared/Processes/ChildProcessTests.cs:line 324\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Same timeout pattern as a known recurring flaky ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates failure (different parameter combination: signalFailure: True vs prior False) under CI CPU contention on macOS."
+    }
+  ],
+  "causes": [
+    "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-macos",
+    "aspire-shared-tests-childprocesstests-shutdown-usessharedgracefulbudget-signalfailure-true-timeout",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
