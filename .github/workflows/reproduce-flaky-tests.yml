@@ -28,7 +28,13 @@ env:
   #   --filter-method "*.TestMethodName"
   #   --filter-class "*.TestClassName"
   #   --filter-method "*.Test1" --filter-method "*.Test2"
-  TEST_FILTER: '--filter-method "*.YourTestMethodName"'
+  TEST_FILTER: >-
+    --filter-method "*.HealthCheckIntervalDoesNotSlowBeforeSteadyHealthyState"
+    --filter-method "*.CleanupResourcesAsync_UsesSystemTime_WhenApplicationTimeProviderIsReplaced"
+    --filter-method "*.CreateAsync_RecoveryBudgetIncludesServerRequestedRetryDelay"
+    --filter-method "*.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay"
+    --filter-method "*.CreateAsync_ConfirmationTimeCountsTowardRetryAfter"
+    --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 
   # Target operating systems (comma-separated)
   # Options: ubuntu-latest, windows-latest, macos-latest
