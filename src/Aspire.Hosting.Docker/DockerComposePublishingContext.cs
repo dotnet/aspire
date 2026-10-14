@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES003
-#pragma warning disable ASPIREPIPELINES001
 
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
@@ -88,7 +87,7 @@ internal sealed class DockerComposePublishingContext(
                 {
                     var dockerfileContext = new DockerfileFactoryContext
                     {
-                        Services = executionContext.ServiceProvider,
+                        Services = executionContext.Services,
                         Resource = serviceResource.TargetResource,
                         CancellationToken = cancellationToken
                     };
@@ -111,7 +110,7 @@ internal sealed class DockerComposePublishingContext(
                 {
                     foreach (var a in fsAnnotations)
                     {
-                        var files = await a.Callback(new() { Model = serviceResource.TargetResource, ServiceProvider = executionContext.ServiceProvider }, CancellationToken.None).ConfigureAwait(false);
+                        var files = await a.Callback(new() { Model = serviceResource.TargetResource, Services = executionContext.Services }, CancellationToken.None).ConfigureAwait(false);
                         foreach (var file in files)
                         {
                             HandleComposeFileConfig(composeFile, composeService, file, a.DefaultOwner, a.DefaultGroup, a.Umask ?? DefaultUmask, a.DestinationPath);

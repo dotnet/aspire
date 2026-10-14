@@ -3,7 +3,6 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
-using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Hex1b.Input;
 using Xunit;
@@ -70,6 +69,11 @@ public sealed class SingleFileAppHostInitDotnetRunTests(ITestOutputHelper output
 
         Assert.True(File.Exists(appHostCs), $"Expected apphost.cs to exist at: {appHostCs}");
         Assert.True(File.Exists(aspireConfigJson), $"Expected aspire.config.json to exist at: {aspireConfigJson}");
+        var appHostSource = File.ReadAllText(appHostCs);
+        Assert.StartsWith("#:package Aspire.Hosting.AppHost@", appHostSource);
+        Assert.Contains("#:package Aspire.Hosting.Dotnet@", appHostSource);
+        Assert.DoesNotContain("#:sdk Aspire.AppHost.Sdk@", appHostSource);
+        Assert.Contains("#:property AspireUseCliBundle=true", appHostSource);
         Assert.True(
             File.Exists(appHostRunJson),
             $"Expected apphost.run.json to exist at: {appHostRunJson}. "
@@ -91,15 +95,12 @@ public sealed class SingleFileAppHostInitDotnetRunTests(ITestOutputHelper output
         Assert.False(string.IsNullOrWhiteSpace(httpsEnv["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"]?.GetValue<string>()));
         Assert.False(string.IsNullOrWhiteSpace(httpsEnv["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"]?.GetValue<string>()));
 
-        // `dotnet run apphost.cs` should print "Distributed application started." once the
-        // AppHost is fully up. 1 minute is plenty — even a cold dotnet build of the bare
-        // single-file AppHost completes well inside that budget; if it hasn't started by
-        // then something is wrong (build failure, missing env var, hang) and we should
-        // fail fast rather than wait several minutes.
+        // The generated AppHost uses the CLI bundle by default, so `dotnet run` delegates to the
+        // CLI and displays its startup message instead of the direct AppHost log message.
         await auto.TypeAsync("dotnet run apphost.cs");
         await auto.EnterAsync();
         await auto.WaitUntilTextAsync(
-            "Distributed application started.",
+            "Press CTRL+C to stop the AppHost and exit.",
             timeout: TimeSpan.FromMinutes(1));
 
         // Stop the running AppHost with Ctrl+C and wait for the shell prompt.
@@ -107,4 +108,3 @@ public sealed class SingleFileAppHostInitDotnetRunTests(ITestOutputHelper output
         await auto.WaitForAnyPromptAsync(counter, TimeSpan.FromMinutes(1));
     }
 }
-

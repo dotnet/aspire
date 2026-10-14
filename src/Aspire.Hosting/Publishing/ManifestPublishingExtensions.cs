@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001
-
 using System.Text.Json;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,7 +42,7 @@ internal static class ManifestPublishingExtensions
 
                 var outputPath = pipelineOptions.Value.OutputPath;
 
-                if (!outputPath.EndsWith(".json"))
+                if (!outputPath.EndsWith(".json", StringComparison.Ordinal))
                 {
                     // If the manifest path ends with .json we assume that the output path was specified
                     // as a filename. If not, we assume that the output path was specified as a directory

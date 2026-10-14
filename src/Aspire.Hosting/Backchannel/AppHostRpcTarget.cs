@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Diagnostics;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,7 +21,9 @@ internal class AppHostRpcTarget(
     PipelineActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
-    AppHostStartupState startupState)
+    AppHostStartupState startupState,
+    IInteractionFileUploadStore fileUploadStore,
+    IConfiguration configuration)
 {
     private readonly CancellationTokenSource _shutdownCts = new();
 
@@ -226,7 +229,8 @@ internal class AppHostRpcTarget(
         _ = cancellationToken;
         return Task.FromResult(new string[] {
             "baseline.v2",
-            "pipeline-steps.v1"
+            "pipeline-steps.v1",
+            "pipeline-steps.v2"
             });
     }
 #pragma warning restore CA1822
@@ -241,12 +245,54 @@ internal class AppHostRpcTarget(
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Registers a local file in the upload store by copying it to a managed temp location.
+    /// Returns the file ID that can be used to reference the file in interaction responses.
+    /// </summary>
+    public async Task<UploadFileResponse> UploadFileAsync(UploadFileRequest request, CancellationToken cancellationToken = default)
+    {
+        var maxUploadSize = FileUploadHelpers.GetMaxFileUploadSize(configuration);
+
+        if (request.Data.Length > maxUploadSize)
+        {
+            throw new InvalidOperationException($"File '{request.FileName}' exceeds the maximum upload size of {maxUploadSize} bytes.");
+        }
+
+        if (request.InteractionId <= 0)
+        {
+            throw new InvalidOperationException("An interaction ID is required when uploading a file.");
+        }
+        if (string.IsNullOrEmpty(request.InputName))
+        {
+            throw new InvalidOperationException("An input name is required when uploading a file.");
+        }
+
+        var (fileId, filePath) = fileUploadStore.CreateEntry(request.FileName, request.InteractionId, request.InputName);
+
+        try
+        {
+            var destStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true);
+            await using (destStream.ConfigureAwait(false))
+            {
+                await destStream.WriteAsync(request.Data, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            fileUploadStore.RemoveEntry(request.InteractionId, fileId);
+            throw;
+        }
+
+        fileUploadStore.CompleteUpload(request.InteractionId, fileId);
+
+        return new UploadFileResponse { FileId = fileId };
+    }
+
     public async Task<GetPipelineStepsResponse> GetPipelineStepsAsync(GetPipelineStepsRequest? request = null, CancellationToken cancellationToken = default)
     {
         using var activity = profilingTelemetry.StartJsonRpcServerCall(nameof(GetPipelineStepsAsync), streaming: false, request?.TraceContext);
         logger.LogDebug("Resolving pipeline steps for list-steps request.");
 
-#pragma warning disable ASPIREPIPELINES001
         var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>() as DistributedApplicationPipeline
             ?? throw new InvalidOperationException("Pipeline is not a DistributedApplicationPipeline.");
 
@@ -274,7 +320,6 @@ internal class AppHostRpcTarget(
         }
 
         var orderedSteps = DistributedApplicationPipeline.GetTopologicalOrder(resolvedSteps);
-#pragma warning restore ASPIREPIPELINES001
 
         return new GetPipelineStepsResponse
         {

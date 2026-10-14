@@ -419,6 +419,8 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         };
         return CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            options.CliExecutionContextFactory = _ => TestExecutionContextHelper.CreateExecutionContext(
+                workspace.WorkspaceRoot, homeDirectory: workspace.WorkspaceRoot);
             options.DotNetCliExecutionFactoryFactory = _ => executionFactory;
         }).BuildServiceProvider();
     }

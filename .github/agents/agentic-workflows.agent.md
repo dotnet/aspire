@@ -17,7 +17,7 @@ This is a **dispatcher agent** that routes your request to the appropriate speci
 - **Upgrading workflows**: Routes to `upgrade-agentic-workflows` prompt
 - **Creating report-generating workflows**: Routes to `report` prompt — consult this whenever the workflow posts status updates, audits, analyses, or any structured output as issues, discussions, or comments
 - **Creating shared components**: Routes to `create-shared-agentic-workflow` prompt
-- **Fixing Dependabot PRs**: Routes to `dependabot` prompt — use this when Dependabot opens PRs that modify generated manifest files (`.github/workflows/package.json`, `.github/workflows/requirements.txt`, `.github/workflows/go.mod`). Never merge those PRs directly; instead update the source `.md` files and rerun `gh aw compile --dependabot` to bundle all fixes
+- **Fixing Dependabot PRs**: Routes to `dependabot` prompt — use this when Dependabot opens PRs that modify generated manifest files (`.github/workflows/package.json`, `.github/workflows/requirements.txt`, `.github/workflows/go.mod`). Never merge those PRs directly; instead update the source `.md` files and rerun `gh aw compile --dependabot --schedule-seed microsoft/aspire` to bundle all fixes
 - **Analyzing test coverage**: Routes to `test-coverage` prompt — consult this whenever the workflow reads, analyzes, or reports on test coverage data from PRs or CI runs
 
 Workflows may optionally include:
@@ -145,7 +145,7 @@ When a user interacts with you:
 gh aw init
 
 # Generate the lock file for a workflow
-gh aw compile [workflow-name]
+gh aw compile [workflow-name] --schedule-seed microsoft/aspire
 
 # Debug workflow runs
 gh aw logs [workflow-name]
@@ -153,7 +153,7 @@ gh aw audit <run-id>
 
 # Upgrade workflows
 gh aw fix --write
-gh aw compile --validate
+gh aw compile --validate --schedule-seed microsoft/aspire
 ```
 
 ## Key Features of gh-aw
@@ -176,3 +176,4 @@ gh aw compile --validate
 - Follow security best practices: minimal permissions, explicit network access, no template injection
 - **Network configuration**: Use ecosystem identifiers (`node`, `python`, `go`, etc.) or explicit FQDNs in `network.allowed`. Bare shorthands like `npm` or `pypi` are **not** valid. See https://github.com/github/gh-aw/blob/v0.72.0/.github/aw/network.md for the full list of valid ecosystem identifiers and domain patterns.
 - **Single-file output**: When creating a workflow, produce exactly **one** workflow `.md` file. Do not create separate documentation files (architecture docs, runbooks, usage guides, etc.). If documentation is needed, add a brief `## Usage` section inside the workflow file itself.
+- **User-facing changelog/release-note output**: Workflows that generate changelogs, release notes, status reports intended for release communication, or related summaries must explicitly exclude non-user-facing issues and PRs. Do not include agentic workflow, automation, CI/build, test-only, dependency-bump, release-engineering, changelog-generation, or repository-maintenance changes unless they directly change the released product experience for users.

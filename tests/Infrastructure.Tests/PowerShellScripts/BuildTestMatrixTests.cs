@@ -12,24 +12,25 @@ namespace Infrastructure.Tests;
 /// </summary>
 public class BuildTestMatrixTests : IDisposable
 {
-    private readonly TestTempDirectory _tempDir = new();
+    private readonly TemporaryWorkspace _workspace;
     private readonly string _scriptPath;
     private readonly ITestOutputHelper _output;
 
     public BuildTestMatrixTests(ITestOutputHelper output)
     {
         _output = output;
-        _scriptPath = Path.Combine(FindRepoRoot(), "eng", "scripts", "build-test-matrix.ps1");
+        _workspace = TemporaryWorkspace.Create(output);
+        _scriptPath = Path.Combine(RepoRoot.Path, "eng", "scripts", "build-test-matrix.ps1");
     }
 
-    public void Dispose() => _tempDir.Dispose();
+    public void Dispose() => _workspace.Dispose();
 
     [Fact]
     [RequiresTools(["pwsh"])]
     public async Task GeneratesMatrixFromSingleProject()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -38,7 +39,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/MyProject/MyProject.csproj",
             shortName: "MyProj");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -56,10 +57,32 @@ public class BuildTestMatrixTests : IDisposable
 
     [Fact]
     [RequiresTools(["pwsh"])]
+    public async Task PreservesProjectLevelNonBlockingTestFailures()
+    {
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        TestDataBuilder.CreateTestsMetadataJson(
+            Path.Combine(artifactsDir, "NonGating.tests-metadata.json"),
+            projectName: "NonGating",
+            testProjectPath: "tests/NonGating/NonGating.csproj",
+            nonBlockingTestFailures: true);
+
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
+
+        var result = await RunScript(artifactsDir, outputFile);
+
+        result.EnsureSuccessful();
+        var entry = Assert.Single(ParseCanonicalMatrix(outputFile).Tests);
+        Assert.True(entry.Properties["nonBlockingTestFailures"]);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
     public async Task GeneratesMatrixFromMultipleProjects()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -72,7 +95,7 @@ public class BuildTestMatrixTests : IDisposable
             projectName: "ProjectB",
             testProjectPath: "tests/ProjectB/ProjectB.csproj");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -91,7 +114,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task GeneratesPartitionEntries()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -104,7 +127,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "SplitProject.tests-partitions.json"),
             "PartitionA", "PartitionB");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -132,7 +155,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task GeneratesClassEntries()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -145,7 +168,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "ClassSplitProject.tests-partitions.json"),
             "MyNamespace.TestClassA", "MyNamespace.TestClassB");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -168,7 +191,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task DefaultsMtpBaseArgsToEmptyWhenNotSpecified()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         // Create metadata without explicit timeouts
@@ -177,7 +200,7 @@ public class BuildTestMatrixTests : IDisposable
             projectName: "NoTimeouts",
             testProjectPath: "tests/NoTimeouts/NoTimeouts.csproj");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -195,7 +218,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PreservesCustomMtpBaseArgs()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -204,7 +227,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/CustomTimeouts/CustomTimeouts.csproj",
             mtpBaseArgs: "--hangdump-timeout 15m --timeout 45m");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -222,7 +245,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PreservesRequiresNugetsProperty()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -237,7 +260,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/NoNugets/NoNugets.csproj",
             requiresNugets: false);
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -256,7 +279,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task GeneratesCorrectFilterArgs()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -268,7 +291,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "FilterTest.tests-partitions.json"),
             "MyPartition");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -286,10 +309,10 @@ public class BuildTestMatrixTests : IDisposable
     public async Task CreatesEmptyMatrixWhenNoMetadataFiles()
     {
         // Arrange
-        var emptyArtifactsDir = Path.Combine(_tempDir.Path, "empty-artifacts");
+        var emptyArtifactsDir = Path.Combine(_workspace.Path, "empty-artifacts");
         Directory.CreateDirectory(emptyArtifactsDir);
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(emptyArtifactsDir, outputFile);
@@ -306,7 +329,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task UsesUncollectedMtpBaseArgsForUncollectedEntry()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -321,7 +344,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "SplitProject.tests-partitions.json"),
             "PartitionA");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -347,7 +370,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PassesRequiresTestSdkProperty()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -356,7 +379,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/SdkProject/SdkProject.csproj",
             requiresTestSdk: true);
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -374,7 +397,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PreservesSupportedOSes()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -383,7 +406,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/LinuxOnly/LinuxOnly.csproj",
             supportedOSes: ["linux"]);
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -402,7 +425,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task InheritsSupportedOSesToPartitionEntries()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -416,7 +439,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "OsRestrictedSplit.tests-partitions.json"),
             "PartA");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -439,7 +462,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PassesThroughRunnersForRegularTests()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -448,7 +471,7 @@ public class BuildTestMatrixTests : IDisposable
             testProjectPath: "tests/CustomRunner/CustomRunner.csproj",
             runners: new Dictionary<string, string> { ["macos"] = "macos-latest-xlarge" });
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -468,7 +491,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task OmitsRunnersWhenNotSet()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -476,7 +499,7 @@ public class BuildTestMatrixTests : IDisposable
             projectName: "NoRunner",
             testProjectPath: "tests/NoRunner/NoRunner.csproj");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -494,7 +517,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PassesThroughRunnersForPartitionEntries()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -508,7 +531,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "SplitRunner.tests-partitions.json"),
             "PartA");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -530,7 +553,7 @@ public class BuildTestMatrixTests : IDisposable
     public async Task PassesThroughRunnersForClassEntries()
     {
         // Arrange
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -548,7 +571,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "ClassRunner.tests-partitions.json"),
             "Ns.ClassA");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         // Act
         var result = await RunScript(artifactsDir, outputFile);
@@ -573,7 +596,7 @@ public class BuildTestMatrixTests : IDisposable
         // when the input metadata doesn't set any properties to true.
         var expectedProperties = ReadCITestsPropertyNames();
 
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateTestsMetadataJson(
@@ -581,7 +604,7 @@ public class BuildTestMatrixTests : IDisposable
             projectName: "DefaultProps",
             testProjectPath: "tests/DefaultProps/DefaultProps.csproj");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         var result = await RunScript(artifactsDir, outputFile);
 
@@ -608,7 +631,7 @@ public class BuildTestMatrixTests : IDisposable
         // that the script fills in defaults from CITestsProperties.props.
         var expectedProperties = ReadCITestsPropertyNames();
 
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         var partialMetadata = """
@@ -627,7 +650,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "PartialProps.tests-metadata.json"),
             partialMetadata);
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         var result = await RunScript(artifactsDir, outputFile);
 
@@ -654,7 +677,7 @@ public class BuildTestMatrixTests : IDisposable
     {
         // Validates that CITestsProperties.props is well-formed XML
         // and contains the expected property definitions.
-        var propsPath = Path.Combine(FindRepoRoot(), "eng", "testing", "CITestsProperties.props");
+        var propsPath = Path.Combine(RepoRoot.Path, "eng", "testing", "CITestsProperties.props");
         Assert.True(File.Exists(propsPath), $"CITestsProperties.props not found at {propsPath}");
 
         var doc = new System.Xml.XmlDocument();
@@ -695,7 +718,7 @@ public class BuildTestMatrixTests : IDisposable
         // all properties from CITestsProperties.props.
         var expectedProperties = ReadCITestsPropertyNames();
 
-        var artifactsDir = Path.Combine(_tempDir.Path, "artifacts");
+        var artifactsDir = Path.Combine(_workspace.Path, "artifacts");
         Directory.CreateDirectory(artifactsDir);
 
         TestDataBuilder.CreateSplitTestsMetadataJson(
@@ -709,7 +732,7 @@ public class BuildTestMatrixTests : IDisposable
             Path.Combine(artifactsDir, "SplitProps.tests-partitions.json"),
             "PartA");
 
-        var outputFile = Path.Combine(_tempDir.Path, "matrix.json");
+        var outputFile = Path.Combine(_workspace.Path, "matrix.json");
 
         var result = await RunScript(artifactsDir, outputFile);
 
@@ -747,27 +770,13 @@ public class BuildTestMatrixTests : IDisposable
             ?? throw new InvalidOperationException("Failed to parse matrix JSON");
     }
 
-    private static string FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Aspire.slnx")))
-            {
-                return dir.FullName;
-            }
-            dir = dir.Parent;
-        }
-        throw new InvalidOperationException("Could not find repository root");
-    }
-
     /// <summary>
     /// Reads the CITestsProperties.props XML file and returns
     /// the list of property names (Include attributes).
     /// </summary>
     private static HashSet<string> ReadCITestsPropertyNames()
     {
-        var propsPath = Path.Combine(FindRepoRoot(), "eng", "testing", "CITestsProperties.props");
+        var propsPath = Path.Combine(RepoRoot.Path, "eng", "testing", "CITestsProperties.props");
         var doc = new System.Xml.XmlDocument();
         doc.Load(propsPath);
 

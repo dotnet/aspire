@@ -13,7 +13,9 @@ using Aspire.Otlp.Serialization;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -22,7 +24,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task TelemetryCommand_WithoutSubcommand_ReturnsInvalidCommand()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var provider = services.BuildServiceProvider();
 
@@ -32,6 +34,13 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
+    }
+
+    [Fact]
+    public void TelemetryDiagnosticDisplayValues_AreAvailableFromResources()
+    {
+        Assert.Equal("not an absolute HTTP(S) URL", TelemetryCommandStrings.InvalidDashboardUrlDisplayValue);
+        Assert.Equal("the configured dashboard", TelemetryCommandStrings.ConfiguredDashboardDisplayValue);
     }
 
     [Fact]
@@ -175,6 +184,65 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(TelemetryCommandHelpers.ToOtlpResources([]));
     }
 
+    [Fact]
+    public void ResolveResourceNameMatches_WithResourceNameMatchingCompositeResourceName_ReturnsNoMatches()
+    {
+        var resources = new SimpleOtlpResource[]
+        {
+            new("api-1", "standalone"),
+            new("api", "1"),
+        };
+
+        var matches = OtlpHelpers.ResolveResourceNameMatches("API-1", resources);
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void TryResolveResourceNames_WithAmbiguousCompositeResourceName_ReturnsFalse()
+    {
+        var resources = new ResourceInfoJson[]
+        {
+            new() { Name = "api-a", InstanceId = "1" },
+            new() { Name = "api", InstanceId = "a-1" },
+        };
+
+        var result = TelemetryCommandHelpers.TryResolveResourceNames("api-a-1", resources, out var resolvedResources);
+
+        Assert.False(result);
+        Assert.Null(resolvedResources);
+    }
+
+    [Fact]
+    public void TryResolveResourceNames_WithBaseResourceName_ResolvesAllReplicas()
+    {
+        var resources = new ResourceInfoJson[]
+        {
+            new() { Name = "api", InstanceId = "1" },
+            new() { Name = "api", InstanceId = "2" },
+        };
+
+        var result = TelemetryCommandHelpers.TryResolveResourceNames("API", resources, out var resolvedResources);
+
+        Assert.True(result);
+        Assert.Equal(["api-1", "api-2"], resolvedResources);
+    }
+
+    [Fact]
+    public void TryResolveResourceNames_WithBaseResourceNameAndMixedInstanceIds_ResolvesAllResources()
+    {
+        var resources = new ResourceInfoJson[]
+        {
+            new() { Name = "api", InstanceId = null },
+            new() { Name = "api", InstanceId = "1" },
+        };
+
+        var result = TelemetryCommandHelpers.TryResolveResourceNames("api", resources, out var resolvedResources);
+
+        Assert.True(result);
+        Assert.Equal(["api", "api-1"], resolvedResources);
+    }
+
     [Theory]
     [MemberData(nameof(ResolveResourceNameTestData))]
     internal void ResolveResourceName_ResolvesExpectedName(
@@ -202,8 +270,8 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
         yield return [MakeResource("apiservice", null), new IOtlpResource[] { new SimpleOtlpResource("apiservice", null) }, "apiservice"];
         // replicas with non-GUID instance id → name-instanceId
         yield return [MakeResource("frontend", "abc123"), new IOtlpResource[] { new SimpleOtlpResource("frontend", "abc123"), new SimpleOtlpResource("frontend", "xyz789") }, "frontend-abc123"];
-        // replicas with GUID instance id → name-shortened8chars
-        yield return [MakeResource("worker", guidStr), new IOtlpResource[] { new SimpleOtlpResource("worker", guidStr), new SimpleOtlpResource("worker", Guid.NewGuid().ToString()) }, $"worker-{guid:N}"[..15]];
+        // replicas with GUID instance id → name-last8chars
+        yield return [MakeResource("worker", guidStr), new IOtlpResource[] { new SimpleOtlpResource("worker", guidStr), new SimpleOtlpResource("worker", Guid.NewGuid().ToString()) }, $"worker-{guid.ToString("N")[^8..]}"];
     }
 
     [Theory]
@@ -211,7 +279,7 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
     public async Task TelemetryCommand_WithDashboardUrl_InvalidTelemetryApiResponse_DisplaysErrorMessage(
         string otelCommand, HttpStatusCode? statusCode, string? contentType, string? body, HttpStatusCode? baseProbeStatusCode, string expectedMessageKey)
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var testInteractionService = new TestInteractionService();
 
@@ -258,6 +326,195 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
                 yield return [cmd, statusCode, contentType, body, baseProbeStatusCode, expectedMessageKey];
             }
         }
+    }
+
+    [Theory]
+    [InlineData("logs")]
+    [InlineData("spans")]
+    [InlineData("traces")]
+    public async Task TelemetryCommand_WithAuthenticatedDashboardUrl_DoesNotLeakRequestUrlInErrorsOrLogs(string otelCommand)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interactionService = new TestInteractionService();
+        Uri? telemetryRequestUri = null;
+        using var handler = new MockHttpMessageHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/resources", StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+
+            telemetryRequestUri = request.RequestUri;
+            throw new HttpRequestException(
+                "Request failed at https://" + "exception-user" + ":" + "exception-password" +
+                "@exception.example?token=exception-secret#exception-fragment");
+        });
+        var sink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(sink, enabled: true);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interactionService;
+        });
+        services.AddSingleton(handler);
+        services.Replace(ServiceDescriptor.Singleton<IHttpClientFactory>(new MockHttpClientFactory(handler)));
+        switch (otelCommand)
+        {
+            case "logs":
+                services.Replace(ServiceDescriptor.Singleton<ILogger<TelemetryLogsCommand>>(
+                    new TestLogger<TelemetryLogsCommand>(loggerFactory)));
+                break;
+            case "spans":
+                services.Replace(ServiceDescriptor.Singleton<ILogger<TelemetrySpansCommand>>(
+                    new TestLogger<TelemetrySpansCommand>(loggerFactory)));
+                break;
+            case "traces":
+                services.Replace(ServiceDescriptor.Singleton<ILogger<TelemetryTracesCommand>>(
+                    new TestLogger<TelemetryTracesCommand>(loggerFactory)));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(otelCommand));
+        }
+
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse(
+            $"otel {otelCommand} --dashboard-url " +
+            "https://localhost:18888?accessKey=request-secret&view=resources#request-fragment");
+
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.DashboardFailure, exitCode);
+        Assert.NotNull(telemetryRequestUri);
+        Assert.Contains("accessKey=request-secret", telemetryRequestUri.Query, StringComparison.Ordinal);
+        AssertDiagnosticsAreSanitized(interactionService.DisplayedErrors, sink.Writes);
+    }
+
+    [Fact]
+    public async Task GetDashboardApiErrorAsync_UsesAuthenticatedProbeAndSanitizedDiagnostics()
+    {
+        using var handler = new MockHttpMessageHandler(new HttpRequestException(
+            HttpRequestError.ConnectionError,
+            "Probe failed at https://" + "exception-user" + ":" + "exception-password" +
+            "@exception.example?token=exception-secret#exception-fragment",
+            inner: null,
+            HttpStatusCode.ServiceUnavailable));
+        var sink = new TestSink();
+        var logger = new TestLogger<TelemetryCommandTests>(
+            new TestLoggerFactory(sink, enabled: true));
+        var requestUrl =
+            "https://" + "request-user" + ":" + "request-password" + "@localhost:18888/base" +
+            "?access_token=request-secret&view=resources#request-fragment";
+
+        var error = await TelemetryCommandHelpers.GetDashboardApiErrorAsync(
+            new HttpRequestException(
+                HttpRequestError.Unknown,
+                "Not found",
+                inner: null,
+                HttpStatusCode.NotFound),
+            requestUrl,
+            new MockHttpClientFactory(handler),
+            logger,
+            CancellationToken.None);
+
+        Assert.Contains("https://localhost:18888/base?view=resources", error.Error, StringComparison.Ordinal);
+        Assert.Collection(
+            sink.Writes,
+            write =>
+            {
+                Assert.Equal(
+                    "Dashboard probe failed for https://localhost:18888/base?view=resources: " +
+                    "HttpRequestException; HTTP 503 (ServiceUnavailable)",
+                    write.Message);
+                Assert.Null(write.Exception);
+            });
+        AssertDiagnosticsAreSanitized([error.Error, .. error.Hints], sink.Writes);
+    }
+
+    [Fact]
+    public async Task GetDashboardApiErrorAsync_RethrowsRequestedCancellation()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        await cancellationSource.CancelAsync();
+        var expectedException = new OperationCanceledException(
+            "Probe canceled with request-secret",
+            cancellationSource.Token);
+        using var handler = new MockHttpMessageHandler(expectedException);
+
+        var actualException = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            TelemetryCommandHelpers.GetDashboardApiErrorAsync(
+                new HttpRequestException(
+                    HttpRequestError.Unknown,
+                    "Not found",
+                    inner: null,
+                    HttpStatusCode.NotFound),
+                "https://localhost:18888",
+                new MockHttpClientFactory(handler),
+                NullLogger.Instance,
+                cancellationSource.Token));
+
+        Assert.Same(expectedException, actualException);
+    }
+
+    [Fact]
+    public async Task ExchangeLoginTokenForApiKeyAsync_UsesAuthenticatedRequestAndLogsSanitizedUrl()
+    {
+        using var handler = new MockHttpMessageHandler(new HttpRequestException(
+            HttpRequestError.ConnectionError,
+            "Exchange failed at https://" + "exception-user" + ":" + "exception-password" +
+            "@exception.example?token=exception-secret#exception-fragment",
+            inner: null,
+            HttpStatusCode.BadGateway));
+        var sink = new TestSink();
+        var logger = new TestLogger<TelemetryCommandTests>(
+            new TestLoggerFactory(sink, enabled: true));
+        var requestUrl =
+            "https://" + "request-user" + ":" + "request-password" + "@localhost:18888/base" +
+            "?access_token=request-secret&view=resources#request-fragment";
+
+        var result = await TelemetryCommandHelpers.ExchangeLoginTokenForApiKeyAsync(
+            new MockHttpClientFactory(handler),
+            requestUrl,
+            "login-token",
+            logger,
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(TokenExchangeFailureKind.ConnectionError, result.FailureKind);
+        Assert.Collection(
+            sink.Writes,
+            write =>
+            {
+                Assert.Equal(
+                    "Failed to exchange login token for API key at https://localhost:18888/base?view=resources: " +
+                    "HttpRequestException; HTTP 502 (BadGateway)",
+                    write.Message);
+                Assert.Null(write.Exception);
+            });
+        AssertDiagnosticsAreSanitized([], sink.Writes);
+    }
+
+    [Fact]
+    public async Task ExchangeLoginTokenForApiKeyAsync_RethrowsRequestedCancellation()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        await cancellationSource.CancelAsync();
+        var expectedException = new OperationCanceledException(
+            "Token exchange canceled with request-secret",
+            cancellationSource.Token);
+        using var handler = new MockHttpMessageHandler(expectedException);
+
+        var actualException = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            TelemetryCommandHelpers.ExchangeLoginTokenForApiKeyAsync(
+                new MockHttpClientFactory(handler),
+                "https://localhost:18888",
+                "login-token",
+                NullLogger.Instance,
+                cancellationSource.Token));
+
+        Assert.Same(expectedException, actualException);
     }
 
     private static MockHttpMessageHandler CreateInvalidResponseHandler(
@@ -308,6 +565,24 @@ public class TelemetryCommandTests(ITestOutputHelper outputHelper)
             string.Format(CultureInfo.InvariantCulture, TelemetryCommandStrings.UnexpectedContentType, "text/plain")),
         _ => throw new ArgumentException($"Unknown message key: {key}")
     };
+
+    private static void AssertDiagnosticsAreSanitized(
+        IEnumerable<string> errors,
+        IEnumerable<WriteContext> writes)
+    {
+        foreach (var diagnostic in errors.Concat(
+            writes.Select(write => $"{write.Message} {write.Exception}")))
+        {
+            Assert.DoesNotContain("request-user", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("request-password", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("request-secret", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("request-fragment", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("exception-secret", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("exception-fragment", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("exception-user", diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain("exception-password", diagnostic, StringComparison.Ordinal);
+        }
+    }
 
     private static OtlpResourceJson MakeResource(string serviceName, string? instanceId)
     {

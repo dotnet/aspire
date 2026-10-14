@@ -4,14 +4,16 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
-using Aspire.Tests.Shared.Telemetry;
+using Aspire.Otlp.Serialization;
+using Aspire.Shared;
+using Aspire.Shared.Telemetry;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,6 +35,51 @@ namespace Aspire.Dashboard.Tests.Integration;
 
 public class StartupTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    public async Task Startup_HttpJsonWithoutReflection_UsesGeneratedMetadata()
+    {
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            testOutputHelper,
+            preConfigureBuilder: builder => builder.Services.ConfigureHttpJsonOptions(options =>
+                options.SerializerOptions.TypeInfoResolverChain.Clear()));
+
+        await app.StartAsync().DefaultTimeout();
+
+        var options = app.Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value.SerializerOptions;
+        Assert.Equal("test-token", JsonSerializer.Deserialize<ValidateTokenRequest>("""{"token":"test-token"}""", options)!.Token);
+        Assert.Equal("test-token", JsonSerializer.Deserialize<TelemetryValidateTokenRequest>("""{"token":"test-token"}""", options)!.Token);
+    }
+
+    [Fact]
+    public async Task Construction_ValidatesServiceDescriptorsAndScopes()
+    {
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            testOutputHelper,
+            preConfigureBuilder: builder => builder.WebHost.UseDefaultServiceProvider(options =>
+            {
+                options.ValidateOnBuild = true;
+                options.ValidateScopes = true;
+            }));
+    }
+
+    [Fact]
+    public async Task Construction_CurrentDataSourceIsManagedByPool()
+    {
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+
+        var databasePool = app.Services.GetRequiredService<DashboardDataSourcePool>();
+        await databasePool.InitializeAsync(CancellationToken.None);
+        var currentRun = app.Services.GetRequiredService<IDashboardRunStore>().GetRuns().Single(run => run.IsCurrent);
+        var telemetryRepository = Assert.IsType<SqliteTelemetryRepository>(app.Services.GetRequiredService<ITelemetryRepository>());
+
+        Assert.Equal(currentRun.DatabasePath, databasePool.Current.Database.DatabasePath);
+        Assert.False(databasePool.Current.Database.IsReadOnly);
+        Assert.Same(databasePool.Current.Database.ActivitySource, telemetryRepository.SqlActivitySource);
+        Assert.Same(databasePool.Current.TelemetryRepository, telemetryRepository);
+        Assert.Same(databasePool.Current.ResourceRepository, app.Services.GetRequiredService<IResourceRepository>());
+        Assert.Null(app.Services.GetService<DashboardSqliteDatabase>());
+    }
+
     [Fact]
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
@@ -63,6 +110,42 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task RunAsync_TokenCancelled_ShutsDownAndReturnsZero()
+    {
+        // The standalone Dashboard process relies on RunAsync honoring its cancellation
+        // token so the parent-liveness watchdog can tear the dashboard down when the launching CLI dies.
+        // Verify a running dashboard shuts down gracefully and reports success when the token is cancelled.
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(testOutputHelper);
+        var logger = loggerFactory.CreateLogger<StartupTests>();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory);
+
+        using var cts = new CancellationTokenSource();
+        var runTask = app.RunAsync(cts.Token);
+
+        // Wait until the dashboard is actually serving so we exercise the running -> graceful-shutdown
+        // path rather than a start-time cancellation race. FrontendEndPointsAccessor throws until started.
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(
+            () =>
+            {
+                try
+                {
+                    return app.FrontendEndPointsAccessor.Count > 0;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            },
+            "Dashboard reached startup.", logger);
+
+        cts.Cancel();
+
+        var exitCode = await runTask.DefaultTimeout();
+        Assert.Equal(0, exitCode);
     }
 
     [Fact]
@@ -115,7 +198,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         // OTLP endpoints are optional, so only frontend URL is required
         Assert.Collection(app.ValidationFailures,
-            s => Assert.Contains(KnownConfigNames.AspNetCoreUrls, s));
+            s => Assert.Contains(KnownAspNetCoreConfigNames.Urls, s));
     }
 
     [Fact]
@@ -260,7 +343,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
 
         // Assert
-        Assert.Contains(fileConfigDirectory, ex.Message);
+        Assert.Contains("The root directory for the FileProvider doesn't exist", ex.Message);
     }
 
     [Fact]
@@ -282,42 +365,24 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
     }
 
-    [Theory]
-    [InlineData(null, true)]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    public async Task Configuration_OptionsMonitor_DebugSession(bool? aiDisabled, bool expectedAIDisabled)
+    [Fact]
+    public async Task Configuration_LegacyDebugSession_DisablesTelemetryAndIgnoresTransportSettings()
     {
-        // Arrange
-        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
-
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: initialData =>
             {
-                initialData[DashboardConfigNames.DashboardAIDisabledName.ConfigKey] = aiDisabled?.ToString().ToLower();
-                initialData[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
-                initialData[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
-                initialData[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
-                initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+                initialData[KnownConfigNames.DashboardTelemetryOptOut] = "false";
+                initialData[DashboardConfigNames.Legacy.DebugSessionPortName.ConfigKey] = "not-a-port";
+                initialData[DashboardConfigNames.Legacy.DebugSessionServerCertificateName.ConfigKey] = "not base64";
+                initialData[DashboardConfigNames.Legacy.DebugSessionTokenName.ConfigKey] = "token!";
+                initialData[DashboardConfigNames.Legacy.DebugSessionDcpInstanceIdName.ConfigKey] = "aspire-extension-run-123-dashboard";
+                initialData[DashboardConfigNames.Legacy.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
             });
 
-        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
-
-        // Act
         await app.StartAsync().DefaultTimeout();
 
-        // Assert
-        Assert.Equal(8080, app.DashboardOptionsMonitor.CurrentValue.DebugSession.Port);
-
-        var cert = app.DashboardOptionsMonitor.CurrentValue.DebugSession.GetServerCertificate();
-        Assert.NotNull(cert);
-        Assert.Equal(testCert.Thumbprint, cert.Thumbprint);
-
-        Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
-        Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
-
-        Assert.Equal(expectedAIDisabled, app.DashboardOptionsMonitor.CurrentValue.AI.Disabled);
-        Assert.Equal(!expectedAIDisabled, aiContextProvider.Enabled);
+        Assert.False(app.Services.GetRequiredService<DashboardTelemetryService>().IsTelemetryEnabled);
+        Assert.True(app.Services.GetRequiredService<DashboardTelemetryManager>().IsInitialized);
     }
 
     [Fact]
@@ -889,7 +954,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         response.EnsureSuccessStatusCode();
-        Assert.NotEmpty(response.Headers.GetValues(HeaderNames.ContentSecurityPolicy).Single());
+        Assert.All(response.Headers.GetValues(HeaderNames.ContentSecurityPolicy), Assert.NotEmpty);
     }
 
     [Fact]
@@ -1001,32 +1066,24 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Contains(typeof(ConsoleLoggerProvider), loggerProviderTypes);
     }
 
-    [Theory]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    [InlineData(null, true)]
-    public async Task Configuration_DisableAI_EnsureValueSetOnOptions(bool? value, bool expectedAIDisabled)
+    [Fact]
+    public async Task Startup_InitializesProductTelemetryManagerAndShutdownCompletes()
     {
-        // Arrange & Act
-        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+        var manager = app.Services.GetRequiredService<DashboardTelemetryManager>();
+        var telemetry = app.Services.GetRequiredService<DashboardTelemetryService>();
+        Assert.False(manager.IsInitialized);
+        Assert.False(telemetry.IsTelemetryEnabled);
 
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-            additionalConfiguration: data =>
-            {
-                data[DashboardConfigNames.DashboardAIDisabledName.ConfigKey] = value?.ToString().ToLower();
+        await app.StartAsync().DefaultTimeout();
 
-                // Set debug session values so that AIContextProvider.Enabled has those values.
-                data[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
-                data[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
-                data[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
-                data[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
-            });
+        Assert.True(manager.IsInitialized);
+        Assert.False(telemetry.IsTelemetryEnabled);
 
-        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
+        await app.StopAsync().DefaultTimeout();
 
-        // Assert
-        Assert.Equal(expectedAIDisabled, app.DashboardOptionsMonitor.CurrentValue.AI.Disabled);
-        Assert.Equal(!expectedAIDisabled, aiContextProvider.Enabled);
+        Assert.False(manager.IsInitialized);
+        Assert.Throws<ObjectDisposedException>(manager.Initialize);
     }
 
     [Fact]
@@ -1036,8 +1093,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        const string applicationName = "Failed startup";
+        var runsDirectory = DashboardRunStore.GetRunsDirectory(workspace.Path);
 
-        await using var app = new DashboardWebApplication(preConfigureBuilder: builder =>
+        int exitCode;
+        await using (var app = new DashboardWebApplication(preConfigureBuilder: builder =>
         {
             RemoveEnvironmentVariableSources(builder);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -1047,12 +1108,134 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 [DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0",
                 [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
                 [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
+                [DashboardConfigNames.DashboardApplicationName.ConfigKey] = applicationName,
+                [DashboardConfigNames.DashboardDataDirectoryName.ConfigKey] = workspace.Path,
+                [DashboardConfigNames.DashboardPersistenceModeName.ConfigKey] = nameof(DashboardPersistenceMode.Run),
             });
-        });
+        }))
+        {
+            exitCode = app.Run();
 
-        var exitCode = app.Run();
+            Assert.Empty(Directory.GetFiles(runsDirectory, "run.json", SearchOption.AllDirectories));
+        }
 
         Assert.Equal(DashboardWebApplication.ExitCodeAddressInUse, exitCode);
+        Assert.Empty(Directory.GetDirectories(runsDirectory));
+    }
+
+    [Theory]
+    [InlineData(KnownDashboardLaunchContexts.AppHost)]
+    [InlineData(KnownDashboardLaunchContexts.Cli)]
+    public async Task Startup_LauncherEnvironmentVariable_RecordsLaunchContext(string launchContext)
+    {
+        using var fixture = new DashboardTelemetryFixture();
+        // Use the launchers' shared key with the real environment provider. A unique
+        // prefix isolates the variable without changing its configuration binding.
+        var prefix = $"DashboardStartupTest_{Guid.NewGuid():N}_";
+        var variableName = prefix + DashboardConfigNames.DashboardLaunchContextName.EnvVarName;
+        Environment.SetEnvironmentVariable(variableName, launchContext);
+        try
+        {
+            await using var app = new DashboardWebApplication(preConfigureBuilder: builder =>
+            {
+                RemoveEnvironmentVariableSources(builder);
+                builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [KnownConfigNames.DashboardTelemetryOptOut] = "true",
+                    [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
+                    [DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0",
+                    [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
+                    [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
+                });
+                builder.Configuration.AddEnvironmentVariables(prefix);
+                builder.Services.AddSingleton(fixture.Telemetry);
+            });
+
+            await app.StartAsync().DefaultTimeout();
+            await app.StopAsync().DefaultTimeout();
+
+            Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+            Assert.Equal(TelemetryEventKeys.Startup, log.Message);
+            var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
+            Assert.Equal(launchContext, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
+            Assert.Equal(true, attributes[TelemetryPropertyKeys.StartupSuccess]);
+            Assert.Equal(launchContext, app.DashboardOptionsMonitor.CurrentValue.LaunchContext);
+            Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(variableName, null);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, DashboardPersistenceMode.Run, "run", null)]
+    [InlineData(false, DashboardPersistenceMode.Resume, "resume", null)]
+    [InlineData(false, (DashboardPersistenceMode)999, "unknown", null)]
+    [InlineData(false, DashboardPersistenceMode.None, "unknown", "invalid")]
+    [InlineData(false, DashboardPersistenceMode.None, "unknown", "999")]
+    [InlineData(false, DashboardPersistenceMode.Resume, "unknown", "invalid")]
+    [InlineData(true, DashboardPersistenceMode.Run, "resume", "ReSuMe")]
+    public async Task Startup_RecordsLaunchContextAndPersistenceModeFromOptions(
+        bool validOptions, DashboardPersistenceMode persistenceMode, string expectedPersistenceMode, string? environmentPersistenceMode)
+    {
+        using var fixture = new DashboardTelemetryFixture();
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardLaunchContextName.ConfigKey] = " CLI ";
+                data[DashboardConfigNames.DashboardPersistenceModeName.ConfigKey] = persistenceMode.ToString();
+                data[DashboardConfigNames.DashboardPersistenceModeName.EnvVarName] = environmentPersistenceMode;
+                data[DashboardConfigNames.DashboardDataDirectoryName.ConfigKey] = workspace.Path;
+                if (!validOptions && Enum.IsDefined(persistenceMode) && environmentPersistenceMode is null)
+                {
+                    data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = null;
+                }
+            },
+            preConfigureBuilder: builder => builder.Services.AddSingleton(fixture.Telemetry));
+
+        if (validOptions)
+        {
+            Assert.Equal(" CLI ", app.DashboardOptionsMonitor.CurrentValue.LaunchContext);
+            await app.StartAsync().DefaultTimeout();
+            await app.StopAsync().DefaultTimeout();
+        }
+        else
+        {
+            var exception = Assert.Throws<OptionsValidationException>(() => app.DashboardOptionsMonitor.CurrentValue);
+            if (environmentPersistenceMode is not null)
+            {
+                Assert.Equal(
+                    $"Failed to parse dashboard persistence mode '{environmentPersistenceMode}'. Possible values: None, Run, Resume.",
+                    Assert.Single(exception.Failures));
+            }
+            else if (!Enum.IsDefined(persistenceMode))
+            {
+                Assert.Equal($"Unexpected dashboard persistence mode: {persistenceMode}", Assert.Single(exception.Failures));
+            }
+
+            var exitCode = await app.RunAsync(CancellationToken.None).DefaultTimeout();
+            Assert.Equal(DashboardWebApplication.ExitCodeValidationFailure, exitCode);
+        }
+
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+        Assert.Equal(TelemetryEventKeys.Startup, log.Message);
+        var attributes = log.Attributes.ToDictionary(p => p.Key, p => p.Value);
+        Assert.Equal(KnownDashboardLaunchContexts.Cli, attributes[TelemetryPropertyKeys.StartupLaunchContext]);
+        Assert.Equal(expectedPersistenceMode, attributes[TelemetryPropertyKeys.StartupPersistenceMode]);
+        Assert.Equal("local",
+            Assert.IsType<string>(attributes[TelemetryPropertyKeys.DeploymentEnvironmentName]));
+        Assert.Equal(OperatingSystemTelemetry.GetOsName(), attributes[TelemetryPropertyKeys.OsName]);
+        Assert.Equal(OperatingSystemTelemetry.GetOsType(), attributes[TelemetryPropertyKeys.OsType]);
+        Assert.Equal(Environment.OSVersion.Version.ToString(), attributes[TelemetryPropertyKeys.OsVersion]);
+        Assert.Equal(validOptions, attributes[TelemetryPropertyKeys.StartupSuccess]);
+        if (!validOptions)
+        {
+            Assert.Equal(KnownDashboardStartupFailureReasons.ConfigurationValidation, attributes[TelemetryPropertyKeys.ErrorType]);
+        }
+        Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
     }
 
     [Fact]
@@ -1068,6 +1251,19 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var exitCode = app.Run();
 
         Assert.Equal(DashboardWebApplication.ExitCodeValidationFailure, exitCode);
+    }
+
+    [Fact]
+    public void GetStartupFailureReason_CanceledStartup_ReturnsCanceled()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var reason = DashboardWebApplication.GetStartupFailureReason(
+            new OperationCanceledException(cts.Token),
+            cts.Token);
+
+        Assert.Equal(KnownDashboardStartupFailureReasons.Canceled, reason);
     }
 
     private static void RemoveEnvironmentVariableSources(WebApplicationBuilder builder)

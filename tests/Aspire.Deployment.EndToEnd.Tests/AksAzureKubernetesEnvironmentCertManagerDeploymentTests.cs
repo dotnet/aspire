@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Tests.Utils;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
 using Xunit;
@@ -163,11 +162,10 @@ builder.Build().Run();
             content = content.Replace(buildRunPattern, replacement);
 
             const string pragmaBlock =
-                "#pragma warning disable ASPIREPIPELINES001\n" +
                 "#pragma warning disable ASPIRECOMPUTE003\n" +
                 "#pragma warning disable ASPIREAZURE003\n";
 
-            if (!content.Contains("#pragma warning disable ASPIREPIPELINES001"))
+            if (!content.Contains(pragmaBlock))
             {
                 content = pragmaBlock + content;
             }
@@ -181,8 +179,10 @@ builder.Build().Run();
             await auto.WaitForSuccessPromptAsync(counter);
 
             output.WriteLine("Step 8: Setting deployment environment variables...");
+            // Unset the job-level Azure__Location=westus3 the CI workflow injects: on Linux it coexists
+            // with AZURE__LOCATION (case-sensitive env) and .NET config may bind the inherited westus3 instead.
             await auto.TypeAsync(
-                $"unset ASPIRE_PLAYGROUND && " +
+                $"unset ASPIRE_PLAYGROUND && unset Azure__Location && " +
                 $"export AZURE__LOCATION=westus3 && " +
                 $"export AZURE__RESOURCEGROUP={resourceGroupName} && " +
                 $"export Parameters__acmeemail={acmeEmail}");

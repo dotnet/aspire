@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREUSERSECRETS001
-
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -25,7 +22,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal addParameter dispatcher export.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the internal addParameter dispatcher export.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -72,7 +69,7 @@ public static class ParameterResourceBuilderExtensions
     /// <remarks>publishValueAsDefault and secret are mutually exclusive.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal addParameter dispatcher export.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the internal addParameter dispatcher export.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, string value, bool publishValueAsDefault = false, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -219,6 +216,38 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Marks the parameter resource as optional.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <returns>The configured resource builder.</returns>
+    /// <remarks>
+    /// Optional parameters that do not have values are not prompted for during run or publish operations.
+    /// When referenced as environment variables or other value providers, unset optional parameters resolve to <see langword="null"/>.
+    /// The manifest publisher does not currently support optional parameters and throws a <see cref="DistributedApplicationException"/>.
+    /// </remarks>
+    [AspireExport]
+    public static IResourceBuilder<ParameterResource> WithOptional(this IResourceBuilder<ParameterResource> builder)
+    {
+        return builder.WithRequired(required: false);
+    }
+
+    /// <summary>
+    /// Sets whether the parameter resource requires a value.
+    /// </summary>
+    /// <param name="builder">Resource builder for the parameter.</param>
+    /// <param name="required">A value indicating whether the parameter must have a value before it can be resolved.</param>
+    /// <returns>The configured resource builder.</returns>
+    [AspireExport]
+    public static IResourceBuilder<ParameterResource> WithRequired(this IResourceBuilder<ParameterResource> builder, bool required = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Required = required;
+
+        return builder;
+    }
+
+    /// <summary>
     /// Sets a custom input generator function for the parameter resource.
     /// </summary>
     /// <param name="builder">Resource builder for the parameter.</param>
@@ -239,7 +268,6 @@ public static class ParameterResourceBuilderExtensions
     /// </code>
     /// <para>This method is not available in polyglot app hosts.</para>
     /// </remarks>
-    [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     [AspireExportIgnore(Reason = "Complex Func delegate with InteractionInput — not ATS-compatible.")]
     public static IResourceBuilder<ParameterResource> WithCustomInput(this IResourceBuilder<ParameterResource> builder, Func<ParameterResource, InteractionInput> createInput)
     {
@@ -257,7 +285,6 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Resource builder for the parameter.</param>
     /// <param name="options">Options used to customize the input for the parameter.</param>
     /// <returns>Resource builder for the parameter.</returns>
-    [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     [AspireExport("withCustomInput")]
     internal static IResourceBuilder<ParameterResource> WithCustomInputForPolyglot(this IResourceBuilder<ParameterResource> builder, Ats.ParameterCustomInputOptions options)
     {
@@ -321,7 +348,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the internal addConnectionString dispatcher export.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the internal addConnectionString dispatcher export.")]
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? environmentVariableName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -363,7 +390,11 @@ public static class ParameterResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This API only changes the manifest representation; it does not change the resource model used by other publishers.
+    /// </remarks>
     /// <ats-returns>The resource builder.</ats-returns>
+    [Obsolete("PublishAsConnectionString only works with the manifest publisher and is obsolete. Use AddConnectionString in publish-mode app model code instead.")]
     [AspireExport]
     public static IResourceBuilder<T> PublishAsConnectionString<T>(this IResourceBuilder<T> builder)
         where T : ContainerResource, IResourceWithConnectionString

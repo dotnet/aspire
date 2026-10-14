@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -17,29 +16,27 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private const string VsCodeFolderName = ".vscode";
     private const string McpConfigFileName = "mcp.json";
     private const string AspireServerName = "aspire";
-    private static readonly string s_skillBaseDirectory = Path.Combine(".github", "skills");
-
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
-    private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly CliExecutionContext _executionContext;
+    private readonly IEnvironment _environment;
     private readonly ILogger<VsCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="vsCodeCliRunner">The VS Code CLI runner for checking if VS Code is installed.</param>
-    /// <param name="playwrightCliInstaller">The Playwright CLI installer for secure installation.</param>
     /// <param name="executionContext">The CLI execution context for accessing environment variables and settings.</param>
+    /// <param name="environment">The environment abstraction for reading environment variables.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public VsCodeAgentEnvironmentScanner(IVsCodeCliRunner vsCodeCliRunner, PlaywrightCliInstaller playwrightCliInstaller, CliExecutionContext executionContext, ILogger<VsCodeAgentEnvironmentScanner> logger)
+    public VsCodeAgentEnvironmentScanner(IVsCodeCliRunner vsCodeCliRunner, CliExecutionContext executionContext, IEnvironment environment, ILogger<VsCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(vsCodeCliRunner);
-        ArgumentNullException.ThrowIfNull(playwrightCliInstaller);
         ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(logger);
         _vsCodeCliRunner = vsCodeCliRunner;
-        _playwrightCliInstaller = playwrightCliInstaller;
         _executionContext = executionContext;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -48,14 +45,16 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     {
         _logger.LogDebug("Starting VS Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
         _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
-        
+
         _logger.LogDebug("Searching for .vscode folder...");
         var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
 
         if (vsCodeFolder is not null)
         {
             _logger.LogDebug("Found .vscode folder at: {VsCodeFolder}", vsCodeFolder.FullName);
-            
+
+            context.AddDetectedClient(AgentClientKind.VsCode);
+
             // Check if the aspire server is already configured
             if (!HasAspireServerConfigured(vsCodeFolder))
             {
@@ -67,21 +66,18 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             {
                 _logger.LogDebug("Aspire MCP server is already configured in .vscode/mcp.json");
             }
-
-            // Register Playwright CLI installation applicator
-            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
             _logger.LogDebug("No .vscode folder found, but VS Code is available on the system");
+
+            context.AddDetectedClient(AgentClientKind.VsCode);
+
             // No .vscode folder found, but VS Code is available
             // Use workspace root for new .vscode folder
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.RepositoryRoot.FullName, VsCodeFolderName));
             _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
             context.AddApplicator(CreateAspireApplicator(targetVsCodeFolder));
-            
-            // Register Playwright CLI installation applicator
-            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
         }
         else
         {
@@ -168,7 +164,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private bool HasVsCodeEnvironmentVariables()
     {
-        if (_executionContext.GetEnvironmentVariable("TERM_PROGRAM") == "vscode")
+        if (_environment.GetEnvironmentVariable("TERM_PROGRAM") == "vscode")
         {
             return true;
         }
@@ -237,7 +233,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         }
 
         var mcpConfigPath = Path.Combine(vsCodeFolder.FullName, McpConfigFileName);
-        var config = await McpConfigFileHelper.ReadConfigAsync(mcpConfigPath, cancellationToken);
+        var config = await McpConfigFileHelper.ReadConfigAsync(mcpConfigPath, null, cancellationToken);
 
         // Ensure "servers" object exists
         if (!config.ContainsKey("servers") || config["servers"] is not JsonObject)

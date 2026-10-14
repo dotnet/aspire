@@ -7,6 +7,7 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,31 +36,43 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             [showDashboardResourcesKey] = null
         });
 
-        var dashboardPath = Path.GetFullPath("dashboard");
-
-        builder.Services.Configure<DcpOptions>(o =>
+        var dashboardDirectory = Directory.CreateTempSubdirectory();
+        try
         {
-            o.DashboardPath = dashboardPath;
-        });
+            var dashboardPath = Path.Combine(dashboardDirectory.FullName, "dashboard");
+            File.WriteAllText($"{dashboardPath}.dll", string.Empty);
+            File.WriteAllText(
+                $"{dashboardPath}.runtimeconfig.json",
+                """{"runtimeOptions":{"tfm":"net11.0","frameworks":[{"name":"Microsoft.NETCore.App","version":"11.0.0"},{"name":"Microsoft.AspNetCore.App","version":"11.0.0"}]}}""");
 
-        using var app = builder.Build();
+            builder.Services.Configure<DcpOptions>(o =>
+            {
+                o.DashboardPath = dashboardPath;
+            });
 
-        await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
+            using var app = builder.Build();
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+            await app.ExecuteBeforeStartHooksAsync(default).DefaultTimeout();
 
-        var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
-        var initialSnapshot = Assert.Single(dashboard.Annotations.OfType<ResourceSnapshotAnnotation>());
-        var hiddenAnnotation = Assert.Single(dashboard.Annotations.OfType<HiddenAnnotation>());
+            var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+            var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
+            var initialSnapshot = Assert.Single(dashboard.Annotations.OfType<ResourceSnapshotAnnotation>());
+            var hiddenAnnotation = Assert.Single(dashboard.Annotations.OfType<HiddenAnnotation>());
 
-        Assert.NotNull(dashboard);
-        Assert.Equal("aspire-dashboard", dashboard.Name);
-        Assert.Equal("dotnet", dashboard.Command);
-        Assert.Equal(args[3], $"{dashboardPath}.dll");
-        Assert.Equal(HiddenBehavior.Always, hiddenAnnotation.Behavior);
-        Assert.False(initialSnapshot.InitialSnapshot.IsHidden);
+            var args = await ArgumentEvaluator.GetArgumentListAsync(dashboard).DefaultTimeout();
+
+            Assert.NotNull(dashboard);
+            Assert.Equal("aspire-dashboard", dashboard.Name);
+            Assert.Equal("dotnet", dashboard.Command);
+            Assert.Equal(args[3], $"{dashboardPath}.dll");
+            Assert.Equal(HiddenBehavior.Always, hiddenAnnotation.Behavior);
+            Assert.False(initialSnapshot.InitialSnapshot.IsHidden);
+        }
+        finally
+        {
+            dashboardDirectory.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -98,7 +111,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
@@ -133,17 +146,22 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             },
             e =>
             {
+                Assert.Equal(DashboardConfigNames.DashboardPersistenceModeName.EnvVarName, e.Key);
+                Assert.Equal("Run", e.Value);
+            },
+            e =>
+            {
                 Assert.Equal(KnownConfigNames.ResourceServiceEndpointUrl, e.Key);
                 Assert.Equal("http://localhost:5000", e.Value);
             },
             e =>
             {
-                Assert.Equal("ASPNETCORE_ENVIRONMENT", e.Key);
+                Assert.Equal(KnownAspNetCoreConfigNames.Environment, e.Key);
                 Assert.Equal("Production", e.Value);
             },
             e =>
             {
-                Assert.Equal(KnownConfigNames.AspNetCoreUrls, e.Key);
+                Assert.Equal(KnownAspNetCoreConfigNames.Urls, e.Key);
                 Assert.Equal("http://localhost:5003", e.Value);
             },
             e =>
@@ -160,6 +178,11 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             {
                 Assert.Equal("DASHBOARD__FRONTEND__PUBLICURL", e.Key);
                 Assert.Equal("http://localhost:5003", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal(DashboardConfigNames.DashboardLaunchContextName.EnvVarName, e.Key);
+                Assert.Equal(KnownDashboardLaunchContexts.AppHost, e.Value);
             },
             e =>
             {
@@ -192,7 +215,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "https://localhost:17131;http://localhost:15000",
+            [KnownAspNetCoreConfigNames.Urls] = "https://localhost:17131;http://localhost:15000",
             [dashboardOtlpGrpcEndpointUrlKey] = string.Empty
         });
 
@@ -263,7 +286,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var config = new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = dashboardUrls,
+            [KnownAspNetCoreConfigNames.Urls] = dashboardUrls,
         };
 
         if (allowUnsecuredTransport is not null)
@@ -321,7 +344,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
             options => options.DisableDashboard = false,
             testOutputHelper: testOutputHelper);
 
-        var dashboardPath = Path.GetFullPath("dashboard.dll");
+        var dashboardPath = typeof(DashboardResourceTests).Assembly.Location;
 
         builder.Services.Configure<DcpOptions>(o =>
         {
@@ -363,7 +386,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost",
             ["AppHost:BrowserToken"] = "TestBrowserToken!",
             ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
@@ -405,7 +428,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
@@ -441,7 +464,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [dashboardOtlpGrpcEndpointUrlKey] = "http://localhost"
         });
 
@@ -478,7 +501,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [otlpHttpEndpointUrlKey] = "http://localhost",
             [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
         });
@@ -573,7 +596,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost",
             [otlpGrpcEndpointUrlKey] = "http://localhost",
             [corsAllowedOriginsKey] = explicitCorsAllowedOrigins
         });
@@ -607,7 +630,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "https://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "https://localhost",
             [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
         });
 
@@ -734,10 +757,12 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
         // Push some logs through to the dashboard resource.
         var logger = resourceLoggerService.GetLogger("aspire-dashboard-0");
 
-        // The logging watcher expects a JSON payload
+        // The logging watcher expects a JSON payload. Use an "Aspire.Dashboard." prefixed category
+        // so the LogMessage method trims it and routes to "Aspire.Hosting.Dashboard.Test" rather than
+        // "Aspire.Hosting.Dashboard.ThirdParty.Test".
         var dashboardLogMessage = new DashboardLogMessage
         {
-            Category = "Test",
+            Category = "Aspire.Dashboard.Test",
             LogLevel = logLevel,
             Message = "Test dashboard message"
         };
@@ -799,7 +824,7 @@ public class DashboardResourceTests(ITestOutputHelper testOutputHelper)
 
         var config = new Dictionary<string, string?>
         {
-            [KnownConfigNames.AspNetCoreUrls] = "http://localhost;https://localhost",
+            [KnownAspNetCoreConfigNames.Urls] = "http://localhost;https://localhost",
             [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "http://localhost"
         };
 

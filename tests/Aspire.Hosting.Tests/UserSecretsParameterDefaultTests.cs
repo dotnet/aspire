@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
-
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -339,6 +337,35 @@ public class UserSecretsParameterDefaultTests
             Assert.True(userSecrets.ContainsKey(paramKey), $"Parameter '{paramKey}' was not found in user secrets");
             Assert.Equal(values[i], userSecrets[paramKey]);
         }
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
+    [Fact]
+    public void TrySetSecret_PreservesSpecialCharactersVerbatim()
+    {
+        // Regression test for https://github.com/microsoft/aspire/issues/5537
+        // Characters like & and + were being escaped as \u0026 and \u002B
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+        var factory = CreateFactory();
+        var manager = factory.GetOrCreate(testAssembly);
+
+        Assert.True(manager.TrySetSecret("Parameters:token", "some=thing&looking=url&like=true"));
+        Assert.True(manager.TrySetSecret("Parameters:password", "P+qMWNzkn*xm1rhXNF5st0"));
+
+        // Verify the raw file preserves special characters verbatim
+        var json = File.ReadAllText(manager.FilePath);
+        var expectedJson = """
+            {
+              "Parameters:token": "some=thing&looking=url&like=true",
+              "Parameters:password": "P+qMWNzkn*xm1rhXNF5st0"
+            }
+            """;
+        Assert.Equal(expectedJson, json, ignoreLineEndingDifferences: true);
 
         DeleteUserSecretsFile(userSecretsId);
     }

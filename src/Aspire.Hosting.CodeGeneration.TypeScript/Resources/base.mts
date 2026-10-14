@@ -3,7 +3,7 @@ import { Handle, AspireClient, MarshalledHandle, CancellationToken, registerCanc
 import type { AspireClientRpc } from './transport.mjs';
 
 // Re-export transport types for convenience
-export { Handle, AspireClient, CapabilityError, CancellationToken, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.mjs';
+export { Handle, AspireClient, CapabilityError, CancellationToken, invokeRegisteredCallback, registerCallback, unregisterCallback, registerCancellation, unregisterCancellation } from './transport.mjs';
 export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } from './transport.mjs';
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.mjs';
 
@@ -352,6 +352,12 @@ export interface InteractionInputOption {
     value?: string;
 }
 
+export interface InteractionInputFile {
+    id?: string;
+    name?: string;
+    filePath?: string;
+}
+
 export interface InteractionInput {
     name?: string;
     label?: string;
@@ -360,12 +366,12 @@ export interface InteractionInput {
     inputType?: InputType;
     required?: boolean;
     options?: InteractionInputOption[];
-    dynamicLoading?: unknown;
     value?: string;
     placeholder?: string;
     allowCustomChoice?: boolean;
     disabled?: boolean;
     maxLength?: number;
+    files?: InteractionInputFile[];
 }
 
 type InteractionInputCollectionHandle = Handle<typeof interactionInputCollectionTypeId>;
@@ -457,6 +463,62 @@ registerHandleWrapper(interactionInputCollectionTypeId, (handle, client) =>
     new InteractionInputCollection(handle as InteractionInputCollectionHandle, client)
 );
 
+/**
+ * Thenable wrapper for {@link InteractionInputCollection} that enables fluent by-name access.
+ *
+ * Collection-returning getters (for example `result.inputs()`, `validationContext.inputs()`, and a
+ * command's `arguments()`) return this instead of a bare `Promise<InteractionInputCollection>`. It
+ * is awaitable — `await x.inputs()` still resolves to the {@link InteractionInputCollection} — but
+ * it also forwards the by-name accessors, so callers can chain `await result.inputs().value("color")`
+ * without an intermediate await. The C#, Go, Java, and Python surfaces already chain this way; this
+ * restores the same ergonomics for TypeScript, where the underlying accessor is an async RPC.
+ */
+export interface InteractionInputCollectionPromise extends PromiseLike<InteractionInputCollection> {
+    /** Returns a snapshot copy of all inputs in the collection. */
+    toArray(): Promise<InteractionInput[]>;
+    /** Gets the input with the specified name, or `undefined` if no such input exists. */
+    get(name: string): Promise<InteractionInput | undefined>;
+    /** Gets the input with the specified name, throwing if no such input exists. */
+    required(name: string): Promise<InteractionInput>;
+    /** Gets the value of the input with the specified name, or `undefined` if absent. */
+    value(name: string): Promise<string | undefined>;
+    /** Gets the value of the input with the specified name, throwing if absent or unset. */
+    requiredValue(name: string): Promise<string>;
+}
+
+export class InteractionInputCollectionPromiseImpl implements InteractionInputCollectionPromise {
+    constructor(private _promise: Promise<InteractionInputCollection>, private _client: AspireClientRpc, track = true) {
+        if (track) { _client.trackPromise(_promise); }
+    }
+
+    then<TResult1 = InteractionInputCollection, TResult2 = never>(
+        onfulfilled?: ((value: InteractionInputCollection) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    toArray(): Promise<InteractionInput[]> {
+        return this._promise.then(c => c.toArray());
+    }
+
+    get(name: string): Promise<InteractionInput | undefined> {
+        return this._promise.then(c => c.get(name));
+    }
+
+    required(name: string): Promise<InteractionInput> {
+        return this._promise.then(c => c.required(name));
+    }
+
+    value(name: string): Promise<string | undefined> {
+        return this._promise.then(c => c.value(name));
+    }
+
+    requiredValue(name: string): Promise<string> {
+        return this._promise.then(c => c.requiredValue(name));
+    }
+}
+
 // ============================================================================
 // ResourceBuilderBase
 // ============================================================================
@@ -473,6 +535,145 @@ export class ResourceBuilderBase<THandle extends Handle = Handle> implements Han
     constructor(protected _handle: THandle, protected _client: AspireClientRpc) {}
 
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+}
+
+// ============================================================================
+// FluentPromise<T> - Generated fluent promise implementation
+// ============================================================================
+
+/** @internal */
+export type FluentPromiseConstructor = new (
+    promise: Promise<any>,
+    client: AspireClientRpc,
+    track?: boolean
+) => PromiseLike<any>;
+
+/** @internal */
+export type FluentPromiseConstructorProvider = () => FluentPromiseConstructor;
+
+/** @internal */
+export type FluentPromiseTransition =
+    | null
+    | FluentPromiseConstructorProvider
+    | readonly [
+        FluentPromiseConstructorProvider,
+        track: boolean,
+        trackTransitions?: boolean
+    ];
+
+/** @internal */
+export type FluentPromiseTransitions = Readonly<Record<string, FluentPromiseTransition>>;
+
+/**
+ * Shared implementation for generated thenable wrappers.
+ *
+ * Generated promise interfaces retain their full typed method surface. At runtime, missing
+ * methods are forwarded through the resolved object and only results that support further
+ * fluent chaining are rewrapped according to the generated transition table.
+ *
+ * @internal
+ */
+export class FluentPromise<T> implements PromiseLike<T> {
+    constructor(
+        private readonly _promise: Promise<T>,
+        private readonly _client: AspireClientRpc,
+        track = true,
+        private readonly _trackTransitions = true
+    ) {
+        if (track) {
+            _client.trackPromise(_promise);
+        }
+
+        return new Proxy(this, {
+            has: (target, property) =>
+                Reflect.has(target, property) ||
+                (typeof property === 'string' &&
+                    Object.prototype.hasOwnProperty.call(target.transitions, property)),
+            get: (target, property, receiver) => {
+                const isForwardedMember = typeof property === 'string' &&
+                    Object.prototype.hasOwnProperty.call(target.transitions, property);
+                if (!isForwardedMember) {
+                    if (Reflect.has(target, property)) {
+                        const value = Reflect.get(target, property, receiver);
+                        return typeof value === 'function' ? value.bind(target) : value;
+                    }
+
+                    return undefined;
+                }
+
+                if (typeof property !== 'string') {
+                    return undefined;
+                }
+
+                return (...args: unknown[]) => {
+                    const promise = target._promise.then(value => {
+                        const member = (value as Record<string, unknown>)[property];
+                        if (typeof member !== 'function') {
+                            throw new Error(`Fluent promise target does not define method '${property}'.`);
+                        }
+
+                        return Reflect.apply(member, value, args);
+                    });
+
+                    const transition = target.transitions[property];
+                    if (transition === undefined || transition === null) {
+                        return promise;
+                    }
+
+                    const [getConstructor, shouldTrack, shouldTrackTransitions = true] = Array.isArray(transition)
+                        ? transition
+                        : [transition, true, true] as const;
+                    const PromiseConstructor = getConstructor();
+                    return new PromiseConstructor(
+                        promise,
+                        target._client,
+                        target._trackTransitions && shouldTrack,
+                        target._trackTransitions && shouldTrackTransitions);
+                };
+            }
+        });
+    }
+
+    protected get transitions(): FluentPromiseTransitions {
+        return {};
+    }
+
+    then<TResult1 = T, TResult2 = never>(
+        onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+}
+
+/** @internal */
+export type FluentPromiseClass<T, TPromise extends PromiseLike<T>> = new (
+    promise: Promise<T>,
+    client: AspireClientRpc,
+    track?: boolean,
+    trackTransitions?: boolean
+) => TPromise;
+
+/**
+ * Creates a typed generated promise implementation backed by {@link FluentPromise}.
+ *
+ * The transition factory is lazy because generated types can refer to promise implementations
+ * declared later in the module. Its result is cached once the module has initialized.
+ *
+ * @internal
+ */
+export function createFluentPromiseClass<T, TPromise extends PromiseLike<T>>(
+    createTransitions: () => FluentPromiseTransitions
+): FluentPromiseClass<T, TPromise> {
+    let transitions: FluentPromiseTransitions | undefined;
+
+    class GeneratedFluentPromise extends FluentPromise<T> {
+        protected override get transitions(): FluentPromiseTransitions {
+            return transitions ??= createTransitions();
+        }
+    }
+
+    return GeneratedFluentPromise as unknown as FluentPromiseClass<T, TPromise>;
 }
 
 // ============================================================================
@@ -804,3 +1005,142 @@ class AspireDictImpl<K, V> implements AspireDict<K, V> {
 }
 
 export const AspireDict = AspireDictImpl;
+
+// ============================================================================
+// AspireExport: TypeScript equivalent of [AspireExport] in C#.
+//
+// An integration author wraps a plain typed function with AspireExport to
+// attach capability metadata, then rolls those wrapped functions up into
+// defineIntegration. An integration host runtime (not authored by integration
+// authors — framework code) enumerates the wrapped functions and serves them
+// over the existing integration host protocol (getCapabilities +
+// handleExternalCapability).
+//
+// The wrapped function is returned unchanged (non-enumerable symbol property
+// carries the metadata), so the function stays directly callable as a normal
+// import from the consumer side — at the price of a minor type inference loss
+// on the returned overload.
+// ============================================================================
+
+/**
+ * Projection schema for a capability parameter. The shape mirrors the C#
+ * AtsParameterInfo used by the .NET ATS scanner, and the types below mirror
+ * the rest of the AtsCapabilityInfo graph. Consumers of every language read
+ * this shape at codegen time; the cross-language delivery path feeds it over
+ * the wire via getCapabilities.
+ */
+export interface AspireCapabilityProjection {
+    id: string;
+    method: string;
+    description: string;
+    capabilityKind?: 'Method' | 'PropertyGetter' | 'PropertySetter' | 'InstanceMethod';
+    parameters?: readonly AspireCapabilityParameter[];
+    returnType: AspireTypeRef;
+    targetTypeId?: string;
+    targetType?: AspireTypeRef;
+    targetParameterName?: string;
+    returnsBuilder?: boolean;
+    owningTypeName?: string;
+    expandedTargetTypes?: readonly AspireTypeRef[];
+}
+
+export interface AspireCapabilityParameter {
+    name: string;
+    type?: AspireTypeRef;
+    isOptional?: boolean;
+    isNullable?: boolean;
+    isCallback?: boolean;
+    callbackParameters?: readonly AspireCallbackParameter[];
+    callbackReturnType?: AspireTypeRef;
+}
+
+export interface AspireCallbackParameter {
+    name: string;
+    type: AspireTypeRef;
+}
+
+export interface AspireTypeRef {
+    typeId: string;
+    category: 'Primitive' | 'Enum' | 'Handle' | 'Dto' | 'Callback' | 'Array' | 'List' | 'Dict' | 'Union' | 'Unknown';
+    isInterface?: boolean;
+    isNullable?: boolean;
+    isReadOnly?: boolean;
+    elementType?: AspireTypeRef;
+    keyType?: AspireTypeRef;
+    valueType?: AspireTypeRef;
+    unionTypes?: readonly AspireTypeRef[];
+}
+
+/**
+ * The symbol key under which AspireExport attaches its metadata. The key is
+ * `Symbol.for`-scoped so separate module copies can still find the metadata
+ * on the same function object.
+ */
+export const kAspireExport = Symbol.for('@aspire/AspireExport');
+
+export interface AspireExportMetadata {
+    id: string;
+    method: string;
+    description: string;
+    projection?: Omit<AspireCapabilityProjection, 'id' | 'method' | 'description'>;
+}
+
+export type AspireExportedFunction<TArgs, TResult> =
+    ((args: TArgs) => Promise<TResult>) & {
+        readonly [kAspireExport]: AspireExportMetadata;
+    };
+
+/**
+ * Mark a function as an Aspire-exported capability.
+ *
+ * The function is the real implementation — a normal typed TypeScript function
+ * taking the wrapped parameter bag ({ builder, ...flatArgs }) and returning a
+ * Promise of a generated handle type. It stays directly callable; AspireExport
+ * only attaches metadata via a non-enumerable symbol property.
+ *
+ * The TypeScript equivalent of marking a .NET extension method with `[AspireExport]`.
+ */
+export function AspireExport<TArgs, TResult>(
+    metadata: AspireExportMetadata,
+    impl: (args: TArgs) => Promise<TResult>
+): AspireExportedFunction<TArgs, TResult> {
+    Object.defineProperty(impl, kAspireExport, {
+        value: metadata,
+        enumerable: false,
+        writable: false,
+        configurable: false,
+    });
+    return impl as AspireExportedFunction<TArgs, TResult>;
+}
+
+/**
+ * Read the AspireExport metadata attached to a wrapped function, or undefined
+ * if the value is not an AspireExport-wrapped function. Used by the integration
+ * host runtime to enumerate a package's capabilities at getCapabilities time.
+ */
+export function getAspireExport(fn: unknown): AspireExportMetadata | undefined {
+    if (typeof fn !== 'function') {
+        return undefined;
+    }
+    const meta = (fn as unknown as { [kAspireExport]?: AspireExportMetadata })[kAspireExport];
+    return meta;
+}
+
+/**
+ * Package-level rollup of the AspireExport-wrapped functions an integration
+ * contributes. The integration host runtime enumerates the capabilities array
+ * and reports each one's metadata over the `getCapabilities` RPC.
+ */
+export interface AspireIntegrationDefinition {
+    name: string;
+    capabilities: readonly AspireExportedFunction<any, any>[];
+}
+
+/**
+ * Roll up one or more AspireExport-wrapped functions into an integration the
+ * host runtime can load. Authoring-time equivalent of a `[assembly: AspireExport]`
+ * scan root in C#.
+ */
+export function defineIntegration<T extends AspireIntegrationDefinition>(integration: T): T {
+    return integration;
+}

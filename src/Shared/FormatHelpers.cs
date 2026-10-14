@@ -76,7 +76,7 @@ internal static class FormatHelpers
         var local = timeProvider.ToLocal(value);
 
         // If the date is today then only return time, otherwise return entire date time text.
-        if (local.Date == DateTime.Now.Date)
+        if (local.Date == timeProvider.GetLocalNow().Date)
         {
             // e.g. "08:57:44" (based on user's culture and preferences)
             // Don't include milliseconds as resource server returned time stamp is second precision.
@@ -104,6 +104,10 @@ internal static class FormatHelpers
         return value.ToString(formatString, provider ?? CultureInfo.CurrentCulture);
     }
 
+    /// <summary>
+    /// Truncates text to at most <paramref name="maxLength"/> UTF-16 code units, including the ellipsis,
+    /// without splitting surrogate pairs.
+    /// </summary>
     public static string TruncateText(string? text, int maxLength)
     {
         if (string.IsNullOrEmpty(text))
@@ -116,11 +120,28 @@ internal static class FormatHelpers
             return text;
         }
 
-        return string.Concat(text.AsSpan(0, maxLength - Ellipsis.Length), Ellipsis);
+        var retainedLength = maxLength - Ellipsis.Length;
+        if (retainedLength > 0 && char.IsHighSurrogate(text[retainedLength - 1]) && char.IsLowSurrogate(text[retainedLength]))
+        {
+            retainedLength--;
+        }
+
+        return string.Concat(text.AsSpan(0, retainedLength), Ellipsis);
     }
 
     public static string CombineWithSeparator(string separator, params string?[] parts)
     {
         return string.Join(separator, parts.Where(p => !string.IsNullOrEmpty(p)));
+    }
+
+    public static string FormatFileSize(long bytes)
+    {
+        return bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+            < 1024 * 1024 * 1024 => $"{bytes / (1024.0 * 1024.0):F1} MB",
+            _ => $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB"
+        };
     }
 }

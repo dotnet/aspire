@@ -109,6 +109,41 @@ public class ExecutionConfigurationGathererTests
         Assert.Equal("async-arg", context.Arguments[0]);
     }
 
+    [Fact]
+    public async Task GetReferencesFindsEndpointReferencesAcrossExecutionConfigurationValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var target = builder.AddExecutable("target", "target.exe", ".")
+            .WithEndpoint(name: "environment", targetPort: 5000)
+            .WithEndpoint(name: "argument", targetPort: 5001)
+            .WithEndpoint(name: "launch-tool", targetPort: 5002);
+        var environmentReference = target.GetEndpoint("environment", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        var argumentReference = target.GetEndpoint("argument", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        var launchToolReference = target.GetEndpoint("launch-tool", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+
+#pragma warning disable ASPIREEXTENSION001
+        var consumer = builder.AddExecutable("consumer", "consumer.exe", ".")
+            .WithEnvironment("TARGET_ENVIRONMENT", environmentReference)
+            .WithArgs(argumentReference)
+            .WithLaunchToolArgs(context => context.Args.Add(launchToolReference))
+            .Resource;
+#pragma warning restore ASPIREEXTENSION001
+
+        await builder.BuildAsync();
+
+        var context = new ExecutionConfigurationGathererContext();
+        await new ArgumentsExecutionConfigurationGatherer()
+            .GatherAsync(context, consumer, NullLogger.Instance, builder.ExecutionContext);
+        await new EnvironmentVariablesExecutionConfigurationGatherer()
+            .GatherAsync(context, consumer, NullLogger.Instance, builder.ExecutionContext);
+
+        var references = context.GetReferences<EndpointReference>();
+
+        Assert.Equal(
+            [argumentReference, environmentReference, launchToolReference],
+            references.OrderBy(reference => reference.EndpointName));
+    }
+
     #endregion
 
     #region EnvironmentVariablesExecutionConfigurationGatherer Tests
@@ -236,6 +271,28 @@ public class ExecutionConfigurationGathererTests
         Assert.Contains("API_URL", errorRecord.Message);
         Assert.Contains("consumer", errorRecord.Message);
         Assert.Same(inner, errorRecord.Exception);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_UnsetOptionalParameterEnvironmentVariable_OmitsEnvironmentVariable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var optional = builder.AddParameter("optional")
+            .WithOptional();
+        var consumer = builder.AddContainer("consumer", "image")
+            .WithEnvironment("OPTIONAL_VALUE", optional)
+            .Resource;
+
+        await builder.BuildAsync();
+
+        var context = new ExecutionConfigurationGathererContext();
+        var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
+        await gatherer.GatherAsync(context, consumer, NullLogger.Instance, builder.ExecutionContext);
+
+        var result = await context.ResolveAsync(consumer, NullLogger.Instance, builder.ExecutionContext);
+
+        Assert.Null(result.Exception);
+        Assert.DoesNotContain(result.EnvironmentVariables, variable => variable.Key == "OPTIONAL_VALUE");
     }
 
     [Fact]
@@ -562,7 +619,7 @@ public class ExecutionConfigurationGathererTests
 
                     for (var i = 0; i < certificates.Count; i++)
                     {
-                        var publicCert = new X509Certificate2(certificates[i].Export(X509ContentType.Cert));
+                        using var publicCert = X509CertificateLoader.LoadCertificate(certificates[i].Export(X509ContentType.Cert));
                         var certBag = safeContents.AddCertificate(publicCert);
                         certBag.Attributes.Add(
                             new CryptographicAttributeObject(
@@ -597,8 +654,7 @@ public class ExecutionConfigurationGathererTests
         var pkcs12Bytes = await factory(metadata.Certificates, CancellationToken.None);
         Assert.NotEmpty(pkcs12Bytes);
 
-        var loaded = new X509Certificate2Collection();
-        loaded.Import(pkcs12Bytes, string.Empty, X509KeyStorageFlags.DefaultKeySet);
+        var loaded = X509CertificateLoader.LoadPkcs12Collection(pkcs12Bytes, string.Empty, X509KeyStorageFlags.DefaultKeySet);
         Assert.Single(loaded);
         Assert.Equal(cert.Thumbprint, loaded[0].Thumbprint);
         Assert.False(loaded[0].HasPrivateKey);
@@ -691,6 +747,7 @@ public class ExecutionConfigurationGathererTests
         var metadata = context.AdditionalConfigurationData.OfType<HttpsCertificateExecutionConfigurationData>().Single();
         Assert.Equal(cert, metadata.Certificate);
         Assert.NotNull(metadata.KeyPathReference);
+        Assert.NotNull(metadata.CertificateWithKeyPathReference);
         Assert.NotNull(metadata.PfxPathReference);
     }
 
@@ -797,12 +854,15 @@ public class ExecutionConfigurationGathererTests
 
         // Initially, references should not be resolved
         Assert.False(metadata.IsKeyPathReferenced);
+        Assert.False(metadata.IsCertificateWithKeyPathReferenced);
         Assert.False(metadata.IsPfxPathReferenced);
 
         // Accessing the references should mark them as resolved
         _ = await metadata.KeyPathReference.GetValueAsync(CancellationToken.None);
         Assert.True(metadata.IsKeyPathReferenced);
-        Assert.False(metadata.IsPfxPathReferenced);
+
+        _ = await metadata.CertificateWithKeyPathReference.GetValueAsync(CancellationToken.None);
+        Assert.True(metadata.IsCertificateWithKeyPathReferenced);
 
         _ = await metadata.PfxPathReference.GetValueAsync(CancellationToken.None);
         Assert.True(metadata.IsPfxPathReferenced);
@@ -892,6 +952,7 @@ public class ExecutionConfigurationGathererTests
         {
             CertificatePath = ReferenceExpression.Create($"/etc/ssl/certs/server.crt"),
             KeyPath = ReferenceExpression.Create($"/etc/ssl/private/server.key"),
+            CertificateWithKeyPath = ReferenceExpression.Create($"/etc/ssl/certs/server.pem"),
             PfxPath = ReferenceExpression.Create($"/etc/ssl/certs/server.pfx")
         };
     }

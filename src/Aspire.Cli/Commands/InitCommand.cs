@@ -16,9 +16,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Scaffolding;
-using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
-using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Aspire.Hosting.Utils;
 using Aspire.Shared;
@@ -36,6 +34,8 @@ internal sealed class InitCommand : BaseCommand
     internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
 
     protected override bool UpdateNotificationsEnabled => true;
+
+    internal override bool PrefetchesTemplatePackageMetadata => true;
 
     private readonly CliExecutionContext _executionContext;
     private readonly ILanguageService _languageService;
@@ -64,25 +64,22 @@ internal sealed class InitCommand : BaseCommand
 
     private readonly Option<string?> _channelOption;
     private readonly Option<string?> _languageOption;
+    private readonly Option<bool> _fileBasedOption;
 
     public InitCommand(
         ILanguageService languageService,
         ISolutionLocator solutionLocator,
-        AspireCliTelemetry telemetry,
-        IFeatures features,
-        ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext,
-        IInteractionService interactionService,
         AgentInitCommand agentInitCommand,
         IDotNetCliRunner runner,
         ICertificateService certificateService,
         IScaffoldingService scaffoldingService,
         ILanguageDiscovery languageDiscovery,
         TemplateNuGetConfigService templateNuGetConfigService,
-        IPackagingService packagingService)
-        : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        IPackagingService packagingService,
+        CommonCommandServices services)
+        : base("init", InitCommandStrings.Description, services)
     {
-        _executionContext = executionContext;
+        _executionContext = services.ExecutionContext;
         _languageService = languageService;
         _solutionLocator = solutionLocator;
         _agentInitCommand = agentInitCommand;
@@ -104,11 +101,18 @@ internal sealed class InitCommand : BaseCommand
         {
             Description = InitCommandStrings.LanguageOptionDescription
         };
+        _fileBasedOption = new Option<bool>("--file-based")
+        {
+            Description = InitCommandStrings.FileBasedOptionDescription
+        };
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(_channelOption);
         Options.Add(_languageOption);
+        Options.Add(_fileBasedOption);
         Options.Add(NewCommand.s_suppressAgentInitOption);
+        Options.Add(AgentInitCommand.s_skillLocationsOption);
+        Options.Add(AgentInitCommand.s_skillsOption);
     }
 
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -123,11 +127,18 @@ internal sealed class InitCommand : BaseCommand
         var selectedProject = projectSelection.Project;
 
         var isCSharp = selectedProject.LanguageId == KnownLanguageId.CSharp;
+        var fileBased = parseResult.GetValue(_fileBasedOption);
+        if (fileBased && !isCSharp)
+        {
+            return CommandResult.Failure(CliExitCodes.InvalidCommand, InitCommandStrings.FileBasedRequiresCSharp);
+        }
+
         var workingDirectory = _executionContext.WorkingDirectory;
 
         // Step 2: Detect solution (C# only — determines single-file vs full project).
+        // File-based initialization bypasses discovery so incidental solutions cannot trigger a prompt.
         FileInfo? solutionFile = null;
-        if (isCSharp)
+        if (isCSharp && !fileBased)
         {
             solutionFile = await _solutionLocator.FindSolutionFileAsync(workingDirectory, cancellationToken);
         }
@@ -154,27 +165,26 @@ internal sealed class InitCommand : BaseCommand
         // ignore failures since `aspire doctor` / `aspire certs trust` provide a fallback.
         if (isCSharp)
         {
-            try
-            {
-                _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
-            }
-            catch (CertificateServiceException)
-            {
-                // Non-fatal: surface via aspire doctor / aspire certs trust.
-            }
+            _ = await _certificateService.EnsureCertificatesTrustedAsync(cancellationToken);
         }
 
-        // Step 4: Chain to aspire agent init for MCP server + skill configuration.
-        // This prompt lets users choose which skills to install — including aspireify.
+        // Step 4: Chain to aspire agent init for skill configuration.
+        // MCP remains an explicit opt-in through standalone `aspire agent init`.
         var workspaceRoot = solutionFile?.Directory ?? workingDirectory;
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, NewCommand.s_suppressAgentInitOption, defaultValue: true);
+        var skillLocationsBinding = PromptBinding.Create(parseResult, AgentInitCommand.s_skillLocationsOption);
+        var skillsBinding = PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption);
         // aspire init creates an AppHost in an existing repo, so pre-select every bundle skill
-        // (which includes aspireify as the natural follow-up wiring skill).
+        // (which includes aspireify as the natural follow-up wiring skill). This chained flow
+        // never registers `--mcp`, so MCP configuration is unavailable here by construction —
+        // it remains reachable only through standalone `aspire agent init`.
         var agentInitResult = await _agentInitCommand.PromptAndChainAsync(
             InteractionService,
             CliExitCodes.Success,
             workspaceRoot,
             agentInitBinding,
+            skillLocationsBinding,
+            skillsBinding,
             cancellationToken);
 
         // Step 5: Print follow-up commands only when the user selected the one-time init skill.
@@ -254,7 +264,7 @@ internal sealed class InitCommand : BaseCommand
         // early return so re-running `aspire init` against a workspace produced by a
         // previous broken CLI (which left apphost.cs without a workspace NuGet.config)
         // recovers cleanly. The config is also required so MSBuild can resolve
-        // `#:sdk Aspire.AppHost.Sdk@<version>` from the SDK directive — both for
+        // `#:package Aspire.Hosting.AppHost@<version>` from the package directive — both for
         // `aspire add` (`dotnet package add --file apphost.cs`) and for
         // `dotnet run --file apphost.cs`. Without it, any non-stable channel (PR/run
         // hives, locally-built `local-*`/`dev-*` hives, the staging channel, etc.) is
@@ -276,12 +286,11 @@ internal sealed class InitCommand : BaseCommand
             return CliExitCodes.Success;
         }
 
-        // Drop bare single-file apphost. Pin the SDK version so later operations
-        // (project updating, version parsing in ProjectUpdater/FallbackProjectParser)
-        // can locate and update the directive — they expect the @<version> form.
-        var aspireVersion = VersionHelper.GetDefaultTemplateVersion();
+        // NuGet package versions omit the CLI build-metadata suffix.
+        var aspireVersion = _executionContext.IdentitySdkVersion;
         var appHostContent = $$"""
-            #:sdk Aspire.AppHost.Sdk@{{aspireVersion}}
+            {{CliTemplateFactory.GetCSharpAppHostDirectives(aspireVersion)}}
+            #:property AspireUseCliBundle=true
 
             var builder = DistributedApplication.CreateBuilder(args);
 
@@ -346,7 +355,7 @@ internal sealed class InitCommand : BaseCommand
         // `_runner.NewProjectAsync` so the aspire-apphost template's built-in `restore`
         // post-action (template.json post-action id "restore", conditioned on
         // !skipRestore which defaults to false) can resolve the
-        // `Aspire.AppHost.Sdk/<version>` reference from the channel-matched hive. The
+        // `Aspire.Hosting.AppHost` reference from the channel-matched hive. The
         // post-action currently runs with continueOnError=true so a missing nuget.config
         // wouldn't fail init, but its restore would still emit confusing errors and waste
         // work — and a future template change that drops continueOnError would break init
@@ -431,6 +440,7 @@ internal sealed class InitCommand : BaseCommand
         // (or after a CLI update) the template will be missing. Install first.
         var installOutcome = await _templateNuGetConfigService.InstallTemplatePackageAsync(
             selection,
+            sourceOverride: null,
             _runner,
             InitCommandStrings.InstallingAspireProjectTemplates,
             statusEmoji: null,
@@ -805,8 +815,8 @@ internal sealed class InitCommand : BaseCommand
                     ["applicationUrl"] = $"https://localhost:{ports.DashboardHttpsPort};http://localhost:{ports.DashboardHttpPort}",
                     ["environmentVariables"] = new JsonObject
                     {
-                        ["ASPNETCORE_ENVIRONMENT"] = "Development",
-                        ["DOTNET_ENVIRONMENT"] = "Development",
+                        [KnownAspNetCoreConfigNames.Environment] = "Development",
+                        [KnownAspNetCoreConfigNames.DotNetEnvironment] = "Development",
                         [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = $"https://localhost:{ports.OtlpHttpsPort}",
                         [KnownConfigNames.ResourceServiceEndpointUrl] = $"https://localhost:{ports.ResourceServiceHttpsPort}"
                     }
@@ -819,8 +829,8 @@ internal sealed class InitCommand : BaseCommand
                     ["applicationUrl"] = $"http://localhost:{ports.DashboardHttpPort}",
                     ["environmentVariables"] = new JsonObject
                     {
-                        ["ASPNETCORE_ENVIRONMENT"] = "Development",
-                        ["DOTNET_ENVIRONMENT"] = "Development",
+                        [KnownAspNetCoreConfigNames.Environment] = "Development",
+                        [KnownAspNetCoreConfigNames.DotNetEnvironment] = "Development",
                         [KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = $"http://localhost:{ports.OtlpHttpPort}",
                         [KnownConfigNames.ResourceServiceEndpointUrl] = $"http://localhost:{ports.ResourceServiceHttpPort}",
                         [KnownConfigNames.AllowUnsecuredTransport] = "true"

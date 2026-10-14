@@ -33,7 +33,7 @@ internal static class BundleDiscovery
 
     /// <summary>
     /// Environment variable for overriding the Dashboard path.
-    /// Still used by DcpOptions/DashboardEventHandlers — value now points to aspire-managed exe.
+    /// Used by DcpOptions and DashboardEventHandlers to locate the native Dashboard executable.
     /// </summary>
     public const string DashboardPathEnvVar = "ASPIRE_DASHBOARD_PATH";
 
@@ -41,6 +41,23 @@ internal static class BundleDiscovery
     /// Environment variable for overriding the aspire-managed path.
     /// </summary>
     public const string ManagedPathEnvVar = "ASPIRE_MANAGED_PATH";
+
+    /// <summary>
+    /// Environment variable for the terminal host binary path. Read by Aspire.Hosting
+    /// to resolve the binary that backs <c>WithTerminal()</c> resources. Injected by
+    /// the CLI at launch time pointing at the standalone host or a compatibility forwarder.
+    /// </summary>
+    public const string TerminalHostPathEnvVar = "ASPIRE_TERMINAL_HOST_PATH";
+
+    /// <summary>
+    /// Environment variable for the invocation args prepended when launching the
+    /// terminal host binary. Set to <c>"terminalhost"</c> when the binary is the
+    /// multi-mode <c>aspire-managed</c> exe so the dispatcher routes to the
+    /// terminal host subcommand. Treated as a pair with
+    /// <see cref="TerminalHostPathEnvVar"/>: callers that synthesize one without
+    /// the other can produce a launch failure.
+    /// </summary>
+    public const string TerminalHostInvocationArgsEnvVar = "ASPIRE_TERMINAL_HOST_INVOCATION_ARGS";
 
     /// <summary>
     /// Environment variable containing the leased version directory for bundle-owned child processes.
@@ -72,8 +89,18 @@ internal static class BundleDiscovery
     public const string ManagedDirectoryName = "managed";
 
     /// <summary>
+    /// Directory name for the Dashboard executable and static assets in the bundle layout.
+    /// </summary>
+    public const string DashboardDirectoryName = "dashboard";
+
+    /// <summary>
+    /// Directory name for the standalone terminal host and its native dependencies.
+    /// </summary>
+    public const string TerminalHostDirectoryName = "terminalhost";
+
+    /// <summary>
     /// Directory name for the single top-level reparse point that links to the
-    /// active versioned bundle directory. Components (<c>managed/</c> and <c>dcp/</c>)
+    /// active versioned bundle directory. Components (<c>managed/</c>, <c>dashboard/</c>, <c>terminalhost/</c>, and <c>dcp/</c>)
     /// are resolved as subdirectories of this link target.
     /// </summary>
     public const string BundleDirectoryName = "bundle";
@@ -86,6 +113,16 @@ internal static class BundleDiscovery
     /// Executable name for the unified managed binary.
     /// </summary>
     public const string ManagedExecutableName = "aspire-managed";
+
+    /// <summary>
+    /// Executable name for the Native AOT Dashboard.
+    /// </summary>
+    public const string DashboardExecutableName = "Aspire.Dashboard";
+
+    /// <summary>
+    /// Executable name for the standalone terminal host.
+    /// </summary>
+    public const string TerminalHostExecutableName = "Aspire.TerminalHost";
 
     // ═══════════════════════════════════════════════════════════════════════
     // DISCOVERY METHODS
@@ -233,6 +270,35 @@ internal static class BundleDiscovery
         }
 
         return TryDiscoverManagedFromDirectory(baseDir, out managedPath);
+    }
+
+    /// <summary>
+    /// Returns the path to the standalone terminal host inside an Aspire repo checkout.
+    /// Used by callers that want to point dev-mode child processes at the repo's just-built
+    /// terminal host instead of the user's installed CLI bundle (which may be stale).
+    /// Returns <c>null</c> when <paramref name="repoRoot"/> is empty or the artifact is missing.
+    /// </summary>
+    /// <remarks>
+    /// Hardcoded to Debug/net11.0 to keep behavior predictable — Release configurations are
+    /// rarely used during inner-loop dev, and probing every TFM/config combination makes the
+    /// outcome depend on stale build outputs from earlier sessions.
+    /// </remarks>
+    public static string? TryGetRepoLocalTerminalHostPath(string? repoRoot)
+    {
+        if (string.IsNullOrEmpty(repoRoot))
+        {
+            return null;
+        }
+
+        var terminalHostPath = Path.Combine(
+            repoRoot,
+            "artifacts",
+            "bin",
+            "Aspire.TerminalHost",
+            "Debug",
+            "net11.0",
+            GetExecutableFileName(TerminalHostExecutableName));
+        return File.Exists(terminalHostPath) ? terminalHostPath : null;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

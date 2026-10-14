@@ -14,7 +14,7 @@ on:
         required: false
         type: string
       # MTP diagnostic arguments (hangdump, crashdump, timeouts).
-      # Single source of truth is eng/Testing.props; the runsheet pipeline forwards per-project values.
+      # Single source of truth is eng/Testing.targets; the runsheet pipeline forwards per-project values.
       mtpBaseArgs:
         required: false
         type: string
@@ -34,8 +34,15 @@ on:
         required: false
         type: string
         default: "ubuntu-latest"
-      # When true, ignores test failures and checks if .trx files have nonzero test count
+      # When true, known test-runner outcomes do not fail the job. Unknown or
+      # infrastructure/configuration failures remain blocking.
       ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
+      # Specialized workflows can legitimately produce zero tests for a project/OS
+      # combination after applying their trait filter.
+      allowZeroTests:
         required: false
         type: boolean
         default: false
@@ -81,23 +88,34 @@ jobs:
         run: |
           echo "DOTNET_SCRIPT=.\dotnet.cmd" >> $env:GITHUB_ENV
           echo "BUILD_SCRIPT=.\build.cmd" >> $env:GITHUB_ENV
+          Write-Output "NUGET_PACKAGES=${{ github.workspace }}/.nuget/packages" >> $env:GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}\run-tests" >> $env:GITHUB_ENV
           echo ${{ github.workspace }}\.dotnet >> $env:GITHUB_PATH
 
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         # Used for running tests outside the repo
         if: ${{ fromJson(inputs.properties).requiresNugets == true }}
         with:
-          dotnet-version: |
-            8.x
-            9.x
-            10.x
+          dotnet-version: 10.x
+          # Install the pinned SDK as well, including its exact prerelease version.
+          global-json-file: global.json
         env:
           DOTNET_INSTALL_DIR: ${{ env.DOTNET_ROOT }}
+
+      - name: Setup Deno
+        if: inputs.testShortName == 'Hosting.JavaScript'
+        uses: ./.github/actions/setup-deno
+
+      - name: Set up Java
+        if: ${{ fromJson(inputs.properties).requiresJava == true }}
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
 
       - name: Trust HTTPS development certificate (Linux)
         if: runner.os == 'Linux'
@@ -257,8 +275,26 @@ jobs:
 
       - name: Install Azure Functions Core Tools
         if: runner.os == 'Linux' && (inputs.testShortName == 'Playground' || inputs.testShortName == 'Azure')
+        shell: bash
         run: |
-          npm i -g azure-functions-core-tools@4 --unsafe-perm true
+          set -euo pipefail
+
+          # The npm package floats a nested CDN payload from its postinstall script, so a bad publish
+          # can break CI even when the package version range has not changed. Download the same
+          # pinned release shape used by extension E2E instead.
+          core_tools_version='4.12.1'
+          core_tools_directory="$RUNNER_TEMP/azure-functions-core-tools"
+          core_tools_archive="$RUNNER_TEMP/Azure.Functions.Cli.linux-x64.${core_tools_version}.zip"
+          curl --fail --location --retry 3 --retry-all-errors \
+            --output "$core_tools_archive" \
+            "https://github.com/Azure/azure-functions-core-tools/releases/download/${core_tools_version}/Azure.Functions.Cli.linux-x64.${core_tools_version}.zip"
+          echo 'faf8fb8d50b5293df338bec70594b12f45730e9fe251805298859b2238cf627e  '"$core_tools_archive" | sha256sum --check -
+          mkdir -p "$core_tools_directory"
+          unzip -q "$core_tools_archive" -d "$core_tools_directory"
+          chmod +x "$core_tools_directory/func"
+          echo "$core_tools_directory" >> "$GITHUB_PATH"
+          export PATH="$core_tools_directory:$PATH"
+          func --version
 
       - name: Compute test project path
         id: compute_project_path
@@ -387,19 +423,32 @@ jobs:
           ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 60 &
           HEARTBEAT_PID=$!
 
-          # Run tests
+          # Run tests. Capture the real MTP exit code without letting "set -e" abort the step:
+          # "|| TEST_EXIT_CODE=$?" both records the code and keeps the compound command successful.
+          TEST_EXIT_CODE=0
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll \
             ${{ env.EFFECTIVE_MTP_BASE_ARGS }} \
             --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
             --results-directory ${{ github.workspace }}/testresults \
             --filter-not-trait "category=failing" \
-            ${{ inputs.extraTestArgs }} \
-            ${{ inputs.ignoreTestFailures && '|| true' || '' }}
-          TEST_EXIT_CODE=$?
+            ${{ inputs.extraTestArgs }} || TEST_EXIT_CODE=$?
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          echo "$TEST_EXIT_CODE" > "${{ github.workspace }}/test-exit-code.txt"
 
           # Stop heartbeat monitor
           kill $HEARTBEAT_PID 2>/dev/null || true
           wait $HEARTBEAT_PID 2>/dev/null || true
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here; the authoritative pass/fail decision is made later by "Verify test results exist".
+          if [ "${{ inputs.ignoreTestFailures }}" = "true" ]; then
+            if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+              echo "::warning::Tests reported a non-success exit code ($TEST_EXIT_CODE); deferring to the 'Verify test results exist' gate."
+            fi
+            exit 0
+          fi
 
           exit $TEST_EXIT_CODE
 
@@ -410,7 +459,6 @@ jobs:
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
-          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
           PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
@@ -448,9 +496,24 @@ jobs:
             }
           }
 
-          if ('${{ inputs.ignoreTestFailures }}' -ne 'true') {
-            exit $testExitCode
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          Set-Content -Path "${{ github.workspace }}/test-exit-code.txt" -Value $testExitCode
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here. The Linux/macOS step neutralizes the exit code inline; this pwsh step captures
+          # $testExitCode instead, so it must explicitly exit 0. Otherwise the non-zero $LASTEXITCODE
+          # survives to the end of the script and GitHub's pwsh wrapper — which appends
+          # "if ((Test-Path variable:\LASTEXITCODE)) { exit $LASTEXITCODE }" — propagates it and fails the
+          # job. The authoritative pass/fail decision is made later by "Verify test results exist".
+          if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+            if ($testExitCode -ne 0) {
+              Write-Host "::warning::Tests reported a non-success exit code ($testExitCode); deferring to the 'Verify test results exist' gate."
+            }
+            exit 0
           }
+
+          exit $testExitCode
 
       - name: Run tests (Linux/macOS)
         if: ${{ fromJson(inputs.properties).requiresNugets != true && runner.os != 'Windows' }}
@@ -476,7 +539,9 @@ jobs:
           ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 60 &
           HEARTBEAT_PID=$!
 
-          # Run tests
+          # Run tests. Capture the real MTP exit code without letting "set -e" abort the step:
+          # "|| TEST_EXIT_CODE=$?" both records the code and keeps the compound command successful.
+          TEST_EXIT_CODE=0
           ${{ env.DOTNET_SCRIPT }} test --project ${{ env.TEST_PROJECT_PATH }} \
             /p:ContinuousIntegrationBuild=true \
             /p:TrxFileNamePrefix="${{ inputs.testShortName }}" \
@@ -488,13 +553,30 @@ jobs:
             ${{ env.EFFECTIVE_MTP_BASE_ARGS }} \
             --report-trx \
             --results-directory ${{ github.workspace }}/testresults \
-            ${{ inputs.extraTestArgs }} \
-            ${{ inputs.ignoreTestFailures && '|| true' || '' }}
-          TEST_EXIT_CODE=$?
+            ${{ inputs.extraTestArgs }} || TEST_EXIT_CODE=$?
+
+          # `--ignore-exit-code 8` only remaps the test module's exit code. Normalize the
+          # aggregated `dotnet test` result with the same helper exercised by Infrastructure.Tests.
+          NORMALIZED_TEST_EXIT_CODE=0
+          bash .github/workflows/normalize-mtp-exit-code.sh "$TEST_EXIT_CODE" || NORMALIZED_TEST_EXIT_CODE=$?
+          TEST_EXIT_CODE=$NORMALIZED_TEST_EXIT_CODE
+
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          echo "$TEST_EXIT_CODE" > "${{ github.workspace }}/test-exit-code.txt"
 
           # Stop heartbeat monitor
           kill $HEARTBEAT_PID 2>/dev/null || true
           wait $HEARTBEAT_PID 2>/dev/null || true
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here; the authoritative pass/fail decision is made later by "Verify test results exist".
+          if [ "${{ inputs.ignoreTestFailures }}" = "true" ]; then
+            if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+              echo "::warning::Tests reported a non-success exit code ($TEST_EXIT_CODE); deferring to the 'Verify test results exist' gate."
+            fi
+            exit 0
+          fi
 
           exit $TEST_EXIT_CODE
 
@@ -504,7 +586,6 @@ jobs:
         shell: pwsh
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
-          NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ fromJson(inputs.properties).enablePlaywrightInstall != true && 'false' || 'true' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
           # Prevent the Roslyn compiler server (VBCSCompiler) from starting during tests.
@@ -542,6 +623,11 @@ jobs:
               --results-directory ${{ github.workspace }}/testresults `
               ${{ inputs.extraTestArgs }}
             $testExitCode = $LASTEXITCODE
+
+            # `--ignore-exit-code 8` only remaps the test module's exit code. Normalize the
+            # aggregated `dotnet test` result with the same helper exercised by Infrastructure.Tests.
+            & .github/workflows/normalize-mtp-exit-code.ps1 -ExitCode $testExitCode
+            $testExitCode = $LASTEXITCODE
           }
           finally {
             # Stop heartbeat monitor
@@ -550,64 +636,49 @@ jobs:
             }
           }
 
-          if ('${{ inputs.ignoreTestFailures }}' -ne 'true') {
-            exit $testExitCode
+          # Persist the MTP exit code so the "Verify test results exist" gate can classify the outcome
+          # (test outcome vs. infrastructure failure) even though we exit 0 below when failures are ignored.
+          Set-Content -Path "${{ github.workspace }}/test-exit-code.txt" -Value $testExitCode
+
+          # When ignoreTestFailures is true a known test outcome must not fail the job
+          # here. The Linux/macOS step neutralizes the exit code inline; this pwsh step captures
+          # $testExitCode instead, so it must explicitly exit 0. Otherwise the non-zero $LASTEXITCODE
+          # survives to the end of the script and GitHub's pwsh wrapper — which appends
+          # "if ((Test-Path variable:\LASTEXITCODE)) { exit $LASTEXITCODE }" — propagates it and fails the
+          # job. The authoritative pass/fail decision is made later by "Verify test results exist".
+          if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+            if ($testExitCode -ne 0) {
+              Write-Host "::warning::Tests reported a non-success exit code ($testExitCode); deferring to the 'Verify test results exist' gate."
+            }
+            exit 0
           }
+
+          exit $testExitCode
+
+      - name: Mark ignored test results
+        if: ${{ always() && inputs.ignoreTestFailures }}
+        shell: pwsh
+        env:
+          TEST_SHORT_NAME: ${{ inputs.testShortName }}
+        run: |
+          $testResultsDir = "${{ github.workspace }}/testresults"
+          New-Item -Path $testResultsDir -ItemType Directory -Force | Out-Null
+          Set-Content -Path "$testResultsDir/ignore-test-failures.marker" -Value $env:TEST_SHORT_NAME
 
       - name: Verify test results exist
         if: ${{ inputs.ignoreTestFailures }}
         shell: pwsh
+        env:
+          ALLOW_ZERO_TESTS: ${{ inputs.allowZeroTests }}
         run: |
-          $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
-
-          if ($trxFiles.Count -eq 0) {
-            # MTP does not produce .trx files when the test run is aborted (e.g., by --hangdump-timeout).
-            # Check for recordings or other test artifacts that prove tests actually ran before failing.
-            $hasRecordings = Test-Path "${{ github.workspace }}/testresults/recordings/*.cast"
-            $hasHangDumps = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *hangdump* -Recurse -ErrorAction SilentlyContinue
-            if ($hasRecordings -or $hasHangDumps) {
-              Write-Warning "No .trx files found, but test artifacts exist — test run likely aborted by timeout before trx was flushed."
-              exit 0
-            }
-            Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
-            exit 1
+          $arguments = @{
+            TestResultsPath = "${{ github.workspace }}/testresults"
+            ExitCodePath = "${{ github.workspace }}/test-exit-code.txt"
           }
-
-          Write-Host "Found $($trxFiles.Count) .trx file(s)"
-
-          $validFileCount = 0
-          foreach ($trxFile in $trxFiles) {
-            Write-Host "Checking $($trxFile.Name)..."
-
-            try {
-              [xml]$trxContent = Get-Content -Path $trxFile.FullName
-
-              # Check if the XML is valid and non-empty
-              if ($trxContent -and $trxContent.TestRun) {
-                $validFileCount++
-                $countersNode = $trxContent.TestRun.ResultSummary.Counters
-
-                if ($countersNode -and $countersNode.total) {
-                  $testCount = [int]$countersNode.total
-                  Write-Host "  Total tests in file: $testCount"
-                } else {
-                  Write-Host "  File is valid but has no test count information"
-                }
-              } else {
-                Write-Warning "  File appears to be empty or invalid"
-              }
-            }
-            catch {
-              Write-Warning "Failed to parse $($trxFile.Name): $_"
-            }
+          if ([System.Convert]::ToBoolean($env:ALLOW_ZERO_TESTS)) {
+            $arguments.AllowZeroTests = $true
           }
-
-          if ($validFileCount -eq 0) {
-            Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
-            exit 1
-          }
-
-          Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
+          ./eng/scripts/verify-nonblocking-test-results.ps1 @arguments
 
       - name: Check for hang dump files
         if: always()
@@ -624,12 +695,19 @@ jobs:
           # even when all tests passed, so we don't fail on those.
           $hangDumpFiles = Get-ChildItem -Path $testResultsDir -Filter *hangdump* -Recurse -ErrorAction SilentlyContinue
           if ($hangDumpFiles.Count -gt 0) {
-            Write-Host "::error::Hang dump file(s) detected — the test runner timed out:"
-            foreach ($df in $hangDumpFiles) { Write-Host "  - $($df.FullName)" }
-            exit 1
+            # A caller that explicitly ignores test outcomes also treats a test timeout as non-gating.
+            # The dump remains visible in the logs and uploaded artifacts. All other callers fail here.
+            if ('${{ inputs.ignoreTestFailures }}' -eq 'true') {
+              Write-Host "::warning::Hang dump file(s) detected — a test timed out (ignored because ignoreTestFailures is true):"
+              foreach ($df in $hangDumpFiles) { Write-Host "  - $($df.FullName)" }
+            } else {
+              Write-Host "::error::Hang dump file(s) detected — the test runner timed out:"
+              foreach ($df in $hangDumpFiles) { Write-Host "  - $($df.FullName)" }
+              exit 1
+            }
+          } else {
+            Write-Host "✓ No hang dump files detected"
           }
-
-          Write-Host "✓ No hang dump files detected"
 
       - name: Dump docker info
         if: ${{ always() && runner.os == 'Linux' }}
@@ -642,13 +720,13 @@ jobs:
       - name: Upload logs, and test results
         id: upload-logs
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: logs-${{ inputs.testShortName }}-${{ inputs.os }}
           path: |
             **/*.binlog
             testresults/**
-            artifacts/bin/Aspire.Templates.Tests/Debug/net8.0/logs/**
+            artifacts/bin/Aspire.Templates.Tests/Debug/net10.0/logs/**
             artifacts/log/test-logs/**
 
       - name: Copy CLI E2E recordings for upload
@@ -667,7 +745,7 @@ jobs:
 
       - name: Upload CLI E2E recordings
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cli-e2e-recordings-${{ inputs.testShortName }}
           path: |

@@ -1,10 +1,10 @@
 #pragma warning disable ASPIRECERTIFICATES001
-#pragma warning disable ASPIREFILESYSTEM001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
@@ -57,56 +57,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                     .OrderByVersion()
                     .ToList();
 
-                // Partition into trusted and untrusted using a single X509Chain instance.
-                // RevocationMode is set to NoCheck since revocation doesn't apply to self-signed dev certs.
-                using var chain = new X509Chain();
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
-                // On Windows, chain.Build() can succeed even when the certificate isn't in the
-                // trusted root store. Open the CurrentUser Root store so we can verify membership.
-                X509Certificate2Collection? rootCerts = null;
-                if (OperatingSystem.IsWindows())
-                {
-                    using var rootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-                    rootStore.Open(OpenFlags.ReadOnly);
-                    rootCerts = rootStore.Certificates;
-                }
-
-                // Find the dev certs that are trusted
-                var trustedCerts = new List<X509Certificate2>();
-                foreach (var cert in bestCerts)
-                {
-                    try
-                    {
-                        if (!chain.Build(cert))
-                        {
-                            continue;
-                        }
-
-                        // On Windows, also verify the certificate exists in the root store
-                        if (rootCerts is not null &&
-                            !rootCerts.Any(rc => rc.RawDataMemory.Span.SequenceEqual(cert.RawDataMemory.Span)))
-                        {
-                            continue;
-                        }
-
-                        trustedCerts.Add(cert);
-                    }
-                    finally
-                    {
-                        // Reset the chain for the next certificate regardless of branch taken.
-                        chain.Reset();
-                    }
-                }
-
-                // Dispose root store certificates after use
-                if (rootCerts is not null)
-                {
-                    foreach (var rc in rootCerts)
-                    {
-                        rc.Dispose();
-                    }
-                }
+                var trustedCerts = bestCerts.GetTrustedCertificates();
 
                 // Flag if the newest/highest-version cert is not trusted
                 if (bestCerts.Count > 0 &&
@@ -201,9 +152,8 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <summary>
     /// Returns the certificate PEM format key and/or PFX bytes for the specified certificate.
     /// On macOS, both outputs are cached as separate files to avoid triggering repeated
-    /// keychain prompts. The cache is read without loading any PFX into an X509Certificate2,
-    /// because EphemeralKeySet is not supported on macOS with net8.0 and loading without it
-    /// imports the private key into the keychain.
+    /// keychain prompts. Reading the cached bytes without loading a PFX into an X509Certificate2
+    /// avoids importing its private key into the keychain.
     /// </summary>
     /// <param name="certificate">The certificate to export key material from.</param>
     /// <param name="password">The password for the private key, or <c>null</c> for unencrypted export.</param>
@@ -439,14 +389,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     {
         try
         {
-            if (OperatingSystem.IsWindows())
-            {
-                Directory.CreateDirectory(s_userDevCertificateLocation);
-            }
-            else
-            {
-                Directory.CreateDirectory(s_userDevCertificateLocation, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
-            }
+            DirectoryHelper.CreateWithOwnerOnlyPermissions(s_userDevCertificateLocation);
 
             File.WriteAllText(certFileName, certificate.ExportCertificatePem());
 

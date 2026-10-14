@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
-using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
 
@@ -56,7 +55,7 @@ public sealed class KubernetesDeployWithMongoDBTests(ITestOutputHelper output)
 
                 var mongo = builder.AddMongoDB("mongo").AddDatabase("testdb");
 
-                var api = builder.AddProject<Projects.{{ProjectName}}_ApiService>("server")
+                var api = builder.AddDotnetProject("server", "../{{ProjectName}}.ApiService/{{ProjectName}}.ApiService.csproj")
                     .WithReference(mongo)
                     .WaitFor(mongo)
                     .WithExternalHttpEndpoints();

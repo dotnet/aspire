@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Python.Tests" />
   </ItemGroup>
 

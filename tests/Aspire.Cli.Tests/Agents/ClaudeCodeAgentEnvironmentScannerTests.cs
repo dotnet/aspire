@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.Extensions.Configuration;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.ClaudeCode;
-using Aspire.Cli.Agents.Playwright;
-using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
@@ -18,7 +15,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     [Fact]
     public async Task ApplyAsync_WithMalformedMcpJson_ThrowsInvalidOperationException()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         workspace.CreateDirectory(".claude");
 
         // Create a malformed .mcp.json at the workspace root
@@ -27,14 +24,15 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var claudeCodeCliRunner = new FakeClaudeCodeCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
         // The scan should succeed (HasServerConfigured catches JsonException)
-        Assert.NotEmpty(context.Applicators);
-        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        var aspireApplicator = Assert.Single(context.Applicators);
+        Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
         // Applying should throw with a descriptive message
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -46,7 +44,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     [Fact]
     public async Task ApplyAsync_WithEmptyMcpJson_ThrowsInvalidOperationException()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         workspace.CreateDirectory(".claude");
 
         // Create an empty .mcp.json
@@ -55,13 +53,14 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var claudeCodeCliRunner = new FakeClaudeCodeCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.NotEmpty(context.Applicators);
-        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        var aspireApplicator = Assert.Single(context.Applicators);
+        Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
@@ -71,7 +70,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     [Fact]
     public async Task ApplyAsync_WithMalformedMcpJson_DoesNotOverwriteFile()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         workspace.CreateDirectory(".claude");
 
         // Create a malformed .mcp.json with content the user may want to preserve
@@ -81,13 +80,14 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         var claudeCodeCliRunner = new FakeClaudeCodeCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, CreatePlaywrightCliInstaller(), executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
+        var scanner = new ClaudeCodeAgentEnvironmentScanner(claudeCodeCliRunner, executionContext, NullLogger<ClaudeCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None).DefaultTimeout();
 
-        Assert.NotEmpty(context.Applicators);
-        var aspireApplicator = context.Applicators.First(a => a.Description.Contains("Aspire MCP"));
+        Assert.Equal([AgentClientKind.ClaudeCode], context.DetectedClients);
+        var aspireApplicator = Assert.Single(context.Applicators);
+        Assert.Contains("Aspire MCP", aspireApplicator.Description);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => aspireApplicator.ApplyAsync(CancellationToken.None)).DefaultTimeout();
@@ -112,19 +112,7 @@ public class ClaudeCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         return TestExecutionContextHelper.CreateExecutionContext(
             workingDirectory,
             debugMode: false,
-            environmentVariables: new Dictionary<string, string?>(),
             homeDirectory: workingDirectory);
-    }
-
-    private static PlaywrightCliInstaller CreatePlaywrightCliInstaller()
-    {
-        return new PlaywrightCliInstaller(
-            new FakeNpmRunner(),
-            new FakeNpmProvenanceChecker(),
-            new FakePlaywrightCliRunner(),
-            new TestInteractionService(),
-            new ConfigurationBuilder().Build(),
-            NullLogger<PlaywrightCliInstaller>.Instance);
     }
 
     private sealed class FakeClaudeCodeCliRunner(SemVersion? version) : IClaudeCodeCliRunner

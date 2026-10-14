@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Diagnostics.Latency;
 using Xunit.Sdk;
@@ -30,6 +31,11 @@ public class BuildEnvironment
     public static readonly TestTargetFramework DefaultTargetFramework = ComputeDefaultTargetFramework();
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(TempDir, "templates-testroot");
+    private static readonly Lazy<string> s_testRoot = new(() =>
+    {
+        CleanupTestRootPath();
+        return Directory.CreateDirectory(TestRootPath).FullName;
+    });
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
@@ -37,31 +43,24 @@ public class BuildEnvironment
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine || IsRunningOnGithubActions;
     public static bool ShouldRunPlaywrightTests => PlaywrightProvider.HasPlaywrightSupport && !EnvironmentVariables.RunOnlyBasicBuildTemplatesTests;
 
-    private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
-        new BuildEnvironment(sdkDirName: "dotnet-8"));
-
-    private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
-        new BuildEnvironment(sdkDirName: "dotnet-9"));
-
-    private static readonly Lazy<BuildEnvironment> s_instance_100 = new(() =>
+    private static readonly Lazy<BuildEnvironment> s_net10Sdk = new(() =>
         new BuildEnvironment(sdkDirName: "dotnet-10"));
 
-    private static readonly Lazy<BuildEnvironment> s_instance_100_90_80 = new(() =>
+    private static readonly Lazy<BuildEnvironment> s_net11Sdk = new(() =>
+        new BuildEnvironment(sdkDirName: "dotnet-11"));
+
+    private static readonly Lazy<BuildEnvironment> s_net11SdkWithAllSupportedRuntimes = new(() =>
         new BuildEnvironment(sdkDirName: "dotnet-tests"));
 
-    public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
-    public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
-    public static BuildEnvironment ForNextSdkOnly => s_instance_100.Value;
-    public static BuildEnvironment ForNextSdkWithCurrentAndPreviousRuntimes => s_instance_100_90_80.Value;
+    public static BuildEnvironment ForNet10SdkOnly => s_net10Sdk.Value;
+    public static BuildEnvironment ForNet11SdkOnly => s_net11Sdk.Value;
+    public static BuildEnvironment ForNet11SdkWithAllSupportedRuntimes => s_net11SdkWithAllSupportedRuntimes.Value;
 
     public static BuildEnvironment ForDefaultFramework =>
         DefaultTargetFramework switch
         {
-            TestTargetFramework.Previous => ForPreviousSdkOnly,
-
-            // Use current+previous to allow running tests on helix built with 9.0 sdk
-            // but targeting 8.0 tfm
-            TestTargetFramework.Current => ForNextSdkWithCurrentAndPreviousRuntimes,
+            TestTargetFramework.Net10 => ForNet11SdkWithAllSupportedRuntimes,
+            TestTargetFramework.Net11 => ForNet11SdkOnly,
 
             _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
         };
@@ -158,7 +157,9 @@ public class BuildEnvironment
         }
 
         sdkForTemplatePath = Path.GetFullPath(sdkForTemplatePath);
-        DefaultBuildArgs = string.Empty;
+        // Exercise required bundle behavior with real repo-built runtime payloads.
+        // Direct process launch keeps the template harness in control of the AppHost lifetime.
+        DefaultBuildArgs = "/p:AspireUseCliBundle=true /p:_AspireSuppressCliRunHook=true";
         NuGetPackagesPath = UsesCustomDotNet ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
         if (UsesCustomDotNet)
@@ -179,6 +180,38 @@ public class BuildEnvironment
         // in the tests
         EnvVars["_MSBUILDTLENABLED"] = "0";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
+        var runtimeRoot = Path.Combine(s_testRoot.Value, $"runtime-{Guid.NewGuid():N}");
+        var dashboardRoot = ExtractRuntimePackage("Aspire.Dashboard.Sdk", "dashboard");
+        var dcpRoot = ExtractRuntimePackage("Aspire.Hosting.Orchestration", "dcp");
+        var dashboardPath = Path.Combine(dashboardRoot, "tools", OperatingSystem.IsWindows() ? "Aspire.Dashboard.exe" : "Aspire.Dashboard");
+        var dcpPath = Path.Combine(dcpRoot, "tools", OperatingSystem.IsWindows() ? "dcp.exe" : "dcp");
+        RequireExecutable(dashboardPath);
+        RequireExecutable(dcpPath);
+        EnvVars["AspireUseCliBundle"] = "true";
+        EnvVars["_AspireSuppressCliRunHook"] = "true";
+        EnvVars["AspireDashboardPath"] = dashboardPath;
+        EnvVars["DcpDir"] = Path.GetDirectoryName(dcpPath)!;
+
+        string ExtractRuntimePackage(string packageId, string directory)
+        {
+            var packagePath = global::Aspire.Templates.Tests.TemplatesCustomHive.GetPackagePath(BuiltNuGetsPath, $"{packageId}.{RuntimeInformation.RuntimeIdentifier}");
+            var destination = Path.Combine(runtimeRoot, directory);
+            ZipFile.ExtractToDirectory(packagePath, destination);
+            return destination;
+        }
+
+        static void RequireExecutable(string path)
+        {
+            if (!File.Exists(path))
+            {
+                throw new XunitException($"Required native template runtime executable was not packed: {path}. Build the current-RID Dashboard and orchestration packages before running template tests.");
+            }
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                    | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+        }
 
         if (OperatingSystem.IsMacOS())
         {
@@ -204,8 +237,6 @@ public class BuildEnvironment
         }
 
         Console.WriteLine($"*** Using path for projects: {TestRootPath}");
-        CleanupTestRootPath();
-        Directory.CreateDirectory(TestRootPath);
 
         Console.WriteLine($"*** Using Sdk path: {sdkForTemplatePath}");
         if (UsesCustomDotNet)
@@ -233,41 +264,40 @@ public class BuildEnvironment
 
         TemplatesCustomHive = TemplatesCustomHive.TemplatesHive;
         TemplatesCustomHive?.EnsureInstalledAsync(this).Wait();
+    }
 
-        static void CleanupTestRootPath()
+    private static void CleanupTestRootPath()
+    {
+        if (!Directory.Exists(TestRootPath))
         {
-            if (!Directory.Exists(TestRootPath))
-            {
-                return;
-            }
+            return;
+        }
 
-            try
+        try
+        {
+            Directory.Delete(TestRootPath, recursive: true);
+        }
+        catch (IOException) when (!EnvironmentVariables.IsRunningOnCI)
+        {
+            // there might be lingering processes that are holding onto the files
+            // try deleting the subdirectories instead
+            Console.WriteLine($"\tFailed to delete {TestRootPath} . Deleting subdirectories.");
+            foreach (var dir in Directory.GetDirectories(TestRootPath))
             {
-                Directory.Delete(TestRootPath, recursive: true);
-            }
-            catch (IOException) when (!EnvironmentVariables.IsRunningOnCI)
-            {
-                // there might be lingering processes that are holding onto the files
-                // try deleting the subdirectories instead
-                Console.WriteLine($"\tFailed to delete {TestRootPath} . Deleting subdirectories.");
-                foreach (var dir in Directory.GetDirectories(TestRootPath))
+                try
                 {
-                    try
-                    {
-                        Directory.Delete(dir, recursive: true);
-                    }
-                    catch (IOException ioex)
-                    {
-                        // ignore
-                        Console.WriteLine($"\tFailed to delete {dir} : {ioex.Message}. Ignoring.");
-                    }
+                    Directory.Delete(dir, recursive: true);
                 }
-
+                catch (IOException ioex)
+                {
+                    // ignore
+                    Console.WriteLine($"\tFailed to delete {dir} : {ioex.Message}. Ignoring.");
+                }
             }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error deleting '{TestRootPath}'.", ex);
-            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error deleting '{TestRootPath}'.", ex);
         }
     }
 
@@ -287,9 +317,8 @@ public class BuildEnvironment
     private static TestTargetFramework ComputeDefaultTargetFramework()
         => EnvironmentVariables.DefaultTFMForTesting?.ToLowerInvariant() switch
         {
-            null or "" or "net9.0" => TestTargetFramework.Current,
-            "net8.0" => TestTargetFramework.Previous,
-            "net10.0" => TestTargetFramework.Next,
+            null or "" or "net10.0" => TestTargetFramework.Net10,
+            "net11.0" => TestTargetFramework.Net11,
             _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
         };
 
@@ -297,10 +326,8 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    // Current is default
-    Current,
-    Previous,
-    Next,
+    Net10,
+    Net11,
     None
 }
 
@@ -308,9 +335,8 @@ public static class TestTargetFrameworkExtensions
 {
     public static string ToTFMString(this TestTargetFramework tfm) => tfm switch
     {
-        TestTargetFramework.Previous => "net8.0",
-        TestTargetFramework.Current => "net9.0",
-        TestTargetFramework.Next => "net10.0",
+        TestTargetFramework.Net10 => "net10.0",
+        TestTargetFramework.Net11 => "net11.0",
         _ => throw new ArgumentOutOfRangeException(nameof(tfm))
     };
 }

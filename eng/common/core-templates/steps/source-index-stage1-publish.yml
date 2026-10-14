@@ -5,17 +5,18 @@ parameters:
   binlogPath: artifacts/log/Debug/Build.binlog
 
 steps:
+# Both source-index tools declare rollForward=Major, so they run on the .NET 10 SDK runtime.
 - task: UseDotNet@2
-  displayName: "Source Index: Use .NET 9 SDK"
+  displayName: "Source Index: Use .NET 10 SDK"
   inputs:
     packageType: sdk
-    version: 9.0.x
+    version: 10.0.x
     installationPath: $(Agent.TempDirectory)/dotnet
     workingDirectory: $(Agent.TempDirectory)
 
 - script: |
-    $(Agent.TempDirectory)/dotnet/dotnet tool install BinLogToSln --version ${{parameters.sourceIndexProcessBinlogPackageVersion}} --add-source ${{parameters.SourceIndexPackageSource}} --tool-path $(Agent.TempDirectory)/.source-index/tools
-    $(Agent.TempDirectory)/dotnet/dotnet tool install UploadIndexStage1 --version ${{parameters.sourceIndexUploadPackageVersion}} --add-source ${{parameters.SourceIndexPackageSource}} --tool-path $(Agent.TempDirectory)/.source-index/tools
+    $(Agent.TempDirectory)/dotnet/dotnet tool install BinLogToSln --version ${{parameters.sourceIndexProcessBinlogPackageVersion}} --source ${{parameters.SourceIndexPackageSource}} --tool-path $(Agent.TempDirectory)/.source-index/tools
+    $(Agent.TempDirectory)/dotnet/dotnet tool install UploadIndexStage1 --version ${{parameters.sourceIndexUploadPackageVersion}} --source ${{parameters.SourceIndexPackageSource}} --tool-path $(Agent.TempDirectory)/.source-index/tools
   displayName: "Source Index: Download netsourceindex Tools"
   # Set working directory to temp directory so 'dotnet' doesn't try to use global.json and use the repo's sdk.
   workingDirectory: $(Agent.TempDirectory)

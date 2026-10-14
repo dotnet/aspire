@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using Aspire.Cli.Configuration;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Telemetry;
-using Aspire.Cli.Utils;
 using Aspire.Shared.UserSecrets;
 
 namespace Aspire.Cli.Commands;
@@ -40,12 +36,8 @@ internal sealed class SecretCommand : ParentCommand
         SecretListCommand listCommand,
         SecretPathCommand pathCommand,
         SecretDeleteCommand deleteCommand,
-        IInteractionService interactionService,
-        IFeatures features,
-        ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext,
-        AspireCliTelemetry telemetry)
-        : base("secret", SecretCommandStrings.Description, features, updateNotifier, executionContext, interactionService, telemetry)
+        CommonCommandServices services)
+        : base("secret", SecretCommandStrings.Description, services)
     {
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);

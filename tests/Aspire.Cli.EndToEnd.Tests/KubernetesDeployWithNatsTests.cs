@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
-using Aspire.Cli.Tests.Utils;
 using Aspire.TestUtilities;
 using Hex1b.Automation;
 using Xunit;
@@ -58,7 +57,7 @@ public sealed class KubernetesDeployWithNatsTests(ITestOutputHelper output)
 
                 var nats = builder.AddNats("nats");
 
-                var api = builder.AddProject<Projects.{{ProjectName}}_ApiService>("server")
+                var api = builder.AddDotnetProject("server", "../{{ProjectName}}.ApiService/{{ProjectName}}.ApiService.csproj")
                     .WithReference(nats)
                     .WaitFor(nats)
                     .WithExternalHttpEndpoints();

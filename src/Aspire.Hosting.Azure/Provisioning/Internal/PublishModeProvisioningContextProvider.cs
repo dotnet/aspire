@@ -1,10 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPIPELINES002
-#pragma warning disable ASPIREPIPELINES001
-
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Pipelines;
@@ -24,7 +20,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IHostEnvironment environment,
     ILogger<PublishModeProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
-    IUserPrincipalProvider userPrincipalProvider,
+    IAzurePrincipalProvider azurePrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
     IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
@@ -34,7 +30,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         environment,
         logger,
         armClientProvider,
-        userPrincipalProvider,
+        azurePrincipalProvider,
         tokenCredentialProvider,
         deploymentStateManager,
         distributedApplicationExecutionContext)
@@ -79,7 +75,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
+    internal async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {

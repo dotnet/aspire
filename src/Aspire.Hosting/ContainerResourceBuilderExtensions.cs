@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 #pragma warning disable ASPIREPERSISTENCE001 // Persistence annotation APIs are experimental.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Aspire.Hosting.Ats;
 using Aspire.Hosting.ApplicationModel;
@@ -197,6 +195,11 @@ public static class ContainerResourceBuilderExtensions
     /// They are not shared with the host's file-system. To mount files from the host inside the container, call <see cref="WithBindMount{T}(IResourceBuilder{T}, string, string, bool)"/>.
     /// </para>
     /// <para>
+    /// Named volumes are preserved independently of the container lifetime. A session-lifetime
+    /// container is removed when the AppHost stops and reuses the named volume on its next run.
+    /// A persistent-lifetime container can remain running and keeps the same attached volume.
+    /// </para>
+    /// <para>
     /// If a value for the <paramref name="name"/> of the volume is not provided, the volume is created as an "anonymous volume" and will be given a random name by the container
     /// runtime. To share a volume between multiple containers, specify the same <paramref name="name"/>.
     /// </para>
@@ -217,14 +220,11 @@ public static class ContainerResourceBuilderExtensions
     /// </remarks>
     // Note: [AspireExport] is on CoreExports.WithVolume which reorders parameters
     // so the required 'target' comes before the optional 'name' - better for polyglot APIs.
+    [OverloadResolutionPriority(1)]
     [AspireExportIgnore(Reason = "Polyglot export is via CoreExports.WithVolume which reorders parameters.")]
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string? name, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(target);
-
-        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
-        return builder.WithAnnotation(annotation);
+        return VolumeResourceBuilderExtensions.WithVolumeCore(builder, name, target, isReadOnly, env: null);
     }
 
     /// <summary>
@@ -261,11 +261,7 @@ public static class ContainerResourceBuilderExtensions
     [AspireExportIgnore(Reason = "Polyglot export is via CoreExports.WithVolume which accepts optional name parameter.")]
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target) where T : ContainerResource
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(target);
-
-        var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Volume, false);
-        return builder.WithAnnotation(annotation);
+        return VolumeResourceBuilderExtensions.WithVolumeCore(builder, name: null, target, isReadOnly: false, env: null);
     }
 
     /// <summary>
@@ -446,7 +442,7 @@ public static class ContainerResourceBuilderExtensions
         if (parsedReference.Digest is { })
         {
             const string prefix = "sha256:";
-            if (!parsedReference.Digest.StartsWith(prefix))
+            if (!parsedReference.Digest.StartsWith(prefix, StringComparison.Ordinal))
             {
                 throw new ArgumentOutOfRangeException(nameof(image), parsedReference.Digest, "invalid digest format");
             }
@@ -772,7 +768,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the async callback overload.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the async callback overload.")]
     public static IResourceBuilder<T> WithDockerfileFactory<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -947,7 +943,7 @@ public static class ContainerResourceBuilderExtensions
     /// The output is trusted and not validated.
     /// </para>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the async callback overload.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the async callback overload.")]
     public static IResourceBuilder<ContainerResource> AddDockerfileFactory(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1027,8 +1023,15 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// <para>
+    /// Use the callback's Dockerfile builder to define the image's stages and instructions.
+    /// </para>
+    /// <para>
+    /// The build context path is relative to the AppHost directory unless it is fully qualified.
+    /// </para>
+    /// </ats-remarks>
     [AspireExport]
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1076,7 +1079,6 @@ public static class ContainerResourceBuilderExtensions
     /// </remarks>
     /// <remarks>This synchronous overload is not available in polyglot app hosts. Use the overload that accepts a <see cref="Func{T, TResult}"/>.</remarks>
     [AspireExportIgnore(Reason = "This synchronous overload is excluded from the polyglot surface; only the async callback overload is exported.")]
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1194,7 +1196,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [AspireExportIgnore(Reason = "Polyglot app hosts use the union-based withBuildArg dispatcher export.")]
+    [AspireExportIgnore(Reason = "Polyglot AppHosts use the union-based withBuildArg dispatcher export.")]
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1430,7 +1432,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.AddContainer("mycontainer", "myimage")
     ///     .WithContainerFiles("/", (context, cancellationToken) =>
     ///     {
-    ///         var appModel = context.ServiceProvider.GetRequiredService&lt;DistributedApplicationModel&gt;();
+    ///         var appModel = context.Services.GetRequiredService&lt;DistributedApplicationModel&gt;();
     ///         var postgresInstances = appModel.Resources.OfType&lt;PostgresDatabaseResource&gt;();
     ///
     ///         return [
@@ -1457,8 +1459,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "ContainerFileSystemCallbackContext exposes IServiceProvider and IResource — .NET runtime types not usable from polyglot hosts.")]
+    [AspireExportIgnore(Reason = "Exposed to ATS via the WithContainerFilesCallbackExport shim, which accepts integer file-mode options and lets polyglot callbacks build the IEnumerable<ContainerFileSystemItem> result through ContainerFileSystemCallbackContext factory methods (createFile/createDirectory/createCertificateFile).")]
     public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1490,8 +1491,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="defaultGroup">The default group ID for the created or updated file system. Defaults to 0 for root if not set.</param>
     /// <param name="umask">The umask <see cref="UnixFileMode"/> permissions to exclude from the default file and folder permissions. This takes away (rather than granting) default permissions to files and folders without an explicit mode permission set.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>This method is not available in polyglot app hosts.</remarks>
-    [AspireExportIgnore(Reason = "Uses UnixFileMode parameter which is not ATS-compatible.")]
+    [AspireExportIgnore(Reason = "Exposed to ATS via the WithContainerFilesExport shim overload, which accepts integer file-mode options (ContainerFilesOptions) in place of the UnixFileMode parameter.")]
     public static IResourceBuilder<T> WithContainerFiles<T>(this IResourceBuilder<T> builder, string destinationPath, string sourcePath, int? defaultOwner = null, int? defaultGroup = null, UnixFileMode? umask = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1525,6 +1525,134 @@ public static class ContainerResourceBuilderExtensions
             // In publish mode, use a bind mount as it is better supported by publish targets
             return builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
         }
+    }
+
+    /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container by copying them from a source path on the host.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination absolute path in the container.</param>
+    /// <param name="sourcePath">The source path on the host to copy files from.</param>
+    /// <param name="options">Options for the created or updated file system entries.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// In run mode, Aspire copies the files into the container and applies owner, group, and umask options.
+    /// In publish mode, Aspire creates a read-only bind mount and ignores those options.
+    /// </para>
+    /// <para>
+    /// To produce entries dynamically (including inline file contents and OpenSSL certificate files), polyglot app hosts
+    /// use the <c>withContainerFilesCallback</c> overload and build the entries via the factory methods on
+    /// <see cref="ContainerFileSystemCallbackContext"/>. Passing a pre-built <see cref="ContainerFileSystemItem"/> collection
+    /// remains .NET-only.
+    /// </para>
+    /// </remarks>
+    /// <ats-summary>Creates or updates files and folders in a container by copying them from a source path on the host.</ats-summary>
+    /// <ats-returns>The resource builder.</ats-returns>
+    [AspireExport("withContainerFiles")]
+    internal static IResourceBuilder<T> WithContainerFilesExport<T>(
+        this IResourceBuilder<T> builder,
+        string destinationPath,
+        string sourcePath,
+        ContainerFilesOptions? options = null)
+        where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(sourcePath);
+
+        if (options is null)
+        {
+            return builder.WithContainerFiles(destinationPath, sourcePath);
+        }
+
+        var defaultOwner = GetIntegralContainerFilesOption(
+            options.DefaultOwner,
+            nameof(ContainerFilesOptions.DefaultOwner),
+            minValue: 0,
+            maxValue: int.MaxValue);
+        var defaultGroup = GetIntegralContainerFilesOption(
+            options.DefaultGroup,
+            nameof(ContainerFilesOptions.DefaultGroup),
+            minValue: 0,
+            maxValue: int.MaxValue);
+        var umaskValue = GetIntegralContainerFilesOption(
+            options.Umask,
+            nameof(ContainerFilesOptions.Umask),
+            minValue: 0,
+            maxValue: 0xFFF);
+        var umask = umaskValue is { } value ? (UnixFileMode)value : (UnixFileMode?)null;
+
+        return builder.WithContainerFiles(destinationPath, sourcePath, defaultOwner, defaultGroup, umask);
+    }
+
+    /// <summary>
+    /// Creates or updates files and/or folders at the destination path in the container using entries produced by a callback.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="destinationPath">The destination absolute path in the container.</param>
+    /// <param name="callback">
+    /// A callback that returns the file system entries to create or update. Use the factory methods on
+    /// <see cref="ContainerFileSystemCallbackContext"/> (createFile, createDirectory, createCertificateFile) to build the entries.
+    /// </param>
+    /// <param name="options">Options for the created or updated file system entries.</param>
+    /// <returns>The resource builder.</returns>
+    [AspireExport("withContainerFilesCallback", MethodName = "withContainerFilesCallback")]
+    internal static IResourceBuilder<T> WithContainerFilesCallbackExport<T>(
+        this IResourceBuilder<T> builder,
+        string destinationPath,
+        Func<ContainerFileSystemCallbackContext, CancellationToken, Task<IEnumerable<ContainerFileSystemItem>>> callback,
+        ContainerFilesOptions? options = null)
+        where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(destinationPath);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (options is null)
+        {
+            return builder.WithContainerFiles(destinationPath, callback);
+        }
+
+        var defaultOwner = GetIntegralContainerFilesOption(
+            options.DefaultOwner,
+            nameof(ContainerFilesOptions.DefaultOwner),
+            minValue: 0,
+            maxValue: int.MaxValue);
+        var defaultGroup = GetIntegralContainerFilesOption(
+            options.DefaultGroup,
+            nameof(ContainerFilesOptions.DefaultGroup),
+            minValue: 0,
+            maxValue: int.MaxValue);
+        var umaskValue = GetIntegralContainerFilesOption(
+            options.Umask,
+            nameof(ContainerFilesOptions.Umask),
+            minValue: 0,
+            maxValue: 0xFFF);
+        var umask = umaskValue is { } value ? (UnixFileMode)value : (UnixFileMode?)null;
+
+        return builder.WithContainerFiles(destinationPath, callback, defaultOwner, defaultGroup, umask);
+    }
+
+    private static int? GetIntegralContainerFilesOption(double? value, string paramName, int minValue, int maxValue)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var numericValue = value.Value;
+        if (!double.IsFinite(numericValue) ||
+            Math.Truncate(numericValue) != numericValue ||
+            numericValue < minValue ||
+            numericValue > maxValue)
+        {
+            throw new ArgumentOutOfRangeException(paramName, numericValue, $"Value must be a finite integral number between {minValue} and {maxValue}.");
+        }
+
+        return (int)numericValue;
     }
 
     /// <summary>
@@ -1567,8 +1695,16 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// <para>
+    /// Calling this method multiple times composes callbacks, which are invoked in registration order
+    /// to build the final Dockerfile.
+    /// </para>
+    /// <para>
+    /// The build context path is relative to the AppHost directory unless it is fully qualified.
+    /// </para>
+    /// </ats-remarks>
     [AspireExport]
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1673,7 +1809,6 @@ public static class ContainerResourceBuilderExtensions
     /// </remarks>
     /// <remarks>This synchronous overload is not available in polyglot app hosts. Use the overload that accepts a <see cref="Func{T, TResult}"/>.</remarks>
     [AspireExportIgnore(Reason = "This synchronous overload is excluded from the polyglot surface; only the async callback overload is exported.")]
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(callback);
@@ -1713,8 +1848,11 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// For multi-stage Dockerfiles, specify separate build and runtime base images.
+    /// Images that are not specified use the integration's defaults. At least one base image must be specified.
+    /// </ats-remarks>
     [AspireExport]
-    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfileBaseImage<T>(this IResourceBuilder<T> builder, string? buildImage = null, string? runtimeImage = null) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable ASPIREPIPELINES001
 
 using System.Text.Json;
 using Aspire.Hosting.Tests.Helpers;
@@ -789,6 +788,41 @@ public class SchemaTests
             """;
 
         AssertInvalid(manifestText);
+    }
+
+    [Fact]
+    public void AzureBicepTenantScopeOnlyAllowsCurrentTenant()
+    {
+        var validManifestText = """
+            {
+              "resources": {
+                "tenantScoped": {
+                  "type": "azure.bicep.v1",
+                  "path": "tenantScoped.bicep",
+                  "scope": {
+                    "tenant": "current"
+                  }
+                }
+              }
+            }
+            """;
+
+        var invalidManifestText = """
+            {
+              "resources": {
+                "tenantScoped": {
+                  "type": "azure.bicep.v1",
+                  "path": "tenantScoped.bicep",
+                  "scope": {
+                    "tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(validManifestText);
+        AssertInvalid(invalidManifestText);
     }
 
     private static void AssertValid(string manifestText)

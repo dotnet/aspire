@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -30,9 +32,21 @@ internal sealed class DcpOptions
     /// Optional path to a folder containing the Aspire Dashboard binaries.
     /// </summary>
     /// <example>
-    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net8.0\Aspire.Dashboard.dll</c>
+    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net11.0\Aspire.Dashboard.dll</c>
     /// </example>
     public string? DashboardPath { get; set; }
+
+    /// <summary>
+    /// Optional path to the Aspire Terminal Host binary.
+    /// </summary>
+    public string? TerminalHostPath { get; set; }
+
+    /// <summary>
+    /// Optional invocation args that must be prepended when launching <see cref="TerminalHostPath"/>.
+    /// Set to <c>"terminalhost"</c> when using the managed compatibility forwarder.
+    /// Empty for the standalone Native AOT bundle executable and managed inner-loop builds.
+    /// </summary>
+    public string? TerminalHostInvocationArgs { get; set; }
 
     /// <summary>
     /// Optional container runtime to override default runtime for DCP containers.
@@ -58,9 +72,49 @@ internal sealed class DcpOptions
     /// </summary>
     public bool RandomizePorts { get; set; }
 
+    /// <summary>
+    /// The first port in the range used to allocate unspecified public ports for proxyless endpoints
+    /// and target ports for proxied executable endpoints.
+    /// </summary>
+    public int ProxylessEndpointPortRangeStart { get; set; } = 10000;
+
+    /// <summary>
+    /// The last port in the range used to allocate unspecified public ports for proxyless endpoints
+    /// and target ports for proxied executable endpoints.
+    /// </summary>
+    /// <remarks>
+    /// The default leaves room for Aspire to persist stable allocated ports in the future while staying
+    /// compatible across supported OSes. Linux's default ephemeral range starts at 32768, which is the
+    /// most restrictive default among those OSes, so default allocations stop one port lower.
+    /// </remarks>
+    public int ProxylessEndpointPortRangeEnd { get; set; } = 32767;
+
     public int KubernetesConfigReadRetryCount { get; set; } = 300;
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
+
+    /// <summary>
+    /// Additional time added to <see cref="KubernetesApiTimeout"/> before the first successful API operation.
+    /// The combined budget covers client setup and the API operation.
+    /// Defaults to 20 seconds and is configured through <c>DcpPublisher:KubernetesInitializationAdditionalTimeout</c>.
+    /// Must be non-negative, and the combined budget must not exceed ten minutes.
+    /// </summary>
+    public TimeSpan KubernetesInitializationAdditionalTimeout { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// The base API operation budget, extended by <see cref="KubernetesInitializationAdditionalTimeout"/> until the first successful API operation.
+    /// Applies to connection establishment rather than stream lifetime for watches and logs.
+    /// Defaults to 40 seconds and is configured through <c>DcpPublisher:KubernetesApiTimeout</c>.
+    /// Valid values range from one second to ten minutes.
+    /// </summary>
+    public TimeSpan KubernetesApiTimeout { get; set; } = TimeSpan.FromSeconds(40);
+
+    /// <summary>
+    /// The total budget for creating a DCP object, including client setup, retries, and reconciliation after ambiguous failures.
+    /// Defaults to two minutes and is configured through <c>DcpPublisher:KubernetesCreateRecoveryTimeout</c>.
+    /// Valid values range from one second to ten minutes.
+    /// </summary>
+    public TimeSpan KubernetesCreateRecoveryTimeout { get; set; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// The duration to wait for the container runtime to become healthy before aborting startup.
@@ -110,25 +164,70 @@ internal sealed class DcpOptions
     /// Enables Aspire container tunnel for container-to-host connectivity across all container orchestrators.
     /// </summary>
     public bool EnableAspireContainerTunnel { get; set; } = true;
+
+    /// <summary>
+    /// The base container image used to build the Aspire container tunnel client proxy image.
+    /// </summary>
+    public string? ContainerTunnelBaseImage { get; set; }
 }
 
-internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
+internal class ValidateDcpOptions(DistributedApplicationExecutionContext executionContext) : IValidateOptions<DcpOptions>
 {
     public ValidateOptionsResult Validate(string? name, DcpOptions options)
     {
         var builder = new ValidateOptionsResultBuilder();
 
-        if (string.IsNullOrWhiteSpace(options.CliPath))
+        if (executionContext.IsRunMode && string.IsNullOrWhiteSpace(options.CliPath))
         {
             builder.AddError("The path to the DCP executable used for Aspire orchestration is required.", "CliPath");
         }
 
-        if (string.IsNullOrWhiteSpace(options.DashboardPath))
+        if (executionContext.IsRunMode && string.IsNullOrWhiteSpace(options.DashboardPath))
         {
             builder.AddError("The path to the Aspire Dashboard binaries is missing.", "DashboardPath");
         }
 
+        if (!PortRange.IsValidPort(options.ProxylessEndpointPortRangeStart))
+        {
+            builder.AddError($"The proxyless endpoint port range start must be between {PortRange.MinPort} and {PortRange.MaxPort}.", nameof(options.ProxylessEndpointPortRangeStart));
+        }
+
+        if (!PortRange.IsValidPort(options.ProxylessEndpointPortRangeEnd))
+        {
+            builder.AddError($"The proxyless endpoint port range end must be between {PortRange.MinPort} and {PortRange.MaxPort}.", nameof(options.ProxylessEndpointPortRangeEnd));
+        }
+
+        if (options.ProxylessEndpointPortRangeStart > options.ProxylessEndpointPortRangeEnd)
+        {
+            builder.AddError("The proxyless endpoint port range start must be less than or equal to the range end.", nameof(options.ProxylessEndpointPortRangeStart));
+        }
+
+        var apiTimeoutValid = ValidateKubernetesTimeout(builder, options.KubernetesApiTimeout, nameof(options.KubernetesApiTimeout), "API");
+        ValidateKubernetesTimeout(builder, options.KubernetesCreateRecoveryTimeout, nameof(options.KubernetesCreateRecoveryTimeout), "create recovery");
+
+        if (options.KubernetesInitializationAdditionalTimeout < TimeSpan.Zero)
+        {
+            builder.AddError("The Kubernetes additional initialization timeout must be non-negative.", nameof(options.KubernetesInitializationAdditionalTimeout));
+        }
+        // Compare the remaining headroom rather than adding potentially overflowing configuration values.
+        else if (apiTimeoutValid &&
+            options.KubernetesInitializationAdditionalTimeout > TimeSpan.FromMinutes(10) - options.KubernetesApiTimeout)
+        {
+            builder.AddError("The combined Kubernetes API and additional initialization timeouts must not exceed ten minutes.", nameof(options.KubernetesInitializationAdditionalTimeout));
+        }
+
         return builder.Build();
+    }
+
+    private static bool ValidateKubernetesTimeout(ValidateOptionsResultBuilder builder, TimeSpan timeout, string propertyName, string description)
+    {
+        if (timeout < TimeSpan.FromSeconds(1) || timeout > TimeSpan.FromMinutes(10))
+        {
+            builder.AddError($"The Kubernetes {description} timeout must be between one second and ten minutes.", propertyName);
+            return false;
+        }
+
+        return true;
     }
 }
 
@@ -139,6 +238,8 @@ internal class ConfigureDefaultDcpOptions(
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
+    private const string TerminalHostPathMetadataKey = "aspireterminalhostpath";
+    private const string TerminalHostInvocationArgsMetadataKey = "aspireterminalhostinvocationargs";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -190,6 +291,70 @@ internal class ConfigureDefaultDcpOptions(
             options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
+        // Terminal Host path resolution (same pattern as Dashboard)
+        var configTerminalHostPath = configuration[BundleDiscovery.TerminalHostPathEnvVar];
+        if (!string.IsNullOrEmpty(configTerminalHostPath))
+        {
+            options.TerminalHostPath = configTerminalHostPath;
+        }
+        else if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.TerminalHostPath)]))
+        {
+            options.TerminalHostPath = dcpPublisherConfiguration[nameof(options.TerminalHostPath)];
+        }
+        else
+        {
+            options.TerminalHostPath = GetMetadataValue(assemblyMetadata, TerminalHostPathMetadataKey);
+        }
+
+        // An explicitly empty override clears dispatcher arguments baked in by an older SDK.
+        var configTerminalHostInvocationArgs = configuration[BundleDiscovery.TerminalHostInvocationArgsEnvVar];
+        if (configTerminalHostInvocationArgs is not null)
+        {
+            options.TerminalHostInvocationArgs = configTerminalHostInvocationArgs;
+        }
+        else if (dcpPublisherConfiguration[nameof(options.TerminalHostInvocationArgs)] is { } configuredInvocationArgs)
+        {
+            options.TerminalHostInvocationArgs = configuredInvocationArgs;
+        }
+        else
+        {
+            options.TerminalHostInvocationArgs = GetMetadataValue(assemblyMetadata, TerminalHostInvocationArgsMetadataKey);
+        }
+
+        // Discovery order for the terminal host binary:
+        //
+        // 1. ASPIRE_TERMINAL_HOST_PATH environment variable (manual override, e.g.
+        //    side-loading a custom build for development).
+        // 2. dcpPublisherConfiguration[TerminalHostPath] (programmatic override, e.g.
+        //    tests or in-proc hosts.)
+        // 3. Assembly metadata "aspireterminalhostpath" baked into the AppHost at
+        //    build time by ResolveAspireCliBundle (the SetTerminalHostDiscoveryAttributes
+        //    MSBuild target). This is the **primary** path in the normal `dotnet build`
+        //    → `dotnet run` case — by the time the AppHost runs, the metadata already
+        //    points at the bundled aspire-managed binary.
+        // 4. Runtime inference from DashboardPath (below): only fires when none of the
+        //    above produced a value, which happens when the AppHost was built on a
+        //    machine where ResolveAspireCliBundle could not locate the bundle, but at
+        //    runtime the launching CLI did set ASPIRE_DASHBOARD_PATH. This fallback
+        //    applies to legacy bundles where that path points to the multi-mode
+        //    aspire-managed executable. New bundles ship a separate Native AOT
+        //    Dashboard and provide terminal-host metadata directly.
+        //
+        // Note: if both the dashboard and terminal host paths end up empty, .WithTerminal()
+        // resources will fail at start time; see TerminalHostFailureDiagnosticService for
+        // the user-facing recovery (unhide the failed host, inject an actionable log line).
+        if (string.IsNullOrEmpty(options.TerminalHostPath) &&
+            !string.IsNullOrEmpty(options.DashboardPath) &&
+            BundleDiscovery.IsAspireManagedBinary(options.DashboardPath))
+        {
+            options.TerminalHostPath = options.DashboardPath;
+
+            if (string.IsNullOrEmpty(options.TerminalHostInvocationArgs))
+            {
+                options.TerminalHostInvocationArgs = "terminalhost";
+            }
+        }
+
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ContainerRuntime)]))
         {
             options.ContainerRuntime = dcpPublisherConfiguration[nameof(options.ContainerRuntime)];
@@ -217,6 +382,9 @@ internal class ConfigureDefaultDcpOptions(
 
         options.KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryCount), options.KubernetesConfigReadRetryCount);
         options.KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryIntervalMilliseconds), options.KubernetesConfigReadRetryIntervalMilliseconds);
+        options.KubernetesInitializationAdditionalTimeout = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesInitializationAdditionalTimeout), options.KubernetesInitializationAdditionalTimeout);
+        options.KubernetesApiTimeout = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesApiTimeout), options.KubernetesApiTimeout);
+        options.KubernetesCreateRecoveryTimeout = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesCreateRecoveryTimeout), options.KubernetesCreateRecoveryTimeout);
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)]))
         {
@@ -224,6 +392,9 @@ internal class ConfigureDefaultDcpOptions(
         }
 
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
+        options.ProxylessEndpointPortRangeStart = dcpPublisherConfiguration.GetValue(nameof(options.ProxylessEndpointPortRangeStart), options.ProxylessEndpointPortRangeStart);
+        options.ProxylessEndpointPortRangeEnd = dcpPublisherConfiguration.GetValue(nameof(options.ProxylessEndpointPortRangeEnd), options.ProxylessEndpointPortRangeEnd);
+        ApplyProxylessEndpointPortRangeOverride(options, configuration);
         options.WaitForResourceCleanup = dcpPublisherConfiguration.GetValue(nameof(options.WaitForResourceCleanup), options.WaitForResourceCleanup);
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
@@ -232,6 +403,51 @@ internal class ConfigureDefaultDcpOptions(
         options.DiagnosticsLogLevel = dcpPublisherConfiguration[nameof(options.DiagnosticsLogLevel)];
         options.PreserveExecutableLogs = dcpPublisherConfiguration.GetValue<bool?>(nameof(options.PreserveExecutableLogs), options.PreserveExecutableLogs);
         options.EnableAspireContainerTunnel = configuration.GetValue(KnownConfigNames.EnableContainerTunnel, options.EnableAspireContainerTunnel);
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ContainerTunnelBaseImage)]))
+        {
+            options.ContainerTunnelBaseImage = dcpPublisherConfiguration[nameof(options.ContainerTunnelBaseImage)];
+        }
+        else if (!string.IsNullOrEmpty(configuration[KnownConfigNames.ContainerTunnelBaseImage]))
+        {
+            options.ContainerTunnelBaseImage = configuration[KnownConfigNames.ContainerTunnelBaseImage];
+        }
+    }
+
+    private static void ApplyProxylessEndpointPortRangeOverride(DcpOptions options, IConfiguration configuration)
+    {
+        if (configuration[KnownConfigNames.ProxylessEndpointPortRange] is not { Length: > 0 } configuredRange)
+        {
+            return;
+        }
+
+        var separatorIndex = configuredRange.IndexOf('-', StringComparison.Ordinal);
+        if (separatorIndex < 0 || separatorIndex != configuredRange.LastIndexOf('-'))
+        {
+            ThrowInvalidProxylessEndpointPortRange(configuredRange);
+        }
+
+        var startText = configuredRange[..separatorIndex].Trim();
+        var endText = configuredRange[(separatorIndex + 1)..].Trim();
+        if (!int.TryParse(startText, NumberStyles.None, CultureInfo.InvariantCulture, out var start))
+        {
+            ThrowInvalidProxylessEndpointPortRange(configuredRange);
+        }
+
+        if (!int.TryParse(endText, NumberStyles.None, CultureInfo.InvariantCulture, out var end))
+        {
+            ThrowInvalidProxylessEndpointPortRange(configuredRange);
+        }
+
+        options.ProxylessEndpointPortRangeStart = start;
+        options.ProxylessEndpointPortRangeEnd = end;
+    }
+
+    [DoesNotReturn]
+    private static void ThrowInvalidProxylessEndpointPortRange(string configuredRange)
+    {
+        throw new InvalidOperationException(
+            $"Invalid value \"{configuredRange}\" for \"{KnownConfigNames.ProxylessEndpointPortRange}\". Expected a port range formatted as \"start-end\", for example \"10000-32767\".");
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

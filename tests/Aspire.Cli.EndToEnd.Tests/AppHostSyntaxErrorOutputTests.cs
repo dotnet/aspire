@@ -5,14 +5,13 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Aspire.Cli.Resources;
-using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
 
 namespace Aspire.Cli.EndToEnd.Tests;
 
 /// <summary>
-/// End-to-end tests for AppHost syntax-error output.
+/// End-to-end tests for AppHost failures reported before startup.
 /// </summary>
 public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
 {
@@ -27,6 +26,20 @@ public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
             command: "aspire run --apphost BrokenDotNetApp.csproj",
             expectedExitCode: 6,
             outputExpectation: s_dotNetRunOutputExpectation,
+            timeout: TimeSpan.FromMinutes(2));
+    }
+
+    [Fact]
+    [CaptureWorkspaceOnFailure]
+    public Task RunReportsMissingSdkAsBuildFailureForDotNetAppHost()
+    {
+        return RunSyntaxErrorScenarioAsync(
+            projectName: "MissingSdkAppHost",
+            template: AspireTemplate.EmptyAppHost,
+            configureProject: WriteDotNetAppHostWithMissingSdk,
+            command: "aspire run --apphost MissingSdkAppHost.csproj",
+            expectedExitCode: 6,
+            outputExpectation: s_dotNetMissingSdkRunOutputExpectation,
             timeout: TimeSpan.FromMinutes(2));
     }
 
@@ -185,6 +198,22 @@ public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
             RunCommandStrings.RecentAppHostStartupOutput
         ]);
 
+    private static readonly CommandOutputExpectation s_dotNetMissingSdkRunOutputExpectation = new(
+        RequiredText:
+        [
+            // https://github.com/microsoft/aspire/issues/19035: the whole point of the fix is that the
+            // MSBuild SDK-resolution failure reaches the user. Match on the bare error code because the
+            // full sentence ("The SDK 'Missing.AppHost.Sdk' specified could not be found.") is long
+            // enough to be wrapped across lines in the terminal recording.
+            "MSB4236",
+            "The project could not be built."
+        ],
+        ForbiddenText:
+        [
+            InteractionServiceStrings.ProjectOptionDoesntExist,
+            InteractionServiceStrings.UnbuildableAppHostsDetected
+        ]);
+
     private static readonly CommandOutputExpectation s_dotNetStartOutputExpectation = new(
         RequiredText:
         [
@@ -199,7 +228,7 @@ public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
         RequiredText:
         [
             "apphost.mts(1,15): error TS1109: Expression expected.",
-            "The TypeScript (Node.js) apphost failed."
+            InteractionServiceStrings.ProjectCouldNotBeBuilt
         ],
         ForbiddenText:
         [
@@ -225,16 +254,19 @@ public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
     private static void WriteBrokenDotNetAppHost(string projectDirectory)
     {
         var appHostPath = Path.Combine(projectDirectory, "apphost.cs");
-        var aspireSdkVersion = GetAspireSdkVersion(appHostPath);
+        var appHostVersion = CliE2ETestHelpers.GetAppHostVersion(File.ReadAllText(appHostPath));
 
         File.WriteAllText(Path.Combine(projectDirectory, "BrokenDotNetApp.csproj"), $$"""
-            <Project Sdk="Aspire.AppHost.Sdk/{{aspireSdkVersion}}">
+            <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <OutputType>Exe</OutputType>
                 <TargetFramework>net10.0</TargetFramework>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
               </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Aspire.Hosting.AppHost" Version="{{appHostVersion}}" />
+              </ItemGroup>
             </Project>
             """);
 
@@ -248,14 +280,16 @@ public sealed class AppHostSyntaxErrorOutputTests(ITestOutputHelper output)
             """);
     }
 
-    private static string GetAspireSdkVersion(string appHostPath)
+    private static void WriteDotNetAppHostWithMissingSdk(string projectDirectory)
     {
-        var firstLine = File.ReadLines(appHostPath).First();
-        const string versionMarker = "Aspire.AppHost.Sdk@";
-        var markerIndex = firstLine.IndexOf(versionMarker, StringComparison.Ordinal);
-        Assert.True(markerIndex >= 0, $"Expected {appHostPath} to start with an Aspire.AppHost.Sdk directive.");
-
-        return firstLine[(markerIndex + versionMarker.Length)..].Trim();
+        File.WriteAllText(Path.Combine(projectDirectory, "MissingSdkAppHost.csproj"), """
+            <Project Sdk="Missing.AppHost.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
     }
 
     private static void WriteBrokenTypeScriptAppHost(string projectDirectory)

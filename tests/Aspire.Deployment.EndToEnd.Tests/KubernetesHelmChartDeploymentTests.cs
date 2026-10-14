@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Tests.Utils;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
 using Xunit;
@@ -178,8 +177,8 @@ builder.Build().Run();
 
             content = content.Replace(buildRunPattern, replacement);
 
-            var topOfFile = "#pragma warning disable ASPIREPIPELINES001\n#pragma warning disable ASPIRECOMPUTE003\nusing Aspire.Hosting.Kubernetes;\n";
-            if (!content.Contains("#pragma warning disable ASPIREPIPELINES001"))
+            var topOfFile = "#pragma warning disable ASPIRECOMPUTE003\nusing Aspire.Hosting.Kubernetes;\n";
+            if (!content.Contains(topOfFile))
             {
                 content = topOfFile + content;
             }

@@ -3,13 +3,80 @@
 
 using System.Text.Json;
 using Aspire.Cli.Projects;
-using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Projects;
 
 public class FallbackProjectParserTests(ITestOutputHelper output)
 {
+    [Theory]
+    [InlineData("// #:package Aspire.Hosting.AppHost@17.0.0", false)]
+    [InlineData("var example = \"#:package Aspire.Hosting.AppHost@17.0.0\";", false)]
+    [InlineData("/*\n#:package Aspire.Hosting.AppHost@17.0.0\n*/", false)]
+    [InlineData("var example = \"\"\"\n#:package Aspire.Hosting.AppHost@17.0.0\n\"\"\";", false)]
+    [InlineData("var example = @\"\n#:package Aspire.Hosting.AppHost@17.0.0\n\";", false)]
+    [InlineData("/* example */\n#:package Aspire.Hosting.AppHost@17.0.0", true)]
+    [InlineData("#:package Aspire.Hosting.AppHost@17.0.0 unexpected", false)]
+    [InlineData("  #:package Aspire.Hosting.AppHost@17.0.0+build.1  \r\n", true)]
+    public void ParseProject_OnlyUsesCompletePackageDirectiveLines(string content, bool expected)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        File.WriteAllText(projectFile.FullName, content);
+        var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+        using var result = parser.ParseProject(projectFile);
+
+        Assert.Equal(expected, FallbackProjectParser.HasAppHostPackageDirective(content));
+        Assert.Equal(expected ? 1 : 0, result.RootElement.GetProperty("Items").GetProperty("PackageReference").GetArrayLength());
+    }
+
+    [Theory]
+    [InlineData("// #:sdk Aspire.AppHost.Sdk@17.0.0", false)]
+    [InlineData("var example = \"#:sdk Aspire.AppHost.Sdk@17.0.0\";", false)]
+    [InlineData("/*\n#:sdk Aspire.AppHost.Sdk@17.0.0\n*/", false)]
+    [InlineData("var example = \"\"\"\n#:sdk Aspire.AppHost.Sdk@17.0.0\n\"\"\";", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk.Extra@17.0.0", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@17.0.0 unexpected", false)]
+    [InlineData("  #:sdk Aspire.AppHost.Sdk@17.0.0+build.1  \r\n", true)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk", true)]
+    public void ParseProject_OnlyUsesCompleteSdkDirectiveLines(string content, bool expected)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        File.WriteAllText(projectFile.FullName, content);
+        var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+        using var result = parser.ParseProject(projectFile);
+
+        Assert.Equal(expected ? "true" : "false", result.RootElement.GetProperty("Properties").GetProperty("_UsingAspireAppHostSdk").GetString());
+    }
+
+    [Theory]
+    [InlineData(".csproj")]
+    [InlineData(".fsproj")]
+    [InlineData(".vbproj")]
+    public void ParseProject_PackageMetadataUpdatesDoNotEstablishReferences(string extension)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, $"AppHost{extension}"));
+        File.WriteAllText(projectFile.FullName, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Update="Aspire.Hosting.AppHost" Version="17.0.0" />
+                <PackageReference Include="Aspire.Hosting.Redis" Version="17.0.0" />
+              </ItemGroup>
+            </Project>
+            """);
+        var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+        using var result = parser.ParseProject(projectFile);
+
+        var package = Assert.Single(result.RootElement.GetProperty("Items").GetProperty("PackageReference").EnumerateArray());
+        Assert.Equal("Aspire.Hosting.Redis", package.GetProperty("Identity").GetString());
+        Assert.Equal("17.0.0", package.GetProperty("Version").GetString());
+    }
+
     private static readonly JsonSerializerOptions s_indentedOptions = new() { WriteIndented = true };
 
     private static string FormatJson(JsonDocument document)
@@ -21,7 +88,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_ExtractsAspireAppHostSdk_OldFormat()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
@@ -43,7 +110,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_ExtractsAspireAppHostSdk_NewFormat()
     {
         // Arrange - tests the new <Project Sdk="Aspire.AppHost.Sdk/version"> format
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Aspire.AppHost.Sdk/13.0.1">
@@ -68,7 +135,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_ExtractsAspireAppHostSdk_NewFormat_WithMultipleSdks()
     {
         // Arrange - tests parsing when multiple SDKs are in the attribute
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk">
@@ -93,7 +160,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_DoesNotMatchSimilarSdkName()
     {
         // Arrange - tests that Aspire.AppHost.SdkFoo doesn't match
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Aspire.AppHost.SdkFoo/1.0.0">
@@ -118,7 +185,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_ExtractsPackageReferences()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
@@ -144,7 +211,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_ExtractsProjectReferences()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
@@ -183,7 +250,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_InvalidXml_ThrowsProjectUpdaterException()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.csproj");
         var invalidProjectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
@@ -205,7 +272,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_ExtractsAspireAppHostSdk()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             #:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25519.5
@@ -229,7 +296,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_ExtractsPackageReferences()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             #:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25519.5
@@ -259,7 +326,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_NoPackageReferences()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             #:sdk Aspire.AppHost.Sdk@9.5.0
@@ -282,7 +349,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_WithWildcardVersion()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             #:sdk Aspire.AppHost.Sdk@*
@@ -306,7 +373,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_NoProjectReferences()
     {
         // Arrange - single-file apphosts don't support project references
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             #:sdk Aspire.AppHost.Sdk@9.5.0
@@ -329,7 +396,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_SingleFileAppHost_NoSdkDirective()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.cs");
         var projectContent = """
             // Missing SDK directive
@@ -351,7 +418,7 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
     public async Task ParseProject_UnsupportedFileType_ThrowsProjectUpdaterException()
     {
         // Arrange
-        using var workspace = TemporaryWorkspace.Create(output);
+        using var workspace = TemporaryWorkspace.CreateForCli(output);
         var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "Test.txt");
         var projectContent = "Some random content";
 

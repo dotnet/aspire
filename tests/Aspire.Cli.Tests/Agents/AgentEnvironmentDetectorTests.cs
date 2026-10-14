@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.InternalTesting;
 using Aspire.Cli.Agents;
-using Aspire.Cli.Tests.Utils;
 
 namespace Aspire.Cli.Tests.Agents;
 
@@ -12,7 +11,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DetectAsync_WithNoScanners_ReturnsEmptyArray()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var detector = new AgentEnvironmentDetector([]);
         var context = new AgentEnvironmentScanContext
         {
@@ -28,7 +27,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DetectAsync_WithScanner_RunsScannerWithCorrectContext()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var scanner = new TestAgentEnvironmentScanner();
         var detector = new AgentEnvironmentDetector([scanner]);
         var context = new AgentEnvironmentScanContext
@@ -47,7 +46,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DetectAsync_WithScannerThatAddsApplicator_ReturnsApplicator()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var scanner = new TestAgentEnvironmentScanner
         {
             ApplicatorToAdd = new AgentEnvironmentApplicator(
@@ -70,7 +69,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task DetectAsync_WithMultipleScanners_RunsAllScanners()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var scanner1 = new TestAgentEnvironmentScanner
         {
             ApplicatorToAdd = new AgentEnvironmentApplicator(
@@ -95,23 +94,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         Assert.True(scanner1.WasScanned);
         Assert.True(scanner2.WasScanned);
         Assert.Equal(2, applicators.Length);
-    }
-
-    [Fact]
-    public async Task DetectAsync_WithConfigurePlaywrightTrue_PassesContextToScanner()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var scanner = new TestAgentEnvironmentScanner();
-        var detector = new AgentEnvironmentDetector([scanner]);
-        var context = new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot,
-        };
-
-        var applicators = await detector.DetectAsync(context, CancellationToken.None).DefaultTimeout();
-
-        Assert.True(scanner.WasScanned);
     }
 
     private sealed class TestAgentEnvironmentScanner : IAgentEnvironmentScanner

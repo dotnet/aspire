@@ -150,7 +150,6 @@ internal static class AsyncTestHelpers
         {
             return await task.ConfigureAwait(false);
         }
-#if NET6_0_OR_GREATER
         try
         {
             return await task.WaitAsync(timeout).ConfigureAwait(false);
@@ -159,18 +158,6 @@ internal static class AsyncTestHelpers
         {
             throw new TimeoutException(CreateMessage(timeout, filePath!, lineNumber));
         }
-#else
-        var cts = new CancellationTokenSource();
-        if (task == await Task.WhenAny(task, Task.Delay(timeout, cts.Token)).ConfigureAwait(false))
-        {
-            cts.Cancel();
-            return await task.ConfigureAwait(false);
-        }
-        else
-        {
-            throw new TimeoutException(CreateMessage(timeout, filePath, lineNumber));
-        }
-#endif
     }
 
     public static async Task TimeoutAfter(this Task task, TimeSpan timeout,
@@ -184,7 +171,6 @@ internal static class AsyncTestHelpers
             await task.ConfigureAwait(false);
             return;
         }
-#if NET6_0_OR_GREATER
         try
         {
             await task.WaitAsync(timeout).ConfigureAwait(false);
@@ -193,18 +179,6 @@ internal static class AsyncTestHelpers
         {
             throw new TimeoutException(CreateMessage(timeout, filePath!, lineNumber));
         }
-#else
-        var cts = new CancellationTokenSource();
-        if (task == await Task.WhenAny(task, Task.Delay(timeout, cts.Token)).ConfigureAwait(false))
-        {
-            cts.Cancel();
-            await task.ConfigureAwait(false);
-        }
-        else
-        {
-            throw new TimeoutException(CreateMessage(timeout, filePath, lineNumber));
-        }
-#endif
     }
 
     private static string CreateMessage(TimeSpan timeout, string filePath, int lineNumber)
@@ -244,6 +218,25 @@ internal static class AsyncTestHelpers
 
         token.Register(() => tcs.SetCanceled(token));
 
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// Returns a task that completes <em>successfully</em> when <paramref name="token"/> is cancelled.
+    /// Unlike <see cref="WaitForCancellationAsync(CancellationToken)"/>, which completes as cancelled
+    /// (throwing <see cref="OperationCanceledException"/> when awaited), this is intended for tests that
+    /// want to await the cancellation edge as a normal signal without an exception.
+    /// </summary>
+    public static Task WaitUntilCancelledAsync(this CancellationToken token)
+    {
+        if (token.IsCancellationRequested)
+        {
+            return Task.CompletedTask;
+        }
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registration = token.Register(static state => ((TaskCompletionSource)state!).TrySetResult(), tcs);
+        tcs.Task.ContinueWith(static (_, state) => ((CancellationTokenRegistration)state!).Dispose(), registration, TaskScheduler.Default);
         return tcs.Task;
     }
 }

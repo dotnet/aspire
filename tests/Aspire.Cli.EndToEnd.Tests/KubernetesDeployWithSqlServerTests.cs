@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEnd.Tests.Helpers;
-using Aspire.Cli.Tests.Utils;
 using Hex1b.Automation;
 using Xunit;
 
@@ -56,7 +55,7 @@ public sealed class KubernetesDeployWithSqlServerTests(ITestOutputHelper output)
 
                 var sql = builder.AddSqlServer("sql");
 
-                var api = builder.AddProject<Projects.{{ProjectName}}_ApiService>("server")
+                var api = builder.AddDotnetProject("server", "../{{ProjectName}}.ApiService/{{ProjectName}}.ApiService.csproj")
                     .WithReference(sql)
                     .WaitFor(sql)
                     .WithExternalHttpEndpoints();

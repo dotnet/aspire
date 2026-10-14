@@ -2,12 +2,44 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class TextVisualizerViewModelTests
 {
+    [Fact]
+    public void Create_KnownSqlFormat_PreservesQueryAndCanChangeFormat()
+    {
+        const string query = "SELECT '<value>', @id;\r\n-- comment\r\nSELECT 2;";
+        var vm = new TextVisualizerViewModel(query, indentText: true, knownFormat: DashboardUIHelpers.SqlFormat);
+
+        Assert.Equal(DashboardUIHelpers.SqlFormat, vm.FormatKind);
+        Assert.Equal(query, vm.FormattedText);
+        Assert.All(vm.FormattedLines, line => Assert.Equal(DashboardUIHelpers.SqlFormat, line.FormatKind));
+
+        vm.UpdateFormat(DashboardUIHelpers.PlaintextFormat);
+        Assert.Equal(DashboardUIHelpers.PlaintextFormat, vm.FormatKind);
+        Assert.Equal(query, vm.FormattedText);
+
+        vm.UpdateFormat(DashboardUIHelpers.SqlFormat);
+        Assert.Equal(DashboardUIHelpers.SqlFormat, vm.FormatKind);
+        Assert.Equal(query, vm.FormattedText);
+    }
+
+    [Theory]
+    [InlineData("""{"query":"SELECT 1"}""")]
+    [InlineData("<query>SELECT 1</query>")]
+    public void Create_KnownSqlFormat_TakesPriorityOverStructuredFormats(string text)
+    {
+        var vm = new TextVisualizerViewModel(text, indentText: true, knownFormat: DashboardUIHelpers.SqlFormat);
+
+        Assert.Equal(DashboardUIHelpers.SqlFormat, vm.FormatKind);
+        Assert.Equal(text, vm.FormattedText);
+        Assert.All(vm.FormattedLines, line => Assert.Equal(DashboardUIHelpers.SqlFormat, line.FormatKind));
+    }
+
     [Fact]
     public void Create_PlainText_NotFormatted()
     {
@@ -66,5 +98,77 @@ public sealed class TextVisualizerViewModelTests
               true
             ]
             """, vm.FormattedText);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Create_KnownJsonFormat_RespectsIndentText(bool indentText)
+    {
+        var vm = new TextVisualizerViewModel("""{"key":"value"}""", indentText, knownFormat: DashboardUIHelpers.JsonFormat);
+
+        Assert.Equal("""{"key":"value"}""", vm.Text);
+        Assert.Equal(DashboardUIHelpers.JsonFormat, vm.FormatKind);
+        Assert.Equal(
+            indentText
+                ? """
+                  {
+                    "key": "value"
+                  }
+                  """
+                : """{"key":"value"}""",
+            vm.FormattedText);
+    }
+
+    [Fact]
+    public void Create_KnownJsonFormat_PreservesLosslessNumberTextWhenFormatting()
+    {
+        var vm = new TextVisualizerViewModel("""{"large":9223372036854775807,"precise":0.1234567890123456789012345,"trailing":1.2300}""", indentText: true, knownFormat: DashboardUIHelpers.JsonFormat);
+
+        Assert.Equal(
+            """
+            {
+              "large": 9223372036854775807,
+              "precise": 0.1234567890123456789012345,
+              "trailing": 1.2300
+            }
+            """,
+            vm.FormattedText);
+    }
+
+    [Fact]
+    public void Create_KnownJsonFormat_PreservesRawNumberTextWhenNumberCannotBeRepresentedLosslessly()
+    {
+        var json = """{"exponent":1.23456789012345678901234567890123456789e-100,"huge":1e1000,"largeDouble":1e100}""";
+
+        var vm = new TextVisualizerViewModel(json, indentText: true, knownFormat: DashboardUIHelpers.JsonFormat);
+
+        Assert.Equal(DashboardUIHelpers.JsonFormat, vm.FormatKind);
+        Assert.Equal(
+            """
+            {
+              "exponent": 1.23456789012345678901234567890123456789e-100,
+              "huge": 1e1000,
+              "largeDouble": 1e100
+            }
+            """,
+            vm.FormattedText);
+    }
+
+    [Fact]
+    public void Create_KnownJsonFormat_FormatsNumberTextAfterComments()
+    {
+        var vm = new TextVisualizerViewModel("""[/* number */0.1234567890123456789012345,9223372036854775807,1.2300]""", indentText: true, knownFormat: DashboardUIHelpers.JsonFormat);
+
+        Assert.Equal(
+            """
+            [
+              /* number */
+              0.1234567890123456789012345,
+              9223372036854775807,
+              1.2300
+            ]
+            """,
+            vm.FormattedText);
     }
 }

@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -16,25 +15,19 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string OpenCodeConfigFileName = "opencode.jsonc";
     private const string AspireServerName = "aspire";
-    private static readonly string s_skillBaseDirectory = Path.Combine(".opencode", "skill");
-
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
-    private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="OpenCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
-    /// <param name="playwrightCliInstaller">The Playwright CLI installer for secure installation.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, PlaywrightCliInstaller playwrightCliInstaller, ILogger<OpenCodeAgentEnvironmentScanner> logger)
+    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
-        ArgumentNullException.ThrowIfNull(playwrightCliInstaller);
         ArgumentNullException.ThrowIfNull(logger);
         _openCodeCliRunner = openCodeCliRunner;
-        _playwrightCliInstaller = playwrightCliInstaller;
         _logger = logger;
     }
 
@@ -52,7 +45,9 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         if (configFileExists)
         {
             _logger.LogDebug("Found existing opencode.jsonc at: {ConfigFilePath}", configFilePath);
-            
+
+            context.AddDetectedClient(AgentClientKind.OpenCode);
+
             // Check if aspire is already configured
             _logger.LogDebug("Checking if Aspire MCP server is already configured in opencode.jsonc...");
             if (!HasAspireServerConfigured(configFilePath))
@@ -65,9 +60,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             {
                 _logger.LogDebug("Aspire MCP server is already configured");
             }
-
-            // Register Playwright CLI installation applicator
-            CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
         }
         else
         {
@@ -78,12 +70,12 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             if (openCodeVersion is not null)
             {
                 _logger.LogDebug("Found OpenCode CLI version: {Version}", openCodeVersion);
+
+                context.AddDetectedClient(AgentClientKind.OpenCode);
+
                 // OpenCode is installed - offer to create config
                 _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
                 context.AddApplicator(CreateApplicator(configDirectory));
-                
-                // Register Playwright CLI installation applicator
-                CommonAgentApplicators.AddPlaywrightCliApplicator(context, _playwrightCliInstaller, s_skillBaseDirectory);
             }
             else
             {
@@ -181,7 +173,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
-        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, cancellationToken, RemoveJsonComments);
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, RemoveJsonComments, cancellationToken);
 
         // Ensure schema is set for new configs
         if (!config.ContainsKey("$schema"))

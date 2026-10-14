@@ -1,9 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001
-
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;
@@ -12,6 +11,7 @@ namespace Aspire.Hosting.Tests.Publishing;
 public class PublishingExtensionsTests
 {
     private readonly InteractionService _interactionService = PublishingActivityReporterTests.CreateInteractionService();
+    private readonly TestInteractionFileUploadStore _fileUploadStore = new();
 
     [Fact]
     public async Task PublishingStepExtensions_CreateTask_WorksCorrectly()
@@ -124,6 +124,6 @@ public class PublishingExtensionsTests
 
     private PipelineActivityReporter CreatePublishingReporter()
     {
-        return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        return new PipelineActivityReporter(_interactionService, _fileUploadStore, NullLogger<PipelineActivityReporter>.Instance);
     }
 }

@@ -71,6 +71,14 @@ internal sealed class ListConsoleLogsTool(IAuxiliaryBackchannelMonitor auxiliary
             throw new McpProtocolException(McpErrorMessages.NoAppHostRunning, McpErrorCode.InternalError);
         }
 
+        // Check if the resource is excluded from MCP before fetching logs.
+        // This is the only check needed because the resource name is required for this tool.
+        var excludedResult = await McpToolHelpers.CheckResourceExcludedAsync(connection, resourceName, cancellationToken).ConfigureAwait(false);
+        if (excludedResult is not null)
+        {
+            return excludedResult;
+        }
+
         try
         {
             var logParser = new LogParser(ConsoleColor.Black);
@@ -134,12 +142,13 @@ internal sealed class ListConsoleLogsTool(IAuxiliaryBackchannelMonitor auxiliary
                 Content = [new TextContentBlock { Text = consoleLogsData }]
             };
         }
-        catch (Exception ex) when (ex is not McpProtocolException)
+        catch (Exception ex) when (ex is not McpProtocolException and not OperationCanceledException)
         {
-            logger.LogError(ex, "Error retrieving console logs for resource '{ResourceName}'", resourceName);
+            logger.LogError("Error retrieving console logs for resource '{ResourceName}'", resourceName);
             return new CallToolResult
             {
-                Content = [new TextContentBlock { Text = $"Error retrieving console logs for resource '{resourceName}': {ex.Message}" }]
+                Content = [new TextContentBlock { Text = $"Error retrieving console logs for resource '{resourceName}'." }],
+                IsError = true
             };
         }
     }

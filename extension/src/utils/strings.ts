@@ -24,6 +24,43 @@ export function removeTrailingNewline(str: string): string {
   return str.replace(/(\r\n|\n)$/, '');
 }
 
+export function equalsOrdinalIgnoreCase(left: string, right: string): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const toOrdinalUpperCase = (value: string) => Array.from(value, character => {
+    // .NET ordinal casing deliberately excludes the Turkish dotless I and long S mappings.
+    // JavaScript also performs multi-character uppercase expansions that ordinal casing omits.
+    if (character === '\u0131' || character === '\u017F') {
+      return character;
+    }
+
+    const upper = character.toUpperCase();
+    return upper.length === character.length ? upper : character;
+  }).join('');
+
+  return toOrdinalUpperCase(left) === toOrdinalUpperCase(right);
+}
+
+/**
+ * Collapses runs of whitespace, including newlines, into single spaces. CLI status text can span
+ * multiple lines, which neither a single-line VS Code label nor a screen reader renders well.
+ */
+export function collapseWhitespace(str: string): string {
+  return str.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Escapes `$(name)` codicon syntax so text the extension does not control cannot inject icons into
+ * VS Code surfaces that render them, such as the status bar and window progress. A leading
+ * backslash is the escape VS Code itself honours.
+ * See `escapeIcons` in https://github.com/microsoft/vscode/blob/main/src/vs/base/common/iconLabels.ts.
+ */
+export function escapeCodicons(str: string): string {
+  return str.replace(/(\\)?\$\([A-Za-z0-9-]+(?:~[A-Za-z]+)?\)/g, (match, alreadyEscaped) => alreadyEscaped ? match : `\\${match}`);
+}
+
 export function applyTextStyle(text: string, style: string | null | undefined): string {
   if (!style) {
     return text;

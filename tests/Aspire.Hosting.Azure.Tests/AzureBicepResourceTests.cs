@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001
-#pragma warning disable ASPIREAZURE001
-
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -13,12 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureBicepResourceTests
+public class AzureBicepResourceTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     public void AddBicepResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var bicepResource = builder.AddBicepTemplateString("mytemplate", "content")
                                    .WithParameter("param1", "value1")
@@ -74,7 +71,7 @@ public class AzureBicepResourceTests
     [MemberData(nameof(AzureExtensions))]
     public void AzureExtensionsAutomaticallyAddAzureProvisioning(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper);
         addAzureResource(builder);
 
         var app = builder.Build();
@@ -86,7 +83,7 @@ public class AzureBicepResourceTests
     [MemberData(nameof(AzureExtensions))]
     public void BicepResourcesAreIdempotent(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
         var azureResourceBuilder = addAzureResource(builder);
 
         if (azureResourceBuilder.Resource is not AzureProvisioningResource bicepResource)
@@ -107,7 +104,7 @@ public class AzureBicepResourceTests
     [MemberData(nameof(AzureExtensionsWithHyphen))]
     public void AzureResourcesProduceValidBicep(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
         var azureResourceBuilder = addAzureResource(builder);
 
         if (azureResourceBuilder.Resource is not AzureProvisioningResource bicepResource)
@@ -124,7 +121,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetOutputReturnsOutputValue()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -136,7 +133,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetSecretOutputReturnsSecretOutputValue()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -150,7 +147,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -160,7 +157,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetSecretOutputValueThrowsIfNoOutput()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -172,7 +169,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AssertManifestLayout()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
 
         var param = builder.AddParameter("p1");
 
@@ -217,7 +214,7 @@ public class AzureBicepResourceTests
     public async Task BicepResourceHasPipelineStepAnnotationWithCorrectConfiguration()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
         var bicepResource = builder.AddBicepTemplateString("myresource", "content");
 
         // Act - Get the annotation
@@ -253,18 +250,18 @@ public class AzureBicepResourceTests
         // When a templateFile is specified, GetBicepTemplateFile should return the original path
         // and not combine it with the directory parameter.
 
-        using var tempDir = new TestTempDirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         // Create a test bicep file
         var bicepFileName = "test-template.bicep";
-        var bicepFilePath = Path.Combine(tempDir.Path, bicepFileName);
+        var bicepFilePath = Path.Combine(workspace.Path, bicepFileName);
         File.WriteAllText(bicepFilePath, "param location string = resourceGroup().location");
 
         // Create the AzureBicepResource with the templateFile
         var resource = new AzureBicepResource("test-resource", templateFile: bicepFilePath);
 
         // Create a different directory to pass to GetBicepTemplateFile
-        var outputDir = Path.Combine(tempDir.Path, "output");
+        var outputDir = Path.Combine(workspace.Path, "output");
         Directory.CreateDirectory(outputDir);
 
         // Get the bicep template file with a directory parameter
@@ -278,11 +275,11 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetBicepTemplateFile_WithTemplateFile_ReturnsOriginalPathWithoutDirectory()
     {
-        using var tempDir = new TestTempDirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         // Create a test bicep file
         var bicepFileName = "test-template.bicep";
-        var bicepFilePath = Path.Combine(tempDir.Path, bicepFileName);
+        var bicepFilePath = Path.Combine(workspace.Path, bicepFileName);
         File.WriteAllText(bicepFilePath, "param location string = resourceGroup().location");
 
         // Create the AzureBicepResource with the templateFile
@@ -298,7 +295,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetBicepTemplateFile_WithTemplateString_WritesToDirectory()
     {
-        using var tempDir = new TestTempDirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var bicepContent = "param location string = resourceGroup().location";
 
@@ -306,7 +303,7 @@ public class AzureBicepResourceTests
         var resource = new AzureBicepResource("test-resource", templateString: bicepContent);
 
         // Create a directory to pass to GetBicepTemplateFile
-        var outputDir = Path.Combine(tempDir.Path, "output");
+        var outputDir = Path.Combine(workspace.Path, "output");
         Directory.CreateDirectory(outputDir);
 
         // Get the bicep template file with a directory parameter

@@ -1,30 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREACAEXPRESS001
 
 using System.Text.Json.Nodes;
 using Azure.Core;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Foundry;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Aspire.TestUtilities;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -37,11 +34,198 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
     private static string GetTestResourceId(string resourcePath) => $"/subscriptions/{TestSubscriptionId}/resourceGroups/{TestResourceGroupName}{resourcePath}";
 
+    [Theory]
+    [InlineData("provision-azure-bicep-resources", false)]
+    [InlineData("login-to-acr-registry", true)]
+    [InlineData("push", true)]
+    [InlineData("publish", false)]
+    [InlineData("build", false)]
+    [InlineData("destroy", false)]
+    [InlineData("deploy", false)]
+    public async Task DeployAsync_PreAcquiresOnlySelectedTokenScopes(string target, bool requiresAcr)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: target);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var credential = new FederatedTokenCredential();
+        ConfigureTestServices(builder, activityReporter: reporter, armClientProvider: CreateRegistryArmClientProvider());
+        builder.Services.AddSingleton<ITokenCredentialProvider>(new TestTokenCredentialProvider(credential));
+        builder.Services.AddSingleton<IAzurePrincipalProvider, DefaultAzurePrincipalProvider>();
+        builder.AddAzureContainerRegistry("registry").PublishAsExisting("existing-registry", "existing-rg");
+        builder.AddAzureContainerRegistry("other-registry").PublishAsExisting("other-registry", "existing-rg");
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        Assert.NotEqual(CompletionState.CompletedWithError, reporter.ResultCompletionState);
+        var expected = target is "publish" or "build" or "destroy"
+            ? Array.Empty<string>()
+            : requiresAcr
+                ? ["https://management.azure.com/.default", AcrLoginService.AcrScope, "https://graph.windows.net/.default"]
+                : ["https://management.azure.com/.default", "https://graph.windows.net/.default"];
+        Assert.Equal(expected.Order(StringComparer.Ordinal), credential.Requests.Order(StringComparer.Ordinal));
+        if (expected.Length > 0)
+        {
+            Assert.Contains(reporter.CompletedSteps, step =>
+                step.StepTitle == "validate-azure-login" &&
+                step.CompletionText == "Azure authentication validated successfully");
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeployAsync_TokenPreAcquisitionFailurePreventsProvisioning(bool cancel)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "login-to-acr-registry");
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var credential = new FederatedTokenCredential
+        {
+            FailingScope = cancel ? null : AcrLoginService.AcrScope,
+            OnRequest = (scope, token) =>
+            {
+                if (cancel && scope == AcrLoginService.AcrScope)
+                {
+                    throw new OperationCanceledException(token);
+                }
+            }
+        };
+        var subscription = new TestSubscriptionResource([], resourceGroup: null, resourceGroupLookupReturnsNotFound: true);
+        ConfigureTestServices(builder, activityReporter: reporter, armClientProvider: new TestArmClientProvider(new TestArmClient(subscription)));
+        builder.Services.AddSingleton<ITokenCredentialProvider>(new TestTokenCredentialProvider(credential));
+        builder.AddAzureContainerRegistry("registry");
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        var environment = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().Resources.OfType<AzureEnvironmentResource>());
+        Assert.False(environment.ProvisioningContextTask.Task.IsCompleted);
+        Assert.Equal(0, subscription.ResourceGroups.CreateOrUpdateCallCount);
+        var runtime = Assert.IsType<FakeContainerRuntime>(app.Services.GetRequiredService<IContainerRuntime>());
+        Assert.False(runtime.WasLoginToRegistryCalled);
+        Assert.Equal(0, runtime.ResolveAsyncCallCount);
+        Assert.Equal(["https://management.azure.com/.default", AcrLoginService.AcrScope], credential.Requests);
+        if (!cancel)
+        {
+            var failedStep = reporter.CompletedSteps.First(step => step.StepTitle == "validate-azure-login");
+            Assert.Contains(AcrLoginService.AcrScope, failedStep.CompletionText);
+        }
+    }
+
+    [Fact]
+    public async Task DeployAsync_PreAcquisitionUsesSelectedTenant()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "login-to-acr-registry");
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var interactionService = new TestInteractionService();
+        ConfigureTestServices(builder, activityReporter: reporter, interactionService: interactionService, armClientProvider: CreateRegistryArmClientProvider(), setDefaultProvisioningOptions: false);
+        var requestedTenants = new List<string?>();
+        builder.Services.AddSingleton<ITokenCredentialProvider>(sp => new TestTokenCredentialProvider(new FederatedTokenCredential
+        {
+            OnRequest = (_, _) => requestedTenants.Add(sp.GetRequiredService<IOptions<AzureProvisionerOptions>>().Value.TenantId)
+        }));
+        builder.AddAzureContainerRegistry("registry").PublishAsExisting("existing-registry", "existing-rg");
+
+        using var app = builder.Build();
+        var runTask = app.RunAsync();
+        foreach (var value in new[] { s_testTenantId.ToString(), TestSubscriptionId, TestResourceGroupName, "westus2" })
+        {
+            var interaction = await interactionService.Interactions.Reader.ReadAsync();
+            interaction.Inputs[0].Value = value;
+            interaction.CompletionTcs.SetResult(InteractionResult.Ok(interaction.Inputs));
+        }
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.NotEqual(CompletionState.CompletedWithError, reporter.ResultCompletionState);
+        Assert.Equal([s_testTenantId.ToString(), s_testTenantId.ToString()], requestedTenants);
+    }
+
+    private static IArmClientProvider CreateRegistryArmClientProvider() => new TestArmClientProvider(new Dictionary<string, object>
+    {
+        ["name"] = new { type = "String", value = "testregistry" },
+        ["loginServer"] = new { type = "String", value = "testregistry.azurecr.io" }
+    });
+
+    [Theory]
+    [InlineData(16, true, false)]
+    [InlineData(61, false, false)]
+    [InlineData(16, true, true)]
+    public async Task DeployAsync_PreAcquiresTokensBeforeResourceGroupCreation(int provisioningMinutes, bool succeeds, bool automaticRegistry)
+    {
+        var loginStepName = automaticRegistry ? "login-to-acr-env-acr" : "login-to-acr-registry";
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: loginStepName);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var credential = new FederatedTokenCredential();
+        var subscription = new TestSubscriptionResource(new Dictionary<string, object>
+        {
+            ["name"] = new { type = "String", value = "testregistry" },
+            ["loginServer"] = new { type = "String", value = "testregistry.azurecr.io" }
+        }, resourceGroup: null, resourceGroupLookupReturnsNotFound: true);
+        subscription.ResourceGroups.OnCreateOrUpdate = () =>
+        {
+            Assert.Equal(
+                new[] { "https://management.azure.com/.default", AcrLoginService.AcrScope, "https://graph.windows.net/.default" }.Order(StringComparer.Ordinal),
+                credential.Requests.Order(StringComparer.Ordinal));
+            credential.Advance(TimeSpan.FromMinutes(provisioningMinutes));
+        };
+        ConfigureTestServices(builder, activityReporter: reporter, armClientProvider: new TestArmClientProvider(new TestArmClient(subscription)));
+        builder.Services.AddSingleton<ITokenCredentialProvider>(new TestTokenCredentialProvider(credential));
+        builder.Services.AddSingleton<IAzurePrincipalProvider, DefaultAzurePrincipalProvider>();
+        if (automaticRegistry)
+        {
+            builder.AddAzureContainerAppEnvironment("env");
+        }
+        else
+        {
+            builder.AddAzureContainerRegistry("registry");
+        }
+        builder.Pipeline.AddStep("request-delayed-acr-token", async context =>
+        {
+            await credential.GetTokenAsync(new TokenRequestContext([AcrLoginService.AcrScope]), context.CancellationToken);
+        }, dependsOn: AzureEnvironmentResource.CreateProvisioningContextStepName, requiredBy: loginStepName);
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        Assert.Equal(1, subscription.ResourceGroups.CreateOrUpdateCallCount);
+        if (succeeds)
+        {
+            Assert.Contains(reporter.CompletedSteps, step => step.StepTitle == "pipeline-execution" && step.CompletionState == CompletionState.Completed);
+        }
+        else
+        {
+            Assert.Equal(CompletionState.CompletedWithError, reporter.ResultCompletionState);
+        }
+        var runtime = Assert.IsType<FakeContainerRuntime>(app.Services.GetRequiredService<IContainerRuntime>());
+        Assert.Equal(succeeds, runtime.WasLoginToRegistryCalled);
+    }
+
+    [Fact]
+    public async Task DeployAsync_PrincipalAuthenticationFailurePreventsResourceGroupCreation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: AzureEnvironmentResource.CreateProvisioningContextStepName);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var subscription = new TestSubscriptionResource([], resourceGroup: null, resourceGroupLookupReturnsNotFound: true);
+        var credential = new FederatedTokenCredential { FailingScope = "https://graph.windows.net/.default" };
+        ConfigureTestServices(builder, activityReporter: reporter, armClientProvider: new TestArmClientProvider(new TestArmClient(subscription)));
+        builder.Services.AddSingleton<ITokenCredentialProvider>(new TestTokenCredentialProvider(credential));
+        builder.Services.AddSingleton<IAzurePrincipalProvider, DefaultAzurePrincipalProvider>();
+        builder.AddAzureProvisioning();
+        builder.AddAzureEnvironment();
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        Assert.Equal(0, subscription.ResourceGroups.CreateOrUpdateCallCount);
+        Assert.Equal(CompletionState.CompletedWithError, reporter.ResultCompletionState);
+        Assert.Equal(["https://management.azure.com/.default", "https://graph.windows.net/.default"], credential.Requests);
+        Assert.Contains(reporter.CompletedSteps, step => step.CompletionText.Contains("https://graph.windows.net/.default", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task DeployAsync_PromptsViaInteractionService()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner(), setDefaultProvisioningOptions: false);
 
@@ -135,7 +319,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithBuildOnlyContainers()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -193,13 +377,13 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.DockerPluginBuildx)]
+    [RequiresFeature(TestFeature.ContainerImageBuild)]
     public async Task DeployAsync_WithAzureStorageResourcesWorks()
     {
         // Arrange
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -258,7 +442,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -318,7 +502,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -384,7 +568,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -450,7 +634,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -499,6 +683,68 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             $"[https://api.test.westus.azurecontainerapps.io](https://api.test.westus.azurecontainerapps.io) ([Azure Portal]({AzurePortalUrls.GetResourceUrl($"/subscriptions/{containerAppSubscriptionId}/resourceGroups/{containerAppResourceGroupName}/providers/Microsoft.App/containerApps/api")}))");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeployAsync_WithExpressPublicReferences_UsesEnvironmentDomain(bool existing)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
+        var reporter = new TestPipelineActivityReporter(testOutputHelper);
+        var resourceGroup = new TestResourceGroupResource(TestResourceGroupName, CreateExpressDeploymentOutputs);
+        ConfigureTestServices(builder, armClientProvider: new TestArmClientProvider(resourceGroup), activityReporter: reporter);
+        var environment = builder.AddAzureContainerAppEnvironment("env").AsExpress();
+        if (existing)
+        {
+            environment.AsExisting(builder.AddParameter("existing-name", "shared-env"), resourceGroupParameter: null);
+        }
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint(targetPort: 8080).WithExternalHttpEndpoints();
+        var web = builder.AddProject<Project>("web", launchProfileName: null)
+            .WithHttpEndpoint(targetPort: 8080).WithExternalHttpEndpoints()
+            .WithReference(api);
+
+        using var app = builder.Build();
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotEqual(CompletionState.CompletedWithError, reporter.ResultCompletionState);
+
+        // The consumer takes the environment's default domain, not an output from the producing app.
+        var envResource = Assert.IsAssignableFrom<AzureBicepResource>(environment.Resource);
+        var apiTarget = Assert.IsAssignableFrom<AzureBicepResource>(api.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
+        var webTarget = Assert.IsAssignableFrom<AzureBicepResource>(web.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
+        var reference = Assert.Single(webTarget.Parameters,
+            parameter => parameter.Value is BicepOutputReference output
+                && output.Name == "AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"
+                && output.Resource == envResource);
+        var parameters = JsonNode.Parse(resourceGroup.Deployments.Content!.Properties.Parameters.ToString())!;
+        Assert.Equal("salmonisland-e9e6a567.westus3.azurecontainerapps.io", parameters[reference.Key]!["value"]!.GetValue<string>());
+        Assert.DoesNotContain(webTarget.Parameters.Values.OfType<BicepOutputReference>(), output => output.Resource == apiTarget);
+
+        AssertSummaryItem(reporter.PipelineSummary!, "api",
+            $"[https://api.salmonisland-e9e6a567.westus3.azurecontainerapps.io](https://api.salmonisland-e9e6a567.westus3.azurecontainerapps.io) ([Azure Portal]({AzurePortalUrls.GetResourceUrl(GetTestResourceId("/providers/Microsoft.App/containerApps/api"))}))");
+        AssertSummaryItem(reporter.PipelineSummary!, "web",
+            $"[https://web.salmonisland-e9e6a567.westus3.azurecontainerapps.io](https://web.salmonisland-e9e6a567.westus3.azurecontainerapps.io) ([Azure Portal]({AzurePortalUrls.GetResourceUrl(GetTestResourceId("/providers/Microsoft.App/containerApps/web"))}))");
+    }
+
+    private static Dictionary<string, object> CreateExpressDeploymentOutputs(string deploymentName) =>
+        deploymentName switch
+        {
+            string name when name.StartsWith("env-acr", StringComparison.Ordinal) => new()
+            {
+                ["name"] = new { type = "String", value = "testregistry" },
+                ["loginServer"] = new { type = "String", value = "testregistry.azurecr.io" }
+            },
+            string name when name.StartsWith("env", StringComparison.Ordinal) => new()
+            {
+                ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+                ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+                ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = GetTestResourceId("/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity") },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "salmonisland-e9e6a567.westus3.azurecontainerapps.io" },
+                ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = GetTestResourceId("/providers/Microsoft.App/managedEnvironments/shared-env") }
+            },
+            _ => []
+        };
+
     [Fact]
     public async Task DeployAsync_WithAppServiceExternalEndpoint_IncludesPortalLinksInSummary()
     {
@@ -506,7 +752,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -568,7 +814,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: step);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -682,10 +928,64 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Diagnostics_CrossScopeAcrPullRoleModulesPrecedeTargetedWorkloadProvisioning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "diagnostics");
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
+        ConfigureTestServices(builder, activityReporter: mockActivityReporter);
+
+        var acaRegistry = builder.AddAzureContainerRegistry("aca-registry")
+            .PublishAsExisting("acaregistry", "shared-registry-rg");
+        var aasRegistry = builder.AddAzureContainerRegistry("aas-registry")
+            .PublishAsExisting("aasregistry", "shared-registry-rg");
+        var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env")
+            .WithAzureContainerRegistry(acaRegistry);
+        var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env")
+            .WithAzureContainerRegistry(aasRegistry);
+
+        builder.AddRedis("cache").WithComputeEnvironment(acaEnv);
+        builder.AddProject<Project>("api-service", launchProfileName: null).WithComputeEnvironment(aasEnv);
+        builder.AddDockerfile("python-app", "python-app.Dockerfile").WithComputeEnvironment(acaEnv);
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        var diagnostics = string.Join(
+            Environment.NewLine,
+            mockActivityReporter.LoggedMessages
+                .Where(message => message.StepTitle == "diagnostics")
+                .Select(message => message.Message));
+
+        // Target diagnostics are emitted as:
+        //   If targeting 'deploy-api-service':
+        //     Direct dependencies: ...
+        //     Execution order:
+        //       [0] ...
+        // Snapshot only the relevant target sections so unrelated pipeline changes do not create churn.
+        static string GetTargetSection(string diagnostics, string target)
+        {
+            var marker = $"If targeting '{target}':";
+            var start = diagnostics.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(start >= 0, $"Diagnostics did not contain the '{target}' target.");
+
+            var end = diagnostics.IndexOf($"{Environment.NewLine}{Environment.NewLine}If targeting '", start + marker.Length, StringComparison.Ordinal);
+            return end >= 0 ? diagnostics[start..end] : diagnostics[start..];
+        }
+
+        await Verify(new
+        {
+            ApiService = GetTargetSection(diagnostics, "deploy-api-service"),
+            Cache = GetTargetSection(diagnostics, "deploy-cache"),
+            PythonApp = GetTargetSection(diagnostics, "deploy-python-app")
+        });
+    }
+
+    [Fact]
     public async Task DeployAsync_WithUnresolvedParameters_PromptsForParameterValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -725,7 +1025,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithResolvedParameters_SkipsPrompting()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
         builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
@@ -747,7 +1047,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithCustomInputGeneratorParameter_RespectsInputGenerator()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -796,14 +1096,14 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresFeature(TestFeature.DockerPluginBuildx)]
+    [RequiresFeature(TestFeature.ContainerImageBuild)]
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -867,7 +1167,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -923,7 +1223,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithGeneratedParameters_DoesNotPromptsForParameterValues()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -943,7 +1243,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithParametersInEnvironmentVariables_DiscoversAndPromptsForParameters()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -988,7 +1288,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithParametersInArguments_DiscoversAndPromptsForParameters()
     {
         // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
 
@@ -1035,7 +1335,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
         {
             string name when name.StartsWith("env-acr") => new Dictionary<string, object>
@@ -1152,7 +1452,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // This tests that Bicep resources properly depend on referenced Azure resources to avoid hangs during deployment
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: step);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -1223,7 +1523,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // and a website references that secret
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "diagnostics");
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         ConfigureTestServices(builder, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
@@ -1275,7 +1575,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_WithFoundryAndAzureContainerApps_CreatesCorrectDependencies()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "diagnostics");
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         ConfigureTestServices(builder, activityReporter: mockActivityReporter);
 
@@ -1284,7 +1584,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
 
         builder.AddProject<Project>("agent", launchProfileName: null)
-            .AsHostedAgent(foundryProject);
+            .AsHostedAgent(foundryProject, HostedAgentProtocol.Responses, "2.0.0");
 
         builder.AddProject<Project>("api", launchProfileName: null)
             .WithExternalHttpEndpoints()
@@ -1305,7 +1605,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_WithPrivateEndpoints_CreatesCorrectDependencies()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: "diagnostics");
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         ConfigureTestServices(builder, activityReporter: mockActivityReporter);
 
@@ -1350,7 +1650,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_WithAzureResourcesAndNoEnvironment_Fails()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
         ConfigureTestServices(builder, bicepProvisioner: new NoOpBicepProvisioner(), activityReporter: mockActivityReporter);
@@ -1373,7 +1673,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_WithRequestFailedException_DoesNotIncludeVerboseHttpDetails()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
         ConfigureTestServices(builder, bicepProvisioner: new FailingBicepProvisioner(), activityReporter: mockActivityReporter);
@@ -1428,7 +1728,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         };
     }
 
-    private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
+    private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
@@ -1441,13 +1741,11 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
 
-        builder.WithTestAndResourceLogging(testOutputHelper);
-
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
-        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var azurePrincipalProvider = ProvisioningTestHelpers.CreateAzurePrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         builder.Services.AddSingleton(armClientProvider);
-        builder.Services.AddSingleton(userPrincipalProvider);
+        builder.Services.AddSingleton(azurePrincipalProvider);
         builder.Services.AddSingleton(tokenCredentialProvider);
         builder.Services.AddSingleton(environment);
         builder.Services.AddSingleton(options);
@@ -1480,6 +1778,9 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
             => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
 
+        public Task<DeploymentStateSection> AcquireCurrentSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+            => AcquireSectionAsync(sectionName, cancellationToken);
+
         public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -1489,7 +1790,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
     {
-        public Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+        public Task<bool> ConfigureResourceAsync(AzureBicepResource resource, CancellationToken cancellationToken)
         {
             return Task.FromResult(true);
         }
@@ -1498,11 +1799,16 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         {
             return Task.CompletedTask;
         }
+
+        public Task<bool> ReconcileDeploymentStateAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
     }
 
     private sealed class FailingBicepProvisioner : IBicepProvisioner
     {
-        public Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+        public Task<bool> ConfigureResourceAsync(AzureBicepResource resource, CancellationToken cancellationToken)
         {
             return Task.FromResult(false);
         }
@@ -1517,6 +1823,11 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             var response = new TestAzureResponse(400, "Bad Request", jsonContent);
 
             throw new global::Azure.RequestFailedException(response);
+        }
+
+        public Task<bool> ReconcileDeploymentStateAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
         }
     }
 
@@ -1576,6 +1887,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var appHostSha = "testsha1first";
 
         using var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             $"AppHost:Operation=publish",
             $"Pipeline:OutputPath=./",
             $"Pipeline:Step=deploy",
@@ -1632,6 +1944,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
 
         using var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             $"AppHost:Operation=publish",
             $"Pipeline:OutputPath=./",
             $"Pipeline:Step=deploy",
@@ -1665,6 +1978,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var appHostSha = "testsha3clear";
 
         using var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             $"AppHost:Operation=publish",
             $"Pipeline:OutputPath=./",
             $"Pipeline:ClearCache=true",
@@ -1697,6 +2011,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var appHostSha = "testsha4stage";
 
         using var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             "AppHost:Operation=publish",
             $"Pipeline:OutputPath=./",
             $"Pipeline:Step=deploy",
@@ -1749,6 +2064,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         // ===== First deployment - prompt and save =====
         using (var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             "AppHost:Operation=publish",
             "Pipeline:OutputPath=./",
             "Pipeline:Step=deploy",
@@ -1814,6 +2130,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         // ===== Second deployment - should load from state without prompting =====
         using (var builder = TestDistributedApplicationBuilder.Create(
+            testOutputHelper,
             "AppHost:Operation=publish",
             "Pipeline:OutputPath=./",
             "Pipeline:Step=deploy",
@@ -1890,12 +2207,12 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         };
         var logger = ProvisioningTestHelpers.CreateLogger();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
-        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var azurePrincipalProvider = ProvisioningTestHelpers.CreateAzurePrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
 
         builder.Services.AddSingleton<IHostEnvironment>(environment);
         builder.Services.AddSingleton(armClientProvider);
-        builder.Services.AddSingleton(userPrincipalProvider);
+        builder.Services.AddSingleton(azurePrincipalProvider);
         builder.Services.AddSingleton(tokenCredentialProvider);
         builder.Services.AddSingleton(logger);
         builder.Services.AddSingleton(options);
@@ -1916,7 +2233,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DestroyAsync_WithAzureState_DeletesResourceGroup()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Destroy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Destroy);
         var stateManager = new InMemoryDeploymentStateManager();
         stateManager.SetSection("Azure", new JsonObject
         {
@@ -1947,7 +2264,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DestroyAsync_WithNoAzureState_ReportsNothingToDestroy()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Destroy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Destroy);
         var stateManager = new InMemoryDeploymentStateManager();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
@@ -1968,7 +2285,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DestroyAsync_NonInteractiveWithoutYes_FailsFast()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Destroy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Destroy);
         var stateManager = new InMemoryDeploymentStateManager();
         stateManager.SetSection("Azure", new JsonObject
         {
@@ -1996,7 +2313,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_FailingTokenCredential_ShowsLoginMessage()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
         ConfigureTestServices(builder, activityReporter: mockActivityReporter);
@@ -2021,7 +2338,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task DeployAsync_ValidTokenCredential_ShowsSuccessMessage()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper, step: WellKnownPipelineSteps.Deploy);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
         ConfigureTestServices(builder, activityReporter: mockActivityReporter, bicepProvisioner: new NoOpBicepProvisioner());

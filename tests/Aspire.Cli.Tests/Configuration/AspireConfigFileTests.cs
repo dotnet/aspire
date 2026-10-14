@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Tests.Utils;
 
 namespace Aspire.Cli.Tests.Configuration;
 
@@ -12,7 +11,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsNull_WhenFileDoesNotExist()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var result = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
 
@@ -22,7 +21,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFileIsValid()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -42,7 +41,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFileContainsDocsSourceConfiguration()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -66,7 +65,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFileContainsDocsSourceConfigurationWithDifferentCasing()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -90,7 +89,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFileContainsJsonComments()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -113,7 +112,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFileContainsTrailingCommas()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -132,7 +131,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ThrowsJsonException_WhenFileContainsInvalidJson()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, "{ invalid json content }");
@@ -146,7 +145,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ThrowsJsonException_WithFilePath_WhenJsonIsTruncated()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """{ "appHost": { "path": """);
@@ -159,7 +158,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsEmptyConfig_WhenFileIsEmptyObject()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, "{}");
@@ -174,7 +173,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Save_CreatesFileWithExpectedContent()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var config = new AspireConfigFile
         {
@@ -195,7 +194,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Save_CreatesDirectoryIfNeeded()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var subDir = Path.Combine(workspace.WorkspaceRoot.FullName, "nested", "dir");
         var config = new AspireConfigFile();
@@ -208,7 +207,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Exists_ReturnsFalse_WhenFileDoesNotExist()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         Assert.False(AspireConfigFile.Exists(workspace.WorkspaceRoot.FullName));
     }
@@ -216,7 +215,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Exists_ReturnsTrue_WhenFileExists()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         File.WriteAllText(Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName), "{}");
 
@@ -280,7 +279,9 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
         config.AddOrUpdatePackage("Aspire.Hosting.Redis", "13.2.0");
 
         Assert.NotNull(config.Packages);
-        Assert.Equal("13.2.0", config.Packages["Aspire.Hosting.Redis"]);
+        var entry = config.Packages["Aspire.Hosting.Redis"];
+        Assert.Equal(IntegrationSource.Nuget, entry.Source);
+        Assert.Equal("13.2.0", entry.Version);
     }
 
     [Fact]
@@ -288,12 +289,12 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     {
         var config = new AspireConfigFile
         {
-            Packages = new Dictionary<string, string> { ["Aspire.Hosting.Redis"] = "13.1.0" }
+            Packages = new Dictionary<string, PackageEntry> { ["Aspire.Hosting.Redis"] = PackageEntry.Nuget("13.1.0") }
         };
 
         config.AddOrUpdatePackage("Aspire.Hosting.Redis", "13.2.0");
 
-        Assert.Equal("13.2.0", config.Packages["Aspire.Hosting.Redis"]);
+        Assert.Equal("13.2.0", config.Packages["Aspire.Hosting.Redis"].Version);
     }
 
     [Fact]
@@ -301,10 +302,10 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     {
         var config = new AspireConfigFile
         {
-            Packages = new Dictionary<string, string>
+            Packages = new Dictionary<string, PackageEntry>
             {
-                ["Aspire.Hosting.Redis"] = "13.2.0",
-                ["Aspire.Hosting.PostgreSQL"] = "13.2.0"
+                ["Aspire.Hosting.Redis"] = PackageEntry.Nuget("13.2.0"),
+                ["Aspire.Hosting.PostgreSQL"] = PackageEntry.Nuget("13.2.0")
             }
         };
 
@@ -341,9 +342,9 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     {
         var config = new AspireConfigFile
         {
-            Packages = new Dictionary<string, string>
+            Packages = new Dictionary<string, PackageEntry>
             {
-                ["Aspire.Hosting.Redis"] = "13.2.0"
+                ["Aspire.Hosting.Redis"] = PackageEntry.Nuget("13.2.0")
             }
         };
 
@@ -355,9 +356,170 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void Load_ReturnsConfig_WhenFeaturesAreBooleans()
+    public void Load_ParsesStringCsprojShorthandAsProjectReference()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        // Legacy/shorthand: a bare string value ending in ".csproj" is a local project reference,
+        // not a NuGet version. Regression coverage for the polyglot AppHost restore path, where a
+        // value like "DeadlockExtension/DeadlockExtension.csproj" must not be treated as a NuGet
+        // package version (which would fail with "not a valid version string").
+        File.WriteAllText(configPath, """
+            {
+              "packages": {
+                "DeadlockExtension": "DeadlockExtension/DeadlockExtension.csproj"
+              }
+            }
+            """);
+
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+
+        Assert.NotNull(config);
+        var entry = config.Packages!["DeadlockExtension"];
+        Assert.Equal(IntegrationSource.Project, entry.Source);
+        Assert.Equal("DeadlockExtension/DeadlockExtension.csproj", entry.Path);
+        Assert.Null(entry.Version);
+
+        var projectRef = config.GetIntegrationReferences("13.2.0", workspace.WorkspaceRoot.FullName)
+            .Single(r => r.Name == "DeadlockExtension");
+        Assert.Equal(IntegrationSource.Project, projectRef.Source);
+        Assert.Equal(
+            Path.GetFullPath(Path.Combine(workspace.WorkspaceRoot.FullName, "DeadlockExtension/DeadlockExtension.csproj")),
+            projectRef.Path);
+    }
+
+    [Fact]
+    public void Load_ParsesStringShorthandAsNugetVersion()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        File.WriteAllText(configPath, """
+            {
+              "packages": {
+                "Aspire.Hosting.Redis": "9.2.0",
+                "Aspire.Hosting.Kafka": ""
+              }
+            }
+            """);
+
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+
+        Assert.NotNull(config);
+        var redis = config.Packages!["Aspire.Hosting.Redis"];
+        Assert.Equal(IntegrationSource.Nuget, redis.Source);
+        Assert.Equal("9.2.0", redis.Version);
+
+        // Empty string short form means "use the SDK version" (stored as null).
+        var kafka = config.Packages!["Aspire.Hosting.Kafka"];
+        Assert.Equal(IntegrationSource.Nuget, kafka.Source);
+        Assert.Null(kafka.Version);
+    }
+
+    [Theory]
+    [InlineData("null", "13.2.0")]
+    [InlineData("\" 9.2.0 \"", "9.2.0")]
+    [InlineData("""{ "source": "nuget" }""", "13.2.0")]
+    [InlineData("""{ "source": "nuget", "version": null }""", "13.2.0")]
+    [InlineData("""{ "source": "nuget", "version": " " }""", "13.2.0")]
+    [InlineData("""{ "source": "nuget", "version": " 9.2.0 " }""", "9.2.0")]
+    public void Load_NormalizesNugetVersions(string packageValue, string expectedVersion)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        File.WriteAllText(configPath, $$"""
+            {
+              "packages": {
+                "Aspire.Hosting.Redis": {{packageValue}}
+              }
+            }
+            """);
+
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+
+        Assert.NotNull(config);
+        var reference = Assert.Single(
+            config.GetIntegrationReferences("13.2.0", workspace.WorkspaceRoot.FullName),
+            reference => reference.Name == "Aspire.Hosting.Redis");
+        Assert.Equal(IntegrationSource.Nuget, reference.Source);
+        Assert.Equal(expectedVersion, reference.Version);
+
+        config.Save(workspace.WorkspaceRoot.FullName);
+        var reloaded = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+        Assert.NotNull(reloaded);
+        Assert.Equal(config.Packages!["Aspire.Hosting.Redis"].Version, reloaded.Packages!["Aspire.Hosting.Redis"].Version);
+    }
+
+    [Theory]
+    [InlineData("""{ "source": 42 }""")]
+    [InlineData("""{ "source": true }""")]
+    [InlineData("""{ "source": false }""")]
+    [InlineData("""{ "source": {} }""")]
+    [InlineData("""{ "source": [] }""")]
+    [InlineData("""{ "source": null }""")]
+    [InlineData("""{ "source": "nuget", "version": 42 }""")]
+    [InlineData("""{ "source": "nuget", "version": true }""")]
+    [InlineData("""{ "source": "nuget", "version": false }""")]
+    [InlineData("""{ "source": "nuget", "version": {} }""")]
+    [InlineData("""{ "source": "nuget", "version": [] }""")]
+    [InlineData("""{ "source": "npm", "path": 42 }""")]
+    [InlineData("""{ "source": "npm", "path": true }""")]
+    [InlineData("""{ "source": "npm", "path": false }""")]
+    [InlineData("""{ "source": "npm", "path": {} }""")]
+    [InlineData("""{ "source": "npm", "path": [] }""")]
+    [InlineData("""{ "source": "npm", "path": null }""")]
+    [InlineData("""{ "source": "project", "path": null }""")]
+    public void Load_ThrowsJsonException_WithFilePath_WhenPackageObjectIsInvalid(string packageValue)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        File.WriteAllText(configPath, $$"""
+            {
+              "packages": {
+                "Test": {{packageValue}}
+              }
+            }
+            """);
+
+        var ex = Assert.Throws<JsonException>(() => AspireConfigFile.Load(workspace.WorkspaceRoot.FullName));
+
+        Assert.Contains(configPath, ex.Message);
+        Assert.Equal("$.packages.Test", ex.Path);
+        Assert.IsType<JsonException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void Load_IgnoresUnknownPackageFields()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        File.WriteAllText(configPath, """
+            {
+              "packages": {
+                "Test": {
+                  "unknown": { "source": 42, "nested": [true, null, {}] },
+                  "source": "npm",
+                  "path": "./host.ts"
+                }
+              }
+            }
+            """);
+
+        var config = AspireConfigFile.Load(workspace.WorkspaceRoot.FullName);
+
+        Assert.NotNull(config);
+        var package = Assert.Single(config.Packages!);
+        Assert.Equal("Test", package.Key);
+        Assert.Equal(IntegrationSource.Npm, package.Value.Source);
+        Assert.Equal("./host.ts", package.Value.Path);
+        Assert.Null(package.Value.Version);
+    }
+
+    [Fact]
+    public void Load_ReturnsConfig_WhenFeaturesAreBooleans()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
         File.WriteAllText(configPath, """
@@ -377,7 +539,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_ReturnsConfig_WhenFeaturesAreStringBooleans()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         // Simulates what happens when ConfigurationService.SetNestedValue wrote "true"/"false" as strings
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
@@ -398,7 +560,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Save_Load_RoundTrips_WithFeatures()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var config = new AspireConfigFile
         {
@@ -420,7 +582,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void Load_RoundTrips_WithProfiles()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var config = new AspireConfigFile
         {
@@ -451,7 +613,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_AdjustsRelativePathFromAspireDir()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // Legacy .aspire/settings.json stores paths relative to the .aspire/ directory
@@ -473,7 +635,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_AdjustsPathForApphostAtRoot()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // Legacy path "../apphost.ts" means apphost is at the repo root
@@ -493,7 +655,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_RebasesSubdirectoryPath()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // Legacy .aspire/settings.json stores appHostPath relative to .aspire/ directory.
@@ -515,7 +677,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_SavesConfigFile()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
@@ -541,7 +703,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_LeavesAbsolutePathUnchanged()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var absolutePath = Path.Combine(root, "src", "apphost.ts").Replace(Path.DirectorySeparatorChar, '/');
@@ -561,7 +723,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_NormalizesBackslashSeparators()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // Simulate a settings file created on Windows with backslash separators.
@@ -583,7 +745,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_OutputAlwaysUsesForwardSlashes()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
@@ -603,7 +765,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_SkipsEmptyPath()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
@@ -623,7 +785,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_SkipsNullPath()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
@@ -642,7 +804,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_DotSlashRelativePath()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // "./MyApp.AppHost/apphost.ts" from .aspire/ dir resolves to .aspire/MyApp.AppHost/apphost.ts
@@ -662,7 +824,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_BareRelativePath()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         // A bare relative path without ../ from .aspire/ stays under .aspire/ when resolved.
@@ -682,7 +844,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     [Fact]
     public void LoadOrCreate_MigratesLegacy_LeavesUnixRootedPathUnchanged()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");
@@ -702,7 +864,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows-rooted paths are only recognized on Windows.");
 
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot.FullName;
 
         var settingsPath = Path.Combine(root, ".aspire", "settings.json");

@@ -17,7 +17,7 @@ using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class RoleAssignmentTests()
+public class RoleAssignmentTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public Task ServiceBusSupport()
@@ -223,7 +223,7 @@ public class RoleAssignmentTests()
     [Fact]
     public async Task ClearDefaultRoleAssignmentsRemovesDefaultAnnotation()
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
@@ -248,7 +248,7 @@ public class RoleAssignmentTests()
     [Fact]
     public async Task ClearDefaultRoleAssignmentsOnMultipleResources()
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
@@ -281,7 +281,7 @@ public class RoleAssignmentTests()
     [Fact]
     public async Task ClearDefaultRoleAssignmentsDoesNotAffectExplicitRoleAssignments()
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var keyvault = builder.AddAzureKeyVault("keyvault")
@@ -304,7 +304,7 @@ public class RoleAssignmentTests()
     [Fact]
     public async Task WaitForDoesNotCreateTransitiveRoleAssignments()
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         var cache = builder.AddAzureManagedRedis("cache");
@@ -331,13 +331,13 @@ public class RoleAssignmentTests()
         Assert.DoesNotContain(model.Resources, r => r.Name == "webfrontend-roles-cache");
     }
 
-    private static async Task RoleAssignmentTest(
+    private async Task RoleAssignmentTest(
         string azureResourceName,
         Action<IDistributedApplicationBuilder> configureBuilder,
         Func<string, string?>? scrubLines = null
         )
     {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
         builder.AddAzureContainerAppEnvironment("env");
 
         configureBuilder(builder);
