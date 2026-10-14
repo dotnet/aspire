@@ -11,6 +11,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s;
 using k8s.Autorest;
 using k8s.Models;
@@ -20,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -30,6 +32,45 @@ namespace Aspire.Hosting.Tests.Dcp;
 
 public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFixture) : IClassFixture<DcpApiServerCertificateFixture>
 {
+    [Fact]
+    public async Task CleanupResourcesAsync_UsesSystemTime_WhenApplicationTimeProviderIsReplaced()
+    {
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var timeProvider = new FakeTimeProvider();
+        builder.Services.AddSingleton<TimeProvider>(timeProvider);
+        using var app = builder.Build();
+        var service = app.Services.GetRequiredService<IKubernetesService>();
+        var locations = app.Services.GetRequiredService<Locations>();
+        var requests = new ConcurrentQueue<string>();
+        var getCount = 0;
+        await using var server = await StartServerAsync(cts.Token, requestHandler: async context =>
+        {
+            requests.Enqueue(context.Request.Method);
+            var cleanupComplete = context.Request.Method == HttpMethods.Get && Interlocked.Increment(ref getCount) == 2;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(KubernetesJson.Serialize(new ApiServerExecution
+            {
+                ApiServerStatus = cleanupComplete ? ApiServerStatus.CleanupComplete : ApiServerStatus.CleaningResources
+            }), context.RequestAborted);
+        });
+        WriteKubeconfig(locations.DcpKubeconfigPath, server.Port);
+
+        // Keep the application clock frozen while DCP cleanup requires a retry.
+        // External process cleanup must progress independently of application test time.
+        try
+        {
+            await service.CleanupResourcesAsync(cts.Token).DefaultTimeout();
+
+            Assert.Equal(["PATCH", "GET", "GET"], requests.ToArray());
+            Assert.Same(timeProvider, app.Services.GetRequiredService<TimeProvider>());
+        }
+        finally
+        {
+            cts.Cancel();
+        }
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("test-namespace")]
