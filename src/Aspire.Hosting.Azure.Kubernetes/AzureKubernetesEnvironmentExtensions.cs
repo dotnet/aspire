@@ -38,6 +38,8 @@ public static class AzureKubernetesEnvironmentExtensions
     /// This method internally creates a Kubernetes environment for Helm-based deployment
     /// and provisions an AKS cluster via Azure Bicep. It combines the functionality of
     /// <c>AddKubernetesEnvironment</c> with Azure-specific provisioning.
+    /// The cluster uses the Standard control-plane tier by default, which includes an uptime SLA
+    /// and a cluster-management charge. Use <c>ConfigureInfrastructure</c> to select a different tier.
     /// </remarks>
     /// <example>
     /// <code>
@@ -583,7 +585,7 @@ public static class AzureKubernetesEnvironmentExtensions
             Sku = new ManagedClusterSku
             {
                 Name = ManagedClusterSkuName.Base,
-                Tier = ManagedClusterSkuTier.Free
+                Tier = ManagedClusterSkuTier.Standard
             },
             DnsPrefix = $"{aksResource.Name}-dns",
             Tags = { { "aspire-resource-name", aksResource.Name } }
