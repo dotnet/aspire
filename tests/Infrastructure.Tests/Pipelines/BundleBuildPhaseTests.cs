@@ -189,6 +189,50 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.Equal(["restore", "layout", "verify"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
+    [Fact]
+    public async Task ColdCiPublishRestoresAndImportsRealProtobufBuildTargets()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.Path;
+        const string rid = "linux-x64";
+        var project = CreateProject(root, rid);
+        var dashboardProject = Path.Combine(root, "ColdProtobufFixture.csproj");
+        var generatedDirectory = Path.Combine(root, "generated");
+        File.WriteAllText(Path.Combine(root, "fixture.proto"), """
+            syntax = "proto3";
+            option csharp_namespace = "ColdBundle";
+            message PreparedComponent { string name = 1; }
+            """);
+        new XDocument(new XElement("Project",
+            new XElement("PropertyGroup",
+                Property("BaseIntermediateOutputPath", Path.Combine(root, "obj") + Path.DirectorySeparatorChar),
+                Property("NuGetPackageRoot", Path.Combine(root, ".packages") + Path.DirectorySeparatorChar)),
+            new XElement("Import", new XAttribute("Project", "Sdk.props"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
+            new XElement("PropertyGroup",
+                Property("TargetFramework", "net11.0"),
+                Property("Protobuf_OutputPath", generatedDirectory)),
+            new XElement("ItemGroup",
+                new XElement("PackageReference", new XAttribute("Include", "Grpc.Tools"), new XAttribute("PrivateAssets", "all")),
+                new XElement("Protobuf", new XAttribute("Include", Path.Combine(root, "fixture.proto")),
+                    new XAttribute("ProtoRoot", root), new XAttribute("GrpcServices", "None"))),
+            new XElement("Import", new XAttribute("Project", "Sdk.targets"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
+            // Execute the real restored Grpc.Tools target without making this regression
+            // test compile the full Dashboard or invoke its Native AOT toolchain.
+            new XElement("Target", new XAttribute("Name", "Publish"), new XAttribute("DependsOnTargets", "Protobuf_Compile"))))
+            .Save(dashboardProject);
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Element("PropertyGroup")!.Element("DashboardProjectPath")!.Value = dashboardProject;
+        bundle.Save(project);
+
+        // Isolate Arcade's import cache so a previous native build cannot hide a
+        // restore/import mismatch by leaving Grpc.Tools in the repository cache.
+        await RunAsync(project, "PublishBundleComponents", rid,
+            "RepoRoot=" + root + Path.DirectorySeparatorChar, "NUGET_PACKAGES=");
+
+        var generated = Assert.Single(Directory.GetFiles(generatedDirectory, "*.cs"));
+        Assert.Contains("sealed partial class PreparedComponent", File.ReadAllText(generated));
+    }
+
     private static string CreateProject(string root, string rid)
     {
         var events = Path.Combine(root, "events");

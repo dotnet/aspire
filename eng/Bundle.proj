@@ -73,6 +73,11 @@
          but not orchestration switches such as SkipNativeBuild, which would disable
          the Dashboard packaging project's native payload. -->
     <_BundleChildArgs>/p:Configuration=$(Configuration) /p:TargetRid=$(TargetRid) /p:ContinuousIntegrationBuild=$(ContinuousIntegrationBuild) /p:VersionPrefix=$(VersionPrefix)</_BundleChildArgs>
+    <!-- Arcade imports package build targets from .packages in CI, but direct
+         dotnet restore otherwise uses the user cache. Match those locations on
+         cold agents so Grpc.Tools targets are imported and protobufs generated.
+         Respect an existing NUGET_PACKAGES cache supplied by the caller. -->
+    <_BundleChildArgs Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(NUGET_PACKAGES)' == ''">$(_BundleChildArgs) "/p:RestorePackagesPath=$(RepoRoot).packages"</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(VersionSuffix)' != ''">$(_BundleChildArgs) /p:VersionSuffix=$(VersionSuffix)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(OfficialBuildId)' != ''">$(_BundleChildArgs) /p:OfficialBuildId=$(OfficialBuildId)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(DotNetFinalVersionKind)' != ''">$(_BundleChildArgs) /p:DotNetFinalVersionKind=$(DotNetFinalVersionKind)</_BundleChildArgs>
