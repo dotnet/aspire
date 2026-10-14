@@ -1,0 +1,67 @@
+{
+  "run_id": 38602362355,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38602362355",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T17:42:40Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "5623a0808d90f4433652ab419c05a2d38c1b2df3",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "id": 115985595566,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38602362355/job/115985595566",
+      "classification": "flaky-test",
+      "reason": "Single test Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees failed with InvalidOperationException reading ExitCode on a process not started by the test object; matches a known recurring flaky test with identical error/stack trace (5 prior occurrences).",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115990620841,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38602362355/job/115990620841",
+      "classification": "main-repository-breakage",
+      "reason": "Job fails with exit code 1 right after the Nuxt playground AppHost is stopped, following the exact same sequence (59/59 AppHosts pass, then Nuxt docker build/publish step) as a recurring main-repository-breakage with 28 prior occurrences, the most recent only ~7 hours earlier.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115995899618,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38602362355/job/115995899618",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails deterministically because the TypeScript SDK Validation (Node 22.x) leg reported failure; not an independent failure.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(dispose: True, ownedTree: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "error": "System.InvalidOperationException : Process was not started by this object, so requested information cannot be determined.",
+      "stack_trace": "at System.Diagnostics.Process.get_ExitCode()\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 382\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 394\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 394\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Race condition reading Process.ExitCode on a process handle not started by this object; matches a known recurring flaky test (5 prior occurrences on main) with identical exception type, message, and stack trace."
+    }
+  ],
+  "causes": [
+    "aspire-shared-tests-childprocesstests-windows-gracefultimeout-exitcode-race",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
