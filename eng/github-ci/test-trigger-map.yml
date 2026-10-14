@@ -517,6 +517,10 @@ path_rules:
     targets: [test:Infrastructure.Tests]
     reason: AutoRerunTransientCiFailuresTests executes this script against a fake GitHub API
   - paths:
+      - .github/scripts/check-ci-results.js
+    targets: [test:Infrastructure.Tests]
+    reason: Infrastructure.Tests exercises the CI required-job result gate
+  - paths:
       - eng/Bundle.proj
       - tools/CreateLayout/**
     targets: [CLI_BUNDLE]

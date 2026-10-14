@@ -218,17 +218,15 @@ jobs:
     steps:
       - name: Fail if any of the dependent jobs failed
         # Stabilization may be intentionally skipped for infrastructure-only PRs.
-        if: >-
-          ${{ always() &&
-              needs.prepare_for_ci.outputs.skip_workflow != 'true' &&
-              (contains(needs.*.result, 'failure') ||
-               contains(needs.*.result, 'cancelled') ||
-               needs.tests.result != 'success' ||
-               (needs.prepare_for_ci.outputs.stabilization_required == 'true' &&
-                needs.stabilization_check.result != 'success')) }}
-        run: |
-          echo "One or more dependent jobs failed."
-          exit 1
+        if: ${{ always() }}
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          PREPARE_RESULT: ${{ needs.prepare_for_ci.result }}
+          SKIP_WORKFLOW: ${{ needs.prepare_for_ci.outputs.skip_workflow }}
+          STABILIZATION_REQUIRED: ${{ needs.prepare_for_ci.outputs.stabilization_required }}
+          TESTS_RESULT: ${{ needs.tests.result }}
+          STABILIZATION_RESULT: ${{ needs.stabilization_check.result }}
+        run: node .github/scripts/check-ci-results.js
 
   # Track red-main: file/update one deduplicated issue per branch when a push to a
   # protected branch (main, release/**) is red, and close it when a later push to

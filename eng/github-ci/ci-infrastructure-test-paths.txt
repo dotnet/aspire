@@ -1,6 +1,7 @@
 # Files with behavioral Infrastructure.Tests coverage that can run without stabilization.
 .gitignore
 .github/scripts/install-extension-e2e-recorder.ps1
+.github/scripts/check-ci-results.js
 .github/workflows/run-deployment-test.sh
 eng/github-ci/ci-infrastructure-test-paths.txt
 eng/github-ci/ci-skip-entirely-patterns.txt
