@@ -309,7 +309,10 @@ internal sealed class RunCommand : BaseCommand
                 return CommandResult.Failure(CliExitCodes.FailedToFindProject);
             }
 
-            var isolated = AppHostLauncher.ResolveIsolated(parseResult);
+            var isolated = AppHostLauncher.ResolveIsolated(
+                parseResult,
+                effectiveAppHostFile,
+                _features);
             runActivity?.SetTag(TelemetryConstants.Tags.AppHostIsolated, isolated);
 
             // Resolve the language for this file and get the appropriate handler

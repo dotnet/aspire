@@ -1,0 +1,150 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Dcp;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
+
+namespace Aspire.Hosting.Tests.Dcp;
+
+[Trait("Partition", "4")]
+public class AppHostLocalStateStoreTests(ITestOutputHelper outputHelper)
+{
+    [Fact]
+    public void SetPortAllocation_MergesAllocationsAcrossStoreInstances()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "merge-test");
+        var firstStore = CreatePortAllocationStore(configuration);
+        var secondStore = CreatePortAllocationStore(configuration);
+
+        var firstKey = new PersistentPortAllocationKey("first", "http");
+        var secondKey = new PersistentPortAllocationKey("second", "http");
+        firstStore.SetPort(firstKey, 12001);
+        secondStore.SetPort(secondKey, 12002);
+
+        var allocations = firstStore.GetAllocations();
+        Assert.Equal(12001, allocations[firstKey]);
+        Assert.Equal(12002, allocations[secondKey]);
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        Assert.Matches("^[0-9a-f]{16}\\.json$", Path.GetFileName(stateFile));
+
+        var state = JsonNode.Parse(File.ReadAllText(stateFile));
+        Assert.Equal(1, state?["portAllocations"]?["version"]?.GetValue<int>());
+        Assert.Equal(12001, state?["portAllocations"]?["resources"]?["first"]?["http"]?["port"]?.GetValue<int>());
+        Assert.Equal(12002, state?["portAllocations"]?["resources"]?["second"]?["http"]?["port"]?.GetValue<int>());
+        Assert.Equal($"*{Environment.NewLine}", File.ReadAllText(Path.Combine(Path.GetDirectoryName(stateFile)!, ".gitignore")));
+    }
+
+    [Fact]
+    public void SetPortAllocation_PreservesOtherStateKeys()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "preserve-test");
+        var stateStore = new AppHostLocalStateStore(configuration, NullLogger<AppHostLocalStateStore>.Instance);
+        var portAllocationStore = new PersistentPortAllocationStore(
+            stateStore,
+            NullLogger<PersistentPortAllocationStore>.Instance);
+        portAllocationStore.SetPort(new PersistentPortAllocationKey("first", "http"), 12001);
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        stateStore.Update("runtime", _ => new JsonObject
+        {
+            ["identifier"] = "preserved"
+        });
+
+        portAllocationStore.SetPort(new PersistentPortAllocationKey("second", "http"), 12002);
+
+        var state = JsonNode.Parse(File.ReadAllText(stateFile))!.AsObject();
+        Assert.Equal("preserved", state["runtime"]?["identifier"]?.GetValue<string>());
+        Assert.Equal(12001, state["portAllocations"]?["resources"]?["first"]?["http"]?["port"]?.GetValue<int>());
+        Assert.Equal(12002, state["portAllocations"]?["resources"]?["second"]?["http"]?["port"]?.GetValue<int>());
+    }
+
+    [Fact]
+    public void SetPortAllocation_DoesNotOverwriteNewerValueVersion()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "newer-version-test");
+        var stateStore = new AppHostLocalStateStore(configuration, NullLogger<AppHostLocalStateStore>.Instance);
+        stateStore.Update("portAllocations", _ => new JsonObject
+        {
+            ["version"] = 2,
+            ["futureValue"] = "preserved"
+        });
+
+        var sink = new TestSink();
+        var portAllocationStore = new PersistentPortAllocationStore(
+            stateStore,
+            new TestLogger<PersistentPortAllocationStore>(new TestLoggerFactory(sink, enabled: true)));
+        portAllocationStore.SetPort(new PersistentPortAllocationKey("first", "http"), 12001);
+        stateStore.Update("runtime", _ => JsonValue.Create("available"));
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        var state = JsonNode.Parse(File.ReadAllText(stateFile))!.AsObject();
+        Assert.Equal(2, state["portAllocations"]?["version"]?.GetValue<int>());
+        Assert.Equal("preserved", state["portAllocations"]?["futureValue"]?.GetValue<string>());
+        Assert.Null(state["portAllocations"]?["resources"]);
+        Assert.Equal("available", state["runtime"]?.GetValue<string>());
+        Assert.Contains(sink.Writes, write =>
+            write.LogLevel == LogLevel.Warning &&
+            write.Message?.Contains("unsupported portAllocations AppHost local state value", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void Read_MalformedFileLogsWarningAndReturnsEmptyState()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "malformed-test");
+        var stateStore = new AppHostLocalStateStore(configuration, NullLogger<AppHostLocalStateStore>.Instance);
+        var portAllocationStore = new PersistentPortAllocationStore(
+            stateStore,
+            NullLogger<PersistentPortAllocationStore>.Instance);
+        portAllocationStore.SetPort(new PersistentPortAllocationKey("first", "http"), 12001);
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        File.WriteAllText(stateFile, "{ invalid");
+
+        var sink = new TestSink();
+        var loggingStateStore = new AppHostLocalStateStore(
+            configuration,
+            new TestLogger<AppHostLocalStateStore>(new TestLoggerFactory(sink, enabled: true)));
+        var loggingPortAllocationStore = new PersistentPortAllocationStore(
+            loggingStateStore,
+            NullLogger<PersistentPortAllocationStore>.Instance);
+
+        Assert.Empty(loggingPortAllocationStore.GetAllocations());
+        Assert.Contains(sink.Writes, write =>
+            write.LogLevel == LogLevel.Warning &&
+            write.Message?.Contains("malformed AppHost local state file", StringComparison.Ordinal) == true);
+    }
+
+    private static PersistentPortAllocationStore CreatePortAllocationStore(IConfiguration configuration)
+    {
+        var stateStore = new AppHostLocalStateStore(configuration, NullLogger<AppHostLocalStateStore>.Instance);
+        return new PersistentPortAllocationStore(stateStore, NullLogger<PersistentPortAllocationStore>.Instance);
+    }
+
+    private static IConfiguration CreateConfiguration(TemporaryWorkspace workspace, string workloadId)
+    {
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:Directory"] = workspace.WorkspaceRoot.FullName,
+                [KnownConfigNames.DcpWorkloadId] = workloadId
+            })
+            .Build();
+    }
+}

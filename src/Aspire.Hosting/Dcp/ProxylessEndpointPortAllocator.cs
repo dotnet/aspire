@@ -123,6 +123,22 @@ internal sealed class ProxylessEndpointPortAllocator : IDisposable
         }
     }
 
+    public bool TryReservePort(int port, ProtocolType protocol)
+    {
+        lock (_lock)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            if (!TryGetPortIndex(port, out var index) || _visited[index])
+            {
+                return false;
+            }
+
+            MarkVisited(index);
+            return _tryProbe(port, protocol);
+        }
+    }
+
     public void Dispose()
     {
         lock (_lock)
