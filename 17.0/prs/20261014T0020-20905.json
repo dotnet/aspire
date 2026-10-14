@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Breaking change: renames dashboard telemetry attributes and aligns enrichment with the CLI",
+  "mergedAt": "2026-10-14T00:20:01Z",
+  "number": 20905,
+  "runDate": "2026-10-14T06:08:46Z",
+  "status": "included",
+  "title": "Align dashboard and CLI telemetry metadata and enrichment"
+}

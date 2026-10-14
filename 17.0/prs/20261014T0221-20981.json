@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Test-only regression coverage for terminal WebSocket authentication; no production behavior change",
+  "mergedAt": "2026-10-14T02:21:17Z",
+  "number": 20981,
+  "runDate": "2026-10-14T06:08:46Z",
+  "status": "excluded",
+  "title": "Add integration coverage for terminal WebSocket authentication"
+}

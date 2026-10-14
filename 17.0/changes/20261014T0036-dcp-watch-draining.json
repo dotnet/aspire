@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Aspire now actively drains DCP watch responses and closes them on cancellation or periodic restart, so a paused resource handler or canceled watch setup no longer exhausts the HTTP/2 receive window and blocks DCP watcher publication and resource mutations.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🚰",
+  "firstMergedAt": "2026-10-14T00:36:33Z",
+  "lastMergedAt": "2026-10-14T00:36:33Z",
+  "name": "Keep DCP watches draining and close abandoned connections",
+  "owner": "danegsta",
+  "prs": [
+    20972
+  ]
+}

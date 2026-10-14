@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "Fixes DCP watch connections being left open/undrained, which could block watcher publication",
+  "mergedAt": "2026-10-14T00:36:33Z",
+  "number": 20972,
+  "runDate": "2026-10-14T06:08:46Z",
+  "status": "included",
+  "title": "Keep DCP watches draining and close abandoned connections"
+}

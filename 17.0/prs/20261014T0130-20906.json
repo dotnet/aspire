@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Opts deployed dashboards (Docker Compose/Kubernetes) out of telemetry by default",
+  "mergedAt": "2026-10-14T01:30:51Z",
+  "number": 20906,
+  "runDate": "2026-10-14T06:08:46Z",
+  "status": "included",
+  "title": "Disable dashboard telemetry in Docker and Kubernetes deployments"
+}

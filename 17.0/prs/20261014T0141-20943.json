@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "New feature: VS Code debugger support for Node/TypeScript Azure Functions apps",
+  "mergedAt": "2026-10-14T01:41:07Z",
+  "number": 20943,
+  "runDate": "2026-10-14T06:08:46Z",
+  "status": "included",
+  "title": "Add VS Code debugging for Node Azure Functions"
+}
