@@ -49,6 +49,52 @@ public class AzureResourcePreparerTests(ITestOutputHelper testOutputHelper)
             .AppendContentAsFile(roleManifest.BicepText, "bicep");
     }
 
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run, false)]
+    [InlineData(DistributedApplicationOperation.Run, true)]
+    [InlineData(DistributedApplicationOperation.Publish, false)]
+    [InlineData(DistributedApplicationOperation.Publish, true)]
+    public async Task InfrastructureCallbackScopeIsPropagatedToPreparedRoleResources(DistributedApplicationOperation operation, bool parameterizedScope)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation, testOutputHelper);
+        builder.AddAzureContainerAppEnvironment("env");
+        var storage = builder.AddAzureStorage("storage").AsExisting(
+            builder.AddParameter("storage-name", "existingstorage"),
+            builder.AddParameter("storage-group", "annotation-rg"));
+        var scope = parameterizedScope
+            ? new AzureBicepResourceScope(
+                builder.AddParameter("callback-group", "callback-rg").Resource,
+                builder.AddParameter("callback-subscription", "00000000-0000-0000-0000-000000000001").Resource)
+            : new AzureBicepResourceScope("callback-rg", "00000000-0000-0000-0000-000000000001");
+        storage.Resource.Scope = new AzureBicepResourceScope("initial-rg");
+        storage.ConfigureInfrastructure(infrastructure => infrastructure.AspireResource.Scope = scope);
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);
+        builder.AddProject<Project>("api2", launchProfileName: null)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataReader);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await app.Services.GetRequiredService<AzureResourcePreparer>().PrepareResourcesAsync(model, default);
+        var roles = model.Resources.OfType<AzureRoleAssignmentResource>()
+            .Where(resource => resource.TargetAzureResource == storage.Resource).ToArray();
+        Assert.Equal(operation == DistributedApplicationOperation.Run ? 1 : 2, roles.Length);
+
+        var storageManifest = await GetManifestWithBicep(storage.Resource, skipPreparer: true);
+        Assert.Same(scope, storage.Resource.Scope);
+        Assert.All(roles, role => Assert.Same(scope, role.Scope));
+
+        await app.Services.GetRequiredService<AzureResourcePreparer>().PrepareResourcesAsync(model, default);
+        Assert.Equal(roles, model.Resources.OfType<AzureRoleAssignmentResource>()
+            .Where(resource => resource.TargetAzureResource == storage.Resource));
+        Assert.All(roles, role => Assert.Same(scope, role.Scope));
+
+        var roleManifest = await GetManifestWithBicep(roles[0], skipPreparer: true);
+        await Verify(storageManifest.BicepText, "bicep")
+            .UseParameters(operation, parameterizedScope)
+            .AppendContentAsFile(roleManifest.BicepText, "bicep");
+    }
+
     [Fact]
     public void AzureRoleAssignmentResourceThrowsWhenOwnerAndIdentityAreInconsistent()
     {

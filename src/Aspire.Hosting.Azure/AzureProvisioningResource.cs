@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
 using Azure.Provisioning;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
@@ -18,6 +19,14 @@ namespace Aspire.Hosting.Azure;
 public class AzureProvisioningResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
     : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
+    private HashSet<AzureRoleAssignmentResource>? _roleAssignmentResources;
+
+    internal void RegisterRoleAssignmentScope(AzureRoleAssignmentResource roleAssignment)
+    {
+        (_roleAssignmentResources ??= []).Add(roleAssignment);
+        roleAssignment.Scope = BicepUtilities.GetExistingResourceScope(this);
+    }
+
     /// <summary>
     /// Callback for configuring the Azure resources.
     /// </summary>
@@ -81,6 +90,17 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         var infrastructure = new AzureResourceInfrastructure(this, Name);
 
         ConfigureInfrastructure(infrastructure);
+
+        // Scope can change in a customization callback after role preparation. Keep the role
+        // modules aligned without running callbacks early or rebuilding shared provisioning values.
+        if (_roleAssignmentResources is { } roleAssignments)
+        {
+            var scope = BicepUtilities.GetExistingResourceScope(this);
+            foreach (var roleAssignment in roleAssignments)
+            {
+                roleAssignment.Scope = scope;
+            }
+        }
 
         EnsureParametersAlign(infrastructure);
 

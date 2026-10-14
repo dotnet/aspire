@@ -653,6 +653,69 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         Assert.Same(registry.Resource.Scope, roles.Scope);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegistryAndSubnetCallbacks_ApplyFinalScopeToRoleModules(bool parameterizedScope)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var registry = builder.AddAzureContainerRegistry("registry").PublishAsExisting("existingacr", "annotation-registry-rg");
+        var network = builder.AddAzureVirtualNetwork("network", "10.0.0.0/16")
+            .PublishAsExisting("existingvnet", "annotation-network-rg");
+        var registryScope = parameterizedScope
+            ? new AzureBicepResourceScope(
+                builder.AddParameter("registry-group", "registry-rg").Resource,
+                builder.AddParameter("registry-subscription", "00000000-0000-0000-0000-000000000001").Resource)
+            : new AzureBicepResourceScope("registry-rg", "00000000-0000-0000-0000-000000000001");
+        var networkScope = parameterizedScope
+            ? new AzureBicepResourceScope(
+                builder.AddParameter("network-group", "network-rg").Resource,
+                builder.AddParameter("network-subscription", "00000000-0000-0000-0000-000000000002").Resource)
+            : new AzureBicepResourceScope("network-rg", "00000000-0000-0000-0000-000000000002");
+        registry.ConfigureInfrastructure(infrastructure => infrastructure.AspireResource.Scope = registryScope);
+        network.ConfigureInfrastructure(infrastructure => infrastructure.AspireResource.Scope = networkScope);
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .WithContainerRegistry(registry)
+            .WithSubnet(network.AddSubnet("subnet", "10.0.0.0/22"));
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        var roles = app.Services.GetRequiredService<DistributedApplicationModel>().Resources.OfType<AzureRoleAssignmentResource>();
+        var registryRole = Assert.Single(roles, role => role.TargetAzureResource == registry.Resource);
+        var networkRole = Assert.Single(roles, role => role.TargetAzureResource == network.Resource);
+        Assert.Same(registryScope, registry.Resource.Scope);
+        Assert.Same(registryScope, registryRole.Scope);
+        Assert.Same(aks.Resource.KubeletIdentity, registryRole.IdentityResource);
+        Assert.Same(networkScope, network.Resource.Scope);
+        Assert.Same(networkScope, networkRole.Scope);
+        Assert.Same(aks.Resource.ControlPlaneIdentity, networkRole.IdentityResource);
+        Assert.Contains(registryRole, aks.Resource.References);
+        Assert.Contains(networkRole, aks.Resource.References);
+
+        var mainBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep"));
+        var registryBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "registry", "registry.bicep"));
+        var registryRoleBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, registryRole.Name, $"{registryRole.Name}.bicep"));
+        var networkBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "network", "network.bicep"));
+        var networkRoleBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, networkRole.Name, $"{networkRole.Name}.bicep"));
+        var aksBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks", "aks.bicep"));
+        var controlPlaneBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-control-plane-identity", "aks-control-plane-identity.bicep"));
+        var kubeletBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks-kubelet-identity", "aks-kubelet-identity.bicep"));
+        var operatorRoleName = "aks-control-plane-identity-roles-aks-kubelet-identity";
+        var operatorBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, operatorRoleName, $"{operatorRoleName}.bicep"));
+        await Verify(mainBicep, "bicep")
+            .UseParameters(parameterizedScope)
+            .AppendContentAsFile(registryBicep, "bicep")
+            .AppendContentAsFile(registryRoleBicep, "bicep")
+            .AppendContentAsFile(networkBicep, "bicep")
+            .AppendContentAsFile(networkRoleBicep, "bicep")
+            .AppendContentAsFile(aksBicep, "bicep")
+            .AppendContentAsFile(controlPlaneBicep, "bicep")
+            .AppendContentAsFile(kubeletBicep, "bicep")
+            .AppendContentAsFile(operatorBicep, "bicep");
+    }
+
     [Fact]
     public async Task WithSubnet_GrantsControlPlaneNetworkAccessForFinalEnvironmentAndPoolSubnets()
     {

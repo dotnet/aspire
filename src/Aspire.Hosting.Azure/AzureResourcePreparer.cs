@@ -51,6 +51,10 @@ internal sealed class AzureResourcePreparer(
         }
 
         await BuildRoleAssignmentAnnotations(model, azureResources, cancellationToken).ConfigureAwait(false);
+        foreach (var roleAssignment in model.Resources.OfType<AzureRoleAssignmentResource>())
+        {
+            roleAssignment.TargetAzureResource.RegisterRoleAssignmentScope(roleAssignment);
+        }
         PropagateReferencedDeploymentPrerequisites(model);
 
         if (executionContext.IsRunMode)
@@ -432,8 +436,6 @@ internal sealed class AzureResourcePreparer(
                 ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
             };
 
-            ApplyExistingResourceScope(roleAssignmentResource, targetResource);
-
             roleAssignmentResources.Add(roleAssignmentResource);
         }
 
@@ -582,22 +584,7 @@ internal sealed class AzureResourcePreparer(
             ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
         };
 
-        ApplyExistingResourceScope(roleAssignmentResource, targetResource);
-
         return roleAssignmentResource;
-    }
-
-    private static void ApplyExistingResourceScope(AzureBicepResource roleAssignmentResource, AzureProvisioningResource targetResource)
-    {
-        if (targetResource.Scope is { } explicitScope)
-        {
-            roleAssignmentResource.Scope = explicitScope;
-        }
-        else if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
-            AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation) is { } scope)
-        {
-            roleAssignmentResource.Scope = scope;
-        }
     }
 
     private void AddGlobalRoleAssignmentsInfrastructure(
