@@ -1,0 +1,9 @@
+{
+  "author": "davidfowl",
+  "comment": "New feature: per-environment Aspire secret commands for deployment (breaking change)",
+  "mergedAt": "2026-10-14T09:11:31Z",
+  "number": 20135,
+  "runDate": "2026-10-14T12:05:21Z",
+  "status": "included",
+  "title": "Support environment-specific Aspire secrets for deployment"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "vicancy",
+  "comment": "New feature: RunAsEmulator() for Azure Web PubSub hosting",
+  "mergedAt": "2026-10-14T07:14:41Z",
+  "number": 20956,
+  "runDate": "2026-10-14T12:05:21Z",
+  "status": "included",
+  "title": "Add Azure Web PubSub RunAsEmulator support"
+}
