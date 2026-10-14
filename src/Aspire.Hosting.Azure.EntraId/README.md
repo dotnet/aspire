@@ -65,7 +65,28 @@ The resource derives from `AzureProvisioningResource`, so `ConfigureInfrastructu
 
 The client ID and tenant ID are deployment outputs. `WithReference` automatically makes consuming workloads wait for provisioning and injects those outputs into their configuration. With the dashboard's default wait behavior, workloads remain waiting while missing Azure settings are supplied and provisioning is retried. The wait respects the application's default wait behavior or an explicit wait configured before `WithReference`. Multi-tenant registrations still receive the appropriate sign-in keyword and `AppHomeTenantId`. `WithSignInAudience` sets the new registration's supported account types, and created applications request version 2 access tokens.
 
-A stable `uniqueName` derived from the resource name and resource group ID makes redeployment update the same registration. Two AppHosts sharing a resource group must use different resource names to avoid sharing a registration.
+By default, the registration's display name and directory-wide `uniqueName` are the name passed to `AddEntraIdApplication`.
+When the AppHost creates registrations, the Azure provisioning dialog includes an optional **Tenant-scoped resource suffix**.
+For example, the resource `entra-web` with suffix `dev-a` creates `entra-web-dev-a`; leaving the field empty creates `entra-web`.
+The logical Aspire resource name and consumer environment-variable prefixes remain unchanged.
+
+The suffix is shared by participating registrations in the AppHost and saved with the Azure context. You can supply an initial
+value through `Azure:TenantResourceSuffix`, and edit or clear the saved value through **Change Azure context**. Existing-only
+references do not require this field or Azure provisioning.
+
+Published Azure templates expose `tenantResourceSuffix` as a deployment parameter, defaulting to an empty string, rather than
+embedding a developer's local suffix. An explicit module parameter overrides the shared value:
+
+```csharp
+var entraApi = builder.AddEntraIdApplication("entra-api")
+                      .WithParameter("tenantResourceSuffix", "production");
+```
+
+The same tenant, resource name, and suffix target the same registration regardless of resource group. Use different names or
+suffixes when developers or AppHosts should not share a registration; competing deployments can overwrite shared settings.
+Changing the name or suffix targets another registration and leaves the previous application and service principal intact.
+Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
+`AsExistingApplication` or explicitly clean them up when migrating.
 
 This first provisioning increment creates the registration and service principal. Redirect URIs can be provided explicitly using the `redirectUris` Bicep parameter; endpoints are not discovered automatically. It does not provision client credentials, API scopes, or API permissions.
 
@@ -82,6 +103,10 @@ Creating a registration does not protect a workload's routes or authorize API re
 ### Clean up created registrations
 
 Registrations live in the tenant and **are not deleted when the resource group is deleted**. The deployment outputs include `objectId`, `servicePrincipalId`, and `uniqueName` for locating the objects.
+
+The registration exposes deployment reprovisioning, cancellation, and local-state commands, not ARM resource inspection,
+relocation, or deletion. The environment's generic delete command is unavailable while it includes directory resources,
+because resource-group deletion cannot clean them up.
 
 Delete only the registrations and service principals belonging to your application using the [Microsoft Entra admin center](https://entra.microsoft.com) or Microsoft Graph. Deleted applications remain soft-deleted for 30 days; restore or permanently delete the application before redeploying with the same `uniqueName`.
 

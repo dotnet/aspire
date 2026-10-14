@@ -1233,6 +1233,24 @@ namespace Aspire.Hosting.Azure.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted..
+        /// </summary>
+        internal static string TenantResourceSuffixDescription {
+            get {
+                return ResourceManager.GetString("TenantResourceSuffixDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tenant-scoped resource suffix.
+        /// </summary>
+        internal static string TenantResourceSuffixLabel {
+            get {
+                return ResourceManager.GetString("TenantResourceSuffixLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Select your Azure tenant:.
         /// </summary>
         internal static string TenantSelectionMessage {

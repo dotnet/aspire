@@ -3,8 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Set to false to provision a new registration. README.md describes the setup and cleanup for both modes.
-var useExistingApplication = true;
+// Set to true to reference an existing registration. README.md describes the setup and cleanup for both modes.
+var useExistingApplication = false;
 
 // Both front ends validate ID tokens returned by Entra ID, without redeeming codes or using a client credential.
 var entraWeb = builder.AddEntraIdApplication("entra-web");

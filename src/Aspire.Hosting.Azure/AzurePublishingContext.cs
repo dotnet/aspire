@@ -165,10 +165,15 @@ public sealed class AzurePublishingContext(
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
+        var evaluatedTemplateParameters = new Dictionary<AzureBicepResource, IReadOnlyDictionary<string, object?>>();
 
         foreach (var resource in bicepResourcesToPublish)
         {
             var file = resource.GetBicepTemplateFile(tempDirectory);
+            if (file.EvaluatedParameters is { } evaluatedParameters)
+            {
+                evaluatedTemplateParameters[resource] = evaluatedParameters;
+            }
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -186,13 +191,16 @@ public sealed class AzurePublishingContext(
             moduleMap[resource] = module;
         }
 
-        // Resolve callbacks once after template generation so dependency discovery and module arguments
-        // use the same values, including parameters added by infrastructure callbacks.
+        // Generated modules may evaluate values to infer parameter types. Reuse those values, then
+        // resolve remaining callbacks so discovery and emission share one evaluation per publication.
         var moduleParameters = bicepResourcesToPublish.ToDictionary(
             resource => resource,
             resource => resource.Parameters.ToDictionary(
                 parameter => parameter.Key,
-                parameter => parameter.Value is Func<object?> callback ? callback() : parameter.Value));
+                parameter => evaluatedTemplateParameters.TryGetValue(resource, out var evaluatedParameters) &&
+                    evaluatedParameters.TryGetValue(parameter.Key, out var evaluatedValue)
+                    ? evaluatedValue
+                    : parameter.Value is Func<object?> callback ? callback() : parameter.Value));
 
         ProvisioningParameter? deploymentPrincipalType = null;
         if (moduleParameters.Values.Any(parameters =>
@@ -228,6 +236,22 @@ public sealed class AzurePublishingContext(
             foreach (var parameter in moduleParameters[resource])
             {
                 await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        ProvisioningParameter? tenantResourceSuffix = null;
+        if (moduleParameters.Values.Any(parameters =>
+            parameters.TryGetValue(AzureBicepResource.KnownParameters.TenantResourceSuffix, out var suffix) && suffix is null))
+        {
+            tenantResourceSuffix = ParameterLookup.Values.FirstOrDefault(parameter =>
+                parameter.BicepIdentifier == AzureBicepResource.KnownParameters.TenantResourceSuffix);
+            if (tenantResourceSuffix is null)
+            {
+                tenantResourceSuffix = new ProvisioningParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix, typeof(string))
+                {
+                    Value = string.Empty
+                };
+                MainInfrastructure.Add(tenantResourceSuffix);
             }
         }
 
@@ -368,6 +392,12 @@ public sealed class AzurePublishingContext(
 
             foreach (var parameter in moduleParameters[resource])
             {
+                if (parameter.Key == AzureBicepResource.KnownParameters.TenantResourceSuffix && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, tenantResourceSuffix!);
+                    continue;
+                }
+
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);

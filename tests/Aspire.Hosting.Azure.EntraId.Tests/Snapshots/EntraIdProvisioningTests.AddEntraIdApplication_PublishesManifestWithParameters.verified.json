@@ -1,1 +1,1 @@
-﻿{"type":"azure.bicep.v0","path":"entra-web.module.bicep","params":{"applicationName":"entra-web","principalId":"","signInAudience":"AzureADMultipleOrgs","redirectUris":["https://localhost:7123/signin-oidc"],"enableIdTokenIssuance":true}}
+﻿{"type":"azure.bicep.v0","path":"entra-web.module.bicep","params":{"applicationName":"entra-web","principalId":"","signInAudience":"AzureADMultipleOrgs","tenantResourceSuffix":"","redirectUris":["https://localhost:7123/signin-oidc"],"enableIdTokenIssuance":true}}

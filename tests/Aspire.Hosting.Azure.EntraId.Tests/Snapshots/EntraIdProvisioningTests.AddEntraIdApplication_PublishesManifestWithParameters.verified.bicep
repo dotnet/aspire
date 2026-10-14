@@ -7,6 +7,8 @@ param applicationName string
 
 param principalId string
 
+param tenantResourceSuffix string = ''
+
 @allowed([
   'AzureADMyOrg'
   'AzureADMultipleOrgs'
@@ -20,8 +22,8 @@ param redirectUris array = []
 param enableIdTokenIssuance bool = false
 
 resource application 'Microsoft.Graph/applications@v1.0' = {
-  displayName: applicationName
-  uniqueName: '${applicationName}-${uniqueString(resourceGroup().id)}'
+  displayName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
+  uniqueName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
   signInAudience: signInAudience
   api: {
     requestedAccessTokenVersion: 2

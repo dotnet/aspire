@@ -47,9 +47,11 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     public EntraIdApplicationResource(string name)
         : base(name, ConfigureApplicationInfrastructure)
     {
+        SupportsAzureResourceManagement = false;
         Parameters["applicationName"] = name;
         Parameters["principalId"] = null;
         Parameters["signInAudience"] = SignInAudience.ToString();
+        Parameters[KnownParameters.TenantResourceSuffix] = null;
         _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
     }
 
@@ -148,6 +150,14 @@ public class EntraIdApplicationResource : AzureProvisioningResource
 
         var applicationName = new ProvisioningParameter("applicationName", typeof(string));
         var principalId = new ProvisioningParameter("principalId", typeof(string));
+        var tenantResourceSuffix = new ProvisioningParameter(KnownParameters.TenantResourceSuffix, typeof(string))
+        {
+            Value = string.Empty
+        };
+        BicepValue<string> registrationName = new ConditionalExpression(
+            new BinaryExpression(new IdentifierExpression(tenantResourceSuffix.BicepIdentifier), BinaryBicepOperator.Equal, new StringLiteralExpression(string.Empty)),
+            new IdentifierExpression(applicationName.BicepIdentifier),
+            BicepFunction.Interpolate($"{applicationName}-{tenantResourceSuffix}").Compile());
         var signInAudience = new SignInAudienceParameter
         {
             Value = nameof(EntraIdSignInAudience.AzureADMyOrg)
@@ -162,15 +172,15 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         };
         infrastructure.Add(applicationName);
         infrastructure.Add(principalId);
+        infrastructure.Add(tenantResourceSuffix);
         infrastructure.Add(signInAudience);
         infrastructure.Add(redirectUris);
         infrastructure.Add(enableIdTokenIssuance);
 
         var application = new MicrosoftGraphApplication("application")
         {
-            DisplayName = applicationName,
-            // The directory-wide key must remain stable across deployments and distinguish resource groups.
-            UniqueName = BicepFunction.Interpolate($"{applicationName}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"),
+            DisplayName = registrationName,
+            UniqueName = registrationName,
             SignInAudience = signInAudience,
             RequestedAccessTokenVersion = 2,
             RedirectUris = redirectUris,

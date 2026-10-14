@@ -656,6 +656,16 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
         <target state="translated">Selecionar a ID do locatário</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantResourceSuffixDescription">
+        <source>Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted.</source>
+        <target state="new">Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantResourceSuffixLabel">
+        <source>Tenant-scoped resource suffix</source>
+        <target state="new">Tenant-scoped resource suffix</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
         <target state="translated">Selecione o seu locatário do Azure:</target>

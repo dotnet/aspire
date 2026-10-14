@@ -21,7 +21,7 @@ var useExistingApplication = true;
 
 | Value | Mode | Setup |
 | --- | --- | --- |
-| `true` (default) | Existing | Supply an existing registration's tenant/client IDs and configure its callbacks and ID-token issuance. No Azure provisioning configuration or Graph access is needed at runtime. |
+| `true` | Existing | Supply an existing registration's tenant/client IDs and configure its callbacks and ID-token issuance. No Azure provisioning configuration or Graph access is needed at runtime. |
 | `false` | Create new | Aspire provisions a registration and service principal using Bicep. Supply Azure provisioning settings and permissions; the AppHost configures both front ends' callbacks and enables ID-token issuance. |
 
 The switch is an AppHost code choice, not a command-line option or configuration setting. Stop the AppHost before changing it,
@@ -30,7 +30,7 @@ an explicit `WaitFor` is not required.
 
 ## Mode 1: Use an existing registration
 
-Leave `useExistingApplication = true`. Use a registration in your chosen Entra tenant; it need not be the tenant of an Azure
+Set `useExistingApplication = true`. Use a registration in your chosen Entra tenant; it need not be the tenant of an Azure
 subscription. Aspire does not modify the registration, so configure it before running the playground.
 
 ### Configure the shared web application
@@ -75,6 +75,11 @@ The first Bicep compilation downloads the pinned Microsoft Graph extension from 
 Run the AppHost and follow the Azure provisioning prompts in the dashboard to select the tenant, subscription,
 resource group, and location. You do not need to set these values manually beforehand.
 
+The dialog also includes an optional **Tenant-scoped resource suffix**, saved with the Azure context.
+Use a developer-specific suffix such as `dev-a` to create `entra-web-dev-a`, or leave it empty to create `entra-web`.
+The logical Aspire resource name remains `entra-web` in either case. Change or clear the suffix through **Change Azure context**;
+`Azure:TenantResourceSuffix` can supply an initial value. Existing mode does not need this setting.
+
 Use the tenant associated with the subscription. Creation mode does not support choosing a separate registration tenant
 from the Azure deployment's tenant. See [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/)
 and the [hosting integration README](../../src/Aspire.Hosting.Azure.EntraId/README.md#create-registrations).
@@ -93,9 +98,11 @@ The AppHost calls `WithIdTokenIssuance()` because both front ends use ID-token-o
 client secret, expose API scopes, or grant API permissions. Both front ends wait for `entra-web` and receive its provisioned
 tenant/client IDs through `WithReference`.
 
-Unchanged restarts reuse deployment state. Configuration updates redeploy using a stable key based on the resource name
-and resource group, preserving the registration's identity. Changing the resource name or group can create another
-registration; two AppHosts sharing both can share the same registration.
+Unchanged restarts reuse deployment state. Configuration updates preserve the registration's identity while the tenant,
+resource name, and suffix stay unchanged, independently of the resource group. Different developers should choose distinct
+suffixes to avoid sharing and overwriting the same registration. Changing the name or suffix targets another registration
+without deleting the old one. Previously created registrations with different `uniqueName` values are not automatically
+reused; reference them in existing mode or explicitly clean them up when migrating.
 
 ### Clean up provisioned registrations
 

@@ -6,6 +6,8 @@ param location string
 
 param principalId string
 
+param tenantResourceSuffix string = ''
+
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: resourceGroupName
   location: location
@@ -19,6 +21,7 @@ module entra_api 'entra-api/entra-api.bicep' = {
     applicationName: 'entra-api'
     principalId: principalId
     signInAudience: 'AzureADMyOrg'
+    tenantResourceSuffix: tenantResourceSuffix
   }
 }
 
@@ -30,6 +33,7 @@ module entra_web 'entra-web/entra-web.bicep' = {
     applicationName: 'entra-web'
     principalId: principalId
     signInAudience: 'AzureADMultipleOrgs'
+    tenantResourceSuffix: tenantResourceSuffix
     redirectUris: [
       'https://localhost:7123/signin-oidc'
     ]

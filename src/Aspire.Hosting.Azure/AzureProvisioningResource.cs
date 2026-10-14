@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.Authorization;
@@ -83,7 +85,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
         ConfigureInfrastructure(infrastructure);
 
-        EnsureParametersAlign(infrastructure);
+        var evaluatedParameters = EnsureParametersAlign(infrastructure);
 
         var plan = infrastructure.Build(ProvisioningBuildOptions);
         var compilation = plan.Compile();
@@ -109,7 +111,10 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
         File.Copy(moduleSourcePath, moduleDestinationPath, true);
 
-        return new BicepTemplateFile(moduleDestinationPath, directory is null);
+        return new BicepTemplateFile(moduleDestinationPath, directory is null)
+        {
+            EvaluatedParameters = evaluatedParameters
+        };
     }
 
     private string? _generatedBicep;
@@ -279,7 +284,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         provisionableResource.ProvisionableProperties["scope"] = value;
     }
 
-    private void EnsureParametersAlign(AzureResourceInfrastructure infrastructure)
+    private IReadOnlyDictionary<string, object?> EnsureParametersAlign(AzureResourceInfrastructure infrastructure)
     {
         // WARNING: GetParameters currently returns more than one instance of the same
         //          parameter. Its the only API that gives us what we need (a list of
@@ -289,6 +294,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
         var infrastructureParameters = infrastructure.GetParameters();
         var distinctInfrastructureParameters = infrastructureParameters.DistinctBy(p => p.BicepIdentifier);
         var distinctInfrastructureParametersLookup = distinctInfrastructureParameters.ToDictionary(p => p.BicepIdentifier);
+        var evaluatedParameters = new Dictionary<string, object?>();
 
         foreach (var aspireParameter in this.Parameters)
         {
@@ -298,9 +304,26 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
             }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
+            var value = aspireParameter.Value is Func<object?> callback ? callback() : aspireParameter.Value;
+            evaluatedParameters[aspireParameter.Key] = value;
+            var isSecure = value is ParameterResource { Secret: true } || value is BicepSecretOutputReference;
 #pragma warning restore CS0618 // Type or member is obsolete
-            var parameter = new ProvisioningParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
+            var parameterType = value switch
+            {
+                bool => typeof(bool),
+                int => typeof(int),
+                IEnumerable<string> => typeof(string[]),
+                JsonArray => typeof(object[]),
+                JsonObject => typeof(object),
+                JsonValue json => json.GetValueKind() switch
+                {
+                    JsonValueKind.True or JsonValueKind.False => typeof(bool),
+                    JsonValueKind.Number => typeof(int),
+                    _ => typeof(string)
+                },
+                _ => typeof(string)
+            };
+            var parameter = new ProvisioningParameter(aspireParameter.Key, parameterType) { IsSecure = isSecure };
             infrastructure.Add(parameter);
         }
 
@@ -313,5 +336,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
                 Parameters.TryAdd(infrastructureParameter.BicepIdentifier, null);
             }
         }
+
+        return evaluatedParameters;
     }
 }

@@ -21,6 +21,16 @@ namespace Aspire.Hosting.Azure;
 public class AzureBicepResource : Resource, IAzureResource, IResourceWithParameters
 {
     /// <summary>
+    /// Gets or sets whether this module supports management of its resources through Azure Resource Manager.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see langword="true"/>. Modules that create directory or other extension-provider resources
+    /// rather than ARM resources should set this to <see langword="false"/>. Provisioning, deployment cancellation,
+    /// and local state management remain available, but ARM inspection, relocation, deletion, and drift checks do not.
+    /// </remarks>
+    public bool SupportsAzureResourceManagement { get; set; } = true;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AzureBicepResource"/> class.
     /// </summary>
     /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
@@ -250,7 +260,10 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             foreach (var input in Parameters)
             {
                 // Used for deferred evaluation of parameter.
-                object? inputValue = input.Value is Func<object?> f ? f() : input.Value;
+                object? inputValue = template.EvaluatedParameters is { } evaluatedParameters &&
+                    evaluatedParameters.TryGetValue(input.Key, out var evaluatedValue)
+                    ? evaluatedValue
+                    : input.Value is Func<object?> f ? f() : input.Value;
 
                 context.TryAddDependentResources(inputValue);
 
@@ -409,6 +422,16 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         private const string KeyVaultNameConst = "keyVaultName";
         private const string LocationConst = "location";
         private const string LogAnalyticsWorkspaceIdConst = "logAnalyticsWorkspaceId";
+        private const string TenantResourceSuffixConst = "tenantResourceSuffix";
+
+        /// <summary>
+        /// The optional suffix used to distinguish tenant-wide resources created by this application.
+        /// </summary>
+        /// <remarks>
+        /// Local provisioning resolves this value from <c>Azure:TenantResourceSuffix</c> and saved Azure context.
+        /// Published templates expose it as a deployment parameter. An empty value leaves resource names unchanged.
+        /// </remarks>
+        public static readonly string TenantResourceSuffix = TenantResourceSuffixConst;
 
         /// <summary>
         /// The principal id of the current user or managed identity.
@@ -449,7 +472,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         public static readonly string LogAnalyticsWorkspaceId = LogAnalyticsWorkspaceIdConst;
 
         internal static bool IsKnownParameterName(string name) =>
-            name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst;
+            name is PrincipalIdConst or UserPrincipalIdConst or PrincipalNameConst or PrincipalTypeConst or KeyVaultNameConst or LocationConst or LogAnalyticsWorkspaceIdConst or TenantResourceSuffixConst;
 
     }
 
@@ -495,6 +518,10 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 /// <param name="deleteFileOnDispose">Determines if the file should be deleted on disposal.</param>
 public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) : IDisposable
 {
+    // Values evaluated while inferring generated parameter declarations belong to this template generation,
+    // not the resource. Publishing reuses them so callbacks and secure references are evaluated only once.
+    internal IReadOnlyDictionary<string, object?>? EvaluatedParameters { get; init; }
+
     /// <summary>
     /// The path to the bicep file.
     /// </summary>

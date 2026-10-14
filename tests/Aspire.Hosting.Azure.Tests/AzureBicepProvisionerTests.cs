@@ -23,6 +23,37 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureBicepProvisionerTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    public async Task ConfigureResourceAsync_RejectsCachedOutputsWhenTenantResourceSuffixChanges()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        builder.Configuration["Azure:TenantResourceSuffix"] = "dev-a";
+        var deploymentState = ProvisioningTestHelpers.CreateUserSecretsManager();
+        builder.Services.AddSingleton<IDeploymentStateManager>(deploymentState);
+        var registration = builder.AddBicepTemplateString("registration", "param tenantResourceSuffix string = ''")
+            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix);
+        using var app = builder.Build();
+        var parameters = new JsonObject();
+        await BicepUtilities.SetParametersAsync(parameters, registration.Resource, builder.ExecutionContext);
+        var cached = await deploymentState.AcquireSectionAsync("Azure:Deployments:registration");
+        cached.Data[BicepUtilities.DeploymentStateParametersKey] = parameters.ToJsonString();
+        cached.Data[BicepUtilities.DeploymentStateChecksumKey] = BicepUtilities.GetChecksum(registration.Resource, parameters, null);
+        cached.Data[BicepUtilities.DeploymentStateOutputsKey] = """{"clientId":{"value":"original-client"}}""";
+        await deploymentState.SaveSectionAsync(cached);
+        var provisioner = app.Services.GetRequiredService<IBicepProvisioner>();
+
+        Assert.True(await provisioner.ConfigureResourceAsync(registration.Resource, CancellationToken.None));
+        Assert.Equal("original-client", registration.Resource.Outputs["clientId"]);
+        registration.Resource.Outputs.Clear();
+
+        var azureState = await deploymentState.AcquireSectionAsync("Azure");
+        azureState.Data["TenantResourceSuffix"] = "dev-b";
+        await deploymentState.SaveSectionAsync(azureState);
+
+        Assert.False(await provisioner.ConfigureResourceAsync(registration.Resource, CancellationToken.None));
+        Assert.Empty(registration.Resource.Outputs);
+    }
+
     [Theory]
     [InlineData("1alpha")]
     [InlineData("-alpha")]

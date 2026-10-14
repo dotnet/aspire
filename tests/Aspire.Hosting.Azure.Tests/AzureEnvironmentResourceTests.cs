@@ -300,6 +300,45 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep");
     }
 
+    [Fact]
+    public async Task AzurePublishingContext_InfersGeneratedDeferredParameterTypes()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        var secret = builder.AddParameter("secret", secret: true);
+        var module = builder.AddAzureInfrastructure("generated", _ => { });
+        var values = new Dictionary<string, object?>
+        {
+            ["enabled"] = false,
+            ["count"] = 2,
+            ["redirectUris"] = new[] { "https://localhost:7123/signin-oidc" },
+            ["options"] = new JsonObject { ["enabled"] = true },
+            ["jsonArray"] = new JsonArray("one", 2),
+            ["jsonBoolean"] = JsonValue.Create(true),
+            ["jsonInteger"] = JsonValue.Create(3),
+            ["secret"] = secret.Resource
+        };
+        var evaluations = 0;
+        foreach (var (name, value) in values)
+        {
+            module.WithParameter(name, () =>
+            {
+                evaluations++;
+                return value;
+            });
+        }
+
+        using var app = builder.Build();
+        var context = await CreatePublishingContextAsync(app, workspace.Path);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await context.WriteModelAsync(model, Assert.Single(model.Resources.OfType<AzureEnvironmentResource>()));
+
+        Assert.Equal(values.Count, evaluations);
+        Assert.True(context.ParameterLookup[secret.Resource].IsSecure);
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "generated", "generated.bicep")), "bicep");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

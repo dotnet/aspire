@@ -7,6 +7,8 @@ param applicationName string
 
 param principalId string
 
+param tenantResourceSuffix string = ''
+
 @allowed([
   'AzureADMyOrg'
   'AzureADMultipleOrgs'
@@ -21,7 +23,7 @@ param enableIdTokenIssuance bool = false
 
 resource application 'Microsoft.Graph/applications@v1.0' = {
   displayName: 'Contoso\'s web application'
-  uniqueName: '${applicationName}-${uniqueString(resourceGroup().id)}'
+  uniqueName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
   signInAudience: signInAudience
   api: {
     requestedAccessTokenVersion: 2

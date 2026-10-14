@@ -29,11 +29,13 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var entra = builder.AddEntraIdApplication("entra-web");
 
         Assert.IsAssignableFrom<AzureProvisioningResource>(entra.Resource);
+        Assert.False(entra.Resource.SupportsAzureResourceManagement);
         Assert.NotNull(entra.Resource.ProvisioningTaskCompletionSource);
         Assert.False(entra.Resource.ProvisioningTaskCompletionSource.Task.IsCompleted);
         Assert.Equal("entra-web", entra.Resource.Parameters["applicationName"]);
         Assert.Null(entra.Resource.Parameters["principalId"]);
         Assert.Equal("AzureADMyOrg", entra.Resource.Parameters["signInAudience"]);
+        Assert.Null(entra.Resource.Parameters[AzureBicepResource.KnownParameters.TenantResourceSuffix]);
         Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
 
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
@@ -117,6 +119,60 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep")
             .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "entra-web", "entra-web.bicep")), "bicep");
+    }
+
+    [Fact]
+    public async Task Publish_TenantResourceSuffix_IsADeploymentParameterWithExplicitOverrides()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper, workspace.Path);
+        builder.Configuration["Azure:TenantResourceSuffix"] = "local-developer";
+        builder.AddEntraIdApplication("entra-web");
+        builder.AddEntraIdApplication("entra-api")
+            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix, "production");
+        builder.AddEntraIdApplication("existing").AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = Assert.Single(model.Resources.OfType<AzureEnvironmentResource>());
+        await using var step = await new TestPipelineActivityReporter(outputHelper).CreateStepAsync("Publishing tenant suffix");
+        var context = new AzurePublishingContext(
+            workspace.Path,
+            app.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>().Value,
+            app.Services,
+            NullLogger<AzurePublishingContext>.Instance,
+            step);
+
+        await context.WriteModelAsync(model, environment);
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "entra-web", "entra-web.bicep")), "bicep");
+    }
+
+    [Fact]
+    public async Task Publish_TenantResourceSuffix_ReusesExplicitNamedDeploymentParameter()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper, workspace.Path);
+        var suffix = builder.AddParameter("tenantResourceSuffix", "shared");
+        builder.AddEntraIdApplication("entra-web");
+        builder.AddEntraIdApplication("entra-api")
+            .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix, suffix);
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        await using var step = await new TestPipelineActivityReporter(outputHelper).CreateStepAsync("Publishing shared tenant suffix");
+        var context = new AzurePublishingContext(
+            workspace.Path,
+            app.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>().Value,
+            app.Services,
+            NullLogger<AzurePublishingContext>.Instance,
+            step);
+
+        await context.WriteModelAsync(model, Assert.Single(model.Resources.OfType<AzureEnvironmentResource>()));
+
+        Assert.Same(context.ParameterLookup[suffix.Resource],
+            Assert.Single(context.MainInfrastructure.GetProvisionableResources().OfType<ProvisioningParameter>(),
+                parameter => parameter.BicepIdentifier == AzureBicepResource.KnownParameters.TenantResourceSuffix));
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep");
     }
 
     [Fact]

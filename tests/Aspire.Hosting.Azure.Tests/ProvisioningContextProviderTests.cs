@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Azure.Resources;
@@ -15,6 +16,93 @@ namespace Aspire.Hosting.Azure.Tests;
 public class ProvisioningContextProviderTests
 {
     private readonly TestInteractionService _defaultInteractionService = new() { IsAvailable = false };
+
+    [Theory]
+    [InlineData(false, false, null, "")]
+    [InlineData(true, true, null, "")]
+    [InlineData(true, false, null, "dev-a")]
+    [InlineData(true, false, "configured", "")]
+    public async Task TenantResourceSuffix_IsConditionallyPromptedAndPersisted(
+        bool usesSuffix, bool excluded, string? configuredSuffix, string selectedSuffix)
+    {
+        var interactionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions();
+        options.Value.TenantResourceSuffix = configuredSuffix;
+        var deploymentState = ProvisioningTestHelpers.CreateUserSecretsManager();
+        var resource = new AzureBicepResource("registration", templateString: "param tenantResourceSuffix string = ''");
+        if (usesSuffix)
+        {
+            resource.Parameters[AzureBicepResource.KnownParameters.TenantResourceSuffix] = null;
+        }
+        if (excluded)
+        {
+            resource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+        }
+        var model = new DistributedApplicationModel([resource]);
+        using var provider = new RunModeProvisioningContextProvider(
+            interactionService,
+            options,
+            ProvisioningTestHelpers.CreateEnvironment(),
+            ProvisioningTestHelpers.CreateLogger(),
+            ProvisioningTestHelpers.CreateArmClientProvider(),
+            ProvisioningTestHelpers.CreateAzurePrincipalProvider(),
+            ProvisioningTestHelpers.CreateTokenCredentialProvider(),
+            deploymentState,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            model);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var promptTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        Assert.Equal(usesSuffix && !excluded ? 5 : 4, interaction.Inputs.Count);
+        if (usesSuffix && !excluded)
+        {
+            var input = interaction.Inputs[BaseProvisioningContextProvider.TenantResourceSuffixName];
+            Assert.Equal(InputType.Text, input.InputType);
+            Assert.False(input.Required);
+            Assert.Equal(AzureProvisioningStrings.TenantResourceSuffixLabel, input.Label);
+            Assert.Equal(AzureProvisioningStrings.TenantResourceSuffixDescription, input.Description);
+            Assert.Equal(configuredSuffix, input.Value);
+            input.Value = selectedSuffix;
+        }
+        interaction.CompletionTcs.SetResult(InteractionResult.Ok(interaction.Inputs));
+        Assert.True(await promptTask);
+        await provider.PersistProvisioningOptionsAsync(cts.Token);
+
+        var saved = await deploymentState.AcquireSectionAsync("Azure", cts.Token);
+        Assert.Equal(usesSuffix && !excluded ? selectedSuffix : configuredSuffix,
+            saved.Data["TenantResourceSuffix"]?.GetValue<string>());
+        Assert.True(await provider.EnsureProvisioningOptionsAsync(forcePrompt: false, cts.Token));
+        Assert.Equal(usesSuffix && !excluded ? selectedSuffix : configuredSuffix,
+            (await provider.GetProvisioningOptionsAsync(cts.Token)).TenantResourceSuffix);
+    }
+
+    [Fact]
+    public async Task TenantResourceSuffix_CommandUpdatePreservesOrClearsSavedValue()
+    {
+        var options = ProvisioningTestHelpers.CreateOptions();
+        options.Value.TenantResourceSuffix = "configured";
+        var deploymentState = ProvisioningTestHelpers.CreateUserSecretsManager();
+        using var provider = new RunModeProvisioningContextProvider(
+            _defaultInteractionService,
+            options,
+            ProvisioningTestHelpers.CreateEnvironment(),
+            ProvisioningTestHelpers.CreateLogger(),
+            ProvisioningTestHelpers.CreateArmClientProvider(),
+            ProvisioningTestHelpers.CreateAzurePrincipalProvider(),
+            ProvisioningTestHelpers.CreateTokenCredentialProvider(),
+            deploymentState,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
+
+        var updated = await provider.ApplyProvisioningOptionsAsync(new(null, null, null, null, "dev-a"));
+        Assert.Equal("dev-a", updated.TenantResourceSuffix);
+        updated = await provider.ApplyProvisioningOptionsAsync(new(null, null, null, null, null));
+        Assert.Equal("dev-a", updated.TenantResourceSuffix);
+        updated = await provider.ApplyProvisioningOptionsAsync(new(null, null, null, null, string.Empty));
+        Assert.Equal(string.Empty, updated.TenantResourceSuffix);
+        Assert.Equal(string.Empty, (await provider.GetProvisioningOptionsAsync()).TenantResourceSuffix);
+    }
 
     [Fact]
     public async Task CreateProvisioningContextAsync_ReturnsValidContext()
@@ -37,7 +125,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
@@ -75,7 +164,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
@@ -105,7 +195,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Simulate previously prompted values still hanging around in memory after reset.
         optionValues.SubscriptionId = "12345678-1234-1234-1234-123456789012";
@@ -146,7 +237,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
 
@@ -176,7 +268,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
@@ -205,7 +298,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
@@ -237,7 +331,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
@@ -268,7 +363,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
@@ -300,7 +396,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
@@ -333,7 +430,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
 
@@ -428,7 +526,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
 
@@ -488,7 +587,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
@@ -629,7 +729,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
@@ -675,7 +776,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
@@ -718,7 +820,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
@@ -776,7 +879,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);
@@ -819,7 +923,8 @@ public class ProvisioningContextProviderTests
             azurePrincipalProvider,
             tokenCredentialProvider,
             deploymentStateManager,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationModel([]));
 
         // Act
         var ensureTask = provider.EnsureProvisioningOptionsAsync(forcePrompt: true, CancellationToken.None);

@@ -13,6 +13,33 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureBicepResourceTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    public async Task Manifest_GeneratedDeferredParametersAreEvaluatedOnce()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var secret = builder.AddParameter("secret", secret: true);
+        var generated = builder.AddAzureInfrastructure("generated", _ => { });
+        var evaluations = 0;
+        generated.WithParameter("enabled", () =>
+        {
+            evaluations++;
+            return false;
+        });
+        generated.WithParameter("secret", () =>
+        {
+            evaluations++;
+            return secret.Resource;
+        });
+
+        var manifest = await ManifestUtils.GetManifest(generated.Resource, workspace.Path);
+
+        Assert.Equal(2, evaluations);
+        Assert.False(manifest["params"]!["enabled"]!.GetValue<bool>());
+        await Verify(manifest.ToJsonString(), "json")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "generated.module.bicep")), "bicep");
+    }
+
+    [Fact]
     public void AddBicepResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(outputHelper);

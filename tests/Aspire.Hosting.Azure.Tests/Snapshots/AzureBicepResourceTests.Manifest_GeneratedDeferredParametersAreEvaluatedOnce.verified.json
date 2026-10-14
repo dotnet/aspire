@@ -1,0 +1,1 @@
+﻿{"type":"azure.bicep.v0","path":"generated.module.bicep","params":{"enabled":false,"secret":"{secret.value}"}}

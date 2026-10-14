@@ -656,6 +656,16 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
         <target state="translated">Mandanten-ID auswählen</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantResourceSuffixDescription">
+        <source>Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted.</source>
+        <target state="new">Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantResourceSuffixLabel">
+        <source>Tenant-scoped resource suffix</source>
+        <target state="new">Tenant-scoped resource suffix</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
         <target state="translated">Wählen Sie Ihren Azure-Mandanten aus:</target>
