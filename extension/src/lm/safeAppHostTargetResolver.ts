@@ -312,7 +312,7 @@ export class SafeAppHostTargetResolver {
                 // Nested workspace folders enumerate the same lexical candidate twice.
                 // Collapse only that duplicate; distinct symlink aliases must remain
                 // independently selectable even when they currently reach one real file.
-                const key = this._toSelectorKey(candidate.path);
+                const key = path.normalize(path.resolve(candidate.path));
                 const existing = targets.get(key);
                 if (existing && existing.relativePath.length <= relativePath.length) {
                     continue;

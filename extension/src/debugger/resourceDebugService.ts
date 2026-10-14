@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { AppHostDisplayInfo, ResourceJson } from '../data/AppHostDataRepository';
 import type { AspireExtendedDebugConfiguration } from '../dcp/types';
-import { compareAppHostIdentity, type AppHostIdentityRelation } from '../utils/appHostIdentity';
+import { compareAppHostIdentity, getOrCreateIdentityForCurrentAppHostTarget, type AppHostIdentityRelation } from '../utils/appHostIdentity';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { isCommandCancellation } from '../utils/telemetry';
 import { createAppHostOperationTarget, type AppHostOperationTarget } from '../utils/appHostOperationTarget';
@@ -144,7 +144,7 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
             }
 
             const resolvedTarget: ResourceDebugAppHostTarget = {
-                absolutePath: resolvedAppHost.appHostPath,
+                absolutePath: request.appHost.canonicalPath,
                 displayPath: request.appHost.displayPath,
                 appHostPid: resolvedAppHost.appHostPid,
                 cliPid: resolvedAppHost.cliPid ?? undefined,
@@ -173,6 +173,10 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
     }
 
     private async _resolveAppHost(request: ResourceDebugRequest): Promise<AppHostDisplayInfo | ResourceDebugResult> {
+        if (!isAppHostTargetCurrent(request.appHost)) {
+            return { outcome: 'appHostNotFound' };
+        }
+
         let appHosts: readonly AppHostDisplayInfo[];
         try {
             appHosts = await this._dependencies.appHostRepository.fetchRunningAppHostsOnce(request.cancellationToken);
@@ -190,9 +194,13 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
             return { outcome: 'cancelled' };
         }
 
+        if (!isAppHostTargetCurrent(request.appHost)) {
+            return { outcome: 'appHostNotFound' };
+        }
+
         const appHostMatches = appHosts.map(appHost => ({
             appHost,
-            relation: this._compareAppHostIdentity(request.appHost.absolutePath, appHost.appHostPath),
+            relation: this._compareAppHostIdentity(request.appHost.canonicalPath, appHost.appHostPath),
         }));
         if (appHostMatches.some(match => match.relation === 'ambiguous')) {
             return { outcome: 'appHostNotFound' };
@@ -221,6 +229,10 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
             return { outcome: 'cancelled' };
         }
 
+        if (!isAppHostTargetCurrent(request.appHost)) {
+            return { outcome: 'appHostNotFound' };
+        }
+
         let resources: readonly ResourceJson[];
         try {
             resources = await this._dependencies.appHostRepository.fetchAppHostResourcesOnce(
@@ -239,6 +251,10 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
 
         if (request.cancellationToken?.isCancellationRequested) {
             return { outcome: 'cancelled' };
+        }
+
+        if (!isAppHostTargetCurrent(request.appHost)) {
+            return { outcome: 'appHostNotFound' };
         }
 
         const matchingResources = resources.filter(resource => resource.name === request.resourceName);
@@ -361,6 +377,10 @@ export class ResourceDebugService implements vscode.Disposable, ResourceDebugger
             return { outcome: 'cancelled' };
         }
 
+        if (!isAppHostTargetCurrent(request.appHost)) {
+            return { outcome: 'appHostNotFound' };
+        }
+
         const attempt = this._dependencies.sessionRegistry.createAttempt(
             appHost,
             resource.name,
@@ -399,10 +419,11 @@ function applySafeAttachDebuggerOverrides(
     launchConfigurationType: string,
     providerId: ResourceAttachProvider['id'],
 ): void {
-    const overrides = debugSessionConfiguration?.debuggers?.[launchConfigurationType];
-    if (!overrides) {
-        return;
-    }
+    const debuggers = debugSessionConfiguration?.debuggers;
+    const overrides = {
+        ...(launchConfigurationType === 'project-with-external-build.v1' ? debuggers?.project : undefined),
+        ...debuggers?.[launchConfigurationType],
+    };
 
     // A denylist would let a newly supported transport or remote-target property silently retarget
     // an operation the user confirmed as a local Aspire resource. Copy only options that affect
@@ -412,6 +433,15 @@ function applySafeAttachDebuggerOverrides(
             configuration[property] = overrides[property];
         }
     }
+}
+
+function isAppHostTargetCurrent(target: ResourceDebugRequest['appHost']): boolean {
+    if (getOrCreateIdentityForCurrentAppHostTarget(target.absolutePath) === target.identity) {
+        return true;
+    }
+
+    extensionLogOutputChannel.warn('Resource debugger refused an AppHost target that changed after selection.');
+    return false;
 }
 
 function getResourceProcessId(resource: ResourceJson): number | undefined {

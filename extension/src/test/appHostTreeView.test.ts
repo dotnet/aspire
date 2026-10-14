@@ -3694,7 +3694,11 @@ suite('AspireAppHostTreeProvider.findAppHostElement', () => {
         const outcome = await (provider as any).attachDebuggerToResource(getFirstResourceItem(provider));
 
         assert.deepStrictEqual(outcome, { success: false, errorKind: 'ResourceNotAttachable' });
-        assert.ok(warningStub.calledOnceWith('Install Go to attach the debugger to this resource.'));
+        assert.ok(warningStub.calledOnce);
+        assert.deepStrictEqual(warningStub.firstCall.args, [
+            'Install or enable Go, then retry attaching the debugger. The AppHost does not need to restart.',
+            'Open Extensions',
+        ]);
         provider.dispose();
     });
 
@@ -3717,9 +3721,43 @@ suite('AspireAppHostTreeProvider.findAppHostElement', () => {
         const outcome = await (provider as any).attachDebuggerToResource(getFirstResourceItem(provider));
 
         assert.deepStrictEqual(outcome, { success: false, errorKind: 'ResourceNotAttachable' });
-        assert.ok(warningStub.calledOnceWith('Install Future debugger to attach the debugger to this resource.'));
+        assert.ok(warningStub.calledOnce);
+        assert.deepStrictEqual(warningStub.firstCall.args, [
+            'Install or enable Future debugger, then retry attaching the debugger. The AppHost does not need to restart.',
+            'Open Extensions',
+        ]);
         provider.dispose();
     });
+
+    for (const [id, label] of [['ms-dotnettools.csharp', 'C#'], ['golang.go', 'Go']]) {
+        test(`attachDebuggerToResource opens install-or-enable recovery for ${id}`, async () => {
+            const debuggerService = makeResourceDebugger({
+                outcome: 'debuggerExtensionMissing',
+                debuggerExtensions: [{ id, label }],
+            });
+            const provider = makeTreeProvider([
+                makeAppHost({ resources: [makeResource({
+                    state: ResourceState.Running,
+                    properties: makeAttachableProjectProperties(),
+                })] }),
+            ], 'global', undefined, debuggerService);
+            const warning = sandbox.stub(vscode.window, 'showWarningMessage').resolves('Open Extensions' as never);
+            const executeCommand = sandbox.stub(vscode.commands, 'executeCommand').resolves();
+            try {
+                await provider.attachDebuggerToResource(getFirstResourceItem(provider));
+
+                assert.ok(warning.calledOnce);
+                assert.deepStrictEqual(warning.firstCall.args, [
+                    `Install or enable ${label}, then retry attaching the debugger. The AppHost does not need to restart.`,
+                    'Open Extensions',
+                ]);
+                assert.ok(executeCommand.calledOnceWithExactly('workbench.extensions.search', `@id:${id}`));
+            }
+            finally {
+                provider.dispose();
+            }
+        });
+    }
 
     test('attachDebuggerToResource reports when VS Code declines the attach session', async () => {
         const provider = makeTreeProvider([

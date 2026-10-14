@@ -620,6 +620,8 @@ export class DotNetService implements IDotNetService {
                 void terminateCliProcess(msbuildProcess, 'dotnet msbuild target discovery', {
                     force: true,
                     suppressTimeoutWarning: true,
+                }).catch(error => {
+                    extensionLogOutputChannel.error(`Failed to stop dotnet msbuild target discovery: ${error instanceof Error ? error.message : String(error)}`);
                 });
                 complete(() => reject(error));
             };
@@ -1584,10 +1586,14 @@ function doesProcessPathStemMatchTargetName(
 function areProcessPathsEqual(left: string, right: string): boolean {
     const normalizedLeft = left.replace(/\\/g, '/');
     const normalizedRight = right.replace(/\\/g, '/');
-    const isWindowsPath = /^[a-z]:\//i.test(normalizedLeft) || /^[a-z]:\//i.test(normalizedRight);
+    const isWindowsPath = isWindowsProcessPath(normalizedLeft) || isWindowsProcessPath(normalizedRight);
     return isWindowsPath
         ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
         : normalizedLeft === normalizedRight;
+}
+
+function isWindowsProcessPath(value: string): boolean {
+    return /^(?:[a-z]:\/|\/\/[^/]+\/[^/]+)/i.test(value);
 }
 
 function getAppHostPaths(targetPath: string): readonly string[] {
@@ -1653,7 +1659,7 @@ function commandContainsPathArgumentAfterDotNetExec(command: string, targetPath:
 function getPathArgumentIndex(command: string, targetPath: string): number | undefined {
     const normalizedCommand = command.replace(/\\/g, '/');
     const normalizedTargetPath = targetPath.replace(/\\/g, '/');
-    const isWindowsPath = /^[a-z]:\//i.test(normalizedCommand) || /^[a-z]:\//i.test(normalizedTargetPath);
+    const isWindowsPath = isWindowsProcessPath(normalizedTargetPath);
     const match = new RegExp(
         `(?:^|\\s|["'])${escapeRegularExpression(normalizedTargetPath)}(?=$|\\s|["'])`,
         isWindowsPath ? 'i' : undefined).exec(normalizedCommand);

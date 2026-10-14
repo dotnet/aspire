@@ -292,27 +292,42 @@ internal class ResourceSnapshotBuilder
                 break;
             }
 
+            // RID and MSBuild property overrides can change the output path or assembly identity.
+            // A hidden launcher input cannot be replaced by the evaluator's default either.
+            if (sensitiveArgumentIndexes.Contains(index) || ChangesUnreportedTargetInputs(argument))
+            {
+                return [new(KnownProperties.Project.LaunchCommand, null)];
+            }
+
             if (TryReadOptionValue(argument, "--configuration", "-c", out var inlineConfiguration))
             {
-                configuration = sensitiveArgumentIndexes.Contains(index) ? null : inlineConfiguration;
+                configuration = inlineConfiguration;
                 continue;
             }
 
             if (TryReadOptionValue(argument, "--framework", "-f", out var inlineTargetFramework))
             {
-                targetFramework = sensitiveArgumentIndexes.Contains(index) ? null : inlineTargetFramework;
+                targetFramework = inlineTargetFramework;
                 continue;
             }
 
             if (argument is "--configuration" or "-c")
             {
                 configuration = ReadNextValue(effectiveArgs, sensitiveArgumentIndexes, ref index);
+                if (configuration is null)
+                {
+                    return [new(KnownProperties.Project.LaunchCommand, null)];
+                }
                 continue;
             }
 
             if (argument is "--framework" or "-f")
             {
                 targetFramework = ReadNextValue(effectiveArgs, sensitiveArgumentIndexes, ref index);
+                if (targetFramework is null)
+                {
+                    return [new(KnownProperties.Project.LaunchCommand, null)];
+                }
             }
         }
 
@@ -330,6 +345,15 @@ internal class ResourceSnapshotBuilder
         }
 
         return properties.ToImmutable();
+
+        static bool ChangesUnreportedTargetInputs(string argument)
+        {
+            // Examples: --runtime win-x64, --arch=arm64, -p:OutputPath=custom, /property:AssemblyName=Custom.
+            // Both colon and equals spellings are accepted by the dotnet/MSBuild launchers.
+            var option = argument.Split(['=', ':'], 2)[0].ToLowerInvariant();
+            return option is "--runtime" or "-r" or "--arch" or "-a" or "--os"
+                or "--property" or "--properties" or "-p" or "/p" or "-property" or "/property";
+        }
 
         static (string Command, int Index)? FindDotNetProjectCommand(IReadOnlyList<string> arguments)
         {

@@ -71,6 +71,8 @@ suite('Aspire resource debug language model tool E2E', function () {
             resourceName: 'e2e-worker',
         });
         assert.deepStrictEqual(unresolved, {
+            registered: true,
+            supportsPreparation: true,
             invocationMessage: 'Attaching debugger to the requested Aspire resource...',
             confirmationTitle: 'Attach debugger to Aspire resource',
             confirmationMessage: 'Attach the debugger to the requested Aspire resource?',
@@ -136,6 +138,8 @@ suite('Aspire resource debug language model tool E2E', function () {
             resourceName: worker.name,
         });
         assert.deepStrictEqual(prepared, {
+            registered: true,
+            supportsPreparation: true,
             invocationMessage: `Attaching debugger to Aspire resource ${worker.name}...`,
             confirmationTitle: 'Attach debugger to Aspire resource',
             confirmationMessage: `Attach the debugger to resource ${worker.name} from Aspire AppHost ${relativeAppHostPath}?`,

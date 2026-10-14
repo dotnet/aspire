@@ -433,6 +433,36 @@ suite('Dotnet Debugger Extension Tests', () => {
         }), false);
     });
 
+    for (const targetPath of [String.raw`\\server\share\Api.dll`, '/repo/bin/Api.dll']) {
+        test(`preserves framework-dependent path casing rules for ${targetPath}`, async () => {
+            const { dotNetService } = createDebuggerExtension(targetPath, null, true, true);
+            dotNetService.getDotNetAttachTargetInfoStub.resolves({ targetPath, useAppHost: false });
+            const resolver = { resolveProcessId: sinon.stub().resolves(4321) };
+            const provider = createAttachProvider(dotNetService, resolver, { realpath: async value => value });
+            await provider.createDebugConfiguration(createProjectResource({
+                'executable.pid': '1234',
+                'executable.path': 'dotnet',
+                'project.path': '/repo/api/Api.csproj',
+                'project.launchCommand': 'run',
+            }));
+
+            const identity = resolver.resolveProcessId.firstCall.args[1] as TestLaunchedChildProcessIdentity;
+            const expectedCaseMatch = targetPath.startsWith('\\\\');
+            for (const structured of [false, true]) {
+                const candidate = (operand: string) => ({
+                    pid: 4321,
+                    parentPid: 1234,
+                    executable: 'dotnet',
+                    command: `dotnet exec "${operand}"`,
+                    ...(structured ? { commandLineArguments: ['dotnet', 'exec', operand] } : {}),
+                });
+                assert.strictEqual(identity.isCandidate(candidate(targetPath)), true);
+                assert.strictEqual(identity.isCandidate(candidate(targetPath.toLowerCase())), expectedCaseMatch);
+                assert.strictEqual(identity.isCandidate(candidate(`${targetPath}.bak`)), false);
+            }
+        });
+    }
+
     test('older redacted framework-dependent snapshots match TargetName instead of the default TargetPath', async () => {
         const { dotNetService } = createDebuggerExtension('/repo/bin/Debug/net10.0/Api.dll', null, true, true);
         dotNetService.getDotNetAttachTargetInfoStub.resolves({
@@ -1299,6 +1329,39 @@ suite('Dotnet Debugger Extension Tests', () => {
             clock.restore();
         }
     });
+
+    for (const stopReason of ['cancelled', 'timedOut'] as const) {
+        test(`target discovery observes failed cleanup after ${stopReason}`, async () => {
+            const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+            const cancellation = new vscode.CancellationTokenSource();
+            const msbuildProcess = createMsbuildProcess();
+            sinon.stub(childProcess, 'spawn').returns(msbuildProcess.process);
+            const terminate = sinon.stub(cliProcess, 'terminateCliProcess').rejects(new Error('probe cleanup failed'));
+            const log = sinon.stub(extensionLogOutputChannel, 'error');
+            try {
+                const discovery = new DotNetService(undefined).getDotNetAttachTargetInfo(
+                    '/repo/api/Api.csproj', undefined, cancellation.token);
+                const completion = discovery.then(
+                    () => 'completed',
+                    error => error instanceof vscode.CancellationError ? 'cancelled'
+                        : error instanceof Error && /timed out/.test(error.message) ? 'timedOut' : 'failed');
+                if (stopReason === 'cancelled') {
+                    cancellation.cancel();
+                    await clock.tickAsync(0);
+                } else {
+                    await clock.tickAsync(10_000);
+                }
+
+                assert.strictEqual(await completion, stopReason);
+                assert.ok(terminate.calledOnce);
+                assert.ok(log.called);
+            }
+            finally {
+                cancellation.dispose();
+                clock.restore();
+            }
+        });
+    }
 
     test('target discovery returns TargetName for framework-dependent projects', async () => {
         const dotNetService = new DotNetService(undefined);

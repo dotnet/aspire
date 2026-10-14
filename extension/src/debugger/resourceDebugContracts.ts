@@ -1,4 +1,5 @@
 import type * as vscode from 'vscode';
+import type { CurrentAppHostTargetBinding } from '../utils/appHostIdentity';
 
 export type ResourceDebugSource = 'tree' | 'languageModelTool';
 
@@ -27,7 +28,7 @@ export interface ResourceDebugAppHostTarget {
 export interface ResourceDebugRequest {
     readonly source: ResourceDebugSource;
     readonly strategy: ResourceDebugStrategy;
-    readonly appHost: ResourceDebugAppHostTarget;
+    readonly appHost: ResourceDebugAppHostTarget & CurrentAppHostTargetBinding;
     readonly resourceName: string;
     readonly cancellationToken?: vscode.CancellationToken;
 }

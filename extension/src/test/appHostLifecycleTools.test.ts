@@ -29,6 +29,7 @@ import { extensionLogOutputChannel } from '../utils/logging';
 import { SafeAppHostTargetResolver } from '../lm/safeAppHostTargetResolver';
 import { resolveIsolated } from '../utils/gitWorktree';
 import { writeLinkedWorktreeMetadata } from './testGitWorktree';
+import { ScriptedRealpath } from './helpers/scriptedRealpath';
 
 import { removeDirectorySafely } from './testHelpers';
 interface LaunchCall {
@@ -2152,39 +2153,24 @@ suite('AppHost lifecycle language model tools', () => {
 
         test('rejects indistinguishable preparations that resolved to different AppHosts', async () => {
             const input = { appHostPath: 'AppHost/AppHost.csproj', mode: 'run' } as const;
-            const inputKey = JSON.stringify([input.appHostPath, input.mode, null, null]);
-            const preparedActions = (service as unknown as {
-                _preparedActions: Array<{
-                    tool: string;
-                    inputKey: string;
-                    identity: string;
-                    isolated: boolean;
-                    expiresAt: number;
-                }>;
-            })._preparedActions;
-            preparedActions.push(
-                {
-                    tool: aspireAppHostStartToolName,
-                    inputKey,
-                    identity: 'apphost-a',
-                    isolated: false,
-                    expiresAt: performance.now() + 60_000,
-                },
-                {
-                    tool: aspireAppHostStartToolName,
-                    inputKey,
-                    identity: 'apphost-b',
-                    isolated: false,
-                    expiresAt: performance.now() + 60_000,
-                });
+            const otherAppHost = path.join(workspaceRoot, 'OtherAppHost.csproj');
+            fs.writeFileSync(otherAppHost, '<Project />');
+            const realpath = new ScriptedRealpath();
             const tool = new AppHostStartLanguageModelTool(service);
+            const token = new vscode.CancellationTokenSource().token;
+            try {
+                await tool.prepareInvocation({ input }, token);
+                realpath.script(appHostProjectPath, { results: [], thereafter: otherAppHost });
+                await tool.prepareInvocation({ input }, token);
 
-            const result = readToolResultPayload(await tool.invoke(
-                { input, toolInvocationToken: undefined },
-                new vscode.CancellationTokenSource().token));
+                const result = readToolResultPayload(await tool.invoke({ input, toolInvocationToken: undefined }, token));
 
-            assert.strictEqual(result.outcome, 'failed');
-            assert.strictEqual(launchService.launchCalls.length, 0);
+                assert.strictEqual(result.outcome, 'failed');
+                assert.strictEqual(launchService.launchCalls.length, 0);
+            }
+            finally {
+                realpath.restore();
+            }
         });
 
         test('rejects a start when inferred isolation changes after preparation', async () => {

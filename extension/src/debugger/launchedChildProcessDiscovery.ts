@@ -396,7 +396,7 @@ export class SystemLaunchedChildProcessQuery implements LaunchedChildProcessQuer
         if (this._platform === 'darwin') {
             const [parentPidOutput, executableOutput, commandOutput] = await Promise.all([
                 this._commandRunner.run('ps', ['-p', String(processId), '-o', 'ppid='], cancellationToken, timeoutMs),
-                this._commandRunner.run('lsof', ['-a', '-p', String(processId), '-d', 'txt', '-Fn'], cancellationToken, timeoutMs),
+                this._commandRunner.run('lsof', ['-a', '-p', String(processId), '-d', 'txt', '-Ffn'], cancellationToken, timeoutMs),
                 this._commandRunner.run('ps', ['-p', String(processId), '-o', 'args='], cancellationToken, timeoutMs),
             ]);
             const executablePath = parseMacOsTextExecutablePath(executableOutput, processId);
@@ -455,7 +455,7 @@ export class SystemLaunchedChildProcessQuery implements LaunchedChildProcessQuer
 }
 
 export function parseMacOsTextExecutablePath(output: string, processId: number): string | undefined {
-    // `lsof -a -p 123 -d txt -Fn` reports the kernel-backed text executable as:
+    // `lsof -a -p 123 -d txt -Ffn` reports the kernel-backed text executable as:
     //   p123
     //   ftxt
     //   n/Applications/My Long App.app/Contents/MacOS/My Long App

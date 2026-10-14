@@ -229,6 +229,8 @@ suite('Aspire package contribution surface E2E', function () {
         };
 
         assert.deepStrictEqual(prepared, {
+            registered: true,
+            supportsPreparation: true,
             invocationMessage: 'Attaching debugger to the requested Aspire resource...',
             confirmationTitle: 'Attach debugger to Aspire resource',
             confirmationMessage: 'Attach the debugger to the requested Aspire resource?',

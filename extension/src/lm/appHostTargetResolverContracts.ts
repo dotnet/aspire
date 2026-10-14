@@ -1,13 +1,14 @@
 import type * as vscode from 'vscode';
 
 import type { CandidateAppHostDisplayInfo } from '../utils/appHostDiscovery';
+import type { CurrentAppHostTargetBinding } from '../utils/appHostIdentity';
 
 /**
  * The discovered AppHost identity that an editor-owned operation may use. The absolute
  * path remains internal; callers render only `displayPath` and return only `relativePath`
  * or `displayPath` in tool results.
  */
-export interface AppHostTarget {
+export interface AppHostTarget extends CurrentAppHostTargetBinding {
     readonly absolutePath: string;
     readonly relativePath: string;
     readonly displayPath: string;

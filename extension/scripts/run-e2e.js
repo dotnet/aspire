@@ -1803,7 +1803,6 @@ ${winUiProjectReference}${azureFunctionsPackageReference}${goPackageReference}  
     : '';
   const goResource = includeResourceDebug
     ? `builder.AddGoApp("e2e-go", "../AspireE2E.Go", gcFlags: "all=-N -l")
-    .WithCommand("./test-tools/go")
     .WithHttpEndpoint(name: "http", env: "PORT");
 
 `
@@ -2162,65 +2161,6 @@ func main() {
 }
 `);
 
-  // `go run` intentionally links its temporary executable with `-s -w`, so Delve can attach to
-  // the process but cannot bind source breakpoints. Keep the supported AddGoApp/go-launcher shape,
-  // while using an unstripped child under a go-build*/exe path that the attach provider recognizes.
-  const debugExecutable = path.join(projectDirectory, 'go-build-debug', 'exe', isWindows ? 'e2e-go.exe' : 'e2e-go');
-  fs.mkdirSync(path.dirname(debugExecutable), { recursive: true });
-  buildGoE2EExecutable(projectDirectory, ['build', '-gcflags=all=-N -l', '-o', debugExecutable, '.'], 'debug target');
-
-  const launcherSourceDirectory = path.join(projectDirectory, 'debug-launcher');
-  fs.mkdirSync(launcherSourceDirectory, { recursive: true });
-  fs.writeFileSync(path.join(launcherSourceDirectory, 'main.go'), `package main
-
-import (
-	"log"
-	"os"
-	"os/exec"
-	"os/signal"
-	"path/filepath"
-	"syscall"
-)
-
-func main() {
-	target := filepath.Join(filepath.Dir(os.Args[0]), "..", "go-build-debug", "exe", "${isWindows ? 'e2e-go.exe' : 'e2e-go'}")
-	command := exec.Command(target)
-	command.Env = os.Environ()
-	command.Stdin = os.Stdin
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
-	if err := command.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		_ = command.Process.Signal(<-signals)
-	}()
-
-	if err := command.Wait(); err != nil {
-		log.Fatal(err)
-	}
-}
-`);
-
-  const launcherExecutable = path.join(projectDirectory, 'test-tools', isWindows ? 'go.exe' : 'go');
-  fs.mkdirSync(path.dirname(launcherExecutable), { recursive: true });
-  buildGoE2EExecutable(projectDirectory, ['build', '-o', launcherExecutable, './debug-launcher'], 'debug launcher');
-}
-
-function buildGoE2EExecutable(projectDirectory, args, description) {
-  const result = spawnSync('go', args, {
-    cwd: projectDirectory,
-    env: getAspireCliEnvironment(),
-    shell: false,
-    encoding: 'utf8',
-    timeout: 120000,
-  });
-  if (result.error || result.status !== 0) {
-    throw new Error(`Unable to build the Go E2E ${description}. ${result.error?.message ?? result.stderr ?? `exit code ${result.status}`}`);
-  }
 }
 
 function resolveAppHostSdkVersion(resolvedCliPath) {

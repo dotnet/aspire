@@ -25,6 +25,9 @@ import {
     type SafeAppHostTargetResolution,
 } from '../lm/resourceDebugTools';
 import { AppHostTargetResolverService } from '../lm/appHostTargetResolverService';
+import { SafeAppHostTargetResolver as SharedAppHostTargetResolver } from '../lm/safeAppHostTargetResolver';
+import { bindCurrentAppHostTarget } from '../utils/appHostIdentity';
+import { addCandidate, createAppHostAliasFixture, createWorkspaceFolder, FakeDiscoveryService } from './helpers/editorAssistanceTestSupport';
 
 const absoluteAppHostPath = '/private/workspace/AppHost/AppHost.csproj';
 const safeAppHostPath = 'AppHost/AppHost.csproj';
@@ -34,6 +37,7 @@ class FakeTargetResolver implements SafeAppHostTargetResolver {
     results: SafeAppHostTargetResolution[] = [{
         resolved: true,
         target: {
+            ...bindCurrentAppHostTarget(absoluteAppHostPath),
             absolutePath: absoluteAppHostPath,
             relativePath: safeAppHostPath,
             displayPath: safeAppHostPath,
@@ -307,7 +311,9 @@ suite('Aspire resource debug language model tool', () => {
                 [createInput({ strategy: 'attach' }), 'attach'],
             ] as const) {
                 const { service, resourceDebugger } = createService();
-                const result = await service.debug(input, new vscode.CancellationTokenSource().token);
+                const token = new vscode.CancellationTokenSource().token;
+                await service.prepare(input, token);
+                const result = await service.debug(input, token);
 
                 assert.deepStrictEqual(
                     {
@@ -323,7 +329,7 @@ suite('Aspire resource debug language model tool', () => {
                         controller: 'editor',
                     });
                 assert.strictEqual(resourceDebugger.calls[0].source, 'languageModelTool');
-                    assert.strictEqual(resourceDebugger.calls[0].strategy, requestedStrategy);
+                assert.strictEqual(resourceDebugger.calls[0].strategy, requestedStrategy);
             }
         });
 
@@ -368,6 +374,7 @@ suite('Aspire resource debug language model tool', () => {
             resolver.results = [{
                 resolved: true,
                 target: {
+                    ...bindCurrentAppHostTarget('/private/workspace/backend/AppHost/AppHost.csproj'),
                     absolutePath: '/private/workspace/backend/AppHost/AppHost.csproj',
                     relativePath: 'AppHost/AppHost.csproj',
                     displayPath: 'backend/AppHost/AppHost.csproj',
@@ -375,9 +382,10 @@ suite('Aspire resource debug language model tool', () => {
             }];
             const { service, resourceDebugger } = createService(resolver);
 
-            const result = await service.debug(
-                createInput({ appHostPath: 'backend/AppHost/AppHost.csproj' }),
-                new vscode.CancellationTokenSource().token);
+            const input = createInput({ appHostPath: 'backend/AppHost/AppHost.csproj' });
+            const token = new vscode.CancellationTokenSource().token;
+            await service.prepare(input, token);
+            const result = await service.debug(input, token);
 
             assert.strictEqual(result.appHost, 'backend/AppHost/AppHost.csproj');
             assert.strictEqual(resourceDebugger.calls[0].appHost.absolutePath, '/private/workspace/backend/AppHost/AppHost.csproj');
@@ -386,11 +394,41 @@ suite('Aspire resource debug language model tool', () => {
     });
 
     suite('confirmation and invocation', () => {
+        test('refuses a valid invocation without resolved preparation', async () => {
+            const { service, resourceDebugger } = createService();
+
+            const result = await service.debug(createInput(), new vscode.CancellationTokenSource().token);
+
+            assert.strictEqual(result.outcome, 'failed');
+            assert.strictEqual(result.appHost, '');
+            assert.strictEqual(resourceDebugger.calls.length, 0);
+        });
+
+        test('captures getter-backed input once per preparation and invocation', async () => {
+            const { service, resourceDebugger } = createService();
+            let reads = 0;
+            const input = {
+                appHostPath: safeAppHostPath,
+                get resourceName() {
+                    return ++reads === 1 ? 'api' : 'other-resource';
+                },
+            };
+            const token = new vscode.CancellationTokenSource().token;
+            const preparation = await service.prepare(input, token);
+            assert.ok(preparation.canDebug);
+            assert.strictEqual(preparation.resourceName, 'api');
+
+            assert.strictEqual((await service.debug(input, token)).outcome, 'failed');
+            assert.strictEqual(reads, 2);
+            assert.strictEqual(resourceDebugger.calls.length, 0);
+        });
+
         test('confirms only the user resource name and safe AppHost display path', async () => {
             const resolver = new FakeTargetResolver();
             resolver.results = [{
                 resolved: true,
                 target: {
+                    ...bindCurrentAppHostTarget(absoluteAppHostPath),
                     absolutePath: absoluteAppHostPath,
                     relativePath: safeAppHostPath,
                     displayPath: 'backend/AppHost/AppHost.csproj',
@@ -421,6 +459,7 @@ suite('Aspire resource debug language model tool', () => {
                     {
                         resolved: true,
                         target: {
+                            ...bindCurrentAppHostTarget(absoluteAppHostPath),
                             absolutePath: absoluteAppHostPath,
                             relativePath: safeAppHostPath,
                             displayPath: safeAppHostPath,
@@ -445,8 +484,8 @@ suite('Aspire resource debug language model tool', () => {
                 assert.strictEqual(prepared.invocationMessage, 'Attaching debugger to the requested Aspire resource...');
                 assert.strictEqual(JSON.stringify(prepared).includes('../private/token=secret'), false);
                 assert.strictEqual(JSON.stringify(prepared).includes(absoluteAppHostPath), false);
-                assert.strictEqual(result.outcome, 'started');
-                assert.strictEqual(resourceDebugger.calls.length, 1);
+                assert.strictEqual(result.outcome, 'failed');
+                assert.strictEqual(resourceDebugger.calls.length, 0);
             }
 
             const { service } = createService();
@@ -462,7 +501,7 @@ suite('Aspire resource debug language model tool', () => {
             assert.strictEqual(JSON.stringify(prepared).includes('injected'), false);
         });
 
-        test('allows an invocation to resolve after preparation fails', async () => {
+        test('rejects a newly resolvable target that was not confirmed', async () => {
             const resolver = new FakeTargetResolver();
             resolver.errors = [new Error('initial AppHost discovery failure'), undefined];
             const { service, resourceDebugger } = createService(resolver);
@@ -481,8 +520,8 @@ suite('Aspire resource debug language model tool', () => {
                 message: 'Attach the debugger to the requested Aspire resource?',
             });
             assert.strictEqual(prepared.invocationMessage, 'Attaching debugger to the requested Aspire resource...');
-            assert.strictEqual(result.outcome, 'started');
-            assert.strictEqual(resourceDebugger.calls.length, 1);
+            assert.strictEqual(result.outcome, 'failed');
+            assert.strictEqual(resourceDebugger.calls.length, 0);
         });
 
         test('escapes confirmed resource and AppHost identities with the shared Markdown helper', async () => {
@@ -490,6 +529,7 @@ suite('Aspire resource debug language model tool', () => {
             resolver.results = [{
                 resolved: true,
                 target: {
+                    ...bindCurrentAppHostTarget(absoluteAppHostPath),
                     absolutePath: absoluteAppHostPath,
                     relativePath: 'AppHost/[unsafe]*.csproj',
                     displayPath: 'AppHost/[unsafe]*.csproj',
@@ -507,12 +547,13 @@ suite('Aspire resource debug language model tool', () => {
                 'Attach the debugger to resource api\\_\\[unsafe\\]\\* from Aspire AppHost AppHost/\\[unsafe\\]\\*.csproj?');
         });
 
-        test('re-resolves the AppHost immediately after confirmation', async () => {
+        test('rejects an AppHost identity that changes after confirmation', async () => {
             const resolver = new FakeTargetResolver();
             resolver.results = [
                 {
                     resolved: true,
                     target: {
+                        ...bindCurrentAppHostTarget('/private/workspace/first/AppHost.csproj'),
                         absolutePath: '/private/workspace/first/AppHost.csproj',
                         relativePath: 'first/AppHost.csproj',
                         displayPath: 'first/AppHost.csproj',
@@ -521,6 +562,7 @@ suite('Aspire resource debug language model tool', () => {
                 {
                     resolved: true,
                     target: {
+                        ...bindCurrentAppHostTarget('/private/workspace/second/AppHost.csproj'),
                         absolutePath: '/private/workspace/second/AppHost.csproj',
                         relativePath: 'second/AppHost.csproj',
                         displayPath: 'second/AppHost.csproj',
@@ -537,8 +579,126 @@ suite('Aspire resource debug language model tool', () => {
                 new vscode.CancellationTokenSource().token));
 
             assert.strictEqual(prepared.confirmationMessages?.message, 'Attach the debugger to resource api from Aspire AppHost first/AppHost.csproj?');
-            assert.strictEqual(result.appHost, 'second/AppHost.csproj');
-            assert.strictEqual(resourceDebugger.calls[0].appHost.absolutePath, '/private/workspace/second/AppHost.csproj');
+            assert.strictEqual(result.outcome, 'failed');
+            assert.strictEqual(result.appHost, '');
+            assert.strictEqual(resourceDebugger.calls.length, 0);
+        });
+
+        test('consumes a successful preparation once and refuses unconfirmed replay', async () => {
+            const { service, resourceDebugger } = createService();
+            const token = new vscode.CancellationTokenSource().token;
+            await service.prepare(createInput(), token);
+            assert.strictEqual((await service.debug(createInput(), token)).outcome, 'started');
+            assert.strictEqual((await service.debug(createInput(), token)).outcome, 'failed');
+            assert.strictEqual(resourceDebugger.calls.length, 1);
+        });
+
+        test('refuses a real AppHost junction retargeted after language model confirmation', async () => {
+            const fixture = createAppHostAliasFixture();
+            sinon.stub(vscode.workspace, 'workspaceFolders').value([createWorkspaceFolder(fixture.root, 'workspace', 0)]);
+            const discovery = new FakeDiscoveryService();
+            addCandidate(discovery, fixture.root, fixture.selector);
+            const resourceDebugger = new FakeResourceDebugger();
+            const service = new AspireResourceDebugToolService({
+                targetResolver: new AppHostTargetResolverService(new SharedAppHostTargetResolver(discovery)),
+                resourceDebugger,
+            });
+            const tool = new AspireResourceDebugLanguageModelTool(service);
+            const token = new vscode.CancellationTokenSource().token;
+            const input: AspireResourceDebugToolInput = { appHostPath: 'Alias/AppHost.csproj', resourceName: 'api' };
+            try {
+                const prepared = await tool.prepareInvocation({ input }, token);
+                assert.strictEqual(prepared.confirmationMessages?.message,
+                    'Attach the debugger to resource api from Aspire AppHost Alias/AppHost.csproj?');
+                fixture.retarget();
+                const result = readToolResultPayload(await tool.invoke({ input, toolInvocationToken: undefined }, token));
+
+                assert.strictEqual(result.outcome, 'failed');
+                assert.strictEqual(result.appHost, '');
+                assert.strictEqual(resourceDebugger.calls.length, 0);
+            }
+            finally {
+                service.dispose();
+                fixture.dispose();
+            }
+        });
+
+        test('allows identical concurrent confirmed invocations without replaying abandoned preparations', async () => {
+            const { service, resourceDebugger } = createService();
+            const token = new vscode.CancellationTokenSource().token;
+            let release: (() => void) | undefined;
+            let started: (() => void) | undefined;
+            const pending = new Promise<void>(resolve => { release = resolve; });
+            const firstStarted = new Promise<void>(resolve => { started = resolve; });
+            resourceDebugger.onDebug = async () => {
+                if (resourceDebugger.calls.length === 1) {
+                    started!();
+                    await pending;
+                }
+            };
+            try {
+                await service.prepare(createInput(), token);
+                await service.prepare(createInput(), token);
+                await service.prepare(createInput(), token);
+                await service.prepare(createInput(), token);
+                const first = service.debug(createInput(), token);
+                await firstStarted;
+                const second = service.debug(createInput(), token);
+                assert.strictEqual((await second).outcome, 'started');
+                assert.strictEqual((await service.debug(createInput(), token)).outcome, 'started');
+                release!();
+                assert.strictEqual((await first).outcome, 'started');
+                assert.strictEqual((await service.debug(createInput(), token)).outcome, 'failed');
+                assert.strictEqual(resourceDebugger.calls.length, 3);
+            }
+            finally {
+                release!();
+                service.dispose();
+            }
+        });
+
+        test('bounds preparations and expires them against monotonic time', async () => {
+            const clock = sinon.useFakeTimers({ toFake: ['performance', 'Date'] });
+            const { service, resourceDebugger } = createService();
+            const token = new vscode.CancellationTokenSource().token;
+            try {
+                for (let index = 0; index <= 32; index++) {
+                    await service.prepare(createInput({ resourceName: `api-${index}` }), token);
+                }
+                assert.strictEqual((await service.debug(createInput({ resourceName: 'api-0' }), token)).outcome, 'failed');
+                assert.strictEqual((await service.debug(createInput({ resourceName: 'api-32' }), token)).outcome, 'started');
+                await service.prepare(createInput(), token);
+                clock.setSystemTime(Date.now() + 24 * 60 * 60 * 1000);
+                clock.tick(5 * 60 * 1000 - 1);
+                assert.strictEqual((await service.debug(createInput(), token)).outcome, 'started');
+                await service.prepare(createInput(), token);
+                clock.setSystemTime(Date.now() - 48 * 60 * 60 * 1000);
+                clock.tick(5 * 60 * 1000);
+                assert.strictEqual((await service.debug(createInput(), token)).outcome, 'failed');
+                assert.strictEqual(resourceDebugger.calls.length, 2);
+            }
+            finally {
+                clock.restore();
+            }
+        });
+
+        test('refuses conflicting preparations for an identical selector', async () => {
+            const resolver = new FakeTargetResolver();
+            const first = resolver.results[0];
+            assert.ok(first.resolved);
+            resolver.results = [first, {
+                resolved: true,
+                target: {
+                    ...first.target,
+                    ...bindCurrentAppHostTarget('/private/workspace/other/AppHost.csproj'),
+                },
+            }];
+            const { service, resourceDebugger } = createService(resolver);
+            const token = new vscode.CancellationTokenSource().token;
+            await service.prepare(createInput(), token);
+            await service.prepare(createInput(), token);
+            assert.strictEqual((await service.debug(createInput(), token)).outcome, 'failed');
+            assert.strictEqual(resourceDebugger.calls.length, 0);
         });
     });
 
@@ -558,6 +718,7 @@ suite('Aspire resource debug language model tool', () => {
 
             const duringDebug = createService();
             const debugToken = new vscode.CancellationTokenSource();
+            await duringDebug.service.prepare(createInput(), debugToken.token);
             duringDebug.resourceDebugger.onDebug = () => debugToken.cancel();
             assert.strictEqual((await duringDebug.service.debug(createInput(), debugToken.token)).outcome, 'cancelled');
         });
@@ -575,6 +736,9 @@ suite('Aspire resource debug language model tool', () => {
 
         test('cancels a resolver operation owned by the service when it is disposed', async () => {
             const resolver = new FakeTargetResolver();
+            const { service, resourceDebugger } = createService(resolver);
+            const callerCancellation = new vscode.CancellationTokenSource();
+            await service.prepare(createInput(), callerCancellation.token);
             let markResolutionStarted: (() => void) | undefined;
             const resolutionStarted = new Promise<void>(resolve => {
                 markResolutionStarted = resolve;
@@ -583,8 +747,6 @@ suite('Aspire resource debug language model tool', () => {
                 markResolutionStarted!();
                 token.onCancellationRequested(resolve);
             });
-            const { service, resourceDebugger } = createService(resolver);
-            const callerCancellation = new vscode.CancellationTokenSource();
 
             try {
                 const operation = service.debug(createInput(), callerCancellation.token);
@@ -593,8 +755,8 @@ suite('Aspire resource debug language model tool', () => {
 
                 assert.strictEqual((await operation).outcome, 'cancelled');
                 assert.strictEqual(resourceDebugger.calls.length, 0);
-                assert.notStrictEqual(resolver.tokens[0], callerCancellation.token);
-                assert.strictEqual(resolver.tokens[0].isCancellationRequested, true);
+                assert.notStrictEqual(resolver.tokens[1], callerCancellation.token);
+                assert.strictEqual(resolver.tokens[1].isCancellationRequested, true);
             }
             finally {
                 callerCancellation.dispose();
@@ -614,6 +776,7 @@ suite('Aspire resource debug language model tool', () => {
             const callerCancellation = new vscode.CancellationTokenSource();
 
             try {
+                await service.prepare(createInput(), callerCancellation.token);
                 const operation = service.debug(createInput(), callerCancellation.token);
                 await debugStarted;
                 service.dispose();
@@ -650,7 +813,9 @@ suite('Aspire resource debug language model tool', () => {
                 const { service, resourceDebugger } = createService();
                 resourceDebugger.result = testCase.result;
 
-                const result = await service.debug(createInput(), new vscode.CancellationTokenSource().token);
+                const token = new vscode.CancellationTokenSource().token;
+                await service.prepare(createInput(), token);
+                const result = await service.debug(createInput(), token);
 
                 assert.deepStrictEqual(
                     {
@@ -676,7 +841,9 @@ suite('Aspire resource debug language model tool', () => {
                     debuggerExtensions: [{ id, label, installMessage: 'token=super-secret /private/debug.json --args bad' }],
                 };
 
-                const result = await service.debug(createInput(), new vscode.CancellationTokenSource().token);
+                const token = new vscode.CancellationTokenSource().token;
+                await service.prepare(createInput(), token);
+                const result = await service.debug(createInput(), token);
 
                 assert.deepStrictEqual(result.debuggerExtensions, [{ id, label }]);
                 assert.strictEqual(result.provider, undefined);
@@ -690,6 +857,9 @@ suite('Aspire resource debug language model tool', () => {
             resourceDebugger.error = new Error('token=super-secret pid=42 /private/debug.json --configuration {"process":"dotnet"} https://private.example args=unsafe');
             const tool = new AspireResourceDebugLanguageModelTool(service);
 
+            await tool.prepareInvocation(
+                { input: createInput() as unknown as AspireResourceDebugToolInput },
+                new vscode.CancellationTokenSource().token);
             const languageModelResult = await tool.invoke(
                 { input: createInput() as unknown as AspireResourceDebugToolInput, toolInvocationToken: undefined },
                 new vscode.CancellationTokenSource().token);

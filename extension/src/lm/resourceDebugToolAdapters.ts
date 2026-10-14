@@ -28,8 +28,8 @@ export class AspireResourceDebugLanguageModelTool implements vscode.LanguageMode
         const preparation = await this._service.prepare(options.input, token);
         if (!preparation.canDebug) {
             // Do not let a transient discovery failure bypass VS Code's confirmation step.
-            // The generic message contains no model input or unresolved target; invocation
-            // resolves again and still applies trust and validation checks.
+            // The generic message contains no model input or unresolved target, and cannot
+            // authorize a newly resolved AppHost without a fresh resolved confirmation.
             return {
                 invocationMessage: resourceDebugToolUnavailableInvocationMessage,
                 confirmationMessages: {

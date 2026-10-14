@@ -208,7 +208,7 @@ public class ResourceSnapshotBuilderTests
             [project.Name] = project
         }).ToSnapshot(executable, previousSnapshot);
 
-        Assert.Equal("run", GetProperty(snapshot, KnownProperties.Project.LaunchCommand).Value);
+        Assert.Null(GetProperty(snapshot, KnownProperties.Project.LaunchCommand).Value);
         Assert.Empty(snapshot.Properties.Where(property => property.Name == KnownProperties.Project.Configuration));
         Assert.Empty(snapshot.Properties.Where(property => property.Name == KnownProperties.Project.TargetFramework));
     }
@@ -252,6 +252,43 @@ public class ResourceSnapshotBuilderTests
         }).ToSnapshot(executable, previousSnapshot);
 
         Assert.Empty(snapshot.Properties.Where(property => property.Name == KnownProperties.Project.Configuration));
+        Assert.Null(GetProperty(snapshot, KnownProperties.Project.LaunchCommand).Value);
+    }
+
+    [Theory]
+    [InlineData("--runtime", "win-x64")]
+    [InlineData("--runtime=win-x64")]
+    [InlineData("-r", "linux-arm64")]
+    [InlineData("--arch=arm64")]
+    [InlineData("--os", "linux")]
+    [InlineData("-p:AssemblyName=Custom")]
+    [InlineData("/property:OutputPath=custom")]
+    [InlineData("--property:RuntimeIdentifier=win-x64")]
+    [InlineData("--property", "TargetFramework=net10.0")]
+    public void ProjectSnapshotFailsClosedForUnreportedTargetInputs(params string[] launchArguments)
+    {
+        var project = new ProjectResource("project");
+        project.Annotations.Add(new TestProjectMetadata());
+        var executable = Executable.Create("project", "dotnet");
+        executable.Annotate(DcpCustomResource.ResourceNameAnnotation, project.Name);
+        executable.Status = new ExecutableStatus
+        {
+            EffectiveArgs = ["run", "--configuration", "Release", "--framework", "net10.0", .. launchArguments],
+            ProcessId = 1234
+        };
+        var snapshot = CreateSnapshotBuilder(new Dictionary<string, IResource>
+        {
+            [project.Name] = project
+        }).ToSnapshot(executable, CreatePreviousSnapshot());
+
+        Assert.Collection(
+            snapshot.Properties.Where(property => property.Name is KnownProperties.Project.LaunchCommand
+                or KnownProperties.Project.Configuration or KnownProperties.Project.TargetFramework),
+            property =>
+            {
+                Assert.Equal(KnownProperties.Project.LaunchCommand, property.Name);
+                Assert.Null(property.Value);
+            });
     }
 
     [Theory]

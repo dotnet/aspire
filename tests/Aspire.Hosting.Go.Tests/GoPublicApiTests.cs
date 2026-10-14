@@ -98,14 +98,14 @@ public class GoPublicApiTests
     }
 
     [Fact]
-    public async Task AddGoAppDefaultArgsAreRunDot()
+    public async Task AddGoAppDefaultArgsRetainDebugInformation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var app = builder.AddGoApp("api", builder.AppHostDirectory);
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "."], args);
+        Assert.Equal(["run", "-ldflags=-w=false", "."], args);
     }
 
     // ---- packagePath --------------------------------------------------------
@@ -118,7 +118,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "."], args);
+        Assert.Equal(["run", "-ldflags=-w=false", "."], args);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "./cmd/server"], args);
+        Assert.Equal(["run", "-ldflags=-w=false", "./cmd/server"], args);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "-race", "-tags=netgo", "./cmd/server"], args);
+        Assert.Equal(["run", "-race", "-tags=netgo", "-ldflags=-w=false", "./cmd/server"], args);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "-tags=netgo,osusergo", "."], args);
+        Assert.Equal(["run", "-tags=netgo,osusergo", "-ldflags=-w=false", "."], args);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "-gcflags=all=-N -l", "."], args);
+        Assert.Equal(["run", "-ldflags=-w=false", "-gcflags=all=-N -l", "."], args);
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", "-race", "."], args);
+        Assert.Equal(["run", "-race", "-ldflags=-w=false", "."], args);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public class GoPublicApiTests
 
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
-        Assert.Equal(["run", ".", "--port", "9090"], args);
+        Assert.Equal(["run", "-ldflags=-w=false", ".", "--port", "9090"], args);
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class GoPublicApiTests
         var args = await ArgumentEvaluator.GetArgumentListAsync(app.Resource);
 
         // Last call wins
-        Assert.Equal(["run", ".", "--port", "9090"], args);
+        Assert.Equal(["run", "-ldflags=-w=false", ".", "--port", "9090"], args);
     }
 
     // ---- WithModTidy --------------------------------------------------------

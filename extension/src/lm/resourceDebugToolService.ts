@@ -5,6 +5,9 @@ import {
     type ResourceDebugResult,
 } from '../debugger/resourceDebugContracts';
 import { isCommandCancellation } from '../utils/telemetry';
+import type { AppHostTarget } from './appHostTargetResolverContracts';
+import { PreparedToolActions } from './preparedToolActions';
+import { extensionLogOutputChannel } from '../utils/logging';
 import {
     aspireResourceDebugToolName,
     type AspireResourceDebugStrategy,
@@ -34,6 +37,8 @@ interface ParsedInput {
  */
 export class AspireResourceDebugToolService implements vscode.Disposable {
     private readonly _operationCancellationSources = new Set<vscode.CancellationTokenSource>();
+    private readonly _preparedTargets = new PreparedToolActions<AppHostTarget['identity']>(32,
+        (first, second) => first === second);
     private _disposed = false;
 
     constructor(private readonly _dependencies: AspireResourceDebugToolDependencies) {
@@ -45,24 +50,47 @@ export class AspireResourceDebugToolService implements vscode.Disposable {
         }
 
         this._disposed = true;
+        this._preparedTargets.clear();
         for (const cancellationSource of this._operationCancellationSources) {
             cancellationSource.cancel();
         }
     }
 
     /**
-     * Validates and resolves a confirmation target without starting a debugger. Invocation
-     * calls this again rather than retaining the absolute path from confirmation.
+     * Captures the confirmed identity without starting a debugger. Invocation resolves again
+     * and must still name that identity before it can attach.
      */
     async prepare(input: unknown, token: vscode.CancellationToken): Promise<AspireResourceDebugToolPreparation> {
-        return await this._runOperation(token, operationToken => this._prepare(input, operationToken));
+        const parsed = parseInput(input);
+        return await this._runOperation(token, async operationToken => {
+            const preparation = await this._prepare(parsed, operationToken);
+            if (parsed) {
+                const inputKey = getInputKey(parsed);
+                if (preparation.canDebug) {
+                    this._preparedTargets.remember(inputKey, preparation.target.identity);
+                } else {
+                    this._preparedTargets.remove(inputKey);
+                }
+            }
+            return preparation;
+        });
     }
 
     async debug(input: unknown, token: vscode.CancellationToken): Promise<AspireResourceDebugToolResult> {
-        return await this._runOperation(token, async operationToken => {
-            const preparation = await this._prepare(input, operationToken);
+        const parsed = parseInput(input);
+        const inputKey = parsed ? getInputKey(parsed) : undefined;
+        const preparedIdentity = inputKey !== undefined
+            ? this._preparedTargets.consume(inputKey)
+            : undefined;
+        const operation = () => this._runOperation(token, async operationToken => {
+            const preparation = await this._prepare(parsed, operationToken);
             if (!preparation.canDebug) {
                 return preparation.result;
+            }
+
+            if (preparedIdentity !== preparation.target.identity) {
+                extensionLogOutputChannel.warn('Aspire resource debug tool refused an invocation that did not match its prepared AppHost identity.');
+                return this.createResult('failed', '', preparation.resourceName, preparation.requestedStrategy);
             }
 
             if (operationToken.isCancellationRequested) {
@@ -91,10 +119,12 @@ export class AspireResourceDebugToolService implements vscode.Disposable {
                     preparation.requestedStrategy);
             }
         });
+        return preparedIdentity !== undefined && inputKey !== undefined
+            ? await this._preparedTargets.run(inputKey, operation)
+            : await operation();
     }
 
-    private async _prepare(input: unknown, token: vscode.CancellationToken): Promise<AspireResourceDebugToolPreparation> {
-        const parsed = parseInput(input);
+    private async _prepare(parsed: ParsedInput | undefined, token: vscode.CancellationToken): Promise<AspireResourceDebugToolPreparation> {
         if (!parsed) {
             return this.reject('invalidInput');
         }
@@ -187,6 +217,10 @@ export class AspireResourceDebugToolService implements vscode.Disposable {
             controller: 'none',
         };
     }
+}
+
+function getInputKey(input: ParsedInput): string {
+    return JSON.stringify([input.appHostPath, input.resourceName, input.requestedStrategy]);
 }
 
 function parseInput(value: unknown): ParsedInput | undefined {

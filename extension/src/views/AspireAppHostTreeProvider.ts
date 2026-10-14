@@ -30,6 +30,7 @@ import {
     dashboardUrlNotFound,
     dashboardUrlUnsupported,
     errorMessage,
+    openExtensionsLabel,
 } from '../loc/strings';
 import { stripResourceSuffix } from '../utils/urlSchemes';
 import {
@@ -48,6 +49,7 @@ import { createResourceCommandArgumentLoader } from './ResourceCommandArgumentsL
 import { executeResourceCommand as executeResourceCommandWithUi, getErrorMessage, type ResourceCommandExecutionOutcome } from './resourceCommandExecution';
 import { AppHostLaunchService } from '../services/AppHostLaunchService';
 import { isSameFileSystemEntry } from '../utils/appHostDiscovery';
+import { bindCurrentAppHostTarget } from '../utils/appHostIdentity';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { pipelineInteractionCapability, pipelineStepListJsonCapability } from '../types/configInfo';
 import { isAppHostSourceFile, isProjectFile } from '../utils/paths/comparison';
@@ -1547,6 +1549,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
             source: 'tree',
             strategy: 'attach',
             appHost: {
+                ...bindCurrentAppHostTarget(ownerAppHostPath),
                 absolutePath: ownerAppHostPath,
                 displayPath: vscode.workspace.asRelativePath(ownerAppHostPath),
                 appHostPid: element.appHostPid ?? undefined,
@@ -1569,8 +1572,14 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
                 const installMessage = result.debuggerExtensions.length === 1
                     ? result.debuggerExtensions[0].installMessage
                     : undefined;
-                vscode.window.showWarningMessage(installMessage ?? attachDebuggerExtensionsRequired(
-                    result.debuggerExtensions.map(extension => extension.label).join(', ')));
+                const recovery = await vscode.window.showWarningMessage(
+                    installMessage ?? attachDebuggerExtensionsRequired(
+                        result.debuggerExtensions.map(extension => extension.label).join(', ')),
+                    openExtensionsLabel);
+                if (recovery === openExtensionsLabel) {
+                    await vscode.commands.executeCommand('workbench.extensions.search',
+                        result.debuggerExtensions.map(extension => `@id:${extension.id}`).join(' '));
+                }
                 return { success: false, errorKind: 'ResourceNotAttachable' };
             case 'resourceNotRunning':
             case 'unsupportedResource':

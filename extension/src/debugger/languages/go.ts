@@ -13,8 +13,8 @@ import {
 const executablePidPropertyName = 'executable.pid';
 const executablePathPropertyName = 'executable.path';
 const resourceLaunchConfigurationTypePropertyName = 'resource.launchConfigurationType';
-const goBuildExecutablePattern = /(?:^|[\\/])go-build[^\\/\s]*(?:[\\/][^\\/\s]+)*[\\/]exe[\\/][^\\/\s]+(?:\.exe)?$/i;
-const cachedGoRunExecutablePattern = /(?:^|[\\/])[0-9a-f]{2}[\\/][0-9a-f]{16,}-d[\\/][^\\/\s]+(?:\.exe)?$/i;
+const goBuildExecutablePattern = /(?:^|[\\/])go-build[^\\/\s]*(?:[\\/][^\\/\s]+)*[\\/]exe[\\/][^\\/]+$/i;
+const cachedGoRunExecutablePattern = /(?:^|[\\/])[0-9a-f]{2}[\\/][0-9a-f]{16,}-d[\\/][^\\/]+$/i;
 
 interface GoAttachDebuggerResourceInfo {
     readonly parentPid: number;

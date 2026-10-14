@@ -179,6 +179,26 @@ suite('Go process discovery', () => {
         assert.strictEqual(await resolver.resolveApplicationPid(10), 42);
     });
 
+    for (const executable of [
+        '/tmp/go-build123/b001/exe/my app',
+        'C:\\Temp\\go-build123\\b001\\exe\\my app.exe',
+        '/cache/go-build/ab/abcdef0123456789abcdef0123456789-d/my app',
+        'C:\\Cache\\go-build\\ab\\abcdef0123456789abcdef0123456789-d\\my app.exe',
+    ]) {
+        test(`resolves a Go executable with spaces: ${executable}`, async () => {
+            const processes = [
+                process(10, 1, '/usr/local/go/bin/go', 'go run "my app.go"'),
+                process(42, 10, executable),
+            ];
+            const resolver = createGoRunApplicationProcessResolver(
+                new SequenceProcessQuery([processes, processes]),
+                new TestClock(),
+                { timeoutMs: 100, retryDelayMs: 10 });
+
+            assert.strictEqual(await resolver.resolveApplicationPid(10), 42);
+        });
+    }
+
     test('does not trust a Go launcher command when executable identity differs', () => {
         const identity = createGoRunProcessIdentity();
 

@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import type { AppHostDisplayInfo, ResourceJson } from '../data/AppHostDataRepository';
@@ -10,9 +11,12 @@ import { ResourceDebugSessionEvents, ResourceDebugSessionRegistry, ResourceDebug
 import { ResourceAttachConfigurationError, type ResourceAttachProvider, type ResourceDebugAppHostTarget, type ResourceDebugRequest, type ResourceDebugResourceSnapshot, type ResourceDebugResult } from '../debugger/resourceDebugContracts';
 import type { AspireExtendedDebugConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
+import { bindCurrentAppHostTarget } from '../utils/appHostIdentity';
+import { createAppHostAliasFixture } from './helpers/editorAssistanceTestSupport';
+import { ScriptedRealpath } from './helpers/scriptedRealpath';
 
 const target: ResourceDebugAppHostTarget = {
-    absolutePath: '/repo/AppHost.csproj',
+    absolutePath: path.resolve('/repo/AppHost.csproj'),
     displayPath: 'AppHost.csproj',
 };
 const resolvedTarget: ResourceDebugAppHostTarget = {
@@ -64,13 +68,14 @@ function createAppHost(overrides: Partial<AppHostDisplayInfo> = {}): AppHostDisp
     };
 }
 
-function createRequest(overrides: Partial<ResourceDebugRequest> = {}): ResourceDebugRequest {
+function createRequest(overrides: Partial<Omit<ResourceDebugRequest, 'appHost'>> & { appHost?: ResourceDebugAppHostTarget } = {}): ResourceDebugRequest {
+    const appHost = overrides.appHost ?? target;
     return {
         source: 'tree',
         strategy: 'attach',
-        appHost: target,
         resourceName: 'api',
         ...overrides,
+        appHost: { ...bindCurrentAppHostTarget(appHost.absolutePath), ...appHost },
     };
 }
 
@@ -198,7 +203,7 @@ function createService(options: {
         fetchRunningAppHostsOnce: async () => options.appHosts ?? [createAppHost()],
         fetchAppHostResourcesOnce: async (target, _cancellationToken, appHostPid) =>
             (options.appHosts ?? [createAppHost()]).find(appHost =>
-                appHost.appHostPath === target.operationPath &&
+                path.resolve(appHost.appHostPath) === path.resolve(target.operationPath) &&
                 (appHostPid === undefined || appHost.appHostPid === appHostPid))?.resources ?? [],
     };
     const events = new TestDebugSessionEvents();
@@ -471,7 +476,106 @@ suite('Resource debug service', () => {
         sessions.dispose();
     });
 
+    for (const phase of ['discovery', 'snapshot', 'configuration'] as const) {
+        test(`refuses a captured AppHost alias retargeted during ${phase}`, async () => {
+            const fixture = createAppHostAliasFixture();
+            const { firstAppHost, secondAppHost, selector } = fixture;
+            const appHost = { ...bindCurrentAppHostTarget(selector), absolutePath: selector, displayPath: 'Alias/AppHost.csproj' };
+            const started = sinon.stub().resolves(true);
+            const { service, sessions, repository } = createService({
+                appHosts: [createAppHost({ appHostPath: firstAppHost })],
+                startDebugging: started,
+                provider: createProvider({
+                    createDebugConfiguration: async () => {
+                        if (phase === 'configuration') {
+                            fixture.retarget();
+                        }
+                        return { type: 'coreclr', request: 'attach', name: 'Attach API', processId: 4321 };
+                    },
+                }),
+            });
+            const readSnapshot = sinon.spy(repository, 'fetchAppHostResourcesOnce');
+            if (phase === 'discovery') {
+                repository.fetchRunningAppHostsOnce = async () => {
+                    fixture.retarget();
+                    return [createAppHost({ appHostPath: secondAppHost })];
+                };
+            } else if (phase === 'snapshot') {
+                repository.fetchAppHostResourcesOnce = async operation => {
+                    assert.strictEqual(operation.operationPath, appHost.canonicalPath);
+                    assert.strictEqual(operation.scopePath, selector);
+                    fixture.retarget();
+                    return [createResource()];
+                };
+            }
+            try {
+                assert.deepStrictEqual(await service.debug(createRequest({ appHost })), { outcome: 'appHostNotFound' });
+                assert.strictEqual(started.callCount, 0);
+                if (phase === 'discovery') {
+                    assert.strictEqual(readSnapshot.callCount, 0);
+                }
+            }
+            finally {
+                sessions.dispose();
+                fixture.dispose();
+            }
+        });
+    }
+
+    test('inherits safe project-family overrides before external-build overrides', async () => {
+        let attached: vscode.DebugConfiguration | undefined;
+        const { service, sessions } = createService({
+            appHosts: [createAppHost({ resources: [createResource({
+                properties: { 'resource.launchConfigurationType': 'project-with-external-build.v1' },
+            })] })],
+            provider: createProvider({
+                createDebugConfiguration: async () => ({
+                    type: 'coreclr', request: 'attach', name: 'Attach API', processId: 4321,
+                }),
+            }),
+            getDebugSessionConfiguration: () => ({
+                type: 'aspire', request: 'launch', name: 'AppHost', program: target.absolutePath,
+                debuggers: {
+                    project: {
+                        justMyCode: false,
+                        sourceFileMap: { '/build': '/repo' },
+                        processId: 9999,
+                        pipeTransport: { pipeProgram: 'ssh' },
+                    },
+                    'project-with-external-build.v1': {
+                        justMyCode: true,
+                        requireExactSource: false,
+                        request: 'launch',
+                        debugServer: 4711,
+                    },
+                },
+            }),
+            startDebugging: async (_folder, configuration) => {
+                attached = configuration;
+                return true;
+            },
+        });
+        try {
+            assert.deepStrictEqual(await service.debug(createRequest()), { outcome: 'started', providerId: 'dotnet' });
+            assert.ok(attached);
+            assert.strictEqual(attached.justMyCode, true);
+            assert.strictEqual(attached.requireExactSource, false);
+            assert.deepStrictEqual(attached.sourceFileMap, { '/build': '/repo' });
+            assert.strictEqual(attached.processId, 4321);
+            assert.strictEqual(attached.request, 'attach');
+            assert.strictEqual(attached.pipeTransport, undefined);
+            assert.strictEqual(attached.debugServer, undefined);
+        }
+        finally {
+            sessions.dispose();
+        }
+    });
+
     test('resolves the running AppHost before fetching only its resource snapshot', async () => {
+        const selector = path.resolve('/repo/alias/AppHost.csproj');
+        const canonicalPath = path.resolve('/repo/resolved/AppHost.csproj');
+        const realpath = new ScriptedRealpath();
+        realpath.script(selector, { results: [], thereafter: canonicalPath });
         const cancellation = new vscode.CancellationTokenSource();
         const fetchedTargets: Array<{ operationPath: string; scopePath: string }> = [];
         const receivedTokens: Array<vscode.CancellationToken | undefined> = [];
@@ -480,7 +584,7 @@ suite('Resource debug service', () => {
                 assert.strictEqual(token, cancellation.token);
                 return [
                     createAppHost({ appHostPath: '/repo/other/AppHost.csproj', resources: null }),
-                    createAppHost({ appHostPath: '/repo/resolved/AppHost.csproj', resources: null }),
+                    createAppHost({ appHostPath: canonicalPath, resources: null }),
                 ];
             },
             fetchAppHostResourcesOnce: async (appHost, token) => {
@@ -496,28 +600,25 @@ suite('Resource debug service', () => {
             attachProviders: new ResourceAttachProviderRegistry([createProvider()], () => true),
             sessionRegistry: sessions,
             startDebugging: async () => true,
-            compareAppHostIdentity: (requestedPath, appHostPath) =>
-                requestedPath === '/repo/alias/AppHost.csproj' && appHostPath === '/repo/resolved/AppHost.csproj'
-                    ? 'same'
-                    : 'different',
         });
 
         try {
             const result = await service.debug(createRequest({
-                appHost: { absolutePath: '/repo/alias/AppHost.csproj', displayPath: 'alias/AppHost.csproj' },
+                appHost: { absolutePath: selector, displayPath: 'alias/AppHost.csproj' },
                 cancellationToken: cancellation.token,
             }));
 
             assert.deepStrictEqual(result, { outcome: 'started', providerId: 'dotnet' });
             assert.deepStrictEqual(fetchedTargets, [{
-                operationPath: '/repo/resolved/AppHost.csproj',
-                scopePath: '/repo/alias/AppHost.csproj',
+                operationPath: canonicalPath,
+                scopePath: selector,
             }]);
             assert.deepStrictEqual(receivedTokens, [cancellation.token]);
         }
         finally {
             cancellation.dispose();
             sessions.dispose();
+            realpath.restore();
         }
     });
 
@@ -1188,6 +1289,12 @@ suite('Resource debug service', () => {
     });
 
     test('serializes aliases that resolve to the same running AppHost', async () => {
+        const canonicalPath = path.resolve('/repo/resolved/AppHost.csproj');
+        const firstAlias = path.resolve('/repo/alias-one/AppHost.csproj');
+        const secondAlias = path.resolve('/repo/alias-two/AppHost.csproj');
+        const realpath = new ScriptedRealpath();
+        realpath.script(firstAlias, { results: [], thereafter: canonicalPath });
+        realpath.script(secondAlias, { results: [], thereafter: canonicalPath });
         let completeStart: ((value: boolean) => void) | undefined;
         let signalStart: (() => void) | undefined;
         const startRequest = new Promise<boolean>(resolve => {
@@ -1202,24 +1309,30 @@ suite('Resource debug service', () => {
         });
         const { service, sessions } = createService({
             startDebugging,
-            compareAppHostIdentity: () => 'same',
-            appHosts: [createAppHost({ appHostPath: '/repo/resolved/AppHost.csproj' })],
+            appHosts: [createAppHost({ appHostPath: canonicalPath })],
         });
         const first = service.debug(createRequest({
-            appHost: { absolutePath: '/repo/alias-one/AppHost.csproj', displayPath: 'alias-one/AppHost.csproj' },
+            appHost: { absolutePath: firstAlias, displayPath: 'alias-one/AppHost.csproj' },
         }));
         const second = service.debug(createRequest({
-            appHost: { absolutePath: '/repo/alias-two/AppHost.csproj', displayPath: 'alias-two/AppHost.csproj' },
+            appHost: { absolutePath: secondAlias, displayPath: 'alias-two/AppHost.csproj' },
         }));
 
-        await startCalled;
-        assert.strictEqual(startDebugging.callCount, 1);
+        try {
+            await startCalled;
+            assert.strictEqual(startDebugging.callCount, 1);
 
-        completeStart!(true);
+            completeStart!(true);
 
-        assert.deepStrictEqual(await first, { outcome: 'started', providerId: 'dotnet' });
-        assert.deepStrictEqual(await second, { outcome: 'alreadyDebugging' });
-        sessions.dispose();
+            assert.deepStrictEqual(await first, { outcome: 'started', providerId: 'dotnet' });
+            assert.deepStrictEqual(await second, { outcome: 'alreadyDebugging' });
+        }
+        finally {
+            completeStart!(true);
+            await Promise.all([first, second]);
+            sessions.dispose();
+            realpath.restore();
+        }
     });
 
     test('returns a bounded failure when VS Code declines to start debugging', async () => {

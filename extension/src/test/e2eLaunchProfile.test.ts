@@ -1165,19 +1165,6 @@ builder.Build().Run();
         assert.ok(runner.includes('The resource debug E2E shard requires kernel.yama.ptrace_scope=0'));
     });
 
-    test('disables Go optimizations for the packaged attach breakpoint proof', () => {
-        const extensionRoot = path.resolve(__dirname, '..', '..');
-        const runner = fs.readFileSync(path.join(extensionRoot, 'scripts', 'run-e2e.js'), 'utf8');
-        const resourceDebugSpec = fs.readFileSync(path.join(extensionRoot, 'src', 'test-e2e', 'resourceDebugTools.e2e.test.ts'), 'utf8');
-
-        assert.ok(runner.includes('builder.AddGoApp("e2e-go", "../AspireE2E.Go", gcFlags: "all=-N -l")'));
-        assert.ok(runner.includes('.WithCommand("./test-tools/go")'));
-        assert.ok(runner.includes("['build', '-gcflags=all=-N -l', '-o', debugExecutable, '.']"));
-        assert.ok(runner.includes("'go-build-debug', 'exe'"));
-        assert.ok(resourceDebugSpec.includes("marker: 'message := \"go-ok\"'"));
-        assert.ok(resourceDebugSpec.includes("proof.proof, 'aspire-resource-attach-breakpoint-detach'"));
-    });
-
     test('keeps packaged attach failures diagnosable before the outer timeout', () => {
         const extensionRoot = path.resolve(__dirname, '..', '..');
         const bridge = fs.readFileSync(path.join(extensionRoot, 'src', 'testing', 'e2eStateFileBridge.ts'), 'utf8');

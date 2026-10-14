@@ -409,6 +409,7 @@ suite('Launched child process discovery', () => {
                 calls.push({ command, args });
                 if (command === 'lsof') {
                     const processId = Number(args[2]);
+                    assert.deepStrictEqual(args, ['-a', '-p', String(processId), '-d', 'txt', '-Ffn']);
                     const details = processDetails.get(processId);
                     if (!details) {
                         throw new Error(`Unexpected process ID: ${processId}`);
