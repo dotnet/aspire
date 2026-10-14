@@ -48,6 +48,10 @@ Source lives under `extension/src/`:
 
 Also: `package.json` declares commands, settings, and contribution points; `walkthrough/` holds the Get Started Markdown; `package.nls.json` (+ `package.nls.*.json`) hold localized `package.json` strings.
 
+## AppHost discovery
+
+Candidate discovery and default selection are separate. Successful `aspire ls` results are authoritative, including an empty result, for both buffered and streaming output. Configuration can select a returned candidate, but never manufactures one. The legacy `extension get-apphosts` adapter preserves the CLI's `selected_project_file`, including older results where that project is absent from the enumerated candidate list. If both CLI discovery paths fail, file discovery applies the same AppHost-project content check to scanned projects and configured .NET projects outside the workspace. File aliases use filesystem identity when available; case-only paths with distinct identities remain separate. Missing, unreadable, and non-AppHost files do not become buildable candidates.
+
 ## Building the full repository (extension + CLI)
 
 Run `build.ps1` (Windows) or `build.sh` (Mac/Linux) from the repository root to compile the CLI, install extension dependencies, and localize. Use this when debugging the extension and CLI together. See [docs/contributing.md](/docs/contributing.md) and [docs/machine-requirements.md](/docs/machine-requirements.md) for the .NET prerequisites.
