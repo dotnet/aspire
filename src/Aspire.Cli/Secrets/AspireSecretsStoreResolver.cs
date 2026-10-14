@@ -198,13 +198,7 @@ internal sealed class AspireSecretsStoreResolver(
             var sourceStore = new SecretsStore(sourceFile);
             var environment = Path.GetFileNameWithoutExtension(sourceFile);
             var destinationStore = new SecretsStore(GetSecretsFilePath(executionContext.HomeDirectory, userSecretsId, environment));
-            foreach (var (key, value) in sourceStore.AsEnumerable())
-            {
-                if (!destinationStore.ContainsKey(key))
-                {
-                    destinationStore.Set(key, value);
-                }
-            }
+            destinationStore.MergeFrom(sourceStore);
 
             // Save atomically before removing the source. A failure must abort resolution so
             // callers cannot delete values while a stale source still awaits migration.
@@ -234,10 +228,7 @@ internal sealed class AspireSecretsStoreResolver(
         }
 
         var aspireStore = new SecretsStore(aspireSecretsFilePath);
-        foreach (var (key, value) in legacyStore.AsEnumerable())
-        {
-            aspireStore.Set(key, value);
-        }
+        aspireStore.MergeFrom(legacyStore);
 
         aspireStore.Save();
     }

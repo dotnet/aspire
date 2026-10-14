@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Secrets;
@@ -340,6 +341,50 @@ public class SecretCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.Success, await command.Parse($"secret delete Parameters:key -e {alternateEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
         Assert.Equal(CliExitCodes.ConfigNotFound, await command.Parse($"secret get Parameters:key -e {originalEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+    }
+
+    [Theory]
+    [InlineData("set Parameters:new new-value", "Parameters:new", "new-value")]
+    [InlineData("set parameters:TARGET updated-value", "Parameters:Target", "updated-value")]
+    [InlineData("delete parameters:TARGET", "Parameters:Target", null)]
+    public async Task SecretEditsPreserveUnrelatedDeploymentStateTypes(string arguments, string key, string? expectedValue)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(appHostFile.FullName, "<Project />");
+        var path = AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, userSecretsId, "Production");
+        SecretsStore.SaveJson(path, JsonNode.Parse("""
+            {
+              "Resource": {
+                "Count": 42,
+                "Enabled": true,
+                "Ratio": 1.25,
+                "Missing": null,
+                "Text": "value"
+              },
+              "Parameters:Target": "original"
+            }
+            """)!.AsObject());
+        using var provider = CreateSecretTestServices(workspace, outputWriter, appHostFile, userSecretsId);
+        var command = provider.GetRequiredService<RootCommand>();
+
+        var exitCode = await command.Parse($"secret {arguments} -e Production --apphost \"{appHostFile.FullName}\"")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        var persisted = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+        Assert.Equal(42, persisted["Resource:Count"]!.GetValue<int>());
+        Assert.True(persisted["Resource:Enabled"]!.GetValue<bool>());
+        Assert.Equal(1.25, persisted["Resource:Ratio"]!.GetValue<double>());
+        Assert.True(persisted.ContainsKey("Resource:Missing"));
+        Assert.Null(persisted["Resource:Missing"]);
+        Assert.Equal("value", persisted["Resource:Text"]!.GetValue<string>());
+
+        var store = new SecretsStore(path);
+        Assert.Equal(expectedValue, store.Get(key));
+        Assert.Equal(expectedValue is not null, store.ContainsKey(key));
     }
 
     private ServiceProvider CreateSecretTestServices(

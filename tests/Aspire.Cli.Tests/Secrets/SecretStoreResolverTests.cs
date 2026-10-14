@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Secrets;
@@ -130,6 +131,53 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         results = await resolver.ResolveAllExistingAsync(appHostFile, project, CancellationToken.None).DefaultTimeout();
         Assert.Equal(0, Assert.Single(results).AspireStore.Count);
         Assert.Equal(originalProject, await File.ReadAllTextAsync(appHostFile.FullName));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_MigrationPreservesTypedValuesAndCanonicalNulls()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(appHostFile.FullName, $"<Project><PropertyGroup><UserSecretsId>{userSecretsId}</UserSecretsId></PropertyGroup></Project>");
+        var sourcePath = AspireSecretsStoreResolver.GetSecretsFilePath(
+            workspace.WorkspaceRoot, AspireSecretsPathHelper.ComputeSyntheticAppHostId(appHostFile.FullName), "Production");
+        var destinationPath = AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, userSecretsId, "production");
+        SecretsStore.SaveJson(sourcePath, JsonNode.Parse("""
+            {
+              "Resource": { "Count": 42, "Enabled": true, "Ratio": 1.25, "Missing": null },
+              "canonical": { "count": 1, "enabled": true, "missing": "replace" }
+            }
+            """)!.AsObject());
+        SecretsStore.SaveJson(destinationPath, JsonNode.Parse("""
+            {
+              "Canonical": { "Count": 7, "Enabled": false, "Missing": null }
+            }
+            """)!.AsObject());
+        using var provider = CreateDotNetServices(workspace, userSecretsId);
+        var resolver = provider.GetRequiredService<AspireSecretsStoreResolver>();
+        var project = provider.GetRequiredService<DotNetAppHostProject>();
+
+        var result = await resolver.ResolveAsync(appHostFile, project, "Production", CancellationToken.None).DefaultTimeout();
+
+        Assert.NotNull(result);
+        Assert.False(File.Exists(sourcePath));
+        Assert.Equal(destinationPath, result.AspireSecretsFilePath);
+        result.AspireStore.Save();
+        result.AspireStore.Save();
+        var persisted = JsonNode.Parse(await File.ReadAllTextAsync(destinationPath))!.AsObject();
+        Assert.Equal(42, persisted["Resource:Count"]!.GetValue<int>());
+        Assert.True(persisted["Resource:Enabled"]!.GetValue<bool>());
+        Assert.Equal(1.25, persisted["Resource:Ratio"]!.GetValue<double>());
+        Assert.True(persisted.ContainsKey("Resource:Missing"));
+        Assert.Null(persisted["Resource:Missing"]);
+        Assert.Equal(7, persisted["Canonical:Count"]!.GetValue<int>());
+        Assert.False(persisted["Canonical:Enabled"]!.GetValue<bool>());
+        Assert.True(persisted.ContainsKey("Canonical:Missing"));
+        Assert.Null(persisted["Canonical:Missing"]);
+
+        await resolver.ResolveAsync(appHostFile, project, "Production", CancellationToken.None).DefaultTimeout();
+        Assert.Null(JsonNode.Parse(await File.ReadAllTextAsync(destinationPath))!["Canonical:Missing"]);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ namespace Aspire.Shared.UserSecrets;
 internal sealed class SecretsStore
 {
     private readonly string _secretsFilePath;
-    private readonly Dictionary<string, string> _secrets;
+    private readonly Dictionary<string, JsonNode?> _secrets;
 
     /// <summary>
     /// Creates a new SecretsStore backed by the specified file path.
@@ -34,7 +34,7 @@ internal sealed class SecretsStore
     /// <summary>
     /// Gets the number of secrets in the store.
     /// </summary>
-    public int Count => _secrets.Count;
+    public int Count => _secrets.Count(entry => entry.Value is not null);
 
     /// <summary>
     /// Sets a secret value. Call <see cref="Save"/> to persist.
@@ -44,7 +44,7 @@ internal sealed class SecretsStore
     /// <summary>
     /// Gets a secret value by key, or null if not found.
     /// </summary>
-    public string? Get(string key) => _secrets.GetValueOrDefault(key);
+    public string? Get(string key) => _secrets.GetValueOrDefault(key)?.ToString();
 
     /// <summary>
     /// Removes a secret by key. Call <see cref="Save"/> to persist.
@@ -64,12 +64,35 @@ internal sealed class SecretsStore
     /// <summary>
     /// Returns all secret key-value pairs.
     /// </summary>
-    public IEnumerable<KeyValuePair<string, string>> AsEnumerable() => _secrets;
+    public IEnumerable<KeyValuePair<string, string>> AsEnumerable()
+    {
+        foreach (var (key, value) in _secrets)
+        {
+            if (value is not null)
+            {
+                yield return KeyValuePair.Create(key, value.ToString());
+            }
+        }
+    }
 
     /// <summary>
     /// Returns all secret key-value pairs as a list.
     /// </summary>
-    public List<KeyValuePair<string, string>> ToList() => [.. _secrets];
+    public List<KeyValuePair<string, string>> ToList() => [.. AsEnumerable()];
+
+    /// <summary>
+    /// Imports missing values without changing existing values or their JSON types.
+    /// </summary>
+    public void MergeFrom(SecretsStore source)
+    {
+        foreach (var (key, value) in source._secrets)
+        {
+            if (!_secrets.ContainsKey(key))
+            {
+                _secrets.Add(key, value?.DeepClone());
+            }
+        }
+    }
 
     /// <summary>
     /// Persists the current secrets to disk.
@@ -79,7 +102,7 @@ internal sealed class SecretsStore
         var obj = new JsonObject();
         foreach (var (key, value) in _secrets)
         {
-            obj[key] = value;
+            obj[key] = value?.DeepClone();
         }
 
         SaveJson(_secretsFilePath, obj);
@@ -159,17 +182,17 @@ internal sealed class SecretsStore
     /// <summary>
     /// Loads secrets from a JSON file, flattening any nested structure to colon-separated keys.
     /// </summary>
-    private static Dictionary<string, string> Load(string path)
+    private static Dictionary<string, JsonNode?> Load(string path)
     {
         if (!File.Exists(path))
         {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
         }
 
         var json = File.ReadAllText(path);
         if (string.IsNullOrWhiteSpace(json))
         {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
         }
 
         var parsed = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions
@@ -179,20 +202,18 @@ internal sealed class SecretsStore
         })?.AsObject();
         if (parsed is null)
         {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
         }
 
         // Flatten nested JSON to colon-separated keys
         var flat = JsonFlattener.FlattenJsonObject(parsed);
 
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // The same file also holds deployment state. Keep raw nodes for persistence;
+        // only the string-facing CRUD and listing APIs should stringify values.
+        var result = new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
         foreach (var kvp in flat)
         {
-            var value = kvp.Value?.ToString();
-            if (value is not null)
-            {
-                result[kvp.Key] = value;
-            }
+            result[kvp.Key] = kvp.Value;
         }
 
         return result;

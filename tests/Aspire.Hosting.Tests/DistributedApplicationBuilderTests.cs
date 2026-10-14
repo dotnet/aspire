@@ -625,8 +625,11 @@ public class DistributedApplicationBuilderTests(ITestOutputHelper outputHelper)
         Assert.False(appBuilder.UserSecretsManager.IsAvailable);
     }
 
-    [Fact]
-    public async Task UserSecretsStatePreservesJsonTypesAcrossReload()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("set")]
+    [InlineData("delete")]
+    public async Task UserSecretsStatePreservesJsonTypesAcrossReload(string? secretOperation)
     {
         var directory = Directory.CreateTempSubdirectory();
         try
@@ -639,6 +642,7 @@ public class DistributedApplicationBuilderTests(ITestOutputHelper outputHelper)
             });
             var state = System.Text.Json.Nodes.JsonNode.Parse("""
                 {
+                  "Parameters:Target": "original",
                   "Resource": {
                     "Count": 42,
                     "Enabled": true,
@@ -649,6 +653,15 @@ public class DistributedApplicationBuilderTests(ITestOutputHelper outputHelper)
                 }
                 """)!.AsObject();
             await builder.UserSecretsManager.SaveStateAsync(state);
+
+            if (secretOperation == "set")
+            {
+                Assert.True(builder.UserSecretsManager.TrySetSecret("parameters:TARGET", "updated"));
+            }
+            else if (secretOperation == "delete")
+            {
+                Assert.True(builder.UserSecretsManager.TryDeleteSecret("parameters:TARGET"));
+            }
 
             var manager = new Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager(
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager>.Instance,
