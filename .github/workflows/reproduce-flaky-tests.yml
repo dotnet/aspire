@@ -28,7 +28,24 @@ env:
   #   --filter-method "*.TestMethodName"
   #   --filter-class "*.TestClassName"
   #   --filter-method "*.Test1" --filter-method "*.Test2"
-  TEST_FILTER: '--filter-method "*.YourTestMethodName"'
+  TEST_FILTER: >-
+    --filter-method "*.CreateAsync_RecoveryBudgetIncludesServerRequestedRetryDelay"
+    --filter-method "*.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay"
+    --filter-method "*.CreateAsync_ConfirmationTimeCountsTowardRetryAfter"
+    --filter-method "*.CreateAsync_RecoveryBudgetCancelsStalledReconciliation"
+    --filter-method "*.ExecuteWithRetry_EstablishesConnection_WhenKubeconfigInitiallyMissing"
+    --filter-method "*.ExecuteWithRetry_UsesInitializationTimeout_WhenKubeconfigAppearsAfterApiRetryBudget"
+    --filter-method "*.ExecuteWithRetry_ClientSetupAndApiRequestShareInitializationBudget"
+    --filter-method "*.CreateAsync_ConfirmsTimedOutWrite_WhenSetupConsumesInitializationBudget"
+    --filter-method "*.WatchAsync_ConnectedStreamOutlivesApiTimeout"
+    --filter-method "*.GetLogStreamAsync_ConnectedStreamOutlivesApiTimeout"
+    --filter-method "*.ExecuteWithRetry_EstablishesConnection_WhenKubeconfigInitiallyPartiallyWritten"
+    --filter-method "*.DcpHost_WithUnhealthyContainerRuntime_NotificationCancelledWhenRuntimeBecomesHealthy"
+    --filter-method "*.DcpHost_WithContainerRuntimeNotInstalled_ShowsNotificationWithoutPolling"
+    --filter-method "*.Run_WaitsForOutputCallbacksToFinishBeforeCompleting"
+    --filter-method "*.LoggingSocket_RestrictsPermissionsBeforeListening"
+    --filter-method "*.ExecutableCanRestartFromResourceChangedCallback"
+    --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
 
   # Target operating systems (comma-separated)
   # Options: ubuntu-latest, windows-latest, macos-latest
