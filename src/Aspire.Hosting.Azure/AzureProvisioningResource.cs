@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Bicep extension declarations are experimental.
+
 using System.Diagnostics;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
