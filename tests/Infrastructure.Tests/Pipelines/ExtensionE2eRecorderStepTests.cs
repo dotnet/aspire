@@ -7,9 +7,8 @@ using Xunit;
 namespace Infrastructure.Tests.Pipelines;
 
 /// <summary>
-/// Runs the <c>Install E2E recorder</c> step of <c>.github/workflows/extension-e2e-tests.yml</c>
-/// inside the same wrapper GitHub Actions builds around a <c>pwsh</c> step, pinning the contract
-/// that the step can never fail a shard.
+/// Runs the extension E2E recorder helper inside the same wrapper GitHub Actions builds around a
+/// <c>pwsh</c> step, pinning the contract that the helper can never fail a shard.
 ///
 /// ffmpeg only powers the diagnostic screen recordings, and run-e2e.js already skips recording with
 /// a warning when the binary is missing, so a failed install has to stay a warning. That was not
@@ -19,15 +18,17 @@ namespace Infrastructure.Tests.Pipelines;
 /// step. See
 /// https://docs.github.com/actions/reference/workflows-and-actions/workflow-syntax#exit-codes-and-error-action-preference.
 ///
-/// Running the step body on its own cannot catch that regression, because the appended epilogue is
-/// the thing that turns a leftover <c>$LASTEXITCODE</c> into a step failure. So these tests wrap the
-/// body the way GitHub does, and the always-fails case is covered twice: once as authored, and once
-/// with the explicit <c>exit 0</c> stripped, which must reproduce the original failure. Without that
-/// control the harness could pass while proving nothing.
+/// Running the helper inside the appended epilogue catches that regression: without the explicit
+/// <c>exit 0</c>, the leftover <c>$LASTEXITCODE</c> turns an optional recorder failure into a shard
+/// failure.
 /// </summary>
 public sealed class ExtensionE2eRecorderStepTests(ITestOutputHelper testOutput)
 {
-    private const string RecorderStepName = "Install E2E recorder";
+    private static readonly string s_recorderScriptPath = Path.Combine(
+        RepoRoot.Path,
+        ".github",
+        "scripts",
+        "install-extension-e2e-recorder.ps1");
 
     /// <summary>Exit code the apt-get stub uses for a failed install, distinct from the 124 that a real timeout returns.</summary>
     private const int StubAptFailureExitCode = 100;
@@ -36,25 +37,17 @@ public sealed class ExtensionE2eRecorderStepTests(ITestOutputHelper testOutput)
     private const string GitHubPwshPrologue = "$ErrorActionPreference = 'stop'";
     private const string GitHubPwshEpilogue = "if ((Test-Path -LiteralPath variable:/LASTEXITCODE)) { exit $LASTEXITCODE }";
 
-    private const string ExplicitSuccessExit = "exit 0";
-    private const string RetryBackoff = "Start-Sleep -Seconds 15";
-
     private const string RetryWarning = "::warning::Attempt 1 to install ffmpeg failed; retrying.";
     private const string GaveUpWarning = "::warning::ffmpeg could not be installed; E2E screen recordings are disabled for this shard.";
 
     [Theory]
     // As authored: every apt-get outcome has to leave the shard alive.
-    [InlineData("always-fails", true, 0, 2, new[] { RetryWarning, GaveUpWarning })]
-    [InlineData("fails-once", true, 0, 2, new[] { RetryWarning })]
-    [InlineData("succeeds", true, 0, 1, new string[0])]
-    // Control: the same body without its explicit exit must reproduce the shard-wide failure,
-    // otherwise the three cases above would pass even if the epilogue were not being applied.
-    [InlineData("always-fails", false, StubAptFailureExitCode, 2, new[] { RetryWarning, GaveUpWarning })]
+    [InlineData("always-fails", 2, new[] { RetryWarning, GaveUpWarning })]
+    [InlineData("fails-once", 2, new[] { RetryWarning })]
+    [InlineData("succeeds", 1, new string[0])]
     [RequiresTools(["pwsh"])]
     public async Task RecorderStepSurvivesEveryAptOutcome(
         string aptBehavior,
-        bool keepExplicitExit,
-        int expectedExitCode,
         int expectedInstallAttempts,
         string[] expectedWarnings)
     {
@@ -64,10 +57,17 @@ public sealed class ExtensionE2eRecorderStepTests(ITestOutputHelper testOutput)
 
         using var workspace = TemporaryWorkspace.Create(testOutput);
 
-        var stepScript = ExtensionE2eWorkflow.StepScript(RecorderStepName);
         var stubDirectory = CreateCommandStubs(workspace, aptBehavior, out var invocationLog, out var pwshPath);
         var scriptPath = Path.Combine(workspace.Path, "step.ps1");
-        File.WriteAllText(scriptPath, BuildStepScript(stepScript, keepExplicitExit));
+        var escapedRecorderScriptPath = s_recorderScriptPath.Replace("'", "''", StringComparison.Ordinal);
+        File.WriteAllText(
+            scriptPath,
+            $$"""
+            {{GitHubPwshPrologue}}
+            function Start-Sleep { param([int]$Seconds) }
+            & '{{escapedRecorderScriptPath}}'
+            {{GitHubPwshEpilogue}}
+            """);
 
         using var command = new PowerShellCommand(scriptPath, testOutput, label: aptBehavior)
             .WithEnvironmentVariable("PATH", stubDirectory)
@@ -77,7 +77,7 @@ public sealed class ExtensionE2eRecorderStepTests(ITestOutputHelper testOutput)
         var invocations = File.Exists(invocationLog) ? File.ReadAllLines(invocationLog) : [];
         var installAttempts = invocations.Count(line => line.StartsWith("apt-get install", StringComparison.Ordinal));
 
-        Assert.Equal(expectedExitCode, result.ExitCode);
+        Assert.Equal(0, result.ExitCode);
         Assert.Equal(expectedInstallAttempts, installAttempts);
 
         // Distinguishes a genuine retry from a run that merely failed twice: both make two install
@@ -108,34 +108,6 @@ public sealed class ExtensionE2eRecorderStepTests(ITestOutputHelper testOutput)
             line => Assert.Contains("--kill-after=", line, StringComparison.Ordinal));
 
         Assert.NotEmpty(pwshPath);
-    }
-
-    /// <summary>
-    /// Wraps the step body the way the runner does before executing it.
-    ///
-    /// The authored cases deliberately run whatever the workflow says without first checking it for
-    /// an <c>exit 0</c>. Deleting that line then surfaces as the failure it actually causes - the
-    /// step exiting non-zero and taking the shard with it - rather than as a structural complaint
-    /// about the script's last line.
-    /// </summary>
-    private static string BuildStepScript(string stepScript, bool keepExplicitExit)
-    {
-        var body = stepScript.TrimEnd();
-        if (!keepExplicitExit)
-        {
-            // Only the control needs the line to exist, because it is built by removing it. Deriving
-            // the control this way rather than pasting a copy of the old body keeps it from drifting
-            // away from what the workflow actually runs.
-            Assert.EndsWith(ExplicitSuccessExit, body, StringComparison.Ordinal);
-            body = body[..body.LastIndexOf(ExplicitSuccessExit, StringComparison.Ordinal)].TrimEnd();
-        }
-
-        // Asserted before it is replaced, so shortening the wait here cannot quietly stop matching
-        // the workflow. The delay itself is not what these tests pin; the exit code contract is.
-        Assert.Contains(RetryBackoff, body, StringComparison.Ordinal);
-        body = body.Replace(RetryBackoff, "Start-Sleep -Milliseconds 50", StringComparison.Ordinal);
-
-        return string.Join(Environment.NewLine, [GitHubPwshPrologue, body, GitHubPwshEpilogue]);
     }
 
     /// <summary>

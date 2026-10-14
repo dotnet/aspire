@@ -25,7 +25,7 @@ jobs:
     name: Prepare for CI
     if: ${{ github.repository_owner == 'microsoft' }}
     outputs:
-      has_semantic_inputs: ${{ github.event_name == 'pull_request' && steps.classify_changes.outputs.has_semantic_inputs == 'true' }}
+      has_infrastructure_test_inputs: ${{ github.event_name == 'pull_request' && steps.classify_changes.outputs.has_infrastructure_test_inputs == 'true' }}
       skip_workflow: ${{ github.event_name == 'pull_request' && steps.classify_changes.outputs.skip_workflow == 'true' }}
       stabilization_required: ${{ github.event_name != 'pull_request' || steps.classify_changes.outputs.stabilization_required == 'true' }}
       VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
@@ -45,12 +45,12 @@ jobs:
         with:
           patterns_file: eng/github-ci/ci-skip-entirely-patterns.txt
 
-      - name: Check for semantic Infrastructure.Tests inputs
-        id: check_for_semantic_inputs
+      - name: Check for Infrastructure.Tests-only inputs
+        id: check_for_infrastructure_test_inputs
         if: ${{ github.event_name == 'pull_request' }}
         uses: ./.github/actions/check-changed-files
         with:
-          patterns_file: eng/github-ci/infrastructure-test-input-patterns.txt
+          patterns_file: eng/github-ci/ci-infrastructure-test-paths.txt
 
       - name: Classify CI and stabilization requirements
         id: classify_changes
@@ -58,12 +58,12 @@ jobs:
         env:
           CHANGED_FILES_JSON: ${{ steps.check_for_changes.outputs.changed_files }}
           SKIPPABLE_FILES_JSON: ${{ steps.check_for_changes.outputs.matched_files }}
-          SEMANTIC_FILES_JSON: ${{ steps.check_for_semantic_inputs.outputs.matched_files }}
+          INFRASTRUCTURE_TEST_FILES_JSON: ${{ steps.check_for_infrastructure_test_inputs.outputs.matched_files }}
         run: |
           ./eng/github-ci/classify-ci-changes.sh \
             "$CHANGED_FILES_JSON" \
             "$SKIPPABLE_FILES_JSON" \
-            "$SEMANTIC_FILES_JSON" >> "$GITHUB_OUTPUT"
+            "$INFRASTRUCTURE_TEST_FILES_JSON" >> "$GITHUB_OUTPUT"
 
       - id: compute_version_suffix
         name: Compute version suffix for PRs

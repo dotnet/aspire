@@ -8,14 +8,9 @@ using Xunit;
 namespace Infrastructure.Tests;
 
 /// <summary>
-/// Behavioral tests for the comment_selection job's inline github-script in
-/// <c>.github/workflows/tests.yml</c> (the job that posts the "selected tests" PR comment). The
-/// <see cref="Infrastructure.Tests.TestTriggerMap.SelectTestsWorkflowTests"/> content guards pin the
-/// script's source text; these execute the *shipped* script against mocked github/context/core to
-/// pin its behavior -- one comment per pushed commit (a new commit creates, a re-run of the same
-/// commit updates in place), superseded comments collapsed via minimize (never deleted), the
-/// head-SHA-over-context-SHA link precedence, and the skip-when-summary-missing path -- which content
-/// matching cannot verify.
+/// Behavioral tests for the comment-selection job's inline GitHub script. These execute the shipped
+/// script against mocked GitHub, context, and core APIs to verify comment creation and updates,
+/// superseded-comment handling, link selection, and the skip-when-summary-is-missing path.
 /// </summary>
 public sealed class SelectTestsCommentScriptTests : IDisposable
 {

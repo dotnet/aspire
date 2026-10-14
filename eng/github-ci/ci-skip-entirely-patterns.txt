@@ -16,15 +16,14 @@
 #
 # Lines starting with '#' and blank lines are ignored.
 
-# This file itself remains in the broad skip set, but the semantic-input
-# classifier recognizes it as an Infrastructure.Tests input and overrides the
-# skip decision so pattern changes are validated through normal selective CI.
+# This file remains in the broad skip set. The classifier and selector preserve
+# its Infrastructure.Tests route so changes to the skip rules are exercised.
 #
 # Interaction with selective CI: eng/github-ci/test-trigger-map.yml routes a change to this
 # file to Infrastructure.Tests (its TestTriggerMap suite reads this file as the
 # selector's prefilter source). The top-level classifier uses
-# eng/github-ci/infrastructure-test-input-patterns.txt to distinguish this
-# semantic input from documentation or metadata with no PR test consumer.
+# eng/github-ci/ci-infrastructure-test-paths.txt to allow the selected test to run
+# without running the stabilization build.
 eng/github-ci/ci-skip-entirely-patterns.txt
 
 # Documentation

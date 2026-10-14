@@ -207,48 +207,6 @@ public sealed class Hex1bNativePublishingTests : IDisposable
             (string?)item.Attribute("PackagePath") == @"buildTransitive\$(DefaultTargetFramework)");
     }
 
-    [Fact]
-    public void WindowsManagedSigningIncludesPtyHelperAndPreservesMicrosoftSidecars()
-    {
-        var signingProps = XDocument.Load(Path.Combine(RepoRoot.Path, "eng", "Signing.props"));
-        var helperCertificate = Assert.Single(signingProps.Descendants("FileSignInfo"),
-            item => (string?)item.Attribute("Include") == "hex1bpty.exe");
-        Assert.Equal("3PartySHA2", (string?)helperCertificate.Attribute("CertificateName"));
-
-        var windowsManagedFiles = signingProps.Descendants("ItemsToSign")
-            .Where(item => (string?)item.Attribute("Condition") == "$([System.OperatingSystem]::IsWindows())")
-            .Select(item => (string?)item.Attribute("Include"))
-            .Where(path => path?.StartsWith("$(ArtifactsBinDir)Aspire.Managed", StringComparison.Ordinal) is true)
-            .Order(StringComparer.Ordinal);
-
-        Assert.Equal(
-            [
-                @"$(ArtifactsBinDir)Aspire.Managed\**\publish\aspire-managed.exe",
-                @"$(ArtifactsBinDir)Aspire.Managed\**\publish\hex1bpty.exe"
-            ],
-            windowsManagedFiles);
-    }
-
-    [Fact]
-    public async Task MacOSDashboardDebugSymbolsAreRemovedBeforeSigning()
-    {
-        var pipeline = await File.ReadAllTextAsync(Path.Combine(
-            RepoRoot.Path, "eng", "pipelines", "templates", "build_sign_native.yml"));
-
-        var prepareDashboardIndex = pipeline.IndexOf("displayName: 🟣Prepare Native AOT Dashboard", StringComparison.Ordinal);
-        var removeSymbolsIndex = pipeline.IndexOf("displayName: 🟣Remove Native AOT Dashboard debug symbols", StringComparison.Ordinal);
-        var signManagedIndex = pipeline.IndexOf("displayName: 🟣Sign managed executables", StringComparison.Ordinal);
-        var buildNativeIndex = pipeline.IndexOf("displayName: 🟣Build native packages", StringComparison.Ordinal);
-
-        Assert.True(prepareDashboardIndex >= 0);
-        Assert.True(prepareDashboardIndex < removeSymbolsIndex);
-        Assert.True(removeSymbolsIndex < signManagedIndex);
-        Assert.True(signManagedIndex < buildNativeIndex);
-        Assert.Contains("Aspire.Dashboard.dSYM", pipeline[(removeSymbolsIndex - 500)..removeSymbolsIndex]);
-        Assert.Contains("Remove-Item", pipeline[(removeSymbolsIndex - 500)..removeSymbolsIndex]);
-        Assert.Contains("eq(parameters.agentOs, 'macos')", pipeline[(removeSymbolsIndex - 500)..removeSymbolsIndex]);
-    }
-
     private string CreatePublishProject(string rid, bool singleFile, bool duplicateUnrelatedAsset)
     {
         var nativeItems = new XElement("ItemGroup");

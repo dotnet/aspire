@@ -883,13 +883,15 @@ public sealed class SelectTestsAcceptanceTests(ITestOutputHelper outputHelper) :
         Assert.False(filter.IsExcluded("src/Aspire.Cli/Program.cs"));
         Assert.False(filter.IsExcluded("src/Aspire.Hosting/HostingExtensions.cs"));
 
-        // keep_routed carve-outs: listed by the patterns file but routed by the selector -> NOT dropped.
-        Assert.False(filter.IsExcluded(".github/workflows/backport.yml"));
-        Assert.False(filter.IsExcluded("eng/pipelines/release-publish-nuget.yml"));
-        Assert.False(filter.IsExcluded("docs/specs/npm-cli-package.md"));
+        // Only files with behavioral Infrastructure.Tests consumers are carved out from the skip list.
+        Assert.False(filter.IsExcluded(".github/workflows/auto-rerun-transient-ci-failures.js"));
         Assert.False(filter.IsExcluded("eng/github-ci/ci-skip-entirely-patterns.txt"));
 
-        // Pipeline files without a semantic Infrastructure.Tests consumer remain outside main CI.
+        // Other skipped files stay excluded from the selector.
+        Assert.True(filter.IsExcluded(".github/workflows/backport.yml"));
+        Assert.True(filter.IsExcluded("eng/pipelines/release-publish-nuget.yml"));
+        Assert.True(filter.IsExcluded("docs/specs/npm-cli-package.md"));
+        Assert.True(filter.IsExcluded(".github/workflows/auto-rerun-transient-ci-failures.yml"));
         Assert.True(filter.IsExcluded("eng/pipelines/azure-pipelines-public.yml"));
         Assert.True(filter.IsExcluded("eng/pipelines/templates/BuildAndTest.yml"));
     }

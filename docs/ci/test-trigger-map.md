@@ -59,7 +59,7 @@ paths.
 
 | Section | What it is |
 |---------|------------|
-| `prefilter` | `{ patterns_file, keep_routed }`. Changed files matched by a pattern in `patterns_file` are **dropped before both layers run** (reaching neither Layer 1 nor Layer 2), except those carved out by `keep_routed` (files the selector routes to a target — workflow files, the exact pipeline/release inputs read by `Infrastructure.Tests`, and the patterns file itself). `patterns_file` is `eng/github-ci/ci-skip-entirely-patterns.txt`, the same list the top-level CI skip gate uses, read at runtime so the two can't drift; its glob syntax is the check-changed-files action's (ported in `ChangedFileFilter`). The top-level workflow classifies source-traced semantic inputs from `eng/github-ci/infrastructure-test-input-patterns.txt`, overriding the skip-all decision while allowing infrastructure-only PRs to omit stabilization. `keep_routed` then preserves their Infrastructure.Tests target in the selector. Why this — not `ignore` — is what stops the `README.md` fan-out: see [test-trigger-selector-design.md](./test-trigger-selector-design.md) §Layer 2. |
+| `prefilter` | `{ patterns_file, keep_routed }`. Changed files matched by a pattern in `patterns_file` are **dropped before both layers run** (reaching neither Layer 1 nor Layer 2), except those carved out by `keep_routed`. `patterns_file` is `eng/github-ci/ci-skip-entirely-patterns.txt`, the same list the top-level CI skip gate uses, read at runtime so the two can't drift; its glob syntax is the check-changed-files action's (ported in `ChangedFileFilter`). `keep_routed` preserves specific skipped inputs with behavioral test consumers, currently the skip-pattern file and the auto-rerun script. The top-level workflow uses `eng/github-ci/ci-infrastructure-test-paths.txt` to let those tests run without stabilization when no source/build inputs also changed. This is separate from `ignore`, which stops the README fan-out; see [test-trigger-selector-design.md](./test-trigger-selector-design.md) §Layer 2. |
 | `conventions` | `<name>`-capture pattern → target template, emitted only if the derived test exists (existence guard). Additive. Covers a test's own folder and the Hosting/Components integration dirs as a backstop for non-MSBuild files the graph cannot attribute. |
 | `ignore` | globs Layer 2 accounts for with **no** target, so they do not trip the run-all fallback. Link-compiled `src/Shared` / `tests/Shared` / `Components/Common` files are attributed by Layer 1; the curated entries cover only paths that still need an explicit exemption. See [test-trigger-selector-design.md](./test-trigger-selector-design.md) §Layer 2. |
 | `path_rules` | a path glob set → a target set (`test:` / `job:` / a group / `ALL`). The single general path matcher: catch-all-to-`ALL`, convention misses, non-.NET job loose-file triggers, and loose-file reads all live here under comment headers |
@@ -382,8 +382,8 @@ it.
      `SelectTestsAcceptanceTests.cs`;
    - CLI rendering and side-channel behavior belongs in
      `SelectTestsCliTests.cs`;
-   - action or workflow-gate contracts belong in `SelectTestsWorkflowTests.cs`
-     or an exact real-workflow invariant.
+   - behavior should be tested through the selector or by executing the
+     relevant helper; workflow YAML is not validated by source-text assertions.
 
 After restoring the repository, run the focused selector suite:
 

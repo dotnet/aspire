@@ -111,10 +111,9 @@ Validation" section:
    conserved against a baseline. → I-1b(1)/I-5. (Reports as the *coverage-loss
    audit* evidence bullet.)
 4. **Is anything here generated, or a duplicated list?** Lock files compile
-   from `.md` sources; some `paths:` lists and YAML-contract tests must stay in
-   sync with the workflows they mirror. Regenerate and compare — don't trust
-   the hand edit. → I-2 (contract tests)/I-3.C; Failure modes §4/§6. (Reports
-   as *gh-aw*.)
+   from `.md` sources; mirrored `paths:` lists must stay in sync with the
+   workflows they serve. Regenerate and compare — don't trust the hand edit.
+   → I-2/I-3.C; Failure modes §4/§6. (Reports as *gh-aw*.)
 5. **Per behavioral change, what observable would a correct run produce?** A
    log marker, an artifact's shape, a binlog target, a skip *for the right
    reason*. Green only proves no step hard-failed; a change with no nameable
@@ -235,21 +234,20 @@ start of the analysis, not the end of it.
 
 ## Step I-2: Know what PR CI already covers (don't duplicate it)
 
-The repo unit-tests its workflow helper scripts (JavaScript, PowerShell, and
-bash) and asserts YAML contracts in `tests/Infrastructure.Tests/`. PR CI runs
-that project **only when `ci.yml`'s test job isn't skipped** — and it *is*
-skipped when every changed file matches a glob in
-`eng/github-ci/ci-skip-entirely-patterns.txt`, which includes `eng/pipelines/**`
-and `auto-rerun-transient-ci-failures.*` (see Step I-1). So for an infra-only PR
-that touches just those paths, CI does **not** run `Infrastructure.Tests` for
-you — run the matching class locally. When the test job does run, use the map
-below to know which changed files CI already validates (so you don't re-run
-them) and, more usefully, which have **no** coverage — those are the gaps to
-call out and hunt in Step I-3. Re-run a class locally for fast pre-CI feedback,
-when CI skipped it, or when CI isn't available (`node`/`pwsh` required on PATH).
+The repo unit-tests selected workflow helper scripts (JavaScript, PowerShell,
+and bash) in `tests/Infrastructure.Tests/`. PR CI skips the workflow when every
+changed file matches `eng/github-ci/ci-skip-entirely-patterns.txt`, unless a
+changed file is also listed in `eng/github-ci/ci-infrastructure-test-paths.txt`.
+Those explicit exceptions run their selected `Infrastructure.Tests` coverage
+without stabilization. `eng/pipelines/**` remains skipped; the auto-rerun
+JavaScript helper is an exception because Infrastructure.Tests executes it.
+When the test job does run, use the map below to see which changed files CI
+already validates and which have **no** coverage — those are the gaps to call
+out in Step I-3. Re-run a class locally for fast pre-CI feedback, or when CI
+isn't available (`node`/`pwsh` required on PATH).
 
 ```bash
-# All workflow-script + pipeline tests (Linux-only project; ~minutes):
+# All Infrastructure.Tests (Linux-only project; ~minutes):
 dotnet test --project tests/Infrastructure.Tests/Infrastructure.Tests.csproj \
   --no-launch-profile -- \
   --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
@@ -270,7 +268,7 @@ dotnet test --project tests/Infrastructure.Tests/Infrastructure.Tests.csproj \
 | `eng/scripts/split-test-matrix-by-deps.ps1` | `SplitTestMatrixByDepsTests` |
 | `eng/scripts/expand-test-matrix-github.ps1` | `ExpandTestMatrixGitHubTests` |
 | `eng/scripts/stage-native-cli-tool-packages.ps1` | `StageNativeCliToolPackagesTests` |
-| `eng/pipelines/**` release/npm | `ReleasePublishNugetPipelineTests`, `NpmCliPackageTests` |
+| `eng/scripts/validate-npm-release-aliases.ps1` | `ValidateNpmReleaseAliasesTests` |
 
 A changed helper with a matching test class — whether `*.js`, `*.ps1`, or `*.sh`
 — is **covered by CI when the test job runs** (note it and move on); if `ci.yml`
@@ -281,11 +279,9 @@ or e.g. the `check-changed-files` action's bash glob→regex logic (none). Say s
 the report — "no automated coverage" is a finding, a candidate for a new test, and
 a prompt to validate that logic by hand here.
 
-Some of these classes also include **YAML-contract assertions** — they read the
-workflow `.yml` text and assert key trigger / safety-rail lines are present
-(e.g. `WorkflowYamlKeepsDocumentedSafetyRails` in `AutoRerunTransientCiFailuresTests`).
-If you changed a workflow's `on:`, `if:`, permissions, or job gating, a contract
-test may need updating — a red contract test here is signal, not noise.
+Infrastructure.Tests validates helper behavior, not workflow YAML structure.
+For workflow trigger, permission, and job-gating changes, use the workflow's
+actual validation path and confirm the relevant CI lane runs.
 
 ## Step I-3: Validate by category
 
@@ -609,7 +605,7 @@ Cited PRs are real prior breakages (illustrative, not exhaustive).
 | `types: [closed]` fires for PRs closed **without** merging. | Confirm the first job's `if:` includes `github.event.pull_request.merged == true`. (#16167) |
 | A diff that **removes/narrows** `on.pull_request`/`paths`, deletes a workflow, or adds job-level `continue-on-error` silently stops gating the PR — CI still goes green. | Run the Step I-1b coverage-loss audit: enumerate every workflow/job that no longer gates this PR and require proof the replacement covers it. (#17996) |
 | A job made **conditional** (skip on PR, run on push) is only proven on the PR path by CI. | Confirm the `if:`/matrix keeps it on push/`main`/`release/*` and the aggregator `needs:`/required-check allowlist still gates those events. (#17973) |
-| Editing a workflow's `on:`/`if:`/permissions can desync a YAML-contract test. | Re-run the relevant `Infrastructure.Tests` class; update the contract assertion if the change is intentional. |
+| Workflow trigger, permission, or job-gating edits can leave CI routing unvalidated. | Validate the workflow through its applicable CI lane; Infrastructure.Tests does not assert YAML structure. |
 
 ### 2. Auth, permissions & tokens
 

@@ -935,55 +935,7 @@ jobs:
 
       - name: Install E2E recorder
         if: ${{ matrix.useXvfb }}
-        run: |
-          # ffmpeg only powers the diagnostic screen recordings, and run-e2e.js already skips
-          # recording with a warning when the binary is missing. So this step must never be able to
-          # fail or stall a shard: it is strictly a nice-to-have for debugging flakes after the fact.
-          #
-          # It used to call apt-get unguarded, which talks to the Azure Ubuntu mirrors. That is a
-          # network dependency with no timeout, and a degraded mirror has hung this step past the
-          # job timeout - taking down shards (including ones with no Java or recording relevance)
-          # that were otherwise healthy. Bound every call and give up quietly instead.
-          if (Get-Command ffmpeg -ErrorAction SilentlyContinue) {
-            ffmpeg -version | Select-Object -First 1
-          }
-          else {
-            $installed = $false
-            $attempts = 2
-
-            for ($attempt = 1; $attempt -le $attempts; $attempt++) {
-              # `timeout` (coreutils) bounds a stalled child and exits 124, which is what converts an
-              # unresponsive mirror into a retryable failure rather than an open-ended wait.
-              # `--kill-after` matters: plain `timeout` only sends SIGTERM, and apt/dpkg block or
-              # defer signals around critical sections, so without the escalation to SIGKILL a
-              # wedged child could still outlive its own timeout.
-              sudo timeout --kill-after=30 180 apt-get update
-
-              # Only the install decides success: `apt-get update` can time out while the install
-              # still succeeds from the indices already on the runner image.
-              sudo timeout --kill-after=30 180 apt-get install -y --no-install-recommends ffmpeg
-              if ($LASTEXITCODE -eq 0) {
-                $installed = $true
-                break
-              }
-
-              if ($attempt -lt $attempts) {
-                Write-Host "::warning::Attempt $attempt to install ffmpeg failed; retrying."
-                Start-Sleep -Seconds 15
-              }
-            }
-
-            if (-not $installed) {
-              Write-Host '::warning::ffmpeg could not be installed; E2E screen recordings are disabled for this shard.'
-            }
-          }
-
-          # GitHub's pwsh wrapper appends `if ((Test-Path variable:/LASTEXITCODE)) { exit $LASTEXITCODE }`,
-          # so a failed apt-get would otherwise fail this step through the leftover exit code and take
-          # the shard down over a missing diagnostic recorder. Exit explicitly to hold the
-          # "this step must never fail the job" contract.
-          # https://docs.github.com/actions/reference/workflows-and-actions/workflow-syntax#exit-codes-and-error-action-preference
-          exit 0
+        run: ./.github/scripts/install-extension-e2e-recorder.ps1
 
       - name: Run extension E2E tests
         working-directory: extension

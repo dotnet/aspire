@@ -88,17 +88,8 @@ conventions:
 prefilter:
   patterns_file: eng/github-ci/ci-skip-entirely-patterns.txt
   keep_routed:
-    - .github/workflows/**                            # routed to Infrastructure.Tests (workflow validation)
-    - eng/pipelines/azure-pipelines.yml
-    - eng/pipelines/common-variables.yml
-    - eng/pipelines/release-publish-nuget.yml
-    - eng/pipelines/templates/build_sign_native.yml
-    - eng/pipelines/templates/prepare-npm-cli-packages.yml
-    - eng/pipelines/templates/prepare-winget-manifest.yml
-    - eng/pipelines/templates/publish-winget.yml
-    - docs/specs/npm-cli-package.md
-    - docs/release-process.md
-    - eng/github-ci/ci-skip-entirely-patterns.txt      # a selector input (read above) -> route to Infrastructure.Tests
+    - .github/workflows/auto-rerun-transient-ci-failures.js
+    - eng/github-ci/ci-skip-entirely-patterns.txt
 
 # Ignore: files Layer 2 accounts for with NO target, so they do NOT trigger the run-all fallback.
 # Each is either covered precisely by Layer 1 (the graph index sees the linked/shared-file consumers)
@@ -168,8 +159,8 @@ path_rules:
     targets: [ALL]
     reason: repo-wide build/restore inputs can affect every test project and non-.NET job
 
-  # Shared MSBuild infrastructure imported across the source/test graph. Keep AzDO-publish-only props
-  # out of ALL; eng/Signing.props and eng/Publishing.props are routed to Infrastructure.Tests below.
+  # Shared MSBuild infrastructure imported across the source/test graph. Keep signing/publishing-only
+  # properties out of ALL; unknown paths conservatively use the run-all fallback.
   - paths:
       - src/Directory.Build.props
       - src/Directory.Build.targets
@@ -340,12 +331,19 @@ path_rules:
     targets: [job:extension-e2e]
     reason: extension e2e inputs and runtime dependencies; path fallback when Layer 1 is unavailable
   - paths:
+      - .github/scripts/install-extension-e2e-recorder.ps1
+    targets: [test:Infrastructure.Tests, job:extension-e2e]
+    reason: Infrastructure.Tests exercises the recorder helper consumed by extension E2E
+  - paths:
       - tests/Aspire.Deployment.EndToEnd.Tests/**
       - src/Aspire.ProjectTemplates/**
       - .github/workflows/deployment-tests.yml
-      - .github/workflows/run-deployment-test.sh
     targets: [job:deployment-e2e]
-    reason: SCHEDULE/DISPATCH-ONLY today; ProjectTemplates is a Layer-1 blind spot; Azure/Cli/TypeSystem/Managed production projects are in affected_project_rules
+    reason: deployment E2E inputs; schedule/dispatch-only today
+  - paths:
+      - .github/workflows/run-deployment-test.sh
+    targets: [test:Infrastructure.Tests, job:deployment-e2e]
+    reason: Infrastructure.Tests exercises the deployment runner
   - paths:
       - .github/workflows/prepare-installer-artifacts.yml
     targets: [job:winget-installer, job:homebrew-installer]
@@ -364,7 +362,7 @@ path_rules:
     reason: native Dashboard archive production and packaged runtime validation
   - paths:
       - eng/scripts/verify-native-dashboard-warnings.ps1
-    targets: [test:Infrastructure.Tests, job:native-dashboard-validation]
+    targets: [job:native-dashboard-validation]
     reason: validates the Native AOT Dashboard publish warning policy
 
   # --- outerloop / e2e test targets: loose paths (production projects in affected_project_rules) --------
@@ -385,8 +383,12 @@ path_rules:
     reason: Acquisition.Tests asserts script behavior; CliE2EAutomatorHelpers.cs:406,415 invokes get-aspire-cli*.sh at runtime
   - paths:
       - eng/clipack/**
-    targets: [test:Aspire.Cli.Tests, test:Infrastructure.Tests, job:winget-installer, job:homebrew-installer]
-    reason: CLI/package tests inspect packaging inputs; installer jobs package the native archives
+    targets: [test:Aspire.Cli.Tests, job:winget-installer, job:homebrew-installer]
+    reason: CLI tests and installer jobs consume the native archive projects
+  - paths:
+      - eng/clipack/npm/aspire.js
+    targets: [test:Infrastructure.Tests]
+    reason: Infrastructure.Tests executes the npm launcher postinstall check
   - paths:
       - eng/clipack/Common.projitems
       - eng/clipack/Aspire.Cli.linux-x64.csproj
@@ -416,11 +418,7 @@ path_rules:
   - paths:
       - eng/scripts/pack-cli-npm-package.ps1
     targets: [test:Aspire.Cli.Tests, test:Infrastructure.Tests]
-    reason: Cli.Tests/Npm/AspireJsLauncherTests and Infrastructure.Tests parse the pack script
-  - paths:
-      - eng/scripts/pack-cli-npm-package.pointer.README.md
-    targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests/Pipelines/NpmCliPackageTests renders this template and verifies the packaged README
+    reason: Cli.Tests exercises the launcher; Infrastructure.Tests runs the package-generation script
   - paths:
       - src/Aspire.ProjectTemplates/templates/aspire-ts-cs-starter/frontend/package-lock.json
     targets: [test:Aspire.Cli.Tests]
@@ -442,7 +440,7 @@ path_rules:
       - eng/scripts/validate-npm-package-signatures.ps1
       - eng/scripts/validate-npm-release-aliases.ps1
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests/PowerShellScripts validates these CLI-archive/npm packaging scripts (DownloadNativeArchivesTests, StageNativeCliToolPackagesTests, ValidateNpmPackageSignaturesTests, ValidateNpmReleaseAliasesTests; ReleasePublishNugetPipelineTests reads validate-npm-release-aliases.ps1); the build jobs that run them are unconditional needs, so the unit verifier is the trigger that must fire
+    reason: Infrastructure.Tests/PowerShellScripts validates these CLI-archive/npm packaging scripts; the build jobs that run them are unconditional needs, so the unit verifier is the trigger that must fire
   - paths:
       - eng/scripts/aspire-skills-bundle.common.ps1
       - eng/test-retry-patterns.json
@@ -509,26 +507,15 @@ path_rules:
       - tools/SelectTests/**
       - eng/github-ci/test-trigger-map.yml
       - eng/github-ci/ci-skip-entirely-patterns.txt
-      - eng/github-ci/infrastructure-test-input-patterns.txt
+      - eng/github-ci/ci-infrastructure-test-paths.txt
       - eng/github-ci/classify-ci-changes.sh
       - .gitignore
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests validates selector routing, CI input classification, and root ignore behavior
+    reason: Infrastructure.Tests exercises selector routing, CI change classification, and root ignore behavior
   - paths:
-      - .github/workflows/**
-      - .github/actionlint.yaml
-      - eng/pipelines/azure-pipelines.yml
-      - eng/pipelines/common-variables.yml
-      - eng/pipelines/release-publish-nuget.yml
-      - eng/pipelines/templates/build_sign_native.yml
-      - eng/pipelines/templates/prepare-npm-cli-packages.yml
-      - eng/pipelines/templates/prepare-winget-manifest.yml
-      - eng/pipelines/templates/publish-winget.yml
-      - docs/specs/npm-cli-package.md
-      - docs/release-process.md
-      - eng/Signing.props
+      - .github/workflows/auto-rerun-transient-ci-failures.js
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests reads these workflow, pipeline, release-alignment, and signing inputs directly
+    reason: AutoRerunTransientCiFailuresTests executes this script against a fake GitHub API
   - paths:
       - eng/Bundle.proj
       - tools/CreateLayout/**
