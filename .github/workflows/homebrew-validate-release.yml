@@ -70,6 +70,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set up .NET SDK for installed CLI smoke test
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+
       - name: Resolve release version
         id: resolve
         env:
@@ -132,6 +137,7 @@ jobs:
           eng/homebrew/generate-cask.sh \
             --version "$version" \
             --output "$out_dir/aspire.rb"
+          bash eng/homebrew/format-cask.sh "$out_dir/aspire.rb"
 
           echo "cask_file=$out_dir/aspire.rb" >> "$GITHUB_OUTPUT"
 

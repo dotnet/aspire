@@ -31,12 +31,51 @@ See the [CLI shell completion guide](../../src/Aspire.Cli/README.md#shell-comple
 for activation, conventional locations, and removal. There is no completion-specific
 Homebrew opt-out; `--no-binaries` does not disable generated completion artifacts.
 LiveRelease validation checks that all four completion files exist after install
-and are removed on uninstall, and exercises the PowerShell loader when `pwsh` is available.
+and are removed on uninstall when the recipe declares those artifacts, and
+exercises the PowerShell loader when `pwsh` is available. Older released
+recipes without completions have no completion-file requirements.
 
 Changing this template does not update an already-submitted upstream cask:
 the initial/upstream cask change must include the generation stanza, not just a version bump.
 
 ## Contents
+
+### Local shared-validation preview
+
+Official builds and the tap use `validate-isolated-cask.sh` to provision a
+temporary Homebrew prefix and profile, then run `validate-cask-core.sh`.
+The core owns read-only style, syntax, deprecation, template-consistency,
+archive/audit and install/lifecycle checks. Completion checks follow the
+artifacts declared in Homebrew metadata, including older releases without
+completion artifacts.
+
+`LiveArchives` uses the local template and runs structural checks without
+fetching unpublished release URLs. `LiveRelease` verifies published archives
+and runs installation, version, sidecar, notarization, completion,
+scaffold/restore and cleanup checks. The tap additionally requests filesystem
+snapshot checks and supplies its checkout for tap-wide linting.
+
+Generation calls `format-cask.sh` before validation; validation never repairs
+the supplied cask. Added, changed, or deleted tap files fail validation.
+Both callers use the comparator here; the local regression suites are:
+
+```bash
+ruby eng/homebrew/test-cask-consistency.rb
+ruby eng/homebrew/test-cask-validation.rb
+```
+
+For the local tap preview, set `ASPIRE_HOMEBREW_SCRIPTS_DIR` to this directory
+before running its script wrappers. This is not yet a deployable cross-repository
+dependency: the shared files must land upstream before the tap workflow can
+consume an immutable upstream revision. No moving-main download or duplicate
+fallback implementation is used.
+
+Both modes require macOS and Homebrew; missing Homebrew is an error rather
+than a successful syntax-only fallback. `HOMEBREW_VALIDATION_REF` selects a
+Homebrew version tag or commit SHA (default `7.0.9`). The temporary prefix,
+profile, caches and smoke projects are outside the caller's SDK-pinned
+checkout. `LiveRelease` additionally requires a .NET SDK and `codesign`;
+the release workflow provisions .NET 10 for the scaffold/restore smoke test.
 
 | File | Description |
 |---|---|
@@ -56,7 +95,7 @@ the initial/upstream cask change must include the generation stanza, not just a 
 
 macOS only (arm64, x64). The cask uses `arch arm: "arm64", intel: "x64"`
 for URL templating and declares `depends_on :macos` so Homebrew's tap-syntax
-check (`brew test-bot --only-tap-syntax`, which evaluates every cask on
+check (`brew readall --os=all --arch=all`, which evaluates every cask on
 every supported platform including Linux) doesn't try to load it on Linux
 where the `arch` hash has no matching key.
 
@@ -175,10 +214,17 @@ cask URL points at validation time:
 Common to both modes:
 
 1. `ruby -c aspire.rb` — Ruby syntax check
-2. `brew style --fix` — Cookbook formatting rules
-3. `brew test-bot --tap local/aspire --only-tap-syntax` — tap-level
-   cross-platform syntax check; this is the upstream job that catches
-   "Invalid cask (Linux on …)" or other platform-evaluation failures
+2. Release-template consistency — local template for unpublished builds;
+   version-tagged upstream template for published releases
+3. `brew style --cask` and tap-wide `brew style` — read-only Cookbook
+   formatting checks; generation applies `brew style --fix` separately
+4. `brew readall --aliases --os=all --arch=all` — tap-level cross-platform
+   syntax checks, including non-host platform evaluation
+5. `brew audit --except=installed --tap=validation/aspire` — tap audit
+
+The syntax job's individual gates run directly instead of through `test-bot`,
+whose PATH sanitization hides runner-provisioned ShellCheck/actionlint from
+the isolated prefix.
 
 LiveArchives intentionally drops `--online` because several `--online`-gated
 audit methods (`audit_download`, `audit_signing`, `audit_rosetta`,
@@ -194,10 +240,10 @@ strategy resolution. LiveRelease in `homebrew-validate-release.yml` runs
 all of them on every released version, so a regression in any surfaces
 there.
 
-`LiveRelease` is the contract that matches what
-`Homebrew/homebrew-cask`'s own CI runs on the autobump PR — a clean run
-in `homebrew-validate-release.yml` implies the autobump PR will audit
-cleanly too.
+`LiveRelease` also fetches both architecture archives and exercises the
+installed CLI's version, brew sidecar, notarization, declared completions,
+scaffold/restore and uninstall cleanup. It does not replace validation in
+`Homebrew/homebrew-cask`, which can use different Homebrew versions and policies.
 
 To dogfood a GitHub Actions artifact locally, download the
 `homebrew-cask-prerelease` artifact and the `cli-native-archives-osx-*`

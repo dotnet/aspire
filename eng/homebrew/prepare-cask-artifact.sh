@@ -129,6 +129,7 @@ if [[ "$VALIDATION_MODE" != "LiveRelease" ]]; then
 fi
 
 "$SCRIPT_DIR/generate-cask.sh" "${args[@]}"
+bash "$SCRIPT_DIR/format-cask.sh" "$OUTPUT_FILE"
 
 echo ""
 echo "Generated cask:"
