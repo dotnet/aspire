@@ -442,6 +442,16 @@ internal sealed class ResourceContainerImageManager(
 
         var hasContainerFiles = resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out _);
         var containerRuntime = await GetContainerRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        if (containerRuntime is WslcContainerRuntime &&
+            (hasContainerFiles || string.IsNullOrEmpty(options.OutputPath)))
+        {
+            // The SDK supports only Docker and Podman local image stores. Archive-only publishing
+            // bypasses the local store, but container-file layering still needs an SDK image there.
+            throw new DistributedApplicationException(
+                $"WSLc does not support .NET SDK publishing to the local image store or container-file layering for resource '{resource.Name}'. " +
+                "Use Docker or Podman, or publish an archive with Destination = Archive and OutputPath without PublishWithContainerFiles.");
+        }
+
         if (hasContainerFiles || ResourceRequiresContainerRuntime(resource, options))
         {
             await ensureContainerRuntimeRunning(containerRuntime, cancellationToken).ConfigureAwait(false);
@@ -978,6 +988,7 @@ internal sealed class ResourceContainerImageManager(
         {
             ImageName = imageNameOnly,
             Tag = imageTag,
+            Destination = options.Destination,
             OutputPath = options.OutputPath,
             ImageFormat = options.ImageFormat,
             TargetPlatform = options.TargetPlatform
