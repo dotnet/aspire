@@ -1,0 +1,19 @@
+﻿{
+  "skills": {
+    "urls": [
+      "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/"
+    ]
+  },
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "aspire": {
+      "type": "local",
+      "command": [
+        "aspire",
+        "agent",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

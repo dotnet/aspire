@@ -24,7 +24,7 @@ internal sealed class AgentClient
         DisplayName = AgentCommandStrings.Environment_Copilot,
         Environments = AgentEnvironment.CopilotCli | AgentEnvironment.CopilotApp | AgentEnvironment.VsCode,
         GlobalMcpConfigPath = static (context, environment) =>
-            Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json"),
+            Path.Combine(CopilotPaths.GetConfigDirectory(context, environment), "mcp-config.json"),
         McpServersPropertyName = "mcpServers",
         McpJsonDocumentOptions = ConfigurationHelper.ParseOptions,
         GlobalMcpServerConfiguration = new JsonObject
@@ -95,21 +95,21 @@ internal sealed class AgentClient
 
     public bool Includes(AgentEnvironment environments) => (Environments & environments) != AgentEnvironment.None;
 
-    public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
+    public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo? workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
         return scope is AgentConfigurationScope.Project
-            ? Path.Combine(workspaceRoot.FullName, ProjectSkillsDirectory)
+            ? Path.Combine(AgentPath.RequireWorkspaceRoot(workspaceRoot).FullName, ProjectSkillsDirectory)
             : GlobalSkillsDirectory(executionContext, environment);
     }
 
-    public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
+    public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo? workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
         return scope is AgentConfigurationScope.Project
-            ? ProjectMcpConfigPath(workspaceRoot)
+            ? ProjectMcpConfigPath(AgentPath.RequireWorkspaceRoot(workspaceRoot))
             : GlobalMcpConfigPath(executionContext, environment);
     }
 
-    public IEnumerable<(string Path, string ServersPropertyName, bool ConfigureServer)> GetMcpConfigPaths(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
+    public IEnumerable<(string Path, string ServersPropertyName, bool ConfigureServer)> GetMcpConfigPaths(AgentConfigurationScope scope, DirectoryInfo? workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
         yield return (GetMcpConfigPath(scope, workspaceRoot, executionContext, environment), McpServersPropertyName, true);
         if (scope is AgentConfigurationScope.Project)
@@ -118,7 +118,7 @@ internal sealed class AgentClient
             // selected scope or authorize writes for an unselected client.
             foreach (var path in ProjectMcpRepairFiles)
             {
-                yield return (Path.Combine(workspaceRoot.FullName, path), "servers", false);
+                yield return (Path.Combine(AgentPath.RequireWorkspaceRoot(workspaceRoot).FullName, path), "servers", false);
             }
         }
     }

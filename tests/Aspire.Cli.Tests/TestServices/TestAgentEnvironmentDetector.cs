@@ -13,12 +13,17 @@ internal sealed class TestAgentEnvironmentDetector : IAgentEnvironmentDetector
 
     public AgentEnvironment DetectedEnvironments { get; init; }
 
-    public Task<AgentEnvironment> DetectAsync(
+    public Task<AgentDiscovery> DetectAsync(
         AgentEnvironmentScanContext context,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Interlocked.Increment(ref _scanCount);
-        return Task.FromResult(DetectedEnvironments);
+        var detections = Enum.GetValues<AgentEnvironment>()
+            .Where(value => value is not AgentEnvironment.None && DetectedEnvironments.HasFlag(value))
+            .Select(value => new AgentClientDetection(value, null)).ToArray();
+        return Task.FromResult(new AgentDiscovery(
+            TestAgentEnvironmentScanner.CreateEnvironments(detections).Where(scanner => scanner.Client.Includes(DetectedEnvironments)).ToArray(),
+            detections));
     }
 }

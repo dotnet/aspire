@@ -1,0 +1,14 @@
+﻿{
+  Output: [
+    ⚠ Warning: 'aspire mcp' commands are deprecated and will be removed in a future release. Please use 'aspire agent' instead.,
+    ,
+    Only the selected scope is configured. Shared locations are written once.,
+    Project (Install in your workspace root; committed with your project) (.mcp.json),
+    Existing MCP configuration is disabled.,
+    ⚠️ Configuration completed with errors. Please fix the reported issues and re-run the command.
+  ],
+  Error:
+❌ Blocked Aspire MCP server for Claude Code (Project (Install in your workspace root; committed with your project)): .mcp.json
+📄 See logs at <log-file>
+
+}

@@ -1,0 +1,10 @@
+﻿{
+  "mcp": {
+    "aspire": {
+      "type": "local",
+      "command": ["aspire", "mcp", "start", "--debug"],
+      "environment": { "PRESERVED": "yes" },
+      "enabled": true
+    }
+  }
+}

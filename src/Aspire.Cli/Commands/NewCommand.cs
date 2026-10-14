@@ -22,20 +22,6 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class NewCommand : BaseCommand
 {
-    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
-
-    protected override bool UpdateNotificationsEnabled => true;
-
-    internal override bool PrefetchesTemplatePackageMetadata => true;
-
-    private readonly INewCommandPrompter _prompter;
-    private readonly ITemplateProvider _templateProvider;
-    private readonly ITemplate[] _templates;
-    private readonly IBundleService _bundleService;
-    private readonly IPackagingService _packagingService;
-    private readonly AgentInitCommand _agentInitCommand;
-    private readonly ICliHostEnvironment _hostEnvironment;
-
     internal static readonly Option<string?> s_nameOption = new("--name", "-n")
     {
         Description = NewCommandStrings.NameArgumentDescription,
@@ -63,6 +49,13 @@ internal sealed class NewCommand : BaseCommand
         Recursive = true
     };
 
+    private readonly INewCommandPrompter _prompter;
+    private readonly ITemplateProvider _templateProvider;
+    private readonly ITemplate[] _templates;
+    private readonly IBundleService _bundleService;
+    private readonly IPackagingService _packagingService;
+    private readonly AgentInitCommand _agentInitCommand;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly Option<string?> _channelOption;
     private readonly Option<string?> _languageOption;
 
@@ -89,9 +82,11 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
+        Options.Add(AgentInitCommand.s_playwrightOption);
+        Options.Add(AgentInitCommand.s_dotnetInspectOption);
+        Options.Add(AgentInitCommand.s_aspireSkillsOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
-        Options.Add(AgentInitCommand.s_skillsOption);
 
         // Customize description based on whether staging channel is enabled
         var isStagingEnabled = KnownFeatures.IsStagingChannelEnabled(services.Features, configuration)
@@ -124,6 +119,12 @@ internal sealed class NewCommand : BaseCommand
             Subcommands.Add(templateCommand);
         }
     }
+
+    internal override HelpGroup HelpGroup => HelpGroup.AppCommands;
+
+    protected override bool UpdateNotificationsEnabled => true;
+
+    internal override bool PrefetchesTemplatePackageMetadata => true;
 
     private string? ParseExplicitLanguageId(ParseResult parseResult)
     {
@@ -604,16 +605,15 @@ internal sealed class NewCommand : BaseCommand
 
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
-        // New projects get the complete default skill set, including aspireify. This chained flow
-        // never registers `--mcp`, so MCP configuration is unavailable here by construction —
-        // it remains reachable only through standalone `aspire agent init`.
         var agentInitResult = await _agentInitCommand.PromptAndChainAsync(
             InteractionService,
             templateResult.ExitCode,
             workspaceRoot,
             agentInitBinding,
             PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
-            PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption),
+            AgentSetupService.CreateAssetBinding(parseResult, AgentInitCommand.s_playwrightOption, defaultValue: false),
+            AgentSetupService.CreateAssetBinding(parseResult, AgentInitCommand.s_dotnetInspectOption, defaultValue: false),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_aspireSkillsOption, AspireSkillsMode.Bundled),
             PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 

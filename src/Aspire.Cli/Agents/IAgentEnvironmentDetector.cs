@@ -13,8 +13,8 @@ internal interface IAgentEnvironmentDetector
     /// </summary>
     /// <param name="context">The scan context containing directories and user preferences.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The mask of detected agent environments.</returns>
-    Task<AgentEnvironment> DetectAsync(
+    /// <returns>Read-only client groups and their captured version evidence.</returns>
+    Task<AgentDiscovery> DetectAsync(
         AgentEnvironmentScanContext context,
         CancellationToken cancellationToken);
 }
