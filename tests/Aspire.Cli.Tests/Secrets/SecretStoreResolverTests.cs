@@ -259,6 +259,19 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void ComputeSyntheticAppHostId_RespectsPlatformPathCasing()
+    {
+        var upperPath = Path.Combine("work", "Foo", "AppHost.csproj");
+        var lowerPath = Path.Combine("work", "foo", "AppHost.csproj");
+        var upperId = AspireSecretsPathHelper.ComputeSyntheticAppHostId(upperPath);
+        var lowerId = AspireSecretsPathHelper.ComputeSyntheticAppHostId(lowerPath);
+
+        Assert.StartsWith("apphost-", upperId, StringComparison.Ordinal);
+        Assert.Equal(upperId, AspireSecretsPathHelper.ComputeSyntheticAppHostId(upperPath));
+        Assert.Equal(OperatingSystem.IsWindows(), upperId == lowerId);
+    }
+
+    [Fact]
     public void GetSecretsFilePath_UsesReadableEnvironmentFileNames()
     {
         var homeDirectory = new DirectoryInfo("/home/user");
@@ -370,6 +383,32 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         Assert.NotEqual(
             AspireSecretsPathHelper.CreateSafePathSegment("apphost"),
             AspireSecretsPathHelper.CreateSafePathSegment("apphost."));
+    }
+
+    [Theory]
+    [InlineData("CON")]
+    [InlineData("con")]
+    [InlineData("Con.txt")]
+    [InlineData("PRN")]
+    [InlineData("AUX")]
+    [InlineData("NUL")]
+    [InlineData("COM1")]
+    [InlineData("COM9.txt")]
+    [InlineData("LPT1")]
+    [InlineData("LPT9.ext")]
+    public void SafeAppHostSegments_EscapeWindowsReservedNames(string appHostId)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var segment = AspireSecretsPathHelper.CreateSafePathSegment(appHostId);
+        Assert.StartsWith("_", segment, StringComparison.Ordinal);
+        Assert.NotEqual(AspireSecretsPathHelper.CreateSafePathSegment($"_{appHostId}"), segment);
+        var path = AspireSecretsPathHelper.GetSecretsFilePath(workspace.WorkspaceRoot, appHostId, "Production");
+        var store = new SecretsStore(path);
+        store.Set("Parameters:key", "value");
+        store.Save();
+
+        Assert.Equal(segment, Path.GetFileName(Path.GetDirectoryName(path)));
+        Assert.Equal("value", new SecretsStore(path).Get("Parameters:key"));
     }
 
     [Theory]

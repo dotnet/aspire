@@ -57,15 +57,7 @@ internal static class AspireSecretsPathHelper
             return false;
         }
 
-        // Windows reserves these basenames even when a file extension is present.
-        // https://learn.microsoft.com/windows/win32/fileio/naming-a-file#naming-conventions
-        return !environmentName.Equals("CON", StringComparison.OrdinalIgnoreCase) &&
-            !environmentName.Equals("PRN", StringComparison.OrdinalIgnoreCase) &&
-            !environmentName.Equals("AUX", StringComparison.OrdinalIgnoreCase) &&
-            !environmentName.Equals("NUL", StringComparison.OrdinalIgnoreCase) &&
-            !(environmentName.Length == 4 && environmentName[3] is >= '1' and <= '9' &&
-                (environmentName.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
-                 environmentName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)));
+        return !IsWindowsReservedDeviceName(environmentName);
     }
 
     /// <summary>
@@ -112,7 +104,8 @@ internal static class AspireSecretsPathHelper
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appHostPath);
 
-        var normalizedPath = appHostPath.ToLowerInvariant();
+        // Match platform path comparison without merging distinct Unix AppHosts.
+        var normalizedPath = OperatingSystem.IsWindows() ? appHostPath.ToLowerInvariant() : appHostPath;
         return $"apphost-{ComputeStableHash(normalizedPath)}";
     }
 
@@ -145,6 +138,12 @@ internal static class AspireSecretsPathHelper
             changed = true;
         }
 
+        if (IsWindowsReservedDeviceName(sanitized.Split('.')[0]))
+        {
+            sanitized = $"_{sanitized}";
+            changed = true;
+        }
+
         if (!changed && sanitized.Length <= 80)
         {
             return sanitized;
@@ -156,6 +155,17 @@ internal static class AspireSecretsPathHelper
 
     private static bool IsSafePathSegmentCharacter(char ch) =>
         ch is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '-' or '_' or '.';
+
+    // Windows reserves these basenames even when a file extension is present.
+    // https://learn.microsoft.com/windows/win32/fileio/naming-a-file#naming-conventions
+    private static bool IsWindowsReservedDeviceName(string name) =>
+        name.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
+        (name.Length == 4 && name[3] is >= '1' and <= '9' &&
+            (name.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+             name.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)));
 
     private static string ComputeStableHash(string value)
     {
