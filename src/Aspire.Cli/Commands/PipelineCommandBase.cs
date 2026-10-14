@@ -13,6 +13,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Secrets;
+using Aspire.Shared.UserSecrets;
 using Aspire.Cli.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -410,7 +411,17 @@ internal abstract class PipelineCommandBase : BaseCommand
             ExecutionContext.EnvironmentVariables,
             args);
 
-        if (string.IsNullOrWhiteSpace(effectiveEnvironment))
+        // Keep existing custom host environments working, even if secret commands
+        // cannot address them. An explicit file also takes precedence over automatic selection.
+        environmentVariables.TryGetValue(KnownConfigNames.AspireSecretsFile, out var explicitSecretsFile);
+        explicitSecretsFile ??= ExecutionContext.GetEnvironmentVariable(KnownConfigNames.AspireSecretsFile);
+        if (!string.IsNullOrWhiteSpace(explicitSecretsFile))
+        {
+            environmentVariables[KnownConfigNames.AspireSecretsFile] = explicitSecretsFile;
+            return;
+        }
+
+        if (!AspireSecretsPathHelper.IsValidEnvironmentName(effectiveEnvironment))
         {
             return;
         }

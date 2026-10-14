@@ -410,6 +410,8 @@ Secret commands accept `--environment` / `-e`, defaulting to `Development`. Name
 
 Environment names are case-insensitive. Subsequent commands reuse an existing file regardless of the requested casing, preserving the filename's spelling for display. The same resolution applies when Hosting loads secrets for the final AppHost environment.
 
+These restrictions apply to secret commands, not to existing AppHost environment names. Run and deployment commands with names such as `QA.EU` or `Local Development` continue to work, but do not automatically select an Aspire secrets file. Existing configuration inputs remain available. Set `ASPIRE_SECRETS_FILE` to an explicit JSON file path to load and persist Aspire secrets for such environments; explicit file selection takes precedence over automatic environment-file selection.
+
 `aspire secret list --format json` emits a JSON object whose property names are secret keys and whose values are secret values:
 
 ```json

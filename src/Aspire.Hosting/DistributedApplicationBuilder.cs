@@ -883,6 +883,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         var resolvedEnvironment = string.IsNullOrWhiteSpace(environmentName) ? Environments.Development : environmentName;
+        // Host environment names predate the portable secrets filename contract.
+        // Unsupported names still work with other configuration or an explicit secrets file.
+        if (!AspireSecretsPathHelper.IsValidEnvironmentName(resolvedEnvironment))
+        {
+            return null;
+        }
+
         return AspireSecretsPathHelper.GetSecretsFilePath(AspireSecretsPathHelper.GetDefaultHomeDirectory(), userSecretsId, resolvedEnvironment);
     }
 

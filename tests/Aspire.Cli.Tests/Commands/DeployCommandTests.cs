@@ -270,8 +270,13 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode); // Ensure the command succeeds
     }
 
-    [Fact]
-    public async Task DeployCommandPassesAspireSecretsFileForEnvironmentWhenStoreExists()
+    [Theory]
+    [InlineData("Production", false)]
+    [InlineData("QA.EU", false)]
+    [InlineData("Local Development", false)]
+    [InlineData("QA.EU", true)]
+    [InlineData("Production", true)]
+    public async Task DeployCommandSelectsSecretsFileWithoutRestrictingHostEnvironment(string environment, bool explicitFile)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
         var appHostFile = new FileInfo(Path.Combine(tempRepo.WorkspaceRoot.FullName, "AppHost.csproj"));
@@ -290,7 +295,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                 RunAsyncCallback = async (_, _, _, _, _, env, backchannelCompletionSource, _, _) =>
                 {
                     Assert.NotNull(env);
-                    Assert.True(env.TryGetValue(KnownConfigNames.AspireSecretsFile, out capturedSecretsFile));
+                    env.TryGetValue(KnownConfigNames.AspireSecretsFile, out capturedSecretsFile);
 
                     var deployModeCompleted = new TaskCompletionSource();
                     backchannelCompletionSource?.SetResult(new TestAppHostBackchannel
@@ -303,6 +308,16 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
             };
         });
 
+        var explicitPath = Path.Combine(tempRepo.WorkspaceRoot.FullName, "explicit.json");
+        using var initialProvider = services.BuildServiceProvider();
+        var originalContext = initialProvider.GetRequiredService<CliExecutionContext>();
+        services.AddSingleton(new CliExecutionContext(
+            originalContext.WorkingDirectory, originalContext.HivesDirectory, originalContext.CacheDirectory,
+            originalContext.SdksDirectory, originalContext.LogsDirectory, originalContext.LogFilePath,
+            environmentVariables: explicitFile
+                ? new Dictionary<string, string?> { [KnownConfigNames.AspireSecretsFile] = explicitPath }
+                : new Dictionary<string, string?>(),
+            homeDirectory: originalContext.HomeDirectory));
         using var provider = services.BuildServiceProvider();
         var resolver = provider.GetRequiredService<AspireSecretsStoreResolver>();
         var project = provider.GetRequiredService<IAppHostProjectFactory>().GetProject(appHostFile);
@@ -312,11 +327,11 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         secrets.AspireStore.Save();
 
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"deploy --apphost \"{appHostFile.FullName}\" --environment Production");
+        var result = command.Parse($"deploy --apphost \"{appHostFile.FullName}\" --environment \"{environment}\"");
         var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.Equal(secrets.AspireSecretsFilePath, capturedSecretsFile);
+        Assert.Equal(explicitFile ? explicitPath : environment == "Production" ? secrets.AspireSecretsFilePath : null, capturedSecretsFile);
     }
 
     [Fact]

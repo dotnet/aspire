@@ -488,10 +488,61 @@ public class DistributedApplicationBuilderTests
     [InlineData("prod/eu")]
     [InlineData("Production.")]
     [InlineData("CON")]
-    public void AspireSecretsIdentityRejectsInvalidEnvironmentNames(string environment)
+    [InlineData("Local Development")]
+    public void AspireSecretsIdentitySkipsUnsupportedEnvironmentNames(string environment)
     {
         var userSecretsId = Guid.NewGuid().ToString("N");
-        Assert.Throws<ArgumentException>(() => DistributedApplicationBuilder.ResolveAspireSecretsFilePath(null, userSecretsId, environment));
+        Assert.Null(DistributedApplicationBuilder.ResolveAspireSecretsFilePath(null, userSecretsId, environment));
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = [$"{KnownConfigNames.AspireUserSecretsId}={userSecretsId}", "--environment", environment],
+            DisableDashboard = true,
+        });
+        Assert.Equal(environment, appBuilder.Environment.EnvironmentName);
+        Assert.False(appBuilder.UserSecretsManager.IsAvailable);
+    }
+
+    [Fact]
+    public async Task UserSecretsStatePreservesJsonTypesAcrossReload()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var path = Path.Combine(directory.FullName, "state.json");
+            var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+            {
+                Args = [$"{KnownConfigNames.AspireSecretsFile}={path}", "--environment", "QA.EU"],
+                DisableDashboard = true,
+            });
+            var state = System.Text.Json.Nodes.JsonNode.Parse("""
+                {
+                  "Resource": {
+                    "Count": 42,
+                    "Enabled": true,
+                    "Ratio": 1.25,
+                    "Missing": null,
+                    "Text": "value"
+                  }
+                }
+                """)!.AsObject();
+            await builder.UserSecretsManager.SaveStateAsync(state);
+
+            var manager = new Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager(
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager>.Instance,
+                builder.UserSecretsManager);
+            var section = await manager.AcquireSectionAsync("Resource");
+            Assert.Equal(42, section.Data["Count"]!.GetValue<int>());
+            Assert.True(section.Data["Enabled"]!.GetValue<bool>());
+            Assert.Equal(1.25, section.Data["Ratio"]!.GetValue<double>());
+            Assert.True(section.Data.ContainsKey("Missing"));
+            Assert.Null(section.Data["Missing"]);
+            Assert.Equal("value", section.Data["Text"]!.GetValue<string>());
+            Assert.Equal(path, builder.UserSecretsManager.FilePath);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 
     [Fact]

@@ -166,17 +166,7 @@ internal sealed class UserSecretsManagerFactory
             try
             {
                 var flattenedState = JsonFlattener.FlattenJsonObject(state);
-                var store = new SecretsStore(FilePath);
-                store.Clear();
-                foreach (var (key, value) in flattenedState)
-                {
-                    if (value is not null)
-                    {
-                        store.Set(key, value.ToString());
-                    }
-                }
-
-                store.Save();
+                SecretsStore.SaveJson(FilePath, flattenedState);
             }
             finally
             {

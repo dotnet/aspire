@@ -83,7 +83,21 @@ internal sealed class SecretsStore
     /// </summary>
     public void Save()
     {
-        var directory = Path.GetDirectoryName(_secretsFilePath);
+        var obj = new JsonObject();
+        foreach (var (key, value) in _secrets)
+        {
+            obj[key] = value;
+        }
+
+        SaveJson(_secretsFilePath, obj);
+    }
+
+    /// <summary>
+    /// Atomically persists JSON without converting its values to strings.
+    /// </summary>
+    internal static void SaveJson(string filePath, JsonObject obj)
+    {
+        var directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
@@ -93,17 +107,11 @@ internal sealed class SecretsStore
             }
         }
 
-        var obj = new JsonObject();
-        foreach (var (key, value) in _secrets)
-        {
-            obj[key] = value;
-        }
-
         var json = obj.ToJsonString(s_jsonOptions);
 
         if (!string.IsNullOrEmpty(directory))
         {
-            var tempFilename = Path.Combine(directory, $".{Path.GetFileName(_secretsFilePath)}.{Guid.NewGuid():N}.tmp");
+            var tempFilename = Path.Combine(directory, $".{Path.GetFileName(filePath)}.{Guid.NewGuid():N}.tmp");
             try
             {
                 var options = new FileStreamOptions
@@ -129,11 +137,11 @@ internal sealed class SecretsStore
                     writer.Write(json);
                 }
 
-                File.Move(tempFilename, _secretsFilePath, overwrite: true);
+                File.Move(tempFilename, filePath, overwrite: true);
 
                 if (!OperatingSystem.IsWindows())
                 {
-                    File.SetUnixFileMode(_secretsFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
                 }
             }
             finally
@@ -146,7 +154,7 @@ internal sealed class SecretsStore
         }
         else
         {
-            File.WriteAllText(_secretsFilePath, json);
+            File.WriteAllText(filePath, json);
         }
     }
 
