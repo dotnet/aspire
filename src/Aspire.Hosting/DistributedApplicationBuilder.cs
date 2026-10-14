@@ -199,14 +199,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // This gives us the priority order: --environment > DOTNET_ENVIRONMENT > ASPIRE_ENVIRONMENT > default.
         var configuration = new ConfigurationManager();
         configuration.AddEnvironmentVariables(prefix: AspireEnvironmentVariablePrefix);
+        var aspireEnvironmentProvider = ((IConfigurationRoot)configuration).Providers.Last();
         innerBuilderOptions.Configuration = configuration;
 
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
-        var configuredUserSecretsId = GetAspirePrefixedConfigurationValue(_innerBuilder.Configuration, KnownConfigNames.AspireUserSecretsId);
-        var configuredAspireSecretsFile = GetAspirePrefixedConfigurationValue(_innerBuilder.Configuration, KnownConfigNames.AspireSecretsFile);
-        var userSecretsId = ResolveUserSecretsId(AppHostAssembly, _innerBuilder.Configuration);
+        var configuredUserSecretsId = GetAspirePrefixedConfigurationValue(_innerBuilder.Configuration, KnownConfigNames.AspireUserSecretsId, aspireEnvironmentProvider);
+        var configuredAspireSecretsFile = GetAspirePrefixedConfigurationValue(_innerBuilder.Configuration, KnownConfigNames.AspireSecretsFile, aspireEnvironmentProvider);
+        var userSecretsId = ResolveUserSecretsId(AppHostAssembly, _innerBuilder.Configuration, aspireEnvironmentProvider);
         var legacyUserSecretsFilePath = ResolveLegacyUserSecretsFilePath(userSecretsId);
         var aspireSecretsFilePath = ResolveAspireSecretsFilePath(configuredAspireSecretsFile, userSecretsId, _innerBuilder.Environment.EnvironmentName);
         var isDevelopment = _innerBuilder.Environment.IsDevelopment();
@@ -838,18 +839,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return builder;
     }
 
-    internal static string? ResolveUserSecretsId(Assembly? appHostAssembly, IConfiguration configuration)
+    internal static string? ResolveUserSecretsId(Assembly? appHostAssembly, IConfiguration configuration, IConfigurationProvider? aspireEnvironmentProvider = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         // An explicitly configured value should win over any assembly-level UserSecretsId so guest AppHosts can
         // direct secrets to their synthetic store instead of the generated server project's store.
-        var configuredUserSecretsId = GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireUserSecretsId);
+        var configuredUserSecretsId = GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireUserSecretsId, aspireEnvironmentProvider);
         var assemblyUserSecretsId = appHostAssembly?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
         return string.IsNullOrWhiteSpace(configuredUserSecretsId) ? assemblyUserSecretsId : configuredUserSecretsId;
     }
 
-    internal static string? GetAspirePrefixedConfigurationValue(IConfiguration configuration, string key)
+    internal static string? GetAspirePrefixedConfigurationValue(IConfiguration configuration, string key, IConfigurationProvider? aspireEnvironmentProvider = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -860,11 +861,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             return configuredValue;
         }
 
-        // The constructor pre-seeds ASPIRE_-prefixed environment variables so
-        // ASPIRE_ENVIRONMENT can participate in host environment selection before
-        // HostApplicationBuilder is created. That provider strips the prefix, so
-        // ASPIRE_SECRETS_FILE is visible as SECRETS_FILE at this point.
-        return configuration[key[AspireEnvironmentVariablePrefix.Length..]];
+        // ASPIRE_SECRETS_FILE appears as SECRETS_FILE in the pre-seeded ASPIRE_
+        // provider. Only consult that provider: an unrelated appsettings or
+        // command-line SECRETS_FILE must not select the AppHost's secrets store.
+        return aspireEnvironmentProvider is not null &&
+            aspireEnvironmentProvider.TryGet(key[AspireEnvironmentVariablePrefix.Length..], out var value)
+            ? value
+            : null;
     }
 
     internal static string? ResolveAspireSecretsFilePath(string? configuredAspireSecretsFile, string? userSecretsId, string environmentName)

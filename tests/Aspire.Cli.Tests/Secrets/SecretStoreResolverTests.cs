@@ -54,7 +54,7 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         using var provider = CreateDotNetServices(workspace, userSecretsId);
         var resolver = provider.GetRequiredService<AspireSecretsStoreResolver>();
         var project = provider.GetRequiredService<DotNetAppHostProject>();
-        string[] environments = ["Development", "Production", "prod/eu"];
+        string[] environments = ["Development", "Production", "prod-eu"];
         var sourcePaths = new List<string>();
 
         foreach (var environment in environments)
@@ -106,7 +106,7 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         var project = provider.GetRequiredService<DotNetAppHostProject>();
         var sourcePath = AspireSecretsStoreResolver.GetSecretsFilePath(
             workspace.WorkspaceRoot, AspireSecretsPathHelper.ComputeSyntheticAppHostId(appHostFile.FullName), "Production");
-        var destinationPath = AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, userSecretsId, "Production");
+        var destinationPath = AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, userSecretsId, "production");
         var source = new SecretsStore(sourcePath);
         source.Set("Parameters:collision", "old");
         source.Set("Parameters:imported", "imported");
@@ -118,6 +118,7 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
 
         var results = await resolver.ResolveAllExistingAsync(appHostFile, project, CancellationToken.None).DefaultTimeout();
         var production = Assert.Single(results);
+        Assert.Equal("production", production.EnvironmentName);
         Assert.Equal(destinationPath, production.AspireSecretsFilePath);
         Assert.Equal("canonical", production.AspireStore.Get("Parameters:collision"));
         Assert.Equal("imported", production.AspireStore.Get("Parameters:imported"));
@@ -217,15 +218,108 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         Assert.Equal(Path.Combine(homeDirectory.FullName, ".aspire", "secrets", "apphost-id", "Production.json"), path);
     }
 
-    [Fact]
-    public void GetSecretsFilePath_SanitizesUnsafeEnvironmentFileNames()
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("prod/eu")]
+    [InlineData("prod\\eu")]
+    [InlineData(".Production")]
+    [InlineData("Production.")]
+    [InlineData("prod.eu")]
+    [InlineData("-Production")]
+    [InlineData("_Production")]
+    [InlineData("prod eu")]
+    [InlineData("pröd")]
+    [InlineData("CON")]
+    [InlineData("prn")]
+    [InlineData("Aux")]
+    [InlineData("NUL")]
+    [InlineData("COM1")]
+    [InlineData("com9")]
+    [InlineData("LPT1")]
+    [InlineData("lpt9")]
+    public void GetSecretsFilePath_RejectsInvalidEnvironmentNames(string environment)
     {
         var homeDirectory = new DirectoryInfo("/home/user");
 
-        var path = AspireSecretsStoreResolver.GetSecretsFilePath(homeDirectory, "apphost-id", "prod/eu");
+        Assert.False(AspireSecretsPathHelper.IsValidEnvironmentName(environment));
+        Assert.Throws<ArgumentException>(() => AspireSecretsStoreResolver.GetSecretsFilePath(homeDirectory, "apphost-id", environment));
+    }
 
-        Assert.StartsWith(Path.Combine(homeDirectory.FullName, ".aspire", "secrets", "apphost-id", "prod_eu-"), path, StringComparison.Ordinal);
-        Assert.EndsWith(".json", path, StringComparison.Ordinal);
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("production")]
+    [InlineData("prod-eu")]
+    [InlineData("prod_eu")]
+    [InlineData("1")]
+    [InlineData("COM10")]
+    [InlineData("LPT0")]
+    public void GetSecretsFilePath_PreservesValidEnvironmentNames(string environment)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        Assert.True(AspireSecretsPathHelper.IsValidEnvironmentName(environment));
+        Assert.Equal(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "secrets", "apphost-id", $"{environment}.json"),
+            AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", environment));
+    }
+
+    [Fact]
+    public void GetSecretsFilePath_EnforcesEnvironmentNameLengthLimit()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var environment = new string('a', 80);
+
+        Assert.True(AspireSecretsPathHelper.IsValidEnvironmentName(environment));
+        Assert.EndsWith($"{environment}.json", AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", environment), StringComparison.Ordinal);
+        Assert.False(AspireSecretsPathHelper.IsValidEnvironmentName(environment + "a"));
+        Assert.Throws<ArgumentException>(() => AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", environment + "a"));
+    }
+
+    [Fact]
+    public void GetSecretsFilePath_ReusesExistingEnvironmentSpelling()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var path = AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", "Production");
+        var store = new SecretsStore(path);
+        store.Set("Parameters:key", "value");
+        store.Save();
+
+        Assert.Equal(path, AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", "production"));
+        Assert.Equal(path, AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", "PRODUCTION"));
+    }
+
+    [Fact]
+    public void GetSecretsFilePath_RejectsAmbiguousExistingEnvironmentFiles()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var directory = AspireSecretsStoreResolver.GetSecretsDirectoryPath(workspace.WorkspaceRoot, "apphost-id");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "Production.json"), "{}");
+        File.WriteAllText(Path.Combine(directory, "production.json"), "{}");
+
+        // Only case-sensitive filesystems can contain both files. On other filesystems
+        // the second write replaces the same file and resolution must still succeed.
+        if (Directory.EnumerateFiles(directory).Count() == 2)
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+                AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", "PRODUCTION"));
+        }
+        else
+        {
+            Assert.True(File.Exists(AspireSecretsStoreResolver.GetSecretsFilePath(workspace.WorkspaceRoot, "apphost-id", "PRODUCTION")));
+        }
+    }
+
+    [Fact]
+    public void SafeAppHostSegments_PreserveIdentityWhenTrimmingDots()
+    {
+        Assert.NotEqual(
+            AspireSecretsPathHelper.CreateSafePathSegment("apphost"),
+            AspireSecretsPathHelper.CreateSafePathSegment(".apphost"));
+        Assert.NotEqual(
+            AspireSecretsPathHelper.CreateSafePathSegment("apphost"),
+            AspireSecretsPathHelper.CreateSafePathSegment("apphost."));
     }
 
     private ServiceProvider CreateDotNetServices(TemporaryWorkspace workspace, string userSecretsId)

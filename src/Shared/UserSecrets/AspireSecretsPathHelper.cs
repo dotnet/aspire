@@ -22,8 +22,61 @@ internal static class AspireSecretsPathHelper
         ArgumentException.ThrowIfNullOrWhiteSpace(appHostId);
         ArgumentException.ThrowIfNullOrWhiteSpace(environmentName);
 
-        var safeEnvironmentName = CreateSafePathSegment(environmentName);
-        return Path.Combine(GetSecretsDirectoryPath(homeDirectory, appHostId), $"{safeEnvironmentName}.json");
+        ValidateEnvironmentName(environmentName);
+        var directory = GetSecretsDirectoryPath(homeDirectory, appHostId);
+        if (Directory.Exists(directory))
+        {
+            // Environment identity must not depend on the filesystem's case sensitivity.
+            // Retain the existing filename spelling so list --all reports the original name.
+            var existingPaths = Directory.EnumerateFiles(directory)
+                .Where(path => string.Equals(Path.GetFileName(path), $"{environmentName}.json", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (existingPaths.Length > 1)
+            {
+                throw new InvalidOperationException($"Multiple Aspire secrets files exist for environment '{environmentName}' in '{directory}'. Consolidate the files before continuing.");
+            }
+
+            if (existingPaths.Length == 1)
+            {
+                return existingPaths[0];
+            }
+        }
+
+        return Path.Combine(directory, $"{environmentName}.json");
+    }
+
+    /// <summary>
+    /// Returns whether an environment name can be used as a portable secrets filename.
+    /// </summary>
+    public static bool IsValidEnvironmentName(string? environmentName)
+    {
+        if (environmentName is null || environmentName.Length is < 1 or > 80 ||
+            !char.IsAsciiLetterOrDigit(environmentName[0]) ||
+            environmentName.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
+        {
+            return false;
+        }
+
+        // Windows reserves these basenames even when a file extension is present.
+        // https://learn.microsoft.com/windows/win32/fileio/naming-a-file#naming-conventions
+        return !environmentName.Equals("CON", StringComparison.OrdinalIgnoreCase) &&
+            !environmentName.Equals("PRN", StringComparison.OrdinalIgnoreCase) &&
+            !environmentName.Equals("AUX", StringComparison.OrdinalIgnoreCase) &&
+            !environmentName.Equals("NUL", StringComparison.OrdinalIgnoreCase) &&
+            !(environmentName.Length == 4 && environmentName[3] is >= '1' and <= '9' &&
+                (environmentName.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+                 environmentName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>
+    /// Rejects environment names that cannot be used as portable secrets filenames.
+    /// </summary>
+    public static void ValidateEnvironmentName(string environmentName)
+    {
+        if (!IsValidEnvironmentName(environmentName))
+        {
+            throw new ArgumentException("Environment names must contain 1-80 ASCII letters, digits, hyphens, or underscores, start with a letter or digit, and must not be Windows reserved device names.", nameof(environmentName));
+        }
     }
 
     /// <summary>
@@ -83,7 +136,9 @@ internal static class AspireSecretsPathHelper
             }
         }
 
-        var sanitized = builder.ToString().Trim('.');
+        var segment = builder.ToString();
+        var sanitized = segment.Trim('.');
+        changed |= sanitized.Length != segment.Length;
         if (string.IsNullOrWhiteSpace(sanitized))
         {
             sanitized = "value";

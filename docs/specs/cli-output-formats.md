@@ -406,6 +406,10 @@ If discovery finds no AppHost candidates, the stream emits no lines. The stream 
 
 ### `aspire secret list`
 
+Secret commands accept `--environment` / `-e`, defaulting to `Development`. Names contain 1-80 ASCII letters, digits, hyphens, or underscores and must start with a letter or digit. Dots, path separators, whitespace, and Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, and `LPT1`-`LPT9`) are rejected. For example, use `prod-eu`, not `prod/eu`.
+
+Environment names are case-insensitive. Subsequent commands reuse an existing file regardless of the requested casing, preserving the filename's spelling for display. The same resolution applies when Hosting loads secrets for the final AppHost environment.
+
 `aspire secret list --format json` emits a JSON object whose property names are secret keys and whose values are secret values:
 
 ```json
@@ -417,7 +421,9 @@ If discovery finds no AppHost candidates, the stream emits no lines. The stream 
 
 The JSON form includes secret values. Do not redirect it to logs or files unless that destination is allowed to contain secrets.
 
-`aspire secret get <key>` emits the secret value as raw text on stdout. `aspire secret path` emits the user-secrets file path as raw text on stdout.
+`aspire secret list --all --format json` groups the same secret objects by environment name. `--all` cannot be combined with `--environment`.
+
+`aspire secret get <key>` emits the secret value as raw text on stdout. `aspire secret path` emits the Aspire environment secrets file path as raw text on stdout.
 
 ### `aspire doctor`
 

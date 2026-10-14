@@ -144,11 +144,13 @@ internal sealed class AspireSecretsStoreResolver(
             foreach (var file in Directory.EnumerateFiles(secretsDirectory, "*.json", SearchOption.TopDirectoryOnly).Order(StringComparer.OrdinalIgnoreCase))
             {
                 var environment = Path.GetFileNameWithoutExtension(file);
+                AspireSecretsPathHelper.ValidateEnvironmentName(environment);
+                var resolvedPath = GetSecretsFilePath(executionContext.HomeDirectory, appHostId, environment);
                 results.Add(new AspireSecretsStoreResult(
                     appHostFile,
                     environment,
-                    file,
-                    new SecretsStore(file),
+                    resolvedPath,
+                    new SecretsStore(resolvedPath),
                     aspireStoreExists: true,
                     legacyUserSecretsFilePath: IsDevelopment(environment) ? legacyUserSecretsFilePath : null));
             }
@@ -157,8 +159,12 @@ internal sealed class AspireSecretsStoreResolver(
         return results;
     }
 
-    internal static string ResolveEnvironmentName(string? environmentName) =>
-        string.IsNullOrWhiteSpace(environmentName) ? DefaultEnvironmentName : environmentName;
+    internal static string ResolveEnvironmentName(string? environmentName)
+    {
+        var resolvedEnvironment = environmentName ?? DefaultEnvironmentName;
+        AspireSecretsPathHelper.ValidateEnvironmentName(resolvedEnvironment);
+        return resolvedEnvironment;
+    }
 
     internal static string GetSecretsFilePath(DirectoryInfo homeDirectory, string appHostId, string environmentName) =>
         AspireSecretsPathHelper.GetSecretsFilePath(homeDirectory, appHostId, environmentName);
@@ -190,7 +196,8 @@ internal sealed class AspireSecretsStoreResolver(
         foreach (var sourceFile in Directory.EnumerateFiles(sourceDirectory, "*.json", SearchOption.TopDirectoryOnly).Order(StringComparer.Ordinal))
         {
             var sourceStore = new SecretsStore(sourceFile);
-            var destinationStore = new SecretsStore(Path.Combine(destinationDirectory, Path.GetFileName(sourceFile)));
+            var environment = Path.GetFileNameWithoutExtension(sourceFile);
+            var destinationStore = new SecretsStore(GetSecretsFilePath(executionContext.HomeDirectory, userSecretsId, environment));
             foreach (var (key, value) in sourceStore.AsEnumerable())
             {
                 if (!destinationStore.ContainsKey(key))

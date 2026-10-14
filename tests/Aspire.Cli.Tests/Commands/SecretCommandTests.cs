@@ -283,6 +283,65 @@ public class SecretCommandTests(ITestOutputHelper outputHelper)
         }
     }
 
+    [Theory]
+    [InlineData("set Parameters:key value")]
+    [InlineData("get Parameters:key")]
+    [InlineData("list")]
+    [InlineData("delete Parameters:key")]
+    [InlineData("path")]
+    public void SecretCommands_RejectInvalidEnvironmentNamesBeforeExecution(string arguments)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        using var provider = CreateSecretTestServices(workspace, outputWriter, appHostFile, Guid.NewGuid().ToString("N"));
+        var command = provider.GetRequiredService<RootCommand>();
+
+        foreach (var environment in new[] { "prod/eu", "Production.", ".Production", "CON", "com1", new string('a', 81), "" })
+        {
+            var result = command.Parse($"secret {arguments} --environment \"{environment}\"");
+            Assert.Contains(result.Errors, error => error.Message == Aspire.Cli.Resources.SecretCommandStrings.InvalidEnvironmentName);
+        }
+
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "secrets")));
+    }
+
+    [Theory]
+    [InlineData("Production", "production")]
+    [InlineData("production", "PRODUCTION")]
+    [InlineData("prod-eu", "PROD-EU")]
+    public async Task SecretCommands_CaseInsensitiveCrudPreservesEnvironmentSpelling(string originalEnvironment, string alternateEnvironment)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var outputWriter = new TestOutputTextWriter(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(appHostFile.FullName, "<Project />");
+        using var provider = CreateSecretTestServices(workspace, outputWriter, appHostFile, userSecretsId);
+        var command = provider.GetRequiredService<RootCommand>();
+        var projectOption = $"--apphost \"{appHostFile.FullName}\"";
+
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret set Parameters:key initial -e {originalEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret set Parameters:key updated -e {alternateEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+
+        outputWriter.Logs.Clear();
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret get Parameters:key -e {alternateEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+        Assert.Contains("updated", outputWriter.Logs);
+
+        outputWriter.Logs.Clear();
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret list --all --format json {projectOption}").InvokeAsync().DefaultTimeout());
+        Assert.Contains(outputWriter.Logs, line => line.Contains($"\"{originalEnvironment}\"", StringComparison.Ordinal));
+        var directory = AspireSecretsStoreResolver.GetSecretsDirectoryPath(workspace.WorkspaceRoot, userSecretsId);
+        Assert.Equal($"{originalEnvironment}.json", Path.GetFileName(Assert.Single(Directory.EnumerateFiles(directory))));
+
+        outputWriter.Logs.Clear();
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret path -e {alternateEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+        Assert.Contains(Path.Combine(directory, $"{originalEnvironment}.json"), outputWriter.Logs);
+
+        Assert.Equal(CliExitCodes.Success, await command.Parse($"secret delete Parameters:key -e {alternateEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+        Assert.Equal(CliExitCodes.ConfigNotFound, await command.Parse($"secret get Parameters:key -e {originalEnvironment} {projectOption}").InvokeAsync().DefaultTimeout());
+    }
+
     private ServiceProvider CreateSecretTestServices(
         TemporaryWorkspace workspace,
         TestOutputTextWriter outputWriter,

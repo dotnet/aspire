@@ -305,25 +305,115 @@ public class DistributedApplicationBuilderTests
         Assert.Equal(assemblyUserSecretsId, DistributedApplicationBuilder.ResolveUserSecretsId(testAssembly, configuration));
     }
 
-    [Fact]
-    public void AspirePrefixedConfigurationValueReadsPrefixStrippedEnvironmentConfiguration()
+    [Theory]
+    [InlineData(KnownConfigNames.AspireSecretsFile, "SECRETS_FILE")]
+    [InlineData(KnownConfigNames.AspireUserSecretsId, "USER_SECRETS_ID")]
+    public void AspirePrefixedConfigurationValueReadsOnlyCapturedEnvironmentProvider(string key, string strippedKey)
+    {
+        var provider = new TestEnvironmentVariablesConfigurationProvider(
+            new Dictionary<string, string?> { [strippedKey] = "from-aspire-environment" });
+        provider.Load();
+        var configuration = new ConfigurationManager
+        {
+            [strippedKey] = "unrelated-value"
+        };
+
+        Assert.Equal("from-aspire-environment", DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, key, provider));
+    }
+
+    [Theory]
+    [InlineData(KnownConfigNames.AspireSecretsFile, "SECRETS_FILE")]
+    [InlineData(KnownConfigNames.AspireUserSecretsId, "USER_SECRETS_ID")]
+    public void AspirePrefixedConfigurationValuePrefersExactConfigurationKey(string key, string strippedKey)
+    {
+        var provider = new TestEnvironmentVariablesConfigurationProvider(
+            new Dictionary<string, string?> { [strippedKey] = "from-aspire-environment" });
+        provider.Load();
+        var configuration = new ConfigurationManager
+        {
+            [strippedKey] = "unrelated-value",
+            [key] = "from-exact-key"
+        };
+
+        Assert.Equal("from-exact-key", DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, key, provider));
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("command-line")]
+    [InlineData("in-memory")]
+    public void AspirePrefixedConfigurationValueIgnoresUnrelatedStrippedKeys(string source)
     {
         var configuration = new ConfigurationManager();
-        configuration["SECRETS_FILE"] = "/tmp/aspire-secrets.json";
+        var values = new Dictionary<string, string?>
+        {
+            ["SECRETS_FILE"] = "unrelated-file",
+            ["USER_SECRETS_ID"] = "unrelated-id"
+        };
+        using var json = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+            {
+              "SECRETS_FILE": "unrelated-file",
+              "USER_SECRETS_ID": "unrelated-id"
+            }
+            """));
+        switch (source)
+        {
+            case "json":
+                configuration.AddJsonStream(json);
+                break;
+            case "command-line":
+                configuration.AddCommandLine(["SECRETS_FILE=unrelated-file", "USER_SECRETS_ID=unrelated-id"]);
+                break;
+            case "in-memory":
+                configuration.AddInMemoryCollection(values);
+                break;
+        }
 
-        Assert.Equal("/tmp/aspire-secrets.json", DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireSecretsFile));
+        var provider = new TestEnvironmentVariablesConfigurationProvider(new Dictionary<string, string?>());
+        provider.Load();
+        Assert.Equal("unrelated-file", configuration["SECRETS_FILE"]);
+        Assert.Equal("unrelated-id", configuration["USER_SECRETS_ID"]);
+        Assert.Null(DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireSecretsFile, provider));
+        Assert.Null(DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireUserSecretsId, provider));
+        Assert.Null(DistributedApplicationBuilder.ResolveUserSecretsId(null, configuration, provider));
     }
 
     [Fact]
-    public void AspirePrefixedConfigurationValuePrefersExactConfigurationKey()
+    public void AspireUserSecretsIdReadsCapturedEnvironmentProvider()
     {
         var configuration = new ConfigurationManager
         {
-            ["SECRETS_FILE"] = "/tmp/from-environment-prefix.json",
-            [KnownConfigNames.AspireSecretsFile] = "/tmp/from-command-line.json"
+            ["USER_SECRETS_ID"] = "unrelated-id"
         };
+        var provider = new TestEnvironmentVariablesConfigurationProvider(
+            new Dictionary<string, string?> { ["USER_SECRETS_ID"] = "aspire-id" });
+        provider.Load();
 
-        Assert.Equal("/tmp/from-command-line.json", DistributedApplicationBuilder.GetAspirePrefixedConfigurationValue(configuration, KnownConfigNames.AspireSecretsFile));
+        Assert.Equal("aspire-id", DistributedApplicationBuilder.ResolveUserSecretsId(null, configuration, provider));
+    }
+
+    [Fact]
+    public void UnrelatedSecretsFileDoesNotAffectAppHostStartup()
+    {
+        var tempDirectory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var unrelatedFile = Path.Combine(tempDirectory.FullName, "unrelated.json");
+            File.WriteAllText(unrelatedFile, "not JSON");
+
+            var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+            {
+                Args = [$"SECRETS_FILE={unrelatedFile}"],
+                DisableDashboard = true,
+            });
+
+            Assert.Equal(unrelatedFile, appBuilder.Configuration["SECRETS_FILE"]);
+            Assert.NotEqual(unrelatedFile, appBuilder.UserSecretsManager.FilePath);
+        }
+        finally
+        {
+            tempDirectory.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -358,6 +448,9 @@ public class DistributedApplicationBuilderTests
     [InlineData("Development")]
     [InlineData("Staging")]
     [InlineData("Production")]
+    [InlineData("development")]
+    [InlineData("STAGING")]
+    [InlineData("production")]
     public void AspireSecretsIdentityUsesFinalHostEnvironment(string environment)
     {
         var userSecretsId = Guid.NewGuid().ToString("N");
@@ -378,15 +471,27 @@ public class DistributedApplicationBuilderTests
                 DisableDashboard = true,
             });
 
+            var storedEnvironment = new[] { "Development", "Staging", "Production" }
+                .Single(name => name.Equals(environment, StringComparison.OrdinalIgnoreCase));
             Assert.Equal(environment, appBuilder.Environment.EnvironmentName);
-            Assert.Equal($"{environment}-secret", appBuilder.Configuration["Parameters:api_key"]);
-            Assert.Equal(AspireSecretsPathHelper.GetSecretsFilePath(homeDirectory, userSecretsId, environment),
+            Assert.Equal($"{storedEnvironment}-secret", appBuilder.Configuration["Parameters:api_key"]);
+            Assert.Equal(AspireSecretsPathHelper.GetSecretsFilePath(homeDirectory, userSecretsId, storedEnvironment),
                 appBuilder.UserSecretsManager.FilePath);
         }
         finally
         {
             Directory.Delete(secretsDirectory, recursive: true);
         }
+    }
+
+    [Theory]
+    [InlineData("prod/eu")]
+    [InlineData("Production.")]
+    [InlineData("CON")]
+    public void AspireSecretsIdentityRejectsInvalidEnvironmentNames(string environment)
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        Assert.Throws<ArgumentException>(() => DistributedApplicationBuilder.ResolveAspireSecretsFilePath(null, userSecretsId, environment));
     }
 
     [Fact]

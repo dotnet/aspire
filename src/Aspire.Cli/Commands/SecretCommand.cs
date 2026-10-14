@@ -7,6 +7,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Shared.UserSecrets;
 
 namespace Aspire.Cli.Commands;
 
@@ -18,7 +19,17 @@ internal sealed class SecretCommand : ParentCommand
     internal static readonly OptionWithLegacy<FileInfo?> s_appHostOption = new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
     internal static readonly Option<string?> s_environmentOption = new("--environment", "-e")
     {
-        Description = SecretCommandStrings.EnvironmentOptionDescription
+        Description = SecretCommandStrings.EnvironmentOptionDescription,
+        Validators =
+        {
+            result =>
+            {
+                if (!AspireSecretsPathHelper.IsValidEnvironmentName(result.GetValueOrDefault<string>()))
+                {
+                    result.AddError(SecretCommandStrings.InvalidEnvironmentName);
+                }
+            }
+        }
     };
 
     internal override HelpGroup HelpGroup => HelpGroup.ToolsAndConfiguration;
