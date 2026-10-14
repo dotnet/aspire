@@ -158,7 +158,16 @@ internal sealed class SecretsStore
                     writer.Write(json);
                 }
 
-                File.Move(tempFilename, filePath, overwrite: true);
+                if (OperatingSystem.IsWindows() && File.Exists(filePath))
+                {
+                    // Replacement preserves the destination DACL; a move would inherit the
+                    // temporary file's permissions from a potentially broader-access directory.
+                    File.Replace(tempFilename, filePath, destinationBackupFileName: null);
+                }
+                else
+                {
+                    File.Move(tempFilename, filePath, overwrite: true);
+                }
 
                 if (!OperatingSystem.IsWindows())
                 {

@@ -1003,10 +1003,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         var aspireStore = new SecretsStore(aspireSecretsFilePath);
-        foreach (var (key, value) in legacyStore.AsEnumerable())
-        {
-            aspireStore.Set(key, value);
-        }
+        aspireStore.MergeFrom(legacyStore);
 
         aspireStore.Save();
     }

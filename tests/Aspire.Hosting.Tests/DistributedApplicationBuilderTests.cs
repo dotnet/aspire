@@ -682,6 +682,56 @@ public class DistributedApplicationBuilderTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task LegacyDevelopmentImportPreservesDeploymentStateTypes()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var legacyPath = Path.Combine(directory.FullName, "legacy.json");
+            var aspirePath = Path.Combine(directory.FullName, "Development.json");
+            const string legacyJson = """
+                {
+                  "Resource": {
+                    "Count": 42,
+                    "Enabled": true,
+                    "Ratio": 1.25,
+                    "Missing": null,
+                    "Text": "value"
+                  }
+                }
+                """;
+            await File.WriteAllTextAsync(legacyPath, legacyJson);
+
+            DistributedApplicationBuilder.ImportLegacyUserSecretsIfNeeded(legacyPath, aspirePath, isDevelopment: true);
+
+            var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+            {
+                Args = [$"{KnownConfigNames.AspireSecretsFile}={aspirePath}", "--environment", "Development"],
+                DisableDashboard = true,
+            });
+            var manager = new Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager(
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<Aspire.Hosting.Pipelines.Internal.UserSecretsDeploymentStateManager>.Instance,
+                builder.UserSecretsManager);
+            var section = await manager.AcquireSectionAsync("Resource");
+            Assert.Equal(42, section.Data["Count"]!.GetValue<int>());
+            Assert.True(section.Data["Enabled"]!.GetValue<bool>());
+            Assert.Equal(1.25, section.Data["Ratio"]!.GetValue<double>());
+            Assert.True(section.Data.ContainsKey("Missing"));
+            Assert.Null(section.Data["Missing"]);
+            Assert.Equal("value", section.Data["Text"]!.GetValue<string>());
+            Assert.Equal(legacyJson, await File.ReadAllTextAsync(legacyPath));
+
+            await File.WriteAllTextAsync(legacyPath, """{"Resource:Count":0}""");
+            DistributedApplicationBuilder.ImportLegacyUserSecretsIfNeeded(legacyPath, aspirePath, isDevelopment: true);
+            Assert.Equal(42, System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(aspirePath))!["Resource:Count"]!.GetValue<int>());
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void CommandLineOverridesAspireSecretsFile()
     {
         var tempDirectory = Directory.CreateTempSubdirectory();

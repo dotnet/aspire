@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Aspire.Cli.Projects;
@@ -407,6 +409,43 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
         }
 
         Assert.Single(Directory.EnumerateFiles(directory.FullName));
+    }
+
+    [Fact]
+    public void SavingSecretsPreservesExistingWindowsFilePermissions()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows file permissions are not supported on this platform.");
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var path = Path.Combine(workspace.WorkspaceRoot.FullName, "secrets.json");
+        var store = new SecretsStore(path);
+        store.Set("Parameters:key", "initial");
+        store.Save();
+
+        using var identity = WindowsIdentity.GetCurrent();
+        Assert.NotNull(identity.User);
+        var security = new FileSecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        security.AddAccessRule(new FileSystemAccessRule(identity.User, FileSystemRights.FullControl, AccessControlType.Allow));
+        var file = new FileInfo(path);
+        file.SetAccessControl(security);
+        var originalPermissions = file.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        var parentPermissions = workspace.WorkspaceRoot.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+
+        store.Set("Parameters:key", "updated");
+        store.Save();
+        Assert.Equal("updated", new SecretsStore(path).Get("Parameters:key"));
+        Assert.Equal(originalPermissions, file.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+
+        SecretsStore.SaveJson(path, new JsonObject { ["Count"] = 42 });
+        Assert.Equal(42, JsonNode.Parse(File.ReadAllText(path))!["Count"]!.GetValue<int>());
+        Assert.Equal(originalPermissions, file.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+        Assert.Equal(parentPermissions, workspace.WorkspaceRoot.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+        Assert.Empty(Directory.EnumerateFiles(workspace.WorkspaceRoot.FullName, ".secrets.json.*.tmp"));
     }
 
     [Fact]
