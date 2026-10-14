@@ -1,0 +1,15 @@
+{
+  "id": "artifact-upload-finalizeartifact-econnreset",
+  "type": "infra-failure",
+  "title": "GitHub artifact upload fails with ECONNRESET during FinalizeArtifact",
+  "error_pattern": "##[error]Failed to FinalizeArtifact: Unable to make request: ECONNRESET\nIf you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints",
+  "occurrences": [
+    {
+      "run_id": 38496148091,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38496148091",
+      "job": "Tests / Package tests - macOS (class, Aspire.Templates.Tests, Templates-NewUpAndBuildStandaloneTemplateTe... / Templates-NewUpAndBuildStandaloneTemplateTests (macos-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-14T02:26:39Z"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "run_id": 38496148091,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38496148091",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T02:26:39Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "de1f8e2199eadb5d840a836ccf441b5914590d97",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 115632823044,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38496148091/job/115632823044",
+      "classification": "flaky-test",
+      "reason": "Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates timed out after 30s on macOS; matches known intermittent CPU-contention timeout in this test.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115635432354,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38496148091/job/115635432354",
+      "classification": "main-repository-breakage",
+      "reason": "Docker build for generated Nuxt publish image deterministically fails at 'RUN npm ci' with exit code 1, after the 59/59 TypeScript AppHost validations passed; matches a recurring repository-level build break in the Nuxt integration test.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Package tests - macOS (class, Aspire.Templates.Tests, Templates-NewUpAndBuildStandaloneTemplateTe... / Templates-NewUpAndBuildStandaloneTemplateTests (macos-latest)",
+      "id": 115637391897,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38496148091/job/115637391897",
+      "classification": "transient-infra",
+      "reason": "All 18 tests passed; the job only failed because the 'Upload logs, and test results' step hit 'Failed to FinalizeArtifact: Unable to make request: ECONNRESET', a transient GitHub Actions artifact service network error.",
+      "failed_steps": [
+        "Upload logs, and test results"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115638248696,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38496148091/job/115638248696",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregator job deterministically exits 1 because the TypeScript SDK validation job it depends on failed (same root cause as job 115635432354).",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(dispose: True, signalFailure: False, ownedTree: True)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation has timed out.",
+      "stack_trace": "at Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(Boolean dispose, Boolean signalFailure, Boolean ownedTree) in /Users/runner/work/aspire/aspire/tests/Shared/Processes/ChildProcessTests.cs:line 318\n   at Aspire.Shared.Tests.ChildProcessTests.Shutdown_UsesSharedGracefulBudgetAndEscalates(Boolean dispose, Boolean signalFailure, Boolean ownedTree) in /Users/runner/work/aspire/aspire/tests/Shared/Processes/ChildProcessTests.cs:line 324\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches prior cause aspire-cli-tests-childprocesstests-shutdown-usessharedgracefulbudget-timeout: a known intermittent timeout on macOS runners under CPU contention, not caused by repository changes."
+    }
+  ],
+  "causes": [
+    "aspire-cli-tests-childprocesstests-shutdown-usessharedgracefulbudget-timeout",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "artifact-upload-finalizeartifact-econnreset"
+  ]
+}
