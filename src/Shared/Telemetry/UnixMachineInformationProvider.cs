@@ -4,7 +4,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 // This is copied from https://github.com/microsoft/mcp/tree/6bb4d76a63d24854efe0fa0bd96f5ab6f699ed3a/core/Azure.Mcp.Core/src/Services/Telemetry
 // Keep in sync with updates there.
@@ -33,14 +33,17 @@ internal abstract class UnixMachineInformationProvider(ILogger<UnixMachineInform
             return null;
         }
 
-        var existingValue = await ReadValueFromDisk(cachePath, DeviceId);
+        // Many apps share this DeveloperTools ID, so concurrent first-time initialization
+        // can generate different IDs. This race is expected to be rare; after initialization,
+        // later calls reuse the cached ID, which stays constant unless removed or changed.
+        var existingValue = await ReadValueFromDisk(cachePath, DeviceId).ConfigureAwait(false);
         if (existingValue != null)
         {
             return existingValue;
         }
 
         var deviceId = GenerateDeviceId();
-        if (await WriteValueToDisk(cachePath, DeviceId, deviceId))
+        if (await WriteValueToDisk(cachePath, DeviceId, deviceId).ConfigureAwait(false))
         {
             return deviceId;
         }
@@ -83,7 +86,7 @@ internal abstract class UnixMachineInformationProvider(ILogger<UnixMachineInform
         {
             File.Delete(fullPath);
 
-            await File.WriteAllTextAsync(fullPath, value, Encoding.UTF8);
+            await File.WriteAllTextAsync(fullPath, value, Encoding.UTF8).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex)
@@ -110,7 +113,7 @@ internal abstract class UnixMachineInformationProvider(ILogger<UnixMachineInform
 
         try
         {
-            var contents = await File.ReadAllTextAsync(path, Encoding.UTF8);
+            var contents = await File.ReadAllTextAsync(path, Encoding.UTF8).ConfigureAwait(false);
             return contents;
         }
         catch (Exception ex)

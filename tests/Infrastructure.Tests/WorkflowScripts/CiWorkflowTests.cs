@@ -139,6 +139,29 @@ public sealed class CiWorkflowTests
     }
 
     [Theory]
+    [InlineData("tests-outerloop.yml", "outerloop_tests")]
+    [InlineData("tests-quarantine.yml", "quarantine_tests")]
+    [InlineData("specialized-test-runner.yml", "run_tests")]
+    [InlineData("run-tests.yml", null)]
+    public void ReusableTestWorkflowsPreserveArtifactReadPermission(string fileName, string? jobName)
+    {
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(ReadWorkflow(fileName)));
+        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
+        var scope = root;
+        if (jobName is not null)
+        {
+            var jobs = (YamlMappingNode)root.Children["jobs"];
+            scope = (YamlMappingNode)jobs.Children[jobName];
+        }
+        var permissions = (YamlMappingNode)scope.Children["permissions"];
+
+        Assert.Equal("read", ((YamlScalarNode)permissions.Children["actions"]).Value);
+        Assert.Equal("read", ((YamlScalarNode)permissions.Children["contents"]).Value);
+        Assert.Equal(2, permissions.Children.Count);
+    }
+
+    [Theory]
     [InlineData("Inject enablePlaywrightInstall into runsheet properties", "steps.generate_tests_matrix_raw.outputs.runsheet")]
     [InlineData("Check if any test requires NuGets", "steps.inject_properties.outputs.runsheet")]
     [InlineData("Check if any test requires CLI archives", "steps.inject_properties.outputs.runsheet")]

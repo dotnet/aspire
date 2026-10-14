@@ -25,6 +25,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
+using Aspire.Shared.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
@@ -351,7 +352,7 @@ internal static class CliTestHelper
         services.AddTransient<SecretListCommand>();
         services.AddTransient<SecretPathCommand>();
         services.AddTransient<SecretDeleteCommand>();
-        services.AddTransient<SecretStoreResolver>();
+        services.AddTransient<AspireSecretsStoreResolver>();
 #if DEBUG
         services.AddTransient<RenderCommand>();
 #endif

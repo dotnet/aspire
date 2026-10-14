@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 // This is copied from https://github.com/microsoft/mcp/tree/6bb4d76a63d24854efe0fa0bd96f5ab6f699ed3a/core/Azure.Mcp.Core/src/Services/Telemetry
 // Keep in sync with updates there.
@@ -22,8 +22,6 @@ internal abstract class MachineInformationProviderBase(ILogger<MachineInformatio
     /// The name of the registry key or file containing device id.
     /// </summary>
     protected const string DeviceId = "deviceid";
-
-    private static readonly SHA256 s_sHA256 = SHA256.Create();
 
     private readonly ILogger<MachineInformationProviderBase> _logger = logger;
 
@@ -79,7 +77,7 @@ internal abstract class MachineInformationProviderBase(ILogger<MachineInformatio
     /// </summary>
     protected static string HashValue(string value)
     {
-        var hashInput = s_sHA256.ComputeHash(Encoding.UTF8.GetBytes(value));
+        var hashInput = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return BitConverter.ToString(hashInput).Replace("-", string.Empty).ToLowerInvariant();
     }
 }
