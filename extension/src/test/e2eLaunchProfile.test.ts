@@ -655,6 +655,24 @@ suite('E2E launch profile', () => {
         assert.ok(!workflow.includes('VS Code extension E2E matrix skipped'));
     });
 
+    test('documents both Azure Functions fixture and VSIX opt-ins for the .NET shard', () => {
+        const extensionRoot = path.resolve(__dirname, '..', '..');
+        const contributing = fs.readFileSync(path.join(extensionRoot, 'CONTRIBUTING.md'), 'utf8');
+        const command = contributing.split('\n').find(line => line.includes('ASPIRE_EXTENSION_E2E_SHARD=azure-functions '));
+        assert.ok(command, 'CONTRIBUTING.md must document the .NET Azure Functions shard command');
+
+        for (const assignment of [
+            'ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS=true',
+            'ASPIRE_EXTENSION_E2E_INSTALL_AZURE_FUNCTIONS_VSIX=true',
+            'ASPIRE_EXTENSION_E2E_DOTNET_RUNTIME_VSIX=/path/to/vscode-dotnet-runtime.vsix',
+            'ASPIRE_EXTENSION_E2E_CSHARP_VSIX=/path/to/vscode-csharp.vsix',
+            'ASPIRE_EXTENSION_E2E_AZURE_RESOURCE_GROUPS_VSIX=/path/to/vscode-azureresourcegroups.vsix',
+            'ASPIRE_EXTENSION_E2E_AZURE_FUNCTIONS_VSIX=/path/to/vscode-azurefunctions.vsix',
+        ]) {
+            assert.ok(command.split(' ').includes(assignment), `The documented command must set ${assignment}`);
+        }
+    });
+
     test('pins the shared debugger and Azure Functions toolchains for offline E2E shards', () => {
         const extensionRoot = path.resolve(__dirname, '..', '..');
         const runner = fs.readFileSync(path.join(extensionRoot, 'scripts', 'run-e2e.js'), 'utf8');
